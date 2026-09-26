@@ -267,6 +267,23 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void ColoredOpaqueRepaintDoesNotLeaveNativeLabelEvidence() {
+        OfficeShape cover = OfficeShape.Rectangle(95D, 42D);
+        cover.FillColor = OfficeColor.Red;
+        cover.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(Box(140D, 20D), 100D, 28D)
+                .Shape(cover, 0D, 10D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+    }
+
+    [Fact]
     public void CheckedStaticBoxIsNotProposedAsAnEmptyCheckbox() {
         OfficeShape firstMark = OfficeShape.Line(0D, 0D, 9D, 9D);
         firstMark.StrokeColor = OfficeColor.Black;
@@ -359,6 +376,34 @@ public sealed class PdfStaticFormRecognizerTests {
 
         Assert.Empty(report.Proposals);
         Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
+    public void LargePaintedBackdropDoesNotOccupyATransparentField() {
+        OfficeShape backdrop = OfficeShape.Rectangle(400D, 300D);
+        backdrop.FillColor = OfficeColor.Blue;
+        backdrop.StrokeColor = null;
+        OfficeShape field = Box(140D, 20D);
+        field.FillColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Shape(backdrop, 0D, 0D)
+                .Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(field, 100D, 28D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
+    public void ContentOrderKeysResolveRepaintWhenDoubleOrdersTie() {
+        PdfContentOrderKey earlier = PdfContentOrderKey.Root.Append(12).Append(4);
+        PdfContentOrderKey later = PdfContentOrderKey.Root.Append(12).Append(5);
+
+        Assert.True(PdfStaticFormRecognizer.IsLater(1D, later, 1D, earlier));
+        Assert.False(PdfStaticFormRecognizer.IsLater(1D, earlier, 1D, later));
     }
 
     [Fact]
@@ -491,6 +536,17 @@ public sealed class PdfStaticFormRecognizerTests {
 
         Assert.Equal(2, report.Proposals.Count);
         Assert.True(report.Proposals[0].VisualBounds.Left > report.Proposals[1].VisualBounds.Left);
+    }
+
+    [Fact]
+    public void RightToLeftTextFieldAcceptsLabelOnItsRight() {
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(Box(140D, 20D), 80D, 80D)).ToBytes();
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "\u05E9\u05DD", 230D, 80D, 300D, 100D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+
+        Assert.Single(report.Proposals);
     }
 
     [Theory]

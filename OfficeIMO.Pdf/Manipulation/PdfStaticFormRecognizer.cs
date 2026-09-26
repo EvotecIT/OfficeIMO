@@ -52,7 +52,7 @@ internal static class PdfStaticFormRecognizer {
             IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(cancellationToken);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = readPage.GetIdentityGraphicsEffectTransitions(cancellationToken);
             int imagePlacementCount = page.Images.Sum(static image => image.Placements.Count);
-            var filledAreas = new List<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)>();
+            var filledAreas = new List<PaintArea>();
             foreach (PdfPageVisualPrimitive painted in primitives) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (painted.HasFillPaint && painted.FillOpacity != 0D && painted.Width > 0D && painted.Height > 0D) {
@@ -66,8 +66,9 @@ internal static class PdfStaticFormRecognizer {
                             Math.Min(visible.Right, clip.X + clip.Width), Math.Min(visible.Bottom, clip.Y + clip.Height));
                         if (visible.Area == 0D) continue;
                     }
-                    filledAreas.Add((visible,
-                        painted.PaintOrder, normalBlend && IsEmptyFill(painted), normalBlend && IsOpaqueWhiteFill(painted)));
+                    filledAreas.Add(new PaintArea(visible, painted.PaintOrder, painted.ContentOrderKey,
+                        normalBlend && IsEmptyFill(painted), normalBlend && IsOpaqueWhiteFill(painted),
+                        normalBlend && IsOpaqueCover(painted)));
                 }
             }
             List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas);
@@ -101,9 +102,10 @@ internal static class PdfStaticFormRecognizer {
                         "A white field outline cannot be distinguished from the page background.");
                     continue;
                 }
-                if (IsCoveredByLaterWhiteFill(filledAreas, OutlinePaintBounds(primitive, visual), primitive.PaintOrder)) {
+                if (IsCoveredByLaterOpaqueFill(filledAreas, OutlinePaintBounds(primitive, visual),
+                    primitive.PaintOrder, primitive.ContentOrderKey)) {
                     AddDiagnostic("occluded-outline", pageNumber,
-                        "A visual field outline is covered by later opaque white paint.");
+                        "A visual field outline is covered by later opaque paint.");
                     continue;
                 }
                 if (HasPaintedInterior(filledAreas, visual, cancellationToken)) continue;
@@ -121,7 +123,7 @@ internal static class PdfStaticFormRecognizer {
                     continue;
                 }
                 if (labels.Any(label => OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) continue;
-                Label? labelMatch = FindLabel(labels, visual, evidence);
+                Label? labelMatch = FindLabel(labels, visual, evidence, pageDirections[pageNumber]);
                 if (labelMatch is null) continue;
                 double confidence = evidence switch {
                     PdfStaticFormEvidenceKind.OutlinedField => 0.84D,
@@ -188,7 +190,7 @@ internal static class PdfStaticFormRecognizer {
 
     private static List<Label> GetLabels(PdfLogicalPage page, IReadOnlyList<PdfStaticFormTextEvidence> ocrText,
         double pageWidth, double pageHeight,
-        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas) {
+        IReadOnlyList<PaintArea> filledAreas) {
         var labels = new List<Label>();
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
             string text = NormalizeLabel(block.Text);
@@ -198,7 +200,7 @@ internal static class PdfStaticFormRecognizer {
             var visual = new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
             if (block.Spans.Count > 0 && !block.Spans.Any(span => span.IsVisible &&
                 (span.Color?.A ?? 255) > 3 &&
-                !IsCoveredByLaterWhiteFill(filledAreas, visual, span.PaintOrder))) continue;
+                !IsCoveredByLaterOpaqueFill(filledAreas, visual, span.PaintOrder, span.ContentOrderKey))) continue;
             labels.Add(new Label(text, visual, block.Confidence, isOcr: false));
         }
         foreach (PdfStaticFormTextEvidence item in ocrText) {
@@ -251,34 +253,40 @@ internal static class PdfStaticFormRecognizer {
         primitive.FillColor is OfficeIMO.Drawing.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
 
     private static bool IsOpaqueWhiteFill(PdfPageVisualPrimitive primitive) =>
-        primitive.HasFillPaint && (primitive.FillOpacity ?? 1D) >= 0.999D &&
+        IsOpaqueCover(primitive) &&
+        primitive.FillColor is OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
+
+    private static bool IsOpaqueCover(PdfPageVisualPrimitive primitive) =>
+        primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.HasFillPaint &&
+        (primitive.FillOpacity ?? 1D) >= 0.999D &&
         primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
         (primitive.ClipPath is not PdfPageClipPath clip ||
          clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping &&
          clip.X <= primitive.X && clip.Y <= primitive.Y &&
          clip.X + clip.Width >= primitive.X + primitive.Width &&
          clip.Y + clip.Height >= primitive.Y + primitive.Height) &&
-        primitive.FillColor is OfficeIMO.Drawing.OfficeColor color && color.R >= 245 && color.G >= 245 && color.B >= 245;
+        primitive.FillColor is OfficeColor color && color.A >= 254;
 
     private static bool HasPaintedInterior(
-        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
+        IReadOnlyList<PaintArea> filledAreas,
         VisualRect candidate,
         CancellationToken cancellationToken) {
-        double latestPaintOrder = double.NegativeInfinity;
+        PaintArea? latestPaint = null;
         bool painted = false;
-        foreach (var (bounds, paintOrder, isEmpty, isOpaqueWhite) in filledAreas) {
+        foreach (PaintArea area in filledAreas) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (paintOrder < latestPaintOrder) continue;
-            if (isEmpty) {
-                if (isOpaqueWhite && bounds.Left <= candidate.Left && bounds.Top <= candidate.Top &&
-                    bounds.Right >= candidate.Right && bounds.Bottom >= candidate.Bottom) {
-                    latestPaintOrder = paintOrder;
+            if (latestPaint.HasValue && !IsLater(area.PaintOrder, area.ContentOrderKey,
+                latestPaint.Value.PaintOrder, latestPaint.Value.ContentOrderKey)) continue;
+            if (area.IsEmpty) {
+                if (area.IsOpaqueWhite && area.Bounds.Left <= candidate.Left && area.Bounds.Top <= candidate.Top &&
+                    area.Bounds.Right >= candidate.Right && area.Bounds.Bottom >= candidate.Bottom) {
+                    latestPaint = area;
                     painted = false;
                 }
             } else {
-                if (bounds.Area > candidate.Area * 1.25D ||
-                    OverlapArea(bounds, candidate) < candidate.Area * 0.8D) continue;
-                latestPaintOrder = paintOrder;
+                if (area.Bounds.Area > candidate.Area * 1.25D ||
+                    OverlapArea(area.Bounds, candidate) < candidate.Area * 0.8D) continue;
+                latestPaint = area;
                 painted = true;
             }
         }
@@ -286,7 +294,7 @@ internal static class PdfStaticFormRecognizer {
     }
 
     private static bool HasInteriorMark(IReadOnlyList<PdfPageVisualPrimitive> primitives,
-        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
+        IReadOnlyList<PaintArea> filledAreas,
         int candidateIndex, VisualRect candidate,
         CancellationToken cancellationToken) {
         const double inset = 0.2D;
@@ -310,6 +318,8 @@ internal static class PdfStaticFormRecognizer {
                 right += strokePadding;
                 bottom += strokePadding;
             }
+            if (primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
+                (right - left) * (bottom - top) > candidate.Area * 1.25D) continue;
             if (right - left < 1D || bottom - top < 1D) continue;
             if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
                 !clip.ContainsTextClipping &&
@@ -317,13 +327,14 @@ internal static class PdfStaticFormRecognizer {
             var visible = new VisualRect(Math.Max(left, interior.Left), Math.Max(top, interior.Top),
                 Math.Min(right, interior.Right), Math.Min(bottom, interior.Bottom));
             if (visible.Area > 0.5D &&
-                !IsCoveredByLaterWhiteFill(filledAreas, visible, primitive.PaintOrder)) return true;
+                !IsCoveredByLaterOpaqueFill(filledAreas, visible, primitive.PaintOrder,
+                    primitive.ContentOrderKey)) return true;
         }
         return false;
     }
 
     private static bool HasImageInterior(PdfLogicalPage page,
-        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
+        IReadOnlyList<PaintArea> filledAreas,
         VisualRect candidate, CancellationToken cancellationToken) {
         var interior = new VisualRect(candidate.Left + 0.2D, candidate.Top + 0.2D,
             candidate.Right - 0.2D, candidate.Bottom - 0.2D);
@@ -344,18 +355,26 @@ internal static class PdfStaticFormRecognizer {
                 var inside = new VisualRect(Math.Max(visible.Left, interior.Left), Math.Max(visible.Top, interior.Top),
                     Math.Min(visible.Right, interior.Right), Math.Min(visible.Bottom, interior.Bottom));
                 if (inside.Area > 0.5D &&
-                    !IsCoveredByLaterWhiteFill(filledAreas, inside, placement.PaintOrder)) return true;
+                    !IsCoveredByLaterOpaqueFill(filledAreas, inside, placement.PaintOrder,
+                        placement.ContentOrderKey)) return true;
             }
         }
         return false;
     }
 
-    private static bool IsCoveredByLaterWhiteFill(
-        IReadOnlyList<(VisualRect Bounds, double PaintOrder, bool IsEmpty, bool IsOpaqueWhite)> filledAreas,
-        VisualRect painted, double paintOrder) =>
-        filledAreas.Any(area => area.IsOpaqueWhite && area.PaintOrder > paintOrder &&
+    private static bool IsCoveredByLaterOpaqueFill(
+        IReadOnlyList<PaintArea> filledAreas,
+        VisualRect painted, double paintOrder, PdfContentOrderKey? contentOrderKey) =>
+        filledAreas.Any(area => area.IsOpaqueCover &&
+            IsLater(area.PaintOrder, area.ContentOrderKey, paintOrder, contentOrderKey) &&
             area.Bounds.Left <= painted.Left && area.Bounds.Top <= painted.Top &&
             area.Bounds.Right >= painted.Right && area.Bounds.Bottom >= painted.Bottom);
+
+    internal static bool IsLater(double candidateOrder, PdfContentOrderKey? candidateKey,
+        double earlierOrder, PdfContentOrderKey? earlierKey) =>
+        candidateKey != null && earlierKey != null
+            ? candidateKey.CompareTo(earlierKey) > 0
+            : candidateOrder > earlierOrder;
 
     private static VisualRect OutlinePaintBounds(PdfPageVisualPrimitive primitive, VisualRect candidate) {
         double padding = Math.Max(0D, primitive.StrokeWidth) / 2D;
@@ -369,7 +388,8 @@ internal static class PdfStaticFormRecognizer {
             candidate.Right + padding, candidate.Bottom + padding);
     }
 
-    private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field, PdfStaticFormEvidenceKind evidence) {
+    private static Label? FindLabel(IReadOnlyList<Label> labels, VisualRect field,
+        PdfStaticFormEvidenceKind evidence, PdfReadingDirection direction) {
         Label? best = null;
         double bestDistance = double.MaxValue;
         foreach (Label label in labels) {
@@ -378,7 +398,8 @@ internal static class PdfStaticFormRecognizer {
             double distance = double.MaxValue;
             if (centerDifference <= Math.Max(10D, field.Height * 0.65D)) {
                 if (bounds.Right <= field.Left && field.Left - bounds.Right <= 120D) distance = field.Left - bounds.Right;
-                if (evidence == PdfStaticFormEvidenceKind.CheckBox && bounds.Left >= field.Right && bounds.Left - field.Right <= 120D) {
+                if ((evidence == PdfStaticFormEvidenceKind.CheckBox || direction == PdfReadingDirection.RightToLeft) &&
+                    bounds.Left >= field.Right && bounds.Left - field.Right <= 120D) {
                     distance = Math.Min(distance, bounds.Left - field.Right);
                 }
             }
@@ -452,6 +473,24 @@ internal static class PdfStaticFormRecognizer {
         internal double Bottom { get; }
         internal double Height => Bottom - Top;
         internal double Area => Math.Max(0D, Right - Left) * Math.Max(0D, Height);
+    }
+
+    private readonly struct PaintArea {
+        internal PaintArea(VisualRect bounds, double paintOrder, PdfContentOrderKey? contentOrderKey,
+            bool isEmpty, bool isOpaqueWhite, bool isOpaqueCover) {
+            Bounds = bounds;
+            PaintOrder = paintOrder;
+            ContentOrderKey = contentOrderKey;
+            IsEmpty = isEmpty;
+            IsOpaqueWhite = isOpaqueWhite;
+            IsOpaqueCover = isOpaqueCover;
+        }
+        internal VisualRect Bounds { get; }
+        internal double PaintOrder { get; }
+        internal PdfContentOrderKey? ContentOrderKey { get; }
+        internal bool IsEmpty { get; }
+        internal bool IsOpaqueWhite { get; }
+        internal bool IsOpaqueCover { get; }
     }
 
     private sealed class Label {
