@@ -160,7 +160,8 @@ public static class HtmlRenderEngine {
             MediaHeight = resolved.CssMediaHeight,
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
-            MediaFeatures = resolved.MediaFeatures.Clone()
+            MediaFeatures = resolved.MediaFeatures.Clone(),
+            IncludeDocumentIcons = false
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         cancellationToken.ThrowIfCancellationRequested();
@@ -314,7 +315,8 @@ public static class HtmlRenderEngine {
             MediaHeight = resolved.CssMediaHeight,
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
-            MediaFeatures = resolved.MediaFeatures.Clone()
+            MediaFeatures = resolved.MediaFeatures.Clone(),
+            IncludeDocumentIcons = false
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
         diagnostics.AddRange(manifest.Diagnostics);

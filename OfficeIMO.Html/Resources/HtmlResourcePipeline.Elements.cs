@@ -322,6 +322,8 @@ public static partial class HtmlResourcePipeline {
         HashSet<string> relTokens = GetRelTokens(rel);
         bool isPreload = relTokens.Contains("preload");
         bool isStylesheet = relTokens.Contains("stylesheet");
+        bool isDocumentIcon = relTokens.Contains("icon") || relTokens.Contains("apple-touch-icon");
+        if (isDocumentIcon && !options.IncludeDocumentIcons && !isPreload && !isStylesheet) return;
         if (isStylesheet && (element.HasAttribute("disabled")
                 || !IsCssStylesheetType(element.GetAttribute("type"))
                 || relTokens.Contains("alternate") && !IsSelectedAlternateStylesheet(element, options))) {

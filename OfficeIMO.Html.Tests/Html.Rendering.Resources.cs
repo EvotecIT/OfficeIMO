@@ -10,6 +10,35 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlRender_DoesNotTreatDocumentIconsAsVisibleImageLoss() {
+        const string html = "<link rel='icon' href='https://assets.example.test/icon.png'>"
+            + "<link rel='preload' as='image' href='https://assets.example.test/preload.png'>"
+            + "<img src='https://assets.example.test/visible.png' width='2' height='2'>";
+        HtmlResourceManifest generalManifest = HtmlResourcePipeline.BuildManifest(html);
+        Assert.Contains(generalManifest.Resources, resource =>
+            resource.ElementName == "link" && resource.Source.EndsWith("/icon.png", StringComparison.Ordinal));
+
+        var requested = new List<string>();
+        byte[] png = PdfPngTestImages.CreateRgbPng(2, 2);
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                requested.Add(request.Uri.AbsolutePath);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(png, "image/png"));
+            },
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(html, options);
+
+        Assert.DoesNotContain("/icon.png", requested);
+        Assert.Contains("/preload.png", requested);
+        Assert.Contains("/visible.png", requested);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && diagnostic.Source.EndsWith("/icon.png", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task HtmlResourceSession_AcceptsEmptyStylesheetAsResolvedResource() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<link rel='stylesheet' href='https://assets.example.test/empty.css'>");

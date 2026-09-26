@@ -42,4 +42,7 @@ public sealed class HtmlResourcePipelineOptions {
 
     /// <summary>Static device and user-preference values used when deciding whether media-gated resources are active.</summary>
     public HtmlRenderMediaFeatures MediaFeatures { get; set; } = new HtmlRenderMediaFeatures();
+
+    // Generic discovery keeps document icons; rendering omits these non-visual metadata assets.
+    internal bool IncludeDocumentIcons { get; set; } = true;
 }
