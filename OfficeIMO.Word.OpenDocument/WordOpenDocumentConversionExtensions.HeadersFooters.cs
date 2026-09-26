@@ -20,6 +20,15 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (story != null) yield return story;
     }
 
+    private static OdtHeaderFooter? ResolveOdtHeaderFooterFallback(OdtPageLayout layout,
+        WordHeaderFooterType kind, bool isHeader) {
+        bool alternateApplies = kind == WordHeaderFooterType.First
+            ? layout.FirstHeader != null || layout.FirstFooter != null
+            : kind == WordHeaderFooterType.Even && (layout.LeftHeader != null || layout.LeftFooter != null);
+        if (!alternateApplies) return null;
+        return isHeader ? (layout.HasHeader ? layout.Header : null) : (layout.HasFooter ? layout.Footer : null);
+    }
+
     private static void CopyOdtHeaderFooter(OdtHeaderFooter source, WordHeaderFooter target,
         WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
         ref int hyperlinks, ref int externalHyperlinks, ref int images, ref int bookmarks,

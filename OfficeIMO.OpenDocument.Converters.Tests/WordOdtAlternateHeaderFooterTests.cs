@@ -182,4 +182,38 @@ public sealed class WordOdtAlternateHeaderFooterTests {
             LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
         }));
     }
+
+    [Fact]
+    public void MissingOdtAlternateUsesItsDefaultHeaderOrFooter() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.Header.AddParagraph("Default header");
+        source.PageLayout.Footer.AddParagraph("Default footer");
+        source.PageLayout.EnsureFirstHeader().AddParagraph("First header");
+        source.PageLayout.EnsureLeftFooter().AddParagraph("Even footer");
+
+        using WordDocument word = WordDocument.Load(new MemoryStream(source.ToWordDocument().ToBytes()));
+        WordSection section = word.Sections[0];
+        Assert.True(section.DifferentFirstPage);
+        Assert.True(section.DifferentOddAndEvenPages);
+        Assert.Equal("First header", Assert.Single(section.Header.First!.Paragraphs).Text);
+        Assert.Equal("Default footer", Assert.Single(section.Footer.First!.Paragraphs).Text);
+        Assert.Equal("Default header", Assert.Single(section.Header.Even!.Paragraphs).Text);
+        Assert.Equal("Even footer", Assert.Single(section.Footer.Even!.Paragraphs).Text);
+        source.ToWordDocumentResult(new WordOpenDocumentConversionOptions {
+            LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss
+        }).Value.Dispose();
+
+        OdtDocument reverse = OdtDocument.Create();
+        reverse.AddParagraph("Body");
+        reverse.PageLayout.Header.AddParagraph("Default header");
+        reverse.PageLayout.Footer.AddParagraph("Default footer");
+        reverse.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
+        reverse.PageLayout.EnsureLeftHeader().AddParagraph("Even header");
+        using WordDocument reversed = WordDocument.Load(new MemoryStream(reverse.ToWordDocument().ToBytes()));
+        Assert.Equal("Default header", Assert.Single(reversed.Sections[0].Header.First!.Paragraphs).Text);
+        Assert.Equal("First footer", Assert.Single(reversed.Sections[0].Footer.First!.Paragraphs).Text);
+        Assert.Equal("Even header", Assert.Single(reversed.Sections[0].Header.Even!.Paragraphs).Text);
+        Assert.Equal("Default footer", Assert.Single(reversed.Sections[0].Footer.Even!.Paragraphs).Text);
+    }
 }

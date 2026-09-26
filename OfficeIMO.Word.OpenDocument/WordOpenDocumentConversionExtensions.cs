@@ -254,12 +254,13 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
             foreach ((OdtHeaderFooter? story, WordHeaderFooterType kind, bool isHeader) in
                 EnumerateOdtHeaderFooterVariants(sourcePageLayout)) {
-                if (story == null) continue;
+                OdtHeaderFooter? effectiveStory = story ?? ResolveOdtHeaderFooterFallback(sourcePageLayout, kind, isHeader);
+                if (effectiveStory == null) continue;
                 WordHeaderFooter destination = isHeader
                     ? firstSection.GetOrCreateHeader(kind)
                     : firstSection.GetOrCreateFooter(kind);
-                if (!story.IsDisplayed) continue;
-                CopyOdtHeaderFooter(story, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
+                if (!effectiveStory.IsDisplayed) continue;
+                CopyOdtHeaderFooter(effectiveStory, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                     ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
                     handledUnsupportedFieldElements, notes);
