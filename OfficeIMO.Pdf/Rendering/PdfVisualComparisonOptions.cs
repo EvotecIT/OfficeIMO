@@ -45,7 +45,7 @@ public sealed class PdfVisualComparisonOptions {
     public PdfVisualPageAlignment Alignment { get; set; } = PdfVisualPageAlignment.TopLeft;
     /// <summary>Raster background used for both inputs.</summary>
     public OfficeColor Background { get; set; } = OfficeColor.White;
-    /// <summary>Ignored comparison regions in output pixel coordinates.</summary>
+    /// <summary>Ignored comparison regions in output pixel coordinates. At most 4096 regions are accepted.</summary>
     public IList<PdfPixelRegion> IgnoredRegions => _ignoredRegions;
     /// <summary>Maximum pages compared by one call.</summary>
     public int MaxPages { get; set; } = 100;
@@ -64,5 +64,16 @@ public sealed class PdfVisualComparisonOptions {
         if (MaxPixelsPerImage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerImage));
         if (MaxTotalPixels <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalPixels));
         if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
+        if (IgnoredRegions.Count > 4096) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, 4096, IgnoredRegions.Count);
+        }
+    }
+
+    internal static void EnsureIgnoredRegionWork(int regionCount, long renderedPixels) {
+        const long maximumWork = 200_000_000L;
+        long work = checked((long)regionCount * renderedPixels);
+        if (work > maximumWork) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maximumWork, work);
+        }
     }
 }

@@ -128,6 +128,20 @@ public class PdfVisualComparerTests {
     }
 
     [Fact]
+    public void CompareRejectsIgnoredRegionWorkBeforeRasterizing() {
+        byte[] pdf = BuildPdf("Bounded ignored regions");
+        var options = new PdfVisualComparisonOptions();
+        for (int index = 0; index < 3000; index++) {
+            options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 240, 180));
+        }
+
+        PdfReadLimitException failure = Assert.Throws<PdfReadLimitException>(() =>
+            PdfVisualComparer.Compare(pdf, pdf, options: options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, failure.Kind);
+    }
+
+    [Fact]
     public void ComparisonGallery_EnforcesUtf8OutputAndCancellationBudgetsDuringRendering() {
         byte[] pdf = BuildPdf("Bounded gallery");
         PdfVisualComparisonReport report = PdfVisualComparer.Compare(pdf, pdf);

@@ -117,8 +117,12 @@ internal static class PdfReviewSemanticComparer {
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
             string semanticText = ReconstructSemanticText(block, ref remainingMappingWork, cancellationToken);
-            bool canPaint = block.Spans.Count == 0 || block.Spans.Any(static span =>
-                span.IsVisible && (span.Color?.A ?? 255) > 3);
+            bool canPaint = block.Spans.Count == 0 || block.Spans.Any(span =>
+                span.IsVisible && (span.Color?.A ?? 255) > 3 &&
+                (!span.ClipPath.HasValue || span.CanProjectCompleteText(page) ||
+                 span.ClipPath.Value is { IsRectangle: true, IsExact: true, ContainsTextClipping: false } &&
+                 !span.ClipPath.Value.CanProveNoPositiveAreaIntersection(
+                     PdfPageClipPath.Rectangle(bounds.Left, bounds.Top, bounds.Width, bounds.Height))));
             output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds, canPaint));
         }
         return output.ToArray();

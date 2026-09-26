@@ -299,6 +299,34 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void ClippedTextDoesNotClaimAnUnrelatedVisiblePaintChange() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Original", clippedText: true,
+            vectorPaint: "0 0 0 rg 20 83 70 12 re f"));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Revised", clippedText: true,
+            vectorPaint: "1 0 0 rg 20 83 70 12 re f"));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
+    public void ReviewRejectsIgnoredRegionWorkBeforeRasterizing() {
+        PdfDocument page = PdfDocument.Load(PdfDocument.Create(new PdfOptions {
+            PageWidth = 600D, PageHeight = 400D
+        }).Canvas(canvas => canvas.Text("Page", 20D, 20D, 100D, 20D)).ToBytes());
+        var options = new PdfReviewComparisonOptions();
+        for (int index = 0; index < 1000; index++) {
+            options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 600, 400));
+        }
+
+        PdfReadLimitException failure = Assert.Throws<PdfReadLimitException>(() => page.Proof.CompareReview(page, options));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, failure.Kind);
+    }
+
+    [Fact]
     public void OrdersMixedTextChangesByPagePosition() {
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
             .Canvas(canvas => {
@@ -590,11 +618,14 @@ public sealed class PdfReviewComparerTests {
     }
 
     private static byte[] InvisibleTextPdf(string text, bool rotated = false, double y = 90D,
-        string? actualTextHex = null, string? vectorPaint = null) {
+        string? actualTextHex = null, string? vectorPaint = null, bool clippedText = false) {
         string position = rotated ? "0 1 -1 0 100 20 Tm " : "20 " + y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Td ";
         string prefix = actualTextHex is null ? string.Empty : "/Span << /ActualText <" + actualTextHex + "> >> BDC ";
         string suffix = actualTextHex is null ? string.Empty : " EMC";
-        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + "BT /F1 12 Tf 3 Tr " + position + "(" + text + ") Tj ET" + suffix +
+        string clipPrefix = clippedText ? "q 0 0 5 5 re W n " : string.Empty;
+        string clipSuffix = clippedText ? " Q" : string.Empty;
+        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + clipPrefix + "BT /F1 12 Tf " +
+            (clippedText ? "0" : "3") + " Tr " + position + "(" + text + ") Tj ET" + clipSuffix + suffix +
             "\n" + vectorPaint + "\n");
         using var stream = new System.IO.MemoryStream();
         void Write(string value) {

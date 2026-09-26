@@ -117,6 +117,7 @@ public static class PdfPageChangeAnalyzer {
             if (pixels > options.MaxPixelsPerPage) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPixels, options.MaxPixelsPerPage, pixels);
             totalPixels = checked(totalPixels + pixels);
             if (totalPixels > options.MaxTotalPixels) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPixels, options.MaxTotalPixels, totalPixels);
+            PdfVisualComparisonOptions.EnsureIgnoredRegionWork(ignoredRegions.Count, totalPixels);
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = options.RenderScale,
                 Background = options.Background,
