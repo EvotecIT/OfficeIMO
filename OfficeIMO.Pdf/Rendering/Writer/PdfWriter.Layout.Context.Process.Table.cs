@@ -245,9 +245,9 @@ internal static partial class PdfWriter {
                     y = PositionTableY(position, Math.Min(maxContentHeight, tableContentHeight));
                 }
             }
-            double tableSpacingBefore = y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore : 0D;
+            double tableSpacingBefore = style.Position == null && y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore : 0D;
             if (style.KeepTogether) {
-                double keepHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
+                double keepHeight = tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
                 if (keepHeight > maxContentHeight + 0.001) {
                     throw new ArgumentException("Table height exceeds the available page content height.");
                 }
@@ -259,7 +259,7 @@ internal static partial class PdfWriter {
             }
 
             if (style.KeepWithNext && nextBlock != null) {
-                double tableHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
+                double tableHeight = tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, tableHeight);
                 double keepHeight = tableHeight + nextHeight;
                 if (nextHeight > 0.001 && tableHeight <= maxContentHeight + 0.001 && keepHeight <= maxContentHeight + 0.001 && y < GetCurrentFramePageStartY() - 0.001 && y - keepHeight < TableBottom()) {
@@ -848,7 +848,7 @@ internal static partial class PdfWriter {
                 DrawTableRow(rowIndex, renderAsHeader: rowIndex < headerRowCount);
             }
 
-            y -= style.SpacingAfter;
+            if (style.Position == null) y -= style.SpacingAfter;
             if (restoreVerticalFlow && (!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
             }

@@ -175,4 +175,95 @@ public class PdfFloatingTableLayoutTests {
         Assert.Single(words, word => word.Text == "row7");
     }
 
+    [Fact]
+    public void WordRechecksWidthWhenItsNewLineEntersFloat() {
+        var style = Floating(200, 220); style.Position = new PdfTablePosition(horizontalAlignment: PdfAlign.Right, verticalOffset: 20);
+        string pending = new string('W', 20);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
+            .Paragraph(paragraph => paragraph.Text("prefixprefixprefixprefixprefix " + pending)).ToBytes());
+        var word = pdf.GetPage(1).GetWords().Single(word => word.Text == pending);
+        Assert.True(word.BoundingBox.Top <= 221, word.BoundingBox.ToString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DefaultPositionedStyleRetainsSharedFlowAnchor(bool deferred) {
+        var options = Options(); options.DefaultTableStyle = Floating();
+        var document = PdfDocument.Create(options).Table(new[] { new[] { "first" } });
+        if (deferred) document.TableDeferred(() => new[] { new[] { "second" } }, batchSize: 1);
+        else document.Table(new[] { new[] { "second" } });
+        using var pdf = PdfPigDocument.Open(document.ToBytes());
+        var letters = pdf.GetPage(1).Letters;
+        var first = letters.Single(letter => letter.Value == "f");
+        var second = letters.Single(letter => letter.Value == "s" && letter.Location.X == first.Location.X);
+        Assert.Equal(first.Location.Y, second.Location.Y, 2);
+    }
+
+    [Fact]
+    public void FlowRuleAndFormFieldStayBelowFloat() {
+        byte[] bytes = PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: Floating())
+            .HR().TextField("field", value: "value").ToBytes();
+        var widget = Assert.Single(PdfInspector.Inspect(bytes).GetFormWidgets("field"));
+        Assert.True(widget.Y2 <= 380);
+    }
+
+    [Fact]
+    public void FlowAnnotationAvoidsAnOffsetFloat() {
+        var style = Floating(); style.Position = new PdfTablePosition(verticalOffset: 20);
+        byte[] bytes = PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: style)
+            .FreeTextAnnotation("note", 120, 40).ToBytes();
+        Assert.True(Assert.Single(PdfInspector.Inspect(bytes).GetAnnotationsBySubtype("FreeText")).Y2 <= 360);
+    }
+
+    [Fact]
+    public void AutomaticColumnsStayBelowFloat() {
+        byte[] bytes = PdfDocument.Create(Options()).Table(new[] { new[] { "floating" } }, style: Floating())
+            .Columns(columns => columns.Paragraph(paragraph => paragraph.Text("column"))).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.True(pdf.GetPage(1).GetWords().Single(word => word.Text == "column").BoundingBox.Top <= 381);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ContinuedFloatIgnoresFlowSpacingAfter(bool deferred) {
+        double LastBaseline(double spacing) {
+            var style = Floating(); style.SpacingAfter = spacing;
+            var rows = Enumerable.Range(0, 8).Select(index => new[] { "row" + index }).ToArray();
+            var document = PdfDocument.Create(Options());
+            if (deferred) document.TableDeferred(() => rows, batchSize: 3, style: style);
+            else document.Table(rows, style: style);
+            using var pdf = PdfPigDocument.Open(document.Paragraph(paragraph => paragraph.Text("after")).ToBytes());
+            return pdf.GetPage(pdf.NumberOfPages).GetWords().Single(word => word.Text == "after").BoundingBox.Top;
+        }
+        Assert.Equal(LastBaseline(0), LastBaseline(50), 2);
+    }
+
+    [Theory]
+    [InlineData(PdfTableAnchor.Margin, 44)]
+    [InlineData(PdfTableAnchor.Flow, 174)]
+    public void NestedTablesDistinguishPageMarginAndFlowAnchors(PdfTableAnchor anchor, double expected) {
+        var table = Floating(); table.Position = new PdfTablePosition(horizontalAnchor: anchor);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Panel(panel => panel.Table(new[] { new[] { "nested" } }, style: table),
+            new PdfPanelStyle { MaxWidth = 200, Align = PdfAlign.Right, PaddingX = 10, PaddingY = 0, KeepTogether = false }).ToBytes());
+        Assert.Equal(expected, pdf.GetPage(1).GetWords().Single(word => word.Text == "nested").BoundingBox.Left, 1);
+    }
+
+    [Fact]
+    public void RowColumnRejectsPositionedTableInsteadOfIgnoringIt() {
+        var document = PdfDocument.Create(Options()).Compose(builder => builder.Page(page => page.Content(content =>
+            content.Row(row => row.PercentColumn(100, column => column.Table(new[] { new[] { "nested" } }, style: Floating()))))));
+        Assert.Throws<System.NotSupportedException>(() => document.ToBytes());
+    }
+
+    [Fact]
+    public void FlowSpacingDoesNotChangeBottomAnchorOrForceExtraPage() {
+        var style = Floating(); style.SpacingBefore = 50; style.SpacingAfter = 50; style.KeepTogether = true;
+        style.Position = new PdfTablePosition(verticalAnchor: PdfTableAnchor.Page, verticalAlignment: PdfTableVerticalAlignment.Bottom);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options()).Table(new[] { new[] { "bottom" } }, style: style).ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.InRange(pdf.GetPage(1).GetWords().Single(word => word.Text == "bottom").BoundingBox.Top, 0, 85);
+    }
+
 }

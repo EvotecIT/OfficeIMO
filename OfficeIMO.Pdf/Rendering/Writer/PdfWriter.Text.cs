@@ -1010,6 +1010,9 @@ internal static partial class PdfWriter {
                     }
 
                     StartNewLine();
+                    // The next line can enter a narrower floating frame. A pending word
+                    // that fit the previous frame must obtain enough space again.
+                    PrepareLineFrame(runFontSize * lineHeightRatio, tokenW);
                     if (token.Length > 0 && pendingLeadingIsTab) {
                         ResolvePendingLeadingTabForCurrentLine(tokenW, spaceW, token, fontForRun, runFontSize, baseline);
                     }

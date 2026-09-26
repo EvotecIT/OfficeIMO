@@ -494,6 +494,13 @@ internal static partial class PdfWriter {
                 return ResolveTopLevelSpacingBefore(textField.SpacingBefore) + textField.Height + textField.SpacingAfter;
             }
 
+            if (block is TextAnnotationBlock textAnnotation)
+                return ResolveTopLevelSpacingBefore(textAnnotation.SpacingBefore) + textAnnotation.Height + textAnnotation.SpacingAfter;
+            if (block is FreeTextAnnotationBlock freeTextAnnotation)
+                return ResolveTopLevelSpacingBefore(freeTextAnnotation.SpacingBefore) + freeTextAnnotation.Height + freeTextAnnotation.SpacingAfter;
+            if (block is HighlightAnnotationBlock highlightAnnotation)
+                return ResolveTopLevelSpacingBefore(highlightAnnotation.SpacingBefore) + highlightAnnotation.Height + highlightAnnotation.SpacingAfter;
+
             if (block is CheckBoxBlock checkBox) {
                 return ResolveTopLevelSpacingBefore(checkBox.SpacingBefore) + checkBox.Size + checkBox.SpacingAfter;
             }
