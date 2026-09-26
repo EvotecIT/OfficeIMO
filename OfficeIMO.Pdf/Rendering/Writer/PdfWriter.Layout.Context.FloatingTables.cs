@@ -4,9 +4,13 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private readonly List<(LayoutResult.Page? Page, double Left, double Right, double Top, double Bottom, bool AllowOverlap)> floatingTables = new();
 
+        private PdfOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
+
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
-            double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginLeft;
-            double available = position.HorizontalAnchor == PdfTableAnchor.Page ? currentOpts.PageWidth : width;
+            double left = position.HorizontalAnchor == PdfTableAnchor.Page ? 0
+                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft : currentOpts.MarginLeft;
+            double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth
+                : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth - PageAnchorOptions.MarginLeft - PageAnchorOptions.MarginRight : width;
             PdfAlign horizontal = position.HorizontalAlignment;
             if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
                 horizontal = horizontal == PdfAlign.Left ? PdfAlign.Right : horizontal == PdfAlign.Right ? PdfAlign.Left : horizontal;
@@ -17,8 +21,9 @@ internal static partial class PdfWriter {
 
         private double PositionTableY(PdfTablePosition position, double tableHeight) {
             double top = position.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight
-                : position.VerticalAnchor == PdfTableAnchor.Margin ? GetCurrentFramePageStartY() : y;
-            double bottom = position.VerticalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginBottom;
+                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageHeight - PageAnchorOptions.MarginTop : y;
+            double bottom = position.VerticalAnchor == PdfTableAnchor.Page ? 0
+                : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom : currentOpts.MarginBottom;
             double alignment = position.VerticalAlignment == PdfTableVerticalAlignment.Bottom ? top - bottom - tableHeight
                 : position.VerticalAlignment == PdfTableVerticalAlignment.Center ? (top - bottom - tableHeight) / 2 : 0;
             return top - alignment - position.VerticalOffset;

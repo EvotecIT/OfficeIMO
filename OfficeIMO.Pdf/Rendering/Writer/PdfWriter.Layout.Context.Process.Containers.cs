@@ -66,6 +66,7 @@ internal static partial class PdfWriter {
                     row.AddColumn(column);
                 }
 
+                if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureKeepWithNextBlockHeight(row, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)));
                 RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0);
                 if (blockIndex < pendingBlocks.Count) NewPage();
             }
