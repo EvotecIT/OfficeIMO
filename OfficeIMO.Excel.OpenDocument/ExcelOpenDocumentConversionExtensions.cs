@@ -510,6 +510,19 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (rowEnd > effective.MaximumRows) truncated = true;
                 bool inheritedUnserializedTail = HasInheritedStyleOnUnserializedTail(rowRun, cellRuns,
                     columnRuns, hasDefaultCellStyle, effective.MaximumColumns, AffectsBlankCell);
+                // A repeated row reuses the same cell and column definitions for every logical row.
+                bool[]? inheritedBlankStyles = null;
+                if (lastRowExclusive - rowRun.StartRow > 1 &&
+                    unsupportedInheritedBlankStyles < int.MaxValue) {
+                    inheritedBlankStyles = new bool[cellRuns.Count];
+                    for (int cellIndex = 0; cellIndex < cellRuns.Count; cellIndex++) {
+                        OdsCellRun blankRun = cellRuns[cellIndex];
+                        if (!blankRun.IsCovered && !IsSignificant(blankRun) &&
+                            blankRun.StartColumn < effective.MaximumColumns)
+                            inheritedBlankStyles[cellIndex] = HasInheritedStyleOnBlankRun(rowRun, blankRun,
+                                columnRuns, hasDefaultCellStyle, AffectsBlankCell);
+                    }
+                }
                 for (long row = rowRun.StartRow; row < lastRowExclusive; row++) {
                     int excelRow = checked((int)row + 1);
                     if (rowRun.Hidden) { sheet.SetRowHidden(excelRow, true); rowLayouts++; }
@@ -521,14 +534,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         rowLayouts++;
                     }
 
-                    foreach (OdsCellRun cellRun in cellRuns) {
+                    for (int cellIndex = 0; cellIndex < cellRuns.Count; cellIndex++) {
+                        OdsCellRun cellRun = cellRuns[cellIndex];
                         long cellColumnEnd = SaturatingAdd(cellRun.StartColumn, cellRun.RepeatCount);
                         long lastColumnExclusive = Math.Min(cellColumnEnd, effective.MaximumColumns);
                         if (cellColumnEnd > effective.MaximumColumns) truncated = true;
                         if (cellRun.IsCovered) continue;
                         if (!IsSignificant(cellRun)) {
                             if (unsupportedInheritedBlankStyles < int.MaxValue && cellRun.StartColumn < effective.MaximumColumns &&
-                                HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle, AffectsBlankCell))
+                                (inheritedBlankStyles?[cellIndex] ?? HasInheritedStyleOnBlankRun(rowRun, cellRun,
+                                    columnRuns, hasDefaultCellStyle, AffectsBlankCell)))
                                 unsupportedInheritedBlankStyles++;
                             continue;
                         }
