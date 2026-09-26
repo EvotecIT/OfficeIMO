@@ -6,7 +6,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Finds reviewable field candidates in static PDF page content.</summary>
-internal static class PdfStaticFormRecognizer {
+internal static partial class PdfStaticFormRecognizer {
     /// <summary>Analyzes page geometry and native text, with optional caller-supplied OCR labels, without changing the source PDF.</summary>
     internal static PdfStaticFormRecognitionReport Analyze(
         PdfDocument source,
@@ -51,6 +51,8 @@ internal static class PdfStaticFormRecognizer {
             PdfReadPage readPage = document.Pages[pageNumber - 1];
             IReadOnlyList<PdfPageVisualPrimitive> primitives = readPage.GetIdentityVisualPrimitives(
                 scaleStrokeWidthWithTransform: true, cancellationToken: cancellationToken);
+            primitives = ExpandIndependentPathStrokes(primitives, ref candidateScanWork,
+                effective.MaxCandidateScanWork, cancellationToken);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = readPage.GetIdentityGraphicsEffectTransitions(cancellationToken);
             int imagePlacementCount = page.Images.Sum(static image => image.Placements.Count);
             var filledAreas = new List<PaintArea>();
@@ -170,10 +172,7 @@ internal static class PdfStaticFormRecognizer {
         var proposals = new List<PdfStaticFormFieldProposal>(proposed.Count);
         int currentPage = 0;
         int tabIndex = 0;
-        foreach (Candidate candidate in proposed.OrderBy(static candidate => candidate.PageNumber)
-                     .ThenBy(static candidate => candidate.Visual.Top)
-                     .ThenBy(candidate => pageDirections[candidate.PageNumber] == PdfReadingDirection.RightToLeft
-                         ? -candidate.Visual.Left : candidate.Visual.Left)) {
+        foreach (Candidate candidate in OrderCandidates(proposed, pageDirections)) {
             cancellationToken.ThrowIfCancellationRequested();
             if (candidate.PageNumber != currentPage) { currentPage = candidate.PageNumber; tabIndex = 0; }
             PdfLogicalPage page = logical.PagesBySourcePageNumber[candidate.PageNumber][0];
@@ -194,6 +193,27 @@ internal static class PdfStaticFormRecognizer {
             } else if (diagnostics[diagnostics.Count - 1].Code != "diagnostics-truncated") {
                 diagnostics[diagnostics.Count - 1] = new PdfStaticFormRecognitionDiagnostic("diagnostics-truncated", pageNumber,
                     "Additional recognition diagnostics were omitted at the configured MaxDiagnostics limit.");
+            }
+        }
+    }
+
+    private static IEnumerable<Candidate> OrderCandidates(IReadOnlyList<Candidate> candidates,
+        Dictionary<int, PdfReadingDirection> directions) {
+        foreach (IGrouping<int, Candidate> page in candidates.GroupBy(static candidate => candidate.PageNumber)
+                     .OrderBy(static page => page.Key)) {
+            Candidate[] topOrder = page.OrderBy(static candidate => candidate.Visual.Top).ToArray();
+            for (int first = 0; first < topOrder.Length;) {
+                int end = first + 1;
+                double rowTop = topOrder[first].Visual.Top;
+                double rowHeight = topOrder[first].Visual.Height;
+                while (end < topOrder.Length &&
+                       topOrder[end].Visual.Top - rowTop <= Math.Min(4D,
+                           Math.Min(rowHeight, topOrder[end].Visual.Height) * 0.25D)) end++;
+                IEnumerable<Candidate> row = topOrder.Skip(first).Take(end - first);
+                foreach (Candidate candidate in directions[page.Key] == PdfReadingDirection.RightToLeft
+                             ? row.OrderByDescending(static candidate => candidate.Visual.Left)
+                             : row.OrderBy(static candidate => candidate.Visual.Left)) yield return candidate;
+                first = end;
             }
         }
     }
@@ -268,8 +288,8 @@ internal static class PdfStaticFormRecognizer {
                         }
                     }
                     if (covered) continue;
-                    if (span.Color is OfficeColor ink && ink.R >= 245 && ink.G >= 245 && ink.B >= 245 &&
-                        !HasContrastingBackdrop(filledAreas, spanVisual, span.PaintOrder, span.ContentOrderKey)) {
+                    if (span.Color is OfficeColor ink &&
+                        !HasContrastingBackdrop(filledAreas, spanVisual, ink, span.PaintOrder, span.ContentOrderKey)) {
                         // Keep the text as possible field occupancy, but do not infer a label without visible contrast.
                         nativeTextBounds.Add(spanVisual);
                         uncertainEffect = true;
@@ -322,7 +342,7 @@ internal static class PdfStaticFormRecognizer {
     private static bool TryGetCandidate(PdfPageVisualPrimitive primitive, double pageWidth, double pageHeight, out VisualRect bounds, out PdfStaticFormEvidenceKind evidence) {
         bounds = default;
         evidence = default;
-        if (!primitive.HasStrokePaint || primitive.StrokeOpacity == 0D) return false;
+        if (!primitive.HasStrokePaint || (primitive.StrokeOpacity ?? 1D) < 0.18D) return false;
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
             if (primitive.Width >= 9D && primitive.Width <= 22D && primitive.Height >= 9D && primitive.Height <= 22D &&
                 Math.Abs(primitive.Width - primitive.Height) <= 3D && IsEmptyFill(primitive)) {
@@ -339,10 +359,12 @@ internal static class PdfStaticFormRecognizer {
             bounds = new VisualRect(left, primitive.Y1 - 18D, Math.Max(primitive.X1, primitive.X2), primitive.Y1 + 2D);
             evidence = PdfStaticFormEvidenceKind.Underline;
         }
+        VisualRect paintedBounds = evidence == PdfStaticFormEvidenceKind.Underline
+            ? OutlinePaintBounds(primitive, bounds) : bounds;
         if (primitive.ClipPath is PdfPageClipPath clip &&
             (!clip.IsRectangle || !clip.IsExact || clip.ContainsTextClipping ||
-             clip.X > bounds.Left || clip.Y > bounds.Top ||
-             clip.X + clip.Width < bounds.Right || clip.Y + clip.Height < bounds.Bottom)) return false;
+             clip.X > paintedBounds.Left || clip.Y > paintedBounds.Top ||
+             clip.X + clip.Width < paintedBounds.Right || clip.Y + clip.Height < paintedBounds.Bottom)) return false;
         return bounds.Area > 0D && Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight);
     }
 

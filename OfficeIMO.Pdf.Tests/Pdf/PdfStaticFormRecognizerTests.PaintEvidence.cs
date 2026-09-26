@@ -8,6 +8,86 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed partial class PdfStaticFormRecognizerTests {
     [Fact]
+    public void DarkNativeLabelOnMatchingOpaqueBackdropIsNotEvidence() {
+        OfficeShape backdrop = OfficeShape.Rectangle(90D, 35D);
+        backdrop.FillColor = OfficeColor.Black;
+        backdrop.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(backdrop, 10D, 20D)
+                .Text("Name:", 20D, 28D, 70D, 20D, color: PdfColor.FromRgb(0, 0, 0))
+                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
+    public void NearlyTransparentOutlineDoesNotProveAField() {
+        byte[] source = StaticPdf("q /GS1 gs 0 0 0 RG 1 w 80 80 120 20 re S Q",
+            "/Resources << /ExtGState << /GS1 << /CA 0.001 >> >> >>");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
+    }
+
+    [Fact]
+    public void TightClipAroundUnderlineStillAllowsItsInferredField() {
+        byte[] source = StaticPdf("q 79 118 122 3 re W n 0 0 0 RG 1 w 80 120 m 200 120 l S Q");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 60D, 70D, 80D, 1D) };
+
+        PdfStaticFormFieldProposal proposal = Assert.Single(
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
+        Assert.Equal(PdfStaticFormEvidenceKind.Underline, proposal.EvidenceKind);
+    }
+
+    [Fact]
+    public void BatchedRectanglesProvideIndependentFieldEvidence() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re 80 40 120 20 re S");
+        var labels = new[] {
+            new PdfStaticFormTextEvidence(1, "First", 10D, 100D, 70D, 120D, 1D),
+            new PdfStaticFormTextEvidence(1, "Second", 10D, 140D, 70D, 160D, 1D)
+        };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Equal(2, report.Proposals.Count);
+    }
+
+    [Fact]
+    public void BatchedHorizontalRulesProvideIndependentFieldEvidence() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 120 m 200 120 l 80 80 m 200 80 l S");
+        var labels = new[] {
+            new PdfStaticFormTextEvidence(1, "First", 10D, 60D, 70D, 80D, 1D),
+            new PdfStaticFormTextEvidence(1, "Second", 10D, 100D, 70D, 120D, 1D)
+        };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Equal(2, report.Proposals.Count);
+    }
+
+    [Fact]
+    public void ReadingOrderGroupsSlightlyOffsetRightToLeftFieldsIntoOneRow() {
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(Box(80D, 20D), 70D, 82D)
+                .Shape(Box(80D, 20D), 250D, 80D)).ToBytes();
+        var labels = new[] {
+            new PdfStaticFormTextEvidence(1, "\u05E9\u05DD", 70D, 45D, 140D, 65D, 1D),
+            new PdfStaticFormTextEvidence(1, "\u05E2\u05D9\u05E8", 250D, 45D, 320D, 65D, 1D)
+        };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Equal(2, report.Proposals.Count);
+        Assert.True(report.Proposals[0].VisualBounds.Left > report.Proposals[1].VisualBounds.Left);
+    }
+
+    private static byte[] StaticPdf(string content, string resources = "") =>
+        System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R " + resources + "/Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
+        }));
+
+    [Fact]
     public void DarkOutlineOnMatchingOpaqueBackdropIsNotVisible() {
         OfficeShape backdrop = OfficeShape.Rectangle(400D, 300D);
         backdrop.FillColor = OfficeColor.Black;
