@@ -284,6 +284,40 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void WhiteOutlineOnDarkBackdropRemainsAFieldCandidate() {
+        OfficeShape backdrop = OfficeShape.Rectangle(400D, 300D);
+        backdrop.FillColor = OfficeColor.Black;
+        backdrop.StrokeColor = null;
+        OfficeShape outline = Box(140D, 20D);
+        outline.FillColor = null;
+        outline.StrokeColor = OfficeColor.White;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(backdrop, 0D, 0D).Shape(outline, 100D, 28D))
+            .ToBytes();
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 70D, 48D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
+    public void LabelOcclusionComparisonsConsumeCandidateScanBudget() {
+        OfficeShape fill = OfficeShape.Rectangle(10D, 10D);
+        fill.FillColor = OfficeColor.Red;
+        fill.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Text("Name", 20D, 28D, 70D, 20D)
+                .Shape(fill, 300D, 100D).Shape(fill, 320D, 100D)).ToBytes();
+
+        PdfReadLimitException limit = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(
+                new PdfStaticFormRecognitionOptions { MaxCandidateScanWork = 1 }));
+
+        Assert.Equal(PdfReadLimitKind.UnderstandingArtifacts, limit.Kind);
+    }
+
+    [Fact]
     public void CheckedStaticBoxIsNotProposedAsAnEmptyCheckbox() {
         OfficeShape firstMark = OfficeShape.Line(0D, 0D, 9D, 9D);
         firstMark.StrokeColor = OfficeColor.Black;

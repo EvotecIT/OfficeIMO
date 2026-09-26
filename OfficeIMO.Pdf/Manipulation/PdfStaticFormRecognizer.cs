@@ -68,10 +68,13 @@ internal static class PdfStaticFormRecognizer {
                     }
                     filledAreas.Add(new PaintArea(visible, painted.PaintOrder, painted.ContentOrderKey,
                         normalBlend && IsEmptyFill(painted), normalBlend && IsOpaqueWhiteFill(painted),
-                        normalBlend && IsOpaqueCover(painted)));
+                        normalBlend && IsOpaqueCover(painted),
+                        normalBlend && IsOpaqueCover(painted) && painted.FillColor is OfficeColor backdrop &&
+                            backdrop.R * 0.2126D + backdrop.G * 0.7152D + backdrop.B * 0.0722D < 200D));
                 }
             }
-            List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas);
+            List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas,
+                ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
             pageDirections[pageNumber] = PdfTextDirectionAnalysis.Resolve(PdfReadingDirection.Auto,
                 labels.Select(static label => label.Text));
             for (int candidateIndex = 0; candidateIndex < primitives.Count; candidateIndex++) {
@@ -97,9 +100,11 @@ internal static class PdfStaticFormRecognizer {
                 if (primitive.StrokeColor is OfficeColor strokeColor &&
                     primitive.StrokeGradient is null && primitive.StrokeRadialGradient is null &&
                     primitive.StrokeTilingPattern is null &&
-                    strokeColor.R >= 245 && strokeColor.G >= 245 && strokeColor.B >= 245) {
+                    strokeColor.R >= 245 && strokeColor.G >= 245 && strokeColor.B >= 245 &&
+                    !HasContrastingBackdrop(filledAreas, OutlinePaintBounds(primitive, visual),
+                        primitive.PaintOrder, primitive.ContentOrderKey)) {
                     AddDiagnostic("invisible-outline", pageNumber,
-                        "A white field outline cannot be distinguished from the page background.");
+                        "A white field outline cannot be distinguished from its painted background.");
                     continue;
                 }
                 if (IsCoveredByLaterOpaqueFill(filledAreas, OutlinePaintBounds(primitive, visual),
@@ -190,20 +195,42 @@ internal static class PdfStaticFormRecognizer {
 
     private static List<Label> GetLabels(PdfLogicalPage page, IReadOnlyList<PdfStaticFormTextEvidence> ocrText,
         double pageWidth, double pageHeight,
-        IReadOnlyList<PaintArea> filledAreas) {
+        IReadOnlyList<PaintArea> filledAreas, ref long candidateScanWork, int maxCandidateScanWork,
+        CancellationToken cancellationToken) {
         var labels = new List<Label>();
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
+            cancellationToken.ThrowIfCancellationRequested();
             string text = NormalizeLabel(block.Text);
             if (text.Length == 0 || text.Length > 80 || block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? ToVisualBounds(page, block);
             if (!Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight)) continue;
             var visual = new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
-            if (block.Spans.Count > 0 && !block.Spans.Any(span => span.IsVisible &&
-                (span.Color?.A ?? 255) > 3 &&
-                !IsCoveredByLaterOpaqueFill(filledAreas, visual, span.PaintOrder, span.ContentOrderKey))) continue;
+            if (block.Spans.Count > 0) {
+                bool visibleSpan = false;
+                foreach (PdfTextSpan span in block.Spans) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (!span.IsVisible || (span.Color?.A ?? 255) <= 3) continue;
+                    bool covered = false;
+                    foreach (PaintArea area in filledAreas) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        candidateScanWork++;
+                        if (candidateScanWork > maxCandidateScanWork) {
+                            throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                                maxCandidateScanWork, candidateScanWork);
+                        }
+                        if (IsLaterCover(area, visual, span.PaintOrder, span.ContentOrderKey)) {
+                            covered = true;
+                            break;
+                        }
+                    }
+                    if (!covered) { visibleSpan = true; break; }
+                }
+                if (!visibleSpan) continue;
+            }
             labels.Add(new Label(text, visual, block.Confidence, isOcr: false));
         }
         foreach (PdfStaticFormTextEvidence item in ocrText) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (item.PageNumber != page.PageNumber) continue;
             string text = NormalizeLabel(item.Text);
             if (text.Length == 0 || text.Length > 80 || !Valid(item.Left, item.Top, item.Right, item.Bottom, pageWidth, pageHeight)) continue;
@@ -365,10 +392,27 @@ internal static class PdfStaticFormRecognizer {
     private static bool IsCoveredByLaterOpaqueFill(
         IReadOnlyList<PaintArea> filledAreas,
         VisualRect painted, double paintOrder, PdfContentOrderKey? contentOrderKey) =>
-        filledAreas.Any(area => area.IsOpaqueCover &&
+        filledAreas.Any(area => IsLaterCover(area, painted, paintOrder, contentOrderKey));
+
+    private static bool IsLaterCover(PaintArea area, VisualRect painted,
+        double paintOrder, PdfContentOrderKey? contentOrderKey) =>
+        area.IsOpaqueCover &&
             IsLater(area.PaintOrder, area.ContentOrderKey, paintOrder, contentOrderKey) &&
             area.Bounds.Left <= painted.Left && area.Bounds.Top <= painted.Top &&
-            area.Bounds.Right >= painted.Right && area.Bounds.Bottom >= painted.Bottom);
+            area.Bounds.Right >= painted.Right && area.Bounds.Bottom >= painted.Bottom;
+
+    private static bool HasContrastingBackdrop(IReadOnlyList<PaintArea> filledAreas, VisualRect outline,
+        double paintOrder, PdfContentOrderKey? contentOrderKey) {
+        PaintArea? latest = null;
+        foreach (PaintArea area in filledAreas) {
+            if (!area.IsOpaqueCover || !IsLater(paintOrder, contentOrderKey, area.PaintOrder, area.ContentOrderKey) ||
+                area.Bounds.Left > outline.Left || area.Bounds.Top > outline.Top ||
+                area.Bounds.Right < outline.Right || area.Bounds.Bottom < outline.Bottom) continue;
+            if (!latest.HasValue || IsLater(area.PaintOrder, area.ContentOrderKey,
+                latest.Value.PaintOrder, latest.Value.ContentOrderKey)) latest = area;
+        }
+        return latest?.ContrastsWithWhite == true;
+    }
 
     internal static bool IsLater(double candidateOrder, PdfContentOrderKey? candidateKey,
         double earlierOrder, PdfContentOrderKey? earlierKey) =>
@@ -477,13 +521,14 @@ internal static class PdfStaticFormRecognizer {
 
     private readonly struct PaintArea {
         internal PaintArea(VisualRect bounds, double paintOrder, PdfContentOrderKey? contentOrderKey,
-            bool isEmpty, bool isOpaqueWhite, bool isOpaqueCover) {
+            bool isEmpty, bool isOpaqueWhite, bool isOpaqueCover, bool contrastsWithWhite) {
             Bounds = bounds;
             PaintOrder = paintOrder;
             ContentOrderKey = contentOrderKey;
             IsEmpty = isEmpty;
             IsOpaqueWhite = isOpaqueWhite;
             IsOpaqueCover = isOpaqueCover;
+            ContrastsWithWhite = contrastsWithWhite;
         }
         internal VisualRect Bounds { get; }
         internal double PaintOrder { get; }
@@ -491,6 +536,7 @@ internal static class PdfStaticFormRecognizer {
         internal bool IsEmpty { get; }
         internal bool IsOpaqueWhite { get; }
         internal bool IsOpaqueCover { get; }
+        internal bool ContrastsWithWhite { get; }
     }
 
     private sealed class Label {
