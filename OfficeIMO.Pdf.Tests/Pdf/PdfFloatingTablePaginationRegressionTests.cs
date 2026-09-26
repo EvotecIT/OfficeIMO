@@ -7,6 +7,20 @@ using Pig = UglyToad.PdfPig.PdfDocument;
 namespace OfficeIMO.Tests;
 
 public class PdfFloatingTablePaginationRegressionTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FullPageFloatMovesFirstParagraphLineToNextPage(bool deferred) {
+        var style = Floating(320, 150);
+        var document = PdfDocument.Create(Options(240));
+        if (deferred) document.TableDeferred(() => new[] { new[] { "floating" } }, batchSize: 1, style: style);
+        else document.Table(new[] { new[] { "floating" } }, style: style);
+        using var pdf = Pig.Open(document.Paragraph(p => p.Text("following")).ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "following");
+        Assert.Equal(40, pdf.GetPage(2).GetWords().Single(word => word.Text == "following").BoundingBox.Left, 1);
+    }
+
     private static PdfOptions Options(double height = 500) => new() {
         PageWidth = 400, PageHeight = height, MarginLeft = 40, MarginRight = 40, MarginTop = 40, MarginBottom = 40
     };
