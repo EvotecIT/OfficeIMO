@@ -148,6 +148,33 @@ that require color-managed pixels must perform that conversion explicitly before
 image. The profile APIs above provide bounded color conversion; metadata validation alone does not
 mean a raster image has been converted to sRGB.
 
+For already unpacked, tightly packed 8-bit RGB or CMYK device samples, use the explicit raster
+converter with the corresponding embedded profile bytes:
+
+```csharp
+OfficeIccRasterConversionStatus status = OfficeIccRasterConverter.TryConvertToSrgb(
+    deviceSamples, width, height, profileBytes,
+    new OfficeIccRasterConversionOptions {
+        MaximumProfileBytes = 1024 * 1024,
+        MaximumPixels = 1_000_000
+    },
+    out OfficeRasterImage? srgbImage);
+if (status != OfficeIccRasterConversionStatus.Converted) {
+    throw new InvalidDataException($"ICC raster conversion rejected the input: {status}");
+}
+```
+
+The converter uses the shared ICC matrix/TRC and LUT engine. It rejects malformed or unsupported
+profiles and incomplete sample buffers, and accounts for the source, profile parser, and RGBA output
+before allocating pixels. The default ceilings are 4 MiB of ICC data, 4 million pixels, and 256 MiB
+of accounted managed memory; callers can lower them. The result is opaque sRGB pixels. Alpha,
+planar samples, higher bit depths, and extraction of device channels from encoded images are separate
+format concerns. The [independent color corpus](../OfficeIMO.Drawing.Tests/TestAssets/IccColorCorpus/SOURCE.md)
+checks matrix RGB, ICC v4 LUT RGB, and CMYK LUT swatches against LittleCMS.
+
+`OfficeImageOptimizer` still preserves or reports ICC metadata according to its metadata policy.
+It does not call the raster converter or claim that re-encoded pixels were normalized to sRGB.
+
 The SVG drawing reader supports a single rectangle, rounded rectangle, circle, ellipse, polygon, or
 path inside a `userSpaceOnUse` clip path, including transforms and even-odd filling. Compound clip
 unions, `objectBoundingBox` clips, and referenced or text clip geometry report unsupported features.
@@ -175,6 +202,18 @@ OfficeImageFit fit = OfficeImageFit.Contain;
 
 `TryIdentify(...)` retains the metadata reader's extension fallback. `TryIdentifyByContent(...)`
 may use a file name to select the SVG parser, but succeeds only when the bytes match a supported format.
+
+### Text shaping and vertical text
+
+Font resolution, glyph coverage, shaping diagnostics, and baseline placement are shared by the
+raster, SVG, and PDF drawing routes. Use `OfficeDrawing.AddVerticalText(...)` for top-to-bottom text.
+The optional `OfficeIMO.Drawing.HarfBuzz` package supplies full OpenType shaping and true vertical
+advances to raster outline rendering. SVG retains one searchable logical string and explicitly marks
+browser-native shaping with vertical writing attributes. PDF uses positioned embedded glyphs when
+the provider supplies complete vertical advances and logical coverage and the writer can align the
+glyph ink within its text box. Otherwise it retains searchable stacked text, reports a typed
+approximation, and strict conversion profiles reject that approximation. The dependency-free
+managed provider likewise reports when it cannot supply true vertical shaping.
 
 Use `TryValidateContent(...)` at ingestion and export boundaries that must reject incomplete or
 corrupt image bodies. It applies the shared encoded-payload limit, validates the complete known
@@ -414,7 +453,7 @@ The request preserves aspect ratio, avoids upscaling, keeps the original when re
 
 Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
 
-For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on any shared image-export options or use `WithTextShaping(...)` on a fluent builder. `OfficeManagedTextShapingProvider.Instance` is the dependency-light built-in provider for the proven core-Arabic/TrueType-outline subset. Drawing passes the selected TrueType font bytes, base direction, language, cancellation token, and Unicode source mapping to any provider, then caches the resolved run for measurement and painting. The built-in provider deliberately declines CFF fonts and scripts that require broader GSUB/GPOS behavior. If no provider accepts a complex run, the managed core-Arabic and bounded bidirectional fallback keeps common text visible and adds `IMAGE_TEXT_SHAPING_FALLBACK` as an approximation. Set `Policy.RequireNoLoss = true` when that fallback is not acceptable.
+For raster complex text, set `TextShapingProvider` and optionally `TextShapingLanguage` on any shared image-export options or use `WithTextShaping(...)` on a fluent builder. `OfficeManagedTextShapingProvider.Instance` is the dependency-light built-in provider for the proven Arabic-script (core and extended Persian/Urdu letters)/TrueType-outline subset. Drawing passes the selected TrueType font bytes, base direction, language, cancellation token, and Unicode source mapping to any provider, then caches the resolved run for measurement and painting. The built-in provider deliberately declines CFF fonts and scripts that require broader GSUB/GPOS behavior. If no provider accepts a complex run, the managed Arabic-script and bounded bidirectional fallback keeps common text visible and adds `IMAGE_TEXT_SHAPING_FALLBACK` as an approximation. Set `Policy.RequireNoLoss = true` when that fallback is not acceptable.
 
 ### Deterministic text measurement
 

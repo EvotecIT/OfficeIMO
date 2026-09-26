@@ -72,7 +72,7 @@ internal static partial class PdfAnnotationFlattener {
     /// Returns a new PDF with supported visual annotations flattened from the current position of a readable stream.
     /// </summary>
     public static byte[] FlattenVisualAnnotations(Stream stream) {
-        return FlattenVisualAnnotations(ReadStream(stream, nameof(stream)));
+        return FlattenVisualAnnotations(ReadStream(stream));
     }
 
     /// <summary>
@@ -95,7 +95,7 @@ internal static partial class PdfAnnotationFlattener {
     public static void FlattenVisualAnnotations(string inputPath, string outputPath) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FlattenVisualAnnotations(File.ReadAllBytes(inputPath));
+        byte[] bytes = FlattenVisualAnnotations(PdfDocumentSource.FromPath(inputPath, null).Bytes);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) {
             Directory.CreateDirectory(directory);
@@ -110,7 +110,7 @@ internal static partial class PdfAnnotationFlattener {
     public static void FlattenVisualAnnotations(string inputPath, Stream outputStream) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
-        WriteOutput(outputStream, FlattenVisualAnnotations(File.ReadAllBytes(inputPath)));
+        WriteOutput(outputStream, FlattenVisualAnnotations(PdfDocumentSource.FromPath(inputPath, null).Bytes));
     }
 
     /// <summary>
@@ -118,6 +118,6 @@ internal static partial class PdfAnnotationFlattener {
     /// </summary>
     public static byte[] FlattenVisualAnnotationsToBytes(string inputPath) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FlattenVisualAnnotations(File.ReadAllBytes(inputPath));
+        return FlattenVisualAnnotations(PdfDocumentSource.FromPath(inputPath, null).Bytes);
     }
 }

@@ -120,6 +120,31 @@ public class PdfBoundedObjectBufferTests {
     }
 
     [Fact]
+    public void BufferedAssembly_StopsBetweenLargeTrailerWritesWhenCancelled() {
+        using var cancellation = new CancellationTokenSource();
+        using var destination = new CancelOnLargeWriteStream(cancellation);
+        byte[][] objects = { Encoding.ASCII.GetBytes("1 0 obj\n<< /Type /Catalog >>\nendobj\n") };
+        string trailerId = " /ID [<" + new string('A', 160_000) + "> <00>]";
+
+        Assert.ThrowsAny<OperationCanceledException>(() => PdfFileAssembler.Assemble(
+            destination, objects, 1, 0, trailerIdEntry: trailerId, cancellationToken: cancellation.Token));
+        Assert.True(cancellation.IsCancellationRequested);
+        Assert.InRange(destination.Length, 1, 100_000);
+    }
+
+    [Fact]
+    public void ForwardOnlyAssembly_MatchesBufferedTrailerOutput() {
+        byte[] catalog = Encoding.ASCII.GetBytes("1 0 obj\n<< /Type /Catalog >>\nendobj\n");
+        using var destination = new MemoryStream();
+        using (var store = new PdfForwardOnlyObjectStore(destination, PdfFileVersion.Pdf14)) {
+            store.Add(catalog);
+            store.Complete(1, 0);
+        }
+
+        Assert.Equal(PdfFileAssembler.Assemble(new[] { catalog }, 1, 0), destination.ToArray());
+    }
+
+    [Fact]
     public void BufferedAssembly_MatchesStreamOutputForTrailerVariants() {
         byte[][] objects = {
             Encoding.ASCII.GetBytes("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"),
@@ -227,6 +252,17 @@ public class PdfBoundedObjectBufferTests {
         public override void Write(byte[] buffer, int offset, int count) {
             base.Write(buffer, offset, count);
             _cancellation.Cancel();
+        }
+    }
+
+    private sealed class CancelOnLargeWriteStream : MemoryStream {
+        private readonly CancellationTokenSource _cancellation;
+
+        internal CancelOnLargeWriteStream(CancellationTokenSource cancellation) => _cancellation = cancellation;
+
+        public override void Write(byte[] buffer, int offset, int count) {
+            base.Write(buffer, offset, count);
+            if (count >= 64 * 1024) _cancellation.Cancel();
         }
     }
 

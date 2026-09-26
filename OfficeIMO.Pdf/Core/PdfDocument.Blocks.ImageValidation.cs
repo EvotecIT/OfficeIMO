@@ -10,11 +10,56 @@ public sealed partial class PdfDocument {
         "PdfDocument.Image accepts JPEG and the raster formats decoded by OfficeIMO.Drawing. JPEG and writer-safe PNG payloads are embedded directly; other supported raster payloads are normalized to PNG once before PDF serialization.";
     private static readonly ConditionalWeakTable<byte[], PreparedImageCacheEntry> PreparedImageCache = new();
 
+    // Prepared images by source content: the array-keyed cache above misses whenever the same image arrives in a
+    // new array (an OfficeDrawingImage or page background copies its source; the next document decodes its logo
+    // afresh), and preparing a PNG inflates, unfilters and splits its alpha - large-object-heap churn on every
+    // render. A prepared image is immutable once built, so equal content can share one.
+    private static readonly PreparedImageContentCache PreparedImagesByContent = new();
+
+    private sealed class PreparedImageContentCache {
+        private const int MaximumEntries = 32;
+        private const long MaximumBytes = 32L * 1024L * 1024L;
+        private readonly object _sync = new();
+        private readonly System.Collections.Generic.Dictionary<string, PreparedImage> _entries = new(System.StringComparer.Ordinal);
+        private long _bytes;
+
+        internal bool TryGet(byte[] sourceHash, out PreparedImage prepared) {
+            lock (_sync) {
+                return _entries.TryGetValue(System.Convert.ToBase64String(sourceHash), out prepared);
+            }
+        }
+
+        internal void Add(byte[] sourceHash, PreparedImage prepared) {
+            long size = prepared.Data.LongLength + (prepared.PreparedStream?.Data.LongLength ?? 0L) + (prepared.PreparedStream?.SoftMask?.Data.LongLength ?? 0L);
+            if (size > MaximumBytes / 4) {
+                return;
+            }
+
+            string key = System.Convert.ToBase64String(sourceHash);
+            lock (_sync) {
+                if (_entries.ContainsKey(key)) {
+                    return;
+                }
+
+                // Clear-all eviction keeps this simple; an LRU would suit a process that cycles through more
+                // distinct images than the cache holds.
+                if (_entries.Count >= MaximumEntries || _bytes + size > MaximumBytes) {
+                    _entries.Clear();
+                    _bytes = 0;
+                }
+
+                _entries[key] = prepared;
+                _bytes += size;
+            }
+        }
+    }
+
     private sealed class PreparedImageCacheEntry {
         internal object Gate { get; } = new();
         internal byte[]? SourceHash { get; set; }
         internal PreparedImage Prepared { get; set; }
         internal bool HasPrepared { get; set; }
+        internal bool DataIsSourceCopy { get; set; }
     }
 
     internal readonly struct PreparedImage {
@@ -88,6 +133,14 @@ public sealed partial class PdfDocument {
         }
 
         PreparedImageCacheEntry entry = PreparedImageCache.GetValue(data, static _ => new PreparedImageCacheEntry());
+        lock (entry.Gate) {
+            // Most prepared images keep a byte-for-byte copy of their source, and comparing against it is far
+            // cheaper than hashing the source again to prove the caller has not changed the array since.
+            if (entry.HasPrepared && entry.DataIsSourceCopy && BytesEqual(data, entry.Prepared.Data)) {
+                return entry.Prepared;
+            }
+        }
+
         byte[] sourceHash = ComputeImageSourceHash(data);
 
         lock (entry.Gate) {
@@ -97,9 +150,13 @@ public sealed partial class PdfDocument {
                 return entry.Prepared;
             }
 
-            PreparedImage prepared = PrepareImageBytesCore(data, cancellationToken);
+            if (!PreparedImagesByContent.TryGet(sourceHash, out PreparedImage prepared)) {
+                prepared = PrepareImageBytesCore(data, cancellationToken);
+                PreparedImagesByContent.Add(sourceHash, prepared);
+            }
             entry.SourceHash = sourceHash;
             entry.Prepared = prepared;
+            entry.DataIsSourceCopy = BytesEqual(data, prepared.Data);
             entry.HasPrepared = true;
             return prepared;
         }
@@ -272,6 +329,18 @@ public sealed partial class PdfDocument {
             sourceInfo.Format,
             wasTranscoded: true,
             normalizedImage);
+    }
+
+    private static bool BytesEqual(byte[] left, byte[] right) {
+#if NET8_0_OR_GREATER
+        return left.AsSpan().SequenceEqual(right);
+#else
+        if (left.Length != right.Length) return false;
+        for (int i = 0; i < left.Length; i++) {
+            if (left[i] != right[i]) return false;
+        }
+        return true;
+#endif
     }
 
     private static byte[] ComputeImageSourceHash(byte[] data) {

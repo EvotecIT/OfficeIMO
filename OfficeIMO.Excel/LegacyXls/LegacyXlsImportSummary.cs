@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>Provides the compact, user-facing outcome of a legacy XLS import.</summary>
-    public sealed class LegacyXlsImportSummary {
+    public sealed class LegacyXlsImportSummary : IOfficeConversionReport {
         internal LegacyXlsImportSummary(LegacyXlsLoadResult result) {
             WorksheetCount = result.Workbook.Worksheets.Count;
             ChartSheetCount = result.ChartSheets.Count;
@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedSheetCount = result.UnsupportedSheets.Count;
             CompoundFeatureCount = result.CompoundFeatures.Count;
             HasImportErrors = result.HasImportErrors;
-            HasConversionLoss = result.HasConversionLoss;
+            FidelityDiagnostics = Array.AsReadOnly(result.FidelityDiagnostics.ToArray());
         }
 
         /// <summary>Gets the projected worksheet count.</summary>
@@ -38,6 +38,19 @@ namespace OfficeIMO.Excel.LegacyXls {
         public bool HasImportErrors { get; }
 
         /// <summary>Gets whether XLSX conversion would omit known content.</summary>
-        public bool HasConversionLoss { get; }
+        public bool HasConversionLoss => HasLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy XLS import summary reported content loss. Inspect FidelityDiagnostics for details.");
+        }
     }
 }

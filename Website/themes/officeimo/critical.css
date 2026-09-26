@@ -1,21 +1,26 @@
 /* Critical above-the-fold CSS for OfficeIMO */
-:root { color-scheme: dark; }
-[data-theme="light"] { color-scheme: light; }
+@font-face {
+  font-family: "Hanken Grotesk";
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url("/fonts/hanken-grotesk-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+:root { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
 *, *::before, *::after { box-sizing: border-box; }
 html {
   -webkit-text-size-adjust: 100%;
-  background: var(--imo-bg, #030711);
+  background: var(--imo-bg, #f5f7fb);
 }
 body {
   margin: 0;
   min-height: 100vh;
-  font-family: var(--imo-font-body, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+  font-family: var(--imo-font-body, system-ui, -apple-system, "Segoe UI", sans-serif);
   line-height: 1.6;
-  color: var(--imo-text, #e8edf5);
-  background:
-    radial-gradient(circle at top left, rgba(56, 189, 248, 0.1), transparent 28%),
-    radial-gradient(circle at top right, rgba(167, 139, 250, 0.08), transparent 24%),
-    linear-gradient(180deg, var(--imo-bg, #030711) 0%, var(--imo-bg-alt, #060d1f) 100%);
+  color: var(--imo-text, #0d1526);
+  background: var(--imo-bg, #f5f7fb);
 }
 a,
 button {
@@ -33,7 +38,6 @@ svg {
 img {
   height: auto;
 }
-.skip-link,
 .imo-skip-link {
   position: absolute;
   top: -40px;
@@ -41,7 +45,6 @@ img {
   padding: 8px;
   z-index: 100;
 }
-.skip-link:focus,
 .imo-skip-link:focus {
   top: 0;
 }
@@ -55,14 +58,10 @@ img {
   position: sticky;
   top: 0;
   z-index: 1000;
-  border-bottom: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
-  background: rgba(3, 7, 17, 0.65);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-}
-[data-theme="light"] .imo-header {
-  background: rgba(248, 250, 252, 0.8);
-  border-bottom-color: rgba(0, 0, 0, 0.06);
+  border-bottom: 1px solid var(--imo-border, #dde3ec);
+  background: var(--imo-header-bg, rgba(245, 247, 251, 0.82));
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
 }
 .imo-header__inner {
   display: flex;
@@ -128,6 +127,7 @@ img {
   height: 10px;
   flex: 0 0 auto;
 }
+.imo-dropdown[hidden] { display:none; }
 .imo-dropdown {
   position: absolute;
   top: 100%;
@@ -193,9 +193,7 @@ img {
   color: var(--imo-text-muted, #4a5972);
   font-size: 0.75rem;
 }
-.imo-theme-toggle,
-.nav-icon,
-.nav-cta {
+.imo-theme-toggle {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -208,25 +206,6 @@ img {
   background: transparent;
   color: var(--imo-text-secondary, #7a8ba8);
   cursor: pointer;
-}
-.nav-icon {
-  width: 34px;
-  border-radius: var(--imo-radius, 10px);
-  color: var(--imo-text-secondary, #7a8ba8);
-}
-.nav-icon svg {
-  width: 18px;
-  height: 18px;
-}
-.nav-cta {
-  padding: 0.42rem 1.1rem;
-  border-radius: var(--imo-radius, 10px);
-  background: var(--imo-accent-gradient, linear-gradient(135deg, #3b82f6, #38bdf8, #2dd4bf));
-  color: var(--imo-void, #030711);
-  font-size: 0.82rem;
-  font-weight: 600;
-  flex-shrink: 0;
-  white-space: nowrap;
 }
 .imo-main,
 .imo-docs,
@@ -377,18 +356,6 @@ img {
   flex-wrap: wrap;
   gap: 0.75rem;
 }
-.imo-product-hero__visual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.imo-product-hero__visual img {
-  width: 100%;
-  max-width: 480px;
-  border: 1px solid var(--imo-border, rgba(255, 255, 255, 0.07));
-  border-radius: var(--imo-radius-xl, 20px);
-  box-shadow: var(--imo-shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.25));
-}
 .imo-main--downloads {
   padding: 0 0 1rem;
 }
@@ -397,96 +364,8 @@ img {
   gap: 2.6rem;
   padding: 1.5rem 0 0;
 }
-.imo-downloads__hero {
-  padding-top: 0.65rem;
-}
-.imo-downloads__hero-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
-  gap: 1.35rem;
-  align-items: stretch;
-}
-.imo-downloads__hero-copy,
-.imo-downloads__hero-panel {
-  position: relative;
-  overflow: hidden;
-  padding: 1.65rem;
-  border: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
-  border-radius: var(--imo-radius-2xl, 28px);
-  background: var(--imo-glass, rgba(255, 255, 255, 0.03));
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-.imo-downloads__title {
-  max-width: 14ch;
-  margin: 0 0 0.85rem;
-  font-size: clamp(2.7rem, 3.2vw + 1.2rem, 4.5rem);
-  line-height: 0.98;
-  letter-spacing: -0.05em;
-}
-.imo-downloads__copy {
-  max-width: 64ch;
-  margin: 0;
-  color: var(--imo-text-secondary, #7a8ba8);
-  font-size: 1rem;
-  line-height: 1.82;
-}
-.imo-downloads__hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  margin-top: 1.35rem;
-}
-.imo-downloads__stat-grid {
-  display: grid;
-  gap: 0.85rem;
-}
-.imo-downloads__stat {
-  display: grid;
-  gap: 0.32rem;
-  padding: 0.9rem 1rem;
-  border: 1px solid var(--imo-glass-border, rgba(255, 255, 255, 0.07));
-  border-radius: var(--imo-radius-xl, 20px);
-  background: rgba(255, 255, 255, 0.02);
-}
-.imo-downloads__stat-value {
-  color: var(--imo-text, #e8edf5);
-  font-size: 1.3rem;
-  font-weight: 800;
-  line-height: 1.1;
-  word-break: break-word;
-}
-.imo-downloads__stat-label,
-.imo-downloads__panel-note {
-  color: var(--imo-text-secondary, #7a8ba8);
-}
-.imo-downloads__stat-label {
-  font-size: 0.82rem;
-  line-height: 1.55;
-}
-.imo-downloads__panel-note {
-  margin: 1rem 0 0;
-  font-size: 0.86rem;
-  line-height: 1.7;
-}
-.imo-downloads__section-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
-  gap: 1.25rem;
-  align-items: end;
-}
-.imo-downloads__section-header h2 {
-  margin: 0;
-  font-size: 1.65rem;
-  line-height: 1.08;
-}
-.imo-downloads__section-header p,
 .imo-downloads__eyebrow {
   margin: 0;
-}
-.imo-downloads__section-header p {
-  color: var(--imo-text-secondary, #7a8ba8);
-  line-height: 1.75;
 }
 .imo-downloads__eyebrow {
   display: inline-flex;
@@ -497,21 +376,11 @@ img {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
-[data-theme="light"] .imo-downloads__hero-copy,
-[data-theme="light"] .imo-downloads__hero-panel {
-  border-color: rgba(15, 23, 42, 0.07);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
-}
 [data-theme="light"] .imo-pricing-comparison-item,
 [data-theme="light"] .imo-showcase-card {
   border-color: rgba(15, 23, 42, 0.07);
   background: rgba(255, 255, 255, 0.92);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.05);
-}
-[data-theme="light"] .imo-downloads__stat {
-  border-color: rgba(15, 23, 42, 0.07);
-  background: rgba(248, 250, 252, 0.9);
 }
 .imo-hamburger {
   display: none;
@@ -676,13 +545,6 @@ img {
   padding: 0.8rem 2.2rem;
   font-size: 1rem;
 }
-.imo-hero__install {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  max-width: 480px;
-  margin: 0 auto 2.5rem;
-}
 .imo-hero__badges {
   display: flex;
   justify-content: center;
@@ -745,50 +607,10 @@ img {
   .imo-container {
     padding: 0 1rem;
   }
-  .imo-downloads__hero-shell,
-  .imo-downloads__section-header,
   .imo-product-hero__inner {
     grid-template-columns: 1fr;
   }
   .imo-pricing-cards {
-    grid-template-columns: 1fr;
-  }
-  .imo-hamburger {
-    display: inline-flex;
-    flex-direction: column;
-  }
-  .imo-nav {
-    position: fixed;
-    inset: 64px 0 auto 0;
-    height: calc(100dvh - 64px);
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-    padding: 1rem;
-    overflow-y: auto;
-    background: var(--imo-bg-alt, #060d1f);
-    transform: translateX(100%);
-  }
-  .imo-dropdown {
-    position: static;
-    display: none;
-    margin-top: 0.25rem;
-    transform: none;
-    border: 0;
-    border-radius: var(--imo-radius, 10px);
-    background: rgba(255, 255, 255, 0.02);
-    box-shadow: none;
-    opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-  }
-  .imo-nav__item.is-open > .imo-dropdown {
-    left: auto;
-    width: 100%;
-    transform: none;
-  }
-  .imo-dropdown--mega {
-    min-width: 0;
     grid-template-columns: 1fr;
   }
   .imo-hero__title {
@@ -815,13 +637,6 @@ img {
   }
   .imo-downloads {
     padding-top: 1rem;
-  }
-  .imo-downloads__hero-copy,
-  .imo-downloads__hero-panel {
-    padding: 1.2rem;
-  }
-  .imo-downloads__title {
-    font-size: 2.25rem;
   }
   .imo-showcase-grid {
     grid-template-columns: 1fr;

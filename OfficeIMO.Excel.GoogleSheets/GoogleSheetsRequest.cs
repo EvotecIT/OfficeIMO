@@ -492,6 +492,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public bool Underline { get; set; }
         /// <summary>Gets or sets strikethrough formatting.</summary>
         public bool Strikethrough { get; set; }
+        /// <summary>Gets or sets whether a conditional format explicitly specifies strikethrough, including off.</summary>
+        public bool StrikethroughSpecified { get; set; }
         /// <summary>Gets or sets the font family.</summary>
         public string? FontName { get; set; }
         /// <summary>Gets or sets the font size.</summary>

@@ -1007,13 +1007,79 @@ internal static partial class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
-        if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
+        if (value is null || ReferenceEquals(value, DBNull.Value))
         {
-            text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
+            if (nullValue is not null)
+            {
+                string nullText = ShouldEscapeFormulaValue(value, formulaInjectionPolicy)
+                    ? ApplyFormulaInjectionPolicy(nullValue, formulaInjectionPolicy)
+                    : nullValue;
+                WriteEscaped(buffer, nullText, delimiter, quoteMode, forceQuote);
+            }
+            else if (quoteMode != CsvQuoteMode.Never && (quoteMode == CsvQuoteMode.Always || forceQuote))
+            {
+                buffer.Append("\"\"");
+            }
+
+            return;
         }
 
-        WriteEscaped(buffer, text, delimiter, quoteMode, forceQuote);
+        if (value is string text)
+        {
+            if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
+                text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
+            WriteEscaped(buffer, text, delimiter, quoteMode, forceQuote);
+            return;
+        }
+
+#if NET6_0_OR_GREATER
+        if (value is bool boolValue)
+        {
+            AppendEscapedSpan(buffer, boolValue ? "True" : "False", delimiter,
+                prefixApostrophe: false, quoteMode, forceQuote);
+            return;
+        }
+
+        if (value is DateTime dateTime)
+        {
+            if (useUtc) dateTime = dateTime.ToUniversalTime();
+            Span<char> destination = stackalloc char[128];
+            ReadOnlySpan<char> format = string.IsNullOrEmpty(dateTimeFormat) ? default : dateTimeFormat.AsSpan();
+            if (dateTime.TryFormat(destination, out int written, format, culture))
+            {
+                AppendEscapedSpan(buffer, destination[..written], delimiter,
+                    prefixApostrophe: false, quoteMode, forceQuote);
+                return;
+            }
+        }
+        else if (value is DateTimeOffset dateTimeOffset)
+        {
+            if (useUtc) dateTimeOffset = dateTimeOffset.ToUniversalTime();
+            Span<char> destination = stackalloc char[128];
+            ReadOnlySpan<char> format = string.IsNullOrEmpty(dateTimeFormat) ? default : dateTimeFormat.AsSpan();
+            if (dateTimeOffset.TryFormat(destination, out int written, format, culture))
+            {
+                AppendEscapedSpan(buffer, destination[..written], delimiter,
+                    prefixApostrophe: false, quoteMode, forceQuote);
+                return;
+            }
+        }
+        else if (value is ISpanFormattable spanFormattable && IsFormulaSafeTypedValue(value))
+        {
+            Span<char> destination = stackalloc char[128];
+            if (spanFormattable.TryFormat(destination, out int written, default, culture))
+            {
+                AppendEscapedSpan(buffer, destination[..written], delimiter,
+                    prefixApostrophe: false, quoteMode, forceQuote);
+                return;
+            }
+        }
+#endif
+
+        string formattedValue = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
+        if (ShouldEscapeFormulaValue(value, formulaInjectionPolicy))
+            formattedValue = ApplyFormulaInjectionPolicy(formattedValue, formulaInjectionPolicy);
+        WriteEscaped(buffer, formattedValue, delimiter, quoteMode, forceQuote);
     }
 
     private static void AppendEscapedValueDefault(

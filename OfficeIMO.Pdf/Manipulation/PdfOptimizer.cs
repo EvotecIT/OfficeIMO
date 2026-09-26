@@ -202,19 +202,14 @@ internal static partial class PdfOptimizer {
     /// <summary>Optimizes a PDF file with lossless actions.</summary>
     public static PdfOptimizationActionResult Optimize(string path, PdfOptimizationOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Optimize(File.ReadAllBytes(path), options);
+        System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        return Optimize(PdfDocumentSource.FromPath(path, null, cancellationToken).Bytes, options);
     }
 
     /// <summary>Optimizes a readable PDF stream from its current position with lossless actions.</summary>
     public static PdfOptimizationActionResult Optimize(Stream stream, PdfOptimizationOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Optimize(buffer.ToArray(), options);
+        System.Threading.CancellationToken cancellationToken = options?.CancellationToken ?? default;
+        return Optimize(PdfDocumentSource.FromRemainingStream(stream, null, cancellationToken).Bytes, options);
     }
 
     /// <summary>Optimizes a PDF file and writes the result to another file.</summary>

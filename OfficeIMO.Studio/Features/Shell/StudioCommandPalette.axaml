@@ -1,40 +1,91 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
-        xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
-        x:Class="OfficeIMO.Studio.Features.Shell.StudioCommandPalette"
-        x:DataType="shell:StudioCommandPaletteModel"
-        Title="{loc:Loc Commands.PaletteTitle}" Width="660" Height="480"
-        MinWidth="420" MinHeight="300" WindowStartupLocation="CenterOwner"
-        Background="{DynamicResource StudioPanelBrush}" Foreground="{DynamicResource StudioTextBrush}">
-  <Grid RowDefinitions="Auto,*,Auto" Margin="16" RowSpacing="12">
-    <TextBox x:Name="QueryBox" MinHeight="36" Text="{Binding Query, Mode=TwoWay}"
-             PlaceholderText="{loc:Loc Commands.SearchPlaceholder}"
-             AutomationProperties.Name="{loc:Loc Commands.SearchPlaceholder}" />
-    <Grid Grid.Row="1">
-      <ListBox x:Name="ResultsList" ItemsSource="{Binding Results}"
-               SelectedItem="{Binding SelectedCommand, Mode=TwoWay}"
-               DoubleTapped="OnResultDoubleTapped" Background="Transparent"
-               AutomationProperties.Name="{loc:Loc Commands.Results}">
-        <ListBox.ItemTemplate>
-          <DataTemplate x:DataType="shell:StudioCommandItem">
-            <Grid ColumnDefinitions="*,Auto" Margin="4,6" ColumnSpacing="12">
-              <StackPanel Spacing="4">
-                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding UnavailableReason}" IsVisible="{Binding HasUnavailableReason}"
-                           Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
-              </StackPanel>
-              <TextBlock Grid.Column="1" Text="{Binding Shortcut}" Classes="muted" />
-            </Grid>
-          </DataTemplate>
-        </ListBox.ItemTemplate>
-      </ListBox>
-      <TextBlock IsVisible="{Binding !HasResults}" Text="{loc:Loc Commands.NoResults}" TextWrapping="Wrap" Margin="12" />
-    </Grid>
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="12">
-      <TextBlock Text="{loc:Loc Commands.KeyboardHelp}" Classes="muted" TextWrapping="Wrap" VerticalAlignment="Center" />
-      <Button Grid.Column="1" Classes="primary" Content="{loc:Loc Commands.Run}" Click="OnRunClick" IsEnabled="{Binding SelectedCommand.IsAvailable}" />
-    </Grid>
-  </Grid>
-</Window>
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+             xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
+             xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
+             x:Class="OfficeIMO.Studio.Features.Shell.StudioCommandPalette"
+             x:DataType="shell:StudioCommandPaletteModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox#ResultsList ListBoxItem">
+      <Setter Property="Padding" Value="10,7" />
+      <Setter Property="Margin" Value="6,1" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="ListBox#ResultsList ListBoxItem:selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
+    </Style>
+    <Style Selector="ListBox#ResultsList ListBoxItem:selected Border.commandGlyph">
+      <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="ListBox#ResultsList ListBoxItem:selected Border.commandGlyph PathIcon">
+      <Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" />
+    </Style>
+    <Style Selector="Grid.unavailable"><Setter Property="Opacity" Value="0.55" /></Style>
+  </UserControl.Styles>
+  <Panel>
+    <Border x:Name="Scrim" Background="{DynamicResource StudioScrimBrush}" PointerPressed="OnScrimPressed" />
+    <Border x:Name="PalettePanel" Classes="floating" Width="620" MaxHeight="520" Padding="0" CornerRadius="14"
+            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="16,36,16,16">
+      <Grid RowDefinitions="Auto,*,Auto">
+        <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="14,6">
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+            <PathIcon Data="{StaticResource IconSearch}" Width="17" Height="17" Foreground="{DynamicResource StudioMutedTextBrush}" />
+            <TextBox x:Name="QueryBox" Grid.Column="1" Text="{Binding Query, Mode=TwoWay}" FontSize="15"
+                     BorderThickness="0" Background="Transparent" MinHeight="38" VerticalContentAlignment="Center"
+                     PlaceholderText="{loc:Loc Commands.SearchPlaceholder}"
+                     AutomationProperties.Name="{loc:Loc Commands.SearchPlaceholder}">
+              <TextBox.Styles>
+                <Style Selector="TextBox:focus /template/ Border#PART_BorderElement, TextBox:pointerover /template/ Border#PART_BorderElement">
+                  <Setter Property="Background" Value="Transparent" />
+                  <Setter Property="BorderThickness" Value="0" />
+                </Style>
+              </TextBox.Styles>
+            </TextBox>
+          </Grid>
+        </Border>
+        <Panel Grid.Row="1">
+          <ListBox x:Name="ResultsList" ItemsSource="{Binding Results}" Padding="0,6"
+                   SelectedItem="{Binding SelectedCommand, Mode=TwoWay}"
+                   Tapped="OnResultTapped" Background="Transparent"
+                   ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                   AutomationProperties.Name="{loc:Loc Commands.Results}">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="shell:StudioCommandItem">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" Classes.unavailable="{Binding !IsAvailable}">
+                  <Border Classes="commandGlyph" Width="28" Height="28" CornerRadius="7" Background="{DynamicResource StudioPanelMutedBrush}" VerticalAlignment="Top">
+                    <PathIcon Data="{Binding Id, Converter={x:Static infra:StudioConverters.CommandIcon}}" Width="14" Height="14"
+                              Foreground="{DynamicResource StudioMutedTextBrush}" />
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                    <TextBlock FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                               infra:StudioTextHighlight.Text="{Binding Title}"
+                               infra:StudioTextHighlight.Query="{Binding $parent[UserControl].((shell:StudioCommandPaletteModel)DataContext).Query}"
+                               infra:StudioTextHighlight.HighlightBrush="{DynamicResource StudioAccentBrush}" />
+                    <TextBlock Text="{Binding Description}" Classes="caption" TextTrimming="CharacterEllipsis" IsVisible="{Binding IsAvailable}" />
+                    <TextBlock Text="{Binding UnavailableReason}" IsVisible="{Binding HasUnavailableReason}" Classes="caption"
+                               Foreground="{DynamicResource StudioMutedTextBrush}" FontStyle="Italic" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Category}" Classes="caption" VerticalAlignment="Center" />
+                    <Border Classes="kbd" IsVisible="{Binding Shortcut, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                      <TextBlock Text="{Binding Shortcut}" />
+                    </Border>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+          <StackPanel IsVisible="{Binding !HasResults}" Margin="24" Spacing="6" HorizontalAlignment="Center">
+            <TextBlock Text="{loc:Loc Commands.NoResults}" TextWrapping="Wrap" HorizontalAlignment="Center" />
+          </StackPanel>
+        </Panel>
+        <Border Grid.Row="2" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="14,8">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="{loc:Loc Commands.KeyboardHelp}" Classes="caption" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Column="1" Classes="primary" MinHeight="30" Padding="12,4" Content="{loc:Loc Commands.Run}" Click="OnRunClick" IsEnabled="{Binding SelectedCommand.IsAvailable}" />
+          </Grid>
+        </Border>
+      </Grid>
+    </Border>
+  </Panel>
+</UserControl>

@@ -1,15 +1,16 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfFormFiller {
+    private static byte[] ReadPath(string path) =>
+        PdfDocumentSource.FromPath(path, null).Bytes;
+
     private static byte[] ReadStream(Stream stream, string paramName) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
+        return PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
     }
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {

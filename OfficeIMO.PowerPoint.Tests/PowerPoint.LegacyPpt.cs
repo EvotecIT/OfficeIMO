@@ -1,5 +1,6 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.Drawing.Binary;
@@ -21,6 +22,25 @@ namespace OfficeIMO.Tests {
 
         private static string PictureEffectsFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "PictureEffectsPowerPoint.ppt");
+
+        [Fact]
+        public void LoadResult_ProjectsCapturedProjectionExceptionAsTypedFailure() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            using var failed = new LegacyPptLoadResult(
+                document: null,
+                legacy,
+                new InvalidDataException("Projection failed."));
+
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                failed.FidelityDiagnostics,
+                item => item.Code == "PPT-PROJECTION-FAILED");
+
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+            Assert.True(failed.HasLoss);
+            Assert.True(failed.HasImportErrors);
+            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
+        }
 
         [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
@@ -94,6 +114,25 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(legacy.Package.UserEdits);
             Assert.NotEmpty(legacy.Package.PersistObjects);
             Assert.True(legacy.CreateImportReport().CompoundStreamCount >= 2);
+        }
+
+        [Fact]
+        public void ImportReport_ExposesTypedLossAndStrictAcceptance() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptImportReport report = legacy.CreateImportReport();
+            IOfficeConversionReport commonReport = report;
+
+            Assert.Equal(report.HasConversionLoss, commonReport.HasLoss);
+            Assert.Equal(
+                legacy.Diagnostics.Count(diagnostic =>
+                    diagnostic.Severity != LegacyPptDiagnosticSeverity.Information)
+                    + (report.UnsupportedShapeCount > 0 ? 1 : 0),
+                commonReport.FidelityDiagnostics.Count(diagnostic =>
+                    diagnostic.LossKind != OfficeConversionLossKind.None));
+            Assert.All(commonReport.FidelityDiagnostics.Where(diagnostic =>
+                    diagnostic.Code == "PPT-UNSUPPORTED-SHAPES"),
+                diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
+            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
         }
 
         [Fact]

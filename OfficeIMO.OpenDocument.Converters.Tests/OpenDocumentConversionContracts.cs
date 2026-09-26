@@ -164,6 +164,129 @@ public sealed class OpenDocumentConversionContracts {
     }
 
     [Fact]
+    public void NestedOdtSpansAndHyperlinksKeepInheritedFormattingAndTargetsInWord() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        OdtSpan outer = paragraph.AddSpan("Outer ");
+        outer.Bold = true;
+        OdtSpan inner = outer.AddSpan("inner");
+        inner.Italic = true;
+        inner.Bold = false;
+        outer.AddHyperlink(" linked", "https://example.test/inside").Underline = true;
+        OdtHyperlink link = paragraph.AddHyperlink("Another ", "https://example.test/outer");
+        link.Bold = true;
+        link.AddSpan("styled").Italic = true;
+        link.AddText(" end");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        OdtParagraph actual = Assert.Single(reopened.Paragraphs);
+        Assert.Equal(new[] { OdtInlineNodeKind.Span, OdtInlineNodeKind.Hyperlink },
+            actual.InlineNodes.Select(node => node.Kind));
+        Assert.Equal(new[] { OdtInlineNodeKind.Text, OdtInlineNodeKind.Span, OdtInlineNodeKind.Hyperlink },
+            actual.InlineNodes[0].Children.Select(node => node.Kind));
+        Assert.False(actual.InlineNodes[0].Children[1].Span!.Bold);
+        Assert.True(actual.InlineNodes[1].Children[1].Span!.Bold);
+        Assert.Equal(new[] { OdtInlineNodeKind.Text, OdtInlineNodeKind.Span, OdtInlineNodeKind.Text },
+            actual.InlineNodes[1].Children.Select(node => node.Kind));
+
+        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        using WordDocument converted = conversion.Value;
+        using WordDocument target = WordDocument.Load(new MemoryStream(converted.ToBytes()));
+        WordParagraphSnapshot output = Assert.Single(target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>());
+        Assert.Equal(new[] { "Outer ", "inner", " linked", "Another ", "styled", " end" },
+            output.Runs.Select(run => run.Text));
+        Assert.True(output.Runs[0].Bold);
+        Assert.False(output.Runs[1].Bold);
+        Assert.True(output.Runs[1].Italic);
+        Assert.True(output.Runs[2].Bold);
+        Assert.True(output.Runs[2].Underline);
+        Assert.Equal("https://example.test/inside", output.Runs[2].HyperlinkUri);
+        Assert.True(output.Runs[4].Bold);
+        Assert.True(output.Runs[4].Italic);
+        Assert.Equal("https://example.test/outer", output.Runs[4].HyperlinkUri);
+        Assert.True(output.Runs[5].Bold);
+        Assert.Equal("https://example.test/outer", output.Runs[5].HyperlinkUri);
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+
+        OdtInlineNode snapshotNode = actual.InlineNodes[0];
+        snapshotNode.Span!.Text = "Changed";
+        Assert.Equal("Outer inner linked", snapshotNode.Text);
+        Assert.Equal("Outer ", snapshotNode.Children[0].Text);
+    }
+
+    [Fact]
+    public void NestedOdtTransparentBackgroundClearsInheritedHighlight() {
+        OdtDocument source = OdtDocument.Create();
+        OdtParagraph paragraph = source.AddParagraph();
+        paragraph.TextBackgroundColor = OdfColor.Parse("#FFFF00");
+        OdtSpan outer = paragraph.AddSpan("Colored");
+        OdtSpan clear = outer.AddSpan("Clear");
+        clear.Bold = true;
+        OdfStyle style = source.Styles.FindInPart(OdfStyleFamily.Text, clear.StyleName!, "content.xml")!;
+        style.Element.Element(OdfNamespaces.Style + "text-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(source.ToBytes()));
+        OdtSpan nested = reopened.Paragraphs.Single().InlineNodes.Single().Children[1].Span!;
+        Assert.True(nested.HasTextBackgroundOverride);
+        Assert.Null(nested.BackgroundColor);
+        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        WordRunSnapshot[] runs = target.CreateInspectionSnapshot().Sections
+            .SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>()
+            .Single().Runs.ToArray();
+        Assert.Equal("Yellow", runs[0].HighlightColor);
+        Assert.Null(runs[1].HighlightColor);
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void DeepNestedInlineNodesUseBoundedAllocationInOdtAndOdp() {
+        const int depth = 96;
+        const long allocationLimit = 32 * 1024 * 1024;
+        var characters = new char[256 * 1024];
+        var random = new Random(12345);
+        for (int index = 0; index < characters.Length; index++) {
+            characters[index] = (char)('a' + random.Next(26));
+        }
+        string payload = new string(characters);
+
+        OdtDocument odt = OdtDocument.Create();
+        OdtSpan span = odt.AddParagraph().AddSpan();
+        for (int index = 1; index < depth; index++) span = span.AddSpan();
+        span.AddText(payload);
+        OdtParagraph odtParagraph = Assert.Single(OdtDocument.Load(new MemoryStream(odt.ToBytes())).Paragraphs);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        IReadOnlyList<OdtInlineNode> odtNodes = odtParagraph.InlineNodes;
+        long odtAllocation = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(odtAllocation, 0, allocationLimit);
+        OdtInlineNode odtNode = Assert.Single(odtNodes);
+        for (int index = 1; index < depth; index++) odtNode = Assert.Single(odtNode.Children);
+        Assert.Equal(payload, Assert.Single(odtNode.Children).Text);
+        Assert.Equal(payload, odtNodes[0].Text);
+
+        OdpPresentation odp = OdpPresentation.Create();
+        OdpRun run = odp.AddSlide("Depth").AddTextBox(
+            OdfRect.FromCentimeters(1, 1, 10, 3)).AddParagraph().AddRun();
+        for (int index = 1; index < depth; index++) run = run.AddRun();
+        run.AddText(payload);
+        OdpParagraph odpParagraph = Assert.Single(Assert.IsType<OdpTextBox>(
+            Assert.Single(OdpPresentation.Load(new MemoryStream(odp.ToBytes())).Slides[0].Shapes)).Paragraphs);
+
+        before = GC.GetAllocatedBytesForCurrentThread();
+        IReadOnlyList<OdpInlineNode> odpNodes = odpParagraph.InlineNodes;
+        long odpAllocation = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(odpAllocation, 0, allocationLimit);
+        OdpInlineNode odpNode = Assert.Single(odpNodes);
+        for (int index = 1; index < depth; index++) odpNode = Assert.Single(odpNode.Children);
+        Assert.Equal(payload, Assert.Single(odpNode.Children).Text);
+        Assert.Equal(payload, odpNodes[0].Text);
+    }
+#endif
+
+    [Fact]
     public void OdtToWordDecodesPercentEncodedBookmarkLinks() {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph paragraph = source.AddParagraph();
@@ -404,6 +527,84 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(runs[3].Italic);
         Assert.Equal("https://example.com/", runs[3].Hyperlink?.ToString());
         Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+    }
+
+    [Fact]
+    public void NestedOdpRunsAndHyperlinksKeepInheritedFormattingAndTargetsInPowerPoint() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpParagraph paragraph = source.AddSlide("Nested").AddTextBox(
+            OdfRect.FromCentimeters(1, 1, 10, 3), null, "Text").AddParagraph();
+        OdpRun outer = paragraph.AddRun("Outer ");
+        outer.Bold = true;
+        OdpRun inner = outer.AddRun("inner");
+        inner.Italic = true;
+        inner.Bold = false;
+        outer.AddHyperlink(" linked", "https://example.test/inside").Underline = true;
+        OdpHyperlink link = paragraph.AddHyperlink("Another ", "https://example.test/outer");
+        link.Bold = true;
+        link.AddRun("styled").Italic = true;
+        link.AddText(" end");
+
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(source.ToBytes()));
+        OdpParagraph actual = Assert.Single(Assert.IsType<OdpTextBox>(
+            Assert.Single(reopened.Slides[0].Shapes)).Paragraphs);
+        Assert.Equal(new[] { OdpInlineNodeKind.Run, OdpInlineNodeKind.Hyperlink },
+            actual.InlineNodes.Select(node => node.Kind));
+        Assert.Equal(new[] { OdpInlineNodeKind.Text, OdpInlineNodeKind.Run, OdpInlineNodeKind.Hyperlink },
+            actual.InlineNodes[0].Children.Select(node => node.Kind));
+        Assert.False(actual.InlineNodes[0].Children[1].Run!.Bold);
+        Assert.True(actual.InlineNodes[1].Children[1].Run!.Bold);
+        Assert.Equal(new[] { OdpInlineNodeKind.Text, OdpInlineNodeKind.Run, OdpInlineNodeKind.Text },
+            actual.InlineNodes[1].Children.Select(node => node.Kind));
+
+        OdfConversionResult<PowerPointPresentation> conversion = reopened.ToPowerPointPresentationResult();
+        using PowerPointPresentation converted = conversion.Value;
+        using PowerPointPresentation target = PowerPointPresentation.Load(new MemoryStream(converted.ToBytes()));
+        IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
+        Assert.Equal(new[] { "Outer ", "inner", " linked", "Another ", "styled", " end" },
+            runs.Select(run => run.Text));
+        Assert.True(runs[0].Bold);
+        Assert.False(runs[1].Bold);
+        Assert.True(runs[1].Italic);
+        Assert.True(runs[2].Bold);
+        Assert.Equal("https://example.test/inside", runs[2].Hyperlink?.ToString());
+        Assert.True(runs[4].Bold);
+        Assert.True(runs[4].Italic);
+        Assert.Equal("https://example.test/outer", runs[4].Hyperlink?.ToString());
+        Assert.True(runs[5].Bold);
+        Assert.Equal("https://example.test/outer", runs[5].Hyperlink?.ToString());
+        Assert.DoesNotContain(conversion.Report.Mappings, mapping => mapping.Feature == "inline-formatting");
+
+        OdpInlineNode snapshotNode = actual.InlineNodes[0];
+        snapshotNode.Run!.Text = "Changed";
+        Assert.Equal("Outer inner linked", snapshotNode.Text);
+        Assert.Equal("Outer ", snapshotNode.Children[0].Text);
+    }
+
+    [Fact]
+    public void NestedOdpTransparentBackgroundClearsInheritedHighlight() {
+        OdpPresentation source = OdpPresentation.Create();
+        OdpParagraph paragraph = source.AddSlide("Background").AddTextBox(
+            OdfRect.FromCentimeters(1, 1, 10, 3)).AddParagraph();
+        paragraph.BackgroundColor = OdfColor.Parse("#FFFF00");
+        OdpRun outer = paragraph.AddRun("Colored");
+        OdpRun clear = outer.AddRun("Clear");
+        clear.Bold = true;
+        OdfStyle style = source.Styles.FindInPart(OdfStyleFamily.Text, clear.StyleName!, "content.xml")!;
+        style.Element.Element(OdfNamespaces.Style + "text-properties")!
+            .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
+
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(source.ToBytes()));
+        OdpParagraph actual = Assert.IsType<OdpTextBox>(reopened.Slides[0].Shapes.Single())
+            .Paragraphs.Single();
+        OdpRun nested = actual.InlineNodes.Single().Children[1].Run!;
+        Assert.True(nested.HasTextBackgroundOverride);
+        Assert.Null(nested.BackgroundColor);
+        OdfConversionResult<PowerPointPresentation> conversion = reopened.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
+        IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
+        Assert.Equal("FFFF00", runs[0].HighlightColor);
+        Assert.Null(runs[1].HighlightColor);
     }
 
     [Fact]

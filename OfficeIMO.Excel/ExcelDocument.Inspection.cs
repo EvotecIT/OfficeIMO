@@ -64,7 +64,8 @@ namespace OfficeIMO.Excel {
 
                     var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     var sheetName = sheet.Name?.Value ?? $"Sheet{sheetIndex + 1}";
-                    IReadOnlyDictionary<string, string> resolvedFormulaTexts = this[sheetName].BuildResolvedFormulaTextMap();
+                    ExcelSheet sourceSheet = this[sheetName];
+                    IReadOnlyDictionary<string, string> resolvedFormulaTexts = sourceSheet.BuildResolvedFormulaTextMap();
                     var readerSheet = reader.GetSheet(sheetName);
                     var typedValues = BuildTypedCellMap(readerSheet);
                     string usedRangeA1 = readerSheet.GetUsedRangeA1();
@@ -79,6 +80,7 @@ namespace OfficeIMO.Excel {
                         .FirstOrDefault();
                     var worksheetSnapshot = new ExcelWorksheetSnapshot {
                         Name = sheetName,
+                        ConditionalFormattingRuleCount = sourceSheet.GetConditionalFormattingRules().Count,
                         Index = sheetIndex,
                         Hidden = sheet.State?.Value == SheetStateValues.Hidden || sheet.State?.Value == SheetStateValues.VeryHidden,
                         IsActive = activeWorksheetIndex == sheetIndex,

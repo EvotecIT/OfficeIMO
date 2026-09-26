@@ -1,9 +1,50 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingPositionedTextTransformTests {
+    [Fact]
+    public void NestedFrameRotationTransformsProviderShapedVerticalTextInRasterAndSvg() {
+        const int size = 100;
+        byte[] fontData = ManagedTextShapingTestAssets.CreateColorFont('A');
+        var provider = new VerticalGlyphProvider();
+        var source = new OfficeDrawing(size, size).AddVerticalText(
+            "A", 30, 20, 40, 60, new OfficeFontInfo("Vertical Contract", 28), OfficeColor.Black);
+        source.Fonts.Add("Vertical Contract", fontData);
+        var target = new OfficeDrawing(size, size).AddDrawing(
+            source, 0, 0, new OfficeImageFrameTransform(90, 50, 50));
+
+        var probeImage = new OfficeRasterImage(size, size, OfficeColor.White);
+        var probeCanvas = new OfficeRasterCanvas(probeImage, font: null, fonts: source.Fonts, textShapingProvider: provider);
+        Assert.True(probeCanvas.TryDrawVerticalText(
+            "A", 30, 20, 40, 60, OfficeColor.Black, 28, OfficeFontStyle.Regular,
+            "Vertical Contract", featureSettings: null, fontPalette: "normal"));
+        Assert.True(CountNonWhitePixels(probeImage) > 20);
+
+        OfficeRasterImage original = OfficeDrawingRasterRenderer.Render(source,
+            new OfficeDrawingRasterRenderOptions { TextShapingProvider = provider, Background = OfficeColor.White });
+        OfficeRasterImage actual = OfficeDrawingRasterRenderer.Render(target,
+            new OfficeDrawingRasterRenderOptions { TextShapingProvider = provider, Background = OfficeColor.White });
+        Assert.Equal(3, provider.Calls);
+
+        int ink = 0;
+        for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) {
+            OfficeColor expected = original.GetPixel(x, y);
+            OfficeColor transformed = actual.GetPixel(size - 1 - y, x);
+            if (expected.R < 250 || expected.G < 250 || expected.B < 250) ink++;
+            Assert.InRange(Math.Abs(expected.R - transformed.R), 0, 2);
+            Assert.InRange(Math.Abs(expected.G - transformed.G), 0, 2);
+            Assert.InRange(Math.Abs(expected.B - transformed.B), 0, 2);
+        }
+        Assert.True(ink > 20);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(target);
+        Assert.Contains("<g transform=\"rotate(90 50 50)\"><defs><clipPath", svg, StringComparison.Ordinal);
+        Assert.Contains("writing-mode=\"vertical-rl\"", svg, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(27)]
     [InlineData(90)]
@@ -166,5 +207,25 @@ public sealed class DrawingPositionedTextTransformTests {
             0, 0, OfficeClipPath.Rectangle(10, 10), new OfficeImageFrameTransform(90, 0, 0));
         Assert.Throws<OfficeImageExportLimitException>(() => OfficeDrawingRasterRenderer.Render(drawing,
             new OfficeDrawingRasterRenderOptions { MaximumRasterPixels = 10000 }));
+    }
+
+    private sealed class VerticalGlyphProvider : IOfficeTextShapingProvider {
+        internal int Calls { get; private set; }
+
+        public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
+            Calls++;
+            return new OfficeTextShapingResult(new[] {
+                new OfficeShapedGlyph(1, "A", 0, advanceWidth: 600, advanceHeight: -1000, offsetX: 0, offsetY: 0)
+            }, OfficeTextDirection.TopToBottom);
+        }
+    }
+
+    private static int CountNonWhitePixels(OfficeRasterImage image) {
+        int count = 0;
+        for (int y = 0; y < image.Height; y++) for (int x = 0; x < image.Width; x++) {
+            OfficeColor pixel = image.GetPixel(x, y);
+            if (pixel.R < 250 || pixel.G < 250 || pixel.B < 250) count++;
+        }
+        return count;
     }
 }

@@ -99,7 +99,7 @@ namespace OfficeIMO.PowerPoint {
             PresentationDocument? document = _slidePart.OpenXmlPackage as PresentationDocument;
             PresentationPart? presentationPart = document?.PresentationPart;
             if (presentationPart == null) {
-                return GetSelectionBounds(_shapes);
+                return GetSelectionBounds(ShapeList);
             }
 
             var slideSize = new PowerPointSlideSize(presentationPart);

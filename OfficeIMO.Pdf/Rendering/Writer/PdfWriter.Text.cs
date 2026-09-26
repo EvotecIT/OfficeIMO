@@ -14,12 +14,18 @@ internal static partial class PdfWriter {
 
     private static string EncodeWinAnsiHex(string s) {
         var bytes = PdfWinAnsiEncoding.Encode(s);
-        var sb = new StringBuilder(bytes.Length * 2);
-        for (int i = 0; i < bytes.Length; i++) sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
-        return sb.ToString();
+        const string digits = "0123456789ABCDEF";
+        var hex = new char[bytes.Length * 2];
+        for (int i = 0; i < bytes.Length; i++) {
+            hex[2 * i] = digits[bytes[i] >> 4];
+            hex[2 * i + 1] = digits[bytes[i] & 0xF];
+        }
+        return new string(hex);
     }
 
-    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options, OfficeTextFeatureSettings? featureSettings = null) {
+    private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
+        OfficeTextFeatureSettings? featureSettings = null,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
@@ -40,8 +46,9 @@ internal static partial class PdfWriter {
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
-                featureSettings);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault) {
+                featureSettings,
+                textDirection);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText);
@@ -69,16 +76,18 @@ internal static partial class PdfWriter {
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
-                featureSettings));
+                featureSettings,
+                textDirection));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
             return glyphRun.ToTextShowCommand();
         }
 
         if (options?.HasDiagnosticsReport == true) {
             options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text), text, deferProviderCoverable: false);
+            // Only a diagnostics report keeps these; without one the scan and its list were discarded.
+            options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         }
 
-        options?.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         return new PdfTextShowCommand(EncodeWinAnsiHex(text));
     }
 
@@ -94,7 +103,8 @@ internal static partial class PdfWriter {
         PdfStandardFont fallbackFont,
         PdfNamedFontFace? namedFont,
         PdfOptions? options,
-        OfficeTextFeatureSettings? featureSettings = null) {
+        OfficeTextFeatureSettings? featureSettings = null,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
         if (namedFont.HasValue &&
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -114,8 +124,9 @@ internal static partial class PdfWriter {
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
-                featureSettings);
-            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault) {
+                featureSettings,
+                textDirection);
+            if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
                 string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText);
@@ -147,12 +158,13 @@ internal static partial class PdfWriter {
                 options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate,
                 options.Language,
-                featureSettings));
+                featureSettings,
+                textDirection));
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
             return glyphRun.ToTextShowCommand();
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings);
+        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
@@ -412,7 +424,8 @@ internal static partial class PdfWriter {
             OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
             PdfColor? decorationColor = null,
-            OfficeTextFeatureSettings? featureSettings = null) {
+            OfficeTextFeatureSettings? featureSettings = null,
+            OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -443,6 +456,7 @@ internal static partial class PdfWriter {
                 : strike ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             DecorationColor = decorationColor;
             FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
+            TextDirection = textDirection;
         }
 
         public string Text { get; }
@@ -497,14 +511,16 @@ internal static partial class PdfWriter {
 
         public OfficeTextFeatureSettings FeatureSettings { get; }
 
+        public OfficeTextDirection TextDirection { get; }
+
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
     }
 
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
@@ -1475,7 +1491,8 @@ internal static partial class PdfWriter {
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
             .WithFeatureSettings(styleTemplate.FeatureSettings)
-            .WithHorizontalOffset(styleTemplate.HorizontalOffset);
+            .WithHorizontalOffset(styleTemplate.HorizontalOffset)
+            .WithTextDirection(styleTemplate.TextDirection);
     }
 
     private static bool CanWriteRunWithSelectedFont(PdfTextRun run, PdfStandardFont baseFont, PdfOptions? options) {
@@ -2021,7 +2038,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText)
+                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection), runFontSize, textRise, suppressActualText)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -2035,7 +2052,7 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection), runFontSize, textRise, suppressActualText);
                 }
 
                 double baselineY = lineY + textRise;

@@ -57,6 +57,12 @@ public sealed class OfficeRenderingProfile {
     /// <summary>Complex-text shaping provider used by all compatible renderers.</summary>
     public IOfficeTextShapingProvider? TextShapingProvider { get; }
 
+    /// <summary>Identifies the selected shaping engine, when a provider is configured.</summary>
+    public OfficeTextShapingBackend? TextShapingBackend => TextShapingProvider == null
+        ? null
+        : (TextShapingProvider as IOfficeTextShapingProviderMetadata)?.Backend
+            ?? OfficeTextShapingBackend.HostProvided;
+
     /// <summary>Optional BCP 47 language hint.</summary>
     public string? TextShapingLanguage { get; }
 

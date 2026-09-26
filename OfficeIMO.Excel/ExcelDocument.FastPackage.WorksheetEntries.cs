@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Excel.Utilities;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO.Compression;
@@ -217,7 +218,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell.InlineString != null) {
-                builder.Append(cell.InlineString.OuterXml);
+                if (cell.InlineString.InnerText.IndexOf('\r') < 0) {
+                    builder.Append(cell.InlineString.OuterXml);
+                } else {
+                    builder.Append(ExcelXmlPartWriter.SerializePreservingLineEndings(cell.InlineString));
+                }
                 builder.Append("</c>");
                 return;
             }
@@ -296,12 +301,13 @@ namespace OfficeIMO.Excel {
         private static void AppendInvariant(System.Text.StringBuilder builder, uint value)
             => builder.Append(InvariantNumberText.Get(value));
 
-        private static XmlWriter CreateFastXmlWriter(Stream stream) =>
+        private static XmlWriter CreateFastXmlWriter(Stream stream, bool preserveLineEndings = false) =>
             XmlWriter.Create(stream, new XmlWriterSettings {
                 Encoding = Utf8NoBom,
                 CloseOutput = false,
                 Indent = false,
-                OmitXmlDeclaration = false
+                OmitXmlDeclaration = false,
+                NewLineHandling = preserveLineEndings ? NewLineHandling.Entitize : NewLineHandling.Replace
             });
 
         private static void AppendXmlEscaped(System.Text.StringBuilder builder, string text) {
@@ -322,6 +328,9 @@ namespace OfficeIMO.Excel {
                         break;
                     case '\'':
                         builder.Append("&apos;");
+                        break;
+                    case '\r':
+                        builder.Append("&#xD;");
                         break;
                     default:
                         builder.Append(ch);

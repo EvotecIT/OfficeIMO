@@ -47,6 +47,7 @@ public sealed class PdfTextRun {
     /// <summary>Optional OpenType feature selections for this run.</summary>
     public OfficeIMO.Drawing.OfficeTextFeatureSettings FeatureSettings { get; private set; }
     internal double HorizontalOffset { get; private set; }
+    internal OfficeIMO.Drawing.OfficeTextDirection TextDirection { get; private set; }
 
     /// <summary>Create a new run with the specified styles.</summary>
     /// <param name="text">Run text.</param>
@@ -150,6 +151,7 @@ public sealed class PdfTextRun {
         TabAlignment = tabAlignment;
         InlineElement = null;
         FeatureSettings = OfficeIMO.Drawing.OfficeTextFeatureSettings.Default;
+        TextDirection = OfficeIMO.Drawing.OfficeTextDirection.Auto;
     }
 
     private PdfTextRun(PdfInlineElement inlineElement)
@@ -187,7 +189,9 @@ public sealed class PdfTextRun {
     public PdfTextRun WithTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
         if (InlineElement != null) return this;
         string transformed = OfficeIMO.Drawing.OfficeTextCaseTransformer.Apply(Text, textCase, culture);
-        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor).WithFeatureSettings(FeatureSettings);
+        return new PdfTextRun(transformed, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor)
+            .WithFeatureSettings(FeatureSettings)
+            .WithTextDirection(TextDirection);
     }
 
     /// <summary>Creates a copy with explicit OpenType feature selections.</summary>
@@ -201,6 +205,7 @@ public sealed class PdfTextRun {
         var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
         copy.FeatureSettings = featureSettings;
         copy.HorizontalOffset = HorizontalOffset;
+        copy.TextDirection = TextDirection;
         return copy;
     }
 
@@ -212,6 +217,22 @@ public sealed class PdfTextRun {
         var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
         copy.FeatureSettings = FeatureSettings;
         copy.HorizontalOffset = horizontalOffset;
+        copy.TextDirection = TextDirection;
+        return copy;
+    }
+
+    internal PdfTextRun WithTextDirection(OfficeIMO.Drawing.OfficeTextDirection textDirection) {
+        if (textDirection is not OfficeIMO.Drawing.OfficeTextDirection.Auto and
+            not OfficeIMO.Drawing.OfficeTextDirection.LeftToRight and
+            not OfficeIMO.Drawing.OfficeTextDirection.RightToLeft and
+            not OfficeIMO.Drawing.OfficeTextDirection.TopToBottom) {
+            throw new ArgumentOutOfRangeException(nameof(textDirection));
+        }
+        if (InlineElement != null) return this;
+        var copy = new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, Font, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor);
+        copy.FeatureSettings = FeatureSettings;
+        copy.HorizontalOffset = HorizontalOffset;
+        copy.TextDirection = textDirection;
         return copy;
     }
     /// <summary>Create a hyperlink run that points to a URI.</summary>

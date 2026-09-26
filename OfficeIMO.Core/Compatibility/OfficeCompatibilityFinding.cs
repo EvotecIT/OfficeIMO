@@ -50,6 +50,12 @@ public sealed class OfficeCompatibilityFinding {
     /// <summary>Gets whether the decision loses source fidelity under the requested conversion.</summary>
     public bool RepresentsLoss { get; }
 
+    /// <summary>Gets the exact fidelity-loss category represented by this finding.</summary>
+    public OfficeConversionLossKind LossKind =>
+        Severity == OfficeCompatibilitySeverity.Error
+            ? OfficeConversionLossKind.Failure
+            : OfficeConversionFidelityDiagnostics.GetLossKind(State, RepresentsLoss);
+
     /// <summary>Gets an optional source part, sheet, slide, range, or other location.</summary>
     public string? SourceLocation { get; }
 

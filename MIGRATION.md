@@ -9,7 +9,184 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Studio attachment size limit
+
+Studio now rejects an attachment source larger than 64 MiB before adding it to
+a PDF, and limits saving one embedded file to 64 MiB of decoded content. Use a
+smaller source when adding an embedded file through Studio. Existing larger
+attachments remain visible, but must be extracted through a PDF API with an
+appropriate application-owned limit.
+
+## PDF text search results across visual lines
+
+`PdfTextMatch.Text` now contains the matched text after search normalization,
+instead of the literal source substring. Search collapses whitespace across
+consecutive visual lines and recognizes retained or omitted line-end hyphens.
+Applications that compare or store `Text` as an exact source excerpt should
+switch to a normalized comparison or inspect decoded source spans through
+`PdfReadPage.GetTextSpans()`. `PdfTextMatch.VisualLineBounds` provides one visual quad
+per matched line for highlighting; the existing `VisualBounds` and
+`X`/`Y`/`Width`/`Height` still describe the combined bounds. Searches do not
+join separate columns or explicit paragraph breaks.
+
+## PDF AES-256 password length
+
+PDF Standard security revisions 5 and 6 now reject read passwords longer than
+4,096 UTF-16 characters before normalization. AES-256 PDF generation applies
+the same limit to user and owner passwords. Shorten an oversized password before
+opening or generating a PDF; other Standard security revisions keep their
+existing password behavior.
+
+## PDF numeric token length
+
+The PDF object parser now treats numeric tokens longer than 4,096 characters as
+incomplete syntax, even when a caller raises `PdfReadLimits.MaxObjectCharacters`.
+If a trusted source emits such tokens, shorten or repair them before reading;
+raising the object-character budget does not raise this numeric-token limit.
+
+## PDF link URI inspection length
+
+PDF link inspection now omits URI actions longer than 65,519 characters. This
+keeps URI validation bounded when a caller raises the PDF object-character
+limit. Shorten or repair an oversized URI in the source PDF if your application
+needs it in link metadata. PDF link authoring is unchanged.
+
+## PDF image input budget
+
+PDF image-file pages and image stamps now limit each encoded image source to
+128 MiB before buffering. Applications that intentionally use larger trusted
+images can set `PdfImageDocumentOptions.MaximumEncodedImageBytes` for
+`CreateFromImages`, `PdfImageStampOptions.MaximumEncodedImageBytes` for stamps,
+or call `PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)`.
+When passing a source created with `FromFile` to `CreateFromImages`, set the
+document option as well; each stage applies its own limit. Existing-page image
+edits use `PdfImageEditOptions.MaximumEncodedImageBytes`, including moves that
+restamp the extracted image. Choose a value no greater than `int.MaxValue`.
+Image stamp streams continue to read from their current position.
+
+## PDF embedded-font input limit
+
+PDF authoring now rejects caller-supplied font faces larger than 128 MiB before copying them. File-path overloads check the size before buffering and again while reading. Applications that previously supplied larger fonts must reduce or subset each face before embedding it. Use the `EmbedStandardFont` or `PdfEmbeddedFontFamily.FromFiles` path overload to avoid reading an oversized font into application memory first.
+
+## PDF drawing font family names
+
+`PdfReadPage.ToDrawing()` now gives every embedded font program a drawing-local family name derived from its PDF base name and content, including full fonts without a subset prefix. This keeps different page and annotation programs with the same PDF name from replacing each other. If an application matched `OfficeDrawingText.Font.FamilyName` to the original PDF font name, use that name to find the face in the drawing's `Fonts.Faces` instead. Read the PDF name from `PdfTextSpan.BaseFont` when that source label is needed.
+
+## PDF drawing text for painted glyphs
+
+`PdfReadPage.ToDrawing()` and `PdfDocument.Render.Drawing(...)` now keep decoded text in `OfficeDrawingText.Text` when an embedded font paints a ligature or another glyph that needs a private-use raster alias. Code that reads or edits scene text receives the logical string instead of that alias. Raster rendering still paints the source glyph. Applications that used private-use text values to identify PDF glyphs should inspect the source `PdfTextSpan` and embedded font instead.
+
+## PDF external-signature preparation limits
+
+External signature preparation now limits the prepared PDF to 768 MiB by default, matching the default limit used to complete a saved preparation. Set `PdfExternalSignatureOptions.MaxPreparedOutputBytes` higher for a trusted larger document, then supply matching `PdfLoadOptions.Limits.MaxInputBytes` when completing it from a file. Persisted completion derives bounded signature-revision growth from the prepared file; if you set custom raw-stream or object-character limits below what the generated appearance or signature reservation needs, raise those limits for completion too. A visible signature image now has a 128 MiB encoded input limit; set `PdfVisibleSignatureAppearanceOptions.MaximumEncodedImageBytes` when a trusted image needs more. The source budget remains `PdfExternalSignatureOptions.MaxInputBytes`, and a source admitted by that option is now also admitted by the preparation parser.
+
+## HTML style and rendering limits
+
+`HtmlComputedStyleEngine.Compute(HtmlDocument)` now applies the untrusted HTML and CSS limits to prepared documents. Applications that intentionally process trusted or larger documents can retain their chosen policy by wrapping the prepared document before computing styles:
+
+```csharp
+var conversion = HtmlConversionDocument.FromDocument(
+    preparedDocument,
+    HtmlConversionDocumentOptions.CreateTrustedProfile());
+var styles = HtmlComputedStyleEngine.Compute(conversion);
+```
+
+To set specific limits, pass `new HtmlConversionDocumentOptions { Limits = yourLimits }` to `FromDocument` instead. Continue using the direct overload for untrusted prepared documents.
+
+`HtmlRenderOptions.MaxTextShadowLayers` now accepts values from 1 through 64. If an application set a value above 64, reduce it to 64 or less before rendering; larger values now throw `ArgumentOutOfRangeException` during option validation.
+
+A `text-shadow` declaration with more than 64 authored layers now falls back as an unsupported value instead of retaining the first configured layers. Simplify the declaration to at most 64 layers; `MaxTextShadowLayers` controls how many of those layers render.
+
+`HtmlRenderOptions.MaxLeaderCharacters` now limits each generated CSS `leader()` to 65,536 characters by default. Applications that render wider leaders can raise this positive limit on their render options. When the limit is exceeded, rendering throws `HtmlDomLimitException` instead of materializing the leader text.
+
+Quoted `leader()` patterns now accept at most 1,024 decoded characters and 2,048 source characters. Shorten longer patterns; raising `MaxLeaderCharacters` does not change these pattern limits.
+
+## PDF invoice XML size
+
+The low-level Factur-X/ZUGFeRD XML carrier methods now reject invoice XML
+larger than 16 MiB, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`.
+File overloads reject an oversized source before buffering. Applications that
+previously attached larger XML must reduce or split the payload before using
+these methods.
+
+## Native ChartForgeX topology placement
+
+`OfficeVisioVisualOptions.LayoutMode` defaults to `Auto`. A topology envelope with complete viewport, node, and included-group bounds now keeps those bounds instead of being laid out again. `PixelsPerInch` controls their physical size. Set `LayoutMode = OfficeVisioVisualLayoutMode.Reflow` to retain the previous native-layout behavior. Flow, sequence, and incomplete topology envelopes continue to use native layout in `Auto` mode. Native graph styling now uses source theme colors with portable Arial text; set `NativeTheme = VisioStyleTheme.Technical()` to retain the previous native palette and typography.
+
 ## OfficeIMO 3.4: one document and conversion grammar
+
+### iWork image inspection budget
+
+`IWorkReadOptions.MaximumDecodedImageBytes` now limits cumulative decoded image
+work to 64 MiB by default during preview inspection and, separately, during
+each semantic projection. Failed image validation consumes work it already
+performed. Set this option higher for trusted Pages, Numbers, or Keynote files
+with unusually large raster images; `MaximumPackageBytes` still limits source
+package size independently.
+
+### Excel image export encoded-byte ceiling
+
+`MaximumTotalEncodedBytes` now applies to intermediate PNG encodes used by
+worksheet batch export and page, print-title, and header/footer composition.
+An export can fail with `OfficeImageExportBatchLimitException` even when its
+final JPEG or page image would fit the configured ceiling. For trusted
+workbooks, raise this limit to cover the largest intermediate image or reduce
+the rendered range and raster dimensions.
+
+### Document format processing limits
+
+`OfficeVisioVisualBookOptions` now limits one book to 10,000 requested links,
+64 distinct relationship IDs per navigation, and 4,096 relationship ID
+characters per navigation. Set `MaximumRequestedLinks`,
+`MaximumRelationshipIdsPerNavigation`, and
+`MaximumRelationshipIdCharactersPerNavigation` for larger trusted books.
+Preserved Visio route endpoints are indexed while retaining near-coordinate
+reuse behavior.
+
+Word list conversion rejects paragraph style inheritance deeper than 256
+levels. Shorter chains are resolved once per style during an export. Project
+XML `MaxEntities` now includes baselines, custom field values and definitions,
+lookup values, predecessor links, and timephased records as well as top-level
+entities. Raise `ProjectLoadOptions.MaxEntities` for trusted projects with a
+large number of these records.
+
+### Arrow C stream ownership
+
+`OfficeIMO.Data.Arrow` no longer exposes an unmanaged `ArrowArrayStream*` directly from
+`ArrowCArrayStreamOwner`. Acquire a lease for the complete native call sequence:
+
+```csharp
+using ArrowCArrayStreamOwner owner = reader.ExportArrowCStream(options, cancellationToken);
+using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = owner.AcquireLease();
+NativeConsumer.ReadArrowStream(lease.Address);
+```
+
+The lease keeps the unmanaged struct and managed callbacks alive when the owner is disposed
+concurrently. Native code may invoke the Arrow release callback but must not free the struct.
+Managed consumers should call `owner.ImportArrayStream()`. Every import attempt consumes the
+one-shot stream, including an attempt where the Apache Arrow importer throws, because ownership
+may already have crossed the native boundary. Do not retry through the same owner or lease.
+Existing `OpenArrowStream` and `ReadArrowBatchesAsync` calls are unchanged and remain managed-only.
+
+### Typed conversion fidelity reports
+
+`IOfficeConversionReport` now requires `FidelityDiagnostics`. Custom report implementations must
+return immutable `OfficeConversionFidelityDiagnostic` entries with an exact
+`OfficeConversionLossKind`. Use `OfficeConversionFidelityDiagnostics.Flatten` when composing
+several stages so omissions, approximations, and failures are not collapsed into one Boolean.
+
+For PDF publication, use `ToBytesLossless`, `SaveLossless`, or `SaveLosslessAsync` when any loss
+must reject the artifact before bytes are returned or written. The existing save methods continue
+to permit reported loss for callers that inspect and accept diagnostics themselves.
+
+### Redaction batch publication paths
+
+Directory batches capture the physical evidence, output, and manifest destinations during planning.
+Publication fails if a directory is replaced by a link before staging, instead of following the new
+target. Keep these directories stable through the batch. On Linux and macOS, the destination
+filesystem must support atomic no-replace renames; an unsupported filesystem fails publication
+before replacing an existing artifact. Batch verification also requires the opened output file to
+remain inside its captured output root.
 
 ### PDF-to-Word editable layout defaults
 
@@ -26,6 +203,14 @@ var options = new PdfToWordOptions {
 ```
 
 `PreserveImagePlacementSize` remains independent. Set it to `false` to use an image's natural pixel dimensions even when `PreserveImagePlacementPosition` keeps the image floating at its recovered page position.
+
+### Conversion and invoice resource limits
+
+PDF-to-Word now stops image/text overlap analysis after one million comparisons per conversion by default. Set `PdfToWordOptions.MaxImageTextOverlapComparisons` higher for a trusted document that needs it. PDF-to-HTML annotation matching has a separate `PdfToHtmlOptions.MaximumAnnotationMatchWork` limit. PDF-to-HTML output is capped at 32 million characters by default; set `MaximumOutputCharacters` higher for trusted large exports, or `null` to disable that guard. Positioned page-appearance HTML emits visible text only; set `IncludeInvisibleTextInAppearanceOverlay` only when a caller intentionally needs hidden OCR text in the output.
+
+Word-to-PDF export accepts at most 1,000 images in one paragraph by default. `WordToPdfOptions.MaxImagesPerParagraph` can be raised for trusted documents. Generated PDFs can use `PdfOptions.MaxGeneratedPages` and `MaxGeneratedOutputBytes` to stop layout and serialization before excessive output is retained.
+
+Invoice PDF presentation now caps source XML, line text, line count, generated pages, and output bytes through `InvoicePdfLayoutOptions`. Pass explicit higher limits for known large invoices. `PdfInvoiceDocument.ToPdfBytes` and `ToPresentationPdfBytes` also accept a cancellation token. CII XML loading rejects documents with more than 100,000 nodes or 200,000 attributes before constructing an XML tree.
 
 ### Word image rotation uses DrawingML degrees
 
@@ -296,6 +481,62 @@ nested page rendering paths and resets for each render. Exceeding it throws
 Raise this property in `PdfLoadOptions.Limits` for trusted documents that need
 more visibility work, independently of the limit on visible drawing elements.
 Glyphs with no resolved ink consume no scene-expansion budget.
+
+PDF rendering also bounds the character scans needed to project spaced text, even
+when every glyph falls outside the page. `MaxPositionedTextProjectionCharactersPerPage`
+defaults to 1,000,000. Clipped positioned text has a separate
+`MaxClippedTextFontCopyWorkPerPage` budget, defaulting to 1,000,000 estimated face
+comparisons. Applications processing trusted files with unusually long spaced
+runs or many embedded fonts may raise these values in `PdfLoadOptions.Limits`.
+The visible-element and measured-glyph budgets remain separate.
+
+PDF/X color inspection now limits one document to 4,096 distinct content contexts
+and 5,000,000 aggregate content operations. Configure
+`MaxPrintProductionContexts` and `MaxPrintProductionOperations` in
+`PdfReadLimits` for trusted documents that need more. OfficeIMO-generated output
+grows these allowances for the content contexts and operations it adds; the
+source document's configured limits remain unchanged. OCR merge limits raw native
+text spans before overlap analysis and caps retained intersections per OCR word
+with `MaxNativeTextOverlapIntersectionsPerWord` (default 10,000). An interaction
+map also uses `MaxNativeTextCharactersPerPage` (default 8,388,608) for the
+aggregate span scan, including concealed spans. `MaxMergedTextCharactersPerPage`
+continues to limit only the retained canonical text; configure the scan budget
+separately for trusted pages with large hidden text layers. The interaction map
+may also reject a page with too many off-page image placements before it builds
+the visible regions. These limits report `PdfReadLimitException`.
+
+PDF/X inspection counts both resource discovery and the final color pass against
+`MaxPrintProductionOperations`. When composing PDFs, the document-wide context
+and operation allowances are summed across inputs. Scan cleanup separately
+retains at most 10,000 diagnostic messages and 8,388,608 diagnostic characters
+across selected pages. Set `OfficeScanCleanupOptions.MaximumDiagnostics` and
+`MaximumDiagnosticCharacters` for trusted scans that need more diagnostic detail.
+
+Page rendering retains at most 1,000 distinct capability diagnostics and
+1,048,576 diagnostic characters per page by default. Set
+`PdfPageRenderOptions.MaxDiagnosticsPerPage` and
+`MaxDiagnosticCharactersPerPage` when rendering trusted pages that require
+more diagnostic detail. The same options can be supplied to
+`PdfDocumentRenderer.CapabilityDiagnostics` and `PdfDocument.AssessRenderCompatibility`;
+image export uses the matching
+properties on `PdfImageExportOptions`. Duplicate diagnostics do not consume the character
+budget. PDF font inspection also shares its 10,000-diagnostic default across
+font-specific and resource-traversal findings; configure
+`PdfFontInspectionOptions.MaxDiagnostics` for trusted documents that need more.
+Font inspection also stops after 4,096 unique fonts, 32 nested resource levels,
+100,000 font references, or 10,000 Form resource traversals. Resource paths
+are capped at 4,096 characters each and 4 MiB in aggregate. Set
+`PdfFontInspectionOptions.MaxFonts`, `MaxResourceDepth`,
+`MaxResourceReferences`, `MaxFormResourceTraversals`,
+`MaxResourcePathCharacters`, or `MaxTotalResourcePathCharacters` when a
+trusted document needs a larger font inventory.
+
+Search-based redaction now stops if logical-kind verification needs more than
+20,000,000 text scan and span intersection work units across the document.
+Planning uses the same work ceiling; each planning or verification phase also
+has a 30-second elapsed limit in addition to the per-match regex timeout.
+An `InvalidDataException` means the search or rewritten file was not verified;
+do not use that output as a completed redaction.
 
 ### Configure PDF drawing fonts before projection
 

@@ -10,6 +10,16 @@ namespace OfficeIMO.Core.Internal {
     [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     internal static class OfficeStreamReader {
         private const int BufferSize = 81920;
+        private static readonly object SizeLimitMarker = new object();
+
+        internal static bool IsSizeLimitException(InvalidDataException exception) =>
+            exception.Data.Contains(SizeLimitMarker);
+
+        private static InvalidDataException SizeLimitExceeded(string message) {
+            var exception = new InvalidDataException(message);
+            exception.Data[SizeLimitMarker] = true;
+            return exception;
+        }
 
         /// <summary>
         /// Reads a complete artifact. Seekable sources are read from the beginning and restored to their original
@@ -119,11 +129,11 @@ namespace OfficeIMO.Core.Internal {
                     cancellationToken).ConfigureAwait(false);
                 if (trailingRead == 0) return result;
 
+                long expandedTotal = checked((long)result.Length + 1);
+                EnsureWithinLimit(expandedTotal, maxBytes);
                 using var expanded = new MemoryStream(checked(result.Length + 1));
                 expanded.Write(result, 0, result.Length);
                 expanded.WriteByte(trailingByte[0]);
-                long expandedTotal = checked((long)result.Length + 1);
-                EnsureWithinLimit(expandedTotal, maxBytes);
                 var expandedBuffer = new byte[BufferSize];
                 int expandedRead;
                 while ((expandedRead = await source.ReadAsync(
@@ -179,11 +189,11 @@ namespace OfficeIMO.Core.Internal {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (trailingByte < 0) return result;
 
+                long expandedTotal = checked((long)result.Length + 1);
+                EnsureWithinLimit(expandedTotal, maxBytes);
                 using var expanded = new MemoryStream(checked(result.Length + 1));
                 expanded.Write(result, 0, result.Length);
                 expanded.WriteByte(checked((byte)trailingByte));
-                long expandedTotal = checked((long)result.Length + 1);
-                EnsureWithinLimit(expandedTotal, maxBytes);
                 var expandedBuffer = new byte[BufferSize];
                 int expandedRead;
                 while ((expandedRead = source.Read(expandedBuffer, 0, expandedBuffer.Length)) > 0) {
@@ -216,7 +226,7 @@ namespace OfficeIMO.Core.Internal {
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length > maxBytes.Value) {
-                throw new InvalidDataException($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
             }
         }
 
@@ -225,13 +235,13 @@ namespace OfficeIMO.Core.Internal {
             if (!source.CanRead) throw new ArgumentException("Stream must be readable.", nameof(source));
             if (maxBytes.HasValue && maxBytes.Value < 1) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             if (source.CanSeek && maxBytes.HasValue && source.Length - source.Position > maxBytes.Value) {
-                throw new InvalidDataException($"Remaining stream content exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                throw SizeLimitExceeded($"Remaining stream content exceeds the configured maximum size ({maxBytes.Value} bytes).");
             }
         }
 
         private static void EnsureWithinLimit(long total, long? maxBytes) {
             if (maxBytes.HasValue && total > maxBytes.Value) {
-                throw new InvalidDataException($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
+                throw SizeLimitExceeded($"Stream exceeds the configured maximum size ({maxBytes.Value} bytes).");
             }
         }
     }

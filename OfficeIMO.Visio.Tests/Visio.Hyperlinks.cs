@@ -56,6 +56,35 @@ namespace OfficeIMO.Tests {
             Assert.Empty(VisioValidator.Validate(roundTripPath));
         }
 
+        [Fact]
+        public void ShapeAndConnectorPageHyperlinksRoundTripWithBlankAddress() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
+            try {
+                VisioDocument document = VisioDocument.Create(filePath);
+                VisioPage source = document.AddPage("Overview", 8.5, 6);
+                document.AddPage("Detail 2", 8.5, 6);
+                VisioShape start = source.AddRectangle(2, 4, 2, 1, "Start");
+                VisioShape finish = source.AddRectangle(6, 4, 2, 1, "Finish");
+                VisioConnector connector = source.AddConnector(start, finish, ConnectorKind.Dynamic, VisioSide.Right, VisioSide.Left);
+
+                start.AddPageHyperlink("Detail 2", "Open detail");
+                connector.AddPageHyperlink("Detail 2", "Open related detail");
+                document.Save();
+
+                Assert.Empty(VisioValidator.Validate(filePath));
+                VisioDocument loaded = VisioDocument.Load(filePath);
+                VisioHyperlink shapeLink = Assert.Single(loaded.Pages[0].Shapes.Single(shape => shape.Text == "Start").Hyperlinks);
+                VisioHyperlink connectorLink = Assert.Single(loaded.Pages[0].Connectors.Single().Hyperlinks);
+                Assert.True(string.IsNullOrEmpty(shapeLink.Address));
+                Assert.Equal("Detail 2", shapeLink.SubAddress);
+                Assert.Equal("Open detail", shapeLink.Description);
+                Assert.True(string.IsNullOrEmpty(connectorLink.Address));
+                Assert.Equal("Detail 2", connectorLink.SubAddress);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
         private static void AssertHyperlinkXml(string filePath) {
             using ZipArchive archive = ZipFile.OpenRead(filePath);
             XNamespace ns = "http://schemas.microsoft.com/office/visio/2012/main";

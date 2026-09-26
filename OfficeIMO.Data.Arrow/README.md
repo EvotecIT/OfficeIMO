@@ -70,12 +70,18 @@ Native engines can consume the same pipeline through the Arrow C Data Interface:
 using ArrowCArrayStreamOwner stream = reader.ExportArrowCStream(
     new ArrowReadOptions { BatchSize = 16_384 });
 
-nint address = stream.Address;
-// Pass address to a native ArrowArrayStream consumer while stream remains alive.
+using ArrowCArrayStreamOwner.ArrowCArrayStreamLease lease = stream.AcquireLease();
+nint address = lease.Address;
+// Pass address to a native ArrowArrayStream consumer while lease remains alive.
 ```
 
 `ArrowCArrayStreamOwner` owns both the unmanaged stream struct and its managed callbacks.
-Keep it alive for the complete native call and dispose it afterwards. Native code may invoke
-the stream's release callback, but it must not free the struct allocation. Each `get_next`
-call produces at most the configured batch size; the full worksheet or CSV is never collected
-into one `RecordBatch`.
+The lease pins that allocation even if the owner is disposed concurrently. Native code may
+invoke the stream's release callback, but it must not free the struct allocation. Dispose the
+lease after the complete native call sequence. A stream owner grants one native lease only;
+disposing the lease consumes the owner because the callback table may already have been released.
+For managed importer round trips, use `stream.ImportArrayStream()` so callback ownership moves
+exactly once without exposing an address. A second import or lease acquisition is rejected. Pass a
+cancellation token to `ExportArrowCStream` when native callbacks must be cancellable; the Arrow
+C ABI itself has no per-call cancellation argument. Each `get_next` call produces at most the
+configured batch size; the full worksheet or CSV is never collected into one `RecordBatch`.

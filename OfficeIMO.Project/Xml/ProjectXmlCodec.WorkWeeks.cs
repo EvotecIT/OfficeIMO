@@ -3,21 +3,22 @@ using System.Xml.Linq;
 namespace OfficeIMO.Project;
 
 internal static partial class ProjectXmlCodec {
-    private static void ReadWorkWeeks(ProjectCalendar calendar, XElement element, CancellationToken token) {
+    private static void ReadWorkWeeks(ProjectCalendar calendar, XElement element, ProjectLoadOptions options,
+        ref int entities, CancellationToken token) {
         var ns = element.Name.Namespace;
         foreach (var source in Children(element, "WorkWeeks", "WorkWeek")) {
-            token.ThrowIfCancellationRequested();
+            token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
             var week = calendar.WorkWeeks.Add(); Attach(calendar.Document, week, source);
             week.Name = (string?)source.Element(ns + "Name");
             var period = source.Element(ns + "TimePeriod");
             week.FromDate = period?.Element(ns + "FromDate") is XElement from ? ProjectXmlValue.ParseDate(from.Value) : (DateTime?)null;
             week.ToDate = period?.Element(ns + "ToDate") is XElement to ? ProjectXmlValue.ParseDate(to.Value) : (DateTime?)null;
             foreach (var sourceDay in source.Elements(ns + "WeekDay").Concat(Children(source, "WeekDays", "WeekDay"))) {
-                token.ThrowIfCancellationRequested();
+                token.ThrowIfCancellationRequested(); CheckEntities(++entities, options);
                 var day = week.WeekDays.Add(); Attach(calendar.Document, day, sourceDay);
                 day.Day = ParseDayType(sourceDay.Element(ns + "DayType"), false);
                 day.IsWorking = (bool?)sourceDay.Element(ns + "DayWorking");
-                ReadWorkingTimes(day.WorkingTimes, sourceDay, calendar.Document, token);
+                ReadWorkingTimes(day.WorkingTimes, sourceDay, calendar.Document, options, ref entities, token);
             }
         }
     }

@@ -26,12 +26,13 @@ internal sealed class DocBookDiagnosticCollector {
         }
 
         if (!_suppressed.TryGetValue(diagnostic.Code, out SuppressedDiagnostic? summary)) {
-            summary = new SuppressedDiagnostic(diagnostic.Severity);
+            summary = new SuppressedDiagnostic(diagnostic.Severity, diagnostic.LossKind);
             _suppressed.Add(diagnostic.Code, summary);
             _suppressedOrder.Add(diagnostic.Code);
         }
         summary.Count++;
         if (diagnostic.Severity > summary.Severity) summary.Severity = diagnostic.Severity;
+        if (diagnostic.LossKind > summary.LossKind) summary.LossKind = diagnostic.LossKind;
     }
 
     internal IReadOnlyList<DocBookDiagnostic> ToArray() {
@@ -40,17 +41,21 @@ internal sealed class DocBookDiagnosticCollector {
         foreach (string code in _suppressedOrder) {
             SuppressedDiagnostic summary = _suppressed[code];
             result.Add(new DocBookDiagnostic(code, summary.Severity,
-                $"{summary.Count} additional '{code}' diagnostics were summarized after the per-code detail limit of {_maxDetailedPerCode} was reached."));
+                $"{summary.Count} additional '{code}' diagnostics were summarized after the per-code detail limit of {_maxDetailedPerCode} was reached.",
+                path: null,
+                lossKind: summary.LossKind));
         }
         return result.ToArray();
     }
 
     private sealed class SuppressedDiagnostic {
-        internal SuppressedDiagnostic(DocBookDiagnosticSeverity severity) {
+        internal SuppressedDiagnostic(DocBookDiagnosticSeverity severity, OfficeConversionLossKind lossKind) {
             Severity = severity;
+            LossKind = lossKind;
         }
 
         internal int Count { get; set; }
         internal DocBookDiagnosticSeverity Severity { get; set; }
+        internal OfficeConversionLossKind LossKind { get; set; }
     }
 }

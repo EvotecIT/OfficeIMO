@@ -191,7 +191,35 @@ namespace OfficeIMO.Excel {
                 private const int MinimumEarlyUniqueHeavyStringReferences = 16384;
                 private const long MinimumDuplicateCharacterShareNumerator = 3L;
                 private const long MinimumDuplicateCharacterShareDenominator = 5L;
+                private const int MaximumProbeComparisons = 8;
+                private const int MaximumProbeWarmupCandidates = 128;
                 private readonly Dictionary<string, int> _indexes;
+
+                private sealed class LongStringProbeComparer : IEqualityComparer<string> {
+                    internal int Comparisons { get; private set; }
+
+                    public bool Equals(string? left, string? right) {
+                        if (ReferenceEquals(left, right)) return true;
+                        Comparisons++;
+                        return StringComparer.Ordinal.Equals(left, right);
+                    }
+
+                    public int GetHashCode(string value) {
+                        if (value.Length <= 256) return StringComparer.Ordinal.GetHashCode(value);
+                        unchecked {
+                            uint hash = 2166136261u;
+                            hash = (hash ^ (uint)value.Length) * 16777619u;
+                            for (int index = 0; index < 12; index++)
+                                hash = (hash ^ value[index]) * 16777619u;
+                            int middle = value.Length / 2 - 6;
+                            for (int index = middle; index < middle + 12; index++)
+                                hash = (hash ^ value[index]) * 16777619u;
+                            for (int index = value.Length - 12; index < value.Length; index++)
+                                hash = (hash ^ value[index]) * 16777619u;
+                            return (int)hash;
+                        }
+                    }
+                }
 
                 private DirectSharedStringTable(Dictionary<string, int> indexes, string[] values, int totalStringReferences) {
                     _indexes = indexes;
@@ -210,6 +238,8 @@ namespace OfficeIMO.Excel {
                         return null;
                     }
 
+                    LongStringProbeComparer? probeComparer = null;
+                    bool probeAbandoned = false;
                     var stringCounts = new Dictionary<string, int>(StringComparer.Ordinal);
                     int totalStringReferences = 0;
                     int duplicateReferences = 0;
@@ -381,6 +411,18 @@ namespace OfficeIMO.Excel {
                     return new DirectSharedStringTable(indexes, values, sharedStringReferences);
 
                     void NoteString(string text, bool forceShared = false) {
+                        if (probeComparer != null && probeComparer.Comparisons >= MaximumProbeComparisons) {
+                            stringCounts = new Dictionary<string, int>(stringCounts, StringComparer.Ordinal);
+                            probeComparer = null;
+                            probeAbandoned = true;
+                        } else if (probeComparer == null && !probeAbandoned && text.Length > 256
+                            && stringCounts.Count <= MaximumProbeWarmupCandidates) {
+                            // Start the cheap long-string probe only near the
+                            // beginning, so short-string exports keep their usual
+                            // hash path and a late long cell avoids a large rehash.
+                            probeComparer = new LongStringProbeComparer();
+                            stringCounts = new Dictionary<string, int>(stringCounts, probeComparer);
+                        }
                         totalStringReferences++;
                         totalStringCharacters += text.Length;
                         if (stringCounts.TryGetValue(text, out int count)) {

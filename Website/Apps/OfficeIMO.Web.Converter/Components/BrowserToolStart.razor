@@ -1,0 +1,35 @@
+@namespace OfficeIMO.Web.Converter.Components
+
+<div class="ocx-tool-picker">
+    <section aria-labelledby="start-convert-title">
+        <h2 id="start-convert-title">Convert documents</h2>
+        <div class="ocx-tool-picker__grid">
+            @foreach (ConversionRoute route in ConversionRouteCatalog.All) {
+                <a @key="route.Id" href="/convert/?route=@route.Id" data-route="@route.Id" target="_top">
+                    <span class="ocx-tool-picker__format">@route.Source <span aria-hidden="true">→</span> @route.Target</span>
+                    <strong>@route.Title</strong><span>@route.Description</span>
+                </a>
+            }
+        </div>
+    </section>
+    <section aria-labelledby="start-pdf-title">
+        <h2 id="start-pdf-title">Work with PDFs</h2>
+        <div class="ocx-tool-picker__grid">
+            @foreach (PdfToolDefinition tool in PdfToolCatalog.All) {
+                <a @key="tool.Id" href="/convert/?workspace=pdf&tool=@tool.Id" data-pdf-tool="@tool.Id" target="_top">
+                    <span class="ocx-tool-picker__format">@tool.Group</span>
+                    <strong>@tool.Label</strong><span>@tool.Description</span>
+                </a>
+            }
+        </div>
+    </section>
+    <section aria-labelledby="start-inspect-title">
+        <h2 id="start-inspect-title">Inspect and clean</h2>
+        <div class="ocx-tool-picker__grid">
+            <a href="/convert/?workspace=provenance" data-workspace="provenance" target="_top">
+                <span class="ocx-tool-picker__format">File origin</span><strong>File origin data</strong>
+                <span>Inspect embedded origin records and create a separate copy with supported records removed.</span>
+            </a>
+        </div>
+    </section>
+</div>

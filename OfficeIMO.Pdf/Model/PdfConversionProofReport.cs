@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Reusable proof snapshot for a source-document to PDF conversion result.
 /// </summary>
-public sealed class PdfConversionProofReport {
+public sealed class PdfConversionProofReport : IOfficeConversionReport {
     internal PdfConversionProofReport(
         PdfDocumentInfo? documentInfo,
         PdfDocumentReadResult? logicalDocument,
@@ -13,6 +13,7 @@ public sealed class PdfConversionProofReport {
         string artifactSha256,
         PdfConversionReportSummary warningSummary,
         bool hasLoss,
+        IReadOnlyList<OfficeConversionFidelityDiagnostic> fidelityDiagnostics,
         IReadOnlyList<PdfConversionProofIssue> issues) {
         DocumentInfo = documentInfo;
         LogicalDocument = logicalDocument;
@@ -22,6 +23,7 @@ public sealed class PdfConversionProofReport {
         ArtifactSha256 = artifactSha256 ?? string.Empty;
         WarningSummary = warningSummary;
         HasLoss = hasLoss;
+        FidelityDiagnostics = Array.AsReadOnly(fidelityDiagnostics.ToArray());
         Issues = issues;
     }
 
@@ -49,6 +51,9 @@ public sealed class PdfConversionProofReport {
     /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
     public bool HasLoss { get; }
 
+    /// <inheritdoc />
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
     /// <summary>Missing or failed proof items.</summary>
     public IReadOnlyList<PdfConversionProofIssue> Issues { get; }
 
@@ -73,5 +78,11 @@ public sealed class PdfConversionProofReport {
         if (!IsSatisfied) {
             throw new InvalidOperationException(Summary);
         }
+    }
+
+    /// <inheritdoc />
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException(
+            "The PDF conversion proof includes conversion-stage fidelity loss. Inspect FidelityDiagnostics for details.");
     }
 }

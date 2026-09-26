@@ -57,6 +57,11 @@ public sealed class OdsValidation {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "condition") ?? string.Empty;
         set { _element.SetAttributeValue(OdfNamespaces.Table + "condition", value); Dirty(); }
     }
+    /// <summary>Absolute sheet-qualified base cell used to evaluate relative references in the condition.</summary>
+    public string? BaseCellAddress {
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "base-cell-address");
+        set { _element.SetAttributeValue(OdfNamespaces.Table + "base-cell-address", value); Dirty(); }
+    }
     /// <summary>Typed interoperable condition, or null when the preserved expression is implementation-specific.</summary>
     public OdsValidationConditionSyntax? ParsedCondition {
         get => OdsValidationConditionSyntax.TryParse(Condition, out OdsValidationConditionSyntax? condition) ? condition : null;

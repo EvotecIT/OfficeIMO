@@ -690,6 +690,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 string? name = builtIn ? GetBuiltInName(rawName) : rawName;
                 if (string.IsNullOrWhiteSpace(name)) {
+                    diagnostics.Add(new LegacyXlsImportDiagnostic(
+                        LegacyXlsDiagnosticSeverity.Warning,
+                        "XLS-BIFF-LBL-EMPTY-NAME",
+                        "A Lbl record has no supported name and was not imported.",
+                        recordOffset: record.Offset,
+                        recordType: record.Type));
                     return;
                 }
 

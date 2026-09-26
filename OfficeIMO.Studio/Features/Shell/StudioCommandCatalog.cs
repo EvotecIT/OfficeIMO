@@ -9,6 +9,7 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
     private readonly MainWindowViewModel _document;
     private readonly Dictionary<string, StudioCommandItem> _byId = new(StringComparer.Ordinal);
+    private readonly List<string> _recent = new();
     private string _toolQuery = string.Empty;
 
     internal StudioCommandCatalog(MainWindowViewModel document, IStudioLocalizer localizer) {
@@ -44,6 +45,18 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
             () => Allowed(document.CanMutateSelection), shortcut: "Alt+↑ (page list)");
         Add("MovePagesDown", "Move selected pages down", "Move selected runs one position toward the end.", "Organize", document.MoveSelectedDownCommand,
             () => Allowed(document.CanMutateSelection), shortcut: "Alt+↓ (page list)");
+        Add("RotatePagesLeft", "Rotate selected pages left", "Turn the selected pages 90 degrees counterclockwise.", "Organize", document.RotateLeftCommand,
+            () => Allowed(document.CanMutateSelection));
+        Add("RotatePagesRight", "Rotate selected pages right", "Turn the selected pages 90 degrees clockwise.", "Organize", document.RotateRightCommand,
+            () => Allowed(document.CanMutateSelection));
+        Add("DuplicatePages", "Duplicate selected pages", "Insert copies of the selected pages after them.", "Organize", document.DuplicateSelectedCommand,
+            () => Allowed(document.CanMutateSelection));
+        Add("ExtractPages", "Extract selected pages", "Save the selected pages as a new PDF.", "Organize", document.ExtractSelectedCommand,
+            () => Allowed(document.CanExtractSelection));
+        Add("DeletePages", "Delete selected pages", "Remove the selected pages; undo restores them until you save.", "Organize", document.DeleteSelectedCommand,
+            () => Allowed(document.CanDeleteSelection));
+        Add("InsertBlankPage", "Insert a blank page", "Add an empty page after the current page.", "Organize", document.InsertBlankCommand,
+            () => Allowed(document.CanMutatePages));
         Add("Forms", "Fill and edit forms", "Fill fields or author supported AcroForm controls.", "Edit", document.ShowFormsModeCommand, Loaded, true, workspace: true);
         Add("Protect", "Protect and sign", "Inspect protection, sign, or protect a document copy.", "Security", document.ShowProtectModeCommand, Loaded, true, workspace: true);
         Add("Redact", "Redact content", "Mark content for reviewed permanent removal.", "Security", document.BeginRedactionCommand, () => Allowed(document.CanRedact), true, workspace: true);
@@ -84,6 +97,18 @@ public sealed class StudioCommandCatalog : ObservableObject, IDisposable {
         return Items.Where(item => (!toolsOnly || item.IsTool) && terms.All(term =>
             (item.Id + " " + item.Title + " " + item.Description + " " + item.Category + " " + item.Shortcut)
                 .Contains(term, StringComparison.CurrentCultureIgnoreCase))).ToArray();
+    }
+
+    /// <summary>Records a command chosen from the palette so it ranks first next time in this session.</summary>
+    internal void MarkUsed(string id) {
+        _recent.Remove(id);
+        _recent.Insert(0, id);
+        if (_recent.Count > 8) _recent.RemoveAt(_recent.Count - 1);
+    }
+
+    internal int RecentRank(string id) {
+        int index = _recent.IndexOf(id);
+        return index < 0 ? int.MaxValue : index;
     }
 
     private void OnDocumentChanged(object? sender, PropertyChangedEventArgs e) {

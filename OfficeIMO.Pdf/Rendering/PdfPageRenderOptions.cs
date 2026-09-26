@@ -39,6 +39,10 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
     public long MaxOutputBytesPerPage { get; set; } = 64L * 1024L * 1024L;
     /// <summary>Maximum aggregate encoded output bytes retained for one batch.</summary>
     public long MaxTotalOutputBytes { get; set; } = 256L * 1024L * 1024L;
+    /// <summary>Maximum distinct capability diagnostics retained while rendering one page.</summary>
+    public int MaxDiagnosticsPerPage { get; set; } = 1_000;
+    /// <summary>Maximum aggregate diagnostic characters retained while rendering one page.</summary>
+    public int MaxDiagnosticCharactersPerPage { get; set; } = 1 * 1024 * 1024;
     /// <summary>Continues a batch and returns a failed per-page report when rendering fails.</summary>
     public bool ContinueOnError { get; set; } = true;
     internal double GetScale(OfficeDrawing drawing) {
@@ -59,6 +63,8 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
         if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
         if (MaxOutputBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytesPerPage));
         if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
+        if (MaxDiagnosticsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticsPerPage));
+        if (MaxDiagnosticCharactersPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticCharactersPerPage));
     }
 
     private static bool IsPositiveFinite(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);
@@ -76,6 +82,7 @@ public sealed class PdfPageRenderResult {
         int height,
         TimeSpan elapsed,
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics,
+        int maximumDiagnosticCharacters,
         IReadOnlyList<string>? errors = null) {
         PageNumber = pageNumber;
         Format = format;
@@ -85,9 +92,18 @@ public sealed class PdfPageRenderResult {
         Elapsed = elapsed;
         CapabilityDiagnostics = capabilityDiagnostics.ToArray();
         var diagnostics = new List<string>(capabilityDiagnostics.Count + (errors?.Count ?? 0));
-        for (int i = 0; i < capabilityDiagnostics.Count; i++) diagnostics.Add(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
-        if (errors != null) diagnostics.AddRange(errors);
+        int remainingCharacters = maximumDiagnosticCharacters;
+        if (errors != null) foreach (string error in errors) AddDiagnostic(error);
+        for (int i = 0; i < capabilityDiagnostics.Count; i++)
+            AddDiagnostic(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
         Diagnostics = diagnostics.Count == 0 ? Array.Empty<string>() : diagnostics.AsReadOnly();
+
+        void AddDiagnostic(string value) {
+            if (remainingCharacters <= 0) return;
+            if (value.Length > remainingCharacters) value = value.Substring(0, remainingCharacters);
+            diagnostics.Add(value);
+            remainingCharacters -= value.Length;
+        }
     }
 
     /// <summary>One-based source page number.</summary>

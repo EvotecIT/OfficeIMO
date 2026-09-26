@@ -8,17 +8,21 @@ namespace OfficeIMO.Studio.Features.Reader;
 
 /// <summary>Maps the dependency-free OfficeIMO drawing scene onto Avalonia drawing primitives.</summary>
 internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
+    internal const long MaximumRetainedImagePixels = 4_000_000;
+    internal const long MaximumRetainedPageImagePixels = 8_000_000;
     private readonly Dictionary<OfficeDrawingImage, Bitmap> _images = new(ReferenceEqualityComparer.Instance);
+    private long _decodedImagePixels;
 
     internal static bool RequiresRasterFallback(OfficeDrawing drawing) => AnalyzeRasterFallback(drawing).Count > 0;
 
     internal static IReadOnlyList<string> AnalyzeRasterFallback(OfficeDrawing drawing) {
         var reasons = new HashSet<string>(StringComparer.Ordinal);
-        AnalyzeRasterFallback(drawing, reasons);
+        long imagePixels = 0;
+        AnalyzeRasterFallback(drawing, reasons, ref imagePixels);
         return reasons.ToArray();
     }
 
-    private static void AnalyzeRasterFallback(OfficeDrawing drawing, HashSet<string> reasons) {
+    private static void AnalyzeRasterFallback(OfficeDrawing drawing, HashSet<string> reasons, ref long imagePixels) {
         if (drawing.Fonts.Faces.Count > 0) {
             reasons.Add("Avalonia vector fallback: drawing-scoped embedded fonts require the OfficeIMO raster renderer for glyph fidelity.");
         }
@@ -28,6 +32,9 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
                     AnalyzeRasterFallback(shape.Shape, reasons);
                     break;
                 case OfficeDrawingText text:
+                    if (!string.Equals(text.Text, text.RasterText, StringComparison.Ordinal)) {
+                        reasons.Add("Avalonia vector fallback: painted PDF glyphs require the OfficeIMO raster renderer for fidelity.");
+                    }
                     if (text.HasFrameTransform) {
                         reasons.Add("Avalonia vector fallback: transformed text requires the OfficeIMO raster renderer for glyph positioning.");
                     }
@@ -38,16 +45,26 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
                         reasons.Add("Avalonia vector fallback: advanced PDF text metrics or decoration require the OfficeIMO raster renderer.");
                     }
                     break;
-                case OfficeDrawingImage:
+                case OfficeDrawingImage image:
+                    if (!OfficeImageReader.TryIdentifyByContent(image.Bytes, null, out OfficeImageInfo imageInfo) ||
+                        imageInfo.Width <= 0 || imageInfo.Height <= 0 ||
+                        (long)imageInfo.Width * imageInfo.Height > MaximumRetainedImagePixels) {
+                        reasons.Add("Avalonia vector fallback: embedded image dimensions exceed the retained image budget.");
+                    } else {
+                        long pixels = (long)imageInfo.Width * imageInfo.Height;
+                        if (pixels > MaximumRetainedPageImagePixels - imagePixels)
+                            reasons.Add("Avalonia vector fallback: embedded images exceed the retained page image budget.");
+                        else imagePixels += pixels;
+                    }
                     break;
                 case OfficeDrawingGroup group:
-                    AnalyzeRasterFallback(group.Drawing, reasons);
+                    AnalyzeRasterFallback(group.Drawing, reasons, ref imagePixels);
                     break;
                 case OfficeDrawingEffectGroup effectGroup:
                     if (effectGroup.BlendMode != OfficeBlendMode.Normal || effectGroup.SoftMask is not null) {
                         reasons.Add("Avalonia vector fallback: blend modes or soft masks require the OfficeIMO raster renderer.");
                     }
-                    AnalyzeRasterFallback(effectGroup.Drawing, reasons);
+                    AnalyzeRasterFallback(effectGroup.Drawing, reasons, ref imagePixels);
                     break;
                 default:
                     reasons.Add($"Avalonia vector fallback: {element.GetType().Name} is not supported by the retained adapter.");
@@ -69,6 +86,7 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
     internal void ClearImages() {
         foreach (Bitmap image in _images.Values) image.Dispose();
         _images.Clear();
+        _decodedImagePixels = 0;
     }
 
     private void RenderDrawing(DrawingContext context, OfficeDrawing drawing) {
@@ -152,42 +170,84 @@ internal sealed class OfficeDrawingAvaloniaRenderer : IDisposable {
             text.Font.IsBold ? FontWeight.Bold : FontWeight.Normal,
             FontStretch.Normal);
         var formatted = new FormattedText(
-            text.Text,
+            text.RasterText,
             CultureInfo.CurrentUICulture,
             FlowDirection.LeftToRight,
             typeface,
             Math.Max(1D, text.Font.Size * text.BaselineScale),
             CreateBrush(text.Color ?? OfficeColor.Black, 1D)!) {
-            MaxTextWidth = Math.Max(1D, text.Width),
-            MaxTextHeight = Math.Max(1D, text.Height),
-            TextAlignment = text.Alignment switch {
-                OfficeTextAlignment.Center => TextAlignment.Center,
-                OfficeTextAlignment.Right => TextAlignment.Right,
-                OfficeTextAlignment.Justify => TextAlignment.Justify,
-                _ => TextAlignment.Left
-            }
+            Trimming = TextTrimming.None
         };
         if (text.LineHeight.HasValue) formatted.LineHeight = text.LineHeight.Value;
+        formatted.MaxTextHeight = Math.Max(1D, text.Height);
+        formatted.TextAlignment = text.Alignment switch {
+            OfficeTextAlignment.Center => TextAlignment.Center,
+            OfficeTextAlignment.Right => TextAlignment.Right,
+            OfficeTextAlignment.Justify => TextAlignment.Justify,
+            _ => TextAlignment.Left
+        };
+        if (text.WrapText) {
+            formatted.MaxTextWidth = Math.Max(1D, text.Width);
+        }
 
         double y = text.Y + text.BaselineOffset;
         if (text.VerticalAlignment == OfficeTextVerticalAlignment.Center) y += Math.Max(0D, (text.Height - formatted.Height) / 2D);
         if (text.VerticalAlignment == OfficeTextVerticalAlignment.Bottom) y += Math.Max(0D, text.Height - formatted.Height);
 
+        // A substitute family can be wider than the source font. Wrapping or trimming such a run
+        // inside its box drops glyphs, so an unwrapped run stays on one line and is compressed.
+        (double offsetX, double scaleX) = text.WrapText
+            ? (0D, 1D)
+            : text.TextAdvanceWidth is double advance
+                ? FitPositionedSingleLine(formatted.WidthIncludingTrailingWhitespace, advance)
+                : FitSingleLine(formatted.WidthIncludingTrailingWhitespace, text.Width, text.Alignment);
         IDisposable? transform = text.HasFrameTransform
             ? context.PushTransform(ToMatrix(text.CreateFrameTransform().CreateDestinationTransform()))
             : null;
         try {
-            context.DrawText(formatted, new Point(text.X, y));
+            using IDisposable fit = context.PushTransform(
+                Matrix.CreateScale(scaleX, 1D) * Matrix.CreateTranslation(text.X + offsetX, y));
+            context.DrawText(formatted, new Point(0D, 0D));
         } finally {
             transform?.Dispose();
         }
     }
 
+    /// <summary>Scales a positioned PDF run to the advance recorded by the source font.</summary>
+    internal static (double OffsetX, double ScaleX) FitPositionedSingleLine(double measuredWidth, double advance) =>
+        measuredWidth > 0D && !double.IsInfinity(measuredWidth) && advance > 0D && !double.IsInfinity(advance)
+            ? (0D, advance / measuredWidth)
+            : (0D, 1D);
+
+    /// <summary>Returns the horizontal offset and compression that fit a single-line run in its box.</summary>
+    internal static (double OffsetX, double ScaleX) FitSingleLine(
+        double measuredWidth,
+        double boxWidth,
+        OfficeTextAlignment alignment) {
+        if (!(measuredWidth > 0D) || double.IsInfinity(measuredWidth) ||
+            !(boxWidth > 0D) || double.IsInfinity(boxWidth)) return (0D, 1D);
+        double scaleX = Math.Min(1D, boxWidth / measuredWidth);
+        double slack = boxWidth - measuredWidth * scaleX;
+        double offsetX = alignment switch {
+            OfficeTextAlignment.Center => slack / 2D,
+            OfficeTextAlignment.Right => slack,
+            _ => 0D
+        };
+        return (offsetX, scaleX);
+    }
+
     private void RenderImage(DrawingContext context, OfficeDrawingImage image) {
         if (!_images.TryGetValue(image, out Bitmap? bitmap)) {
-            using var stream = new MemoryStream(image.Bytes, writable: false);
+            byte[] bytes = image.Bytes;
+            if (!OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) ||
+                info.Width <= 0 || info.Height <= 0 ||
+                (long)info.Width * info.Height > MaximumRetainedImagePixels ||
+                (long)info.Width * info.Height > MaximumRetainedPageImagePixels - _decodedImagePixels)
+                throw new InvalidDataException("Embedded image exceeds the retained rendering budget.");
+            using var stream = new MemoryStream(bytes, writable: false);
             bitmap = new Bitmap(stream);
             _images.Add(image, bitmap);
+            _decodedImagePixels += (long)info.Width * info.Height;
         }
 
         OfficeImageProjection projection = image.Projection;

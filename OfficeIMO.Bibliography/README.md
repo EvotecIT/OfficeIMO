@@ -65,7 +65,7 @@ BibliographyWriteResult csl = read.Document.Write(
     });
 ```
 
-`RequireNoLoss` throws `BibliographyConversionLossException` when the destination would approximate or omit data. For permissive conversion, leave it disabled and inspect `csl.Report.Diagnostics`.
+`RequireNoLoss` throws `BibliographyConversionLossException` when the destination would approximate, omit, or fail to preserve data. For permissive conversion, leave it disabled and inspect `csl.Report.Diagnostics`. The report also implements `IOfficeConversionReport`; use `FidelityDiagnostics` when composing bibliography output with another OfficeIMO conversion stage and the policy must retain the exact `None`, `Approximation`, `Omission`, or `Failure` category.
 
 ## File, stream, text, and async APIs
 
@@ -88,7 +88,7 @@ See the [bibliography support matrix](../Docs/officeimo.bibliography-support-mat
 
 ## Dependencies
 
-`OfficeIMO.Bibliography` has no dependency on another OfficeIMO package. It uses `System.Text.Json` for CSL JSON and `System.Text.Encoding.CodePages` for declared legacy XML encodings on compatibility targets. It has no dependency on `OfficeIMO.Word`, the Open XML SDK, a TeX runtime, EndNote, or a network client.
+`OfficeIMO.Bibliography` depends on the zero-dependency `OfficeIMO.Core` package for the shared typed conversion-report contract. It uses `System.Text.Json` for CSL JSON and `System.Text.Encoding.CodePages` for declared legacy XML encodings on compatibility targets. It has no dependency on `OfficeIMO.Word`, the Open XML SDK, a TeX runtime, EndNote, or a network client.
 
 <!-- officeimo-operation-catalog:start -->
 ## Generated capability summary

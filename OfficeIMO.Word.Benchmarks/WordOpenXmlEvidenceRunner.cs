@@ -2,12 +2,18 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Word.Benchmarks;
 
 internal static class WordOpenXmlEvidenceRunner {
     private static readonly string[] Workloads = ["CreateParagraph", "CreateReport", "Read", "Replace"];
     private static readonly string[] Implementations = ["OfficeIMO", "OpenXmlSdk"];
+    private static readonly OfficeEvidenceRequirement[] BudgetRequirements = [
+        new("CreateParagraph|100", 100, "paragraphs"),
+        new("CreateReport|100", 100, "report rows"),
+        new("Replace|100", 100, "replacement paragraphs")
+    ];
     private static readonly JsonSerializerOptions JsonOptions = new() {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         PropertyNameCaseInsensitive = true,
@@ -29,6 +35,14 @@ internal static class WordOpenXmlEvidenceRunner {
         try {
             int repeat = GetPositiveIntOption(args, "--repeat", 1);
             string? jsonPath = GetOption(args, "--json");
+            string? budgetPath = GetOption(args, "--budget");
+            bool verifyBudget = args.Contains("--budget", StringComparer.OrdinalIgnoreCase);
+            if (verifyBudget && string.IsNullOrWhiteSpace(budgetPath)) {
+                throw new ArgumentException("--budget requires a budget JSON path.");
+            }
+            if (verifyBudget && repeat < 3) {
+                throw new ArgumentException("Word evidence budgets require at least three isolated repetitions.");
+            }
             var measurements = new List<WordOpenXmlEvidenceMeasurement>();
             foreach (string workload in Workloads) {
                 foreach (int itemCount in new[] { 100, 1000 }) {
@@ -66,6 +80,29 @@ internal static class WordOpenXmlEvidenceRunner {
                 if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory);
                 File.WriteAllText(fullPath, JsonSerializer.Serialize(report, JsonOptions));
                 Console.WriteLine("Wrote " + fullPath);
+            }
+            if (verifyBudget) {
+                OfficeEvidenceBudgetEvaluator.EnsureWithin(
+                    budgetPath!,
+                    "word-format-depth",
+                    BudgetRequirements,
+                    measurements.Where(item => item.Implementation == "OfficeIMO" &&
+                        item.ItemCount == 100 &&
+                        (item.Workload is "CreateParagraph" or "CreateReport" or "Replace"))
+                        .Select(item => new OfficeEvidenceObservation(
+                            $"{item.Workload}|{item.ItemCount}",
+                            item.ItemCount,
+                            item.ElapsedMillisecondsPerOperation * 1000,
+                            item.AllocatedBytesPerOperation,
+                            item.PeakManagedHeapGrowthBytes,
+                            item.AbsoluteProcessPeakWorkingSetBytes,
+                            item.OutputBytes))
+                        .ToArray());
+                if (measurements.Any(item => item.ItemCount == 100 &&
+                    item.Implementation == "OfficeIMO" &&
+                    item.AbsoluteProcessPeakWorkingSetBytes == 0)) {
+                    Console.WriteLine("Process working-set peak is unavailable on this host; the process limit could not be observed.");
+                }
             }
             return 0;
         } catch (Exception exception) {

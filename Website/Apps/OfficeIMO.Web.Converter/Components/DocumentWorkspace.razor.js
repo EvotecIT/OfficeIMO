@@ -14,7 +14,7 @@ export function connect(component) {
     window.addEventListener("message", selectionHandler);
     navigationHandler = event => {
         if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-        const link = event.target.closest?.('#workspace-navigation a[data-route], #workspace-navigation a[data-pdf-tool], #workspace-navigation a[data-workspace]');
+        const link = event.target.closest?.('#workspace-navigation a[data-route], #workspace-navigation a[data-pdf-tool], #workspace-navigation a[data-workspace], .ocx-tool-picker a[data-route], .ocx-tool-picker a[data-pdf-tool], .ocx-tool-picker a[data-workspace]');
         if (!link) return;
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -32,11 +32,11 @@ export function connect(component) {
         }
         const menu = document.querySelector('#workspace-navigation.is-open');
         if (event.key !== 'Tab' || !menu || window.innerWidth >= 1024) return;
-        const links = menu.querySelectorAll('a[href]');
+        const links = Array.from(menu.querySelectorAll('a[href], summary, input')).filter(element => element.getClientRects().length > 0);
         const toggle = document.querySelector('#workspace-menu-toggle');
         if (event.shiftKey && document.activeElement === links[0] || !event.shiftKey && document.activeElement === links[links.length - 1]) {
             event.preventDefault(); toggle?.focus();
-        } else if (document.activeElement === toggle) {
+        } else if (document.activeElement === toggle && links.length) {
             event.preventDefault(); links[event.shiftKey ? links.length - 1 : 0]?.focus();
         }
     };
@@ -45,7 +45,7 @@ export function connect(component) {
 export function publishSelection(workspace, route, tool, title, replace) {
     const content = document.querySelector('.ocx-workspace-content');
     if (content) content.scrollTop = 0;
-    if (window.innerWidth < 1024 && document.activeElement?.closest('#workspace-navigation')) {
+    if (!replace) {
         document.querySelector('#workspace-title')?.focus({ preventScroll: true });
     }
     if (window.parent !== window) {
@@ -54,7 +54,7 @@ export function publishSelection(workspace, route, tool, title, replace) {
 }
 export function focusMenu(open) {
     requestAnimationFrame(() => {
-        document.querySelector(open ? "#workspace-navigation a[aria-current]" : "#workspace-menu-toggle")?.focus();
+        document.querySelector(open ? "#browser-tool-search" : "#workspace-menu-toggle")?.focus();
     });
 }
 export function disconnect() {

@@ -50,6 +50,42 @@ public class PdfSelectionCoverageTests {
             new[] { target }, 0.5D, _ => { }, new CancellationToken(true)));
     }
 
+    [Fact]
+    public void CoverageBoundsRetainedIntersectionsBeforeUnionAllocation() {
+        PdfSelectionQuad target = Rectangle(0, 0, 10, 10);
+        PdfSelectionQuad fragment = Rectangle(0, 0, 1, 1);
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => PdfSelectionCoverage.Covers(
+            target, new[] { fragment, fragment, fragment }, 0.9D, _ => { }, default,
+            maximumRetainedIntersections: 2));
+
+        Assert.Equal(PdfReadLimitKind.OcrArtifacts, error.Kind);
+        Assert.Equal(3, error.Actual);
+    }
+
+    [Fact]
+    public void CoveringIntersectionDoesNotNeedAnotherRetainedSlot() {
+        PdfSelectionQuad rectangle = Rectangle(0, 0, 10, 10);
+        Assert.True(PdfSelectionCoverage.Covers(rectangle,
+            new[] { Rectangle(0, 0, 1, 1), rectangle }, 0.9D, _ => { }, default,
+            maximumRetainedIntersections: 1));
+
+        PdfSelectionQuad diamond = Diamond(5, 5, 5);
+        Assert.True(PdfSelectionCoverage.Covers(diamond,
+            new[] { Rectangle(0, 0, 5, 10), diamond }, 0.9D, _ => { }, default,
+            maximumRetainedIntersections: 1));
+    }
+
+    [Fact]
+    public void CoverageDoesNotChargeEmptyPolygonIntersections() {
+        PdfSelectionQuad target = Diamond(5, 5, 5);
+        PdfSelectionQuad left = Rectangle(0, 0, 5, 10);
+        PdfSelectionQuad outsideCorner = Rectangle(0, 0, 1, 1);
+
+        Assert.False(PdfSelectionCoverage.Covers(target, new[] { left, outsideCorner },
+            0.9D, _ => { }, default, maximumRetainedIntersections: 1));
+    }
+
     private static bool Covers(PdfSelectionQuad target, IReadOnlyList<PdfSelectionQuad> native, double threshold) =>
         PdfSelectionCoverage.Covers(target, native, threshold, _ => { }, default);
 

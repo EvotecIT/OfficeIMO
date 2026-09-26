@@ -46,7 +46,9 @@ internal sealed class TableBlock : IPdfBlock {
             var cells = new PdfTableCell[r.Length];
             for (int i = 0; i < r.Length; i++) {
                 if (r[i] is null) throw new System.ArgumentException("Table cells cannot contain null entries.", nameof(rows));
-                cells[i] = r[i].Clone();
+                // Text-only cells are immutable. Image cells expose a mutable PdfImageStyle through
+                // PdfTableCellImage.Style, so snapshot those before the caller can change the table.
+                cells[i] = r[i].Images.Count == 0 ? r[i] : r[i].Clone();
             }
 
             cellSnapshot.Add(System.Array.AsReadOnly(cells));

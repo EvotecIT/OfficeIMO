@@ -56,7 +56,7 @@ internal static partial class PdfRedactionApplier {
             if (removable.Length > 0) working = PdfAcroFormEditor.Edit(pdf, edit => { for (int i = 0; i < removable.Length; i++) edit.Remove(removable[i]); }, readOptions).ToBytes();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
         }
-        return ApplyCore(
+        byte[] output = ApplyCore(
             working,
             plan.Areas,
             effectiveOptions,
@@ -68,6 +68,8 @@ internal static partial class PdfRedactionApplier {
             imageTargets: null,
             generatedGrowth: out generatedGrowth,
             appliedImageMatches: out appliedImageMatches);
+        VerifySearchedTextRemoved(output, pdf, plan, layoutOptions, readOptions, generatedGrowth, effectiveOptions.CancellationToken);
+        return output;
     }
 
     /// <summary>
@@ -275,7 +277,8 @@ internal static partial class PdfRedactionApplier {
         PdfRedactionApplyOptions? applyOptions = null,
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? readOptions = null) {
-        return Apply(ReadStream(stream, nameof(stream)), areas, applyOptions, layoutOptions, readOptions);
+        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        return Apply(ReadStream(stream, readOptions, cancellationToken), areas, applyOptions, layoutOptions, readOptions);
     }
 
     /// <summary>
@@ -303,7 +306,13 @@ internal static partial class PdfRedactionApplier {
         PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] redacted = Apply(File.ReadAllBytes(inputPath), areas, applyOptions, layoutOptions, readOptions);
+        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        byte[] redacted = Apply(
+            PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken).Bytes,
+            areas,
+            applyOptions,
+            layoutOptions,
+            readOptions);
         WriteOutput(fullOutputPath, redacted);
     }
 
@@ -317,7 +326,13 @@ internal static partial class PdfRedactionApplier {
         PdfTextLayoutOptions? layoutOptions = null,
         PdfLoadOptions? readOptions = null) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return Apply(File.ReadAllBytes(inputPath), areas, applyOptions, layoutOptions, readOptions);
+        System.Threading.CancellationToken cancellationToken = applyOptions?.CancellationToken ?? default;
+        return Apply(
+            PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken).Bytes,
+            areas,
+            applyOptions,
+            layoutOptions,
+            readOptions);
     }
 
     private static RedactionMutation ApplyToObjects(
@@ -460,7 +475,9 @@ internal static partial class PdfRedactionApplier {
             additionalPageContentBytes: additionalContentBytes,
             additionalRetainedContentBytes: additionalDecodedStreamBytes,
             additionalContentOperations: additionalContentBytes,
-            additionalContentOperands: additionalContentBytes);
+            additionalContentOperands: additionalContentBytes,
+            additionalPrintProductionOperations: additionalContentBytes > int.MaxValue / 2
+                ? int.MaxValue : additionalContentBytes * 2);
     }
 
     private static int SaturatingAdd(int value, int added) =>
@@ -1167,16 +1184,11 @@ internal static partial class PdfRedactionApplier {
         return builder.ToString();
     }
 
-    private static byte[] ReadStream(Stream stream, string paramName) {
-        Guard.NotNull(stream, paramName);
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", paramName);
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
-    }
+    private static byte[] ReadStream(
+        Stream stream,
+        PdfLoadOptions? readOptions,
+        System.Threading.CancellationToken cancellationToken) =>
+        PdfDocumentSource.FromRemainingStream(stream, readOptions, cancellationToken).Bytes;
 
     private static void WriteOutput(Stream outputStream, byte[] bytes) {
         Guard.NotNull(outputStream, nameof(outputStream));

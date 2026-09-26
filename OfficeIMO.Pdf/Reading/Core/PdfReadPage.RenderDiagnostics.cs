@@ -4,9 +4,42 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(CancellationToken cancellationToken = default) {
+    private sealed class BoundedRenderDiagnostics : List<PdfRenderCapabilityDiagnostic> {
+        internal BoundedRenderDiagnostics(int maximumCount, int maximumCharacters, bool suppressRetention = false) {
+            MaximumCount = maximumCount;
+            MaximumCharacters = maximumCharacters;
+            SuppressRetention = suppressRetention;
+        }
+
+        internal int MaximumCount { get; }
+        internal int MaximumCharacters { get; }
+        internal bool SuppressRetention { get; }
+        internal long RetainedCharacters { get; set; }
+        internal bool TrackUnsupportedPaint { get; set; }
+        internal bool HasUnsupportedPaint { get; set; }
+    }
+
+    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(CancellationToken cancellationToken = default) =>
+        GetRenderCapabilityDiagnostics(1_000, 1 * 1024 * 1024, cancellationToken);
+
+    internal IReadOnlyList<PdfRenderCapabilityDiagnostic> GetRenderCapabilityDiagnostics(
+        int maximumDiagnostics, int maximumDiagnosticCharacters, CancellationToken cancellationToken) {
+        BoundedRenderDiagnostics diagnostics = ScanRenderCapabilityDiagnostics(
+            maximumDiagnostics, maximumDiagnosticCharacters, trackUnsupportedPaint: false, cancellationToken);
+        return diagnostics.Count == 0 ? Array.Empty<PdfRenderCapabilityDiagnostic>() : diagnostics.AsReadOnly();
+    }
+
+    private bool HasUnboundedUnsupportedPaint() => ScanRenderCapabilityDiagnostics(
+        1, 1, trackUnsupportedPaint: true, default).HasUnsupportedPaint;
+
+    private BoundedRenderDiagnostics ScanRenderCapabilityDiagnostics(
+        int maximumDiagnostics, int maximumDiagnosticCharacters, bool trackUnsupportedPaint,
+        CancellationToken cancellationToken) {
+        Guard.PositiveInteger(maximumDiagnostics, nameof(maximumDiagnostics));
+        Guard.PositiveInteger(maximumDiagnosticCharacters, nameof(maximumDiagnosticCharacters));
         cancellationToken.ThrowIfCancellationRequested();
-        var diagnostics = new List<PdfRenderCapabilityDiagnostic>();
+        var diagnostics = new BoundedRenderDiagnostics(maximumDiagnostics, maximumDiagnosticCharacters,
+            suppressRetention: trackUnsupportedPaint) { TrackUnsupportedPaint = trackUnsupportedPaint };
         var seen = new HashSet<string>(StringComparer.Ordinal);
         PdfOutputIntentColorTransform? outputIntentColorTransform = _outputIntentColorTransform;
         if (outputIntentColorTransform != null) {
@@ -43,7 +76,7 @@ public sealed partial class PdfReadPage {
             0,
             GetVisualPageTransform());
         CollectAnnotationCapabilityDiagnostics(diagnostics, seen, activeForms, pageContentBudget, type3GlyphBudget, textClippingBudget);
-        return diagnostics.Count == 0 ? Array.Empty<PdfRenderCapabilityDiagnostic>() : diagnostics.AsReadOnly();
+        return diagnostics;
     }
 
     private void CollectRenderCapabilityDiagnostics(
@@ -1578,7 +1611,29 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {
+        var bounded = (BoundedRenderDiagnostics)diagnostics;
+        if (bounded.TrackUnsupportedPaint &&
+            (capabilityId == PdfRenderCapabilities.UnknownOperatorId ||
+             capabilityId == PdfRenderCapabilities.UnsupportedShadingId)) bounded.HasUnsupportedPaint = true;
+        // Capability validation needs the Boolean result, not a second diagnostic
+        // collection. The public render scan retains and bounds diagnostics.
+        if (bounded.SuppressRetention) return;
+        PdfRenderCapability capability = PdfRenderCapabilities.Get(capabilityId);
+        long characters = (long)capability.Id.Length + capability.Message.Length + subject.Length + 16L;
+        // An oversized diagnostic cannot have been retained earlier. Reject it
+        // before allocating a second copy of a potentially huge PDF token.
+        if (characters > bounded.MaximumCharacters)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
+                characters);
         string key = capabilityId + "\n" + subject;
-        if (seen.Add(key)) diagnostics.Add(new PdfRenderCapabilityDiagnostic(PdfRenderCapabilities.Get(capabilityId), subject));
+        if (seen.Contains(key)) return;
+        if (characters > bounded.MaximumCharacters - bounded.RetainedCharacters)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
+                bounded.RetainedCharacters + characters);
+        if (diagnostics.Count >= bounded.MaximumCount)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCount, diagnostics.Count + 1L);
+        seen.Add(key);
+        diagnostics.Add(new PdfRenderCapabilityDiagnostic(capability, subject));
+        bounded.RetainedCharacters += characters;
     }
 }

@@ -124,6 +124,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         Func<CancellationToken, Task<string?>>? pickPrintOutput = null,
         Func<WatermarkPreviewViewModel, Task<bool>>? reviewWatermark = null) {
         _services = services ?? (Avalonia.Application.Current as App)?.Services ?? StudioApplicationServices.CreateDefault();
+        _services.Signatures.Changed += OnSavedSignaturesChanged;
         _persistDocumentViews = services is not null;
         _localizer = _services.Localizer;
         DocumentName = _localizer.Get("App.Name");
@@ -162,7 +163,9 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
             string.Equals(Path.GetExtension(_services.Storage.Describe(path).Name), ".pdf", StringComparison.OrdinalIgnoreCase) && _openDocumentInTab is not null
                 ? _openDocumentInTab(path, token)
                 : _openUri(new Uri(path));
-        Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication);
+        OutputActions = new StudioOutputActions(openWorkflowOutput, folder => _openUri(new Uri(folder)), message => ErrorMessage = message);
+        Jobs = new StudioJobsViewModel(_services.Jobs, openWorkflowOutput, _services.Storage.UsesProviderPublication,
+            folder => _openUri(new Uri(folder)));
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
@@ -287,7 +290,19 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         OnPropertyChanged(nameof(CanCancelOperation));
     }
 
+    partial void OnSelectedPageChanged(PdfPageViewModel? oldValue, PdfPageViewModel? newValue) {
+        if (oldValue is not null) oldValue.PropertyChanged -= OnSelectedPageStateChanged;
+        if (newValue is not null) newValue.PropertyChanged += OnSelectedPageStateChanged;
+        OnPropertyChanged(nameof(ShowOcrPrompt));
+        RetargetBookmarkCommand.NotifyCanExecuteChanged();
+    }
+
+    private void OnSelectedPageStateChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e) {
+        if (e.PropertyName == nameof(PdfPageViewModel.IsImageOnly)) OnPropertyChanged(nameof(ShowOcrPrompt));
+    }
+
     partial void OnSelectedPageChanged(PdfPageViewModel? value) {
+        OnPropertyChanged(nameof(PageStatusText));
         _assistant?.CheckSource();
         UpdateFormAnchor();
         RefreshReaderPages();
@@ -446,10 +461,13 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
     }
 
     internal void CompletePreparedClose() {
+        LastClosedDocumentPath = DocumentPath;
         _openCancellation?.Cancel();
         ReplaceDocument(null, null, null, null, Array.Empty<PdfPageViewModel>(), Array.Empty<PdfOrganizerPageViewModel>());
         ErrorMessage = null;
     }
+
+    internal string? LastClosedDocumentPath { get; private set; }
 
     [RelayCommand]
     private void DismissError() {
@@ -541,6 +559,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         if (_disposed) return;
         SaveDocumentViewState();
         _disposed = true;
+        _services.Signatures.Changed -= OnSavedSignaturesChanged;
+        DisposeSavedSignaturePreviews();
         ClearTextReview();
         _services.Recovery.MaintenanceCompleted -= OnRecoveryMaintenanceCompleted;
         _services.DocumentHistory.Cleared -= OnDocumentHistoryCleared;
@@ -639,6 +659,8 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         foreach (PdfPageViewModel page in pages) {
             page.LinkActivated += OnPageLinkActivated;
             page.EditorGestureCompleted += OnPageEditorGestureCompleted;
+            page.MarkupRequested += OnPageMarkupRequested;
+            page.InlineFormNavigationRequested += OnInlineFormNavigationRequested;
             page.ObjectSelected += OnPageObjectSelected;
             page.ObjectTransformCompleted += OnPageObjectTransform;
             page.EditorTool = ActiveEditorTool;
@@ -688,10 +710,14 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
                 GetTwoPageFitZoom(availableWidth, availableHeight),
             ViewerZoomMode.FitPage => Math.Min(availableWidth / unscaledWidth, availableHeight / unscaledHeight),
             ViewerZoomMode.Grid => GetGridFitZoom(availableWidth, unscaledWidth),
-            _ => availableWidth / unscaledWidth
+            // On wide screens fit-width stops at a comfortable reading size instead of filling the window.
+            _ => Math.Min(Math.Min(availableWidth, MaximumReadableWidth) / unscaledWidth, MaximumFitWidthZoom)
         };
         ApplyZoom(Math.Clamp(target, 0.25D, 3D));
     }
+
+    private const double MaximumReadableWidth = 880D;
+    private const double MaximumFitWidthZoom = 2D;
 
     private double GetTwoPageFitZoom(double availableWidth, double availableHeight) {
         IReadOnlyList<PdfPageViewModel> spread = ReaderPages.Count > 0 ? ReaderPages : [SelectedPage ?? Pages[0]];

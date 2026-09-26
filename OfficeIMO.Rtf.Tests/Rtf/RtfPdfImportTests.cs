@@ -205,6 +205,7 @@ public class RtfPdfImportTests {
             result.Report.Warnings,
             item => item.Code == "TABLES_NOT_IMPORTED");
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
+        Assert.Equal(OfficeConversionLossKind.Omission, warning.LossKind);
         Assert.Equal(logical.Tables.Count.ToString(), warning.Details["count"]);
     }
 

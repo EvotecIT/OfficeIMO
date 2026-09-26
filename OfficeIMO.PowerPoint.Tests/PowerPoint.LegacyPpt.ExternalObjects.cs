@@ -52,6 +52,9 @@ namespace OfficeIMO.Tests {
                 diagnostic.Code == "PPT-OLE-LINK-PRESERVED");
 
             LegacyPptImportReport report = source.CreateImportReport();
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "PPT-OLE-LINK-PRESERVED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(1, report.LinkedOleObjectCount);
             Assert.Equal(storageBytes.Length,
                 report.LinkedOleObjectByteCount);
@@ -126,6 +129,9 @@ namespace OfficeIMO.Tests {
                 diagnostic.Code == "PPT-ACTIVEX-PRESERVED");
 
             LegacyPptImportReport report = source.CreateImportReport();
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "PPT-ACTIVEX-PRESERVED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal(1, report.ActiveXControlCount);
             Assert.Equal(storageBytes.Length,
                 report.ActiveXControlByteCount);

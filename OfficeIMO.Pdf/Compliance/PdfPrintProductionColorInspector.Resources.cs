@@ -3,24 +3,52 @@ using OfficeIMO.Pdf.Filters;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfPrintProductionColorInspector {
+    private sealed class ImageContexts : List<ImageContext> {
+        private readonly HashSet<ImageContext> _seen = new(new ImageContextEqualityComparer());
+
+        internal void TryAdd(ImageContext context) {
+            if (_seen.Add(context)) Add(context);
+        }
+    }
+
+    private sealed class ShadingContexts : List<ShadingContext> {
+        private readonly HashSet<ShadingContext> _seen = new(new ShadingContextEqualityComparer());
+
+        internal void TryAdd(ShadingContext context) {
+            if (_seen.Add(context)) Add(context);
+        }
+    }
+
+    private sealed class ImageContextEqualityComparer : IEqualityComparer<ImageContext> {
+        public bool Equals(ImageContext? left, ImageContext? right) => ReferenceEquals(left, right) ||
+            left != null && right != null && ReferenceEquals(left.Stream, right.Stream) &&
+            (ReferenceEquals(left.Aliases, right.Aliases) || left.Aliases.SetEquals(right.Aliases));
+
+        public int GetHashCode(ImageContext context) => unchecked(
+            System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Stream) * 31 + context.Aliases.ValueHashCode);
+    }
+
+    private sealed class ShadingContextEqualityComparer : IEqualityComparer<ShadingContext> {
+        public bool Equals(ShadingContext? left, ShadingContext? right) => ReferenceEquals(left, right) ||
+            left != null && right != null && ReferenceEquals(left.Dictionary, right.Dictionary) &&
+            ReferenceEquals(left.Stream, right.Stream) &&
+            (ReferenceEquals(left.Aliases, right.Aliases) || left.Aliases.SetEquals(right.Aliases));
+
+        public int GetHashCode(ShadingContext context) => unchecked(
+            (System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Dictionary) * 31 +
+             (context.Stream == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Stream))) * 31 +
+            context.Aliases.ValueHashCode);
+    }
+
     private static void AddContentStream(
         PdfStream stream,
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         PdfObject? inheritedFontObject = null,
         int? pageSequenceId = null,
         ContentColorStateSnapshot? initialColorState = null) {
-        if (pageSequenceId == null && ContainsContentStreamContext(
-                streams,
-                stream,
-                aliases,
-                resources,
-                inheritedFontObject,
-                pageSequenceId,
-                initialColorState)) return;
-
-        streams.Add(new ContentStreamContext(
+        streams.TryAdd(new ContentStreamContext(
             stream,
             aliases,
             resources,
@@ -29,32 +57,12 @@ internal static partial class PdfPrintProductionColorInspector {
             initialColorState));
     }
 
-    private static bool ContainsContentStreamContext(
-        IReadOnlyList<ContentStreamContext> contexts,
-        PdfStream stream,
-        ColorSpaceAliases aliases,
-        PdfDictionary? resources,
-        PdfObject? inheritedFontObject,
-        int? pageSequenceId,
-        ContentColorStateSnapshot? initialColorState) {
-        for (int index = 0; index < contexts.Count; index++) {
-            ContentStreamContext existing = contexts[index];
-            if (ReferenceEquals(existing.Stream, stream) &&
-                existing.Aliases.SetEquals(aliases) &&
-                ReferenceEquals(existing.Resources, resources) &&
-                ReferenceEquals(existing.InheritedFontObject, inheritedFontObject) &&
-                existing.PageSequenceId == pageSequenceId &&
-                existing.InitialColorState == initialColorState) return true;
-        }
-        return false;
-    }
-
     private static bool AddResolvedShadingContext(
         PdfObject value,
         int depth,
         ColorSpaceAliases aliases,
         Dictionary<int, PdfIndirectObject> objects,
-        List<ShadingContext> shadings,
+        ShadingContexts shadings,
         int maximumObjectDepth) {
         PdfObject? resolved = ResolveObject(objects, value, depth, maximumObjectDepth);
         PdfDictionary? shading = resolved switch {
@@ -64,34 +72,23 @@ internal static partial class PdfPrintProductionColorInspector {
         };
         if (shading == null) return false;
         PdfStream? shadingStream = resolved as PdfStream;
-        for (int index = 0; index < shadings.Count; index++) {
-            ShadingContext existing = shadings[index];
-            if (ReferenceEquals(existing.Dictionary, shading) &&
-                ReferenceEquals(existing.Stream, shadingStream) &&
-                existing.Aliases.SetEquals(aliases)) return true;
-        }
-        shadings.Add(new ShadingContext(shading, shadingStream, aliases));
+        shadings.TryAdd(new ShadingContext(shading, shadingStream, aliases));
         return true;
     }
 
     private static void AddImageContext(
         PdfStream image,
         ColorSpaceAliases aliases,
-        List<ImageContext> images) {
-        for (int index = 0; index < images.Count; index++) {
-            ImageContext existing = images[index];
-            if (ReferenceEquals(existing.Stream, image) && existing.Aliases.SetEquals(aliases)) return;
-        }
-
-        images.Add(new ImageContext(image, aliases));
+        ImageContexts images) {
+        images.TryAdd(new ImageContext(image, aliases));
     }
 
     private static ReachableResourceCollection CollectReachableResourceContexts(
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         int firstContext,
         Dictionary<int, PdfIndirectObject> objects,
-        List<ImageContext> images,
-        List<ShadingContext> shadings,
+        ImageContexts images,
+        ShadingContexts shadings,
         HashSet<PdfDictionary> graphicsStates,
         PdfReadLimits limits,
         System.Threading.CancellationToken cancellationToken) {
@@ -141,6 +138,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     limits.MaxContentOperations,
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
+                        streams.ChargeOperation();
                         if (!TryTrackResourceColorState(operation, context.Aliases, colorState)) {
                             contextWasUninspectable = true;
                         }
@@ -350,7 +348,9 @@ internal static partial class PdfPrintProductionColorInspector {
                 if (isPageContent) activePageFontObject = activeFontObject;
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
-                exception is PdfReadLimitException ||
+                exception is PdfReadLimitException limit &&
+                    limit.Kind != PdfReadLimitKind.PrintProductionContexts &&
+                    limit.Kind != PdfReadLimitKind.PrintProductionOperations ||
                 exception is FormatException) {
                 // Resource traversal owns reachability. If it cannot resolve a referenced
                 // resource, the later color pass cannot recover that missing evidence.
@@ -438,7 +438,7 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfDictionary? inheritedResources,
         ColorSpaceAliases inheritedAliases,
         int contentDepth,
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
@@ -453,6 +453,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 inheritedAliases,
                 objects,
                 limits,
+                streams,
                 out PdfDictionary? resources,
                 out ColorSpaceAliases aliases)) return false;
 
@@ -477,6 +478,7 @@ internal static partial class PdfPrintProductionColorInspector {
         ColorSpaceAliases inheritedAliases,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
+        ContentStreamContexts streams,
         out PdfDictionary? resources,
         out ColorSpaceAliases aliases) {
         resources = inheritedResources;
@@ -489,11 +491,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 limits.MaxObjectNestingDepth,
                 out _) is not PdfDictionary directResources) return false;
         resources = directResources;
-        aliases = CreateColorSpaceAliases(
-            directResources,
-            objects,
-            limits.MaxObjectNestingDepth,
-            limits.MaxDecodedStreamBytes);
+        aliases = streams.GetOrCreateAliases(directResources, objects, limits);
         return true;
     }
 
@@ -502,7 +500,7 @@ internal static partial class PdfPrintProductionColorInspector {
         int graphicsStateDepth,
         ContentStreamContext context,
         int contentDepth,
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,
@@ -540,6 +538,7 @@ internal static partial class PdfPrintProductionColorInspector {
                 context.Aliases,
                 objects,
                 limits,
+                streams,
                 out PdfDictionary? groupResources,
                 out ColorSpaceAliases groupAliases) ||
             !string.Equals(
@@ -627,10 +626,10 @@ internal static partial class PdfPrintProductionColorInspector {
         string patternName,
         ContentStreamContext context,
         int contentDepth,
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
-        List<ShadingContext> shadings,
+        ShadingContexts shadings,
         HashSet<PdfDictionary> graphicsStates,
         PdfReadLimits limits,
         ref int transparencyGroups,
@@ -844,7 +843,7 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfContentOperation operation,
         ContentStreamContext context,
         int contentDepth,
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         List<int> contentDepths,
         Dictionary<int, PdfIndirectObject> objects,
         PdfReadLimits limits,

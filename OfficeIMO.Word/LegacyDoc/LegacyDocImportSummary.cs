@@ -1,6 +1,6 @@
 namespace OfficeIMO.Word.LegacyDoc {
     /// <summary>Provides the compact, user-facing outcome of a legacy DOC import.</summary>
-    public sealed class LegacyDocImportSummary {
+    public sealed class LegacyDocImportSummary : IOfficeConversionReport {
         internal LegacyDocImportSummary(LegacyDocLoadResult result) {
             ParagraphCount = result.LegacyDocument.Paragraphs.Count;
             DiagnosticCount = result.Diagnostics.Count;
@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc {
             PreservedFeatureCount = result.PreservedFeatures.Count;
             CompoundFeatureCount = result.CompoundFeatures.Count;
             HasImportErrors = result.HasImportErrors;
-            HasConversionLoss = result.HasConversionLoss;
+            FidelityDiagnostics = Array.AsReadOnly(result.FidelityDiagnostics.ToArray());
         }
 
         /// <summary>Gets the decoded paragraph count.</summary>
@@ -30,6 +30,19 @@ namespace OfficeIMO.Word.LegacyDoc {
         public bool HasImportErrors { get; }
 
         /// <summary>Gets whether DOCX conversion would omit known content.</summary>
-        public bool HasConversionLoss { get; }
+        public bool HasConversionLoss => HasLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy DOC import summary reported content loss. Inspect FidelityDiagnostics for details.");
+        }
     }
 }

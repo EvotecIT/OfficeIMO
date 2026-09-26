@@ -55,6 +55,22 @@ public sealed class ProjectSerializationReviewTests {
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
     }
 
+    [Fact]
+    public void NativeToXmlReportsOmittedPresentationAsOmission() {
+        using var seed = ProjectNativeAuthoringTests.Create();
+        using var source = new MemoryStream();
+        seed.Save(source, new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14 });
+        using var document = ProjectDocument.Load(new MemoryStream(source.ToArray()));
+
+        ProjectReport report = document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml });
+
+        ProjectDiagnostic diagnostic = Assert.Single(report.Diagnostics,
+            item => item.Code == "PROJECT_NATIVE_PRESENTATION_LOSS");
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(report.FidelityDiagnostics,
+            item => item.Code == diagnostic.Code).LossKind);
+    }
+
     [Theory]
     [InlineData("80,external-reference", "PROJECT_MPX_CONVERSION_LOSS", "/MPX/Record[7]")]
     [InlineData("72,recurrence", "PROJECT_MPX_CONVERSION_LOSS", "/Task[UID=1]/Recurrence")]
@@ -71,6 +87,9 @@ public sealed class ProjectSerializationReviewTests {
         var diagnostic = Assert.Single(document.AssessSave(strict).Diagnostics,
             item => item.Code == expectedCode && item.Location == expectedLocation);
         Assert.True(diagnostic.RepresentsLoss);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        Assert.Equal(OfficeConversionLossKind.Omission, Assert.Single(document.AssessSave(strict).FidelityDiagnostics,
+            item => item.Code == expectedCode && item.Location == expectedLocation).LossKind);
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         document.Name = "Edited";
@@ -87,6 +106,7 @@ public sealed class ProjectSerializationReviewTests {
             item => item.Code == "PROJECT_XML_TASK_ROWS");
         Assert.Equal("/Task[UID=" + task.Uid + "]/DisplayId", diagnostic.Location);
         Assert.True(diagnostic.RepresentsLoss); Assert.Contains("becomes 1", diagnostic.Message);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
         Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(), strict));
 
         var allow = new ProjectSaveOptions { Format = ProjectFileFormat.Xml, LossPolicy = OfficeConversionLossPolicy.Allow };

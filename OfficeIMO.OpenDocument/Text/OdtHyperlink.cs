@@ -15,7 +15,31 @@ public sealed class OdtHyperlink {
     /// <summary>Decoded display text.</summary>
     public string Text {
         get => OdfTextCodec.Read(_element);
-        set { OdfTextCodec.Replace(_element, value); Dirty(); }
+        set {
+            bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
+            if (hadNotes) _document.PrepareNoteIndexForMutation();
+            OdfTextCodec.Replace(_element, value);
+            if (hadNotes) _document.RefreshNoteIndexAfterMutation();
+            Dirty();
+        }
+    }
+    /// <summary>Ordered text and spans inside this hyperlink.</summary>
+    public IReadOnlyList<OdtInlineNode> InlineNodes => OdtInlineNode.Read(_document, _element, _partPath);
+
+    /// <summary>Appends display text after existing child nodes.</summary>
+    public OdtHyperlink AddText(string text) {
+        OdfTextCodec.Append(_element, text);
+        Dirty();
+        return this;
+    }
+
+    /// <summary>Appends a styled span inside this hyperlink.</summary>
+    public OdtSpan AddSpan(string? text = null) {
+        var element = new XElement(OdfNamespaces.Text + "span");
+        OdfTextCodec.Append(element, text);
+        _element.Add(element);
+        Dirty();
+        return new OdtSpan(_document, element, _partPath);
     }
     /// <summary>Changes the hyperlink display text casing while preserving its target and text style.</summary>
     public OdtHyperlink TransformTextCase(OfficeIMO.Drawing.OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) {
@@ -72,36 +96,21 @@ public sealed class OdtHyperlink {
     public OdfColor? Color { get => Resolve(style => style.Color); set => EnsureStyle().Color = value; }
     /// <summary>Explicit or inherited text background color.</summary>
     public OdfColor? BackgroundColor {
-        get {
-            OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(
-                OdfStyleFamily.Text, StyleName, _partPath);
-            return _document.Styles.ResolveTextBackgroundColor(style);
-        }
+        get => OdfInlineStyleResolver.ResolveTextBackgroundColor(_document.Styles, _element, _partPath);
         set => EnsureStyle().TextBackgroundColor = value;
     }
+    /// <summary>Whether an inline style sets a text background, including transparent.</summary>
+    public bool HasTextBackgroundOverride => OdfInlineStyleResolver.TryResolveTextBackgroundColor(
+        _document.Styles, _element, _partPath, out _);
 
     private OdfStyle EnsureStyle() => _document.Styles.EnsureAutomaticStyle(
         _element, OdfNamespaces.Text + "style-name", OdfStyleFamily.Text, "ofL", _partPath);
 
-    private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Text, StyleName, _partPath);
-        if (style == null) return null;
-        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
-            T? value = selector(candidate);
-            if (value.HasValue) return value;
-        }
-        return null;
-    }
+    private T? Resolve<T>(Func<OdfStyle, T?> selector) where T : struct =>
+        OdfInlineStyleResolver.Resolve(_document.Styles, _element, _partPath, selector);
 
-    private string? ResolveReference(Func<OdfStyle, string?> selector) {
-        OdfStyle? style = StyleName == null ? null : _document.Styles.FindInPart(OdfStyleFamily.Text, StyleName, _partPath);
-        if (style == null) return null;
-        foreach (OdfStyle candidate in _document.Styles.Resolve(style)) {
-            string? value = selector(candidate);
-            if (value != null) return value;
-        }
-        return null;
-    }
+    private string? ResolveReference(Func<OdfStyle, string?> selector) =>
+        OdfInlineStyleResolver.ResolveReference(_document.Styles, _element, _partPath, selector);
 
     private void Dirty() => _document.MarkPartDirty(_partPath);
 }

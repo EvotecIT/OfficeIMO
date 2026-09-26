@@ -4,10 +4,58 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingSvgExporter {
-    private static void AppendText(StringBuilder sb, OfficeDrawingText text, OfficeRasterCanvas textMetrics) {
-        bool useFrameTransform = text.FlipHorizontal || text.FlipVertical;
+    private static void AppendText(
+        StringBuilder sb,
+        OfficeDrawingText text,
+        OfficeRasterCanvas textMetrics,
+        string idPrefix,
+        ref int clipPathId) {
+        bool useFrameTransform = text.FlipHorizontal || text.FlipVertical ||
+            (text.TextDirection == OfficeTextDirection.TopToBottom && Math.Abs(text.RotationDegrees) > 0.000001D);
         if (useFrameTransform) {
             AppendTextFrameGroupStart(sb, text);
+        }
+
+        if (text.TextDirection == OfficeTextDirection.TopToBottom) {
+            double verticalContentX = text.X + text.Padding.Left;
+            double verticalContentY = text.Y + text.Padding.Top;
+            double verticalContentWidth = text.Width - text.Padding.Horizontal;
+            double verticalContentHeight = text.Height - text.Padding.Vertical;
+            if (verticalContentWidth <= 0D || verticalContentHeight <= 0D) {
+                if (useFrameTransform) sb.Append("</g>");
+                return;
+            }
+
+            string verticalClipPathId = idPrefix + "officeimo-text-clip-" +
+                (++clipPathId).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            sb.Append("<defs><clipPath id=\"")
+                .Append(verticalClipPathId)
+                .Append("\"><rect x=\"").Append(Format(verticalContentX))
+                .Append("\" y=\"").Append(Format(verticalContentY))
+                .Append("\" width=\"").Append(Format(verticalContentWidth))
+                .Append("\" height=\"").Append(Format(verticalContentHeight))
+                .Append("\"/></clipPath></defs><g")
+                .AppendClipPathReference(verticalClipPathId)
+                .Append('>');
+            sb.AppendSvgVerticalTextElement(
+                text.RasterText,
+                verticalContentX + verticalContentWidth / 2D,
+                verticalContentY,
+                text.Color ?? OfficeColor.Black,
+                text.Font.FamilyName,
+                text.Font.Size,
+                text.Font.IsBold,
+                text.Font.IsItalic,
+                text.Font.IsUnderline,
+                text.Font.IsStrikethrough,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                text.DecorationColor,
+                text.FeatureSettings,
+                text.FontPalette);
+            sb.Append("</g>");
+            if (useFrameTransform) sb.Append("</g>");
+            return;
         }
 
         if (text.WrapText || text.ShrinkToFit || text.StackedText || text.VerticalAlignment != OfficeTextVerticalAlignment.Top || text.HasPadding) {
@@ -33,54 +81,33 @@ public static partial class OfficeDrawingSvgExporter {
         double fontSize = sourceFontSize * text.BaselineScale;
         double y = contentY + sourceFontSize + text.BaselineOffset;
         double lineHeight = text.LineHeight ?? sourceFontSize * 1.2D;
-        if (text.TextAdvanceWidth.HasValue) {
-            sb.AppendSvgPositionedTextElement(
-                text.Text,
-                x,
-                y,
-                lineHeight,
-                text.Color ?? OfficeColor.Black,
-                text.Font.FamilyName ?? "Arial",
-                fontSize,
-                text.Alignment,
-                text.Font.IsBold,
-                text.Font.IsItalic,
-                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
-                useFrameTransform ? 0D : text.RotationDegrees,
-                useFrameTransform ? 0D : text.RotationCenterX,
-                useFrameTransform ? 0D : text.RotationCenterY,
-                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-                text.TextAdvanceWidth.Value,
-                text.UnderlineStyle,
-                text.StrikethroughStyle,
-                OfficeTextBaseline.Normal,
-                text.DecorationColor,
-                text.FeatureSettings,
-                text.FontPalette);
-        } else {
-            sb.AppendSvgFeaturedTextElement(
-                text.Text,
-                x,
-                y,
-                lineHeight,
-                text.Color ?? OfficeColor.Black,
-                text.Font.FamilyName ?? "Arial",
-                fontSize,
-                text.Alignment,
-                text.Font.IsBold,
-                text.Font.IsItalic,
-                (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
-                useFrameTransform ? 0D : text.RotationDegrees,
-                useFrameTransform ? 0D : text.RotationCenterX,
-                useFrameTransform ? 0D : text.RotationCenterY,
-                (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
-                text.UnderlineStyle,
-                text.StrikethroughStyle,
-                OfficeTextBaseline.Normal,
-                text.DecorationColor,
-                text.FeatureSettings,
-                text.FontPalette);
-        }
+        double? advance = text.TextAdvanceWidth;
+        sb.AppendSvgPositionedTextElement(
+            text.RasterText,
+            x,
+            y,
+            lineHeight,
+            text.Color ?? OfficeColor.Black,
+            text.Font.FamilyName ?? "Arial",
+            fontSize,
+            text.Alignment,
+            text.Font.IsBold,
+            text.Font.IsItalic,
+            (text.Font.Style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline,
+            useFrameTransform ? 0D : text.RotationDegrees,
+            useFrameTransform ? 0D : text.RotationCenterX,
+            useFrameTransform ? 0D : text.RotationCenterY,
+            (text.Font.Style & OfficeFontStyle.Strikethrough) == OfficeFontStyle.Strikethrough,
+            advance,
+            text.UnderlineStyle,
+            text.StrikethroughStyle,
+            OfficeTextBaseline.Normal,
+            text.DecorationColor,
+            text.FeatureSettings,
+            text.FontPalette,
+            OfficeTextShapingBackend.BrowserNative,
+            text.PreservesPaintedGlyphs ? OfficeTextDirection.LeftToRight : text.TextDirection,
+            text.PreservesPaintedGlyphs);
 
         if (useFrameTransform) {
             sb.Append("</g>");
@@ -105,7 +132,7 @@ public static partial class OfficeDrawingSvgExporter {
 
         OfficeTextBlockLayout layout = text.StackedText
             ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -116,7 +143,7 @@ public static partial class OfficeDrawingSvgExporter {
                 (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
             ? OfficeTextLayoutEngine.FitWrappedTextCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -126,7 +153,7 @@ public static partial class OfficeDrawingSvgExporter {
                 text.ParagraphIndent,
                 (value, size) => textMetrics.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,

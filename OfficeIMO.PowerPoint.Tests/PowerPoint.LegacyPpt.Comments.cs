@@ -1,13 +1,33 @@
+using System.Buffers.Binary;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptCommentTests {
+        [Theory]
+        [InlineData("Container", "PPT-COMMENT-CONTAINER")]
+        [InlineData("Atom", "PPT-COMMENT-ATOM")]
+        [InlineData("Index", "PPT-COMMENT-INDEX")]
+        [InlineData("DateTime", "PPT-COMMENT-DATETIME")]
+        [InlineData("String", "PPT-COMMENT-STRING")]
+        public void UnreadBinaryCommentIsReportedAsAnOmission(string malformedPart, string code) {
+            byte[] bytes = CreatePresentationWithMalformedComment(malformedPart);
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            Assert.Empty(Assert.Single(legacy.Slides).Comments);
+            LegacyPptImportReport report = legacy.CreateImportReport();
+            OfficeConversionFidelityDiagnostic omission = Assert.Single(report.FidelityDiagnostics,
+                item => item.Code == code);
+            Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
+            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+        }
+
         [Fact]
         public void NativeWriter_AuthorsAndProjectsClassicComments() {
             DateTime firstDate = new(2026, 7, 15, 10, 11, 12, 345, DateTimeKind.Utc);
@@ -211,6 +231,50 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("comment count", exception.Message,
                 StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static byte[] CreatePresentationWithMalformedComment(string malformedPart) {
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide();
+                AddAuthors(source, (0U, "Author", "A", 0U));
+                AddComment(slide, 0U, 0U, "Review", new DateTime(2026, 7, 15, 10, 0, 0, DateTimeKind.Utc), 100, 200);
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation original = LegacyPptPresentation.Load(bytes);
+            LegacyPptPersistObject persist = original.Package.PersistObjects[Assert.Single(original.Slides).PersistId];
+            var options = new LegacyPptImportOptions();
+            LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persist.RecordBytes, 0, options);
+            LegacyPptRecord dataBlob = Assert.Single(slideRecord.DescendantsAndSelf(), item => item.Type == 0x138B);
+            LegacyPptRecord comment = Assert.Single(LegacyPptRecordReader.ReadSequence(
+                dataBlob.CopyRecordBytes(), 8, dataBlob.PayloadLength, options), item => item.Type == 0x2EE0);
+            LegacyPptRecord atom = Assert.Single(comment.Children, item => item.Type == 0x2EE1);
+            byte[] documentStream = (byte[])original.Package.DocumentStream.Clone();
+            int offset = checked((int)persist.StreamOffset + dataBlob.Offset);
+            switch (malformedPart) {
+                case "Container":
+                    documentStream[offset + comment.Offset] &= 0xF0;
+                    break;
+                case "Atom":
+                    documentStream[offset + atom.Offset] |= 0x01;
+                    break;
+                case "Index":
+                    BinaryPrimitives.WriteInt32LittleEndian(documentStream.AsSpan(offset + atom.PayloadOffset, 4), -1);
+                    break;
+                case "DateTime":
+                    BinaryPrimitives.WriteUInt16LittleEndian(documentStream.AsSpan(offset + atom.PayloadOffset + 6, 2), 13);
+                    break;
+                case "String":
+                    LegacyPptRecord author = Assert.Single(comment.Children, item => item.Type == 0x0FBA && item.Instance == 0);
+                    documentStream[offset + author.Offset] |= 0x01;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(malformedPart));
+            }
+            return original.Package.RewriteCompoundStreams(new Dictionary<string, byte[]> {
+                ["PowerPoint Document"] = documentStream
+            });
         }
 
         private static void AddAuthors(PowerPointPresentation presentation,

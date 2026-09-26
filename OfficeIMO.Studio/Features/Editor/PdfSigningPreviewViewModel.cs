@@ -25,6 +25,14 @@ public sealed partial class PdfSigningPreviewViewModel : ObservableObject, IDisp
         byte[]? image, IStudioLocalizer localizer, Func<string, Task> open, Func<string, Task> reveal) {
         _localizer = localizer; _open = open; _reveal = reveal; Destination = destination;
         Details = [localizer.Format("Protection.Pages", pages),
+            localizer.Get(settings.Certification is null ? "Signing.ApprovalPreview" : "Signing.CertificationPreview"),
+            ..(settings.Certification is { } permission
+                ? new[] { localizer.Format("Signing.CertificationPermission", permission switch {
+                    OfficeIMO.Pdf.PdfCertificationPermissionLevel.NoChanges => localizer.Get("Signing.Certify.NoChanges"),
+                    OfficeIMO.Pdf.PdfCertificationPermissionLevel.FormFillingAndSignatures => localizer.Get("Signing.Certify.Forms"),
+                    _ => localizer.Get("Signing.Certify.FormsAndComments")
+                }) }
+                : Array.Empty<string>()),
             localizer.Format("Signing.Certificate", settings.Certificate.DisplayName),
             localizer.Format("Signing.Thumbprint", settings.Certificate.Thumbprint),
             localizer.Format("Signing.Issuer", settings.Certificate.Issuer),

@@ -174,7 +174,8 @@ public sealed class PdfTextFallbackPlan {
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
             .WithFeatureSettings(styleTemplate.FeatureSettings)
-            .WithHorizontalOffset(styleTemplate.HorizontalOffset);
+            .WithHorizontalOffset(styleTemplate.HorizontalOffset)
+            .WithTextDirection(styleTemplate.TextDirection);
     }
 
     private static PdfTextRun CreateStyledNamedRun(string text, string fontFamily, PdfTextRun? styleTemplate) {
@@ -204,7 +205,8 @@ public sealed class PdfTextFallbackPlan {
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
             .WithFeatureSettings(styleTemplate.FeatureSettings)
-            .WithHorizontalOffset(styleTemplate.HorizontalOffset);
+            .WithHorizontalOffset(styleTemplate.HorizontalOffset)
+            .WithTextDirection(styleTemplate.TextDirection);
     }
 
     private static PdfTextRun CreateStyledLayoutRun(string text, PdfTextRun? styleTemplate) {
@@ -227,7 +229,8 @@ public sealed class PdfTextFallbackPlan {
             strikeStyle: styleTemplate.StrikeStyle,
             decorationColor: styleTemplate.DecorationColor)
             .WithFeatureSettings(styleTemplate.FeatureSettings)
-            .WithHorizontalOffset(styleTemplate.HorizontalOffset);
+            .WithHorizontalOffset(styleTemplate.HorizontalOffset)
+            .WithTextDirection(styleTemplate.TextDirection);
     }
 
     private static void AddLayoutControlRuns(List<PdfTextRun> runs, string text, PdfTextRun? styleTemplate) {

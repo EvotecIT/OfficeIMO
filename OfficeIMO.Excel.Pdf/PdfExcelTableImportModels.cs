@@ -135,6 +135,28 @@ public sealed class PdfExcelTableImportEntry {
         /// <summary>Gets source-page content that was outside this table-only import.</summary>
         public OfficeIMO.Pdf.PdfTableExtractionScopeReport SourceScope { get; }
 
+        /// <summary>Gets category-preserving table-projection diagnostics.</summary>
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
+            get {
+                var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+                if (HasOmittedPageContent) {
+                    diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                        "PDF_EXCEL_PAGE_CONTENT_OMITTED",
+                        "PDF page or document content outside detected tables was omitted.",
+                        OfficeConversionLossKind.Omission,
+                        "OfficeIMO.Excel.Pdf"));
+                }
+                if (Entries.Any(static entry => entry.Truncated)) {
+                    diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                        "PDF_EXCEL_TABLES_TRUNCATED",
+                        "One or more detected PDF tables were truncated by configured projection limits.",
+                        OfficeConversionLossKind.Omission,
+                        "OfficeIMO.Excel.Pdf"));
+                }
+                return diagnostics.AsReadOnly();
+            }
+        }
+
         /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>
         public bool HasOmittedPageContent => SourceScope.HasOmittedPageContent;
 

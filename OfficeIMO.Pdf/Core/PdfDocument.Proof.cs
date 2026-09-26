@@ -50,15 +50,14 @@ public sealed partial class PdfDocument {
     /// Compares this PDF with a rewritten PDF stream and reports whether important document signals were preserved.
     /// </summary>
     internal PdfRewritePreservationReport AssessRewritePreservation(Stream rewrittenStream, PdfRewritePreservationOptions? options = null) {
-        return AssessRewritePreservation(ReadProofStream(rewrittenStream), options);
+        return AssessRewritePreservation(PdfDocumentSource.FromRemainingStream(rewrittenStream, options?.RewrittenReadOptions).Bytes, options);
     }
 
     /// <summary>
     /// Compares this PDF with a rewritten PDF file and reports whether important document signals were preserved.
     /// </summary>
     internal PdfRewritePreservationReport AssessRewritePreservation(string rewrittenPath, PdfRewritePreservationOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(rewrittenPath, nameof(rewrittenPath));
-        return AssessRewritePreservation(File.ReadAllBytes(rewrittenPath), options);
+        return AssessRewritePreservation(PdfDocumentSource.FromPath(rewrittenPath, options?.RewrittenReadOptions).Bytes, options);
     }
 
     /// <summary>
@@ -85,15 +84,14 @@ public sealed partial class PdfDocument {
     /// Compares this PDF with a rewritten PDF stream and throws when important document signals were not preserved.
     /// </summary>
     internal PdfRewritePreservationReport AssertRewritePreserved(Stream rewrittenStream, PdfRewritePreservationOptions? options = null) {
-        return AssertRewritePreserved(ReadProofStream(rewrittenStream), options);
+        return AssertRewritePreserved(PdfDocumentSource.FromRemainingStream(rewrittenStream, options?.RewrittenReadOptions).Bytes, options);
     }
 
     /// <summary>
     /// Compares this PDF with a rewritten PDF file and throws when important document signals were not preserved.
     /// </summary>
     internal PdfRewritePreservationReport AssertRewritePreserved(string rewrittenPath, PdfRewritePreservationOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(rewrittenPath, nameof(rewrittenPath));
-        return AssertRewritePreserved(File.ReadAllBytes(rewrittenPath), options);
+        return AssertRewritePreserved(PdfDocumentSource.FromPath(rewrittenPath, options?.RewrittenReadOptions).Bytes, options);
     }
 
     /// <summary>
@@ -234,14 +232,4 @@ public sealed partial class PdfDocument {
         return scenario;
     }
 
-    private static byte[] ReadProofStream(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
-    }
 }

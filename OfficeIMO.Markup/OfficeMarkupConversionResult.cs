@@ -27,18 +27,27 @@ public sealed class OfficeMarkupConversionReport : IOfficeConversionReport {
     /// <summary>Creates a conversion report.</summary>
     public OfficeMarkupConversionReport(IEnumerable<OfficeMarkupDiagnostic>? diagnostics = null) {
         _diagnostics = Array.AsReadOnly((diagnostics ?? Array.Empty<OfficeMarkupDiagnostic>()).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(_diagnostics.Select(static (diagnostic, index) =>
+            new OfficeConversionFidelityDiagnostic(
+                "OFFICE_MARKUP_" + diagnostic.Severity.ToString().ToUpperInvariant(),
+                string.IsNullOrWhiteSpace(diagnostic.Message) ? "Office markup diagnostic." : diagnostic.Message,
+                diagnostic.LossKind,
+                "OfficeIMO.Markup",
+                diagnostic.Node == null ? index.ToString(System.Globalization.CultureInfo.InvariantCulture) : diagnostic.Node.Kind.ToString())).ToArray());
     }
 
     /// <summary>Immutable conversion diagnostics in emission order.</summary>
     public IReadOnlyList<OfficeMarkupDiagnostic> Diagnostics => _diagnostics;
 
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
     public bool Succeeded => !_diagnostics.Any(static diagnostic =>
         diagnostic.Severity == OfficeMarkupDiagnosticSeverity.Error);
 
-    /// <summary>Whether conversion warned about, omitted, or failed any source content.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic =>
-        diagnostic.Severity != OfficeMarkupDiagnosticSeverity.Info);
+    /// <summary>Whether conversion approximated, omitted, or failed any source content.</summary>
+    public bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
 
     /// <summary>Throws when conversion failed.</summary>
     public void RequireSuccess() {
@@ -47,7 +56,7 @@ public sealed class OfficeMarkupConversionReport : IOfficeConversionReport {
 
     /// <summary>Throws when conversion failed or reported possible content loss.</summary>
     public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeMarkupConversionException(_diagnostics);
+        if (!Succeeded || HasLoss) throw new OfficeMarkupConversionException(_diagnostics);
     }
 }
 

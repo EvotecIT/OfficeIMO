@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using System.IO.Compression;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
 using OfficeIMO.Pdf;
@@ -114,6 +115,30 @@ public sealed class OfficeWorkflowRunnerTests {
         Assert.Equal(result.OutputBytes.ToString(System.Globalization.CultureInfo.InvariantCulture), reopened.Details["stagedBytes"]);
         Assert.Equal(NormalizeExtension(route.TargetExtension), reopened.Details["format"]);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "AtomicPublication");
+    }
+
+    [Theory]
+    [InlineData("docx-pdf")]
+    [InlineData("xlsx-pdf")]
+    [InlineData("pptx-pdf")]
+    public async Task OpenXmlConversionRejectsHighlyCompressedPackagePart(string routeId) {
+        using var scope = new TestDirectory();
+        string input = CreateInput(scope.Path, routeId);
+        using (ZipArchive archive = ZipFile.Open(input, ZipArchiveMode.Update)) {
+            using Stream part = archive.CreateEntry("oversized-data.bin", CompressionLevel.Optimal).Open();
+            part.Write(new byte[8 * 1024 * 1024]);
+        }
+        string output = Path.Combine(scope.Path, "result.pdf");
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert,
+            InputPath = input,
+            OutputPath = output,
+            ConversionRouteId = routeId
+        });
+
+        Assert.False(result.Succeeded);
+        Assert.False(File.Exists(output));
     }
 
     [Fact]

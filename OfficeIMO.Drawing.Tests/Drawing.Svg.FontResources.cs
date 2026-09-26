@@ -38,4 +38,22 @@ public class DrawingSvgFontResourceTests {
         }
         CheckFonts(drawing);
     }
+
+    [Fact]
+    public void FittedRootViewportRetainsCallerSuppliedFontResources() {
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("FixtureFont", ManagedTextShapingTestAssets.CreateFont('A'));
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='200' height='80' viewBox='0 0 100 40' "
+            + "font-family='FixtureFont' font-size='20'><text x='8' y='24'>A</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(
+            Encoding.UTF8.GetBytes(svg), options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal("FixtureFont", Assert.Single(drawing!.Fonts.Faces).FamilyName);
+
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        drawing.AppendFontDiagnostics(diagnostics);
+        Assert.DoesNotContain(diagnostics, item => item.Code == OfficeImageExportDiagnosticCodes.FontSubstituted);
+        Assert.Contains("@font-face", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
 }

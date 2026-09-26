@@ -31,19 +31,12 @@ internal static class PdfAttachmentExtractor {
     /// <summary>Extracts embedded file attachments from a PDF file path.</summary>
     public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(string path) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return ExtractAttachments(File.ReadAllBytes(path));
+        return ExtractAttachments(PdfDocumentSource.FromPath(path, null).Bytes);
     }
 
     /// <summary>Extracts embedded file attachments from the current position of a readable stream.</summary>
     public static IReadOnlyList<PdfExtractedAttachment> ExtractAttachments(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return ExtractAttachments(buffer.ToArray());
+        return ExtractAttachments(PdfDocumentSource.FromRemainingStream(stream, null).Bytes);
     }
 
     /// <summary>Extracts embedded file attachments from a parsed PDF document.</summary>
@@ -185,7 +178,7 @@ internal static class PdfAttachmentExtractor {
             initialDecodedStreamBytes, sharedDecodedStreamBudget, cancellationToken);
         budget.Checkpoint();
         budget.ValidateStructuralObjects(objects);
-        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw);
+        PdfDictionary? catalog = PdfSyntax.FindCatalog(objects, trailerRaw, cancellationToken);
         if (catalog is null) {
             return Array.Empty<AttachmentDescriptor>();
         }
@@ -775,6 +768,7 @@ internal static class PdfAttachmentExtractor {
     }
 
     private static List<string> WriteAttachmentFiles(IReadOnlyList<PdfExtractedAttachment> attachments, string outputDirectory) {
+        Directory.CreateDirectory(outputDirectory);
         var paths = new List<string>(attachments.Count);
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         for (int i = 0; i < attachments.Count; i++) {
@@ -838,7 +832,6 @@ internal static class PdfAttachmentExtractor {
             throw new ArgumentException("Output directory refers to a file; a directory path is required.", nameof(outputDirectory));
         }
 
-        Directory.CreateDirectory(fullOutputDirectory);
         return fullOutputDirectory;
     }
 }

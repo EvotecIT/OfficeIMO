@@ -20,6 +20,22 @@ internal static class PdfMacRomanEncoding {
         '\uF8FF','\u00D2','\u00DA','\u00DB','\u00D9','\u0131','\u02C6','\u02DC','\u00AF','\u02D8','\u02D9','\u02DA','\u00B8','\u02DD','\u02DB','\u02C7'
     };
 
+    private static Dictionary<char, byte>? _reverse;
+
+    /// <summary>Finds the Mac Roman code for a character, preferring the lowest code.</summary>
+    internal static bool TryEncode(char value, out byte code) {
+        Dictionary<char, byte> reverse = _reverse ??= BuildReverse();
+        return reverse.TryGetValue(value, out code);
+    }
+
+    private static Dictionary<char, byte> BuildReverse() {
+        var reverse = new Dictionary<char, byte>();
+        for (int code = 0; code < Map.Length; code++) {
+            if (!reverse.ContainsKey(Map[code])) reverse.Add(Map[code], (byte)code);
+        }
+        return reverse;
+    }
+
     public static string Decode(byte[] bytes) {
         return Decode(bytes, int.MaxValue);
     }

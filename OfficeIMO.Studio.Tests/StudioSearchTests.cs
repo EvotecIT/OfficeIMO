@@ -14,6 +14,48 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioSearchTests {
     [Theory]
+    [InlineData(960, 620)]
+    [InlineData(1280, 800)]
+    public async Task WrappedSearchSelectionHighlightsEachLine(int width, int height) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "Wrapped search.pdf");
+            string[] words = Enumerable.Range(0, 80).Select(index => "word" + index.ToString("D3")).ToArray();
+            byte[] pdf = PdfDocument.Create(compose => compose.Page(page => page.Size(400D, 600D)
+                .Content(content => content.Text(string.Join(" ", words))))).ToBytes();
+            PdfDocument sourceDocument = PdfDocument.Load(pdf);
+            string query = Enumerable.Range(0, words.Length - 1)
+                .Select(index => words[index] + " " + words[index + 1])
+                .First(candidate => sourceDocument.Text.Find(candidate).Any(hit => hit.VisualLineBounds.Count == 2));
+            File.WriteAllBytes(source, pdf);
+            var window = new MainWindow(services) { Width = width, Height = height };
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(source);
+                var model = window.ViewModel;
+                model.SearchQuery = query;
+                await model.SearchCommand.ExecuteAsync(null);
+                PdfSearchHit hit = Assert.Single(model.SearchResults);
+                Assert.Equal(2, hit.LineBounds.Count);
+                Assert.True(hit.LineBounds[0].Bottom <= hit.LineBounds[1].Top + 0.5D);
+                Assert.Equal(hit.LineBounds, model.Pages[0].ActiveSearchHighlights);
+                Assert.NotEqual(hit.Bounds, hit.LineBounds[0]);
+                model.Pages[0].AttachToViewport();
+                await model.Pages[0].EnsureRenderedAsync();
+                window.UpdateLayout();
+                await Task.Delay(100);
+                window.UpdateLayout();
+                Capture(window, $"search-wrapped-active-lines-{width}");
+                model.SearchQuery = "missing";
+                Assert.Empty(model.Pages[0].ActiveSearchHighlights);
+            } finally { window.Close(); window.TabHost.Dispose(); }
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Theory]
     [InlineData(960, 620, false, false)]
     [InlineData(1280, 800, true, true)]
     public async Task SearchNavigatesIndividualOccurrencesAndClearsStaleHighlights(int width, int height, bool dark, bool rotate) {
@@ -188,7 +230,9 @@ public sealed class StudioSearchTests {
                 Assert.Equal(model.SelectedSearchResult.Bounds, canvas.ActiveSearchHighlight);
                 var location = canvas.TranslatePoint(new Point(0, 0), window)!.Value;
                 double highlightedY = location.Y + model.SelectedSearchResult.Bounds.Center.Y * canvas.Bounds.Height / page.Scene!.Drawing.Height;
-                Assert.InRange(highlightedY, 200, 750);
+                var reader = layout == ReaderLayoutMode.Grid ? window.ReaderGridPagesListControl : window.ReaderPagesListControl;
+                double readerTop = reader.TranslatePoint(new Point(0, 0), window)!.Value.Y;
+                Assert.InRange(highlightedY, readerTop + 24, readerTop + reader.Bounds.Height - 24);
                 Capture(window, $"search-layout-{layout}");
                 var box = window.FindControl<DocumentWorkspaceView>("DocumentWorkspace")!.FindControl<TextBox>("SearchBox")!;
                 box.Focus(); window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.None, null);

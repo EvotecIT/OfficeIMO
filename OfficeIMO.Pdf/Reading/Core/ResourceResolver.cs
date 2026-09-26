@@ -272,6 +272,19 @@ internal static partial class ResourceResolver {
 
     internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null, bool colorizeImageMasks = false, PdfReadLimits? limits = null, PdfOutputIntentColorTransform? outputIntentColorTransform = null, Func<int, long, bool>? colorFunctionEvaluationBudget = null, PdfColorFunctionResolutionContext? functionResolutionContext = null, CancellationToken cancellationToken = default) {
         var result = new List<PdfExtractedImage>();
+        VisitImageXObjectsForResources(resources, objects, pageNumber, result.Add, imagePlacements, colorizeImageMasks,
+            limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, cancellationToken);
+        return result;
+    }
+
+    internal static void VisitImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects,
+        int pageNumber, Action<PdfExtractedImage> emit, IReadOnlyList<PdfImagePlacement>? imagePlacements = null,
+        bool colorizeImageMasks = false, PdfReadLimits? limits = null,
+        PdfOutputIntentColorTransform? outputIntentColorTransform = null,
+        Func<int, long, bool>? colorFunctionEvaluationBudget = null,
+        PdfColorFunctionResolutionContext? functionResolutionContext = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(emit, nameof(emit));
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey = null;
         Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity = null;
         if (imagePlacements is not null) {
@@ -291,11 +304,10 @@ internal static partial class ResourceResolver {
 
         PdfReadLimits effectiveLimits = limits ?? PdfReadLimits.Default;
         int traversedObjects = 0;
-        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects, cancellationToken);
-        return result;
+        CollectImageXObjectsFromResources(resources, objects, pageNumber, emit, new HashSet<(PdfStream Stream, PdfDictionary Resources)>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, effectiveLimits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth: 0, ref traversedObjects, cancellationToken);
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, PdfOutputIntentColorTransform? outputIntentColorTransform, Func<int, long, bool>? colorFunctionEvaluationBudget, PdfColorFunctionResolutionContext? functionResolutionContext, int depth, ref int traversedObjects, CancellationToken cancellationToken) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, Action<PdfExtractedImage> emit, HashSet<(PdfStream Stream, PdfDictionary Resources)> visitedFormContexts, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity, bool colorizeImageMasks, PdfReadLimits limits, PdfOutputIntentColorTransform? outputIntentColorTransform, Func<int, long, bool>? colorFunctionEvaluationBudget, PdfColorFunctionResolutionContext? functionResolutionContext, int depth, ref int traversedObjects, CancellationToken cancellationToken) {
         if (depth > limits.MaxContentNestingDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.ContentNestingDepth, limits.MaxContentNestingDepth, depth);
         }
@@ -363,7 +375,7 @@ internal static partial class ResourceResolver {
                             renderingIntent);
                         if (!addedImageKeys.Add(imageKey)) continue;
 
-                        result.Add(BuildExtractedImage(
+                        emit(BuildExtractedImage(
                             pageNumber,
                             kv.Key,
                             objectNumber,
@@ -378,7 +390,8 @@ internal static partial class ResourceResolver {
                             outputIntentColorTransform: outputIntentColorTransform,
                             colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                             functionResolutionContext: functionResolutionContext,
-                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
+                            inheritedHasAuthoredRenderingIntent: hasAuthoredImageIntent || placement.HasAuthoredRenderingIntent,
+                            cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                     }
                 } else {
                     if (matchingPlacements is null) {
@@ -386,7 +399,7 @@ internal static partial class ResourceResolver {
                             continue;
                         }
 
-                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken));
+                        emit(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources, maxDecodedStreamBytes: limits.MaxDecodedStreamBytes, outputIntentColorTransform: outputIntentColorTransform, colorFunctionEvaluationBudget: colorFunctionEvaluationBudget, functionResolutionContext: functionResolutionContext, cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                     } else {
                         List<EffectiveImageIntent> effectiveIntents = GetDistinctImageIntents(
                             matchingPlacements,
@@ -399,7 +412,7 @@ internal static partial class ResourceResolver {
                                 continue;
                             }
 
-                            result.Add(BuildExtractedImage(
+                            emit(BuildExtractedImage(
                                 pageNumber,
                                 kv.Key,
                                 objectNumber,
@@ -412,7 +425,8 @@ internal static partial class ResourceResolver {
                                 outputIntentColorTransform: outputIntentColorTransform,
                                 colorFunctionEvaluationBudget: colorFunctionEvaluationBudget,
                                 functionResolutionContext: functionResolutionContext,
-                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent, cancellationToken: cancellationToken));
+                                inheritedHasAuthoredRenderingIntent: effectiveIntents[intentIndex].HasAuthoredRenderingIntent,
+                                cancellationToken: cancellationToken, maxImageReferenceSteps: limits.MaxImageReferenceSteps));
                         }
                     }
                 }
@@ -434,7 +448,7 @@ internal static partial class ResourceResolver {
                 continue;
             }
 
-            CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, ref traversedObjects, cancellationToken);
+            CollectImageXObjectsFromResources(formResources, objects, pageNumber, emit, visitedFormContexts, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity, colorizeImageMasks, limits, outputIntentColorTransform, colorFunctionEvaluationBudget, functionResolutionContext, depth + 1, ref traversedObjects, cancellationToken);
         }
     }
 
@@ -509,6 +523,17 @@ internal static partial class ResourceResolver {
         }
 
         return baseDecoder;
+    }
+
+    internal static System.Func<byte[], int, string> CreateBudgetedDecoder(PdfFontResource font) => BuildBudgetedDecoderForFont(font);
+
+    /// <summary>Decodes one simple-font code through its encoding and Differences, ignoring ToUnicode.</summary>
+    internal static System.Func<byte, string> CreateSimpleEncodingDecoder(PdfFontResource font) {
+        System.Func<byte[], int, string> baseDecoder = BuildBudgetedBaseEncodingDecoder(font.Encoding);
+        IReadOnlyDictionary<int, string>? differences = font.Differences;
+        return code => differences != null && differences.TryGetValue(code, out string? difference)
+            ? difference
+            : baseDecoder(new[] { code }, 1);
     }
 
     private static System.Func<byte[], int, string> BuildBudgetedDecoderForFont(PdfFontResource font) {
@@ -597,8 +622,9 @@ internal static partial class ResourceResolver {
         }
 
         string? embeddedProgramSubtype = null;
-        byte[]? embeddedTrueTypeFont = includeEmbeddedTrueTypeFont
-            ? TryReadEmbeddedTrueTypeFont(fontVal, objects, out embeddedProgramSubtype)
+        bool embeddedProgramLoads = false;
+        byte[]? embeddedProgram = includeEmbeddedTrueTypeFont
+            ? TryReadEmbeddedTrueTypeFont(fontVal, objects, out embeddedProgramSubtype, out embeddedProgramLoads)
             : null;
         PdfType3FontResource? type3 = string.Equals(fontVal.Get<PdfName>("Subtype")?.Name, "Type3", System.StringComparison.Ordinal)
             ? TryCreateType3FontResource(fontVal, objects)
@@ -606,20 +632,28 @@ internal static partial class ResourceResolver {
         PdfDictionary? descriptor = ResolveFontDescriptor(fontVal, objects, out _);
         int? fontWeight = TryReadFontDescriptorInteger(descriptor, objects, "FontWeight", 1, 1000);
         int? fontDescriptorFlags = TryReadFontDescriptorInteger(descriptor, objects, "Flags", 0, int.MaxValue);
-        return new PdfFontResource(
+        var resource = new PdfFontResource(
             resourceName,
             baseFont,
             encoding,
             hasToUnicode,
             cmap,
             differences,
-            embeddedTrueTypeFont,
+            embeddedProgramLoads ? embeddedProgram : null,
             fontVal.Get<PdfName>("Subtype")?.Name,
             embeddedProgramSubtype,
             type3,
             isVerticalWriting,
             fontWeight,
             fontDescriptorFlags);
+        if (embeddedProgram == null) return resource;
+        // Drawing scenes carry Unicode text. Programs that select glyphs by character code or CID
+        // receive a Unicode cmap so rendering uses the embedded outlines instead of a substitute.
+        PdfDrawingFontProgram? drawingProgram = PdfTrueTypeUnicodeCmap.TryCreate(
+            resource,
+            embeddedProgram,
+            TryReadCidToGlyphMap(fontVal, objects));
+        return drawingProgram == null ? resource : resource.WithDrawingProgram(drawingProgram);
     }
 
     private static bool IsVerticalCMapName(string name) =>
@@ -787,8 +821,10 @@ internal static partial class ResourceResolver {
         return Math.Abs((matrix.A * matrix.D) - (matrix.B * matrix.C)) > 0.000000000001D;
     }
 
-    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects, out string? embeddedProgramSubtype) {
+    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects,
+        out string? embeddedProgramSubtype, out bool loads) {
         embeddedProgramSubtype = null;
+        loads = false;
         PdfDictionary? descriptor = ResolveFontDescriptor(font, objects, out string? programFontSubtype);
         if (descriptor == null) return null;
 
@@ -820,7 +856,9 @@ internal static partial class ResourceResolver {
         if ((string.Equals(embeddedProgramSubtype, "TrueType", StringComparison.Ordinal) ||
                 string.Equals(embeddedProgramSubtype, "OpenType", StringComparison.Ordinal)) &&
             !PdfFontProgramCompatibility.IsCompatibleOpenTypeProgram(programFontSubtype, bytes)) return null;
-        return OfficeTrueTypeFont.TryLoad(bytes) == null ? null : bytes;
+        loads = OfficeTrueTypeFont.TryLoad(bytes) != null;
+        // CIDFontType2 subsets often omit cmap because glyphs are selected through CIDToGIDMap.
+        return loads || string.Equals(programFontSubtype, "CIDFontType2", StringComparison.Ordinal) ? bytes : null;
     }
 
     private static string GetDefaultEncodingForBaseFont(string baseFont) {
@@ -1092,8 +1130,11 @@ internal static partial class ResourceResolver {
             case "perthousand": value = "\u2030"; return true;
             case "guilsinglleft": value = "\u2039"; return true;
             case "guilsinglright": value = "\u203A"; return true;
+            case "ff": value = "ff"; return true;
             case "fi": value = "fi"; return true;
             case "fl": value = "fl"; return true;
+            case "ffi": value = "ffi"; return true;
+            case "ffl": value = "ffl"; return true;
             default: return false;
         }
     }
@@ -1212,7 +1253,10 @@ internal static partial class ResourceResolver {
         PdfOutputIntentColorTransform? outputIntentColorTransform = null,
         Func<int, long, bool>? colorFunctionEvaluationBudget = null,
         PdfColorFunctionResolutionContext? functionResolutionContext = null,
-        bool inheritedHasAuthoredRenderingIntent = false, CancellationToken cancellationToken = default) {
+        bool inheritedHasAuthoredRenderingIntent = false,
+        int maxImageReferenceSteps = PdfReadLimits.DefaultMaxImageReferenceSteps,
+        CancellationToken cancellationToken = default) {
+        PreflightImageFilterReferences(stream.Dictionary, objects, maxImageReferenceSteps, cancellationToken);
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
@@ -1351,34 +1395,104 @@ internal static partial class ResourceResolver {
             imageMaskColor ?? OfficeColor.Black,
             renderingIntent,
             hasExplicitDecode: hasExplicitDecode,
-            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects),
+            hasDecodeParameters: HasResolvedDecodeParametersEntry(stream.Dictionary, objects, maxImageReferenceSteps, cancellationToken),
             interpolate: stream.Dictionary.Items.TryGetValue("Interpolate", out PdfObject? interpolateObject) &&
                 ResolveObject(interpolateObject, objects) is PdfBoolean { Value: true },
             hasAuthoredRenderingIntent: hasAuthoredRenderingIntent || inheritedHasAuthoredRenderingIntent,
-            requiresScanDecode: HasScanFilter(filterObj, objects),
+            requiresScanDecode: HasScanFilter(filterObj, objects, maxImageReferenceSteps, cancellationToken),
             hasUnsafePassThroughDecode: hasUnsafePassThroughDecode);
+    }
+
+    private static void PreflightImageFilterReferences(PdfDictionary dictionary,
+        Dictionary<int, PdfIndirectObject> objects, int maxImageReferenceSteps, CancellationToken cancellationToken) {
+        BoundedArrayReferenceResolver? resolver = null;
+        string decodeParametersKey = dictionary.Items.ContainsKey("DecodeParms") ? "DecodeParms" : "DP";
+        foreach (string key in new[] { "Filter", decodeParametersKey }) {
+            if (!dictionary.Items.TryGetValue(key, out PdfObject? value)) continue;
+            if (value is not PdfReference &&
+                (value is not PdfArray directArray || !directArray.Items.Any(static item => item is PdfReference))) continue;
+            resolver ??= new BoundedArrayReferenceResolver(objects, maxImageReferenceSteps, cancellationToken);
+            PdfObject? resolved = resolver.Resolve(value);
+            if (resolved is not PdfArray array) continue;
+            foreach (PdfObject item in array.Items) resolver.Resolve(item);
+        }
     }
 
     private static bool HasResolvedDecodeParametersEntry(
         PdfDictionary dictionary,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        int maxImageReferenceSteps, CancellationToken cancellationToken) {
         PdfObject? value = dictionary.Items.TryGetValue("DecodeParms", out PdfObject? fullName)
             ? fullName
             : dictionary.Items.TryGetValue("DP", out PdfObject? abbreviation)
                 ? abbreviation
                 : null;
-        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, value);
+        var resolver = new BoundedArrayReferenceResolver(objects, maxImageReferenceSteps, cancellationToken);
+        PdfObject? resolved = resolver.Resolve(value);
         if (resolved is PdfDictionary) return true;
         if (resolved is not PdfArray array) return false;
-        return array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfDictionary);
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (resolver.Resolve(array.Items[index]) is PdfDictionary) return true;
+        }
+        return false;
     }
 
-    private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects) {
-        PdfObject? resolved = PdfObjectLookup.ResolveChain(objects, filters);
+    private static bool HasScanFilter(PdfObject? filters, Dictionary<int, PdfIndirectObject> objects,
+        int maxImageReferenceSteps, CancellationToken cancellationToken) {
+        var resolver = new BoundedArrayReferenceResolver(objects, maxImageReferenceSteps, cancellationToken);
+        PdfObject? resolved = resolver.Resolve(filters);
         if (resolved is PdfName name) return IsScanFilter(name);
-        return resolved is PdfArray array && array.Items.Any(item => PdfObjectLookup.ResolveChain(objects, item) is PdfName entry && IsScanFilter(entry));
+        if (resolved is not PdfArray array) return false;
+        for (int index = 0; index < array.Items.Count; index++) {
+            if (resolver.Resolve(array.Items[index]) is PdfName entry && IsScanFilter(entry)) return true;
+        }
+        return false;
 
         static bool IsScanFilter(PdfName name) => name.Name is "CCITTFaxDecode" or "CCF" or "JPXDecode";
+    }
+
+    private sealed class BoundedArrayReferenceResolver {
+        private readonly int _maximumReferenceSteps;
+        private readonly Dictionary<int, PdfIndirectObject> _objects;
+        private readonly CancellationToken _cancellationToken;
+        private readonly Dictionary<(int ObjectNumber, int Generation), PdfObject?> _cache = new();
+        private int _steps;
+
+        internal BoundedArrayReferenceResolver(Dictionary<int, PdfIndirectObject> objects,
+            int maximumReferenceSteps, CancellationToken cancellationToken) {
+            _objects = objects;
+            _cancellationToken = cancellationToken;
+            _maximumReferenceSteps = maximumReferenceSteps;
+        }
+
+        internal PdfObject? Resolve(PdfObject? value) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            if (value is not PdfReference firstReference) return value;
+            if (_cache.TryGetValue((firstReference.ObjectNumber, firstReference.Generation), out PdfObject? firstCached))
+                return firstCached;
+            var visited = new HashSet<(int ObjectNumber, int Generation)>();
+            var path = new List<(int ObjectNumber, int Generation)>();
+            PdfObject? resolved = value;
+            while (resolved is PdfReference reference) {
+                var key = (reference.ObjectNumber, reference.Generation);
+                if (_cache.TryGetValue(key, out PdfObject? cached)) {
+                    resolved = cached;
+                    break;
+                }
+                if (!visited.Add(key) || !PdfObjectLookup.TryGet(_objects, reference, out PdfIndirectObject indirect)) {
+                    resolved = null;
+                    break;
+                }
+                if (++_steps > _maximumReferenceSteps) {
+                    throw new InvalidDataException("PDF array reference resolution exceeded the managed work limit.");
+                }
+                if ((_steps & 255) == 0) _cancellationToken.ThrowIfCancellationRequested();
+                path.Add(key);
+                resolved = indirect.Value;
+            }
+            for (int index = 0; index < path.Count; index++) _cache[path[index]] = resolved;
+            return resolved;
+        }
     }
 
     private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {

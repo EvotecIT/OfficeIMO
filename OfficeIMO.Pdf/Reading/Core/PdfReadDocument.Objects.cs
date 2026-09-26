@@ -19,15 +19,24 @@ public sealed partial class PdfReadDocument {
         return null;
     }
 
-    private int FindExactObjectNumberFor(PdfDictionary dict) {
-        foreach (var kv in _objects) if (ReferenceEquals(kv.Value.Value, dict)) return kv.Key;
+    private int FindExactObjectNumberFor(PdfDictionary dict, System.Threading.CancellationToken cancellationToken = default) {
+        foreach (var kv in _objects) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ReferenceEquals(kv.Value.Value, dict)) return kv.Key;
+        }
         return 0;
     }
 
-    private int FindObjectNumberFor(PdfDictionary dict) {
-        foreach (var kv in _objects) if (ReferenceEquals(kv.Value.Value, dict)) return kv.Key;
+    private int FindObjectNumberFor(PdfDictionary dict, System.Threading.CancellationToken cancellationToken = default) {
+        foreach (var kv in _objects) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (ReferenceEquals(kv.Value.Value, dict)) return kv.Key;
+        }
         // As a fallback when dictionary was re-parsed separately, match by identity via a simple scan of Page objects
-        foreach (var kv in _objects) if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Page") return kv.Key;
+        foreach (var kv in _objects) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (kv.Value.Value is PdfDictionary d && d.Get<PdfName>("Type")?.Name == "Page") return kv.Key;
+        }
         return 0;
     }
 }

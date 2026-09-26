@@ -285,9 +285,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("PDF stream input " + i.ToString(CultureInfo.InvariantCulture) + " must be readable.", nameof(streams));
             }
 
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            pdfs[i] = buffer.ToArray();
+            pdfs[i] = PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
         }
 
         return Merge((IEnumerable<byte[]>)pdfs);
@@ -316,9 +314,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("PDF stream input " + i.ToString(CultureInfo.InvariantCulture) + " must be readable.", nameof(streams));
             }
 
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            pdfs[i] = buffer.ToArray();
+            pdfs[i] = PdfDocumentSource.FromRemainingStream(stream, null).Bytes;
         }
 
         return Merge(options, (IEnumerable<byte[]>)pdfs);
@@ -435,7 +431,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("Input path " + i.ToString(CultureInfo.InvariantCulture) + " cannot be empty or whitespace.", nameof(inputPaths));
             }
 
-            pdfs[i] = File.ReadAllBytes(inputPath);
+            pdfs[i] = PdfDocumentSource.FromPath(inputPath, null).Bytes;
         }
 
         return Merge(pdfs);
@@ -464,7 +460,7 @@ internal static partial class PdfMerger {
                 throw new ArgumentException("Input path " + i.ToString(CultureInfo.InvariantCulture) + " cannot be empty or whitespace.", nameof(inputPaths));
             }
 
-            pdfs[i] = File.ReadAllBytes(inputPath);
+            pdfs[i] = PdfDocumentSource.FromPath(inputPath, null).Bytes;
         }
 
         return Merge(options, (IEnumerable<byte[]>)pdfs);
@@ -573,18 +569,20 @@ internal static partial class PdfMerger {
         var copiedPageObjectIds = new HashSet<int>(pageObjectNumbers);
         var catalogState = PdfPageExtractor.PruneCatalogStateForPages(
             objects,
-            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw),
+            PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw, cancellationToken),
             copiedPageObjectIds,
             pageObjectNumbers,
             mergedPageOffset,
-            outputPageIndexByPageObjectNumber);
+            outputPageIndexByPageObjectNumber,
+            cancellationToken);
         Dictionary<int, Dictionary<string, PdfObject>>? pageOverrides =
             PdfPageExtractor.BuildPageOverridesWithFilteredDestinationLinks(
                 objects,
                 pageObjectNumbers,
                 pageOverrides: null,
                 catalogState,
-                copiedPageObjectIds);
+                copiedPageObjectIds,
+                cancellationToken);
         var collector = new PdfPageExtractor.ObjectCollector(objects, pageOverrides, cancellationToken);
         foreach (int pageObjectNumber in pageObjectNumbers) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -644,6 +642,7 @@ internal static partial class PdfMerger {
             cancellationToken.ThrowIfCancellationRequested();
             var numberMap = new Dictionary<int, int>(source.Collector.ObjectIds.Count);
             foreach (int sourceId in source.Collector.ObjectIds) {
+                cancellationToken.ThrowIfCancellationRequested();
                 numberMap[sourceId] = nextObjectId++;
             }
 
@@ -655,6 +654,7 @@ internal static partial class PdfMerger {
             foreach (var plan in plans) {
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (int pageObjectNumber in plan.Source.PageObjectNumbers) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     allPageObjectIds.Add(plan.NumberMap[pageObjectNumber]);
                 }
             }
@@ -672,7 +672,7 @@ internal static partial class PdfMerger {
         foreach (var plan in plans) {
             cancellationToken.ThrowIfCancellationRequested();
             var source = plan.Source;
-            var context = new PdfPageExtractor.SerializationContext(plan.NumberMap, pagesId, source.Collector.MaterializedPageValues, source.Objects, source.PageOverrides);
+            var context = new PdfPageExtractor.SerializationContext(plan.NumberMap, pagesId, source.Collector.MaterializedPageValues, source.Objects, source.PageOverrides, cancellationToken: cancellationToken);
             foreach (int sourceId in source.Collector.ObjectIds) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!source.Objects.TryGetValue(sourceId, out var sourceObject)) {
@@ -681,18 +681,22 @@ internal static partial class PdfMerger {
 
                 int newId = plan.NumberMap[sourceId];
                 PdfSerializedObject serializedObject = sourceObject.Value is PdfDictionary dictionary && source.Collector.PageObjectIds.Contains(sourceId)
-                    ? PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(newId, PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context)))
+                    ? PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+                        newId, PdfPageExtractor.SerializePageDictionary(dictionary, sourceId, context), cancellationToken))
                     : PdfPageExtractor.SerializeIndirectObjectForAssembly(newId, sourceObject.Value, context);
 
                 objects.Add(serializedObject);
             }
         }
 
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(pagesId, PdfEncoding.Latin1GetBytes(PdfPageTreeBuilder.BuildPagesDictionary(allPageObjectIds)))));
+        objects.Add(PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+            pagesId, PdfPageTreeBuilder.BuildPagesDictionaryBytes(allPageObjectIds, cancellationToken), cancellationToken)));
         var primaryPlan = plans[primarySourceIndex];
-        var primaryCatalogContext = new PdfPageExtractor.SerializationContext(primaryPlan.NumberMap, pagesId, primaryPlan.Source.Collector.MaterializedPageValues, primaryPlan.Source.Objects);
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(catalogId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildCatalogDictionary(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext)))));
-        objects.Add(PdfSerializedObject.FromBytes(PdfPageExtractor.WrapObject(infoId, PdfEncoding.Latin1GetBytes(PdfPageExtractor.BuildInfoDictionary(BuildMergedMetadata(sources, primarySourceIndex))))));
+        var primaryCatalogContext = new PdfPageExtractor.SerializationContext(primaryPlan.NumberMap, pagesId, primaryPlan.Source.Collector.MaterializedPageValues, primaryPlan.Source.Objects, cancellationToken: cancellationToken);
+        objects.Add(PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+            catalogId, PdfPageExtractor.BuildCatalogDictionaryBytes(pagesId, sources[primarySourceIndex].CatalogState, primaryCatalogContext), cancellationToken)));
+        objects.Add(PdfSerializedObject.FromBytes(PdfObjectBytes.WrapIndirectObjectCancellable(
+            infoId, PdfPageExtractor.BuildInfoDictionaryBytesCancellable(BuildMergedMetadata(sources, primarySourceIndex), cancellationToken), cancellationToken)));
 
         outputObjectCount = objects.Count;
         return PdfPageExtractor.Assemble(objects, catalogId, infoId, cancellationToken: cancellationToken);

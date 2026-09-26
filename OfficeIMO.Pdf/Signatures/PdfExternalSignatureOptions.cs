@@ -13,6 +13,9 @@ public sealed class PdfExternalSignatureOptions {
     /// <summary>Maximum PDF source bytes accepted before signature preparation begins.</summary>
     public long MaxInputBytes { get; set; } = DefaultMaxInputBytes;
 
+    /// <summary>Maximum prepared PDF bytes. The default matches the limit used to complete a persisted signature (768 MiB).</summary>
+    public long MaxPreparedOutputBytes { get; set; } = DefaultMaxInputBytes + 256L * 1024L * 1024L;
+
     /// <summary>Cancellation observed while reading and preparing a one-shot external signature.</summary>
     public CancellationToken CancellationToken { get; set; }
 

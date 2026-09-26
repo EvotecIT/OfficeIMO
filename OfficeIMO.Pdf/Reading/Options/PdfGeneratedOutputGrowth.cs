@@ -3,6 +3,7 @@ namespace OfficeIMO.Pdf;
 internal readonly struct PdfGeneratedOutputGrowth {
     internal PdfGeneratedOutputGrowth(
         int additionalRevisions = 0,
+        int additionalFormFields = 0,
         int additionalAnnotationsPerPage = 0,
         int minimumRawStreamBytes = 0,
         int minimumDecodedStreamBytes = 0,
@@ -15,8 +16,11 @@ internal readonly struct PdfGeneratedOutputGrowth {
         int minimumObjectNestingDepth = 0,
         int additionalContentOperations = 0,
         int additionalContentOperands = 0,
-        int additionalContentNestingDepth = 0) {
+        int additionalContentNestingDepth = 0,
+        int additionalPrintProductionContexts = 0,
+        int additionalPrintProductionOperations = 0) {
         AdditionalRevisions = RequireNonNegative(additionalRevisions, nameof(additionalRevisions));
+        AdditionalFormFields = RequireNonNegative(additionalFormFields, nameof(additionalFormFields));
         AdditionalAnnotationsPerPage = RequireNonNegative(additionalAnnotationsPerPage, nameof(additionalAnnotationsPerPage));
         MinimumRawStreamBytes = RequireNonNegative(minimumRawStreamBytes, nameof(minimumRawStreamBytes));
         MinimumDecodedStreamBytes = RequireNonNegative(minimumDecodedStreamBytes, nameof(minimumDecodedStreamBytes));
@@ -30,9 +34,12 @@ internal readonly struct PdfGeneratedOutputGrowth {
         AdditionalContentOperations = RequireNonNegative(additionalContentOperations, nameof(additionalContentOperations));
         AdditionalContentOperands = RequireNonNegative(additionalContentOperands, nameof(additionalContentOperands));
         AdditionalContentNestingDepth = RequireNonNegative(additionalContentNestingDepth, nameof(additionalContentNestingDepth));
+        AdditionalPrintProductionContexts = RequireNonNegative(additionalPrintProductionContexts, nameof(additionalPrintProductionContexts));
+        AdditionalPrintProductionOperations = RequireNonNegative(additionalPrintProductionOperations, nameof(additionalPrintProductionOperations));
     }
 
     internal int AdditionalRevisions { get; }
+    internal int AdditionalFormFields { get; }
     internal int AdditionalAnnotationsPerPage { get; }
     internal int MinimumRawStreamBytes { get; }
     internal int MinimumDecodedStreamBytes { get; }
@@ -46,12 +53,15 @@ internal readonly struct PdfGeneratedOutputGrowth {
     internal int AdditionalContentOperations { get; }
     internal int AdditionalContentOperands { get; }
     internal int AdditionalContentNestingDepth { get; }
+    internal int AdditionalPrintProductionContexts { get; }
+    internal int AdditionalPrintProductionOperations { get; }
 
     internal static PdfGeneratedOutputGrowth FromSerializedObjects(
         Dictionary<int, PdfIndirectObject> objects,
         IEnumerable<int> objectNumbers,
         int additionalAnnotationsPerPage = 0,
-        int additionalRevisions = 0) {
+        int additionalRevisions = 0,
+        int additionalFormFields = 0) {
         Guard.NotNull(objects, nameof(objects));
         Guard.NotNull(objectNumbers, nameof(objectNumbers));
         int maximumStreamBytes = 0;
@@ -78,6 +88,7 @@ internal readonly struct PdfGeneratedOutputGrowth {
 
         return new PdfGeneratedOutputGrowth(
             additionalRevisions: additionalRevisions,
+            additionalFormFields: additionalFormFields,
             additionalAnnotationsPerPage: additionalAnnotationsPerPage,
             minimumRawStreamBytes: maximumStreamBytes,
             minimumDecodedStreamBytes: maximumStreamBytes,

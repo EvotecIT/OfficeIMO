@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using HtmlTinkerX;
 using OfficeIMO;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Html.Pdf.Browser;
 
@@ -10,6 +12,27 @@ public sealed class HtmlBrowserPdfCaptureReport : IOfficeConversionReport {
     public HtmlBrowserPdfCaptureReport(HtmlBrowserPdfDiagnostics diagnostics, bool tagged) {
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         Tagged = tagged;
+        var fidelityDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        if (Diagnostics.BlockedRequestCount > 0) {
+            fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                "HTML_BROWSER_BLOCKED_RESOURCES",
+                Diagnostics.BlockedRequestCount + " browser resource request(s) were blocked.",
+                OfficeConversionLossKind.Omission,
+                "OfficeIMO.Html.Pdf.Browser"));
+        }
+        foreach (string warning in Diagnostics.Warnings) {
+            fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                "HTML_BROWSER_WARNING",
+                warning,
+                OfficeConversionLossKind.Approximation,
+                "OfficeIMO.Html.Pdf.Browser"));
+        }
+        fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+            "HTML_BROWSER_NATIVE_TEXT_SHAPING",
+            "Text layout was shaped by the browser engine rather than an OfficeIMO managed shaping provider.",
+            OfficeConversionLossKind.None,
+            "OfficeIMO.Html.Pdf.Browser"));
+        FidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
 
     /// <summary>Gets the HtmlTinkerX browser capture diagnostics.</summary>
@@ -17,6 +40,12 @@ public sealed class HtmlBrowserPdfCaptureReport : IOfficeConversionReport {
 
     /// <summary>Gets whether Chromium was requested to generate a tagged PDF.</summary>
     public bool Tagged { get; }
+
+    /// <summary>Gets category-preserving browser-capture diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
+    /// <summary>Gets the shaping engine used by the browser capture path.</summary>
+    public OfficeTextShapingBackend TextShapingBackend => OfficeTextShapingBackend.BrowserNative;
 
     /// <summary>
     /// Gets whether blocked resources or non-fatal browser warnings mean that captured content may be incomplete.

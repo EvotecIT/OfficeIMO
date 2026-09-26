@@ -335,7 +335,8 @@ public sealed class PdfUnderstandingPageResult {
         bool restrictLogicalProjectionToReadingOrder = false,
         IReadOnlyList<PdfUnderstandingTableCandidate>? tableCandidates = null,
         IReadOnlyList<PdfImagePlacement>? imagePlacements = null,
-        IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null) {
+        IReadOnlyList<PdfUnderstandingImageRegion>? imageRegions = null,
+        long maxWorkUnitsPerPage = 10_000_000) {
         PageNumber = pageNumber;
         DecodedRuns = runs;
         Words = words;
@@ -348,6 +349,7 @@ public sealed class PdfUnderstandingPageResult {
         TableCandidates = tableCandidates ?? Array.Empty<PdfUnderstandingTableCandidate>();
         ImagePlacements = imagePlacements ?? Array.Empty<PdfImagePlacement>();
         ImageRegions = imageRegions ?? Array.Empty<PdfUnderstandingImageRegion>();
+        MaxWorkUnitsPerPage = maxWorkUnitsPerPage;
         LogicalProjectionLines = logicalProjectionLines ?? CollectLogicalProjectionLines(readingOrder);
         RestrictLogicalProjectionToReadingOrder = restrictLogicalProjectionToReadingOrder;
         ConsumeWork = consumeWork;
@@ -380,6 +382,7 @@ public sealed class PdfUnderstandingPageResult {
     public IReadOnlyList<PdfUnderstandingStageTrace> Trace { get; }
     internal Action<long>? ConsumeWork { get; }
     internal Action? CancellationCheck { get; }
+    internal long MaxWorkUnitsPerPage { get; }
     /// <summary>Pre-enrichment line sequence retained by caller-supplied structural stages for logical projection.</summary>
     internal IReadOnlyList<PdfUnderstandingLine> LogicalProjectionLines { get; }
     /// <summary>Whether caller-supplied structural stages make the retained sequence an extraction boundary.</summary>
@@ -406,7 +409,8 @@ public sealed class PdfUnderstandingPageResult {
             RestrictLogicalProjectionToReadingOrder,
             TableCandidates.Concat(candidates).ToArray(),
             ImagePlacements,
-            ImageRegions);
+            ImageRegions,
+            MaxWorkUnitsPerPage);
     }
 
     private static IReadOnlyList<PdfUnderstandingLine> CollectLogicalProjectionLines(

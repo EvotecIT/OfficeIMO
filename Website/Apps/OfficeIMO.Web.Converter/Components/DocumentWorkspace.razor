@@ -1,7 +1,7 @@
 @namespace OfficeIMO.Web.Converter.Components
 @implements IAsyncDisposable
 
-<PageTitle>@ActiveContent.SeoTitle</PageTitle>
+<PageTitle>@PageSeoTitle</PageTitle>
 <StandaloneSiteHeader />
 <main id="converter-main" class="ocx-workspace-shell @(IsFocused ? "is-focused" : null)" data-workspace-ready="true" data-workspace="@WorkspaceId" tabindex="-1" @onkeydown="HandleKeyDown">
     <header class="ocx-workspace-toolbar">
@@ -10,28 +10,17 @@
         <button id="workspace-menu-toggle" type="button" aria-controls="workspace-navigation" aria-expanded="@(IsMenuOpen ? "true" : "false")" @onclick="ToggleMenuAsync">Tools</button>
     </header>
     <aside id="workspace-navigation" class="ocx-workspace-navigation @(IsMenuOpen ? "is-open" : null)" aria-label="Browser tools">
-        <nav aria-label="Choose a browser tool">
-            <h2>Inspect and clean</h2>
-            <a href="/convert/?workspace=provenance" target="_top" data-workspace="provenance" class="@(IsProvenanceWorkspace ? "is-active" : null)" aria-current="@(IsProvenanceWorkspace ? "page" : null)">File origin data</a>
-            <h2>Convert documents</h2>
-            @foreach (ConversionRoute route in ConversionRouteCatalog.All) {
-                <a href="/convert/?route=@route.Id" target="_top" data-route="@route.Id" class="@(!IsPdfWorkspace && !IsProvenanceWorkspace && ActiveRoute.Id == route.Id ? "is-active" : null)"
-                   aria-current="@(!IsPdfWorkspace && !IsProvenanceWorkspace && ActiveRoute.Id == route.Id ? "page" : null)">@route.Title</a>
-            }
-            <h2>PDF tools</h2>
-            @foreach (PdfToolDefinition tool in PdfToolCatalog.All) {
-                <a href="/convert/?workspace=pdf&tool=@tool.Id" target="_top" data-pdf-tool="@tool.Id" class="@(IsPdfWorkspace && ActiveTool.Id == tool.Id ? "is-active" : null)"
-                   aria-current="@(IsPdfWorkspace && ActiveTool.Id == tool.Id ? "page" : null)">@tool.Label</a>
-            }
-        </nav>
+        <BrowserToolNavigation Workspace="@WorkspaceId" Route="@ActiveRoute.Id" Tool="@ActiveTool.Id" />
     </aside>
     @if (IsMenuOpen) {
         <button class="ocx-workspace-overlay" type="button" aria-label="Close tools menu" @onclick="ToggleMenuAsync"></button>
     }
     <section class="ocx-workspace-content" aria-labelledby="workspace-title">
         <header class="ocx-workspace-heading">
-            <div class="ocx-workspace-heading__copy"><h1 id="workspace-title" tabindex="-1">@ActiveContent.Title</h1><p>@ActiveContent.Summary</p></div>
+            <div class="ocx-workspace-heading__copy"><h1 id="workspace-title" tabindex="-1">@PageHeading</h1><p>@PageSummary</p></div>
+            @if (!IsHome) {
             <nav aria-label="Workflow resources"><button type="button" class="ocx-workspace-heading__action" aria-pressed="@IsFocused" @onclick="() => IsFocused = !IsFocused">@(IsFocused ? "Show source and settings" : "Focus result")</button><a class="ocx-workspace-heading__action" href="@ActiveContent.GuideUrl" target="_top">Read guide</a></nav>
+            }
         </header>
         @if (Session.Originals.Count > 0 || Session.Current.Count > 0 || Session.LatestResult is not null) {
             <section class="ocx-session" aria-label="Files in this session">
@@ -43,6 +32,10 @@
                 </div>
             </section>
         }
+        @if (IsHome) {
+            <BrowserToolStart />
+        } else {
+        <BrowserToolHost @key="_selectionKey" Workspace="@WorkspaceId" Route="@ActiveRoute.Id" Title="@ActiveContent.Title">
         @if (IsProvenanceWorkspace) {
             <ProvenanceWorkbench Revision="Session.Revision" />
         } else if (IsPdfWorkspace) {
@@ -51,6 +44,8 @@
             <ConverterWorkspace RouteId="@ActiveRoute.Id" Revision="Session.Revision" />
         }
         <BrowserToolGuide Content="@ActiveContent" />
+        </BrowserToolHost>
+        }
     </section>
 </main>
 <StandaloneSiteFooter />

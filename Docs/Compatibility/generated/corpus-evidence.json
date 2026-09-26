@@ -3,8 +3,8 @@
   "generatedFrom": "Build/CorpusEvidence/corpus-evidence.json",
   "summary": {
     "corpusCount": 5,
-    "recordCount": 62,
-    "verifiedArtifactCount": 89
+    "recordCount": 66,
+    "verifiedArtifactCount": 93
   },
   "corpora": [
     {
@@ -57,8 +57,8 @@
       "id": "open-document-producers",
       "owner": "OfficeIMO.OpenDocument",
       "manifest": "OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json",
-      "manifestSha256": "825861587bf502d8f09b63e75c069d9589c7d6dddc676bfd41fc783db1ce4af8",
-      "recordCount": 7,
+      "manifestSha256": "82a787d7939005f670c8fa12a3000659aa58183ec591436e0933d246d8ec70c7",
+      "recordCount": 10,
       "diffPolicy": {
         "kind": "package-and-semantic",
         "stableFields": [
@@ -101,8 +101,8 @@
       "id": "pdf-interoperability",
       "owner": "OfficeIMO.Pdf",
       "manifest": "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/corpus-manifest.json",
-      "manifestSha256": "bf37abf6ffefca16cf880d6b7cff09213bbc4f39bfc1b320a9212b44df8f73fb",
-      "recordCount": 14,
+      "manifestSha256": "5d17d75354c738cc9b9ba6480544521f08f83a00a8aaa3d321415d0415911331",
+      "recordCount": 15,
       "diffPolicy": {
         "kind": "package-and-semantic",
         "stableFields": [

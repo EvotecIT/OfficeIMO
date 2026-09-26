@@ -428,6 +428,8 @@ internal static partial class PdfWriter {
     private sealed class TableCellLayoutCache {
         public int ColumnCount = -1;
         public System.Collections.Generic.List<TableCellLayout>[]? ByRow;
+        // The longest (clamped) row span in ByRow; 1 when no cell spans rows.
+        public int MaxRowSpan = 1;
     }
 
     // The cell-layout-by-row split is a pure function of (table, columnCount). GetTableCellLayouts is
@@ -445,11 +447,30 @@ internal static partial class PdfWriter {
         System.Collections.Generic.List<TableCellLayout>[]? byRow = cache.ByRow;
         if (byRow == null || cache.ColumnCount != columnCount) {
             byRow = GetTableCellLayoutsByRow(table, columnCount);
+            int maxRowSpan = 1;
+            foreach (var rowLayouts in byRow) {
+                foreach (var layout in rowLayouts) {
+                    maxRowSpan = System.Math.Max(maxRowSpan, layout.RowSpan);
+                }
+            }
+
             cache.ByRow = byRow;
+            cache.MaxRowSpan = maxRowSpan;
             cache.ColumnCount = columnCount;
         }
 
         return byRow[rowIndex];
+    }
+
+    // How many rows back a cell can start and still reach a given row: a row-span scan only has to look
+    // that far, not back to row 0, which made the per-row span checks O(rows^2) on long tables.
+    private static int GetTableMaxRowSpan(TableBlock table, int columnCount) {
+        if (table.Cells.Count == 0) {
+            return 1;
+        }
+
+        GetTableCellLayouts(table, 0, columnCount);
+        return _tableCellLayoutCache.GetValue(table, static _ => new TableCellLayoutCache()).MaxRowSpan;
     }
 
     private static System.Collections.Generic.List<TableCellLayout>[] GetTableCellLayoutsByRow(TableBlock table, int columnCount) {
@@ -587,7 +608,8 @@ internal static partial class PdfWriter {
                 run.UnderlineStyle,
                 run.StrikeStyle,
                 run.DecorationColor)
-                .WithFeatureSettings(run.FeatureSettings));
+                .WithFeatureSettings(run.FeatureSettings)
+                .WithTextDirection(run.TextDirection));
         }
 
         return scaledRuns.AsReadOnly();
@@ -984,7 +1006,7 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        for (int sourceRowIndex = 0; sourceRowIndex <= rowIndex; sourceRowIndex++) {
+        for (int sourceRowIndex = System.Math.Max(0, rowIndex - GetTableMaxRowSpan(table, columnCount) + 1); sourceRowIndex <= rowIndex; sourceRowIndex++) {
             var cells = GetTableCellLayouts(table, sourceRowIndex, columnCount);
             for (int i = 0; i < cells.Count; i++) {
                 TableCellLayout cell = cells[i];

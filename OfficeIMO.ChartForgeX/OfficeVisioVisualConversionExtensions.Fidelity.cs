@@ -27,13 +27,13 @@ static partial class OfficeVisioVisualConversionExtensions {
         string? value,
         string entityKind,
         string entityId,
-        OfficeVisioVisualConversionReport report) {
+        OfficeVisioVisualConversionReport report, OfficeVisioVisualEntityKind? diagnosticKind = null) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         if (Color.TryParseCss(value, out Color color)) {
             if (color.A == byte.MaxValue) return color;
             report.Warn(
                 OfficeVisioVisualDiagnosticCode.ColorNotProjected,
-                ParseEntityKind(entityKind),
+                diagnosticKind ?? ParseEntityKind(entityKind),
                 entityId,
                 "colorAlpha",
                 $"{entityKind} '{entityId}' color '{value}' remains in the CFX envelope and, when enabled, Shape Data because native Visio color projection does not currently preserve CSS alpha.");
@@ -41,7 +41,7 @@ static partial class OfficeVisioVisualConversionExtensions {
         }
         report.Warn(
             OfficeVisioVisualDiagnosticCode.ColorNotProjected,
-            ParseEntityKind(entityKind),
+            diagnosticKind ?? ParseEntityKind(entityKind),
             entityId,
             "color",
             $"{entityKind} '{entityId}' color '{value}' remains in the CFX envelope and, when enabled, Shape Data because it is not a supported native Visio color token.");

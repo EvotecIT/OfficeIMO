@@ -203,7 +203,7 @@ namespace OfficeIMO.Visio {
 
         private static void WriteRemainingModeledConnectorCells(XmlWriter writer, string ns, VisioConnector connector, ISet<string> emittedTokens, double startX, double startY, double endX, double endY, IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ConnectorModeledCellOrder) {
-                string token = $"Cell:{cellName}";
+                string token = GetModeledCellToken(cellName);
                 if (emittedTokens.Add(token)) {
                     TryWriteModeledConnectorCell(writer, ns, connector, cellName, startX, startY, endX, endY, layerIndexes);
                 }

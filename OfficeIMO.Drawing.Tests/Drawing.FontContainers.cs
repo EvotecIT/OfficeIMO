@@ -6,6 +6,36 @@ namespace OfficeIMO.Drawing.Tests;
 
 public sealed class DrawingFontContainerTests {
     [Fact]
+    public void RasterCanvas_DrawsBoldSystemFamilyWithItsInstalledBoldFace() {
+        string windowsFonts = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Fonts");
+        (string Family, string Path)[] candidates = {
+            ("Arial", Path.Combine(windowsFonts, "arialbd.ttf")),
+            ("Helvetica", Path.Combine(windowsFonts, "arialbd.ttf")),
+            ("Liberation Sans", "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"),
+            ("Liberation Sans", "/usr/share/fonts/liberation/LiberationSans-Bold.ttf"),
+            ("DejaVu Sans", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+        };
+        foreach ((string family, string boldPath) in candidates) {
+            if (!File.Exists(boldPath)) continue;
+            var installed = new OfficeFontFaceCollection();
+            Assert.True(installed.TryAdd("Installed Bold", File.ReadAllBytes(boldPath), OfficeFontStyle.Bold));
+
+            byte[] bySystemFamily = DrawBoldText(family, null);
+            byte[] byInstalledFace = DrawBoldText("Installed Bold", installed);
+
+            // A regular face with simulated emboldening paints different, wider stems.
+            Assert.Equal(byInstalledFace, bySystemFamily);
+        }
+
+        static byte[] DrawBoldText(string family, OfficeFontFaceCollection? fonts) {
+            var image = new OfficeRasterImage(220, 40);
+            new OfficeRasterCanvas(image, fonts: fonts).DrawText("Integration checklist", 4D, 4D, 212D, 32D,
+                OfficeColor.Black, 20D, OfficeTextAlignment.Left, OfficeFontStyle.Bold, family);
+            return image.GetPixels();
+        }
+    }
+
+    [Fact]
     public void OfficeTrueTypeFont_RejectsNegativeCollectionIndexesAcrossPublicLoadOverloads() {
         byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".ttf");
@@ -19,6 +49,18 @@ public sealed class DrawingFontContainerTests {
         } finally {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void OfficeTrueTypeFont_IgnoresEmptyOptionalTableRecordedAtEndOfFile() {
+        // PDF subsetters can leave an empty optional table whose offset equals the file length.
+        byte[] source = ManagedTextShapingTestAssets.CreateFont('A');
+        int record = FindTableRecord(source, "name");
+        WriteUInt32(source, record + 8, checked((uint)source.Length));
+        WriteUInt32(source, record + 12, 0);
+
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(source));
+        Assert.True(((IOfficeFontProgram)font).HasGlyphs("A"));
     }
 
     [Fact]
@@ -281,13 +323,16 @@ public sealed class DrawingFontContainerTests {
             double fontSize) => GetTextContours(text, x, y, fontSize);
     }
 
-    private static int FindTableOffset(byte[] font, string tag) {
+    private static int FindTableOffset(byte[] font, string tag) =>
+        checked((int)ReadUInt32(font, FindTableRecord(font, tag) + 8));
+
+    private static int FindTableRecord(byte[] font, string tag) {
         int tableCount = (font[4] << 8) | font[5];
         for (int index = 0; index < tableCount; index++) {
             int record = 12 + index * 16;
             if (font[record] == tag[0] && font[record + 1] == tag[1]
                 && font[record + 2] == tag[2] && font[record + 3] == tag[3]) {
-                return checked((int)ReadUInt32(font, record + 8));
+                return record;
             }
         }
         throw new InvalidOperationException("The test font has no " + tag + " table.");

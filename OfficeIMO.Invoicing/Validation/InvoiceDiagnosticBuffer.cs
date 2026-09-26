@@ -2,13 +2,22 @@ namespace OfficeIMO.Invoicing;
 
 /// <summary>Bounds reported diagnostics while retaining the severity of omitted findings.</summary>
 internal sealed class InvoiceDiagnosticBuffer {
+    internal const string IncompleteCode = "INV-DIAGNOSTICS-INCOMPLETE";
     private const int MaximumDetails = 999;
     private readonly List<InvoiceDiagnostic> _details = new List<InvoiceDiagnostic>();
     private int _omitted;
     private InvoiceDiagnosticSeverity _omittedSeverity;
+    private bool _workStopped;
     internal bool HasErrors { get; private set; }
+    internal bool HasTruncated => _omitted != 0;
+    internal void MarkWorkStopped() => _workStopped = true;
 
     internal void Add(InvoiceDiagnostic diagnostic) {
+        if (diagnostic.Code == IncompleteCode) {
+            MarkWorkStopped();
+            Omit(InvoiceDiagnosticSeverity.Error);
+            return;
+        }
         if (diagnostic.Severity == InvoiceDiagnosticSeverity.Error) HasErrors = true;
         if (_details.Count < MaximumDetails) _details.Add(diagnostic);
         else Omit(diagnostic.Severity);
@@ -31,8 +40,12 @@ internal sealed class InvoiceDiagnosticBuffer {
 
     internal List<InvoiceDiagnostic> ToList() {
         var result = new List<InvoiceDiagnostic>(_details);
-        if (_omitted != 0) result.Add(new InvoiceDiagnostic("INV-DIAGNOSTICS-TRUNCATED",
-            _omitted + " additional diagnostics were omitted; this summary retains their highest severity.", "Invoice", _omittedSeverity));
+        bool incomplete = _workStopped && !HasErrors;
+        if (_omitted != 0) result.Add(new InvoiceDiagnostic(incomplete ? IncompleteCode : "INV-DIAGNOSTICS-TRUNCATED",
+            incomplete
+                ? "Diagnostic work stopped at the report limit; additional findings may have been omitted."
+                : _omitted + " additional diagnostics were omitted; this summary retains their highest severity.",
+            "Invoice", incomplete ? InvoiceDiagnosticSeverity.Error : _omittedSeverity));
         return result;
     }
 }

@@ -1,5 +1,6 @@
 using OfficeIMO.Core.Internal;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -17,19 +18,21 @@ internal static partial class PdfPageExtractor {
         }
     }
     
-    private static byte[] ReadStream(Stream stream, string paramName) {
+    private static byte[] ReadStream(Stream stream, string paramName, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(stream, paramName);
         if (!stream.CanRead) {
             throw new ArgumentException("Stream must be readable.", paramName);
         }
-    
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
+
+        return PdfDocumentSource.FromRemainingStream(stream, options, cancellationToken).Bytes;
     }
+
+    private static byte[] ReadPath(string path) =>
+        PdfDocumentSource.FromPath(path, null).Bytes;
     
     private static List<string> WriteSplitPages(IReadOnlyList<byte[]> pages, string outputDirectory, string? baseName) {
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        Directory.CreateDirectory(fullOutputDirectory);
     
         string safeBaseName = Path.GetFileNameWithoutExtension(baseName ?? string.Empty) ?? string.Empty;
         if (string.IsNullOrWhiteSpace(safeBaseName)) {
@@ -48,6 +51,7 @@ internal static partial class PdfPageExtractor {
     
     private static List<string> WriteSplitPageRanges(IReadOnlyList<byte[]> pages, string outputDirectory, string? baseName, PdfPageRange[] ranges) {
         string fullOutputDirectory = ValidateOutputDirectory(outputDirectory);
+        Directory.CreateDirectory(fullOutputDirectory);
     
         string safeBaseName = Path.GetFileNameWithoutExtension(baseName ?? string.Empty) ?? string.Empty;
         if (string.IsNullOrWhiteSpace(safeBaseName)) {
@@ -93,7 +97,6 @@ internal static partial class PdfPageExtractor {
             throw new ArgumentException("Output directory refers to a file; a directory path is required.", nameof(outputDirectory));
         }
     
-        Directory.CreateDirectory(fullOutputDirectory);
         return fullOutputDirectory;
     }
     

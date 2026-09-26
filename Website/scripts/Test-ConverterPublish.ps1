@@ -49,6 +49,22 @@ $convertPage = Get-Content -LiteralPath $convertPagePath -Raw
 if ($convertPage -notmatch $converterFramePattern) {
     throw "The primary /convert/ route does not host the browser converter."
 }
+$withoutTemplates = [regex]::Replace($convertPage, '(?is)<template\b[^>]*>.*?</template>', '')
+if ($withoutTemplates -match '<iframe\b' -or $convertPage -notmatch '\bid=["'']?browser-workspace-template["'']?(?=\s|>)') {
+    throw 'The tool directory must keep its workspace iframe inert until a tool is selected.'
+}
+$routeCatalog = Get-Content (Join-Path $PSScriptRoot '../data/office_conversion_routes.json') -Raw | ConvertFrom-Json
+$pdfCatalog = Get-Content (Join-Path $PSScriptRoot '../data/pdf_workflows.json') -Raw | ConvertFrom-Json
+foreach ($route in @($routeCatalog.routes | Where-Object browserAvailable)) {
+    if ($convertPage -notmatch ('\bdata-route=["'']?' + [regex]::Escape($route.id) + '["'']?(?=\s|>)')) {
+        throw "The static directory is missing browser conversion '$($route.id)'."
+    }
+}
+foreach ($tool in $pdfCatalog.operations) {
+    if ($convertPage -notmatch ('\bdata-pdf-tool=["'']?' + [regex]::Escape($tool.id) + '["'']?(?=\s|>)')) {
+        throw "The static directory is missing PDF tool '$($tool.id)'."
+    }
+}
 
 $conversionGuides = Get-Content -LiteralPath $conversionGuidesPath -Raw
 if ($conversionGuides -notmatch '<h1>Document Conversion Guides for \.NET</h1>') {

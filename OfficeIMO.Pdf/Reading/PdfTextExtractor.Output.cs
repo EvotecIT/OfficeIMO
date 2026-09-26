@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfTextExtractor {
     private static List<string> WriteTextPages(string baseName, string fullOutputDirectory, IReadOnlyList<string> pages) {
+        Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "page");
     
         var paths = new List<string>(pages.Count);
@@ -18,6 +19,7 @@ internal static partial class PdfTextExtractor {
     }
     
     private static List<string> WriteMarkdownPages(string baseName, string fullOutputDirectory, IReadOnlyList<string> pages) {
+        Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "page");
     
         var paths = new List<string>(pages.Count);
@@ -31,6 +33,7 @@ internal static partial class PdfTextExtractor {
     }
     
     private static List<string> WriteMarkdownPages(string baseName, string fullOutputDirectory, IReadOnlyList<SelectedTextPage> pages) {
+        Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "page");
     
         var paths = new List<string>(pages.Count);
@@ -51,6 +54,7 @@ internal static partial class PdfTextExtractor {
     }
     
     private static List<string> WriteTextPages(string baseName, string fullOutputDirectory, IReadOnlyList<SelectedTextPage> pages) {
+        Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "page");
     
         var paths = new List<string>(pages.Count);
@@ -71,6 +75,7 @@ internal static partial class PdfTextExtractor {
     }
     
     private static List<string> WriteTableCsvFiles(string baseName, string fullOutputDirectory, IReadOnlyList<StructuredTablePage> tablePages) {
+        Directory.CreateDirectory(fullOutputDirectory);
         string safeBaseName = GetSafeBaseName(baseName, "table");
     
         var paths = new List<string>();
@@ -163,7 +168,6 @@ internal static partial class PdfTextExtractor {
             throw new ArgumentException("Output directory refers to a file; a directory path is required.", nameof(outputDirectory));
         }
     
-        Directory.CreateDirectory(fullOutputDirectory);
         return fullOutputDirectory;
     }
     
@@ -217,15 +221,6 @@ internal static partial class PdfTextExtractor {
         }
     
         return fullPath;
-    }
-    
-    private static byte[] ReadAllBytes(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-    
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return buffer.ToArray();
     }
     
 }

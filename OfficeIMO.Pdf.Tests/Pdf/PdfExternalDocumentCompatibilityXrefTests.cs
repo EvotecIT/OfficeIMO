@@ -152,6 +152,27 @@ public partial class PdfExternalDocumentCompatibilityTests {
     }
 
     [Fact]
+    public void ExtractText_HybridClassicTableOverridesStaleCompressedEntryForSameObject() {
+        byte[] pdf = BuildHybridClassicXrefWithDirectReplacementOfCompressedPage();
+
+        string text = Normalize(PdfTextExtractor.ExtractAllText(pdf));
+
+        Assert.Contains("Active direct page", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Stale compressed page", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReadObjectMap_ResolvesCompressedObjectFromHybridPredecessorOfActiveXrefStream() {
+        byte[] pdf = BuildXrefStreamWithHybridCompressedPredecessor();
+
+        PdfReadDocument document = PdfReadDocument.Open(pdf);
+
+        Assert.True(document.Objects.TryGetValue(7, out PdfIndirectObject? font));
+        Assert.IsType<PdfDictionary>(font!.Value);
+        Assert.Contains("Hybrid predecessor", document.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Inspect_UsesHybridClassicXrefStmTrailerRootBeforeStaleXrefStreamRoot() {
         byte[] pdf = BuildHybridClassicXrefPdfWithXRefStmTrailerRootAndStaleXrefStreamRoot();
 

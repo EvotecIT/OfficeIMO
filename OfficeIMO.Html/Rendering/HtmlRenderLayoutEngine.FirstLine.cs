@@ -20,20 +20,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int runIndex = 0; runIndex < runs.Count; runIndex++) {
             HtmlInlineRun run = runs[runIndex];
             if (run.AtomicBlock != null || run.Text.Length == 0) continue;
-            IReadOnlyList<string> elements = OfficeTextElements.Split(run.Text);
-            int start = 0;
-            while (start < elements.Count && string.IsNullOrWhiteSpace(elements[start])) start++;
-            if (start >= elements.Count) continue;
-
-            int end = start;
-            while (end < elements.Count && IsFirstLetterPunctuation(elements[end])) end++;
-            if (end < elements.Count) end++;
-            while (end < elements.Count && IsFirstLetterPunctuation(elements[end])) end++;
-            if (end <= start) return;
-
-            string prefix = string.Concat(elements.Take(start));
-            string firstLetter = string.Concat(elements.Skip(start).Take(end - start));
-            string suffix = string.Concat(elements.Skip(end));
+            if (!TryFindFirstLetterBounds(run.Text, out int start, out int end)) continue;
+            string prefix = run.Text.Substring(0, start);
+            string firstLetter = run.Text.Substring(start, end - start);
+            string suffix = run.Text.Substring(end);
             var replacement = new List<HtmlInlineRun>(3);
             if (prefix.Length > 0) replacement.Add(run.CloneText(prefix, prefix, run.Style));
             replacement.Add(run.CloneText(firstLetter, firstLetter, firstLetterStyle, isFirstLetter: true));
@@ -42,6 +32,42 @@ internal sealed partial class HtmlRenderLayoutEngine {
             runs.InsertRange(runIndex, replacement);
             return;
         }
+    }
+
+    private bool TryFindFirstLetterBounds(string text, out int start, out int end) {
+        start = end = 0;
+        TextElementEnumerator enumerator = StringInfo.GetTextElementEnumerator(text);
+        int examined = 0;
+        bool MoveNext() {
+            if (!enumerator.MoveNext()) return false;
+            ChargeLayoutOperation("first-letter scanning");
+            if ((++examined & 0xFF) == 0) CheckCancellation();
+            return true;
+        }
+
+        if (!MoveNext()) return false;
+        while (string.IsNullOrWhiteSpace(enumerator.GetTextElement())) {
+            if (!MoveNext()) return false;
+        }
+        start = enumerator.ElementIndex;
+        while (IsFirstLetterPunctuation(enumerator.GetTextElement())) {
+            if (!MoveNext()) {
+                end = text.Length;
+                return true;
+            }
+        }
+        if (!MoveNext()) {
+            end = text.Length;
+            return true;
+        }
+        while (IsFirstLetterPunctuation(enumerator.GetTextElement())) {
+            if (!MoveNext()) {
+                end = text.Length;
+                return true;
+            }
+        }
+        end = enumerator.ElementIndex;
+        return end > start;
     }
 
     private void ApplyFirstLineStyle(
@@ -119,37 +145,96 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         out int split) {
         split = -1;
+        ChargeLayoutOperations(token.Length, "first-line token search");
+        string searchToken = GetFirstLineSearchToken(token, firstLineStyle, width);
         HyphenationToken hyphenation = PrepareHyphenationToken(token, token, layoutStyle);
         if (hyphenation.HasBreaks) {
-            foreach (int point in hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks).Distinct().OrderBy(point => point)) {
-                if (point <= 0 || point >= hyphenation.LogicalText.Length || point >= hyphenation.SourceBoundaries.Count) continue;
-                string candidate = hyphenation.PaintText.Substring(0, point) + layoutStyle.HyphenateCharacter;
-                if (MeasureInlineText(candidate, firstLineStyle) <= width + 0.0001D) {
-                    split = hyphenation.SourceBoundaries[point];
-                }
-            }
+            int[] candidates = hyphenation.PrimaryBreaks.Concat(hyphenation.SecondaryBreaks)
+                .Where(point => point > 0 && point < searchToken.Length &&
+                    point < hyphenation.SourceBoundaries.Count)
+                .Distinct().OrderBy(point => point).ToArray();
+            int point = FindLargestFittingFirstLineBreak(
+                hyphenation.PaintText, candidates, layoutStyle.HyphenateCharacter, firstLineStyle, width);
+            if (point > 0) split = hyphenation.SourceBoundaries[point];
             if (split > 0 && split < token.Length) return true;
         }
 
         IReadOnlyList<int> preferred = OfficeTextLineBreaks.GetBreakPositions(
-            token,
+            searchToken,
             allowCjkBreaks: layoutStyle.WordBreak != "keep-all");
-        foreach (int point in preferred) {
-            if (point <= 0 || point >= token.Length) continue;
-            if (MeasureInlineText(token.Substring(0, point), firstLineStyle) <= width + 0.0001D) split = point;
-        }
+        split = FindLargestFittingFirstLineBreak(searchToken, preferred, string.Empty, firstLineStyle, width);
         if (split > 0) return true;
         if (!AllowsEmergencyTokenBreak(layoutStyle)) return false;
 
-        int sourceLength = 0;
-        foreach (string element in OfficeTextElements.Enumerate(token)) {
-            int candidateLength = sourceLength + element.Length;
-            if (candidateLength >= token.Length
-                || MeasureInlineText(token.Substring(0, candidateLength), firstLineStyle) > width + 0.0001D) break;
-            sourceLength = candidateLength;
-        }
-        split = sourceLength;
+        int[] graphemeStarts = StringInfo.ParseCombiningCharacters(searchToken);
+        split = FindLargestFittingFirstLineBreak(searchToken, graphemeStarts, string.Empty, firstLineStyle, width);
         return split > 0 && split < token.Length;
+    }
+
+    private string GetFirstLineSearchToken(string token, HtmlRenderBoxStyle style, double width) {
+        const int initialSearchCharacters = 16384;
+        if (style.LetterSpacing < 0D) return token;
+        if (token.Length <= initialSearchCharacters) return token;
+
+        int target = initialSearchCharacters;
+        var elements = StringInfo.GetTextElementEnumerator(token);
+        while (elements.MoveNext()) {
+            int boundary = elements.ElementIndex;
+            if (boundary < target) continue;
+            CheckCancellation();
+            ChargeLayoutOperations((boundary + 31L) / 32L, "first-line token search");
+            if (MeasureInlineText(token.Substring(0, boundary), style) > width + 0.0001D) {
+                return token.Substring(0, boundary);
+            }
+            target = target > token.Length / 2 ? token.Length : target * 2;
+        }
+        return token;
+    }
+
+    private int FindLargestFittingFirstLineBreak(
+        string text,
+        IReadOnlyList<int> points,
+        string suffix,
+        HtmlRenderBoxStyle style,
+        double width) {
+        if (style.LetterSpacing < 0D) {
+            for (int index = points.Count - 1; index >= 0; index--) {
+                CheckCancellation();
+                int point = points[index];
+                if (point <= 0 || point >= text.Length) continue;
+                ChargeLayoutOperations((long)point + suffix.Length, "first-line token splitting");
+                if (MeasureInlineText(text.Substring(0, point) + suffix, style) <= width + 0.0001D) {
+                    return point;
+                }
+            }
+            return -1;
+        }
+        int low = 0;
+        int high = points.Count - 1;
+        int best = -1;
+        while (low <= high) {
+            CheckCancellation();
+            ChargeLayoutOperation("first-line token splitting");
+            int middle = low + (high - low) / 2;
+            int point = points[middle];
+            if (point <= 0) {
+                low = middle + 1;
+                continue;
+            }
+            if (point >= text.Length) {
+                high = middle - 1;
+                continue;
+            }
+            ChargeLayoutOperations((point + 31L) / 32L, "first-line token splitting");
+            string candidate = text.Substring(0, point) + suffix;
+            if (MeasureInlineText(candidate, style) <= width + 0.0001D) {
+                best = point;
+                low = middle + 1;
+            } else {
+                high = middle - 1;
+            }
+        }
+        return best;
     }
 
     private static bool IsFirstLetterPunctuation(string textElement) {

@@ -51,9 +51,6 @@
   <data name="ConversionWorkbench.FILE" xml:space="preserve">
     <value>FILE</value>
   </data>
-  <data name="ConversionWorkbench.I" xml:space="preserve">
-    <value>i</value>
-  </data>
   <data name="ConversionWorkbench.IfAFileExists" xml:space="preserve">
     <value>If a file exists</value>
   </data>
@@ -712,7 +709,7 @@
     <value>Documents you open will appear here.</value>
   </data>
   <data name="Home.DragAndDropFilesHere" xml:space="preserve">
-    <value>Drag and drop files here</value>
+    <value>Drop files anywhere, or open one</value>
   </data>
   <data name="Home.Home" xml:space="preserve">
     <value>Home</value>
@@ -1244,11 +1241,6 @@
   <data name="Dialog.UnsavedChanges" xml:space="preserve"><value>Unsaved changes</value></data>
   <data name="Dialog.SaveChangesTo" xml:space="preserve"><value>Save changes to {0}?</value></data>
   <data name="Dialog.UnsavedDescription" xml:space="preserve"><value>Your page edits have not been saved yet.</value></data>
-  <data name="Dialog.DeletePageTitle" xml:space="preserve"><value>Delete page?</value></data>
-  <data name="Dialog.DeletePagesTitle" xml:space="preserve"><value>Delete {0} pages?</value></data>
-  <data name="Dialog.DeletePage" xml:space="preserve"><value>Delete page</value></data>
-  <data name="Dialog.DeletePages" xml:space="preserve"><value>Delete pages</value></data>
-  <data name="Dialog.DeletePagesDescription" xml:space="preserve"><value>The pages will be removed from this working copy. You can still use Undo before saving.</value></data>
   <data name="Document.WaitForOperation" xml:space="preserve"><value>Cancel or wait for the current operation before changing documents.</value></data>
   <data name="PdfPage.KeyboardHelp" xml:space="preserve"><value>Use arrow keys to review links and page objects, Enter to activate, Control+A to select page text, and Control+C to copy selected text.</value></data>
   <data name="PdfPage.Label" xml:space="preserve"><value>Page {0}</value></data>
@@ -1309,7 +1301,7 @@
   <data name="DocumentWorkspace.ResizeNavigation" xml:space="preserve"><value>Resize navigation pane</value></data>
   <data name="DocumentWorkspace.ResizeProperties" xml:space="preserve"><value>Resize properties pane</value></data>
   <data name="PdfPage.RenderingNotes" xml:space="preserve"><value>Rendering notes</value></data>
-  <data name="Home.SupportedInputGuidance" xml:space="preserve"><value>Open a PDF to read and edit. Use Tools to convert or combine other files.</value></data>
+  <data name="Home.SupportedInputGuidance" xml:space="preserve"><value>PDFs open for reading and editing. Office, web, image and ZIP files go to Convert.</value></data>
   <data name="Commands.PaletteTitle" xml:space="preserve"><value>Find a command</value></data>
   <data name="Commands.SearchPlaceholder" xml:space="preserve"><value>Search commands and shortcuts</value></data>
   <data name="Commands.Results" xml:space="preserve"><value>Matching commands</value></data>
@@ -1403,7 +1395,7 @@
   <data name="Settings.FocusReadingHelp" xml:space="preserve"><value>Press F9 for focus reading. Press Escape or F9 to bring the document controls back.</value></data>
   <data name="Settings.DocumentAppearanceHelp" xml:space="preserve"><value>Application themes change the controls around your document. Document colors stay unchanged; page night mode is a separate reading option.</value></data>
   <data name="Session.Title" xml:space="preserve">
-    <value>Continue your previous session</value>
+    <value>Pick up where you left off</value>
   </data>
   <data name="Session.Description" xml:space="preserve">
     <value>Reopen unchanged documents with their reading positions. Changed or missing sources need an individual choice. Pending edits are restored only when you choose recovery.</value>
@@ -1621,7 +1613,7 @@
   <data name="Organizer.ImportHint" xml:space="preserve"><value>Choose page ranges and source order. The reviewed copies will be imported as one undoable change.</value></data>
   <data name="Organizer.ImportSources" xml:space="preserve"><value>PDF sources in import order</value></data>
   <data name="Organizer.ImportFixRanges" xml:space="preserve"><value>Correct the selected source page ranges.</value></data>
-  <data name="Organizer.ImportPageLimit" xml:space="preserve"><value>Select between 1 and 100,000 pages to import.</value></data>
+  <data name="Organizer.ImportPageLimit" xml:space="preserve"><value>The resulting PDF cannot exceed 1,000 pages. Select fewer pages to import.</value></data>
   <data name="Organizer.ImportEarlier" xml:space="preserve"><value>Move source earlier</value></data>
   <data name="Organizer.ImportLater" xml:space="preserve"><value>Move source later</value></data>
   <data name="Organizer.ImportSelectedCount" xml:space="preserve"><value>Pages to import:</value></data>
@@ -1668,6 +1660,11 @@
   <data name="Capability.RestrictedViewing" xml:space="preserve"><value>This password permits viewing, but text and content extraction are restricted. Text selection and object inspection are unavailable. Reopen with the owner password for full access.</value></data>
   <data name="Capability.RestrictedViewingSearch" xml:space="preserve"><value>This password permits viewing and text search, but logical content extraction is restricted. Object selection and inspection are unavailable. Reopen with the owner password for full access.</value></data>
   <data name="Capability.SearchRestricted" xml:space="preserve"><value>Text search is restricted by this document’s permissions.</value></data>
+  <data name="Signing.NoCertificates" xml:space="preserve"><value>No certificates with a private key were found in your certificate store.</value></data>
+  <data name="Signing.OneCertificate" xml:space="preserve"><value>1 signing certificate available.</value></data>
+  <data name="Signing.CertificateCount" xml:space="preserve"><value>{0} signing certificates available.</value></data>
+  <data name="Signing.StoreUnreadable" xml:space="preserve"><value>The certificate store could not be read: {0}</value></data>
+  <data name="Search.Run" xml:space="preserve"><value>Search this document</value></data>
   <data name="Signing.Title" xml:space="preserve"><value>Review signed copy</value></data>
   <data name="Signing.ResultTitle" xml:space="preserve"><value>Signing result</value></data>
   <data name="Signing.Create" xml:space="preserve"><value>Sign and save copy</value></data>
@@ -2060,10 +2057,274 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Watermark.PreviewPage" xml:space="preserve"><value>Preview page</value></data>
   <data name="Watermark.Preview" xml:space="preserve"><value>Update preview</value></data>
   <data name="Watermark.Apply" xml:space="preserve"><value>Apply watermark</value></data>
-  <data name="Watermark.ReviewHint" xml:space="preserve"><value>Review the preview before applying. After changing a setting, update the preview to enable Apply.</value></data>
+  <data name="Watermark.ReviewHint" xml:space="preserve"><value>The preview updates as you change settings. Apply becomes available once it is current.</value></data>
   <data name="Watermark.ChooseImageFirst" xml:space="preserve"><value>Choose an image to preview the watermark.</value></data>
   <data name="Watermark.InvalidColor" xml:space="preserve"><value>Enter a color such as #2563EB.</value></data>
   <data name="Watermark.DragHint" xml:space="preserve"><value>Drag on the page to move the watermark. Release to refresh the preview.</value></data>
   <data name="Watermark.New" xml:space="preserve"><value>Add a new watermark</value></data>
   <data name="Watermark.Choose" xml:space="preserve"><value>Choose a watermark to edit, or add a new one</value></data>
+  <data name="Shell.CommandSearch" xml:space="preserve"><value>Search or run a command</value></data>
+  <data name="Shell.CommandSearchTip" xml:space="preserve"><value>Search commands and tools (Ctrl+K)</value></data>
+  <data name="Shell.UndoTip" xml:space="preserve"><value>Undo (Ctrl+Z)</value></data>
+  <data name="Shell.RedoTip" xml:space="preserve"><value>Redo (Ctrl+Shift+Z)</value></data>
+  <data name="Shell.FindTip" xml:space="preserve"><value>Find in document (Ctrl+F)</value></data>
+  <data name="Shell.SaveAsTip" xml:space="preserve"><value>Save a copy (Ctrl+Shift+S)</value></data>
+  <data name="Shell.SaveTip" xml:space="preserve"><value>Save changes (Ctrl+S)</value></data>
+  <data name="Shell.FocusTip" xml:space="preserve"><value>Focus reading (F9)</value></data>
+  <data name="Shell.ExitFocus" xml:space="preserve"><value>Exit focus reading</value></data>
+  <data name="Shell.NoBookmarks" xml:space="preserve"><value>This document has no bookmarks.</value></data>
+  <data name="Shell.MoveUpTip" xml:space="preserve"><value>Move selected pages earlier (Alt+Up)</value></data>
+  <data name="Shell.MoveDownTip" xml:space="preserve"><value>Move selected pages later (Alt+Down)</value></data>
+  <data name="Shell.PageNumber" xml:space="preserve"><value>Current page</value></data>
+  <data name="Shell.PageNumberTip" xml:space="preserve"><value>Type a page number and press Enter</value></data>
+  <data name="Shell.PageCount" xml:space="preserve"><value>of {0:N0}</value></data>
+  <data name="Shell.UnsavedChanges" xml:space="preserve"><value>Unsaved changes</value></data>
+  <data name="Shell.RedactionSection" xml:space="preserve"><value>Permanent redaction</value></data>
+  <data name="Shell.OrganizerHelp" xml:space="preserve"><value>Drag pages to reorder them. Ctrl-click or Shift-click to select several; the action bar follows the selection.</value></data>
+  <data name="Shell.OrganizerStatus" xml:space="preserve"><value>Drag to reorder · Ctrl-click to select several · Alt+Up or Alt+Down moves the selection</value></data>
+  <data name="Drop.OpenPdfs" xml:space="preserve"><value>Open {0:N0} PDF(s)</value></data>
+  <data name="Drop.OpenDetail" xml:space="preserve"><value>Each PDF opens in its own tab.</value></data>
+  <data name="Drop.ConvertFiles" xml:space="preserve"><value>Add {0:N0} file(s) to Convert</value></data>
+  <data name="Drop.ConvertDetail" xml:space="preserve"><value>Files join the conversion queue for the selected route.</value></data>
+  <data name="Drop.OpenAndConvert" xml:space="preserve"><value>Open {0:N0} PDF(s) and convert {1:N0} file(s)</value></data>
+  <data name="Drop.MixedDetail" xml:space="preserve"><value>PDFs open in tabs; other files join the conversion queue.</value></data>
+  <data name="Drop.Unsupported" xml:space="preserve"><value>These files can't be opened here</value></data>
+  <data name="Drop.UnsupportedDetail" xml:space="preserve"><value>Drop PDFs to read them, or Office, web, image and ZIP files to convert them. Wait for the current operation to finish first.</value></data>
+  <data name="Tools.SelectTip" xml:space="preserve"><value>Select text and links (V)</value></data>
+  <data name="Tools.SelectEditTip" xml:space="preserve"><value>Select text or an image to edit (V)</value></data>
+  <data name="Tools.NoteTip" xml:space="preserve"><value>Sticky note (N)</value></data>
+  <data name="Tools.TextTip" xml:space="preserve"><value>Text box (T)</value></data>
+  <data name="Tools.HighlightTip" xml:space="preserve"><value>Highlight (H)</value></data>
+  <data name="Tools.UnderlineTip" xml:space="preserve"><value>Underline (U)</value></data>
+  <data name="Tools.StrikeoutTip" xml:space="preserve"><value>Strikeout (S)</value></data>
+  <data name="Tools.RectangleTip" xml:space="preserve"><value>Rectangle (R)</value></data>
+  <data name="Tools.Ellipse" xml:space="preserve"><value>Ellipse</value></data>
+  <data name="Tools.EllipseTip" xml:space="preserve"><value>Ellipse (E)</value></data>
+  <data name="Tools.LineTip" xml:space="preserve"><value>Line (L)</value></data>
+  <data name="Tools.Ink" xml:space="preserve"><value>Ink</value></data>
+  <data name="Tools.InkTip" xml:space="preserve"><value>Freehand ink (I)</value></data>
+  <data name="Tools.Stamp" xml:space="preserve"><value>Stamp</value></data>
+  <data name="Tools.FlattenAnnotationsTip" xml:space="preserve"><value>Flatten every annotation into the page content</value></data>
+  <data name="Tools.AddTextTip" xml:space="preserve"><value>Add permanent page text (T)</value></data>
+  <data name="Tools.LinkTip" xml:space="preserve"><value>Draw a link hotspot (K)</value></data>
+  <data name="Color.Yellow" xml:space="preserve"><value>Yellow</value></data>
+  <data name="Color.Green" xml:space="preserve"><value>Green</value></data>
+  <data name="Color.Blue" xml:space="preserve"><value>Blue</value></data>
+  <data name="Color.Pink" xml:space="preserve"><value>Pink</value></data>
+  <data name="Color.Red" xml:space="preserve"><value>Red</value></data>
+  <data name="Color.Ink" xml:space="preserve"><value>Ink</value></data>
+  <data name="Session.Summary" xml:space="preserve"><value>{0:N0} documents from your last session</value></data>
+  <data name="Session.Review" xml:space="preserve"><value>Review…</value></data>
+  <data name="Session.DismissTip" xml:space="preserve"><value>Hide until next launch</value></data>
+  <data name="Session.Checking" xml:space="preserve"><value>Checking…</value></data>
+  <data name="Home.PageCount" xml:space="preserve"><value>{0:N0} pages</value></data>
+  <data name="Home.MergeHint" xml:space="preserve"><value>Combine PDFs, images and Office files</value></data>
+  <data name="Home.ConvertHint" xml:space="preserve"><value>Office, web, markup and images</value></data>
+  <data name="Home.OcrHint" xml:space="preserve"><value>Recognize text in scanned pages</value></data>
+  <data name="Home.CompressHint" xml:space="preserve"><value>Optimize a PDF for sharing</value></data>
+  <data name="Home.ProtectHint" xml:space="preserve"><value>Password, sign or redact</value></data>
+  <data name="Home.AllTools" xml:space="preserve"><value>All tools</value></data>
+  <data name="Home.AllToolsHint" xml:space="preserve"><value>Browse every document task</value></data>
+  <data name="Home.PageCountOne" xml:space="preserve"><value>1 page</value></data>
+  <data name="Session.SummaryOne" xml:space="preserve"><value>1 document from your last session</value></data>
+  <data name="Jobs.EmptyTitle" xml:space="preserve"><value>Nothing running yet</value></data>
+  <data name="PageActions.Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="PageActions.CopyTip" xml:space="preserve"><value>Copy the selected text (Ctrl+C)</value></data>
+  <data name="PageActions.SelectAll" xml:space="preserve"><value>Select all text on this page</value></data>
+  <data name="PageActions.HighlightSelection" xml:space="preserve"><value>Highlight selection</value></data>
+  <data name="PageActions.UnderlineSelection" xml:space="preserve"><value>Underline selection</value></data>
+  <data name="PageActions.StrikeSelection" xml:space="preserve"><value>Strike out selection</value></data>
+  <data name="PageActions.AddNoteHere" xml:space="preserve"><value>Add a note here</value></data>
+  <data name="Shell.ViewJobs" xml:space="preserve"><value>View jobs</value></data>
+  <data name="Operation.Reorder" xml:space="preserve"><value>Pages reordered</value></data>
+  <data name="Operation.Rotate" xml:space="preserve"><value>Pages rotated</value></data>
+  <data name="Operation.Delete" xml:space="preserve"><value>Pages deleted</value></data>
+  <data name="Operation.Duplicate" xml:space="preserve"><value>Pages duplicated</value></data>
+  <data name="Operation.Import" xml:space="preserve"><value>Pages imported</value></data>
+  <data name="Operation.Crop" xml:space="preserve"><value>Pages cropped</value></data>
+  <data name="Operation.InsertBlank" xml:space="preserve"><value>Blank page inserted</value></data>
+  <data name="Operation.Annotation" xml:space="preserve"><value>Annotation updated</value></data>
+  <data name="Operation.TextEdit" xml:space="preserve"><value>Text replaced</value></data>
+  <data name="Operation.ImageEdit" xml:space="preserve"><value>Image updated</value></data>
+  <data name="Operation.AddedContent" xml:space="preserve"><value>Content added</value></data>
+  <data name="Operation.FormFill" xml:space="preserve"><value>Form values applied</value></data>
+  <data name="Operation.FormAuthor" xml:space="preserve"><value>Form fields updated</value></data>
+  <data name="Operation.FormFlatten" xml:space="preserve"><value>Form fields flattened</value></data>
+  <data name="Operation.Security" xml:space="preserve"><value>Security settings updated</value></data>
+  <data name="Operation.Signature" xml:space="preserve"><value>Signature added</value></data>
+  <data name="Operation.BatesNumbering" xml:space="preserve"><value>Bates numbers added</value></data>
+  <data name="Operation.Redaction" xml:space="preserve"><value>Redactions applied</value></data>
+  <data name="Operation.Watermark" xml:space="preserve"><value>Watermark added</value></data>
+  <data name="Operation.PageNumbers" xml:space="preserve"><value>Page numbers added</value></data>
+  <data name="Operation.HeaderFooter" xml:space="preserve"><value>Header and footer added</value></data>
+  <data name="Operation.Metadata" xml:space="preserve"><value>Document properties updated</value></data>
+  <data name="Operation.Bookmarks" xml:space="preserve"><value>Bookmarks updated</value></data>
+  <data name="Operation.Attachments" xml:space="preserve"><value>Attachments updated</value></data>
+  <data name="Operation.RecoveryRestore" xml:space="preserve"><value>Recovered edits restored</value></data>
+  <data name="Operation.Undo" xml:space="preserve"><value>Edit undone</value></data>
+  <data name="Operation.Redo" xml:space="preserve"><value>Edit restored</value></data>
+  <data name="Bookmarks.Add" xml:space="preserve"><value>Add bookmark for this page</value></data>
+  <data name="Bookmarks.MoveUp" xml:space="preserve"><value>Move up</value></data>
+  <data name="Bookmarks.MoveDown" xml:space="preserve"><value>Move down</value></data>
+  <data name="Bookmarks.Indent" xml:space="preserve"><value>Nest under previous bookmark</value></data>
+  <data name="Bookmarks.Outdent" xml:space="preserve"><value>Move out one level</value></data>
+  <data name="Bookmarks.Remove" xml:space="preserve"><value>Remove bookmark</value></data>
+  <data name="Bookmarks.More" xml:space="preserve"><value>More bookmark actions</value></data>
+  <data name="Bookmarks.Retarget" xml:space="preserve"><value>Point to the current page</value></data>
+  <data name="Bookmarks.Generate" xml:space="preserve"><value>Create bookmarks from headings</value></data>
+  <data name="Bookmarks.Title" xml:space="preserve"><value>Bookmark title</value></data>
+  <data name="Bookmarks.RenameHint" xml:space="preserve"><value>Press Enter to rename, Esc to cancel</value></data>
+  <data name="Bookmarks.DefaultTitle" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Bookmarks.NoHeadings" xml:space="preserve"><value>No headings were found to build bookmarks from.</value></data>
+  <data name="Bookmarks.Generated" xml:space="preserve"><value>Created {0} bookmarks from headings</value></data>
+  <data name="Attachments.Title" xml:space="preserve"><value>Attachments</value></data>
+  <data name="Attachments.Add" xml:space="preserve"><value>Attach a file</value></data>
+  <data name="Attachments.AllFiles" xml:space="preserve"><value>All files</value></data>
+  <data name="Attachments.Save" xml:space="preserve"><value>Save attachment</value></data>
+  <data name="Attachments.Remove" xml:space="preserve"><value>Remove attachment</value></data>
+  <data name="Attachments.Saved" xml:space="preserve"><value>Saved {0}</value></data>
+  <data name="Attachments.Empty" xml:space="preserve"><value>No files are attached to this PDF.</value></data>
+  <data name="Properties.Title" xml:space="preserve"><value>Properties</value></data>
+  <data name="Properties.DocumentTitle" xml:space="preserve"><value>Title</value></data>
+  <data name="Properties.Author" xml:space="preserve"><value>Author</value></data>
+  <data name="Properties.Subject" xml:space="preserve"><value>Subject</value></data>
+  <data name="Properties.Keywords" xml:space="preserve"><value>Keywords</value></data>
+  <data name="Properties.KeywordsHint" xml:space="preserve"><value>Separate with commas</value></data>
+  <data name="Properties.Apply" xml:space="preserve"><value>Apply properties</value></data>
+  <data name="Properties.Reset" xml:space="preserve"><value>Reset</value></data>
+  <data name="Properties.Version" xml:space="preserve"><value>Format</value></data>
+  <data name="Properties.Created" xml:space="preserve"><value>Created</value></data>
+  <data name="Properties.Modified" xml:space="preserve"><value>Modified</value></data>
+  <data name="Export.Title" xml:space="preserve"><value>Export</value></data>
+  <data name="Export.Menu" xml:space="preserve"><value>Export and more</value></data>
+  <data name="Export.Hint" xml:space="preserve"><value>Save this document’s content in another format.</value></data>
+  <data name="Export.Markdown" xml:space="preserve"><value>Export as Markdown</value></data>
+  <data name="Export.Text" xml:space="preserve"><value>Export as plain text</value></data>
+  <data name="Export.Json" xml:space="preserve"><value>Export structure as JSON</value></data>
+  <data name="Export.Images" xml:space="preserve"><value>Save embedded images</value></data>
+  <data name="Export.Office" xml:space="preserve"><value>Convert to Word, Excel or PowerPoint…</value></data>
+  <data name="Export.FormData" xml:space="preserve"><value>Form data (XFDF)</value></data>
+  <data name="Export.ChooseImageFolder" xml:space="preserve"><value>Choose a folder for the images</value></data>
+  <data name="Export.Saved" xml:space="preserve"><value>Exported to {0}</value></data>
+  <data name="Export.ImagesSaved" xml:space="preserve"><value>Saved {0} images to {1}</value></data>
+  <data name="Forms.ExportData" xml:space="preserve"><value>Export form data (XFDF)</value></data>
+  <data name="Forms.ImportData" xml:space="preserve"><value>Import form data (XFDF)</value></data>
+  <data name="HeaderFooter.Title" xml:space="preserve"><value>Header and footer</value></data>
+  <data name="HeaderFooter.Header" xml:space="preserve"><value>Header</value></data>
+  <data name="HeaderFooter.Footer" xml:space="preserve"><value>Footer</value></data>
+  <data name="HeaderFooter.Left" xml:space="preserve"><value>Left</value></data>
+  <data name="HeaderFooter.Center" xml:space="preserve"><value>Center</value></data>
+  <data name="HeaderFooter.Right" xml:space="preserve"><value>Right</value></data>
+  <data name="HeaderFooter.HeaderLeft" xml:space="preserve"><value>Header left</value></data>
+  <data name="HeaderFooter.HeaderCenter" xml:space="preserve"><value>Header center</value></data>
+  <data name="HeaderFooter.HeaderRight" xml:space="preserve"><value>Header right</value></data>
+  <data name="HeaderFooter.FooterLeft" xml:space="preserve"><value>Footer left</value></data>
+  <data name="HeaderFooter.FooterCenter" xml:space="preserve"><value>Footer center</value></data>
+  <data name="HeaderFooter.FooterRight" xml:space="preserve"><value>Footer right</value></data>
+  <data name="HeaderFooter.Tokens" xml:space="preserve"><value>Use {page}, {pages}, {date}, {file} and {title} to insert values.</value></data>
+  <data name="HeaderFooter.FontSize" xml:space="preserve"><value>Size</value></data>
+  <data name="HeaderFooter.StartAt" xml:space="preserve"><value>Start at</value></data>
+  <data name="HeaderFooter.Pages" xml:space="preserve"><value>Pages</value></data>
+  <data name="HeaderFooter.AllPages" xml:space="preserve"><value>All</value></data>
+  <data name="HeaderFooter.Apply" xml:space="preserve"><value>Add to pages</value></data>
+  <data name="HeaderFooter.Empty" xml:space="preserve"><value>Enter text for at least one header or footer position.</value></data>
+  <data name="HeaderFooter.InvalidPages" xml:space="preserve"><value>Enter pages like 1-3, 5 or leave the field empty for all pages.</value></data>
+  <data name="FillSign.Sign" xml:space="preserve"><value>Sign</value></data>
+  <data name="FillSign.SignTip" xml:space="preserve"><value>Add your signature or initials to the page</value></data>
+  <data name="FillSign.Signatures" xml:space="preserve"><value>Signatures</value></data>
+  <data name="FillSign.Initials" xml:space="preserve"><value>Initials</value></data>
+  <data name="FillSign.CreateSignature" xml:space="preserve"><value>Create signature</value></data>
+  <data name="FillSign.CreateInitials" xml:space="preserve"><value>Create initials</value></data>
+  <data name="FillSign.UseSaved" xml:space="preserve"><value>Place saved signature</value></data>
+  <data name="FillSign.UseSavedInitials" xml:space="preserve"><value>Place saved initials</value></data>
+  <data name="FillSign.Delete" xml:space="preserve"><value>Delete saved image</value></data>
+  <data name="FillSign.Privacy" xml:space="preserve"><value>Saved signatures stay on this computer. They are visual signatures, not certificate signatures; use Protect to sign with a certificate.</value></data>
+  <data name="FillSign.Date" xml:space="preserve"><value>Date</value></data>
+  <data name="FillSign.DateTip" xml:space="preserve"><value>Place today’s date on the page</value></data>
+  <data name="FillSign.PlaceSignature" xml:space="preserve"><value>Click where the signature goes, or drag to size it</value></data>
+  <data name="FillSign.PlaceInitials" xml:space="preserve"><value>Click where the initials go, or drag to size them</value></data>
+  <data name="FillSign.PlaceDate" xml:space="preserve"><value>Click where the date goes</value></data>
+  <data name="FillSign.SignaturePlaced" xml:space="preserve"><value>Signature added</value></data>
+  <data name="FillSign.DatePlaced" xml:space="preserve"><value>Date added</value></data>
+  <data name="FillSign.SaveFailed" xml:space="preserve"><value>The signature could not be saved for later: {0}</value></data>
+  <data name="FillSign.DialogHint" xml:space="preserve"><value>Type your name, draw with the mouse or a pen, or use a picture of your signature.</value></data>
+  <data name="FillSign.Type" xml:space="preserve"><value>Type</value></data>
+  <data name="FillSign.Draw" xml:space="preserve"><value>Draw</value></data>
+  <data name="FillSign.Image" xml:space="preserve"><value>Image</value></data>
+  <data name="FillSign.NamePlaceholder" xml:space="preserve"><value>Your name</value></data>
+  <data name="FillSign.InitialsPlaceholder" xml:space="preserve"><value>Your initials</value></data>
+  <data name="FillSign.Style" xml:space="preserve"><value>Signature style</value></data>
+  <data name="FillSign.DrawArea" xml:space="preserve"><value>Signature drawing area</value></data>
+  <data name="FillSign.DrawHint" xml:space="preserve"><value>Sign above the line.</value></data>
+  <data name="FillSign.Clear" xml:space="preserve"><value>Clear</value></data>
+  <data name="FillSign.ImageHint" xml:space="preserve"><value>Choose a PNG or JPEG of your signature. A transparent or white background works best.</value></data>
+  <data name="FillSign.ChooseImage" xml:space="preserve"><value>Choose image…</value></data>
+  <data name="FillSign.Remember" xml:space="preserve"><value>Save for next time</value></data>
+  <data name="FillSign.Use" xml:space="preserve"><value>Use</value></data>
+  <data name="Ocr.Prompt.Title" xml:space="preserve"><value>This page is a scanned image</value></data>
+  <data name="Ocr.Prompt.Detail" xml:space="preserve"><value>Search, text selection and the assistant cannot read it until it has a text layer.</value></data>
+  <data name="Ocr.Prompt.Action" xml:space="preserve"><value>Make searchable</value></data>
+  <data name="Export.Word" xml:space="preserve"><value>Convert to Word (.docx)</value></data>
+  <data name="Export.Excel" xml:space="preserve"><value>Convert to Excel (.xlsx)</value></data>
+  <data name="Export.PowerPoint" xml:space="preserve"><value>Convert to PowerPoint (.pptx)</value></data>
+  <data name="Export.NoRoute" xml:space="preserve"><value>There is no conversion from PDF to {0}.</value></data>
+  <data name="Export.SavedCopyOnly" xml:space="preserve"><value>Conversion uses the saved file. Save first to include your latest edits.</value></data>
+  <data name="Conversion.Status.FilesFirst" xml:space="preserve"><value>Add files or drop them here. Studio lists the conversions available for them.</value></data>
+  <data name="Organizer.SplitAtBookmarks" xml:space="preserve"><value>Start a new file at each top-level bookmark</value></data>
+  <data name="Compliance.Title" xml:space="preserve"><value>Standards check</value></data>
+  <data name="Compliance.Hint" xml:space="preserve"><value>Check whether this PDF meets an archival, accessibility or print standard. Nothing is changed.</value></data>
+  <data name="Compliance.Choose" xml:space="preserve"><value>Choose a standard</value></data>
+  <data name="Compliance.Profile" xml:space="preserve"><value>Standard</value></data>
+  <data name="Compliance.Check" xml:space="preserve"><value>Check</value></data>
+  <data name="Compliance.Checked" xml:space="preserve"><value>Checked against {0}</value></data>
+  <data name="Compliance.Ready" xml:space="preserve"><value>Meets the {1} checks Studio can verify for {0}. A dedicated validator is still the final proof.</value></data>
+  <data name="Compliance.NotReady" xml:space="preserve"><value>{1} items need attention for {0}; {2} checks passed.</value></data>
+  <data name="Tools.Squiggly" xml:space="preserve"><value>Squiggly</value></data>
+  <data name="Tools.SquigglyTip" xml:space="preserve"><value>Squiggly underline (Q)</value></data>
+  <data name="Tools.Shapes" xml:space="preserve"><value>Shapes</value></data>
+  <data name="Tools.ShapesTip" xml:space="preserve"><value>Rectangle, ellipse, line, polygon, ink and stamp</value></data>
+  <data name="Tools.Polygon" xml:space="preserve"><value>Polygon</value></data>
+  <data name="Editor.Tool.Squiggly.Label" xml:space="preserve"><value>Squiggly</value></data>
+  <data name="Editor.Tool.Squiggly.Hint" xml:space="preserve"><value>Drag across text to mark a wavy underline</value></data>
+  <data name="Editor.Tool.Polygon.Label" xml:space="preserve"><value>Polygon</value></data>
+  <data name="Editor.Tool.Polygon.Hint" xml:space="preserve"><value>Draw an outline around an area</value></data>
+  <data name="Comments.ExportSummary" xml:space="preserve"><value>Export summary</value></data>
+  <data name="Comments.SummaryTitle" xml:space="preserve"><value>Comments on {0}</value></data>
+  <data name="Comments.SummaryCounts" xml:space="preserve"><value>{0} threads, {1} open.</value></data>
+  <data name="Comments.SummaryPage" xml:space="preserve"><value>Page {0}</value></data>
+  <data name="Comments.SummaryNoText" xml:space="preserve"><value>(no text)</value></data>
+  <data name="Forms.MoreActions" xml:space="preserve"><value>More form actions</value></data>
+  <data name="Jobs.ShowInFolder" xml:space="preserve"><value>Show in folder</value></data>
+  <data name="Conversion.Fidelity.Editable" xml:space="preserve"><value>Editable output</value></data>
+  <data name="Conversion.Fidelity.FixedLayout" xml:space="preserve"><value>Fixed page layout</value></data>
+  <data name="Conversion.Fidelity.Semantic" xml:space="preserve"><value>Text and structure</value></data>
+  <data name="Conversion.SupportLevel.Targeted" xml:space="preserve"><value>focused support</value></data>
+  <data name="Conversion.SupportLevel.Established" xml:space="preserve"><value>well tested</value></data>
+  <data name="Conversion.SupportLevel.Advanced" xml:space="preserve"><value>extensively tested</value></data>
+  <data name="Conversion.SupportLevel.ReferenceVerified" xml:space="preserve"><value>checked against reference renderers</value></data>
+  <data name="Output.Open" xml:space="preserve"><value>Open</value></data>
+  <data name="Shell.SaveCopyInstead" xml:space="preserve"><value>Save a copy…</value></data>
+  <data name="Links.Target" xml:space="preserve"><value>Link to</value></data>
+  <data name="Links.WebAddress" xml:space="preserve"><value>Web address</value></data>
+  <data name="Links.Page" xml:space="preserve"><value>Link to a page in this document</value></data>
+  <data name="Links.Hint" xml:space="preserve"><value>Drag a box over the text or area that should open the link.</value></data>
+  <data name="Resize.Title" xml:space="preserve"><value>Page size</value></data>
+  <data name="Resize.Size" xml:space="preserve"><value>Paper size</value></data>
+  <data name="Resize.Mode" xml:space="preserve"><value>Content scaling</value></data>
+  <data name="Resize.Fit" xml:space="preserve"><value>Fit content</value></data>
+  <data name="Resize.Fill" xml:space="preserve"><value>Fill page</value></data>
+  <data name="Resize.Stretch" xml:space="preserve"><value>Stretch</value></data>
+  <data name="Resize.Apply" xml:space="preserve"><value>Resize selected pages</value></data>
+  <data name="Operation.Resize" xml:space="preserve"><value>Pages resized</value></data>
+  <data name="Signing.Certify" xml:space="preserve"><value>Certify this document</value></data>
+  <data name="Signing.ApprovalPreview" xml:space="preserve"><value>Approval signature</value></data>
+  <data name="Signing.CertificationPreview" xml:space="preserve"><value>Certification signature</value></data>
+  <data name="Signing.CertificationPermission" xml:space="preserve"><value>Changes allowed after certification: {0}</value></data>
+  <data name="Signing.CertifyTip" xml:space="preserve"><value>A certification signature comes first and states which later changes keep it valid.</value></data>
+  <data name="Signing.CertifyAllowed" xml:space="preserve"><value>Changes allowed after certifying</value></data>
+  <data name="Signing.Certify.NoChanges" xml:space="preserve"><value>No changes</value></data>
+  <data name="Signing.Certify.Forms" xml:space="preserve"><value>Form filling and signing</value></data>
+  <data name="Signing.Certify.FormsAndComments" xml:space="preserve"><value>Form filling, comments and signing</value></data>
+  <data name="FillSign.ImageNeedsContent" xml:space="preserve"><value>This PDF only accepts annotations, so a picture signature cannot be placed. Draw or type your signature instead.</value></data>
+  <data name="Tools.FlattenAnnotations" xml:space="preserve"><value>Flatten all annotations</value></data>
 </root>

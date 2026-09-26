@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel {
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontColorArgb)) NormalizeHexColor(definition.DifferentialFontColorArgb!);
                 if (!string.IsNullOrWhiteSpace(definition.DifferentialFontName)) XmlConvert.VerifyXmlChars(definition.DifferentialFontName!);
                 ValidateConditionalFormattingBorder(definition.DifferentialBorder);
-                if (definition.DifferentialFontSize is <= 0D || double.IsNaN(definition.DifferentialFontSize ?? 1D) || double.IsInfinity(definition.DifferentialFontSize ?? 1D)) {
-                    throw new ArgumentOutOfRangeException(nameof(definition), "Conditional-formatting font size must be finite and greater than zero.");
+                if (definition.DifferentialFontSize is < 1D or > 409D || double.IsNaN(definition.DifferentialFontSize ?? 1D) || double.IsInfinity(definition.DifferentialFontSize ?? 1D)) {
+                    throw new ArgumentOutOfRangeException(nameof(definition), "Conditional-formatting font size must be finite and between 1 and 409 points.");
                 }
             }
 
@@ -306,6 +306,7 @@ namespace OfficeIMO.Excel {
                 info.DifferentialFontColorArgb ?? string.Empty,
                 info.DifferentialFontBold?.ToString() ?? string.Empty,
                 info.DifferentialFontItalic?.ToString() ?? string.Empty,
+                info.DifferentialFontStrike?.ToString() ?? string.Empty,
                 info.DifferentialFontUnderline?.ToString() ?? string.Empty,
                 info.DifferentialFontName ?? string.Empty,
                 info.DifferentialFontSize?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,

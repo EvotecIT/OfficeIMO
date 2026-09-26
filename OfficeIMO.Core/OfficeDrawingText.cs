@@ -89,7 +89,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
             OfficeTextScriptGeometry.Resolve((font ?? OfficeFontInfo.Default).Size, baselineLevel).BaselineOffset) {
     }
 
-    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor = null, OfficeTextFeatureSettings? featureSettings = null, string? fontPalette = null) {
+    internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor = null, OfficeTextFeatureSettings? featureSettings = null, string? fontPalette = null, OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
         if (text == null) {
             throw new ArgumentNullException(nameof(text));
         }
@@ -117,6 +117,9 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         if (!Enum.IsDefined(typeof(OfficeTextBaseline), baseline)) {
             throw new ArgumentOutOfRangeException(nameof(baseline));
         }
+        if (!Enum.IsDefined(typeof(OfficeTextDirection), textDirection)) {
+            throw new ArgumentOutOfRangeException(nameof(textDirection));
+        }
         if (baselineLevel < -32 || baselineLevel > 32
             || baseline == OfficeTextBaseline.Normal && baselineLevel != 0
             || baseline == OfficeTextBaseline.Superscript && baselineLevel <= 0
@@ -127,6 +130,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         ValidateFinite(baselineOffset, nameof(baselineOffset));
 
         Text = text;
+        RasterText = text;
         X = x;
         Y = y;
         Width = width;
@@ -157,6 +161,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         DecorationColor = decorationColor ?? color;
         FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
         FontPalette = string.IsNullOrWhiteSpace(fontPalette) ? "normal" : fontPalette!.Trim();
+        TextDirection = textDirection;
         Baseline = baseline;
         BaselineLevel = baselineLevel;
         BaselineScale = baselineScale;
@@ -168,8 +173,14 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
         }
     }
 
-    /// <summary>Text content.</summary>
-    public string Text { get; }
+    /// <summary>Editable logical text content. PDF glyph aliases used for rendering stay internal.</summary>
+    public string Text { get; private set; }
+    /// <summary>Exact painted glyph names used by the raster renderer when a PDF scene preserves editable source text.</summary>
+    internal string RasterText { get; private set; } = string.Empty;
+    internal void SetPaintedText(string logicalText, string paintedText) {
+        Text = logicalText;
+        RasterText = paintedText;
+    }
 
     /// <summary>Text box horizontal position inside the drawing.</summary>
     public double X { get; }
@@ -215,6 +226,9 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
 
     /// <summary>Whether renderers should lay text out as upright stacked characters.</summary>
     public bool StackedText { get; }
+
+    /// <summary>Explicit text-flow direction, including top-to-bottom shaped text.</summary>
+    public OfficeTextDirection TextDirection { get; }
 
     /// <summary>Whether renderers should mirror the text frame horizontally around the rotation center.</summary>
     public bool FlipHorizontal { get; }
@@ -277,7 +291,17 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     public OfficeImageFrameTransform CreateFrameTransform() => new OfficeImageFrameTransform(RotationDegrees, RotationCenterX, RotationCenterY, FlipHorizontal, FlipVertical);
 
     /// <summary>Creates a detached copy of this positioned text box.</summary>
-    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor, FeatureSettings, FontPalette);
+    public OfficeDrawingText Clone() => new OfficeDrawingText(Text, X, Y, Width, Height, Font, Color, Alignment, LineHeight, VerticalAlignment, RotationDegrees, RotationCenterX, RotationCenterY, WrapText, ShrinkToFit, StackedText, FlipHorizontal, FlipVertical, Padding, ParagraphIndent, OverflowBehavior, TextAdvanceWidth, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, DecorationColor, FeatureSettings, FontPalette, TextDirection) {
+        PreservesPaintedGlyphs = PreservesPaintedGlyphs,
+        RasterText = RasterText
+    };
+
+    /// <summary>
+    /// Marks a run whose characters already name shaped glyphs in painted left-to-right order, such
+    /// as a positioned glyph run imported from PDF. Renderers draw it without contextual shaping or
+    /// bidirectional reordering, which would otherwise replace or reverse the painted glyphs.
+    /// </summary>
+    internal bool PreservesPaintedGlyphs { get; set; }
 
     internal override OfficeDrawingElement CloneElement() => Clone();
 

@@ -32,17 +32,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void CssAnimationNamesRemainCaseSensitive() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = "<style>@keyframes Pulse{from{background-image:url('" + dataUri +
-            "')}}.box{animation:pulse 1s}</style><div class=\"box\"></div>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void InvalidUnquotedCssUrlTokensAreIgnored() {

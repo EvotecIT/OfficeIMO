@@ -35,20 +35,14 @@ internal static partial class PdfComplianceAnalyzer {
 
     /// <summary>Analyzes an existing PDF file for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, string path, PdfLoadOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return AssessReadback(profile, File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return AssessReadback(profile, source.Bytes, source.Options);
     }
 
     /// <summary>Analyzes an existing PDF stream from its current position for profile-specific readback evidence.</summary>
     public static PdfComplianceReadinessReport AssessReadback(PdfComplianceProfile profile, Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return AssessReadback(profile, buffer.ToArray(), options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return AssessReadback(profile, source.Bytes, source.Options);
     }
 
     /// <summary>Analyzes already-inspected PDF metadata for profile-specific readback evidence.</summary>

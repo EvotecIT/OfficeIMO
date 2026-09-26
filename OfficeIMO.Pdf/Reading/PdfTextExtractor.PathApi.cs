@@ -6,8 +6,7 @@ internal static partial class PdfTextExtractor {
     /// <summary>Extracts plain text from all pages, concatenated with blank lines between pages.</summary>
     public static string ExtractAllText(string path) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        var bytes = File.ReadAllBytes(path);
-        return ExtractAllText(bytes);
+        return PdfReadDocument.Open(path).ExtractText();
     }
     
     /// <summary>Extracts plain text from all pages using layout options such as column detection and header/footer trimming.</summary>

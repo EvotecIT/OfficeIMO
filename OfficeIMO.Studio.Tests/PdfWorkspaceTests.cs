@@ -8,6 +8,120 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed partial class PdfWorkspaceTests {
     [Fact]
+    public async Task ProviderImageExportUsesBoundedPortableBatchNames() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-provider-images-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+            document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
+            using var storage = new OfficeIMO.Studio.Infrastructure.StudioStorageAccess();
+            var provider = new TestStorageFile("content://documents/image-export", document.ToBytes(),
+                name: "Q1:Report-" + new string('x', 130) + ".pdf");
+            string location = await storage.RegisterAsync(provider.Item, CancellationToken.None);
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(location, CancellationToken.None, storage: storage);
+            string output = Path.Combine(root, "images");
+
+            Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
+            string fileName = Path.GetFileName(Assert.Single(Directory.GetFiles(output)));
+            Assert.StartsWith("Q1_Report-", fileName, StringComparison.Ordinal);
+            Assert.True(fileName.Length < 110);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task ImageExportKeepsExistingFilesAndUsesOneNewBatchName() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-image-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "image.pdf");
+        string output = Path.Combine(root, "images");
+        Directory.CreateDirectory(output);
+        PdfDocument baseDocument = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        baseDocument.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+        string occupied = Path.Combine(output, "image-p1-1.png");
+        byte[] sentinel = [1, 2, 3, 4];
+        File.WriteAllBytes(occupied, sentinel);
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
+            Assert.Equal(sentinel, File.ReadAllBytes(occupied));
+            string[] first = Directory.GetFiles(output);
+            Assert.Equal(2, first.Length);
+            string firstExport = Path.Combine(output, "image-1-p1-1.png");
+            Assert.Contains(firstExport, first);
+            Assert.True(File.ReadAllBytes(firstExport).Length > sentinel.Length);
+
+            Assert.Equal(1, await workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None));
+            Assert.Equal(sentinel, File.ReadAllBytes(occupied));
+            Assert.Equal(3, Directory.GetFiles(output).Length);
+            Assert.True(File.Exists(Path.Combine(output, "image-2-p1-1.png")));
+            Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task CancelledImageExportReportsFilesAlreadySaved() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-partial-images-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "images.pdf");
+        string output = Path.Combine(root, "images");
+        try {
+            PdfDocument document = PdfDocument.Create(compose => {
+                compose.Page(page => page.Size(600D, 800D));
+                compose.Page(page => page.Size(600D, 800D));
+            });
+            document = document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document;
+            document.Images.Add(new PdfPageRegion(2, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            using var cancellation = new CancellationTokenSource();
+            var progress = new InlineProgress<PdfWorkspaceProgress>(value => {
+                if (value.Fraction < 1D) cancellation.Cancel();
+            });
+
+            IOException error = await Assert.ThrowsAsync<IOException>(() => workspace.ExportDocumentAsync(
+                PdfExportKind.Images, output, cancellation.Token, progress: progress));
+
+            Assert.Contains("after saving 1 of 2 images", error.Message, StringComparison.Ordinal);
+            Assert.Contains(output, error.Message, StringComparison.Ordinal);
+            Assert.True(File.Exists(Path.Combine(output, "images-p1-1.png")));
+            Assert.False(File.Exists(Path.Combine(output, "images-p2-2.png")));
+            Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task ImageExportStagesPrivatelyOnUnix() {
+        if (OperatingSystem.IsWindows()) return;
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-private-image-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "image.pdf");
+        string output = Path.Combine(root, "images");
+        PdfDocument document = PdfDocument.Create(compose => compose.Page(page => page.Size(600D, 800D)));
+        document.Images.Add(new PdfPageRegion(1, 50D, 60D, 40D, 20D), TinyPng).Document.Save(source);
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            var acquired = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Task<bool> blocker = workspace.RunNonDetachableCpuWorkAsync(() => {
+                acquired.SetResult();
+                release.Task.GetAwaiter().GetResult();
+                return true;
+            }, CancellationToken.None);
+            await acquired.Task;
+            Task<int> export = workspace.ExportDocumentAsync(PdfExportKind.Images, output, CancellationToken.None);
+            try {
+                string staging = Assert.Single(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+                Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute,
+                    File.GetUnixFileMode(staging));
+            } finally {
+                release.TrySetResult();
+                await blocker;
+                await export;
+            }
+            Assert.Empty(Directory.GetDirectories(output, ".officeimo-image-export-*"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task ExistingTextSelectionSupportsReplaceMoveDeleteAndDocumentWideReplace() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-existing-text-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -138,6 +252,54 @@ public sealed partial class PdfWorkspaceTests {
     }
 
     [Fact]
+    public async Task FormDataExportIncludesDraftValuesWithoutApplyingThemToWorkspace() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-form-export-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        string output = Path.Combine(root, "form.xfdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.TextField("Customer.Name", value: "Before"))))).Save(source);
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            byte[] before = workspace.CopyBytes();
+            var drafts = new Dictionary<string, PdfFormFieldValue>(StringComparer.Ordinal) {
+                ["Customer.Name"] = PdfFormFieldValue.From("Draft")
+            };
+
+            await workspace.ExportDocumentAsync(PdfExportKind.FormData, output, CancellationToken.None, drafts);
+
+            Assert.Contains("Draft", File.ReadAllText(output), StringComparison.Ordinal);
+            Assert.DoesNotContain("Before", File.ReadAllText(output), StringComparison.Ordinal);
+            Assert.Equal(before, workspace.CopyBytes());
+            Assert.False(workspace.IsDirty);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task FormDataImportReadsUtf16AndRejectsOversizeBeforeMutation() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-xfdf-import-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        string input = Path.Combine(root, "form.xfdf");
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
+            item.TextField("Customer.Name", value: "Before"))))).Save(source);
+        string xml = "<?xml version=\"1.0\" encoding=\"utf-16\"?><xfdf xmlns=\"http://ns.adobe.com/xfdf/\"><fields><field name=\"Customer.Name\"><value>Café</value></field></fields></xfdf>";
+        File.WriteAllBytes(input, System.Text.Encoding.Unicode.GetPreamble()
+            .Concat(System.Text.Encoding.Unicode.GetBytes(xml)).ToArray());
+        try {
+            using PdfWorkspace workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None);
+            await workspace.ImportFormDataAsync(input, CancellationToken.None);
+            Assert.Equal("Café", Assert.Single(PdfDocument.Load(workspace.CopyBytes()).Inspect().FormFields).Value);
+            byte[] after = workspace.CopyBytes();
+
+            using (var stream = new FileStream(input, FileMode.Create, FileAccess.Write))
+                stream.SetLength(PdfFormDataSet.DefaultMaxXfdfDocumentBytes + 1L);
+            await Assert.ThrowsAsync<InvalidDataException>(() => workspace.ImportFormDataAsync(input, CancellationToken.None));
+            Assert.Equal(after, workspace.CopyBytes());
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
     public async Task TypedFormEditingAuthoringAndSelectiveFlatteningUseCanonicalFieldContracts() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-typed-forms-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -251,6 +413,35 @@ public sealed partial class PdfWorkspaceTests {
             await encryptedWorkspace.SaveDecryptedCopyAsync(decryptedCopy, "owner", CancellationToken.None);
             Assert.False(PdfDocument.Load(decryptedCopy).Inspect().Security.HasEncryption);
             Assert.Contains("Protected copy source", PdfDocument.Load(decryptedCopy).Read().Text, StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task EncryptedWorkspaceRejectsPlaintextStampBeforeRecoveryOrStateChange() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-studio-encrypted-edit-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "source.pdf");
+        string protectedCopy = Path.Combine(root, "protected.pdf");
+        CreateTextSource(source, "Keep encrypted");
+        try {
+            using (PdfWorkspace plain = await PdfWorkspace.OpenAsync(source, CancellationToken.None)) {
+                await plain.SaveProtectedCopyAsync(protectedCopy, new PdfStandardEncryptionOptions("open") {
+                    OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.All
+                }, null, CancellationToken.None);
+            }
+            using PdfWorkspace encrypted = await PdfWorkspace.OpenAsync(protectedCopy, CancellationToken.None, password: "open");
+            byte[] original = encrypted.CopyBytes();
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() => encrypted.ApplyPageNumbersAsync(CancellationToken.None));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => encrypted.ApplyWatermarkAsync("draft", CancellationToken.None));
+
+            Assert.Equal(original, encrypted.CopyBytes());
+            Assert.True(encrypted.IsEncrypted);
+            Assert.False(encrypted.IsDirty);
+            Assert.False(encrypted.HasRecovery);
+            Assert.True(PdfDocument.Load(protectedCopy, new PdfLoadOptions { Password = "open" }).Inspect().Security.HasEncryption);
         } finally {
             Directory.Delete(root, recursive: true);
         }

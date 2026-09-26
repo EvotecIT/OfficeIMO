@@ -21,3 +21,7 @@ The project stays outside `OfficeIMO.sln`. A commercial comparison belongs in
 a separate opt-in project and may be reported only with a valid license and an
 equivalent package contract; evaluation-mode shape limits are not valid
 comparison evidence.
+
+The [September 2026 load, inspection, and package-buffer allocation evidence](../Docs/benchmarks/officeimo.visio-load-allocation-2026-09-22.md)
+compares clean source revisions on Windows, Ubuntu, and macOS with the same
+validated graph on each host.

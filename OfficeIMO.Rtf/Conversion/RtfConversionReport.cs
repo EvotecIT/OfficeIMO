@@ -9,8 +9,17 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
     /// <summary>Snapshot of recorded diagnostics in conversion order.</summary>
     public IReadOnlyList<RtfConversionDiagnostic> Diagnostics => _diagnostics.AsReadOnly();
 
+    /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.AsReadOnly(
+        _diagnostics.Select(static diagnostic => new OfficeConversionFidelityDiagnostic(
+            string.IsNullOrWhiteSpace(diagnostic.Code) ? "RTF_DIAGNOSTIC_UNSPECIFIED" : diagnostic.Code,
+            diagnostic.Message,
+            GetLossKind(diagnostic),
+            "OfficeIMO.Rtf",
+            diagnostic.SourcePath)).ToArray());
+
     /// <summary>Whether the report contains a flattened, omitted, blocked, or error condition.</summary>
-    public bool HasLoss => _diagnostics.Any(IsLoss);
+    public bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != OfficeConversionLossKind.None);
 
     /// <summary>Adds a conversion diagnostic.</summary>
     public RtfConversionDiagnostic Add(
@@ -52,9 +61,7 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
                 : diagnostic.Severity == RtfDiagnosticSeverity.Warning
                     ? RtfConversionSeverity.Warning
                     : RtfConversionSeverity.Information;
-            RtfConversionAction action = diagnostic.Code == "RTF105" || diagnostic.Code == "RTF106" || diagnostic.Code == "RTF107"
-                ? RtfConversionAction.Blocked
-                : RtfConversionAction.Omitted;
+            RtfConversionAction action = GetReadAction(diagnostic);
             Add(severity, diagnostic.Code, diagnostic.Message, action, sourcePath, detail: diagnostic.Position.ToString(CultureInfo.InvariantCulture));
         }
     }
@@ -64,9 +71,26 @@ public sealed class RtfConversionReport : IOfficeConversionReport {
         if (HasLoss) throw new RtfConversionLossException(this);
     }
 
-    private static bool IsLoss(RtfConversionDiagnostic diagnostic) =>
-        diagnostic.Severity == RtfConversionSeverity.Error
-        || diagnostic.Action == RtfConversionAction.Flattened
-        || diagnostic.Action == RtfConversionAction.Omitted
-        || diagnostic.Action == RtfConversionAction.Blocked;
+    private static OfficeConversionLossKind GetLossKind(RtfConversionDiagnostic diagnostic) =>
+        diagnostic.Severity == RtfConversionSeverity.Error || diagnostic.Action == RtfConversionAction.Blocked
+            ? OfficeConversionLossKind.Failure
+            : diagnostic.Action == RtfConversionAction.Omitted
+                ? OfficeConversionLossKind.Omission
+                : diagnostic.Action == RtfConversionAction.Flattened
+                    ? OfficeConversionLossKind.Approximation
+                    : OfficeConversionLossKind.None;
+
+    private static RtfConversionAction GetReadAction(RtfDiagnostic diagnostic) {
+        if (diagnostic.Severity == RtfDiagnosticSeverity.Error ||
+            diagnostic.Code is "RTF105" or "RTF106" or "RTF107") {
+            return RtfConversionAction.Blocked;
+        }
+        return diagnostic.Code switch {
+            "RTF002" or "RTF012" or "RTF103" => RtfConversionAction.Flattened,
+            "RTF010" or "RTF011" or "RTF014" or "RTF101" or "RTF102" => RtfConversionAction.Omitted,
+            _ => diagnostic.Severity == RtfDiagnosticSeverity.Warning
+                ? RtfConversionAction.Flattened
+                : RtfConversionAction.Preserved
+        };
+    }
 }

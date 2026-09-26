@@ -174,7 +174,7 @@ public static partial class OfficeDrawingSvgExporter {
                     AppendShape(sb, drawingShape, fillGradientId, strokeGradientId, shapeClipPathId);
                     break;
                 case OfficeDrawingText drawingText:
-                    AppendText(sb, drawingText, textMetrics);
+                    AppendText(sb, drawingText, textMetrics, idPrefix, ref clipPathId);
                     break;
                 case OfficeDrawingRichText drawingRichText:
                     AppendRichText(sb, drawingRichText, textMetrics);

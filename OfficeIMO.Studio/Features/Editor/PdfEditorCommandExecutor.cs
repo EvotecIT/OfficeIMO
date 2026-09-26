@@ -22,6 +22,8 @@ internal static class PdfEditorCommandExecutor {
             PdfEditorTool.Highlight => AddMarkup(pdf, command, "Highlight"),
             PdfEditorTool.Underline => AddMarkup(pdf, command, "Underline"),
             PdfEditorTool.StrikeOut => AddMarkup(pdf, command, "StrikeOut"),
+            PdfEditorTool.Squiggly => AddMarkup(pdf, command, "Squiggly"),
+            PdfEditorTool.Polygon => AddPolygon(pdf, command),
             PdfEditorTool.Rectangle => AddAnnotation(pdf, command, "Square"),
             PdfEditorTool.Ellipse => AddAnnotation(pdf, command, "Circle"),
             PdfEditorTool.Line => AddLine(pdf, command),
@@ -117,12 +119,13 @@ internal static class PdfEditorCommandExecutor {
             PageNumber = command.PageNumber,
             Subtype = subtype,
             Rectangle = Rectangle(bounds),
-            QuadPoints = new[] {
-                bounds.Left, bounds.Top,
-                bounds.Right, bounds.Top,
-                bounds.Left, bounds.Bottom,
-                bounds.Right, bounds.Bottom
-            },
+            QuadPoints = (command.TextQuads is { Count: > 0 } quads ? quads : new[] { bounds })
+                .SelectMany(quad => new[] {
+                    quad.Left, quad.Top,
+                    quad.Right, quad.Top,
+                    quad.Left, quad.Bottom,
+                    quad.Right, quad.Bottom
+                }).ToArray(),
             Contents = command.Properties.Text,
             Title = command.Properties.Author,
             Color = Color(command.Properties.Color),
@@ -151,7 +154,37 @@ internal static class PdfEditorCommandExecutor {
         return result;
     }
 
+    // A freehand outline becomes a closed polygon; long paths are thinned so the vertex list stays small.
+    private static PdfAnnotationEditResult AddPolygon(byte[] pdf, PdfEditorCommand command) {
+        if (command.Path.Count < 3) throw new InvalidOperationException("Draw an outline with at least three points to create a polygon.");
+        int step = Math.Max(1, command.Path.Count / 48);
+        double[] vertices = command.Path.Where((_, index) => index % step == 0).SelectMany(point => new[] { point.X, point.Y }).ToArray();
+        return PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+            PageNumber = command.PageNumber,
+            Subtype = "Polygon",
+            Rectangle = Rectangle(command.Bounds),
+            Vertices = vertices,
+            Contents = command.Properties.Text,
+            Title = command.Properties.Author,
+            Color = Color(command.Properties.Color),
+            GenerateAppearance = true
+        });
+    }
+
     private static PdfAnnotationEditResult AddInk(byte[] pdf, PdfEditorCommand command) {
+        if (command.Strokes is { Count: > 0 } strokes) {
+            return PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
+                PageNumber = command.PageNumber,
+                Subtype = "Ink",
+                Rectangle = Rectangle(command.Bounds),
+                InkPaths = strokes.Where(stroke => stroke.Count > 1)
+                    .Select(stroke => (IReadOnlyList<double>)stroke.SelectMany(point => new[] { point.X, point.Y }).ToArray()).ToArray(),
+                Contents = command.Properties.Text,
+                Title = command.Properties.Author,
+                Color = Color(command.Properties.Color),
+                GenerateAppearance = true
+            });
+        }
         if (command.Path.Count < 2) throw new InvalidOperationException("Ink requires a pointer path with at least two points.");
         PdfAnnotationEditResult result = PdfDocument.Load(pdf).Annotations.Add(new PdfAnnotationCreateOptions {
             PageNumber = command.PageNumber,
@@ -196,7 +229,8 @@ internal static class PdfEditorCommandExecutor {
             Subtype = "Link",
             Rectangle = Rectangle(command.Bounds),
             Contents = command.Properties.Text,
-            LinkUri = command.Properties.LinkUri,
+            LinkUri = command.Properties.LinkPageNumber is null ? command.Properties.LinkUri : null,
+            LinkPageNumber = command.Properties.LinkPageNumber,
             GenerateAppearance = false
         });
         return result;

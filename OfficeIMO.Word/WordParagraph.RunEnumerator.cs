@@ -16,6 +16,9 @@ namespace OfficeIMO.Word {
             foreach (var element in _paragraph.ChildElements) {
                 if (element is Run runElement) {
                     yield return new WordParagraph(_document, _paragraph, runElement);
+                } else if (element is CustomXmlRun customXml) {
+                    foreach (Run childRun in customXml.Elements<Run>())
+                        yield return new WordParagraph(_document, _paragraph, childRun);
                 } else if (element is Hyperlink hyperlink) {
                 foreach (var childRun in hyperlink.Elements<Run>()) {
                     var paragraph = new WordParagraph(_document, _paragraph, childRun) { _hyperlink = hyperlink };

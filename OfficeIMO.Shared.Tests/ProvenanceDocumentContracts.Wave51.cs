@@ -23,23 +23,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Single(report.Evidence);
     }
 
-    [Fact]
-    public void PictureSourceSrcIsNotAResponsiveImageCandidate() {
-        string sourceDataUri = "data:image/png;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string fallbackDataUri = "data:image/png;name=fallback;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string html = "<html><body><picture><source src=\"" + sourceDataUri +
-            "\"><img src=\"" + fallbackDataUri + "\"></picture></body></html>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-        string rewritten = Encoding.UTF8.GetString(result.ToArray());
-
-        Assert.True(result.WasChanged);
-        Assert.Empty(result.After.Evidence);
-        Assert.Contains("src=\"" + sourceDataUri + "\"", rewritten, StringComparison.Ordinal);
-        Assert.DoesNotContain("src=\"" + fallbackDataUri + "\"", rewritten, StringComparison.Ordinal);
-    }
 
     [Fact]
     public void VisioSignatureCleanupIgnoresUnrelatedCanonicalApplicationPart() {

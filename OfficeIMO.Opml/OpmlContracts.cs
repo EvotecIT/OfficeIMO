@@ -3,6 +3,7 @@ using OfficeIMO.Core.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace OfficeIMO.Opml;
 
@@ -94,6 +95,8 @@ public sealed class OpmlDiagnostic {
     public string Message { get; }
     /// <summary>Best-effort element path.</summary>
     public string? Path { get; }
+    /// <summary>Exact fidelity-loss category represented by this diagnostic.</summary>
+    public OfficeConversionLossKind LossKind { get; }
 
     /// <summary>Creates a diagnostic.</summary>
     public OpmlDiagnostic(string code, OpmlDiagnosticSeverity severity, string message, string? path = null) {
@@ -101,6 +104,32 @@ public sealed class OpmlDiagnostic {
         Severity = severity;
         Message = message ?? throw new ArgumentNullException(nameof(message));
         Path = path;
+        LossKind = ResolveLossKind(code, severity);
+    }
+
+    /// <summary>Creates a diagnostic with an explicit fidelity-loss category.</summary>
+    public OpmlDiagnostic(
+        string code,
+        OpmlDiagnosticSeverity severity,
+        string message,
+        string? path,
+        OfficeConversionLossKind lossKind)
+        : this(code, severity, message, path) => LossKind =
+            severity == OpmlDiagnosticSeverity.Error && lossKind == OfficeConversionLossKind.None
+                ? OfficeConversionLossKind.Failure
+                : lossKind;
+
+    private static OfficeConversionLossKind ResolveLossKind(
+        string code,
+        OpmlDiagnosticSeverity severity) {
+        if (severity == OpmlDiagnosticSeverity.Info) return OfficeConversionLossKind.None;
+        if (severity == OpmlDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
+        return code switch {
+            "OPML100" or "OPML102" or "OPML106" or "OPML108" or "OPML109" or "OPML110" or
+            "OPML200" or "OPML201" or "OPML202" or "OPML203" or "OPML204" or "OPML205" or
+            "OPML206" or "OPML207" or "OPML208" or "OPML209" => OfficeConversionLossKind.Omission,
+            _ => OfficeConversionLossKind.Approximation
+        };
     }
 }
 
@@ -127,12 +156,21 @@ public sealed class OpmlConversionResult<T> : IOfficeConversionReport {
     /// <summary>Conversion diagnostics.</summary>
     public IReadOnlyList<OpmlDiagnostic> Diagnostics { get; }
     /// <inheritdoc />
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    /// <inheritdoc />
     public bool HasLoss { get; }
 
     internal OpmlConversionResult(T value, IReadOnlyList<OpmlDiagnostic> diagnostics) {
         Value = value;
         Diagnostics = diagnostics;
-        HasLoss = System.Linq.Enumerable.Any(diagnostics, d => d.Severity != OpmlDiagnosticSeverity.Info);
+        FidelityDiagnostics = Array.AsReadOnly(System.Linq.Enumerable.Select(diagnostics, diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                diagnostic.LossKind,
+                "OfficeIMO.Opml",
+                diagnostic.Path)).ToArray());
+        HasLoss = System.Linq.Enumerable.Any(FidelityDiagnostics, d => d.LossKind != OfficeConversionLossKind.None);
     }
 
     /// <inheritdoc />

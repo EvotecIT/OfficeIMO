@@ -226,8 +226,12 @@ public static partial class OfficeWebpCodec {
         private void FlushOutput() {
             if (_outputCount == 0) return;
             byte[] output = _output ?? throw new ObjectDisposedException(nameof(StreamLsbBitWriter));
-            _destination.Write(output, 0, _outputCount);
+            int count = _outputCount;
+            // A cancellation-aware destination can reject the write. Retire the buffered
+            // bytes before invoking it so Dispose cannot retry a full buffer and mask the
+            // original cancellation with an index failure while unwinding.
             _outputCount = 0;
+            _destination.Write(output, 0, count);
         }
     }
 }

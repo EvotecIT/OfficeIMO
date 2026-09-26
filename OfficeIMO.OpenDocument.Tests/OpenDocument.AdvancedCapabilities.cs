@@ -205,13 +205,18 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         Assert.True(save.HasLoss);
         Assert.Throws<InvalidOperationException>(() => save.RequireNoLoss());
         Assert.Contains("Thumbnails/thumbnail.png", save.Report.LossyEntries);
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(save.Report.FidelityDiagnostics,
+            item => item.Location == "Thumbnails/thumbnail.png");
+        Assert.Equal("ODF_ENTRY_OMITTED", diagnostic.Code);
+        Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.Contains("content.xml", save.Report.RewrittenEntries);
     }
 
     [Fact]
     public void AdvancedCapabilityLinesAreStableAndDistinct() {
-        string[] expected = { "formula-evaluation", "tracked-change-editing", "advanced-charts", "presentation-animations", "flat-xml", "encryption", "digital-signatures" };
+        string[] expected = { "formula-evaluation", "conditional-style-maps", "tracked-change-editing", "advanced-charts", "presentation-animations", "flat-xml", "encryption", "digital-signatures" };
         Assert.Equal(expected, OdfCapabilityCatalog.Advanced.Select(capability => capability.Id));
+        Assert.Equal(OdfCapabilityLevel.Limited, OdfCapabilityCatalog.Find("conditional-style-maps")!.Level);
         Assert.Equal(OdfCapabilityLevel.DetectedUnsupported, OdfCapabilityCatalog.Find("encryption")!.Level);
         Assert.Equal(OdfCapabilityLevel.Limited, OdfCapabilityCatalog.Find("digital-signatures")!.Level);
     }

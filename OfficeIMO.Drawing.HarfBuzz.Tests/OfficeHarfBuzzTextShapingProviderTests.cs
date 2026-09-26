@@ -1,14 +1,309 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.HarfBuzz;
+using OfficeIMO.Pdf;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Drawing.HarfBuzz.Tests;
 
 public sealed class OfficeHarfBuzzTextShapingProviderTests {
+    [Fact]
+    public void ShapesTheSharedCrossRendererTypographyCorpus() {
+        Assert.Equal(OfficeTextShapingBackend.HarfBuzz,
+            ((IOfficeTextShapingProviderMetadata)OfficeHarfBuzzTextShapingProvider.Instance).Backend);
+
+        foreach (TypographyEvidenceCase evidence in TypographyEvidenceCorpus.Cases) {
+            byte[] fontData = LoadFontData(evidence);
+            OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection()
+                .Add(evidence.Family, fontData).Faces);
+            Assert.True(face.Program.HasGlyphs(evidence.Text), evidence.Name);
+
+            OfficeTextShapingResult? shaped = OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
+                    evidence.Text,
+                    evidence.Family,
+                    face.Program.GetFontDataForShaping(),
+                    face.Program.IsOpenTypeCff,
+                    face.Program.UnitsPerEm,
+                    evidence.Direction,
+                    evidence.Language));
+            Assert.Equal(evidence.HarfBuzzShapingExpected, shaped != null);
+            if (shaped == null) continue;
+            OfficeTextShapingResult result = shaped;
+
+            Assert.Equal(evidence.Direction, result.Direction);
+            Assert.NotEmpty(result.Glyphs);
+            Assert.All(result.Glyphs, glyph => Assert.True(glyph.GlyphId > 0, evidence.Name));
+            Assert.All(result.Glyphs, glyph =>
+                Assert.Equal(glyph.UnicodeText,
+                    evidence.Text.Substring(glyph.TextIndex, glyph.UnicodeText.Length)));
+            if (evidence.Direction == OfficeTextDirection.TopToBottom) {
+                Assert.All(result.Glyphs, glyph => Assert.NotEqual(0, glyph.AdvanceHeight));
+                Assert.True(Math.Abs(result.Glyphs.Sum(glyph => glyph.AdvanceHeight ?? 0)) > 0);
+            }
+        }
+    }
+
+    [Fact]
+    public void VerticalCjkUsesHarfBuzzAdvancesInRasterAndMarksSvgAsBrowserNative() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D, new OfficeFontInfo(evidence.Family, 36D));
+
+        var diagnostics = new List<OfficeImageExportDiagnostic>();
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            TextShapingLanguage = evidence.Language,
+            DiagnosticSink = diagnostics,
+            DiagnosticSource = evidence.Name
+        });
+        (int width, int height) = InkSize(raster);
+
+        Assert.True(height > width, $"Expected vertical ink, got {width}x{height}.");
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Code == OfficeImageExportDiagnosticCodes.TextShapingFallback);
+
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        var text = Assert.Single(XDocument.Parse(svg).Descendants(), element => element.Name.LocalName == "text");
+        Assert.Equal(evidence.Text, text.Value);
+        Assert.Equal("vertical-rl", text.Attribute("writing-mode")?.Value);
+        Assert.Equal("start", text.Attribute("text-anchor")?.Value);
+        Assert.Equal("browser-native", text.Attribute("data-officeimo-shaping-backend")?.Value);
+    }
+
+    [Fact]
+    public void VerticalCjkPdfUsesShapedGlyphPositionsAndPassesStrictLossPolicy() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D, new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 120D,
+                PageHeight = 180D,
+                MarginLeft = 0D,
+                MarginRight = 0D,
+                MarginTop = 0D,
+                MarginBottom = 0D
+            }
+            .ReportDiagnosticsTo(report, "HarfBuzz vertical PDF")
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetLanguage(evidence.Language)
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance);
+
+        byte[] pdf = PdfDocument.Create(
+                document => document.Content(content => content.Canvas(
+                    canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options)
+            .ToBytes();
+        string raw = System.Text.Encoding.ASCII.GetString(pdf);
+        string extracted = PdfReadDocument.Open(pdf).ExtractText();
+
+        Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
+        Assert.True(raw.Split(new[] { " Tm" }, StringSplitOptions.None).Length > evidence.Text.Length);
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void JapanesePdfPositionsSubstitutedVerticalGlyphsAtProviderYAdvances() {
+        const string value = "日本語（例）。";
+        const string family = "Noto Sans JP";
+        const double size = 20D;
+        byte[] fontData = File.ReadAllBytes(FontPath("NotoSansJP-OfficeIMO-Common.ttf"));
+        OfficeFontFace face = Assert.Single(new OfficeFontFaceCollection().Add(family, fontData).Faces);
+        OfficeTextShapingResult Shape(OfficeTextDirection direction) =>
+            Assert.IsType<OfficeTextShapingResult>(OfficeHarfBuzzTextShapingProvider.Instance.ShapeText(
+                new OfficeTextShapingRequest(value, family, face.Program.GetFontDataForShaping(),
+                    face.Program.IsOpenTypeCff, face.Program.UnitsPerEm, direction, "ja")));
+        OfficeTextShapingResult verticalResult = Shape(OfficeTextDirection.TopToBottom);
+        OfficeShapedGlyph[] vertical = verticalResult.Glyphs.ToArray();
+        OfficeShapedGlyph[] horizontal = Shape(OfficeTextDirection.LeftToRight).Glyphs.ToArray();
+        Assert.Equal(value.Length, vertical.Length);
+        Assert.All(vertical, glyph => Assert.True(glyph.AdvanceHeight < 0));
+        Assert.All(vertical, glyph => Assert.True(glyph.AdvanceWidth.HasValue));
+        Assert.Contains(new[] { 3, 5, 6 }, index => vertical[index].GlyphId != horizontal[index].GlyphId);
+
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(family, fontData)
+            .AddVerticalText(value, 20D, 10D, 80D, 160D, new OfficeFontInfo(family, size));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                PageWidth = 120D, PageHeight = 180D,
+                MarginLeft = 0D, MarginRight = 0D, MarginTop = 0D, MarginBottom = 0D
+            }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
+            .SetLanguage("ja")
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Japanese vertical glyphs");
+        byte[] pdf = PdfDocument.Create(document => document.Content(content => content.Canvas(
+            canvas => canvas.Drawing(drawing, 0D, 0D, 120D, 180D))), options).ToBytes();
+        string raw = System.Text.Encoding.ASCII.GetString(pdf);
+        MatchCollection positions = Regex.Matches(raw,
+            @"(?m)^1 0 0 1 (-?[0-9.]+) (-?[0-9.]+) Tm\r?\n<([0-9A-F]{4})> Tj$");
+        Assert.Equal(vertical.Length, positions.Count);
+
+        double penX = 60D;
+        var outlineFont = Assert.IsAssignableFrom<IOfficeBoundedFontProgram>(face.Program);
+        double inkTop = outlineFont.GetShapedTextContoursBounded(value, verticalResult, 0D, 0D,
+                size, 100_000, default)
+            .SelectMany(contour => contour).Min(point => point.Y);
+        double penY = 170D + Math.Min(0D, inkTop);
+        for (int index = 0; index < vertical.Length; index++) {
+            OfficeShapedGlyph glyph = vertical[index];
+            Match position = positions[index];
+            Assert.Equal(glyph.GlyphId, int.Parse(position.Groups[3].Value, NumberStyles.HexNumber, CultureInfo.InvariantCulture));
+            double x = double.Parse(position.Groups[1].Value, CultureInfo.InvariantCulture);
+            double y = double.Parse(position.Groups[2].Value, CultureInfo.InvariantCulture);
+            Assert.InRange(Math.Abs(x - (penX + glyph.OffsetX * size / face.Program.UnitsPerEm)), 0D, 0.01D);
+            Assert.InRange(Math.Abs(y - (penY + glyph.OffsetY * size / face.Program.UnitsPerEm)), 0D, 0.01D);
+            penX += glyph.AdvanceWidth!.Value * size / face.Program.UnitsPerEm;
+            penY += glyph.AdvanceHeight!.Value * size / face.Program.UnitsPerEm;
+        }
+
+        Assert.Contains("/Identity-H", raw, StringComparison.Ordinal);
+        Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
+        Assert.Equal(value, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+        string? evidencePath = Environment.GetEnvironmentVariable("OFFICEIMO_VERTICAL_PDF_EVIDENCE");
+        if (!string.IsNullOrEmpty(evidencePath)) File.WriteAllBytes(evidencePath, pdf);
+    }
+
+    [Fact]
+    public void VerticalTextInsideLogicalDrawingKeepsNativePositionsAndOneExtraction() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var paint = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddActualTextDrawing(evidence.Text, paint, 60D, 10D);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Logical vertical drawing");
+
+        byte[] pdf = PdfDocument.Create(
+            document => document.Content(content => content.Drawing(drawing)), options).ToBytes();
+
+        Assert.Equal(evidence.Text, PdfReadDocument.Open(pdf).ExtractText().Trim());
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback");
+        report.RequireNoLoss();
+    }
+
+    [Fact]
+    public void TaggedFigureWithoutLogicalTextWrapperKeepsDiagnosedVerticalFallback() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(120D, 180D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text, 20D, 10D, 80D, 160D,
+                new OfficeFontInfo(evidence.Family, 36D));
+        var report = new PdfConversionReport();
+        var options = new PdfOptions { CompressContentStreams = false }
+            .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
+            .SetTextShapingProvider(OfficeHarfBuzzTextShapingProvider.Instance)
+            .ReportDiagnosticsTo(report, "Tagged vertical drawing");
+
+        byte[] pdf = PdfDocument.Create(document => document.Content(content =>
+                content.Drawing(drawing, style: new PdfDrawingStyle {
+                    AlternativeText = "Japanese text figure"
+                })), options)
+            .ToBytes();
+
+        Assert.Contains("/Figure << /Alt", System.Text.Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "vertical-text-stacked-fallback" &&
+            diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Fact]
+    public void VerticalCjkIsClippedToItsDeclaredTextBoxAcrossRasterAndSvg() {
+        TypographyEvidenceCase evidence = Assert.Single(
+            TypographyEvidenceCorpus.Cases,
+            item => item.Direction == OfficeTextDirection.TopToBottom);
+        byte[] fontData = LoadFontData(evidence);
+        var drawing = new OfficeDrawing(100D, 100D)
+            .AddFont(evidence.Family, fontData)
+            .AddVerticalText(evidence.Text + evidence.Text, 30D, 15D, 40D, 24D,
+                new OfficeFontInfo(evidence.Family, 36D));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
+            TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance,
+            TextShapingLanguage = evidence.Language
+        });
+        var painted = new List<(int X, int Y)>();
+        for (int y = 0; y < raster.Height; y++) {
+            for (int x = 0; x < raster.Width; x++) {
+                if (raster.GetPixel(x, y).A != 0) painted.Add((x, y));
+            }
+        }
+
+        Assert.NotEmpty(painted);
+        Assert.All(painted, pixel => {
+            Assert.InRange(pixel.X, 30, 69);
+            Assert.InRange(pixel.Y, 15, 38);
+        });
+
+        XDocument svg = XDocument.Parse(OfficeDrawingSvgExporter.ToSvg(drawing));
+        XElement clipPath = Assert.Single(svg.Descendants(), element => element.Name.LocalName == "clipPath");
+        XElement rectangle = Assert.Single(clipPath.Elements(), element => element.Name.LocalName == "rect");
+        Assert.Equal("30", rectangle.Attribute("x")?.Value);
+        Assert.Equal("15", rectangle.Attribute("y")?.Value);
+        Assert.Equal("40", rectangle.Attribute("width")?.Value);
+        Assert.Equal("24", rectangle.Attribute("height")?.Value);
+        XElement clippedGroup = Assert.Single(svg.Descendants(), element =>
+            element.Name.LocalName == "g" && element.Attribute("clip-path") != null);
+        Assert.Contains(clipPath.Attribute("id")!.Value, clippedGroup.Attribute("clip-path")!.Value, StringComparison.Ordinal);
+        Assert.Equal(evidence.Text + evidence.Text,
+            Assert.Single(clippedGroup.Descendants(), element => element.Name.LocalName == "text").Value);
+    }
+
+    private static (int Width, int Height) InkSize(OfficeRasterImage image) {
+        int minX = image.Width, minY = image.Height, maxX = -1, maxY = -1;
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                if (image.GetPixel(x, y).A == 0) continue;
+                minX = Math.Min(minX, x); minY = Math.Min(minY, y);
+                maxX = Math.Max(maxX, x); maxY = Math.Max(maxY, y);
+            }
+        }
+        Assert.True(maxX >= minX && maxY >= minY);
+        return (maxX - minX + 1, maxY - minY + 1);
+    }
+
+    private static byte[] LoadFontData(TypographyEvidenceCase evidence) {
+        if (!string.IsNullOrEmpty(evidence.FontFileName)) return File.ReadAllBytes(FontPath(evidence.FontFileName));
+        return evidence.Name == "Hebrew"
+            ? ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x05E9, 0x05DC, 0x05D5, 0x05DD, 0x05E2)
+            : ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'C', 'a', 'f', 'e', 0x0301);
+    }
+
     [Fact]
     public void RenderingProfileAppliesHarfBuzzToSharedExportOptions() {
         OfficeRenderingProfile profile = OfficeHarfBuzzRenderingProfile.Create(language: " ar ");
@@ -284,22 +579,33 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
     }
 
     [Fact]
-    public void LanguageInterningIsNormalizedAndBoundedPerProvider() {
+    public void LanguageInterningIsNormalizedAndSharedAcrossProviders() {
         const string text = "office";
         byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
         var provider = new OfficeHarfBuzzTextShapingProvider();
         var fontCacheKey = new object();
-        OfficeTextShapingResult noLanguage = ShapeWithLanguage(provider, fontData, fontCacheKey, text, null);
-
         OfficeTextShapingResult normalized = ShapeWithLanguage(provider, fontData, fontCacheKey, text, " EN ");
         Assert.Same(normalized, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "en"));
 
-        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProvider; index++) {
+        for (int index = 1; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProcess / 4; index++) {
             ShapeWithLanguage(provider, fontData, fontCacheKey, text, $"x-{index:x4}");
         }
 
         OfficeTextShapingResult overflow = ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow");
-        Assert.Same(noLanguage, overflow);
+        Assert.Same(overflow, ShapeWithLanguage(provider, fontData, fontCacheKey, text, "x-overflow"));
+    }
+
+    [Fact]
+    public void NewLanguageHintsFallBackAfterTheProcessCacheFills() {
+        byte[] fontData = File.ReadAllBytes(FontPath("Carlito-Regular.ttf"));
+        var provider = new OfficeHarfBuzzTextShapingProvider();
+        var fontCacheKey = new object();
+        OfficeTextShapingResult inferred = ShapeWithLanguage(provider, fontData, fontCacheKey, "office", null);
+        for (int index = 0; index < OfficeHarfBuzzTextShapingProvider.MaxInternedLanguagesPerProcess; index++) {
+            ShapeWithLanguage(provider, fontData, fontCacheKey, "office", $"q-{index:x4}");
+        }
+
+        Assert.Same(inferred, ShapeWithLanguage(provider, fontData, fontCacheKey, "office", "q-after"));
     }
 
     [Fact]

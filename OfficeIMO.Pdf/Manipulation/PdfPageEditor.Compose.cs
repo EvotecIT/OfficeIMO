@@ -56,7 +56,7 @@ internal static partial class PdfPageEditor {
     /// <summary>Writes a PDF whose pages are in reverse document order.</summary>
     public static void ReversePages(string inputPath, string outputPath) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        WriteOutput(ValidateOutputPath(outputPath), ReversePages(File.ReadAllBytes(inputPath)));
+        WriteOutput(ValidateOutputPath(outputPath), ReversePages(ReadPath(inputPath)));
     }
 
     /// <summary>Repeats the selected one-based page sequence the requested number of times.</summary>

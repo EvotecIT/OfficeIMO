@@ -397,7 +397,39 @@ public sealed class EmailStoreSessionTests {
             Assert.Contains(report.Entries, entry => entry.Diagnostics.Any(diagnostic =>
                 diagnostic.Code == "EMAIL_STORE_EXPORT_ITEM_FAILED" &&
                 diagnostic.Message.Contains("denied", StringComparison.OrdinalIgnoreCase)));
+            Assert.True(report.HasLoss);
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MBOX_ITEMS_OMITTED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
             Assert.Equal("Valid", Assert.Single(EmailMailbox.Load(destination).Messages).Document.Subject);
+        } finally {
+            if (File.Exists(destination)) File.Delete(destination);
+        }
+    }
+
+    [Fact]
+    public void Strict_mbox_export_rejects_partial_artifact_before_commit() {
+        string destination = Path.Combine(Path.GetTempPath(),
+            "officeimo-store-strict-" + Guid.NewGuid().ToString("N") + ".mbox");
+        try {
+            using EmailStoreSession session = CreateSession(new AttachmentAccessDeniedBackend());
+
+            EmailStoreMboxExportReport report = session.ExportToMbox(destination,
+                new EmailStoreMboxExportOptions(
+                    EmailStoreMboxExportFidelityPolicy.RequireNoLoss,
+                    continueOnError: true));
+
+            Assert.Null(report.DestinationPath);
+            Assert.False(File.Exists(destination));
+            Assert.Equal(1, report.SucceededCount);
+            Assert.Equal(1, report.FailedCount);
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MBOX_ITEMS_OMITTED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "EMAIL_STORE_MBOX_STRICT_REJECTED" &&
+                diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
         } finally {
             if (File.Exists(destination)) File.Delete(destination);
         }

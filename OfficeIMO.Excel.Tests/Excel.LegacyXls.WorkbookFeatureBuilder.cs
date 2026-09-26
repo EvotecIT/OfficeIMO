@@ -359,6 +359,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreateUnreadDefinedNameWorkbookStream(bool shortRecord) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Names"));
+                WriteRecord(stream, 0x0018, shortRecord
+                    ? new byte[4]
+                    : BuildDefinedNamePayload("UnrepresentedName", new byte[] { 0xff }, 0, hidden: false, builtIn: false));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase4DefinedNamesWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });

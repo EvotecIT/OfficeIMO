@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
                     CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("fr-FR");
                     GoogleSheetsSyncCheckpoint switched = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
 
-                    Assert.Equal(1, baseline.HashFormatVersion);
+                    Assert.Equal(2, baseline.HashFormatVersion);
                     Assert.Equal("54FDC6DAFE0DA0B1EE27C4ED657A18B346C80EF593E46AAC8C2F5EFC7C060852",
                         baseline.ContentHashes["sheet/Data/row/1"]);
                     Assert.Equal("FE912B2A926843BA76874EB9CEE27777B0EE1C80A63143C5B9C84D052AF05F47",

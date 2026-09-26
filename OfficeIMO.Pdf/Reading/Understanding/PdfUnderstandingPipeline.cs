@@ -369,7 +369,8 @@ internal sealed class PdfUnderstandingPipeline {
             restrictLogicalProjectionToReadingOrder: _restrictLogicalProjectionToReadingOrder,
             tableCandidates: tableCandidates,
             imagePlacements: context.ImagePlacements,
-            imageRegions: imageRegions);
+            imageRegions: imageRegions,
+            maxWorkUnitsPerPage: context.MaxWorkUnitsPerPage);
         return context.ReadingFrame is null ? result : context.ReadingFrame.Restore(result);
     }
 

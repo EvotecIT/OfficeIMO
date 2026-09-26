@@ -11,6 +11,9 @@ public sealed class PdfImageStampOptions {
     private double? _height;
     private double _rotationDegrees;
 
+    /// <summary>Maximum encoded image bytes accepted for a stamp or watermark. Defaults to 128 MiB.</summary>
+    public long MaximumEncodedImageBytes { get; set; } = PdfImageInput.DefaultMaximumEncodedBytes;
+
     /// <summary>
     /// One-based page numbers to stamp. When null or empty, every page is stamped.
     /// </summary>

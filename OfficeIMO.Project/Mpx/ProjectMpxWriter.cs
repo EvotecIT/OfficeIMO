@@ -52,6 +52,12 @@ internal sealed partial class ProjectMpxWriter {
         if (_diagnostics.Count < 1000) _diagnostics.Add(new ProjectDiagnostic(code, loss ? ProjectDiagnosticSeverity.Warning : ProjectDiagnosticSeverity.Error, message, path, loss));
         else if (_diagnostics.Count == 1000) _diagnostics.Add(new ProjectDiagnostic("PROJECT_MPX_DIAGNOSTICS_LIMIT", ProjectDiagnosticSeverity.Error, "MPX assessment exceeded its diagnostic budget.", "/"));
     }
+    private void Omission(string code, string message, string path) {
+        if (_diagnostics.Count < 1000) _diagnostics.Add(new ProjectDiagnostic(code, ProjectDiagnosticSeverity.Warning,
+            message, path, OfficeConversionLossKind.Omission));
+        else if (_diagnostics.Count == 1000) _diagnostics.Add(new ProjectDiagnostic("PROJECT_MPX_DIAGNOSTICS_LIMIT",
+            ProjectDiagnosticSeverity.Error, "MPX assessment exceeded its diagnostic budget.", "/"));
+    }
     private static string Path(ProjectEntity entity, string type) => "/" + type + "[UID=" + entity.Uid + "]";
     private void Handle(string key) => _handled.Add(key);
     private void HandleTree(string path) { foreach (string key in _snapshot.Keys.Where(k => k == path || k.StartsWith(path + "/", StringComparison.Ordinal) || k.StartsWith(path + "[", StringComparison.Ordinal))) Handle(key); }
@@ -86,7 +92,7 @@ internal sealed partial class ProjectMpxWriter {
                 : _document.Resources.Any(item => item.CustomFields.Any(value => MpxDefines(value, mapping)));
             Handle(path + "/FieldId");
             if (!hasValue) {
-                Diagnostic("PROJECT_MPX_DEFINITION_LOSS", "MPX has no standalone custom-field definition record; a definition without a populated value is omitted.", path + "/FieldId");
+                Omission("PROJECT_MPX_DEFINITION_LOSS", "MPX has no standalone custom-field definition record; a definition without a populated value is omitted.", path + "/FieldId");
                 if (definition.FieldName == null || definition.FieldName == mapping.Name) Handle(path + "/FieldName");
             } else if (definition.FieldName == mapping.Name) Handle(path + "/FieldName");
             else if (definition.FieldName == null) {
@@ -96,14 +102,14 @@ internal sealed partial class ProjectMpxWriter {
         }
         foreach (var pair in _snapshot) {
             _token.ThrowIfCancellationRequested();
-            if (pair.Value != null && !_handled.Contains(pair.Key)) Diagnostic("PROJECT_MPX_FIELD_LOSS", "This modeled value has no MPX 4.0 representation and is omitted.", pair.Key);
+            if (pair.Value != null && !_handled.Contains(pair.Key)) Omission("PROJECT_MPX_FIELD_LOSS", "This modeled value has no MPX 4.0 representation and is omitted.", pair.Key);
             else if (pair.Value is DateTime date && date.Ticks % TimeSpan.TicksPerMinute != 0)
                 Diagnostic("PROJECT_MPX_DATE_PRECISION", "Qualified MPX dates require whole minutes.", pair.Key, false);
         }
-        if (_document.Source?.HasOpaqueStructures == true) Diagnostic("PROJECT_MPX_XML_CONTENT_LOSS", "Unmodeled XML elements and attributes are omitted from MPX.", "/");
-        if (_document.NativeSource != null) Diagnostic("PROJECT_MPX_NATIVE_CONTENT_LOSS", "Native presentation, macros, embedded content, signatures, and unmodeled records are omitted from MPX.", "/");
+        if (_document.Source?.HasOpaqueStructures == true) Omission("PROJECT_MPX_XML_CONTENT_LOSS", "Unmodeled XML elements and attributes are omitted from MPX.", "/");
+        if (_document.NativeSource != null) Omission("PROJECT_MPX_NATIVE_CONTENT_LOSS", "Native presentation, macros, embedded content, signatures, and unmodeled records are omitted from MPX.", "/");
         foreach (var diagnostic in _document.MpxSource?.Unmodeled ?? Array.Empty<ProjectDiagnostic>())
-            Diagnostic("PROJECT_MPX_SOURCE_CONTENT_LOSS", diagnostic.Message + " Rewriting omits this unmodeled content.", diagnostic.Location);
+            Omission("PROJECT_MPX_SOURCE_CONTENT_LOSS", diagnostic.Message + " Rewriting omits this unmodeled content.", diagnostic.Location);
     }
     private static bool MpxDefines(ProjectCustomFieldValue value, ProjectMpxFields.CustomMapping mapping) =>
         value.FieldId == mapping.FieldId && value.Value != null && (mapping.Kind != "Text" || value.Value.Length != 0)

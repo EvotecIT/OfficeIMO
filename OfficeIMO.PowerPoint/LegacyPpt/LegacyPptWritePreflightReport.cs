@@ -34,9 +34,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
     }
 
     /// <summary>Reports whether a presentation fits the native binary writer's supported subset.</summary>
-    public sealed class LegacyPptWritePreflightReport {
+    public sealed class LegacyPptWritePreflightReport : IOfficeConversionReport {
         internal LegacyPptWritePreflightReport(IReadOnlyList<LegacyPptWriteFinding> findings) {
-            Findings = findings;
+            LegacyPptWriteFinding[] snapshot = findings.ToArray();
+            Findings = Array.AsReadOnly(snapshot);
+            FidelityDiagnostics = Array.AsReadOnly(snapshot.Select(finding =>
+                new OfficeConversionFidelityDiagnostic(
+                    finding.Code,
+                    finding.Description,
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.PowerPoint.LegacyPpt.Writer",
+                    FormatLocation(finding))).ToArray());
         }
 
         /// <summary>Gets known conversion-loss findings.</summary>
@@ -45,7 +53,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets whether writing would omit known content.</summary>
         public bool HasConversionLoss => Findings.Count > 0;
 
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Count > 0;
+
         /// <summary>Gets whether the default loss policy permits writing.</summary>
         public bool CanWrite => !HasConversionLoss;
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy PPT write preflight reported content that the native writer would omit. Inspect Findings for details.");
+        }
+
+        private static string? FormatLocation(LegacyPptWriteFinding finding) {
+            if (!finding.SlideIndex.HasValue) return null;
+            string location = $"slide:{finding.SlideIndex.Value + 1}";
+            return finding.ShapeIndex.HasValue
+                ? $"{location}/shape:{finding.ShapeIndex.Value + 1}"
+                : location;
+        }
     }
 }

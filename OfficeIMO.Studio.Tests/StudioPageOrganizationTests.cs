@@ -171,7 +171,8 @@ public sealed class StudioPageOrganizationTests {
     private static async Task Layout(Window window) => await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(
         () => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
     private static void Click(Window window, string text) {
-        var button = window.GetVisualDescendants().OfType<Button>().Single(button => Equals(button.Content, text));
+        var button = window.GetVisualDescendants().OfType<Button>().Single(button =>
+            button.IsEffectivelyVisible && (Equals(button.Content, text) || Avalonia.Automation.AutomationProperties.GetName(button) == text));
         Assert.True(button.IsEffectivelyEnabled);
         button.Focus();
         button.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });

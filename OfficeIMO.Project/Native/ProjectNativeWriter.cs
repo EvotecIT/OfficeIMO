@@ -108,15 +108,16 @@ internal sealed partial class ProjectNativeWriter {
             if (_handled.Contains(key)) continue;
             AddDiagnostic(new ProjectDiagnostic(_new ? "PROJECT_NATIVE_FIELD_LOSS" : "PROJECT_NATIVE_EDIT_UNSUPPORTED",
                 _new ? ProjectDiagnosticSeverity.Warning : ProjectDiagnosticSeverity.Error,
-                "This modeled value has no qualified native writer. It cannot be represented by this operation.", key, true));
+                "This modeled value has no qualified native writer. It cannot be represented by this operation.", key,
+                _new ? OfficeConversionLossKind.Omission : OfficeConversionLossKind.Failure));
         }
         if (!_new && StructureChanged) Loss("PROJECT_NATIVE_STRUCTURAL_OPAQUE", "Structural edits retain opaque presentation, calculation, and auxiliary records. References inside those records are not remapped.", "/");
         if (!_new && ScheduleChanged) Loss("PROJECT_NATIVE_STORED_TOTALS", "Mapped schedule edits retain producer work/cost curves and calculated totals. Recalculate and verify them in Project.", "/");
         if (!_new && _document.NativeInfo!.HasSignatureStorage) Loss("PROJECT_NATIVE_SIGNATURE_INVALIDATED", "Changing signed native content invalidates its existing signature; the signature is not renewed.", "/");
         if (_new && _document.NativeSource != null)
-            Loss("PROJECT_NATIVE_GENERATION_LOSS", "Conversion creates the selected native generation from modeled values. Unmodeled source records, presentation, macros, signatures, and embedded content are omitted.", "/");
+            Omission("PROJECT_NATIVE_GENERATION_LOSS", "Conversion creates the selected native generation from modeled values. Unmodeled source records, presentation, macros, signatures, and embedded content are omitted.", "/");
         if (_new && _document.Source != null && _document.ReadDiagnostics.Any(d => d.RepresentsLoss || d.Code.Contains("PRESERVED")))
-            Loss("PROJECT_XML_EXTENSION_LOSS", "XML extension content has no native representation and is omitted.", "/");
+            Omission("PROJECT_XML_EXTENSION_LOSS", "XML extension content has no native representation and is omitted.", "/");
     }
 
     private void ValidateIdentities() {
@@ -132,6 +133,8 @@ internal sealed partial class ProjectNativeWriter {
         }
     }
     private void Loss(string code, string message, string path) => AddDiagnostic(new ProjectDiagnostic(code, ProjectDiagnosticSeverity.Warning, message, path, true));
+    private void Omission(string code, string message, string path) => AddDiagnostic(new ProjectDiagnostic(
+        code, ProjectDiagnosticSeverity.Warning, message, path, OfficeConversionLossKind.Omission));
     private void AddDiagnostic(ProjectDiagnostic diagnostic) {
         if (_diagnostics.Count < 1000) _diagnostics.Add(diagnostic);
         else if (_diagnostics.Count == 1000) _diagnostics.Add(new ProjectDiagnostic("PROJECT_NATIVE_DIAGNOSTICS_TRUNCATED",

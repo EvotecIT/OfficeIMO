@@ -214,14 +214,19 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
 
     internal OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
         IReadOnlyList<int> glyphs,
-        IReadOnlyList<int> scalars) => _kerning.PositionRun(glyphs, scalars);
+        IReadOnlyList<int> scalars,
+        System.Threading.CancellationToken cancellationToken = default) => _kerning.PositionRun(glyphs, scalars, cancellationToken);
 
     public double MeasureShapedText(string text, OfficeTextShapingResult result, double fontSize) {
         PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);
         ValidateSize(fontSize);
-        long width = 0;
-        for (int index = 0; index < glyphs.Length; index++) width = checked(width + glyphs[index].AdvanceWidth);
-        return Math.Abs(width * Scale(fontSize));
+        long advance = 0;
+        for (int index = 0; index < glyphs.Length; index++) {
+            advance = checked(advance + (result.Direction == OfficeTextDirection.TopToBottom
+                ? glyphs[index].AdvanceHeight
+                : glyphs[index].AdvanceWidth));
+        }
+        return Math.Abs(advance * Scale(fontSize));
     }
 
     public List<List<OfficePoint>> GetShapedTextContours(
@@ -271,6 +276,26 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         if (operationBudget == null) throw new ArgumentNullException(nameof(operationBudget));
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
+        if (result.Direction == OfficeTextDirection.TopToBottom) {
+            double cursorY = y;
+            int verticalPointCount = 0;
+            for (int index = 0; index < glyphs.Length; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                PositionedGlyph glyph = glyphs[index];
+                RenderGlyph(
+                    glyph.GlyphId,
+                    EnsureFiniteGeometry(x + glyph.OffsetX * scale),
+                    EnsureFiniteGeometry(cursorY - glyph.OffsetY * scale),
+                    scale,
+                    contours,
+                    ref verticalPointCount,
+                    maximumPointCount,
+                    cancellationToken,
+                    operationBudget);
+                cursorY = EnsureFiniteGeometry(cursorY - glyph.AdvanceHeight * scale);
+            }
+            return contours;
+        }
         long totalAdvance = 0;
         for (int index = 0; index < glyphs.Length; index++) totalAdvance = checked(totalAdvance + glyphs[index].AdvanceWidth);
         bool negativeDirection = totalAdvance < 0;
@@ -330,6 +355,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
             glyphs[index] = new PositionedGlyph(
                 glyph.GlyphId,
                 glyph.AdvanceWidth ?? AdvanceWidth(glyph.GlyphId),
+                glyph.AdvanceHeight ?? 0,
                 glyph.OffsetX,
                 glyph.OffsetY);
         }
@@ -388,15 +414,17 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     }
 
     private readonly struct PositionedGlyph {
-        internal PositionedGlyph(int glyphId, int advanceWidth, int offsetX, int offsetY) {
+        internal PositionedGlyph(int glyphId, int advanceWidth, int advanceHeight, int offsetX, int offsetY) {
             GlyphId = glyphId;
             AdvanceWidth = advanceWidth;
+            AdvanceHeight = advanceHeight;
             OffsetX = offsetX;
             OffsetY = offsetY;
         }
 
         internal int GlyphId { get; }
         internal int AdvanceWidth { get; }
+        internal int AdvanceHeight { get; }
         internal int OffsetX { get; }
         internal int OffsetY { get; }
     }

@@ -11,6 +11,8 @@ using System.Xml;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace OfficeIMO.Excel {
@@ -74,7 +76,7 @@ namespace OfficeIMO.Excel {
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.RepairDefinedNames");
 
             if (_sharedStringTableDirty) {
-                _sharedStringTablePart?.SharedStringTable?.Save();
+                SaveSharedStringsPreservingLineEndings();
                 _sharedStringTableDirty = false;
             }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveSharedStrings");
@@ -114,25 +116,83 @@ namespace OfficeIMO.Excel {
 
         private SavePayload PreparePackageForSave(ExcelSaveOptions? options, bool closeDocument = true) {
             PrepareWorkbookForSave(options);
+            var carriageReturnParts = CollectLoadedCarriageReturnParts(WorkbookPartRoot);
 
             PackagePropertiesSnapshot propertiesSnapshot = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
-
             using FileStream snapshot = OfficeTemporaryFile.Create(
-                "OfficeIMO.Excel-Save-",
-                ".tmp",
-                FileOptions.SequentialScan,
-                out _);
+                "OfficeIMO.Excel-Save-", ".tmp", FileOptions.SequentialScan, out _);
             using (_spreadSheetDocument.Clone(snapshot)) { }
             snapshot.Flush();
             ThrowIfPackageMaterializationExceedsLimit(snapshot.Length, options);
-            snapshot.Position = 0;
-            byte[] packageBytes = ReadPackageBytes(snapshot, options);
+
+            byte[] packageBytes;
+            if (carriageReturnParts.Count == 0) {
+                snapshot.Position = 0;
+                packageBytes = ReadPackageBytes(snapshot, options);
+            } else {
+                using FileStream rewritten = OfficeTemporaryFile.Create(
+                    "OfficeIMO.Excel-Rewritten-", ".tmp", FileOptions.SequentialScan, out _);
+                RewritePackageWithPreservedCarriageReturns(snapshot, rewritten, carriageReturnParts);
+                ThrowIfPackageMaterializationExceedsLimit(rewritten.Length, options);
+                rewritten.Position = 0;
+                packageBytes = ReadPackageBytes(rewritten, options);
+            }
 
             if (closeDocument) {
                 try { _spreadSheetDocument.Dispose(); } catch { }
             }
 
             return new SavePayload(packageBytes, propertiesSnapshot, closeDocument, normalizeContentTypes: !_packageContentTypesKnownNormalized, applyPackageProperties: _packagePropertiesDirty);
+        }
+
+        internal static Dictionary<string, OpenXmlElement> CollectLoadedCarriageReturnParts(WorkbookPart workbookPart) {
+            var carriageReturnParts = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
+            foreach (var part in workbookPart.WorksheetParts) {
+                if (!part.IsRootElementLoaded) continue;
+
+                Worksheet? worksheet = part.Worksheet;
+                if (worksheet?.Descendants<OpenXmlLeafTextElement>()
+                    .Any(text => text.Text?.IndexOf('\r') >= 0) != true) continue;
+
+                carriageReturnParts.Add(part.Uri.OriginalString.TrimStart('/'), worksheet);
+            }
+
+            SharedStringTablePart? sharedStringsPart = workbookPart.SharedStringTablePart;
+            if (sharedStringsPart?.IsRootElementLoaded == true
+                && sharedStringsPart.SharedStringTable is SharedStringTable sharedStrings
+                && sharedStrings.Descendants<OpenXmlLeafTextElement>()
+                    .Any(text => text.Text?.IndexOf('\r') >= 0)) {
+                carriageReturnParts.Add(sharedStringsPart.Uri.OriginalString.TrimStart('/'), sharedStrings);
+            }
+
+            return carriageReturnParts;
+        }
+
+        private static void RewritePackageWithPreservedCarriageReturns(
+            Stream source, Stream destination, IReadOnlyDictionary<string, OpenXmlElement> affected) {
+            source.Position = 0;
+            int replaced = 0;
+            using (var input = new ZipArchive(source, ZipArchiveMode.Read, leaveOpen: true))
+            using (var output = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
+                foreach (ZipArchiveEntry entry in input.Entries) {
+                    ZipArchiveEntry written = output.CreateEntry(entry.FullName, CompressionLevel.Optimal);
+                    written.LastWriteTime = entry.LastWriteTime;
+#if NET6_0_OR_GREATER
+                    written.ExternalAttributes = entry.ExternalAttributes;
+#endif
+                    using Stream target = written.Open();
+                    if (affected.TryGetValue(entry.FullName, out OpenXmlElement? root)) {
+                        ExcelXmlPartWriter.WritePreservingLineEndings(target, root);
+                        replaced++;
+                    } else {
+                        using Stream original = entry.Open();
+                        original.CopyTo(target);
+                    }
+                }
+            }
+            if (replaced != affected.Count)
+                throw new InvalidDataException("A text-bearing part was missing from the saved package.");
+            destination.Flush();
         }
 
         private static void PrepareDestinationStreamForWrite(Stream destination) {

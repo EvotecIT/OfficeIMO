@@ -10,21 +10,23 @@ public sealed partial class OfficeRasterCanvas {
         string text, double x, double y, double width, double height, double size,
         OfficeFontInfo fontInfo, double advance, OfficeTextAlignment alignment,
         OfficeTextFeatureSettings features, string palette, double baselineSize,
-        OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle) {
+        OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle,
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
         _cancellationToken.ThrowIfCancellationRequested();
         double left = x, top = y, right = x + width, bottom = y + height;
         bool hasInk = false;
         if (_fonts != null) {
             IReadOnlyList<OfficeFontFallbackRun> runs = _fonts.PlanFallbackRuns(text, fontInfo.FamilyName, fontInfo.Style);
             if (ShouldUseFallbackRuns(runs, fontInfo.FamilyName)) {
-                double measured = MeasureText(text, size, fontInfo.FamilyName, fontInfo.Style);
+                double measured = MeasurePositionedText(text, size, fontInfo.FamilyName, fontInfo.Style, features, textDirection);
                 if (measured <= 0D) return (left, top, right, bottom, false);
                 double cursor = ResolveTextX(x, Math.Max(1D, width), advance, alignment);
-                foreach (OfficeFontFallbackRun run in runs) {
-                    double runAdvance = MeasureText(run.Text, size, run.FamilyName, fontInfo.Style) * advance / measured;
+                foreach ((OfficeFontFallbackRun run, OfficeTextDirection runDirection) in PlanVisualFallbackRuns(text, fontInfo.FamilyName, fontInfo.Style, textDirection)) {
+                    double runAdvance = MeasurePositionedText(run.Text, size, run.FamilyName, fontInfo.Style, features, runDirection) * advance / measured;
                     var bounds = MeasurePositionedTextBounds(run.Text, cursor, y, Math.Max(.01D, runAdvance), height,
                         size, new OfficeFontInfo(run.FamilyName, fontInfo.Size, fontInfo.Style), Math.Max(.01D, runAdvance),
-                        OfficeTextAlignment.Left, features, palette, baselineSize, underlineStyle, strikethroughStyle);
+                        OfficeTextAlignment.Left, features, palette, baselineSize, underlineStyle, strikethroughStyle,
+                        runDirection);
                     hasInk |= bounds.HasInk;
                     left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
                     right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
@@ -36,14 +38,14 @@ public sealed partial class OfficeRasterCanvas {
         IOfficeFontProgram? font = ResolveTextFont(text, fontInfo.FamilyName, fontInfo.Style, out OfficeFontStyle resolvedStyle);
         // An unresolved face is not evidence of an empty glyph.
         if (font == null) return (left - size, top - size, right + size, bottom + size, true);
-        double naturalAdvance = MeasureResolvedText(text, font, size, features);
+        double naturalAdvance = MeasureResolvedText(text, font, size, features, textDirection);
         double scaleX = naturalAdvance > 0D ? advance / naturalAdvance : 1D;
         double textX = ResolveTextX(x, Math.Max(1D, width), advance, alignment);
         double textTop = y + ResolveRasterTextTop(font, size, height, baselineSize);
         OfficeFontStyle simulated = fontInfo.Style & ~resolvedStyle;
-        Include(GetResolvedTextContours(text, font, textX, textTop, size, features));
+        Include(GetResolvedTextContours(text, font, textX, textTop, size, features, textDirection));
         if (TryGetResolvedColorTextContours(text, font, textX, textTop, size, features, palette,
-            OfficeColor.Black, out List<OfficeColorGlyphContours> layers)) {
+            OfficeColor.Black, out List<OfficeColorGlyphContours> layers, textDirection)) {
             foreach (OfficeColorGlyphContours layer in layers) Include(layer.Contours);
         }
         double lineHeight = font.LineHeight(size);

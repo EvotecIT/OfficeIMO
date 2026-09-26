@@ -47,6 +47,12 @@ public sealed class PdfRenderCapabilityDiagnostic {
     public string Code => Capability.Id;
     /// <summary>Support level associated with the diagnostic.</summary>
     public PdfRenderSupportLevel SupportLevel => Capability.SupportLevel;
+    /// <summary>Typed fidelity impact associated with the support level.</summary>
+    public OfficeConversionLossKind LossKind => SupportLevel switch {
+        PdfRenderSupportLevel.Simplified => OfficeConversionLossKind.Approximation,
+        PdfRenderSupportLevel.Unsupported => OfficeConversionLossKind.Omission,
+        _ => OfficeConversionLossKind.None
+    };
     /// <summary>Operator or resource name that triggered this occurrence, when available.</summary>
     public string? Subject { get; }
     /// <summary>Human-readable diagnostic text.</summary>

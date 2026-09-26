@@ -3,7 +3,7 @@ namespace OfficeIMO.OpenDocument;
 internal static class OdfFeatureInspector {
     private static readonly HashSet<string> KnownNamespaces = new HashSet<string>(StringComparer.Ordinal) {
         OdfNamespaces.Office.NamespaceName, OdfNamespaces.Text.NamespaceName, OdfNamespaces.Table.NamespaceName,
-        OdfNamespaces.Draw.NamespaceName, OdfNamespaces.Presentation.NamespaceName, OdfNamespaces.Style.NamespaceName,
+        OdfNamespaces.Draw.NamespaceName, OdfNamespaces.Chart.NamespaceName, OdfNamespaces.Presentation.NamespaceName, OdfNamespaces.Style.NamespaceName,
         OdfNamespaces.Number.NamespaceName, OdfNamespaces.Fo.NamespaceName, OdfNamespaces.Svg.NamespaceName,
         OdfNamespaces.XLink.NamespaceName, OdfNamespaces.Meta.NamespaceName, OdfNamespaces.Dc.NamespaceName,
         OdfNamespaces.Manifest.NamespaceName, OdfNamespaces.Config.NamespaceName, OdfNamespaces.Of.NamespaceName,
@@ -32,6 +32,12 @@ internal static class OdfFeatureInspector {
             if (scripts > 0) findings.Add(new OdfFeatureFinding(
                 "scripts", OdfFeatureSupport.Preserved, entry.Name, scripts));
             AddElementFinding(document, OdfNamespaces.Office + "annotation", "annotations", OdfFeatureSupport.Inspected, entry.Name, findings);
+            int editableStyleMaps = CountEditableStyleMaps(document, entry.Name);
+            if (editableStyleMaps > 0) findings.Add(new OdfFeatureFinding(
+                "conditional-style-maps", OdfFeatureSupport.Editable, entry.Name, editableStyleMaps));
+            int otherStyleMaps = document.Descendants(OdfNamespaces.Style + "map").Count() - editableStyleMaps;
+            if (otherStyleMaps > 0) findings.Add(new OdfFeatureFinding(
+                "unmodeled-style-maps", OdfFeatureSupport.Preserved, entry.Name, otherStyleMaps));
             AddElementFinding(document, OdfNamespaces.Text + "tracked-changes", "tracked-changes", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Draw + "object", "embedded-objects", OdfFeatureSupport.Preserved, entry.Name, findings);
             int eventListeners = document.Descendants().Count(element => element.Name.LocalName == "event-listener");
@@ -46,7 +52,24 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "detective", "spreadsheet-detective", OdfFeatureSupport.Preserved, entry.Name, findings);
-            AddElementFinding(document, OdfNamespaces.Text + "note", "text-notes", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] textFields = document.Descendants()
+                .Where(element => OdtField.TryGetKind(element.Name, out _)).ToArray();
+            int basicTextFields = textFields.Count(element =>
+                OdtField.IsBasicElement(element) && IsEditableOdtField(package.Kind, entry.Name, element));
+            if (basicTextFields > 0) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Editable, entry.Name, basicTextFields));
+            if (textFields.Length > basicTextFields) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Inspected, entry.Name, textFields.Length - basicTextFields));
+            XElement[] notes = document.Descendants(OdfNamespaces.Text + "note").ToArray();
+            int editableNotes = notes.Count(note =>
+                !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any() &&
+                ((string?)note.Attribute(OdfNamespaces.Text + "note-class") is "footnote" or "endnote") &&
+                note.Element(OdfNamespaces.Text + "note-body") is XElement body &&
+                body.Elements().All(child => child.Name == OdfNamespaces.Text + "p"));
+            if (editableNotes > 0) findings.Add(new OdfFeatureFinding(
+                "text-notes", OdfFeatureSupport.Editable, entry.Name, editableNotes));
+            if (notes.Length > editableNotes) findings.Add(new OdfFeatureFinding(
+                "text-notes", OdfFeatureSupport.Inspected, entry.Name, notes.Length - editableNotes));
             int bookmarks = document.Descendants(OdfNamespaces.Text + "bookmark").Count()
                 + document.Descendants(OdfNamespaces.Text + "bookmark-start").Count();
             if (bookmarks > 0) findings.Add(new OdfFeatureFinding("text-bookmarks", OdfFeatureSupport.Editable, entry.Name, bookmarks));
@@ -74,7 +97,14 @@ internal static class OdfFeatureInspector {
                 findings.Add(new OdfFeatureFinding("foreign-namespace:" + group.Key, OdfFeatureSupport.Preserved, entry.Name, group.Count()));
             }
         }
-        if (package.IsSigned) findings.Add(new OdfFeatureFinding("digital-signatures", OdfFeatureSupport.Preserved, "META-INF"));
+        try {
+            if (package.IsSigned) findings.Add(new OdfFeatureFinding("digital-signatures", OdfFeatureSupport.Preserved, "META-INF"));
+        } catch (InvalidDataException exception) {
+            diagnostics.Add(new OdfFeatureDiagnostic(
+                "ODF_FEATURE_SIGNATURE_UNREADABLE",
+                "META-INF",
+                "A signature-like entry could not be classified: " + exception.Message));
+        }
         return new OdfFeatureReport(findings, diagnostics);
     }
 
@@ -82,6 +112,61 @@ internal static class OdfFeatureInspector {
         string partPath, List<OdfFeatureFinding> findings) {
         int count = document.Descendants(elementName).Count();
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
+    }
+
+    internal static bool IsEditableOdtField(OdfDocumentKind kind, string partPath, XElement element) {
+        if (kind != OdfDocumentKind.Text ||
+            element.Ancestors().Any(ancestor => ancestor.Name == OdfNamespaces.Text + "tracked-changes" ||
+                ancestor.Name == OdfNamespaces.Text + "note" ||
+                ancestor.Name == OdfNamespaces.Office + "annotation")) return false;
+        XElement? paragraph = element.Ancestors().FirstOrDefault(ancestor =>
+            ancestor.Name == OdfNamespaces.Text + "p" || ancestor.Name == OdfNamespaces.Text + "h");
+        if (paragraph == null) return false;
+        for (XElement? inline = element.Parent; inline != null && !ReferenceEquals(inline, paragraph);
+            inline = inline.Parent) {
+            if (inline.Name != OdfNamespaces.Text + "span" && inline.Name != OdfNamespaces.Text + "a")
+                return false;
+        }
+        if (partPath == "styles.xml") {
+            if (paragraph.Parent?.Name != OdfNamespaces.Style + "header" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer") return false;
+            XElement? firstMaster = element.Document?.Root?
+                .Element(OdfNamespaces.Office + "master-styles")?
+                .Elements(OdfNamespaces.Style + "master-page").FirstOrDefault();
+            return ReferenceEquals(paragraph.Parent.Parent, firstMaster);
+        }
+        if (partPath != "content.xml") return false;
+        int tableDepth = 0;
+        for (XElement? container = paragraph.Parent; container != null; container = container.Parent) {
+            if (container.Name == OdfNamespaces.Office + "text") return true;
+            if (container.Name == OdfNamespaces.Table + "table" && ++tableDepth > 1) return false;
+            if (container.Name == OdfNamespaces.Table + "table-cell" &&
+                !ReferenceEquals(paragraph.Parent, container)) return false;
+            if (container.Name != OdfNamespaces.Text + "section" &&
+                container.Name != OdfNamespaces.Text + "list" &&
+                container.Name != OdfNamespaces.Text + "list-item" &&
+                container.Name != OdfNamespaces.Text + "list-header" &&
+                container.Name != OdfNamespaces.Table + "table" &&
+                container.Name != OdfNamespaces.Table + "table-header-rows" &&
+                container.Name != OdfNamespaces.Table + "table-row" &&
+                container.Name != OdfNamespaces.Table + "table-cell") return false;
+        }
+        return false;
+    }
+
+    private static int CountEditableStyleMaps(XDocument document, string partPath) {
+        XElement? root = document.Root;
+        if (root == null) return 0;
+        IEnumerable<XElement> containers = partPath == "content.xml"
+            ? root.Elements(OdfNamespaces.Office + "automatic-styles")
+            : partPath == "styles.xml"
+                ? root.Elements(OdfNamespaces.Office + "styles")
+                    .Concat(root.Elements(OdfNamespaces.Office + "automatic-styles"))
+                : Enumerable.Empty<XElement>();
+        return containers.SelectMany(container => container.Elements(OdfNamespaces.Style + "style"))
+            .Where(style => OdfStyleRepository.TryParseFamily(
+                (string?)style.Attribute(OdfNamespaces.Style + "family"), out _))
+            .Sum(style => style.Elements(OdfNamespaces.Style + "map").Count());
     }
 
     private static bool IsExternalHref(string href) {

@@ -28,6 +28,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
             public string? StencilCatalogName { get; }
 
+            public VisioGraphPlacement? Placement { get; set; }
+
             public int Layer { get; set; }
 
             public int Row { get; set; }
@@ -94,6 +96,8 @@ namespace OfficeIMO.Visio.Diagrams {
 
             public bool Directed { get; }
 
+            public VisioGraphRoute? Route { get; set; }
+
             public VisioConnectorStyle? StyleOverride { get; set; }
 
             public List<NodeShapeDataItem> ShapeData { get; } = new();
@@ -107,6 +111,8 @@ namespace OfficeIMO.Visio.Diagrams {
                 Text = text;
                 NodeIds = nodeIds;
             }
+
+            public VisioGraphPlacement? Placement { get; set; }
 
             public string Id { get; }
 

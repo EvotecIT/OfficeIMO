@@ -67,7 +67,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DeletePages(File.ReadAllBytes(inputPath), pageNumbers);
+        var bytes = DeletePages(ReadPath(inputPath), pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -78,7 +78,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DeletePages(File.ReadAllBytes(inputPath), pageNumbers));
+        WriteOutput(outputStream, DeletePages(ReadPath(inputPath), pageNumbers));
     }
 
     /// <summary>
@@ -86,7 +86,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DeletePages(string inputPath, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DeletePages(File.ReadAllBytes(inputPath), pageNumbers);
+        return DeletePages(ReadPath(inputPath), pageNumbers);
     }
 
     /// <summary>
@@ -153,7 +153,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DeletePageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        var bytes = DeletePageRange(ReadPath(inputPath), firstPage, lastPage);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -164,7 +164,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DeletePageRange(File.ReadAllBytes(inputPath), firstPage, lastPage));
+        WriteOutput(outputStream, DeletePageRange(ReadPath(inputPath), firstPage, lastPage));
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DeletePageRange(File.ReadAllBytes(inputPath), pageRange);
+        var bytes = DeletePageRange(ReadPath(inputPath), pageRange);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -186,7 +186,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DeletePageRange(File.ReadAllBytes(inputPath), pageRange));
+        WriteOutput(outputStream, DeletePageRange(ReadPath(inputPath), pageRange));
     }
 
     /// <summary>
@@ -194,7 +194,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DeletePageRange(string inputPath, int firstPage, int lastPage) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DeletePageRange(File.ReadAllBytes(inputPath), firstPage, lastPage);
+        return DeletePageRange(ReadPath(inputPath), firstPage, lastPage);
     }
 
     /// <summary>
@@ -202,7 +202,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DeletePageRange(string inputPath, PdfPageRange pageRange) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DeletePageRange(File.ReadAllBytes(inputPath), pageRange);
+        return DeletePageRange(ReadPath(inputPath), pageRange);
     }
 
     /// <summary>
@@ -246,7 +246,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = DeletePageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        var bytes = DeletePageRanges(ReadPath(inputPath), pageRanges);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -258,7 +258,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, DeletePageRanges(File.ReadAllBytes(inputPath), pageRanges));
+        WriteOutput(outputStream, DeletePageRanges(ReadPath(inputPath), pageRanges));
     }
 
     /// <summary>
@@ -267,6 +267,6 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] DeletePageRanges(string inputPath, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return DeletePageRanges(File.ReadAllBytes(inputPath), pageRanges);
+        return DeletePageRanges(ReadPath(inputPath), pageRanges);
     }
 }

@@ -9,26 +9,49 @@ public sealed class EmailDiagnostic {
         return new EmailDiagnostic("EMAIL_LIMIT_EXCEEDED", exception.Message, EmailDiagnosticSeverity.Error,
             location, operation, null, exception.LimitName, exception.ActualValue, exception.MaximumValue,
             EmailDiagnosticDisposition.Stopped, EmailDataLossRisk.None,
-            "Raise the named limit only after validating the source and the caller's resource budget.");
+            "Raise the named limit only after validating the source and the caller's resource budget.",
+            isRetryable: false,
+            lossKind: OfficeConversionLossKind.Failure);
     }
 
     /// <summary>Creates a diagnostic.</summary>
-    public EmailDiagnostic(string code, string message, EmailDiagnosticSeverity severity = EmailDiagnosticSeverity.Warning, string? location = null) {
+    public EmailDiagnostic(string code, string message, EmailDiagnosticSeverity severity = EmailDiagnosticSeverity.Warning,
+        string? location = null)
+        : this(code, message, severity, location, OfficeConversionLossKind.None) {
+    }
+
+    /// <summary>Creates a diagnostic with an explicit format-conversion fidelity effect.</summary>
+    public EmailDiagnostic(string code, string message, EmailDiagnosticSeverity severity,
+        string? location, OfficeConversionLossKind lossKind) {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code is required.", nameof(code));
+        ValidateLossKind(lossKind);
         Code = code;
         Message = message ?? string.Empty;
         Severity = severity;
         Location = location;
         Disposition = EmailDiagnosticDisposition.Observed;
         DataLossRisk = EmailDataLossRisk.None;
+        LossKind = NormalizeLossKind(severity, Disposition, lossKind);
     }
 
     /// <summary>Creates an actionable diagnostic with machine-readable operation and recovery context.</summary>
     public EmailDiagnostic(string code, string message, EmailDiagnosticSeverity severity,
         string? location, string? operation, long? byteOffset, string? limitName,
         long? actualValue, long? maximumValue, EmailDiagnosticDisposition disposition,
-        EmailDataLossRisk dataLossRisk, string? suggestedAction, bool isRetryable = false) {
+        EmailDataLossRisk dataLossRisk, string? suggestedAction, bool isRetryable = false)
+        : this(code, message, severity, location, operation, byteOffset, limitName,
+            actualValue, maximumValue, disposition, dataLossRisk, suggestedAction,
+            isRetryable, OfficeConversionLossKind.None) {
+    }
+
+    /// <summary>Creates an actionable diagnostic with an explicit format-conversion fidelity effect.</summary>
+    public EmailDiagnostic(string code, string message, EmailDiagnosticSeverity severity,
+        string? location, string? operation, long? byteOffset, string? limitName,
+        long? actualValue, long? maximumValue, EmailDiagnosticDisposition disposition,
+        EmailDataLossRisk dataLossRisk, string? suggestedAction, bool isRetryable,
+        OfficeConversionLossKind lossKind) {
         if (string.IsNullOrWhiteSpace(code)) throw new ArgumentException("Diagnostic code is required.", nameof(code));
+        ValidateLossKind(lossKind);
         Code = code;
         Message = message ?? string.Empty;
         Severity = severity;
@@ -42,6 +65,7 @@ public sealed class EmailDiagnostic {
         DataLossRisk = dataLossRisk;
         SuggestedAction = suggestedAction;
         IsRetryable = isRetryable;
+        LossKind = NormalizeLossKind(severity, disposition, lossKind);
     }
 
     /// <summary>Stable diagnostic identifier.</summary>
@@ -70,8 +94,24 @@ public sealed class EmailDiagnostic {
     public EmailDiagnosticDisposition Disposition { get; }
     /// <summary>Whether the condition can omit or alter user data.</summary>
     public EmailDataLossRisk DataLossRisk { get; }
+    /// <summary>Exact fidelity effect when this diagnostic participates in a format conversion.</summary>
+    public OfficeConversionLossKind LossKind { get; }
     /// <summary>Safe next action for an operator or calling application.</summary>
     public string? SuggestedAction { get; }
     /// <summary>Whether retrying the same operation without changing input or policy can be useful.</summary>
     public bool IsRetryable { get; }
+
+    private static void ValidateLossKind(OfficeConversionLossKind lossKind) {
+        if (lossKind < OfficeConversionLossKind.None || lossKind > OfficeConversionLossKind.Failure) {
+            throw new ArgumentOutOfRangeException(nameof(lossKind));
+        }
+    }
+
+    private static OfficeConversionLossKind NormalizeLossKind(
+        EmailDiagnosticSeverity severity,
+        EmailDiagnosticDisposition disposition,
+        OfficeConversionLossKind lossKind) =>
+        severity == EmailDiagnosticSeverity.Error || disposition == EmailDiagnosticDisposition.Stopped
+            ? OfficeConversionLossKind.Failure
+            : lossKind;
 }

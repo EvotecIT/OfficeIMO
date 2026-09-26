@@ -180,7 +180,7 @@ internal static partial class PdfFormFiller {
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
@@ -199,7 +199,7 @@ internal static partial class PdfFormFiller {
     public static void FillFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
@@ -219,7 +219,7 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -237,7 +237,7 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillFields(ReadPath(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -253,7 +253,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        return FillFields(ReadPath(inputPath), fieldValues, options);
     }
 
     /// <summary>
@@ -268,7 +268,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        return FillFields(ReadPath(inputPath), fieldValues, options);
     }
 
     /// <summary>
@@ -465,7 +465,7 @@ internal static partial class PdfFormFiller {
     public static void FlattenFields(string inputPath, string outputPath, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath), options);
+        byte[] bytes = FlattenFields(ReadPath(inputPath), options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
@@ -485,7 +485,7 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FlattenFields(File.ReadAllBytes(inputPath), options);
+        byte[] bytes = FlattenFields(ReadPath(inputPath), options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -501,7 +501,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FlattenFieldsToBytes(string inputPath, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FlattenFields(File.ReadAllBytes(inputPath), options);
+        return FlattenFields(ReadPath(inputPath), options);
     }
 
     /// <summary>
@@ -635,7 +635,7 @@ internal static partial class PdfFormFiller {
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
@@ -654,7 +654,7 @@ internal static partial class PdfFormFiller {
     public static void FillAndFlattenFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         string fullOutputPath = ValidateOutputPath(outputPath);
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
         OfficeFileCommit.WriteAllBytes(fullOutputPath, bytes);
@@ -674,7 +674,7 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -692,7 +692,7 @@ internal static partial class PdfFormFiller {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        byte[] bytes = FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        byte[] bytes = FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
         WriteOutput(outputStream, bytes);
     }
 
@@ -708,7 +708,7 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, string> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        return FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
     }
 
     /// <summary>
@@ -723,6 +723,6 @@ internal static partial class PdfFormFiller {
     /// </summary>
     public static byte[] FillAndFlattenFieldsToBytes(string inputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfFormFillerOptions? options) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return FillAndFlattenFields(File.ReadAllBytes(inputPath), fieldValues, options);
+        return FillAndFlattenFields(ReadPath(inputPath), fieldValues, options);
     }
 }

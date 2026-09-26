@@ -55,7 +55,7 @@ internal static partial class PdfMetadataEditor {
         string? subject = null,
         string? keywords = null,
         bool createXmpMetadata = true) {
-        return SynchronizeMetadata(ReadStream(stream, nameof(stream)), title, author, subject, keywords, createXmpMetadata);
+        return SynchronizeMetadata(ReadStream(stream), title, author, subject, keywords, createXmpMetadata);
     }
 
     /// <summary>Writes a PDF with synchronized Info and XMP metadata to a writable stream.</summary>
@@ -95,7 +95,7 @@ internal static partial class PdfMetadataEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
         WriteOutput(
             ValidateOutputPath(outputPath),
-            SynchronizeMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, createXmpMetadata));
+            SynchronizeMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, title, author, subject, keywords, createXmpMetadata));
     }
 
     /// <summary>Creates a PDF with synchronized Info and XMP metadata from a file.</summary>
@@ -107,7 +107,7 @@ internal static partial class PdfMetadataEditor {
         string? keywords = null,
         bool createXmpMetadata = true) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return SynchronizeMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, createXmpMetadata);
+        return SynchronizeMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, title, author, subject, keywords, createXmpMetadata);
     }
 
     private static int? SynchronizeObjectGraph(

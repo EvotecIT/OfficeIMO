@@ -48,6 +48,126 @@ public sealed partial class PdfRedactionWorkflowTests {
     }
 
     [Fact]
+    public async Task BatchRejectsInputReplacedWithOutsideSymlinkAfterDiscovery() {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        Directory.CreateDirectory(inputRoot);
+        string input = Path.Combine(inputRoot, "one.pdf");
+        string outside = scope.PathFor("outside.pdf");
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("outside secret")).Save(outside);
+        string probe = Path.Combine(inputRoot, "probe.pdf");
+        try {
+            File.CreateSymbolicLink(probe, outside);
+            File.Delete(probe);
+        } catch (Exception exception) when (exception is UnauthorizedAccessException or PlatformNotSupportedException or IOException) {
+            return;
+        }
+        bool replaced = false;
+        var progress = new BatchProgress(update => {
+            if (replaced || update.Stage != "validate") return;
+            File.Delete(input);
+            File.CreateSymbolicLink(input, outside);
+            replaced = true;
+        });
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = scope.PathFor("evidence"),
+            ManifestPath = scope.PathFor("batch.json"),
+            Recipe = CreateRecipe("secret")
+        }, progress);
+
+        Assert.True(replaced);
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.False(File.Exists(Path.Combine(scope.PathFor("evidence"), "one.redaction.json")));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task BatchPublicationCannotFollowDirectoryReplacedAfterDiscovery(bool replaceManifestDirectory) {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        string evidenceRoot = scope.PathFor("evidence");
+        string manifestRoot = scope.PathFor("manifest");
+        string outsideRoot = scope.PathFor("outside");
+        string evidenceChild = Path.Combine(evidenceRoot, "nested");
+        Directory.CreateDirectory(Path.Combine(inputRoot, "nested"));
+        Directory.CreateDirectory(evidenceChild);
+        Directory.CreateDirectory(manifestRoot);
+        Directory.CreateDirectory(outsideRoot);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret"))
+            .Save(Path.Combine(inputRoot, "nested", "one.pdf"));
+
+        string target = replaceManifestDirectory ? manifestRoot : evidenceChild;
+        string probe = Path.Combine(scope.PathFor("probe"), "link");
+        Directory.CreateDirectory(Path.GetDirectoryName(probe)!);
+        try {
+            Directory.CreateSymbolicLink(probe, outsideRoot);
+            Directory.Delete(probe);
+        } catch (Exception exception) when (exception is UnauthorizedAccessException or PlatformNotSupportedException or IOException) {
+            return;
+        }
+        bool replaced = false;
+        var progress = new BatchProgress(update => {
+            if (replaced || update.Stage != "validate") return;
+            Directory.Delete(target);
+            Directory.CreateSymbolicLink(target, outsideRoot);
+            replaced = true;
+        });
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = evidenceRoot,
+            ManifestPath = Path.Combine(manifestRoot, "batch.json"),
+            RecurseSubdirectories = true,
+            Recipe = CreateRecipe("secret")
+        }, progress);
+
+        Assert.True(replaced);
+        Assert.Equal(OfficeWorkflowStatus.Failed, result.Status);
+        Assert.False(File.Exists(Path.Combine(outsideRoot, "one.redaction.json")));
+        Assert.False(File.Exists(Path.Combine(outsideRoot, "batch.json")));
+        Assert.False(File.Exists(Path.Combine(evidenceChild, "one.redaction.json")));
+    }
+
+    [Fact]
+    public async Task BatchReplacePublishesEvidenceAndManifestWithoutLeavingRollbackFiles() {
+        using var scope = new RedactionTestDirectory();
+        string inputRoot = scope.PathFor("input");
+        string evidenceRoot = scope.PathFor("evidence");
+        Directory.CreateDirectory(inputRoot);
+        Directory.CreateDirectory(evidenceRoot);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret"))
+            .Save(Path.Combine(inputRoot, "one.pdf"));
+        string evidence = Path.Combine(evidenceRoot, "one.redaction.json");
+        string manifest = scope.PathFor("batch.json");
+        await File.WriteAllTextAsync(evidence, "old evidence");
+        await File.WriteAllTextAsync(manifest, "old manifest");
+
+        PdfRedactionBatchResult result = await new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
+            Mode = PdfRedactionWorkflowMode.PlanOnly,
+            InputRoot = inputRoot,
+            EvidenceRoot = evidenceRoot,
+            ManifestPath = manifest,
+            ConflictPolicy = OfficeWorkflowConflictPolicy.Replace,
+            Recipe = CreateRecipe("secret")
+        });
+
+        Assert.Equal(OfficeWorkflowStatus.Completed, result.Status);
+        Assert.NotEqual("old evidence", await File.ReadAllTextAsync(evidence));
+        Assert.NotEqual("old manifest", await File.ReadAllTextAsync(manifest));
+        Assert.Empty(Directory.EnumerateFiles(scope.DirectoryPath, "*.rollback", SearchOption.AllDirectories));
+    }
+
+    private sealed class BatchProgress(Action<OfficeWorkflowProgress> report) : IProgress<OfficeWorkflowProgress> {
+        public void Report(OfficeWorkflowProgress value) => report(value);
+    }
+
+    [Fact]
     public async Task RecursiveBatchDiscoveryDoesNotFollowDirectorySymlinksWhenSupported() {
         using var scope = new RedactionTestDirectory();
         string inputRoot = scope.PathFor("input");

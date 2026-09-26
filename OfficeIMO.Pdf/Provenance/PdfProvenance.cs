@@ -139,6 +139,7 @@ public static partial class PdfProvenance {
             allowedObjectNumbers: reachableObjectNumbers,
             cancellationToken: options.Limits.CancellationToken);
         var removeFileSpecifications = new HashSet<int>();
+        var removeEmbeddedFiles = new HashSet<int>();
         var changes = new List<OfficeProvenanceChange>();
         int evidenceIndex = 0;
         for (int index = 0; index < attachments.Count; index++) {
@@ -151,6 +152,7 @@ public static partial class PdfProvenance {
                 throw new InvalidDataException("A direct PDF provenance filespec cannot be removed without risking unrelated associations.");
             }
             removeFileSpecifications.Add(attachment.FileSpecObjectNumber);
+            if (attachment.EmbeddedFileObjectNumber > 0) removeEmbeddedFiles.Add(attachment.EmbeddedFileObjectNumber);
             changes.Add(new OfficeProvenanceChange(
                 OfficeProvenanceCarrierKind.C2paManifest,
                 evidence.Location,
@@ -164,6 +166,10 @@ public static partial class PdfProvenance {
                 Array.Empty<OfficeProvenanceChange>(),
                 false);
         }
+
+        EnsureNoRetainedFileSpecificationSharesSelectedStream(
+            document.Objects, reachableObjectNumbers, removeFileSpecifications, removeEmbeddedFiles,
+            options.Limits.CancellationToken);
 
         PdfDocumentSecurityInfo security = document.Security;
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
@@ -183,6 +189,7 @@ public static partial class PdfProvenance {
             document,
             effectiveReadOptions,
             options.EffectiveMaxOutputBytes,
+            removeEmbeddedFiles,
             options.Limits.CancellationToken);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();
         before = new OfficeProvenanceReport(
@@ -534,7 +541,10 @@ public static partial class PdfProvenance {
             catalog.Items.TryGetValue("PageLabels", out PdfObject? pageLabels) ? pageLabels : null,
             result,
             maximumContainerEntries);
-        AddEmbeddedFileGraphDictionaries(objects, reachableObjectNumbers, result);
+        var embeddedStreamDictionaries = new HashSet<PdfDictionary>();
+        var parameterSites = new HashSet<PdfDictionary>();
+        AddEmbeddedFileGraphDictionaries(
+            objects, reachableObjectNumbers, result, embeddedStreamDictionaries, parameterSites, maximumContainerEntries);
         var resourceSites = new HashSet<PdfObject>();
         var structuralTraversalVisited = new HashSet<PdfObject>();
         var annotationStructuralVisited = new HashSet<PdfObject>();
@@ -665,10 +675,14 @@ public static partial class PdfProvenance {
             AddIccBasedAlternateDictionaries(objects, resources, result, maximumContainerEntries, structuralTraversalVisited);
             AddIccBasedAlternateDictionaries(objects, defaultResources, result, maximumContainerEntries, structuralTraversalVisited);
             if (string.Equals(GetResolvedName(objects, dictionary, "Type"), "EmbeddedFile", StringComparison.Ordinal)) {
-                AddResolvedDictionary(objects, dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null, result);
+                embeddedStreamDictionaries.Add(dictionary);
+                if (PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null) is PdfDictionary parameterDictionary) {
+                    parameterSites.Add(parameterDictionary);
+                }
             }
         }
-        AddFileSpecificationDescendantGraphs(objects, reachableObjectNumbers, result, maximumContainerEntries);
+        AddFileSpecificationDescendantGraphs(
+            objects, reachableObjectNumbers, result, maximumContainerEntries, embeddedStreamDictionaries);
         foreach (PdfDictionary owner in result.ToArray()) {
             foreach (string key in new[] { "A", "AA", "OpenAction" }) {
                 AddStructuralGraphDictionaries(
@@ -680,6 +694,12 @@ public static partial class PdfProvenance {
                     structuralTraversalVisited);
             }
         }
+        if (parameterSites.Count == 0) return result;
+        HashSet<PdfDictionary> independentlyReachable = CollectReachableDictionariesWithoutEmbeddedParams(
+            objects, catalog, embeddedStreamDictionaries, maximumContainerEntries);
+        foreach (PdfDictionary parameters in parameterSites) {
+            if (!independentlyReachable.Contains(parameters)) result.Add(parameters);
+        }
         return result;
     }
 
@@ -689,7 +709,8 @@ public static partial class PdfProvenance {
         HashSet<PdfObject> result,
         int maximumContainerEntries,
         HashSet<int>? terminalObjectNumbers = null,
-        HashSet<PdfObject>? sharedVisited = null) {
+        HashSet<PdfObject>? sharedVisited = null,
+        HashSet<PdfDictionary>? skipParameterOwners = null) {
         if (value == null) return;
         HashSet<PdfObject> visited = sharedVisited ?? new HashSet<PdfObject>();
         var pending = new Stack<PdfObject>();
@@ -705,7 +726,10 @@ public static partial class PdfProvenance {
             PdfDictionary? dictionary = resolved is PdfStream stream ? stream.Dictionary : resolved as PdfDictionary;
             if (dictionary != null) {
                 result.Add(dictionary);
-                foreach (PdfObject child in dictionary.Items.Values) pending.Push(child);
+                foreach (KeyValuePair<string, PdfObject> child in dictionary.Items) {
+                    if (child.Key == "Params" && skipParameterOwners?.Contains(dictionary) == true) continue;
+                    pending.Push(child.Value);
+                }
             } else if (resolved is PdfArray array) {
                 foreach (PdfObject child in array.Items) pending.Push(child);
             }
@@ -788,20 +812,59 @@ public static partial class PdfProvenance {
     private static void AddEmbeddedFileGraphDictionaries(
         Dictionary<int, PdfIndirectObject> objects,
         HashSet<int> reachableObjectNumbers,
-        HashSet<PdfObject> result) {
+        HashSet<PdfObject> result,
+        HashSet<PdfDictionary> embeddedStreamDictionaries,
+        HashSet<PdfDictionary> parameterSites,
+        int maximumContainerEntries) {
+        var visitedEmbeddedFiles = new HashSet<PdfDictionary>();
+        int inspectedVariants = 0;
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             if (!IsFileSpecificationValue(objects, item.Value) || item.Value is not PdfDictionary fileSpecification ||
                 PdfObjectLookup.Resolve(objects, fileSpecification.Items.TryGetValue("EF", out PdfObject? embeddedFilesValue) ? embeddedFilesValue : null) is not PdfDictionary embeddedFiles) continue;
             result.Add(embeddedFiles);
+            if (!visitedEmbeddedFiles.Add(embeddedFiles)) continue;
             foreach (PdfObject variant in embeddedFiles.Items.Values) {
+                if (++inspectedVariants > maximumContainerEntries) {
+                    throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+                }
                 if (PdfObjectLookup.Resolve(objects, variant) is not PdfStream embeddedFile) continue;
                 result.Add(embeddedFile.Dictionary);
-                AddResolvedDictionary(
-                    objects,
-                    embeddedFile.Dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null,
-                    result);
+                embeddedStreamDictionaries.Add(embeddedFile.Dictionary);
+                if (PdfObjectLookup.Resolve(objects, embeddedFile.Dictionary.Items.TryGetValue("Params", out PdfObject? parameters) ? parameters : null) is PdfDictionary parameterDictionary) {
+                    parameterSites.Add(parameterDictionary);
+                }
             }
         }
+    }
+
+    private static HashSet<PdfDictionary> CollectReachableDictionariesWithoutEmbeddedParams(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary catalog,
+        HashSet<PdfDictionary> embeddedStreamDictionaries,
+        int maximumContainerEntries) {
+        var dictionaries = new HashSet<PdfDictionary>();
+        var visited = new HashSet<PdfObject>();
+        var pending = new Stack<PdfObject>();
+        pending.Push(catalog);
+        while (pending.Count > 0) {
+            PdfObject? value = PdfObjectLookup.Resolve(objects, pending.Pop());
+            if (value is not PdfDictionary && value is not PdfArray && value is not PdfStream) continue;
+            if (!visited.Add(value)) continue;
+            if (visited.Count > maximumContainerEntries) {
+                throw new InvalidDataException($"The PDF exceeds the configured container entry limit of {maximumContainerEntries}.");
+            }
+            PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+            if (dictionary != null) {
+                dictionaries.Add(dictionary);
+                foreach (KeyValuePair<string, PdfObject> child in dictionary.Items) {
+                    if (embeddedStreamDictionaries.Contains(dictionary) && child.Key == "Params") continue;
+                    pending.Push(child.Value);
+                }
+            } else if (value is PdfArray array) {
+                foreach (PdfObject child in array.Items) pending.Push(child);
+            }
+        }
+        return dictionaries;
     }
 
     private static void AddResolvedDictionary(
@@ -918,7 +981,8 @@ public static partial class PdfProvenance {
         Dictionary<int, PdfIndirectObject> objects,
         HashSet<int> reachableObjectNumbers,
         HashSet<PdfObject> result,
-        int maximumContainerEntries) {
+        int maximumContainerEntries,
+        HashSet<PdfDictionary> embeddedStreamDictionaries) {
         var structuralVisited = new HashSet<PdfObject>();
         foreach (PdfIndirectObject item in objects.Values.Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))) {
             if (!IsFileSpecificationValue(objects, item.Value) || item.Value is not PdfDictionary fileSpecification) continue;
@@ -928,7 +992,8 @@ public static partial class PdfProvenance {
                     child,
                     result,
                     maximumContainerEntries,
-                    sharedVisited: structuralVisited);
+                    sharedVisited: structuralVisited,
+                    skipParameterOwners: embeddedStreamDictionaries);
             }
         }
     }
@@ -995,7 +1060,7 @@ public static partial class PdfProvenance {
             if (resolved is not PdfDictionary dictionary || !visited.Add(resolved)) continue;
             string? type = GetResolvedName(objects, dictionary, "Type");
             PdfArray? kids = PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("Kids", out PdfObject? kidsValue) ? kidsValue : null) as PdfArray;
-            if (type == "Pages" || kids != null) {
+            if (type == "Pages" || type == null && kids != null) {
                 if (kids != null) {
                     foreach (PdfObject child in kids.Items) pending.Push(child);
                 }
@@ -1045,6 +1110,48 @@ public static partial class PdfProvenance {
             if (!ReferenceEquals(PdfObjectLookup.Resolve(objects, variant), selectedStream)) return false;
         }
         return true;
+    }
+
+    private static void EnsureNoRetainedFileSpecificationSharesSelectedStream(
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> reachableObjectNumbers,
+        HashSet<int> selectedFileSpecifications,
+        HashSet<int> selectedEmbeddedFiles,
+        System.Threading.CancellationToken cancellationToken) {
+        var selectedFileSpecDictionaries = new HashSet<PdfObject>();
+        foreach (int objectNumber in selectedFileSpecifications) {
+            if (objects.TryGetValue(objectNumber, out PdfIndirectObject? selected)) selectedFileSpecDictionaries.Add(selected.Value);
+        }
+        var selectedStreams = new HashSet<PdfObject>();
+        foreach (int objectNumber in selectedEmbeddedFiles) {
+            if (objects.TryGetValue(objectNumber, out PdfIndirectObject? selected)) selectedStreams.Add(selected.Value);
+        }
+        if (selectedStreams.Count == 0) return;
+
+        var pending = new Stack<PdfObject>(objects.Values
+            .Where(item => reachableObjectNumbers.Contains(item.ObjectNumber))
+            .Select(static item => item.Value));
+        var visited = new HashSet<PdfObject>();
+        while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
+            PdfObject value = pending.Pop();
+            if (!visited.Add(value)) continue;
+            PdfDictionary? dictionary = value is PdfStream stream ? stream.Dictionary : value as PdfDictionary;
+            if (dictionary != null) {
+                if (!selectedFileSpecDictionaries.Contains(value) &&
+                    PdfObjectLookup.Resolve(objects, dictionary.Items.TryGetValue("EF", out PdfObject? embeddedFilesValue) ? embeddedFilesValue : null) is PdfDictionary embeddedFiles &&
+                    embeddedFiles.Items.Values.Any(variant => selectedStreams.Contains(PdfObjectLookup.Resolve(objects, variant)!))) {
+                    throw new InvalidDataException("A retained PDF embedded-file owner shares the selected provenance stream and cannot be preserved during removal.");
+                }
+                foreach (PdfObject child in dictionary.Items.Values) {
+                    if (child is not PdfReference) pending.Push(child);
+                }
+            } else if (value is PdfArray array) {
+                foreach (PdfObject child in array.Items) {
+                    if (child is not PdfReference) pending.Push(child);
+                }
+            }
+        }
     }
 
     private static bool HasEmbeddedFileStreamType(

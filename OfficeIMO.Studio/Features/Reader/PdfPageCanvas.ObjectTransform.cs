@@ -94,9 +94,9 @@ public sealed partial class PdfPageCanvas {
 
     private void DrawObjectTransform(DrawingContext context) {
         if (!_transformDragging || _transformSelection is null || Scene is not { } scene) return;
-        var pen = new Pen(Brushes.DodgerBlue, 1.5);
-        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, 30, 144, 255)), pen, _transformTarget);
-        DrawSelectionHandles(context, _transformTarget, Colors.DodgerBlue);
+        var pen = new Pen(new SolidColorBrush(PageAccent), 1.5);
+        context.DrawRectangle(new SolidColorBrush(Color.FromArgb(35, PageAccent.R, PageAccent.G, PageAccent.B)), pen, _transformTarget);
+        DrawSelectionHandles(context, _transformTarget, PageAccent);
         if (_alignmentX is double x) context.DrawLine(pen, new Point(x, 0), new Point(x, scene.Drawing.Height));
         if (_alignmentY is double y) context.DrawLine(pen, new Point(0, y), new Point(scene.Drawing.Width, y));
     }

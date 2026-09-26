@@ -124,7 +124,11 @@ public sealed class EmailMailboxReader {
             foreach (EmailDiagnostic diagnostic in message.Diagnostics) {
                 diagnostics.Add(new EmailDiagnostic(diagnostic.Code, diagnostic.Message, diagnostic.Severity,
                     string.Concat("message[", index.ToString(CultureInfo.InvariantCulture), "]",
-                        diagnostic.Location == null ? string.Empty : string.Concat("/", diagnostic.Location))));
+                        diagnostic.Location == null ? string.Empty : string.Concat("/", diagnostic.Location)),
+                    diagnostic.Operation, diagnostic.ByteOffset, diagnostic.LimitName,
+                    diagnostic.ActualValue, diagnostic.MaximumValue, diagnostic.Disposition,
+                    diagnostic.DataLossRisk, diagnostic.SuggestedAction, diagnostic.IsRetryable,
+                    diagnostic.LossKind));
             }
         }
         return new EmailMailboxReadResult(mailbox, diagnostics.AsReadOnly(), data.LongLength);

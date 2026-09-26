@@ -15,7 +15,10 @@ public sealed class PdfLoadOptions {
     /// <summary>Resource budgets for object scanning and raw stream allocation.</summary>
     public PdfReadLimits Limits { get; init; } = new PdfReadLimits();
 
-    /// <summary>Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.</summary>
+    /// <summary>
+    /// Password used to open encrypted PDFs. The same value is tried as user and owner password for Standard security handler files.
+    /// For Standard security revisions 5 and 6, passwords longer than 4096 UTF-16 characters are rejected before normalization.
+    /// </summary>
     public string? Password { get; init; }
 
     /// <summary>
@@ -63,6 +66,24 @@ public sealed class PdfLoadOptions {
         };
     }
 
+    internal static PdfLoadOptions WithGeneratedOutputGrowth(
+        PdfLoadOptions? options,
+        int minimumIndirectObjects,
+        PdfGeneratedOutputGrowth growth) {
+        PdfLoadOptions effective = Resolve(options);
+        return new PdfLoadOptions {
+            ParsingMode = effective.ParsingMode,
+            Limits = effective.Limits.WithGeneratedOutput(effective.Limits.MaxInputBytes, minimumIndirectObjects, growth),
+            Password = effective.Password,
+            AesCryptographyProvider = effective.AesCryptographyProvider,
+            PermissionPolicy = effective.PermissionPolicy,
+            PreferToUnicode = effective.PreferToUnicode,
+            UseWinAnsiFallback = effective.UseWinAnsiFallback,
+            AdjustKerningFromTJ = effective.AdjustKerningFromTJ,
+            IncludeArtifactText = effective.IncludeArtifactText
+        };
+    }
+
     internal static PdfLoadOptions ForGeneratedOutput(
         PdfLoadOptions? sourceOptions,
         byte[] sourcePdf,
@@ -82,6 +103,7 @@ public sealed class PdfLoadOptions {
         int addedStartXrefMarkers = Math.Max(0, outputMarkers.StartXrefMarkers - sourceMarkers.StartXrefMarkers);
         PdfGeneratedOutputGrowth effectiveGrowth = new PdfGeneratedOutputGrowth(
             additionalRevisions: Math.Max(growth.AdditionalRevisions, addedStartXrefMarkers),
+            additionalFormFields: growth.AdditionalFormFields,
             additionalAnnotationsPerPage: growth.AdditionalAnnotationsPerPage,
             minimumRawStreamBytes: growth.MinimumRawStreamBytes,
             minimumDecodedStreamBytes: growth.MinimumDecodedStreamBytes,
@@ -94,7 +116,9 @@ public sealed class PdfLoadOptions {
             minimumObjectNestingDepth: growth.MinimumObjectNestingDepth,
             additionalContentOperations: growth.AdditionalContentOperations,
             additionalContentOperands: growth.AdditionalContentOperands,
-            additionalContentNestingDepth: growth.AdditionalContentNestingDepth);
+            additionalContentNestingDepth: growth.AdditionalContentNestingDepth,
+            additionalPrintProductionContexts: Math.Max(growth.AdditionalPrintProductionContexts, addedHeaders),
+            additionalPrintProductionOperations: growth.AdditionalPrintProductionOperations);
 
         return new PdfLoadOptions {
             ParsingMode = source.ParsingMode,

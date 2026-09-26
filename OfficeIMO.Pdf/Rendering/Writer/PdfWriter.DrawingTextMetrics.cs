@@ -10,7 +10,7 @@ internal static partial class PdfWriter {
 
     internal static OfficeDrawingTextMetrics CreateDrawingTextMetrics(PdfOptions options) {
         var metrics = new Dictionary<(byte[] Data, string Family, OfficeFontStyle Style), OfficeRasterCanvas?>();
-        return new OfficeDrawingTextMetrics(Measure, MeasurePaint);
+        return new OfficeDrawingTextMetrics(Measure, MeasurePaint, MeasurePositioned);
 
         IEnumerable<(PdfTextRun Run, OfficeRasterCanvas? Canvas, string Family, PdfStandardFont Font)> Resolve(
             string? text, double size, string? family, OfficeFontStyle style) {
@@ -52,6 +52,20 @@ internal static partial class PdfWriter {
                 width += part.Canvas != null
                     ? part.Canvas.MeasureText(part.Run.Text, part.Run.FontSize ?? size, part.Family, style)
                     : GetRichSegmentWidth(CreatePositionedTextSegment(part.Run, size, options));
+            return width;
+        }
+
+        double MeasurePositioned(string? text, double size, string? family, OfficeFontStyle style,
+            OfficeTextDirection direction) {
+            double width = 0D;
+            foreach (var part in Resolve(text, size, family, style)) {
+                width += part.Canvas != null
+                    ? part.Canvas.MeasurePositionedText(
+                        part.Run.Text, part.Run.FontSize ?? size, part.Family, style,
+                        part.Run.FeatureSettings, direction)
+                    : GetRichSegmentWidth(CreatePositionedTextSegment(
+                        part.Run.WithTextDirection(direction), size, options));
+            }
             return width;
         }
 

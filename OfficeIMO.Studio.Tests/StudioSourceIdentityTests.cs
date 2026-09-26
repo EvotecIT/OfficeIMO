@@ -18,15 +18,16 @@ public sealed class StudioSourceIdentityTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             CreatePdf(source);
-            File.WriteAllBytes(source, PdfDocument.Load(File.ReadAllBytes(source)).Security.Encrypt(
-                new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
+            if (operation == "decrypt") File.WriteAllBytes(source,
+                PdfDocument.Load(File.ReadAllBytes(source)).Security.Encrypt(
+                    new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner" }).Pdf);
             byte[] original = File.ReadAllBytes(source);
             string outputFolder = Directory.CreateDirectory(Path.Combine(root, "output")).FullName;
             string destination = Path.Combine(outputFolder, "copy.pdf");
             if (operation != "split") File.WriteAllText(destination, "Existing output retained");
             int checks = 0;
             using var workspace = await PdfWorkspace.OpenAsync(source, CancellationToken.None,
-                new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")), "owner",
+                new PdfWorkspaceRecoveryStore(Path.Combine(root, "recovery")), operation == "decrypt" ? "owner" : null,
                 (_, _) => ValueTask.FromResult(++checks == 1));
             if (operation != "decrypt") await workspace.DuplicateAsync([1], CancellationToken.None);
             if (operation == "split") {

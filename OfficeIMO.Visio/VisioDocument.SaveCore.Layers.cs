@@ -370,6 +370,24 @@ namespace OfficeIMO.Visio {
             "LockThemeEffects"
         };
 
+        // The same modeled cell names occur on thousands of loaded shapes and connectors.
+        // Keep their order tokens shared while retaining the original token for unusual casing.
+        private static readonly IReadOnlyDictionary<string, string> ModeledCellTokens = CreateModeledCellTokens();
+
+        private static IReadOnlyDictionary<string, string> CreateModeledCellTokens() {
+            Dictionary<string, string> tokens = new(StringComparer.Ordinal);
+            foreach (string name in ShapeModeledCellOrder) {
+                tokens[name] = $"Cell:{name}";
+            }
+            foreach (string name in ConnectorModeledCellOrder) {
+                tokens[name] = $"Cell:{name}";
+            }
+            return tokens;
+        }
+
+        private static string GetModeledCellToken(string cellName) =>
+            ModeledCellTokens.TryGetValue(cellName, out string? token) ? token : $"Cell:{cellName}";
+
         private static readonly string[] ShapeTransformCellNames = {
             "PinX",
             "PinY",

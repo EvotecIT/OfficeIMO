@@ -27,6 +27,28 @@ public sealed class PageSceneCoordinatorTests {
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
     [Fact]
+    public void RetainedImageWithOversizedDeclaredDimensionsUsesBoundedFallback() {
+        byte[] image = (byte[])TinyPng.Clone();
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(image.AsSpan(16, 4), 2_001);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(image.AsSpan(20, 4), 2_001);
+        uint crc = uint.MaxValue;
+        foreach (byte value in image.AsSpan(12, 17)) {
+            crc ^= value;
+            for (int bit = 0; bit < 8; bit++) crc = (crc >> 1) ^ ((crc & 1) == 0 ? 0U : 0xEDB88320U);
+        }
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(image.AsSpan(29, 4), ~crc);
+        Assert.True(OfficeImageReader.TryIdentifyByContent(image, null, out OfficeImageInfo metadata));
+        Assert.Equal(2_001, metadata.Width);
+        var drawing = new OfficeDrawing(100, 100).AddImage(image, "image/png",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 100, 100)));
+
+        IReadOnlyList<string> reasons = OfficeDrawingAvaloniaRenderer.AnalyzeRasterFallback(drawing);
+
+        Assert.Contains(reasons, reason => reason.Contains("image budget", StringComparison.Ordinal));
+        Assert.True(TestPdfPageScenes.Create(drawing: drawing).EstimatedBytes >= 2_001L * 2_001L * 4L);
+    }
+
+    [Fact]
     public async Task ReusesScenesAndEvictsLeastRecentlyUsedEntries() {
         int loads = 0;
         using var coordinator = new PageSceneCoordinator(

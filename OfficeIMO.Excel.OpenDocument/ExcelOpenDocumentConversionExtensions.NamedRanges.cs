@@ -170,7 +170,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         IReadOnlyList<OdsNamedRange> namedRanges) {
         var entries = new List<NamedRangeConversionEntry>();
         var outputNames = new Dictionary<string, string>(StringComparer.Ordinal);
-        var usedOutputNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        // Excel uses this name as the ownership marker for its hidden chart-data sheet.
+        var usedOutputNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
+            "_OfficeIMO_ChartDataOwner"
+        };
         int renamedCount = 0;
 
         foreach (OdsNamedRange named in namedRanges) {

@@ -22,8 +22,8 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
         Report = Snapshot(report);
         IOfficeConversionReport[] sourceReports = SnapshotSourceReports(sourceConversionReports);
-        ConversionReports = CreateConversionReports(sourceReports, report == null ? null : Report);
         Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
+        ConversionReports = CreateConversionReports(sourceReports, Report);
         Pipeline = pipeline ?? PdfPipelineReport.Empty();
         Serialization = serialization;
     }
@@ -66,6 +66,10 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
 
     /// <summary>True when any source or PDF conversion stage reported possible content loss.</summary>
     public bool HasLoss => ConversionReports.Any(static report => report.HasLoss);
+
+    /// <summary>All source and PDF-stage diagnostics with their original loss categories preserved.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        OfficeConversionFidelityDiagnostics.Flatten(ConversionReports);
 
     /// <summary>Returns this result or throws with diagnostics when the save failed.</summary>
     public PdfSaveResult RequireSuccess() {
@@ -134,6 +138,20 @@ public sealed class PdfSaveResult : IOfficeOutputResult {
             Pipeline,
             Serialization,
             sourceConversionReports);
+    }
+
+    internal PdfSaveResult WithOutputPath(string? outputPath) {
+        return new PdfSaveResult(
+            outputPath,
+            BytesWritten,
+            Diagnostics,
+            Exception,
+            Report,
+            Pipeline,
+            Serialization,
+            ConversionReports.Count == 0
+                ? Array.Empty<IOfficeConversionReport>()
+                : ConversionReports.Take(ConversionReports.Count - 1).ToArray());
     }
 
     private static PdfConversionReport Snapshot(PdfConversionReport? report) {

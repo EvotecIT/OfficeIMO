@@ -29,20 +29,28 @@ internal static class PdfWinAnsiEncoding {
         return Decode(bytes, int.MaxValue);
     }
 
-    public static string Decode(byte[] bytes, int maxOutputCharacters) {
+    public static string Decode(byte[] bytes, int maxOutputCharacters,
+        System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.LongLength > maxOutputCharacters) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.DecodedTextCharacters, maxOutputCharacters, bytes.LongLength);
         }
         var chars = new char[bytes.Length];
-        for (int i = 0; i < bytes.Length; i++) chars[i] = Map[bytes[i]];
-        return new string(chars);
+        for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            chars[i] = Map[bytes[i]];
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return PdfEncoding.CharArrayToStringCancellable(chars, cancellationToken);
     }
 
     public static char Decode(byte value) => Map[value];
 
-    public static byte[] Encode(string s) {
+    public static byte[] Encode(string s, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var bytes = new byte[s.Length];
         for (int i = 0; i < s.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             var ch = s[i];
             if (!TryGetByte(ch, out var b)) {
                 throw CreateUnsupportedCharacterException(s, i);
@@ -53,8 +61,10 @@ internal static class PdfWinAnsiEncoding {
         return bytes;
     }
 
-    public static bool CanEncode(string s, out int unsupportedIndex) {
+    public static bool CanEncode(string s, out int unsupportedIndex, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int i = 0; i < s.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!TryGetByte(s[i], out _)) {
                 unsupportedIndex = i;
                 return false;

@@ -281,6 +281,28 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
     /// <summary>Gets typed warnings for source content that is not editable in the selected projection.</summary>
     public IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> Warnings { get; }
 
+    /// <summary>Gets category-preserving projection diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
+        get {
+            var diagnostics = Warnings.Select(static warning => warning.ToFidelityDiagnostic()).ToList();
+            if (TableEntries.Any(static entry => entry.Truncated)) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "PDF_POWERPOINT_TABLES_TRUNCATED",
+                    "One or more detected PDF tables were truncated by configured projection limits.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.PowerPoint.Pdf"));
+            }
+            if (EditablePages.Any(static page => page.HasOmittedContent)) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "PDF_POWERPOINT_EDITABLE_CONTENT_OMITTED",
+                    "One or more supported PDF objects were omitted from editable slide projection.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.PowerPoint.Pdf"));
+            }
+            return diagnostics.AsReadOnly();
+        }
+    }
+
     /// <summary>Gets whether the source contained page or document content omitted by the selected projection.</summary>
     public bool HasOmittedPageContent => _hasOmittedPageContent;
 
@@ -296,7 +318,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
         VisualPages.Any(static page =>
             !page.Succeeded ||
             page.CapabilityDiagnostics.Any(static diagnostic =>
-                diagnostic.SupportLevel != OfficeIMO.Pdf.PdfRenderSupportLevel.Supported));
+                diagnostic.LossKind != OfficeConversionLossKind.None));
 
     private static IReadOnlyList<OfficeIMO.Pdf.PdfConversionWarning> CreateVisualPageWarnings(
         IReadOnlyList<PdfPowerPointVisualPageEntry> visualPages,
@@ -417,6 +439,7 @@ public sealed class PdfPowerPointConversionReport : IOfficeConversionReport {
                     diagnostic.SupportLevel == OfficeIMO.Pdf.PdfRenderSupportLevel.Unsupported
                         ? OfficeIMO.Pdf.PdfConversionWarningSeverity.Warning
                         : OfficeIMO.Pdf.PdfConversionWarningSeverity.Information,
+                    diagnostic.LossKind,
                     details: new Dictionary<string, string> {
                         ["pageNumber"] = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                         ["construct"] = diagnostic.Capability.Feature,

@@ -39,6 +39,8 @@ namespace OfficeIMO.Excel {
         public bool StopIfTrue { get; set; }
         /// <summary>Gets or sets the differential format id attached to the rule, when present.</summary>
         public uint? DifferentialFormatId { get; set; }
+        /// <summary>Gets whether the differential format contains only a solid fill with a direct RGB foreground color.</summary>
+        public bool IsDirectRgbSolidFillOnlyDifferentialStyle { get; internal set; }
         /// <summary>Gets or sets the resolved ARGB fill color from the rule's differential format, when present.</summary>
         public string? DifferentialFillColorArgb { get; set; }
         /// <summary>Gets or sets the resolved ARGB font color from the rule's differential format, when present.</summary>
@@ -49,6 +51,8 @@ namespace OfficeIMO.Excel {
         public bool? DifferentialFontItalic { get; set; }
         /// <summary>Gets or sets whether the rule's differential format requests underlined text, when present.</summary>
         public bool? DifferentialFontUnderline { get; set; }
+        /// <summary>Gets or sets whether the rule's differential format requests struck-through text, when present.</summary>
+        public bool? DifferentialFontStrike { get; set; }
         /// <summary>Gets or sets the rule's differential format font family, when present.</summary>
         public string? DifferentialFontName { get; set; }
         /// <summary>Gets or sets the rule's differential format font size in points, when present.</summary>

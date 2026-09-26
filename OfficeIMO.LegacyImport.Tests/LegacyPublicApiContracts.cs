@@ -16,6 +16,31 @@ public sealed class LegacyPublicApiContracts {
         AssertImportResult(typeof(LegacySpreadsheetImportResult));
     }
 
+    [Theory]
+    [InlineData(OfficeCompatibilityState.Approximated, OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeCompatibilityState.Rasterized, OfficeConversionLossKind.Approximation)]
+    [InlineData(OfficeCompatibilityState.Dropped, OfficeConversionLossKind.Omission)]
+    [InlineData(OfficeCompatibilityState.Blocked, OfficeConversionLossKind.Failure)]
+    public void TypedFindingLossDrivesStrictLegacyPolicy(
+        OfficeCompatibilityState state,
+        OfficeConversionLossKind expectedLossKind) {
+        var finding = new OfficeCompatibilityFinding(
+            "LEGACY_TYPED_LOSS",
+            "LegacyProjection",
+            "The source feature requires a lossy projection.",
+            state,
+            representsLoss: false);
+        var report = new OfficeLegacyImportReport(
+            "legacy-test",
+            OfficeLegacyImportQuality.Structured,
+            new[] { finding });
+
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(expectedLossKind, diagnostic.LossKind);
+        Assert.True(report.HasLoss);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
     [Fact]
     public void LegacyDetectionAndImportSupportTheSameInputKinds() {
         AssertImporterInputMatrix(typeof(LegacyWordImporter));

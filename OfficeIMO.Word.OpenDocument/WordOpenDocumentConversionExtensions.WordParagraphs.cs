@@ -7,12 +7,30 @@ public static partial class WordOpenDocumentConversionExtensions {
     private static void CopyParagraph(WordParagraphSnapshot source, OdtParagraph target,
         WordOpenDocumentConversionOptions options, OdfImageValidationBudget imageValidationBudget,
         ref int hyperlinks, ref int images, ref int unsupportedImages,
-        ref int bookmarks, ref int unsupportedFootnotes) {
+        ref int bookmarks, NoteMappingStats notes) {
         bool wrote = false;
         OdtParagraph first = target;
         target.PageBreakBefore = source.PageBreakBefore;
         ApplyWordParagraphFormatting(source, target);
-        foreach (WordRunSnapshot run in source.Runs) {
+        WordInlineFieldSnapshot[] fields = source.InlineFields.OrderBy(field => field.RunIndex).ToArray();
+        int fieldIndex = 0;
+        for (int runIndex = 0; runIndex <= source.Runs.Count; runIndex++) {
+            while (fieldIndex < fields.Length && fields[fieldIndex].RunIndex == runIndex) {
+                WordInlineFieldSnapshot field = fields[fieldIndex++];
+                if (field.IsHiddenInstructionContent) continue;
+                if (TryMapWordField(field, out OdtFieldKind kind)) {
+                    target.AddField(kind, field.ResultText).IsFixed = field.IsLocked;
+                    wrote = true;
+                } else if (field.ResultText.Length > 0) {
+                    if (!string.IsNullOrWhiteSpace(field.HyperlinkUri) || !string.IsNullOrWhiteSpace(field.HyperlinkAnchor)) {
+                        target.AddHyperlink(field.ResultText, field.HyperlinkUri ?? "#" + field.HyperlinkAnchor);
+                        hyperlinks++;
+                    } else target.AddText(field.ResultText);
+                    wrote = true;
+                }
+            }
+            if (runIndex == source.Runs.Count) break;
+            WordRunSnapshot run = source.Runs[runIndex];
             int start = 0;
             int imageIndex = 0;
             if (run.NonTextBreaks != null) {
@@ -31,7 +49,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             }
             AppendRunSegment(run, ref start, run.Text.Length, ref imageIndex, target, options,
                 imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages, ref wrote);
-            if (run.Footnote != null) unsupportedFootnotes++;
+            CopyWordNotes(run, target, notes);
         }
         if (!wrote && source.Text.Length > 0 && source.Runs.All(run => run.NonTextBreaks == null)) target.Text = source.Text;
         if (!string.IsNullOrWhiteSpace(source.BookmarkName)) { first.AddBookmark(source.BookmarkName!); bookmarks++; }

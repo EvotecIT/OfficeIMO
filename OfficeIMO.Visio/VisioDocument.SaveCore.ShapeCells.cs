@@ -25,7 +25,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, string> persistedIds,
             IReadOnlyDictionary<string, int> layerIndexes) {
             foreach (string cellName in ShapeModeledCellOrder) {
-                string token = $"Cell:{cellName}";
+                string token = GetModeledCellToken(cellName);
                 if (emittedTokens.Add(token)) {
                     TryWriteModeledShapeCell(writer, ns, shape, cellName, isGroup, width, height, locPinX, locPinY, persistedIds, layerIndexes);
                 }

@@ -3,8 +3,10 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfSyntax {
-    private static void ThrowIfEncryptedXrefStream(Dictionary<int, PdfIndirectObject> map) {
+    private static void ThrowIfEncryptedXrefStream(Dictionary<int, PdfIndirectObject> map,
+        CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? dictionary = entry.Value switch {
                 PdfDictionary directDictionary => directDictionary,
                 PdfStream stream => stream.Dictionary,
@@ -17,26 +19,28 @@ internal static partial class PdfSyntax {
         }
     }
 
-    internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null) {
-        if (TryGetTrailerRootReference(trailerRaw, out PdfReference rootReference) &&
+    internal static PdfDictionary? FindCatalog(Dictionary<int, PdfIndirectObject> map, string? trailerRaw = null, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (TryGetTrailerRootReference(trailerRaw, out PdfReference rootReference, cancellationToken) &&
             PdfObjectLookup.TryGet(map, rootReference, out var rootObject) &&
             rootObject.Value is PdfDictionary rootDictionary &&
             rootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
             return rootDictionary;
         }
 
-        if (TryGetXrefStreamRootReference(map, out rootReference) &&
+        if (TryGetXrefStreamRootReference(map, out rootReference, cancellationToken) &&
             PdfObjectLookup.TryGet(map, rootReference, out rootObject) &&
             rootObject.Value is PdfDictionary xrefRootDictionary &&
             xrefRootDictionary.Get<PdfName>("Type")?.Name == "Catalog") {
             return xrefRootDictionary;
         }
 
-        return FindCatalogByScan(map);
+        return FindCatalogByScan(map, cancellationToken);
     }
 
-    private static PdfDictionary? FindCatalogByScan(Dictionary<int, PdfIndirectObject> map) {
+    private static PdfDictionary? FindCatalogByScan(Dictionary<int, PdfIndirectObject> map, CancellationToken cancellationToken) {
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value is PdfDictionary dictionary &&
                 dictionary.Get<PdfName>("Type")?.Name == "Catalog") {
                 return dictionary;
@@ -46,14 +50,15 @@ internal static partial class PdfSyntax {
         return null;
     }
 
-    private static bool TryGetTrailerRootReference(string? trailerRaw, out PdfReference reference) {
-        return TryGetTrailerReference(trailerRaw, "Root", limits: null, out reference);
+    private static bool TryGetTrailerRootReference(string? trailerRaw, out PdfReference reference, CancellationToken cancellationToken) {
+        return TryGetTrailerReference(trailerRaw, "Root", limits: null, out reference, cancellationToken);
     }
 
-    private static bool TryGetXrefStreamRootReference(Dictionary<int, PdfIndirectObject> map, out PdfReference reference) {
+    private static bool TryGetXrefStreamRootReference(Dictionary<int, PdfIndirectObject> map, out PdfReference reference, CancellationToken cancellationToken) {
         reference = null!;
         int highestMatchingObjectNumber = int.MinValue;
         foreach (var entry in map.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.ObjectNumber <= highestMatchingObjectNumber) {
                 continue;
             }
@@ -90,9 +95,10 @@ internal static partial class PdfSyntax {
             pageDictionary.Get<PdfName>("Type")?.Name == "Page";
     }
 
-    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination) {
+    private static bool IsDestinationForKnownPage(Dictionary<int, PdfIndirectObject> map, PdfObject destination, CancellationToken cancellationToken = default) {
         var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (destination is PdfReference reference) {
                 if (!visitedReferences.Add((reference.ObjectNumber, reference.Generation)) ||
                     !PdfObjectLookup.TryGet(map, reference, out var indirect)) {
@@ -113,21 +119,22 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static bool IsSupportedGoToActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary) {
+    private static bool IsSupportedGoToActionDictionary(Dictionary<int, PdfIndirectObject> map, PdfDictionary dictionary, CancellationToken cancellationToken = default) {
         return dictionary.Items.Count == 2 &&
             dictionary.Get<PdfName>("S")?.Name == "GoTo" &&
             dictionary.Items.TryGetValue("D", out var destination) &&
-            IsDestinationForKnownPage(map, destination);
+            IsDestinationForKnownPage(map, destination, cancellationToken);
     }
 
-    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> map, PdfObject action) {
+    private static bool IsSupportedOutlineAction(Dictionary<int, PdfIndirectObject> map, PdfObject action, CancellationToken cancellationToken) {
         return ResolveObject(map, action) is PdfDictionary dictionary &&
-            IsSupportedGoToActionDictionary(map, dictionary);
+            IsSupportedGoToActionDictionary(map, dictionary, cancellationToken);
     }
 
-    private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary) {
+    private static bool IsSimpleCatalogDictionary(PdfDictionary dictionary, CancellationToken cancellationToken = default) {
         foreach (var value in dictionary.Items.Values) {
-            if (!IsSimpleCatalogValue(value)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsSimpleCatalogValue(value, cancellationToken)) {
                 return false;
             }
         }
@@ -135,7 +142,8 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool IsSimpleCatalogValue(PdfObject value) {
+    private static bool IsSimpleCatalogValue(PdfObject value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfNumber:
             case PdfBoolean:
@@ -145,7 +153,7 @@ internal static partial class PdfSyntax {
                 return true;
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!IsSimpleCatalogValue(item)) {
+                    if (!IsSimpleCatalogValue(item, cancellationToken)) {
                         return false;
                     }
                 }
@@ -156,7 +164,7 @@ internal static partial class PdfSyntax {
         }
     }
 
-    private static bool IsSupportedCatalogXmpMetadataStream(Dictionary<int, PdfIndirectObject> map, PdfObject value) {
+    private static bool IsSupportedCatalogXmpMetadataStream(Dictionary<int, PdfIndirectObject> map, PdfObject value, CancellationToken cancellationToken = default) {
         if (value is not PdfReference reference ||
             !PdfObjectLookup.TryGet(map, reference, out var indirect) ||
             indirect.Value is not PdfStream stream ||
@@ -166,11 +174,12 @@ internal static partial class PdfSyntax {
         }
 
         foreach (var entry in stream.Dictionary.Items) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.Equals(entry.Key, "Length", StringComparison.Ordinal)) {
                 continue;
             }
 
-            if (!IsSimpleCatalogValue(entry.Value)) {
+            if (!IsSimpleCatalogValue(entry.Value, cancellationToken)) {
                 return false;
             }
         }
@@ -181,7 +190,9 @@ internal static partial class PdfSyntax {
     private static bool IsSupportedCatalogMetadataGraph(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject value,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfNumber:
             case PdfBoolean:
@@ -199,10 +210,10 @@ internal static partial class PdfSyntax {
                 }
 
                 return !IsPageDictionary(indirect.Value) &&
-                    IsSupportedCatalogMetadataGraph(map, indirect.Value, visitedReferences);
+                    IsSupportedCatalogMetadataGraph(map, indirect.Value, visitedReferences, cancellationToken);
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences)) {
+                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences, cancellationToken)) {
                         return false;
                     }
                 }
@@ -214,7 +225,7 @@ internal static partial class PdfSyntax {
                 }
 
                 foreach (var item in dictionary.Items.Values) {
-                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences)) {
+                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences, cancellationToken)) {
                         return false;
                     }
                 }
@@ -226,7 +237,7 @@ internal static partial class PdfSyntax {
                 }
 
                 foreach (var item in stream.Dictionary.Items.Values) {
-                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences)) {
+                    if (!IsSupportedCatalogMetadataGraph(map, item, visitedReferences, cancellationToken)) {
                         return false;
                     }
                 }
@@ -240,7 +251,9 @@ internal static partial class PdfSyntax {
     private static bool IsSupportedOutlineGraph(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject value,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfNumber:
             case PdfBoolean:
@@ -258,10 +271,10 @@ internal static partial class PdfSyntax {
                 }
 
                 return IsPageDictionary(indirect.Value) ||
-                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences);
+                    IsSupportedOutlineGraph(map, indirect.Value, visitedReferences, cancellationToken);
             case PdfArray array:
                 foreach (var item in array.Items) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences)) {
+                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, cancellationToken)) {
                         return false;
                     }
                 }
@@ -277,12 +290,12 @@ internal static partial class PdfSyntax {
                 }
 
                 if (dictionary.Items.TryGetValue("A", out var action) &&
-                    !IsSupportedOutlineAction(map, action)) {
+                    !IsSupportedOutlineAction(map, action, cancellationToken)) {
                     return false;
                 }
 
                 foreach (var item in dictionary.Items.Values) {
-                    if (!IsSupportedOutlineGraph(map, item, visitedReferences)) {
+                    if (!IsSupportedOutlineGraph(map, item, visitedReferences, cancellationToken)) {
                         return false;
                     }
                 }
@@ -328,7 +341,7 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static bool IsSupportedPageLabelTree(Dictionary<int, PdfIndirectObject> map, PdfObject pageLabels) {
+    private static bool IsSupportedPageLabelTree(Dictionary<int, PdfIndirectObject> map, PdfObject pageLabels, CancellationToken cancellationToken) {
         PdfDictionary? tree = ResolveObject(map, pageLabels) as PdfDictionary;
         if (tree is null ||
             tree.Items.ContainsKey("Kids") ||
@@ -339,6 +352,7 @@ internal static partial class PdfSyntax {
         }
 
         for (int i = 0; i < nums.Items.Count; i += 2) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (ResolveObject(map, nums.Items[i]) is not PdfNumber pageIndex ||
                 pageIndex.Value < 0 ||
                 pageIndex.Value > int.MaxValue ||
@@ -348,7 +362,8 @@ internal static partial class PdfSyntax {
             }
 
             foreach (var value in labelDictionary.Items.Values) {
-                if (!IsSimpleCatalogValue(value)) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!IsSimpleCatalogValue(value, cancellationToken)) {
                     return false;
                 }
             }
@@ -360,9 +375,10 @@ internal static partial class PdfSyntax {
     private static bool IsSupportedNamedDestinationNameTree(
         Dictionary<int, PdfIndirectObject> map,
         PdfObject namedDestinations,
-        PdfReadLimits limits) {
+        PdfReadLimits limits,
+        CancellationToken cancellationToken) {
         int traversedNodes = 0;
-        return TryCollectNamedDestinationNameTreeEntries(map, namedDestinations, new HashSet<int>(), 0, limits, ref traversedNodes);
+        return TryCollectNamedDestinationNameTreeEntries(map, namedDestinations, new HashSet<int>(), 0, limits, ref traversedNodes, cancellationToken);
     }
 
     private static bool TryCollectNamedDestinationNameTreeEntries(
@@ -371,7 +387,9 @@ internal static partial class PdfSyntax {
         HashSet<int> visitedReferences,
         int depth,
         PdfReadLimits limits,
-        ref int traversedNodes) {
+        ref int traversedNodes,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth > limits.MaxNameTreeDepth) {
             return false;
         }
@@ -406,12 +424,13 @@ internal static partial class PdfSyntax {
             }
 
             for (int i = 0; i < names.Items.Count; i += 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (names.Items[i] is not PdfStringObj) {
                     return false;
                 }
 
                 PdfObject? destination = ResolveObject(map, names.Items[i + 1]);
-                if (destination is null || !IsDestinationForKnownPage(map, destination)) {
+                if (destination is null || !IsDestinationForKnownPage(map, destination, cancellationToken)) {
                     return false;
                 }
             }
@@ -423,11 +442,12 @@ internal static partial class PdfSyntax {
             }
 
             foreach (var kid in kids.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (kid is not PdfReference) {
                     return false;
                 }
 
-                if (!TryCollectNamedDestinationNameTreeEntries(map, kid, visitedReferences, depth + 1, limits, ref traversedNodes)) {
+                if (!TryCollectNamedDestinationNameTreeEntries(map, kid, visitedReferences, depth + 1, limits, ref traversedNodes, cancellationToken)) {
                     return false;
                 }
             }
@@ -520,6 +540,18 @@ internal static partial class PdfSyntax {
         ContainsAnyParsedPdfName(objects, names) ||
         (repairReport.HasIncompleteObjectCoverage && ContainsAnyPdfName(PdfEncoding.Latin1GetString(pdf), names));
 
+    internal static bool ContainsAnyDocumentPdfName(byte[] pdf, IReadOnlyDictionary<int, PdfIndirectObject> objects,
+        PdfRepairReport repairReport, CancellationToken cancellationToken, params string[] names) {
+        var requested = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string name in names) {
+            cancellationToken.ThrowIfCancellationRequested();
+            requested.Add(name);
+        }
+        if (CollectParsedPdfNames(objects, requested, cancellationToken).Count > 0) return true;
+        return repairReport.HasIncompleteObjectCoverage &&
+            ContainsAnyPdfName(PdfEncoding.Latin1GetStringCancellable(pdf, cancellationToken), cancellationToken, names);
+    }
+
     internal static bool ContainsAnyParsedPdfName(
         IReadOnlyDictionary<int, PdfIndirectObject> objects,
         params string[] names) {
@@ -551,7 +583,7 @@ internal static partial class PdfSyntax {
 
         foreach (PdfIndirectObject indirectObject in objects.Values) {
             cancellationToken.ThrowIfCancellationRequested();
-            VisitParsedPdfNames(indirectObject.Value, collect);
+            VisitParsedPdfNames(indirectObject.Value, collect, cancellationToken);
         }
 
         return found;
@@ -600,12 +632,14 @@ internal static partial class PdfSyntax {
             if (value is PdfArray array) {
                 if (!visitedContainers.Add(array)) continue;
                 for (int index = array.Items.Count - 1; index >= 0; index--) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     pending.Push(array.Items[index]);
                 }
                 continue;
             }
             if (value is not PdfDictionary dictionary || !visitedContainers.Add(dictionary)) continue;
             foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (MatchName(item.Key)) return matchedGroups;
                 pending.Push(item.Value);
             }
@@ -632,13 +666,15 @@ internal static partial class PdfSyntax {
         return options is null || exception is not PdfEncryptionException;
     }
 
-    private static bool VisitParsedPdfNames(PdfObject value, Func<string, bool> visit) {
+    private static bool VisitParsedPdfNames(PdfObject value, Func<string, bool> visit, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         switch (value) {
             case PdfName name:
                 return visit(name.Name);
             case PdfDictionary dictionary:
                 foreach (var item in dictionary.Items) {
-                    if (visit(item.Key) || VisitParsedPdfNames(item.Value, visit)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (visit(item.Key) || VisitParsedPdfNames(item.Value, visit, cancellationToken)) {
                         return true;
                     }
                 }
@@ -646,14 +682,15 @@ internal static partial class PdfSyntax {
                 return false;
             case PdfArray array:
                 foreach (PdfObject item in array.Items) {
-                    if (VisitParsedPdfNames(item, visit)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (VisitParsedPdfNames(item, visit, cancellationToken)) {
                         return true;
                     }
                 }
 
                 return false;
             case PdfStream stream:
-                return VisitParsedPdfNames(stream.Dictionary, visit);
+                return VisitParsedPdfNames(stream.Dictionary, visit, cancellationToken);
             default:
                 return false;
         }

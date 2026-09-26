@@ -746,6 +746,9 @@ namespace OfficeIMO.Word {
                             wordParagraph = new WordParagraph(document, paragraph, simpleField);
                             list.Add(wordParagraph);
                         }
+                    } else if (element is CustomXmlRun customXml) {
+                        foreach (OpenXmlElement child in customXml.ChildElements)
+                            ProcessElement(child, hyperlinkContext);
                     } else if (element is BookmarkStart bookmarkStart) {
                         wordParagraph = new WordParagraph(document, paragraph, bookmarkStart);
                         list.Add(wordParagraph);

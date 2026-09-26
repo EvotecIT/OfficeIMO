@@ -120,7 +120,8 @@ public static class OneNotePackageReader {
             if (!state.Options.RecurseSectionGroups) continue;
             string? childToc = FindChildToc(state.Entries.Keys, childPath);
             if (childToc == null) {
-                AddDiagnostic(notebook, "ONENOTE_TOC_GROUP_MISSING", "A packaged section group has no .onetoc2 entry.", state.SourcePath + "::" + childPath);
+                AddDiagnostic(notebook, "ONENOTE_TOC_GROUP_MISSING", "A packaged section group has no .onetoc2 entry.", state.SourcePath + "::" + childPath,
+                    global::OfficeIMO.OfficeConversionLossKind.Omission);
                 continue;
             }
             ReadToc(childToc, notebook, childGroup, state, depth + 1);
@@ -138,11 +139,13 @@ public static class OneNotePackageReader {
                     notebook,
                     exception is OneNoteFormatException format ? format.Code : "ONENOTE_PACKAGE_SECTION_READ",
                     "A packaged section could not be read: " + exception.Message,
-                    state.SourcePath + "::" + path);
+                    state.SourcePath + "::" + path,
+                    global::OfficeIMO.OfficeConversionLossKind.Omission);
             }
         } else {
             section = new OneNoteSection();
-            if (state.Options.LoadSectionContent) AddDiagnostic(notebook, "ONENOTE_TOC_SECTION_MISSING", "A section referenced by the packaged TOC is missing.", state.SourcePath + "::" + path);
+            if (state.Options.LoadSectionContent) AddDiagnostic(notebook, "ONENOTE_TOC_SECTION_MISSING", "A section referenced by the packaged TOC is missing.", state.SourcePath + "::" + path,
+                global::OfficeIMO.OfficeConversionLossKind.Omission);
         }
         section.Id = entry.Id;
         if (string.IsNullOrWhiteSpace(section.Name)) section.Name = Path.GetFileNameWithoutExtension(entry.Name);
@@ -187,8 +190,15 @@ public static class OneNotePackageReader {
                 .FirstOrDefault();
     }
 
-    private static void AddDiagnostic(OneNoteNotebook notebook, string code, string message, string sourcePath) {
-        notebook.Diagnostics.Add(new OneNoteDiagnostic { Code = code, Message = message, Severity = OneNoteDiagnosticSeverity.Warning, SourcePath = sourcePath });
+    private static void AddDiagnostic(OneNoteNotebook notebook, string code, string message, string sourcePath,
+        global::OfficeIMO.OfficeConversionLossKind lossKind = global::OfficeIMO.OfficeConversionLossKind.Approximation) {
+        notebook.Diagnostics.Add(new OneNoteDiagnostic {
+            Code = code,
+            Message = message,
+            Severity = OneNoteDiagnosticSeverity.Warning,
+            SourcePath = sourcePath,
+            LossKind = lossKind
+        });
     }
 
     private static void ValidateOptions(OneNoteNotebookReaderOptions options) {

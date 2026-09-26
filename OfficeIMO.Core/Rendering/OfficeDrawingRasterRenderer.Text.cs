@@ -3,11 +3,13 @@ using System;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeDrawingRasterRenderer {
+    private const long MaximumSingleTransformedTextIntermediatePixels = 16_000_000L;
+
     private static void RenderTransformedPositionedText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
         canvas.CancellationToken.ThrowIfCancellationRequested();
         double left = 0D, top = 0D, right = text.Width * scale, bottom = text.Height * scale;
         double sourceSize = Math.Max(1D, text.Font.Size * scale);
-        string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
         for (int index = 0; index < lines.Length; index++) {
             double offset = index * lineHeight;
@@ -15,10 +17,12 @@ public static partial class OfficeDrawingRasterRenderer {
             if (lines[index].Length == 0) continue;
             double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
                 ? text.TextAdvanceWidth.Value * scale
-                : Math.Max(.001D, canvas.MeasureText(lines[index], sourceSize * text.BaselineScale, text.Font.FamilyName, text.Font.Style));
+                : Math.Max(.001D, canvas.MeasurePositionedText(lines[index], sourceSize * text.BaselineScale,
+                    text.Font.FamilyName, text.Font.Style, text.FeatureSettings, text.TextDirection));
             var bounds = canvas.MeasurePositionedTextBounds(lines[index], 0D, offset + text.BaselineOffset * scale,
                 text.Width * scale, text.Height * scale - offset, sourceSize * text.BaselineScale, text.Font, advance,
-                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize, text.UnderlineStyle, text.StrikethroughStyle);
+                text.Alignment, text.FeatureSettings, text.FontPalette, sourceSize, text.UnderlineStyle, text.StrikethroughStyle,
+                text.TextDirection);
             left = Math.Min(left, bounds.Left); top = Math.Min(top, bounds.Top);
             right = Math.Max(right, bounds.Right); bottom = Math.Max(bottom, bounds.Bottom);
         }
@@ -31,11 +35,15 @@ public static partial class OfficeDrawingRasterRenderer {
             left -= 1D; top -= 1D; right += 1D; bottom += 1D;
         }
         _ = OfficeRasterExportPlanner.Resolve(right - left, bottom - top, OfficeImageExportFormat.Png,
-            new OfficeImageExportOptions { MaximumRasterPixels = maximumRasterPixels, RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
+            new OfficeImageExportOptions { MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels), RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw });
+        canvas.ChargeTransformedTextIntermediatePixels(
+            checked((long)Math.Max(1D, Math.Ceiling(right - left)) * (long)Math.Max(1D, Math.Ceiling(bottom - top))), maximumRasterPixels);
         var layer = new OfficeRasterImage(Math.Max(1, (int)(right - left)), Math.Max(1, (int)(bottom - top)));
         var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
             textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
             diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource, cancellationToken: canvas.CancellationToken);
+        local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
+        local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
         RenderPositionedTextLines(local, text, scale, -left, -top, text.Width * scale, text.Height * scale);
         var frame = new OfficeImageFrameTransform(text.RotationDegrees, text.RotationCenterX * scale, text.RotationCenterY * scale,
             text.FlipHorizontal, text.FlipVertical);
@@ -48,7 +56,7 @@ public static partial class OfficeDrawingRasterRenderer {
         double sourceSize = Math.Max(1D, text.Font.Size * scale);
         double size = sourceSize * text.BaselineScale;
         double lineHeight = (text.LineHeight ?? text.Font.Size * 1.2D) * scale;
-        string[] lines = text.Text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        string[] lines = text.RasterText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         for (int index = 0; index < lines.Length; index++) {
             double offset = index * lineHeight;
             if (offset >= height) break;
@@ -56,12 +64,68 @@ public static partial class OfficeDrawingRasterRenderer {
             if (value.Length == 0) continue;
             double advance = lines.Length == 1 && text.TextAdvanceWidth.HasValue
                 ? text.TextAdvanceWidth.Value * scale
-                : Math.Max(.001D, canvas.MeasureText(value, size, text.Font.FamilyName, text.Font.Style));
+                : Math.Max(.001D, canvas.MeasurePositionedText(value, size, text.Font.FamilyName,
+                    text.Font.Style, text.FeatureSettings, text.TextDirection));
             canvas.DrawPositionedText(value, x, y + offset + text.BaselineOffset * scale, width, height - offset,
                 text.Color ?? OfficeColor.Black, size, text.Alignment, text.Font.Style, text.Font.FamilyName, advance,
                 text.UnderlineStyle, text.StrikethroughStyle, text.DecorationColor, text.FeatureSettings, text.FontPalette,
-                baselineFontSize: sourceSize);
+                baselineFontSize: sourceSize, textDirection: text.TextDirection);
         }
+    }
+
+    private static bool TryRenderTransformedVerticalText(
+        OfficeRasterCanvas canvas,
+        OfficeDrawingText text,
+        double scale,
+        double contentX,
+        double contentY,
+        double contentWidth,
+        double contentHeight,
+        long maximumRasterPixels) {
+        _ = OfficeRasterExportPlanner.Resolve(contentWidth, contentHeight, OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions {
+                MaximumRasterPixels = Math.Min(maximumRasterPixels, MaximumSingleTransformedTextIntermediatePixels),
+                RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
+            });
+        long layerPixels = checked((long)Math.Max(1D, Math.Ceiling(contentWidth)) * (long)Math.Max(1D, Math.Ceiling(contentHeight)));
+        canvas.ChargeTransformedTextIntermediatePixels(layerPixels, maximumRasterPixels);
+        var layer = new OfficeRasterImage(Math.Max(1, (int)Math.Ceiling(contentWidth)), Math.Max(1, (int)Math.Ceiling(contentHeight)));
+        var local = new OfficeRasterCanvas(layer, font: canvas.OutlineFont, fonts: canvas.Fonts,
+            textShapingProvider: canvas.TextShapingProvider, textShapingLanguage: canvas.TextShapingLanguage,
+            diagnosticSink: canvas.DiagnosticSink, diagnosticSource: canvas.DiagnosticSource,
+            cancellationToken: canvas.CancellationToken);
+        local.ShareTransformedTextBudget(canvas.TransformedTextBudget);
+        local.PreservePaintedGlyphOrder = canvas.PreservePaintedGlyphOrder;
+        using (local.PushClipRectangle(0D, 0D, contentWidth, contentHeight)) {
+            if (!local.TryDrawVerticalText(
+                text.RasterText,
+                0D,
+                0D,
+                contentWidth,
+                contentHeight,
+                text.Color ?? OfficeColor.Black,
+                text.Font.Size * scale,
+                text.Font.Style,
+                text.Font.FamilyName,
+                text.FeatureSettings,
+                text.FontPalette,
+                text.UnderlineStyle,
+                text.StrikethroughStyle,
+                text.DecorationColor)) {
+                canvas.ReleaseTransformedTextIntermediatePixels(layerPixels);
+                return false;
+            }
+        }
+
+        var frame = new OfficeImageFrameTransform(
+            text.RotationDegrees,
+            text.RotationCenterX * scale,
+            text.RotationCenterY * scale,
+            text.FlipHorizontal,
+            text.FlipVertical);
+        OfficeTransform transform = OfficeTransform.Translate(contentX, contentY).Then(frame.CreateDestinationTransform());
+        canvas.DrawAffineImage(layer, transform, 1D, OfficeBlendMode.Normal, interpolate: true);
+        return true;
     }
 
     private static void RenderText(OfficeRasterCanvas canvas, OfficeDrawingText text, double scale, long maximumRasterPixels) {
@@ -72,6 +136,42 @@ public static partial class OfficeDrawingRasterRenderer {
         double contentHeight = (text.Height * scale) - scaledPadding.Vertical;
         if (contentWidth <= 0D || contentHeight <= 0D) {
             return;
+        }
+
+        if (text.TextDirection == OfficeTextDirection.TopToBottom) {
+            if (text.HasFrameTransform) {
+                if (TryRenderTransformedVerticalText(
+                    canvas,
+                    text,
+                    scale,
+                    contentX,
+                    contentY,
+                    contentWidth,
+                    contentHeight,
+                    maximumRasterPixels)) {
+                    return;
+                }
+            } else {
+                using (canvas.PushClipRectangle(contentX, contentY, contentWidth, contentHeight)) {
+                    if (canvas.TryDrawVerticalText(
+                        text.RasterText,
+                        contentX,
+                        contentY,
+                        contentWidth,
+                        contentHeight,
+                        text.Color ?? OfficeColor.Black,
+                        text.Font.Size * scale,
+                        text.Font.Style,
+                        text.Font.FamilyName,
+                        text.FeatureSettings,
+                        text.FontPalette,
+                        text.UnderlineStyle,
+                        text.StrikethroughStyle,
+                        text.DecorationColor)) {
+                        return;
+                    }
+                }
+            }
         }
 
         if (text.HasFrameTransform && text.TextAdvanceWidth.HasValue && !text.WrapText && !text.ShrinkToFit &&
@@ -85,6 +185,7 @@ public static partial class OfficeDrawingRasterRenderer {
             text.StrikethroughStyle == OfficeTextDecorationStyle.None;
         bool supportsPositionedPath = !text.WrapText && !text.ShrinkToFit && !text.StackedText && !text.HasFrameTransform && text.VerticalAlignment == OfficeTextVerticalAlignment.Top && !text.HasPadding;
         if ((text.TextAdvanceWidth.HasValue ||
+             text.OverflowBehavior == OfficeTextOverflowBehavior.Clip ||
              text.BaselineScale != 1D || text.BaselineOffset != 0D ||
              !text.FeatureSettings.IsDefault ||
              !string.Equals(text.FontPalette, "normal", StringComparison.OrdinalIgnoreCase)) && supportsPositionedPath) {
@@ -92,9 +193,9 @@ public static partial class OfficeDrawingRasterRenderer {
             return;
         }
 
-        if (supportsLegacyFastPath && supportsPositionedPath && text.Text.IndexOfAny(new[] { '\r', '\n' }) < 0) {
-            canvas.DrawText(
-                text.Text,
+        if (supportsLegacyFastPath && supportsPositionedPath && text.RasterText.IndexOfAny(new[] { '\r', '\n' }) < 0) {
+            canvas.DrawBaselineText(
+                text.RasterText,
                 contentX,
                 contentY,
                 contentWidth,
@@ -116,7 +217,7 @@ public static partial class OfficeDrawingRasterRenderer {
         Func<string?, double, double> measure = (value, size) => canvas.MeasureText(value, size, text.Font.FamilyName, text.Font.Style);
         OfficeTextBlockLayout layout = text.StackedText
             ? OfficeTextLayoutEngine.LayoutStackedTextBlockCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -127,7 +228,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 (value, size) => canvas.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : text.ShrinkToFit && text.WrapText
             ? OfficeTextLayoutEngine.FitWrappedTextCore(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,
@@ -137,7 +238,7 @@ public static partial class OfficeDrawingRasterRenderer {
                 paragraphIndent,
                 (value, size) => canvas.MeasureTextPaintBounds(value, size, text.Font.FamilyName, text.Font.Style))
             : OfficeTextLayoutEngine.LayoutTextBlock(
-                text.Text,
+                text.RasterText,
                 fontSize,
                 contentWidth,
                 contentHeight,

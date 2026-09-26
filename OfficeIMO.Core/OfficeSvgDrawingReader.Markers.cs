@@ -41,6 +41,7 @@ public static partial class OfficeSvgDrawingReader {
 
         var layer = new OfficeDrawing(drawing.Width, drawing.Height);
         layer.Fonts.AddRange(drawing.Fonts);
+        var layerBudget = references.CaptureSurfaceBudget();
         bool rendered = false;
         foreach (SvgMarkerPlacement placement in placements) {
             string? reference = placement.Kind switch {
@@ -49,12 +50,24 @@ public static partial class OfficeSvgDrawingReader {
                 _ => style.MarkerEnd
             };
             if (reference == null) continue;
+            var placementBudget = references.CaptureSurfaceBudget();
             if (!TryRenderSvgMarker(reference, placement, elementTransform, layer, style, paintServers, references,
                     maximumElements, maximumViewportDimension, maximumViewportPixels, depth,
-                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported)) continue;
+                    ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported)) {
+                references.RestoreSurfaceBudget(placementBudget);
+                continue;
+            }
             rendered = true;
         }
-        if (!rendered) return false;
+        if (!rendered) {
+            references.RestoreSurfaceBudget(layerBudget);
+            return false;
+        }
+        if (!references.TryChargeIntermediateSurface(drawing.Width, drawing.Height)) {
+            references.RestoreSurfaceBudget(layerBudget);
+            unsupported++;
+            return false;
+        }
         markerLayer = layer;
         return true;
     }
@@ -117,6 +130,10 @@ public static partial class OfficeSvgDrawingReader {
                 unsupported++;
                 return false;
             }
+            if (!IsSupportedSvgViewport(viewBox[2], viewBox[3], maximumViewportDimension, maximumViewportPixels)) {
+                unsupported++;
+                return false;
+            }
             if (!TryParsePreserveAspectRatio(marker.Attribute("preserveAspectRatio")?.Value, out SvgAspectAlignment alignment, out bool slice)
                 || !TryMarkerCoordinate(marker.Attribute("refX")?.Value, viewBox[2], 0D, out double refX)
                 || !TryMarkerCoordinate(marker.Attribute("refY")?.Value, viewBox[3], 0D, out double refY)
@@ -136,6 +153,10 @@ public static partial class OfficeSvgDrawingReader {
                 maximumElements, maximumViewportDimension, maximumViewportPixels, depth + 1,
                 ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             if (scene.Elements.Count == 0) return false;
+            if (!references.TryChargeMarkerScene(viewBox[2], viewBox[3])) {
+                unsupported++;
+                return false;
+            }
 
             OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], markerWidth, markerHeight, alignment, slice);
             OfficePoint refPoint = viewportTransform.TransformPoint(new OfficePoint(refX - viewBox[0], refY - viewBox[1]));

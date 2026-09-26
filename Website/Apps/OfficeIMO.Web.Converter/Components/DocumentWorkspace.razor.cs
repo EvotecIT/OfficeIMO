@@ -21,12 +21,16 @@ public partial class DocumentWorkspace {
     private bool IsPdfWorkspace { get; set; }
     private bool IsProvenanceWorkspace { get; set; }
     private bool IsFocused { get; set; }
+    private bool IsHome { get; set; }
+    private string PageHeading => IsHome ? "What would you like to do?" : ActiveContent.Title;
+    private string PageSummary => IsHome ? "Convert a document, organize a PDF, or inspect file origin data. Choose a tool to get started." : ActiveContent.Summary;
+    private string PageSeoTitle => IsHome ? "Browser document tools | OfficeIMO" : ActiveContent.SeoTitle;
     private ConversionRoute ActiveRoute { get; set; } = ConversionRouteCatalog.Default;
     private PdfToolDefinition ActiveTool { get; set; } = PdfToolCatalog.Default;
     private BrowserToolContent ActiveContent => IsProvenanceWorkspace
         ? BrowserToolContentCatalog.Provenance
         : IsPdfWorkspace ? BrowserToolContentCatalog.For(ActiveTool) : BrowserToolContentCatalog.For(ActiveRoute);
-    private string WorkspaceId => IsProvenanceWorkspace ? "provenance" : IsPdfWorkspace ? "pdf" : "convert";
+    private string WorkspaceId => IsHome ? "home" : IsProvenanceWorkspace ? "provenance" : IsPdfWorkspace ? "pdf" : "convert";
     private string LibraryId => IsPdfWorkspace ? "pdf" : ActiveRoute.Source switch {
         "DOCX" => "word", "XLSX" => "excel", "PPTX" => "powerpoint", "PDF" => "pdf", "MD" => "markdown", _ => "html"
     };
@@ -45,6 +49,7 @@ public partial class DocumentWorkspace {
         var query = System.Web.HttpUtility.ParseQueryString(new Uri(Navigation.Uri).Query);
         IsPdfWorkspace = string.Equals(query["workspace"], "pdf", StringComparison.OrdinalIgnoreCase);
         IsProvenanceWorkspace = string.Equals(query["workspace"], "provenance", StringComparison.OrdinalIgnoreCase);
+        IsHome = !IsPdfWorkspace && !IsProvenanceWorkspace && string.IsNullOrWhiteSpace(query["route"]);
         ActiveRoute = ConversionRouteCatalog.Find(query["route"]);
         ActiveTool = PdfToolCatalog.Find(query["tool"]);
         string key = WorkspaceId + ":" + (IsPdfWorkspace ? ActiveTool.Id : IsProvenanceWorkspace ? "" : ActiveRoute.Id);
@@ -71,6 +76,12 @@ public partial class DocumentWorkspace {
     [JSInvokable]
     public Task RestoreSelection(string? workspace, string? route, string? tool) {
         if (!_disposed) {
+            if (workspace == "home" || string.IsNullOrEmpty(workspace) && string.IsNullOrEmpty(route) && string.IsNullOrEmpty(tool)) {
+                Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
+                    ["workspace"] = null, ["route"] = null, ["tool"] = null
+                }), replace: true);
+                return Task.CompletedTask;
+            }
             if (string.Equals(workspace, "provenance", StringComparison.OrdinalIgnoreCase)) {
                 IsMenuOpen = false;
                 Navigation.NavigateTo(Navigation.GetUriWithQueryParameters(new Dictionary<string, object?> {
@@ -91,7 +102,7 @@ public partial class DocumentWorkspace {
         }
         if (_module is not null && _notifyLocation) {
             _notifyLocation = false;
-            await _module.InvokeVoidAsync("publishSelection", WorkspaceId, IsPdfWorkspace || IsProvenanceWorkspace ? null : ActiveRoute.Id, IsPdfWorkspace ? ActiveTool.Id : null, ActiveContent.SeoTitle, _initialLocation);
+            await _module.InvokeVoidAsync("publishSelection", IsHome ? null : WorkspaceId, IsHome || IsPdfWorkspace || IsProvenanceWorkspace ? null : ActiveRoute.Id, IsPdfWorkspace ? ActiveTool.Id : null, PageSeoTitle, _initialLocation);
             _initialLocation = false;
         }
     }

@@ -1484,6 +1484,13 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(diagnostic.Code, warning.Code);
         Assert.Equal(diagnostic.Message, warning.Message);
         Assert.Equal(PdfConversionWarningSeverity.Error, warning.Severity);
+        Assert.Same(result.Report, Assert.Single(result.ConversionReports));
+        OfficeConversionFidelityDiagnostic failure = Assert.Single(result.FidelityDiagnostics);
+        Assert.Equal(OfficeConversionLossKind.Failure, failure.LossKind);
+        Assert.Equal(warning.Code, failure.Code);
+        Assert.Equal("PdfParagraph", failure.Location);
+        Assert.True(result.HasLoss);
+        Assert.Throws<InvalidOperationException>(result.RequireNoLoss);
         Assert.Equal("U+2603", warning.Details["codePoint"]);
         Assert.Equal("PdfParagraph[0].Run[0]", warning.Details["location"]);
         Assert.Equal("0", warning.Details["runIndex"]);

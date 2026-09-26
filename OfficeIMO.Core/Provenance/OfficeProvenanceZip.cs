@@ -101,7 +101,10 @@ internal static class OfficeProvenanceZip {
             if (embeddedCount > options.MaxEmbeddedAssets) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             OfficeProvenanceReport nested;
             try {
-                nested = OfficeProvenanceInspector.InspectCore(asset, entryName, CreateNestedOptions(options));
+                nested = OfficeProvenanceInspector.InspectCore(
+                    asset,
+                    entryName,
+                    CreateNestedOptions(options, options.MaxExpandedContainerBytes - expandedBytes));
             } catch (Exception exception) when (
                 (exception is InvalidDataException || exception is XmlException) &&
                 !OfficeProvenanceLimitException.Is(exception)) {
@@ -175,13 +178,17 @@ internal static class OfficeProvenanceZip {
             if (embeddedCount > Math.Min(options.MaxEmbeddedAssets, options.Limits.MaxEmbeddedAssets)) throw new InvalidDataException("ZIP package exceeds the configured embedded-asset limit.");
             OfficeProvenanceRemovalResult nested;
             try {
-                nested = OfficeProvenanceRemover.Remove(asset, entryName, CreateNestedRemovalOptions(options));
+                nested = OfficeProvenanceRemover.Remove(
+                    asset,
+                    entryName,
+                    CreateNestedRemovalOptions(options, options.Limits.MaxExpandedContainerBytes - inspectionBytes));
             } catch (Exception exception) when (
                 (exception is InvalidDataException || exception is XmlException) &&
                 !OfficeProvenanceLimitException.Is(exception)) {
                 // Malformed embedded assets are preserved; document-level diagnostics are available during inspection.
                 continue;
             }
+            ReserveExpandedBytes(ref inspectionBytes, nested.ExpandedInspectionBytes, options.Limits.MaxExpandedContainerBytes);
             if (!nested.WasChanged) continue;
             if (nested.Changes.Count > options.Limits.MaxCarriers - changes.Count) {
                 throw new InvalidDataException($"The asset exceeds the configured carrier limit of {options.Limits.MaxCarriers}.");
@@ -406,6 +413,7 @@ internal static class OfficeProvenanceZip {
         CancellationToken cancellationToken = default) {
         if (data == null) throw new ArgumentNullException(nameof(data));
         if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
+        if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
@@ -418,6 +426,7 @@ internal static class OfficeProvenanceZip {
         }
 
         var outputEntries = new List<OfficeProvenanceZipWriteEntry>();
+        long replacementReadBytes = 0;
         foreach (ZipArchiveEntry entry in input.Entries
             .OrderByDescending(candidate => entryMetadata[candidate].Name.Equals("mimetype", StringComparison.Ordinal))) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -428,6 +437,11 @@ internal static class OfficeProvenanceZip {
                 if (replace == null || entry.Length > maximumReplacementBytes || entry.Length > int.MaxValue) {
                     throw new InvalidDataException("A package metadata entry exceeds its configured rewrite limit.");
                 }
+                if (entry.Length > maximumReplacementBytes - replacementReadBytes) {
+                    throw OfficeProvenanceLimitException.Create(
+                        "Package metadata reads exceed the configured replacement-read limit.");
+                }
+                replacementReadBytes += entry.Length;
                 replacement = replace(entryName, ReadEntry(entry, (int)entry.Length, cancellationToken));
                 if (replacement.LongLength > maximumReplacementBytes) {
                     throw new InvalidDataException("A rewritten package metadata entry exceeds its configured rewrite limit.");
@@ -524,6 +538,9 @@ internal static class OfficeProvenanceZip {
         return GetEntryMetadata(data, archive, out _);
     }
 
+    internal static Dictionary<ZipArchiveEntry, string> GetValidatedEntryNames(byte[] data, ZipArchive archive) =>
+        GetEntryMetadata(data, archive).ToDictionary(pair => pair.Key, pair => pair.Value.Name);
+
     private static Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> GetEntryMetadata(
         byte[] data,
         ZipArchive archive,
@@ -603,6 +620,9 @@ internal static class OfficeProvenanceZip {
             byte[] rawName = new byte[nameLength];
             if (nameLength != 0) Buffer.BlockCopy(data, cursor + 46, rawName, 0, nameLength);
             string decodedName = DecodeZipEntryName(rawName, flags, centralExtraField);
+            if (!IsSafeOutputEntryName(decodedName)) {
+                throw new InvalidDataException("A ZIP entry name is unsafe for package output.");
+            }
             string rawNameKey = Convert.ToBase64String(rawName);
             if (decodedNames.TryGetValue(decodedName, out string? priorRawName) && priorRawName != rawNameKey) {
                 throw new InvalidDataException("ZIP entries resolve to the same decoded name.");
@@ -667,6 +687,24 @@ internal static class OfficeProvenanceZip {
         }
         if (TryReadUnicodePath(extraField, rawName, out string? unicodeName)) return unicodeName!;
         return new string(DecodeCp437(rawName));
+    }
+
+    private static bool IsSafeOutputEntryName(string name) {
+        if (name.Length == 0 || name[0] == '/' || name.IndexOf('\\') >= 0 ||
+            name.Length >= 2 && char.IsLetter(name[0]) && name[1] == ':') {
+            return false;
+        }
+        foreach (char value in name) {
+            if (char.IsControl(value)) return false;
+        }
+        string[] segments = name.Split('/');
+        for (int index = 0; index < segments.Length; index++) {
+            string segment = segments[index];
+            if (segment is "." or ".." || segment.Length == 0 && index != segments.Length - 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static bool TryReadUnicodePath(byte[] extraField, byte[] rawName, out string? name) {
@@ -1062,18 +1100,20 @@ internal static class OfficeProvenanceZip {
             OfficeProvenanceAssetFormat.Tiff or OfficeProvenanceAssetFormat.Svg;
     }
 
-    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source) => new OfficeProvenanceOptions {
+    // Nested assets receive only the container's remaining budget; the container then charges what they used.
+    // Option validation requires a positive limit, and the container's own reservation still rejects any overrun.
+    private static OfficeProvenanceOptions CreateNestedOptions(OfficeProvenanceOptions source, long remainingExpandedBytes) => new OfficeProvenanceOptions {
         MaxAssetBytes = source.MaxAssetBytes,
         MaxManifestBytes = source.MaxManifestBytes,
         MaxCarriers = source.MaxCarriers,
         MaxContainerEntries = source.MaxContainerEntries,
-        MaxExpandedContainerBytes = source.MaxExpandedContainerBytes,
+        MaxExpandedContainerBytes = Math.Max(1, remainingExpandedBytes),
         CancellationToken = source.CancellationToken,
         ProcessEmbeddedAssets = false,
         MaxEmbeddedAssets = source.MaxEmbeddedAssets
     };
 
-    private static OfficeProvenanceRemovalOptions CreateNestedRemovalOptions(OfficeProvenanceRemovalOptions source) {
+    private static OfficeProvenanceRemovalOptions CreateNestedRemovalOptions(OfficeProvenanceRemovalOptions source, long remainingExpandedBytes) {
         var nested = new OfficeProvenanceRemovalOptions {
             RemoveC2paManifests = source.RemoveC2paManifests,
             RemoveExternalC2paReferences = source.RemoveExternalC2paReferences,
@@ -1088,7 +1128,7 @@ internal static class OfficeProvenanceZip {
         nested.Limits.MaxManifestBytes = source.Limits.MaxManifestBytes;
         nested.Limits.MaxCarriers = source.Limits.MaxCarriers;
         nested.Limits.MaxContainerEntries = source.Limits.MaxContainerEntries;
-        nested.Limits.MaxExpandedContainerBytes = source.Limits.MaxExpandedContainerBytes;
+        nested.Limits.MaxExpandedContainerBytes = Math.Max(1, remainingExpandedBytes);
         nested.Limits.CancellationToken = source.Limits.CancellationToken;
         nested.Limits.ProcessEmbeddedAssets = false;
         nested.Limits.MaxEmbeddedAssets = source.Limits.MaxEmbeddedAssets;

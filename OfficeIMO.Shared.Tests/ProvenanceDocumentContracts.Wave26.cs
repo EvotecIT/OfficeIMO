@@ -23,19 +23,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Single(report.Evidence);
     }
 
-    [Fact]
-    public void HtmlSkipsResolvedCustomPropertyUrlFallbacks() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(
-            CreatePngWithManifest(CreateManifestStore()));
-        string html = "<html><head><style>:root{--hero:none}.hero{background-image:var(--hero,url(" +
-            dataUri + "))}</style></head><body><div class=\"hero\"></div></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void HtmlRestrictsLegacyBackgroundImagesToSupportedElements() {

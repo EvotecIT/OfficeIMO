@@ -26,6 +26,19 @@ internal static partial class OdfValidator {
 
         var byKey = definitions.GroupBy(item => item.Family + "\0" + item.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+        var namedStyles = new HashSet<string>(StringComparer.Ordinal);
+        if (package.ContainsEntry("styles.xml")) {
+            XElement? commonStyles = package.GetXml("styles.xml").Root?.Element(OdfNamespaces.Office + "styles");
+            if (commonStyles != null) {
+                foreach (XElement style in commonStyles.Elements(OdfNamespaces.Style + "style")) {
+                    string? name = (string?)style.Attribute(OdfNamespaces.Style + "name");
+                    string? family = (string?)style.Attribute(OdfNamespaces.Style + "family");
+                    if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(family)) {
+                        namedStyles.Add(family + "\0" + name);
+                    }
+                }
+            }
+        }
         foreach (var definition in definitions) {
             if (string.IsNullOrWhiteSpace(definition.Parent)) continue;
             string parentKey = definition.Family + "\0" + definition.Parent;
@@ -54,7 +67,28 @@ internal static partial class OdfValidator {
 
         foreach (string partPath in new[] { "styles.xml", "content.xml" }) {
             if (!package.ContainsEntry(partPath)) continue;
-            foreach (XAttribute reference in package.GetXml(partPath).Descendants().Attributes().Where(IsStyleReference)) {
+            XDocument document = package.GetXml(partPath);
+            foreach (XElement style in document.Descendants(OdfNamespaces.Style + "style")) {
+                string family = (string?)style.Attribute(OdfNamespaces.Style + "family") ?? string.Empty;
+                foreach (XElement map in style.Elements(OdfNamespaces.Style + "map")) {
+                    string? condition = (string?)map.Attribute(OdfNamespaces.Style + "condition");
+                    if (string.IsNullOrWhiteSpace(condition)) {
+                        diagnostics.Add(new OdfDiagnostic("ODF205", OdfDiagnosticSeverity.Error,
+                            "Conditional style map has no condition.", partPath));
+                    }
+                    string? baseCellAddress = (string?)map.Attribute(OdfNamespaces.Style + "base-cell-address");
+                    if (!OdfStyleMap.IsValidBaseCellAddress(baseCellAddress)) {
+                        diagnostics.Add(new OdfDiagnostic("ODF206", OdfDiagnosticSeverity.Error,
+                            $"Conditional style map base cell address '{baseCellAddress}' must identify one sheet-qualified OpenDocument cell.", partPath));
+                    }
+                    string? target = (string?)map.Attribute(OdfNamespaces.Style + "apply-style-name");
+                    if (string.IsNullOrWhiteSpace(target) || !namedStyles.Contains(family + "\0" + target)) {
+                        diagnostics.Add(new OdfDiagnostic("ODF204", OdfDiagnosticSeverity.Error,
+                            $"Conditional style map target '{target}' must name a common style in family '{family}'.", partPath));
+                    }
+                }
+            }
+            foreach (XAttribute reference in document.Descendants().Attributes().Where(IsStyleReference)) {
                 if (!string.IsNullOrWhiteSpace(reference.Value) && !knownNames.Contains(reference.Value)) {
                     diagnostics.Add(new OdfDiagnostic("ODF200", OdfDiagnosticSeverity.Error,
                         $"Style reference '{reference.Value}' from '{reference.Name.LocalName}' does not resolve.", partPath));
