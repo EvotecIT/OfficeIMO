@@ -10,6 +10,8 @@
 
 `microsoft-excel-column-chart.ods`, `microsoft-excel-bar-chart.ods`, and `microsoft-excel-line-chart.ods` were saved with Microsoft Excel for Windows 16.0 on 2026-09-24. `Generate-MicrosoftExcelCharts.ps1` creates the small source workbook and exports all three variants. They cover the embedded chart object, source-cell ranges, series values, and package preservation.
 
+`microsoft-excel-pivot.xlsx` and `microsoft-excel-pivot.ods` were saved with Microsoft Excel for Windows 16.0 on 2026-09-25. `Generate-MicrosoftExcelPivot.ps1` creates the source cells and a row/column/sum pivot, then saves both formats. The XLSX fixture covers the producer's ordinary visible pivot items; the ODS fixture covers a local-range DataPilot definition, source field orientation, aggregation, and package preservation.
+
 `extreme-repeats.ods` was generated with OfficeIMO.OpenDocument on 2026-07-10. Its last used cell is XFD1048576, represented by row and cell repeat runs instead of expanded XML nodes.
 
 `libreoffice-impress-basic.odp` was produced with LibreOfficeDev 26.8 by converting `Assets/PowerPointTemplates/PowerPointWithTitle.pptx` with the `impress8` filter on 2026-07-10.

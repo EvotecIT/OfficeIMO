@@ -91,6 +91,23 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.True(chartDocument.Validate().IsValid);
             }
             {
+                OdsDocument pivotDocument = OdsDocument.Create();
+                OdsSheet data = pivotDocument.AddSheet("PivotData");
+                data.Cell(0, 0).SetString("Region");
+                data.Cell(0, 1).SetString("Sales");
+                data.Cell(1, 0).SetString("North");
+                data.Cell(1, 1).SetNumber(10);
+                OdsDataPilotTable pivot = pivotDocument.AddDataPilotTable(
+                    "SalesPivot", "PivotData.A1:PivotData.B2", "PivotData.D1:PivotData.E3");
+                pivot.AddField("Region", "row");
+                pivot.AddField("Sales", "data", "sum");
+                pivotDocument.AddNamedRange("SalesValues", "PivotData.$B$2:.$B$2");
+                pivotDocument.Save(Path.Combine(output, "schema-pivot-1.4.ods"));
+                pivotDocument.Save(Path.Combine(output, "schema-pivot-1.3.ods"),
+                    new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
+                Assert.True(pivotDocument.Validate().IsValid);
+            }
+            {
                 OdpPresentation presentation = OdpPresentation.Create();
                 OdpSlide slide = presentation.AddSlide("Schema proof");
                 presentation.MasterPages[0].BackgroundColor = OdfColor.Parse("#F8FBFF");
@@ -132,7 +149,7 @@ public class OpenDocumentSchemaArtifactTests {
             .Where(path => path.EndsWith(".odt", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".ods", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".odp", StringComparison.OrdinalIgnoreCase)).ToArray();
-        Assert.Equal(8, files.Length);
+        Assert.Equal(10, files.Length);
 
         foreach (string path in files) {
             OdfDocument document = OdfDocument.Load(path);
@@ -155,6 +172,12 @@ public class OpenDocumentSchemaArtifactTests {
                     OdsChart chart = Assert.Single(spreadsheet.GetSheet("ChartData")!.Charts);
                     Assert.Equal("chart:bar", chart.ChartClass);
                     Assert.Equal("Sales", chart.Title);
+                    continue;
+                }
+                if (Path.GetFileName(path).StartsWith("schema-pivot", StringComparison.Ordinal)) {
+                    OdsDataPilotTable pivot = Assert.Single(spreadsheet.DataPilotTables);
+                    Assert.Equal("SalesPivot", pivot.Name);
+                    Assert.Contains(pivot.Fields, item => item.SourceFieldName == "Sales" && item.Function == "sum");
                     continue;
                 }
                 OdsSheet sheet = spreadsheet.GetSheet("Data")!;

@@ -314,6 +314,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
         int convertedCharts = ConvertExcelCharts(source, target, effective, convertedCellsBySheet,
             ref materializedCells, ref truncated, out int sourceChartFrames);
+        int convertedPivots = ConvertExcelPivots(source, snapshot, target, effective, convertedCellsBySheet);
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.AddNamedRange(named.OutputName, named.Address);
         }
@@ -376,7 +377,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             Math.Max(0, snapshot.ChartPartCount - CountReferencedChartParts(source));
         AddUnsupported(report, "charts", Math.Max(0, sourceChartObjects - convertedCharts),
             "Excel charts outside the bounded worksheet-linked column, bar, and line subset are not translated to ODS.");
-        AddUnsupported(report, "pivot-tables", snapshot.PivotTablePartCount, "Excel pivot-table parts are not translated to ODS.");
+        if (convertedPivots > 0) report.Add("pivot-tables", OdfConversionMappingStatus.Approximated, convertedPivots,
+            "Worksheet-source pivots with row/column fields and one aggregate become ODF data pilots. Excel cache, style, sorting, subtotal, and interaction details are not transferred.");
+        AddUnsupported(report, "pivot-tables", Math.Max(0, snapshot.PivotTablePartCount - convertedPivots),
+            "Pivots with page filters, grouping, calculated fields, multiple values, cross-sheet sources, or clipped source cells are not translated.");
         AddUnsupported(report, "slicers", snapshot.SlicerPartCount, null);
         AddUnsupported(report, "timelines", snapshot.TimelinePartCount, null);
         AddUnsupported(report, "slicer-binding-metadata", snapshot.SlicerBindingMetadataPartCount,
@@ -423,6 +427,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int filteredRows = 0, filteredColumns = 0;
         int forcedVisibleWorksheets = 0;
         var chartTargets = new List<(OdsSheet Source, ExcelSheet Target)>();
+        var pivotConvertedCells = new Dictionary<string, List<long>>(StringComparer.Ordinal);
+        var pivotSourceSheets = new HashSet<string>(StringComparer.Ordinal);
+        foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
+            if (SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? range) && range != null
+                && !string.IsNullOrEmpty(range.Start.SheetName)) {
+                pivotSourceSheets.Add(range.Start.SheetName!);
+            }
+        }
         bool truncated = false;
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
@@ -432,6 +445,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         foreach (OdsSheet odsSheet in source.Sheets) {
             ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
             chartTargets.Add((odsSheet, sheet));
+            List<long>? pivotCells = null;
+            if (pivotSourceSheets.Contains(odsSheet.Name)) {
+                pivotCells = new List<long>();
+                pivotConvertedCells.Add(odsSheet.Name, pivotCells);
+            }
             var validationTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var conditionalTargets = new Dictionary<string, List<string>>(StringComparer.Ordinal);
             var conditionalTargetLimits = new HashSet<string>(StringComparer.Ordinal);
@@ -460,14 +478,23 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                  defaultCellStyle.Element.Attribute(OdfNamespaces.Style + "data-style-name") != null);
             double? uniformDefaultColumnWidth = effective.MaximumColumns == 16_384
                 ? TryGetUniformColumnWidth(columnRuns) : null;
-            if (uniformDefaultColumnWidth.HasValue) {
-                sheet.SetDefaultColumnWidth(uniformDefaultColumnWidth.Value);
+            double? defaultColumnWidth = uniformDefaultColumnWidth ??
+                (effective.MaximumColumns == 16_384 ? TryGetDominantColumnWidth(columnRuns) : null);
+            if (defaultColumnWidth.HasValue) sheet.SetDefaultColumnWidth(defaultColumnWidth.Value);
+            if (uniformDefaultColumnWidth.HasValue)
                 columnLayouts = (int)Math.Min(int.MaxValue, (long)columnLayouts + effective.MaximumColumns);
-            }
             foreach (OdsColumnRun columnRun in uniformDefaultColumnWidth.HasValue
                 ? Array.Empty<OdsColumnRun>() : columnRuns) {
                 long columnEnd = SaturatingAdd(columnRun.StartColumn, columnRun.RepeatCount);
                 long lastExclusive = Math.Min(columnEnd, effective.MaximumColumns);
+                if (defaultColumnWidth.HasValue && !columnRun.Hidden && columnRun.Width.HasValue
+                    && columnRun.Width.Value.TryToPoints(out double defaultPoints)
+                    && Math.Abs(PointsToExcelWidth(defaultPoints) - defaultColumnWidth.Value) <= 0.0001D) {
+                    columnLayouts = (int)Math.Min(int.MaxValue,
+                        (long)columnLayouts + Math.Max(0, lastExclusive - columnRun.StartColumn));
+                    if (columnEnd > effective.MaximumColumns) truncated = true;
+                    continue;
+                }
                 for (long column = columnRun.StartColumn; column < lastExclusive; column++) {
                     if (!columnRun.Hidden && !columnRun.Width.HasValue) continue;
                     int excelColumn = checked((int)column + 1);
@@ -635,6 +662,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 else if (preserveSingleMetadata) metadataTranscriptComments++;
                             }
                             cells++;
+                            pivotCells?.Add(((long)excelRow << 15) | (uint)excelColumn);
 
                             if (cellRun.RowSpan > 1 || cellRun.ColumnSpan > 1) {
                                 long mergeLastRow = SaturatingAdd(row, cellRun.RowSpan);
@@ -683,6 +711,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (activeTarget != null) target.SetActiveWorksheet(activeTarget);
 
         int convertedCharts = ConvertOdsCharts(source, chartTargets, effective, ref expandedCells, ref truncated);
+        int convertedPivots = ConvertOdsDataPilots(source, chartTargets, effective, pivotConvertedCells);
 
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.SetNamedRange(named.OutputName, named.Address, save: false,
@@ -739,6 +768,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddConverted(report, "validations", convertedValidations);
         if (convertedCharts > 0) report.Add("charts", OdfConversionMappingStatus.Approximated, convertedCharts,
             "Bounded ODS column, bar, and line charts retain cached categories, numeric series, title, and approximate placement; chart styling, axis settings, legends, and live source links are not transferred.");
+        if (convertedPivots > 0) report.Add("pivot-tables", OdfConversionMappingStatus.Approximated, convertedPivots,
+            "Local-range ODS row and column data pilots with one aggregate field become Excel pivot tables. ODF subtotal, sort, layout, and filter-button presentation settings are not transferred.");
+        AddUnsupported(report, "pivot-tables", source.DataPilotTables.Count - convertedPivots,
+            "Data pilots with advanced fields, nonlocal sources, unsupported aggregation, or ranges outside conversion limits are not translated.");
         int convertedConditionalMapCount = convertedConditionalStyles.Sum(styleName => conditionalPlans[styleName]!.Count);
         if (convertedConditionalMapCount > 0) report.Add("source-conditional-style-maps",
             OdfConversionMappingStatus.Approximated, convertedConditionalMapCount,
@@ -764,7 +797,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (truncated) report.Add("expansion-limits", OdfConversionMappingStatus.Skipped, 1,
             "Content outside the configured row, column, or expanded-cell limits was not materialized.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, formulas, convertedValidations,
-            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount, convertedCharts);
+            externalHyperlinks, comments, namedRanges, convertedConditionalMapCount, convertedCharts,
+            source.DataPilotTables.Count);
         target = Normalize(target);
         return new OdfConversionResult<ExcelDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
@@ -831,6 +865,21 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (converted <= 0 || converted > 255 ||
                 (width.HasValue && Math.Abs(width.Value - converted) > 0.0001D)) return null;
             width = converted;
+        }
+        return width;
+    }
+
+    private static double? TryGetDominantColumnWidth(IReadOnlyList<OdsColumnRun> runs) {
+        if (runs.Count < 2 || runs[0].StartColumn != 0) return null;
+        OdsColumnRun tail = runs[runs.Count - 1];
+        if (tail.RepeatCount < 4096 || SaturatingAdd(tail.StartColumn, tail.RepeatCount) != 16_384
+            || tail.Hidden || !tail.Width.HasValue || !tail.Width.Value.TryToPoints(out double tailPoints)) return null;
+        double width = PointsToExcelWidth(tailPoints);
+        if (width <= 0 || width > 255) return null;
+        foreach (OdsColumnRun run in runs) {
+            if (run.Hidden || !run.Width.HasValue || !run.Width.Value.TryToPoints(out double points)) return null;
+            double converted = PointsToExcelWidth(points);
+            if (converted <= 0 || converted > 255) return null;
         }
         return width;
     }

@@ -449,6 +449,11 @@ namespace OfficeIMO.Tests {
                 typeof(IReadOnlyList<ExcelPivotDataFieldInfo>)
             }));
 
+            Assert.Contains(typeof(ExcelPivotTableInfo).GetConstructors(), constructor => {
+                var parameters = constructor.GetParameters();
+                return parameters.Length > 30 && parameters.Last().Name == "enableDrill";
+            });
+
             Assert.NotNull(typeof(ExcelSheet).GetMethod("AddPivotTable", new[] {
                 typeof(string),
                 typeof(string),

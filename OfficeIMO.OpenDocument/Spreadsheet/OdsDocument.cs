@@ -58,7 +58,9 @@ public sealed partial class OdsDocument : OdfDocument {
             new XAttribute(OdfNamespaces.Table + "name", name),
             new XElement(OdfNamespaces.Table + "table-column"),
             new XElement(OdfNamespaces.Table + "table-row", new XElement(OdfNamespaces.Table + "table-cell")));
-        SpreadsheetBody.Add(element);
+        InsertSpreadsheetMetadata(element, OdfNamespaces.Table + "named-expressions",
+            OdfNamespaces.Table + "database-ranges", OdfNamespaces.Table + "data-pilot-tables",
+            OdfNamespaces.Table + "consolidation", OdfNamespaces.Table + "dde-links");
         MarkPartDirty("content.xml");
         return new OdsSheet(this, element);
     }
@@ -74,7 +76,10 @@ public sealed partial class OdsDocument : OdfDocument {
         XElement moving = sheet.Element;
         moving.Remove();
         elements.Remove(moving);
-        if (newIndex >= elements.Count) SpreadsheetBody.Add(moving);
+        if (newIndex >= elements.Count) InsertSpreadsheetMetadata(moving,
+            OdfNamespaces.Table + "named-expressions", OdfNamespaces.Table + "database-ranges",
+            OdfNamespaces.Table + "data-pilot-tables", OdfNamespaces.Table + "consolidation",
+            OdfNamespaces.Table + "dde-links");
         else elements[newIndex].AddBeforeSelf(moving);
         MarkPartDirty("content.xml");
     }
@@ -151,10 +156,18 @@ public sealed partial class OdsDocument : OdfDocument {
         XElement? element = SpreadsheetBody.Element(OdfNamespaces.Table + "named-expressions");
         if (element == null && create) {
             element = new XElement(OdfNamespaces.Table + "named-expressions");
-            SpreadsheetBody.Add(element);
+            InsertSpreadsheetMetadata(element, OdfNamespaces.Table + "database-ranges",
+                OdfNamespaces.Table + "data-pilot-tables",
+                OdfNamespaces.Table + "consolidation", OdfNamespaces.Table + "dde-links");
             MarkPartDirty("content.xml");
         }
         return element;
+    }
+
+    private void InsertSpreadsheetMetadata(XElement element, params XName[] laterElements) {
+        XElement? next = SpreadsheetBody.Elements().FirstOrDefault(child => laterElements.Contains(child.Name));
+        if (next == null) SpreadsheetBody.Add(element);
+        else next.AddBeforeSelf(element);
     }
 
     private static void ValidateSheetName(string name) {

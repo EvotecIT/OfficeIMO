@@ -116,7 +116,57 @@ namespace OfficeIMO.Excel {
             bool? refreshOnOpen = null,
             bool? saveSourceData = null,
             bool? preserveFormatting = null,
-            bool? enableDrill = null) {
+            bool? enableDrill = null)
+            : this(name, cacheId, location, sourceSheet, sourceRange, sheetName, sheetIndex, pivotStyle,
+                layout, dataOnRows, showHeaders, showEmptyRows, showEmptyColumns, showDrill,
+                rowGrandTotals, columnGrandTotals, rowHeaderCaption, columnHeaderCaption, grandTotalCaption,
+                missingCaption, errorCaption, showDataDropDown, showDropZones, showDataTips,
+                showMemberPropertyTips, fieldListSortAscending, customListSort, rowFields, columnFields,
+                pageFields, dataFields, fields, filters, calculatedFields, groupings, refreshOnOpen,
+                saveSourceData, preserveFormatting, enableDrill, false) {
+        }
+
+        /// <summary>Creates a pivot table info instance with Values-axis detection.</summary>
+        public ExcelPivotTableInfo(string name,
+            uint cacheId,
+            string? location,
+            string? sourceSheet,
+            string? sourceRange,
+            string sheetName,
+            int sheetIndex,
+            string? pivotStyle,
+            ExcelPivotLayout layout,
+            bool? dataOnRows,
+            bool? showHeaders,
+            bool? showEmptyRows,
+            bool? showEmptyColumns,
+            bool? showDrill,
+            bool? rowGrandTotals,
+            bool? columnGrandTotals,
+            string? rowHeaderCaption,
+            string? columnHeaderCaption,
+            string? grandTotalCaption,
+            string? missingCaption,
+            string? errorCaption,
+            bool? showDataDropDown,
+            bool? showDropZones,
+            bool? showDataTips,
+            bool? showMemberPropertyTips,
+            bool? fieldListSortAscending,
+            bool? customListSort,
+            IReadOnlyList<string> rowFields,
+            IReadOnlyList<string> columnFields,
+            IReadOnlyList<string> pageFields,
+            IReadOnlyList<ExcelPivotDataFieldInfo> dataFields,
+            IReadOnlyList<ExcelPivotFieldInfo>? fields,
+            IReadOnlyList<ExcelPivotFilterInfo>? filters,
+            IReadOnlyList<ExcelPivotCalculatedFieldInfo>? calculatedFields,
+            IReadOnlyList<ExcelPivotGroupingInfo>? groupings,
+            bool? refreshOnOpen,
+            bool? saveSourceData,
+            bool? preserveFormatting,
+            bool? enableDrill,
+            bool hasValuesAxisField) {
             Name = name;
             CacheId = cacheId;
             Location = location;
@@ -156,6 +206,7 @@ namespace OfficeIMO.Excel {
             SaveSourceData = saveSourceData;
             PreserveFormatting = preserveFormatting;
             EnableDrill = enableDrill;
+            HasValuesAxisField = hasValuesAxisField;
         }
 
         /// <summary>
@@ -322,6 +373,9 @@ namespace OfficeIMO.Excel {
         /// Gets column field names.
         /// </summary>
         public IReadOnlyList<string> ColumnFields { get; }
+
+        /// <summary>Whether a row or column axis includes Excel's synthetic Values field.</summary>
+        public bool HasValuesAxisField { get; }
 
         /// <summary>
         /// Gets page field names.
