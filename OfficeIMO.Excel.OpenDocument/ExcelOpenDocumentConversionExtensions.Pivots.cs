@@ -124,8 +124,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         if (sourceSheet == null || !omittedCellsBySheet.TryGetValue(sourceSheet.Name, out List<(int Row, int Column)>? omitted)) return false;
         if (!headersBySheet.TryGetValue(sourceSheet.Name, out Dictionary<int, List<(int Column, string Name)>>? headerRows)
             || !headerRows.TryGetValue((int)source.Start.Row!.Value, out List<(int Column, string Name)>? headerCells)) return false;
-        var headerCounts = headerCells
-            .Where(cell => cell.Column >= source.Start.Column && cell.Column <= source.End.Column)
+        List<(int Column, string Name)> sourceHeaders = headerCells
+            .Where(cell => cell.Column >= source.Start.Column && cell.Column <= source.End.Column).ToList();
+        long sourceWidth = source.End.Column!.Value - source.Start.Column!.Value + 1;
+        if (sourceHeaders.Count != sourceWidth
+            || sourceHeaders.Select(cell => cell.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count() != sourceWidth)
+            return false;
+        var headerCounts = sourceHeaders
             .GroupBy(cell => cell.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         if (pivot.RowFields.Concat(pivot.ColumnFields).Append(pivot.DataFields[0].FieldName)

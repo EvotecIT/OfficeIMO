@@ -11,6 +11,29 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class ExcelOdsDataPilotConversionTests {
+    [Theory]
+    [InlineData("")]
+    [InlineData("Region")]
+    [InlineData("region")]
+    public void UnusedInvalidExcelSourceHeaderIsExplicitPivotLoss(string unusedHeader) {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, unusedHeader);
+        sheet.CellValue(1, 3, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, "Unused");
+        sheet.CellValue(2, 3, 10d);
+        sheet.AddPivotTable("A1:C2", "E1", name: "SalesPivot", rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new ExcelOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
     [Fact]
     public void ExcelPivotCacheSheetCasingUsesCanonicalOdsSheetName() {
         using ExcelDocument source = ExcelDocument.Create();
