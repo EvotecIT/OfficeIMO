@@ -14,7 +14,8 @@ public sealed class PdfStaticFormRecognizerTests {
 
         PdfStaticFormRecognitionReport report = source.Forms.RecognizeStaticLayout();
 
-        Assert.Equal(2, report.Proposals.Count);
+        Assert.True(report.Proposals.Count == 2,
+            "Expected two proposals; diagnostics: " + string.Join(", ", report.Diagnostics.Select(static diagnostic => diagnostic.Code)));
         Assert.Equal(new[] { PdfFormFieldCreationKind.Text, PdfFormFieldCreationKind.CheckBox },
             report.Proposals.Select(static proposal => proposal.Kind));
         Assert.Empty(PdfInspector.Inspect(sourceBytes).FormFields);
@@ -144,7 +145,55 @@ public sealed class PdfStaticFormRecognizerTests {
         }));
         var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
 
-        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr).Proposals);
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "unsupported-effect");
+    }
+
+    [Fact]
+    public void RepaintedOutlineDoesNotBecomeAFieldCandidate() {
+        OfficeShape outline = Box(140D, 20D);
+        outline.FillColor = null;
+        OfficeShape white = OfficeShape.Rectangle(400D, 300D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Shape(outline, 100D, 28D).Shape(white, 0D, 0D)
+                .Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occluded-outline");
+    }
+
+    [Fact]
+    public void RepaintedNativeLabelDoesNotSupportAFieldCandidate() {
+        OfficeShape white = OfficeShape.Rectangle(100D, 30D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D)
+                .Shape(white, 10D, 20D).Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
+    public void RepaintedUnderlineDoesNotBecomeAFieldCandidate() {
+        OfficeShape underline = OfficeShape.Line(0D, 0D, 140D, 0D);
+        underline.StrokeColor = OfficeColor.Black;
+        OfficeShape white = OfficeShape.Rectangle(400D, 300D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Shape(underline, 100D, 48D).Shape(white, 0D, 0D)
+                .Text("Name:", 20D, 28D, 70D, 20D)).ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occluded-outline");
     }
 
     [Fact]
@@ -293,6 +342,55 @@ public sealed class PdfStaticFormRecognizerTests {
 
         Assert.Empty(report.Proposals);
         Assert.Equal(2, report.Diagnostics.Count(static diagnostic => diagnostic.Code == "occupied-field"));
+    }
+
+    [Fact]
+    public void StrokeCrossingCheckboxEdgeOccupiesTheField() {
+        OfficeShape mark = OfficeShape.Line(0D, 0D, 30D, 8D);
+        mark.StrokeColor = OfficeColor.Black;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas
+                .Shape(Box(15D, 15D), 100D, 75D)
+                .Shape(mark, 90D, 78D)
+                .Text("I agree", 125D, 72D, 100D, 20D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
+    public void WhiteOutlineOnWhitePageIsNotProposed() {
+        OfficeShape box = Box(140D, 20D);
+        box.StrokeColor = OfficeColor.White;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Text("Name:", 20D, 28D, 70D, 20D).Shape(box, 100D, 28D))
+            .ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "invisible-outline");
+    }
+
+    [Fact]
+    public void TransparentNativeLabelDoesNotSupportAProposal() {
+        const string content = "1 w 100 205 120 20 re S q /GS1 gs BT /F1 12 Tf 20 208 Td (Name) Tj ET Q";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GS1 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /ExtGState /ca 0 >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 7 >>", "%%EOF", ""
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
     }
 
     [Fact]
