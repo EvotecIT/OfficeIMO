@@ -133,8 +133,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointInheritedRunFormatting);
 
     private static bool HasUnmappedPowerPointTextTypography(OpenXmlElement properties) =>
-        properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern" ||
-            attribute.LocalName == "baseline" && attribute.Value != "0") ||
+        properties.GetAttributes().Any(attribute =>
+            attribute.LocalName is not ("b" or "i" or "sz" or "u" or "strike" or "cap") &&
+            (attribute.LocalName != "baseline" || attribute.Value != "0")) ||
         properties.ChildElements.Any(child => !IsMappedPowerPointRunChild(child));
 
     private static bool IsMappedPowerPointRunChild(OpenXmlElement child) =>
@@ -149,7 +150,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
 
     private static bool HasUnmappedPowerPointInheritedRunFormatting(OpenXmlElement properties) =>
         properties.GetAttributes().Any(attribute => attribute.LocalName is
-            "b" or "i" or "sz" or "u" or "strike" or "baseline" or "cap" or "spc" or "kern") ||
+            "b" or "i" or "sz" or "u" or "strike" or "baseline" or "cap" or "spc" or "kern" or
+            "lang" or "altLang" or "noProof") ||
         properties.HasChildren;
 
     private static bool HasUnmappedPowerPointTextColor(OpenXmlElement properties) {

@@ -610,6 +610,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (approximatedOdpMasterLayouts > 0) report.Add("masters-layouts", OdfConversionMappingStatus.Approximated,
             approximatedOdpMasterLayouts,
             "Effective solid backgrounds and common placeholder roles are retained, but distinct ODP masters, layouts, drawing content, and placeholder geometry are not reconstructed.");
+        AddUnsupported(report, "handout-master", CountUnmappedOdpHandoutMasters(source),
+            "ODP handout master layout and drawing content were not transferred to PowerPoint.");
         AddUnmappedOdfFindings(source.InspectFeatures(), report, externalHyperlinks, noteContainers,
             source.MasterPages.Count, transitions + unsupportedTransitions);
         AddUnsupported(report, "custom-shows", CountUnmappedOdpCustomShows(source),

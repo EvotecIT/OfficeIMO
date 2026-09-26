@@ -90,7 +90,11 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
           (root.ShowSpecialPlaceholderOnTitleSlide?.Value ?? true) + "|notes=" +
           (root.NotesSize?.Cx?.Value).ToString() + "," + (root.NotesSize?.Cy?.Value).ToString() +
           "|defaultText=" + (root.DefaultTextStyle is P.DefaultTextStyle defaults &&
-              (defaults.HasAttributes || defaults.HasChildren) ? defaults.OuterXml : string.Empty);
+              (defaults.HasAttributes || defaults.HasChildren) ? defaults.OuterXml : string.Empty) +
+          "|unsupportedChildren=" + string.Join(";", root.ChildElements
+              .Where(child => child.LocalName is "kinsoku" or "custShowLst" or "photoAlbum" or
+                  "custDataLst" or "extLst" or "modifyVerifier" or "smartTags")
+              .Select(child => child.OuterXml));
 
     private static int CountUnmappedPowerPointRootSettings(PresentationPart? presentation) =>
         PowerPointRootSettingsSignature(presentation?.Presentation) == DefaultPowerPointRootSettings.Value ? 0 : 1;
@@ -423,6 +427,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             ? masters.Count + layouts.Count
             : 0;
     }
+
+    private static int CountUnmappedOdpHandoutMasters(OdpPresentation source) =>
+        source.Package.GetXml("styles.xml").Descendants(
+            XName.Get("handout-master", "urn:oasis:names:tc:opendocument:xmlns:style:1.0")).Count();
 
     private static bool IsZeroOdfPageMargin(string value) =>
         !string.IsNullOrWhiteSpace(value) && OdfLength.Parse(value).TryToPoints(out double points) &&

@@ -572,6 +572,50 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
             new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
     }
 
+    [Theory]
+    [InlineData("lang", "fr-FR")]
+    [InlineData("altLang", "de-DE")]
+    [InlineData("noProof", "1")]
+    [InlineData("kumimoji", "1")]
+    [InlineData("normalizeH", "1")]
+    [InlineData("bmk", "Heading")]
+    public void DirectUnsupportedRunAttributesAreExplicitLoss(string attribute, string value) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTextBoxPoints("Text", 20, 20, 100, 50);
+        A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        run.RunProperties.SetAttribute(new OpenXmlAttribute("", attribute, "", value));
+
+        AssertPowerPointLoss(source, "text-typography");
+    }
+
+    [Theory]
+    [InlineData("kinsoku")]
+    [InlineData("modifyVerifier")]
+    [InlineData("smartTags")]
+    public void AuthoredPresentationRootChildrenAreExplicitLoss(string childName) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        PresentationPart presentation = source.OpenXmlDocument.PresentationPart!;
+        presentation.Presentation!.AppendChild(new OpenXmlUnknownElement("p", childName,
+            "http://schemas.openxmlformats.org/presentationml/2006/main"));
+
+        AssertPowerPointLoss(source, "presentation-settings");
+    }
+
+    [Fact]
+    public void AuthoredOdpHandoutMasterIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide();
+        XDocument styles = source.Package.GetXml("styles.xml");
+        XElement masterStyles = styles.Root!.Element(OdfNamespaces.Office + "master-styles")!;
+        masterStyles.Add(new XElement(OdfNamespaces.Style + "handout-master",
+            new XAttribute(OdfNamespaces.Style + "name", "Handout")));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        AssertOdpLoss(source, "handout-master");
+    }
+
     private static PowerPointPresentation CreatePowerPoint() {
         PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         source.AddSlide(PowerPointSlideLayoutType.Blank);
