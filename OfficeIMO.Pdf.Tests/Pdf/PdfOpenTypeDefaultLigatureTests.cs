@@ -78,4 +78,25 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
 
+    [Fact]
+    public void AutomaticLigaturesRetainUnimplementedMarkPositioningWarnings() {
+        byte[] data = File.ReadAllBytes(PdfComplianceTestFonts.FindBundledOpenTypeCffFont()!);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("office e\u0301")).ToBytes();
+        Assert.Contains("office", PdfReadDocument.Open(pdf).ExtractText());
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-mark-positioning");
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-mark-positioning-or-joiner-shaping");
+    }
+
+    [Fact]
+    public void ImplicitComplexShapingRetainsLogicalActualTextInDefaultMode() {
+        const string text = "\u202Efi\u202C";
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('f', 'i');
+        var run = PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText(text,
+            PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+                direction: OfficeTextDirection.RightToLeft));
+        Assert.Equal(text, run.ActualText);
+    }
+
 }

@@ -214,6 +214,7 @@ public sealed partial class PdfOptions {
             string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal)) ||
         IsCoveredByTextLineBreakCallback(diagnostic, text) ||
         (IsProviderCoveredDiagnostic(diagnostic) &&
+            (_textShapingProvider != null || string.Equals(diagnostic.Code, "unsupported-font-ligature-substitution", StringComparison.Ordinal)) &&
             !string.IsNullOrEmpty(text) &&
             _providerShapedTextRuns != null &&
             _providerShapedTextRuns.Contains(BuildProviderShapedTextRunKey(text!, fontName, isOpenTypeCff)));

@@ -305,7 +305,7 @@ public class PdfRedactionApplierTests {
 
     [Fact]
     public void Apply_PreservesGeneratedEmbeddedType0FontOutsidePartialRedaction() {
-        const string text = "Alpha secret Omega";
+        const string text = "Alpha office secret affinity Omega";
         string fontPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledOpenTypeCffFont());
         byte[] source = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
             .UseFontFamily("Redaction Embedded", fontPath)
@@ -320,6 +320,8 @@ public class PdfRedactionApplierTests {
 
         Assert.Contains("Alpha", extracted, StringComparison.Ordinal);
         Assert.Contains("Omega", extracted, StringComparison.Ordinal);
+        Assert.Contains("office", extracted, StringComparison.Ordinal);
+        Assert.Contains("affinity", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain("secret", extracted, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Type0", raw, StringComparison.Ordinal);
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
