@@ -216,7 +216,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (generatedLastRow > Math.Min(options.MaximumRows, 1_048_576)
                 || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)
                 || generatedLastRow > targetBounds.End.Row!.Value
-                || generatedLastColumn > targetBounds.End.Column!.Value) continue;
+                || generatedLastColumn > targetBounds.End.Column!.Value
+                || sourceBounds.Start.Row!.Value <= generatedLastRow
+                    && sourceBounds.End.Row!.Value >= destinationRow
+                    && sourceBounds.Start.Column!.Value <= generatedLastColumn
+                    && sourceBounds.End.Column!.Value >= destinationColumn) continue;
             try {
                 pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
                     rowFields: rows, columnFields: columns, dataFields: data,

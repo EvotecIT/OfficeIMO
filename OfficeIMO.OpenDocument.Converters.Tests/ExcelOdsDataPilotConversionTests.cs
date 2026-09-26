@@ -45,6 +45,23 @@ public sealed class ExcelOdsDataPilotConversionTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
 
+    [Theory]
+    [InlineData("Data.B1:Data.C3")]
+    [InlineData("Data.A2:Data.B4")]
+    public void OdsPivotCannotOverwriteItsSourceCells(string targetRange) {
+        OdsDocument source = CreateSimpleOdsPivot("OverlappingPivot", targetRange);
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToExcelDocumentResult(
+            new ExcelOpenDocumentConversionOptions {
+                LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+            }));
+    }
+
     [Fact]
     public void DuplicateOdsAxisFieldIsExplicitLoss() {
         OdsDocument source = CreateSimpleOdsPivot("DuplicateAxis", "Data.D1:Data.G3");
