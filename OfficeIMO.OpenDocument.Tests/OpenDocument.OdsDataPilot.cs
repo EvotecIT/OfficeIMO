@@ -10,6 +10,24 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdsDataPilotTests {
     [Fact]
+    public void MissingSpreadsheetBodyLeavesDataPilotInspected() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(1, 0).SetString("North");
+        document.AddDataPilotTable("Pivot", "Data.A1:Data.A2", "Data.C1:Data.D2").AddField("Region", "row");
+        XElement body = document.Package.GetXml("content.xml").Descendants(OdfNamespaces.Office + "spreadsheet").Single();
+        body.Name = OdfNamespaces.Office + "text";
+        document.MarkPartDirty("content.xml");
+
+        OdfFeatureReport report = document.InspectFeatures();
+        Assert.Contains(report.Findings, finding => finding.Name == "spreadsheet-data-pilot-tables"
+            && finding.Support == OdfFeatureSupport.Inspected && finding.Count == 1);
+        Assert.DoesNotContain(report.Findings, finding => finding.Name == "spreadsheet-data-pilot-tables"
+            && finding.Support == OdfFeatureSupport.Editable);
+    }
+
+    [Fact]
     public void ReadsExcelProducedPivotAndPreservesItsPackage() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "microsoft-excel-pivot.ods");
         OdsDocument document = OdsDocument.Load(path);

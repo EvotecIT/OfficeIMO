@@ -153,6 +153,27 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void EarlierOdsPivotCannotOverwriteALaterSource() {
+        OdsDocument source = CreateSimpleOdsPivot("First", "Data.G1:Data.H3");
+        OdsSheet sheet = source.GetSheet("Data")!;
+        sheet.Cell(0, 6).SetString("Region");
+        sheet.Cell(0, 7).SetString("Sales");
+        sheet.Cell(1, 6).SetString("South");
+        sheet.Cell(1, 7).SetNumber(20);
+        OdsDataPilotTable second = source.AddDataPilotTable("Second", "Data.G1:Data.H2", "Data.J1:Data.K3");
+        second.AddField("Region", "row");
+        second.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Equal("Second", Assert.Single(target.Sheets.Single().GetPivotTables()).Name);
+        Assert.True(target.Sheets.Single().TryGetCellText(1, 7, out string header));
+        Assert.Equal("Region", header);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void DuplicateOdsAxisFieldIsExplicitLoss() {
         OdsDocument source = CreateSimpleOdsPivot("DuplicateAxis", "Data.D1:Data.G3");
         source.DataPilotTables.Single().AddField("Region", "column");

@@ -30,10 +30,10 @@ public sealed class OdsDataPilotTable {
     public bool HasAdvancedSettings => HasAdvancedSettingsIn(Element);
 
     internal static bool IsEditableElement(OdsDocument document, XElement element) {
-        if (!ReferenceEquals(element.Parent?.Parent, document.SpreadsheetBody)
-            || HasAdvancedSettingsIn(element)
-            || string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Table + "name"))) return false;
         try {
+            if (!ReferenceEquals(element.Parent?.Parent, document.SpreadsheetBody)
+                || HasAdvancedSettingsIn(element)
+                || string.IsNullOrWhiteSpace((string?)element.Attribute(OdfNamespaces.Table + "name"))) return false;
             SpreadsheetRangeReference source = ParseLocalRange((string?)element.Element(OdfNamespaces.Table + "source-cell-range")?
                 .Attribute(OdfNamespaces.Table + "cell-range-address") ?? string.Empty, nameof(SourceRangeAddress));
             SpreadsheetRangeReference target = ParseLocalRange((string?)element.Attribute(OdfNamespaces.Table + "target-range-address")

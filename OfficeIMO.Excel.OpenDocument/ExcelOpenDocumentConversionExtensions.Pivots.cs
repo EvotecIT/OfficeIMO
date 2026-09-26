@@ -13,6 +13,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         List<ExcelPivotTableInfo> pivots = source.Sheets.SelectMany(sheet => sheet.GetPivotTables()).ToList();
         if (pivots.Count == 0) return 0;
         var neededHeaderRows = new Dictionary<string, HashSet<int>>(StringComparer.Ordinal);
+        var neededRanges = new Dictionary<string, List<SpreadsheetRangeReference>>(StringComparer.Ordinal);
         foreach (ExcelPivotTableInfo pivot in pivots) {
             if (pivot.SourceSheet == null
                 || !SpreadsheetRangeReference.TryParse(pivot.SourceRange, SpreadsheetAddressDialect.ExcelA1,
@@ -22,6 +23,17 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 neededHeaderRows.Add(pivot.SourceSheet, rows);
             }
             rows.Add((int)sourceRange.Start.Row!.Value);
+            foreach (string? address in new[] { pivot.SourceRange, pivot.Location }) {
+                if (!SpreadsheetRangeReference.TryParse(address, SpreadsheetAddressDialect.ExcelA1,
+                        out SpreadsheetRangeReference? range) || range?.End == null
+                    || !range.Start.IsCell || !range.End.IsCell
+                    || range.End.Row > options.MaximumRows || range.End.Column > options.MaximumColumns) continue;
+                if (!neededRanges.TryGetValue(pivot.SourceSheet, out List<SpreadsheetRangeReference>? ranges)) {
+                    ranges = new List<SpreadsheetRangeReference>();
+                    neededRanges.Add(pivot.SourceSheet, ranges);
+                }
+                ranges.Add(range);
+            }
         }
         var omittedCellsBySheet = new Dictionary<string, List<(int Row, int Column)>>(StringComparer.Ordinal);
         var headersBySheet = new Dictionary<string, Dictionary<int, List<(int Column, string Name)>>>(StringComparer.Ordinal);
@@ -33,7 +45,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             var omitted = new List<(int Row, int Column)>();
             var headerRows = new Dictionary<int, List<(int Column, string Name)>>();
             neededHeaderRows.TryGetValue(worksheet.Name, out HashSet<int>? neededRows);
+            neededRanges.TryGetValue(worksheet.Name, out List<SpreadsheetRangeReference>? ranges);
             foreach (ExcelCellSnapshot cell in worksheet.Cells) {
+                if (ranges == null || !ranges.Any(range => cell.Row >= range.Start.Row && cell.Row <= range.End!.Row
+                    && cell.Column >= range.Start.Column && cell.Column <= range.End.Column)) continue;
                 if (!convertedCells.Contains((cell.Row, cell.Column))) omitted.Add((cell.Row, cell.Column));
                 if (neededRows?.Contains(cell.Row) == true && sourceSheet?.TryGetCellText(cell.Row, cell.Column, out string? text) == true
                     && !string.IsNullOrWhiteSpace(text)) {
@@ -161,6 +176,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var convertedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var generatedFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
         var sourceFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
+        // Reserve every retained local source before any output is authored, including later pivots.
+        foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
+            if (SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? bounds) && bounds?.End != null
+                && bounds.Start.IsCell && bounds.End.IsCell && bounds.Start.SheetName != null
+                && string.Equals(bounds.Start.SheetName, bounds.End.SheetName, StringComparison.Ordinal)) {
+                sourceFootprints.Add((bounds.Start.SheetName, bounds.Start.Row!.Value, bounds.End.Row!.Value,
+                    bounds.Start.Column!.Value, bounds.End.Column!.Value));
+            }
+        }
         var rowRunsBySheet = new Dictionary<OdsSheet, IReadOnlyList<OdsRowRun>>();
         foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
             if (pivot.HasAdvancedSettings || pivot.Fields.Count == 0 || pivot.Fields.Count > 17
@@ -255,8 +280,6 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 convertedNames.Add(pivot.Name);
                 generatedFootprints.Add((pair.Source.Name, destinationRow, generatedLastRow,
                     destinationColumn, generatedLastColumn));
-                sourceFootprints.Add((pair.Source.Name, sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
-                    sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value));
                 converted++;
             } catch (ArgumentException) {
                 // Invalid or missing source headers cannot be represented as an Excel pivot.
