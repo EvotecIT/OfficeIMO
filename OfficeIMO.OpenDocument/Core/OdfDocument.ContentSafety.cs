@@ -358,7 +358,8 @@ public abstract partial class OdfDocument {
             string? foreground = (string?)text.Attribute(OdfNamespaces.Fo + "color");
             if (!string.IsNullOrWhiteSpace(foreground)) state.Foreground = foreground;
             string? background = (string?)text.Attribute(OdfNamespaces.Fo + "background-color");
-            if (!string.IsNullOrWhiteSpace(background) && !string.Equals(background, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = background;
+            if (!string.IsNullOrWhiteSpace(background)) state.TextBackground = string.Equals(background, "transparent", StringComparison.OrdinalIgnoreCase)
+                ? null : background;
         }
         XElement? graphic = style.Element.Element(OdfNamespaces.Style + "graphic-properties");
         if (graphic != null) {
@@ -427,7 +428,7 @@ public abstract partial class OdfDocument {
         evidence = string.Empty;
         if (!OdfColor.TryParse(state.Foreground, out OdfColor foreground)) return false;
         OdfColor background;
-        if (OdfColor.TryParse(state.Background, out OdfColor parsedBackground)) {
+        if (OdfColor.TryParse(state.TextBackground ?? state.Background, out OdfColor parsedBackground)) {
             background = parsedBackground;
         } else if (state.CanUseDefaultWhiteBackground) {
             background = new OdfColor(255, 255, 255);
@@ -473,6 +474,7 @@ public abstract partial class OdfDocument {
         internal double? FontSizePoints { get; set; }
         internal string? Foreground { get; set; }
         internal string? Background { get; set; }
+        internal string? TextBackground { get; set; }
         internal bool CanUseDefaultWhiteBackground { get; set; }
         internal bool NonPrimary { get; set; }
     }

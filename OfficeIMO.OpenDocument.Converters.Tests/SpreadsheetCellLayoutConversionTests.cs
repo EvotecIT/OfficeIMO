@@ -252,6 +252,23 @@ public sealed class SpreadsheetCellLayoutConversionTests {
     }
 
     [Fact]
+    public void RepeatedEmptyRowsRetainInheritedBlankStyleLossCount() {
+        OdsDocument source = OdsDocument.Create();
+        OdfStyle style = source.Styles.CreateNamed("BlankLayout", OdfStyleFamily.TableCell);
+        style.BackgroundColor = OdfColor.Parse("#FFCC00");
+        OdsSheet sheet = source.AddSheet("Layout");
+        sheet.Row(0).DefaultCellStyleName = style.Name;
+        sheet.Cell(0, 0);
+        sheet.Element.Elements(OdfNamespaces.Table + "table-row").Single()
+            .SetAttributeValue(OdfNamespaces.Table + "number-rows-repeated", "128");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Contains(conversion.Report.ForFeature("blank-cell-styles"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 128);
+    }
+
+    [Fact]
     public void EmptyFamilyDefaultDoesNotReportBlankCellStyleLoss() {
         OdsDocument source = OdsDocument.Create();
         XElement styles = source.Package.GetXml("styles.xml").Root!

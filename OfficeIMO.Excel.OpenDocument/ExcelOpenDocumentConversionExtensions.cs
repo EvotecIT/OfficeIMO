@@ -492,14 +492,14 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 bool emptyRun = !rowRun.Hidden
                     && cellRuns.All(cellRun => cellRun.IsCovered || !IsSignificant(cellRun));
                 if (emptyRun && (!rowRun.Height.HasValue || uniformDefaultRowHeight.HasValue)) {
+                    long count = Math.Min(SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount), effective.MaximumRows)
+                        - rowRun.StartRow;
                     if (unsupportedInheritedBlankStyles < int.MaxValue && rowRun.StartRow < effective.MaximumRows &&
                         (cellRuns.Any(cellRun => !cellRun.IsCovered && cellRun.StartColumn < effective.MaximumColumns &&
                             HasInheritedStyleOnBlankRun(rowRun, cellRun, columnRuns, hasDefaultCellStyle, AffectsBlankCell)) ||
                          HasInheritedStyleOnUnserializedTail(rowRun, cellRuns, columnRuns,
                              hasDefaultCellStyle, effective.MaximumColumns, AffectsBlankCell)))
-                        unsupportedInheritedBlankStyles++;
-                    long count = Math.Min(SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount), effective.MaximumRows)
-                        - rowRun.StartRow;
+                        unsupportedInheritedBlankStyles = (int)Math.Min(int.MaxValue, (long)unsupportedInheritedBlankStyles + count);
                     if (uniformDefaultRowHeight.HasValue && count > 0)
                         rowLayouts = (int)Math.Min(int.MaxValue, (long)rowLayouts + count);
                     if (SaturatingAdd(rowRun.StartRow, rowRun.RepeatCount) > effective.MaximumRows) truncated = true;
