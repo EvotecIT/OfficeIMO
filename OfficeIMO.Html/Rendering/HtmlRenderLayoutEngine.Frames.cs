@@ -102,9 +102,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         options.CssMediaContextOverride = _options.MediaContext;
         options.ViewportWidth = Math.Max(0.01D, viewportWidth);
         options.CssMediaWidthOverride = null;
+        options.CssMediaHeightOverride = null;
         options.ViewportHeight = Math.Max(0.01D, viewportHeight);
         options.Margins = HtmlRenderMargins.All(0D);
         options.HonorCssPageRules = false;
+        options.AutoFitWidePrintRoot = false;
+        options.PrintFitContentWidth = null;
+        options.PrintFitScale = null;
         options.ClipContinuousSurfaceToViewport = false;
         options.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, _baseUri);
         options.ResourceResolver = null;

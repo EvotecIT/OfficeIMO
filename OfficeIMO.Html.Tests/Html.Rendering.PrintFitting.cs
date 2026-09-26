@@ -158,14 +158,19 @@ public sealed partial class HtmlRenderingTests {
             + "div { height: 25px; line-height: 25px; font-size: 20px }</style>"
             + string.Concat(Enumerable.Range(1, 35).Select(index => "<div>Row " + index + "</div>"));
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
-        byte[] regularPdf = document.ToPdfBytes(new HtmlToPdfOptions());
+        byte[] regularPdf = document.ToPdfBytes(new HtmlToPdfOptions {
+            AutoFitWidePrintContent = false
+        });
+        byte[] automaticPdf = document.ToPdfBytes(new HtmlToPdfOptions());
         byte[] fittedPdf = document.ToPdfBytes(new HtmlToPdfOptions {
             PrintLayoutWidthCssPixels = 1000D
         });
         PdfCore.PdfReadDocument regular = PdfCore.PdfReadDocument.Open(regularPdf);
+        PdfCore.PdfReadDocument automatic = PdfCore.PdfReadDocument.Open(automaticPdf);
         PdfCore.PdfReadDocument fitted = PdfCore.PdfReadDocument.Open(fittedPdf);
 
         Assert.Equal(2, regular.Pages.Count);
+        Assert.Single(automatic.Pages);
         Assert.Single(fitted.Pages);
         (double regularWidth, double regularHeight) = regular.Pages[0].GetPageSize();
         (double fittedWidth, double fittedHeight) = fitted.Pages[0].GetPageSize();
@@ -173,7 +178,52 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(720D, regularHeight, 1);
         Assert.Equal(regularWidth, fittedWidth, 1);
         Assert.Equal(regularHeight, fittedHeight, 1);
+        Assert.Equal(fittedWidth, automatic.Pages[0].GetPageSize().Width, 1);
         Assert.Contains("Row 35", fitted.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Row 35", automatic.ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_AutoFitWidePrintRootKeepsPhysicalMediaHeight() {
+        const string html = """
+            <style>
+              @page { size: 200px 300px; margin: 20px }
+              body { min-width: 300px }
+              @media print and (min-height: 400px) { #media-probe { display: none } }
+            </style>
+            <p id="media-probe">Physical media height</p>
+            <iframe style="width:100px;height:100px" srcdoc="
+              <style>p { display:none } @media (max-height:150px) { p { display:block } }</style>
+              <p>FrameHeight</p>
+            "></iframe>
+            """;
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions());
+
+        Assert.Contains("Physical media height", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("FrameHeight", PdfCore.PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+        byte[] explicitPdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            PrintLayoutWidthCssPixels = 300D
+        });
+        Assert.Contains("Physical media height", PdfCore.PdfReadDocument.Open(explicitPdf).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlPdf_AutoFitWidePrintRootIncludesContentBoxInsets() {
+        const string html = """
+            <style>
+              @page { size: 200px 300px; margin: 20px }
+              body { min-width: 300px; padding: 50px; margin: 0; background: red }
+            </style>
+            <p>Wide padded body</p>
+            """;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+        byte[] automatic = document.ToPdfBytes(new HtmlToPdfOptions());
+        byte[] explicitWidth = document.ToPdfBytes(new HtmlToPdfOptions {
+            PrintLayoutWidthCssPixels = 400D
+        });
+
+        Assert.Equal(explicitWidth, automatic);
+        Assert.Contains("Wide padded body", PdfCore.PdfReadDocument.Open(automatic).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

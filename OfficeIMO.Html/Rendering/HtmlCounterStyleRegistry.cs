@@ -24,7 +24,7 @@ internal sealed class HtmlCounterStyleRegistry {
                 media,
                 options.MediaContext,
                 options.CssMediaWidth,
-                options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+                options.CssMediaHeight,
                 options.MediaFeatures)) continue;
 
             string css = styleElement.TextContent;
@@ -140,7 +140,7 @@ internal sealed class HtmlCounterStyleRegistry {
                     prelude,
                     options.MediaContext,
                     options.CssMediaWidth,
-                    options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+                    options.CssMediaHeight,
                     options.MediaFeatures)) Collect(css, delimiter + 1, close, closures, options, layers, currentLayer, ref sourceOrder);
             } else if (ruleName == "supports") {
                 if (HtmlComputedStyleEngine.IsApplicableSupports(prelude)) Collect(css, delimiter + 1, close, closures, options, layers, currentLayer, ref sourceOrder);

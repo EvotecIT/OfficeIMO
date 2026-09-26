@@ -67,6 +67,14 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     public bool InteractiveFormControls { get; set; } = true;
 
     /// <summary>
+    /// Fits an authored fixed minimum width on the HTML root or body into a uniform CSS
+    /// print page when it would otherwise overflow. Named and page-specific rules require
+    /// an explicit fitting width. Set to false to retain unscaled print layout. An explicit
+    /// <see cref="PrintLayoutWidthCssPixels"/> takes precedence.
+    /// </summary>
+    public bool AutoFitWidePrintContent { get; set; } = true;
+
+    /// <summary>
     /// Optional wider CSS layout width for print-to-page fitting. The PDF keeps <see cref="HtmlRenderOptions.PageSize"/>
     /// as its physical size while the paged layout is uniformly reduced to fit its width.
     /// CSS media queries and responsive resource selection continue to use <see cref="HtmlRenderOptions.ViewportWidth"/>.
@@ -148,6 +156,7 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
         FontFamily = source.FontFamily;
         InteractiveFormControls = source.InteractiveFormControls;
         PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
+        AutoFitWidePrintContent = source.AutoFitWidePrintContent;
         PrintOutputPageSize = source.PrintOutputPageSize;
         MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
         MaxOutlinedTextPathCommands = source.MaxOutlinedTextPathCommands;

@@ -309,8 +309,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.EnableEditableLayoutRegions = EnableEditableLayoutRegions;
         target.CssMediaContextOverride = CssMediaContextOverride;
         target.CssMediaWidthOverride = CssMediaWidthOverride;
+        target.CssMediaHeightOverride = CssMediaHeightOverride;
         target.PrintFitContentWidth = PrintFitContentWidth;
         target.PrintFitScale = PrintFitScale;
+        target.AutoFitWidePrintRoot = AutoFitWidePrintRoot;
         target.ClipContinuousSurfaceToViewport = ClipContinuousSurfaceToViewport;
         return target;
     }
@@ -329,6 +331,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     // Print fitting can lay out a wider page without changing the viewport
     // against which CSS width media queries were selected.
     internal double? CssMediaWidthOverride { get; set; }
+    internal double? CssMediaHeightOverride { get; set; }
 
     // The PDF adapter may request wider print reflow while CSS @page still owns
     // the physical sheet. Page geometry is expanded only after @page resolves.
@@ -336,8 +339,13 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
     internal double? PrintFitScale { get; set; }
 
+    internal bool AutoFitWidePrintRoot { get; set; }
+
     internal double CssMediaWidth => CssMediaWidthOverride
         ?? (Mode == HtmlRenderMode.Paged ? PageWidth : ViewportWidth);
+
+    internal double CssMediaHeight => CssMediaHeightOverride
+        ?? (Mode == HtmlRenderMode.Paged ? PageHeight : ViewportHeight ?? 1056D);
 
     // A viewport is a bounded continuous layout surface. Legacy ViewportHeight remains a
     // minimum height so existing full-page output does not become clipped.
@@ -359,6 +367,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         }
         ValidatePositive(ViewportWidth, nameof(ViewportWidth));
         if (CssMediaWidthOverride.HasValue) ValidatePositive(CssMediaWidthOverride.Value, nameof(CssMediaWidthOverride));
+        if (CssMediaHeightOverride.HasValue) ValidatePositive(CssMediaHeightOverride.Value, nameof(CssMediaHeightOverride));
         if (PrintFitContentWidth.HasValue) ValidatePositive(PrintFitContentWidth.Value, nameof(PrintFitContentWidth));
         if (PrintFitScale.HasValue) ValidatePositive(PrintFitScale.Value, nameof(PrintFitScale));
         if (ViewportHeight.HasValue) {

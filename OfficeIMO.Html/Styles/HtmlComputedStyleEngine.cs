@@ -399,7 +399,7 @@ public static partial class HtmlComputedStyleEngine {
             new MediaEnvironment(
                 options.MediaContext,
                 options.CssMediaWidth,
-                options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+                options.CssMediaHeight,
                 options.MediaFeatures),
             true,
             false,

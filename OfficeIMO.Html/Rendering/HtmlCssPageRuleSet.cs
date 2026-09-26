@@ -21,6 +21,8 @@ internal sealed class HtmlCssPageRuleSet {
         _rules.Add(rule);
     }
 
+    internal bool HasPageSpecificRules => _rules.Any(rule => rule.PageName != null || rule.Selector != HtmlCssPageSelector.Generic);
+
     internal HtmlCssPageGeometry ResolveGeometry(int pageNumber, string? pageName, HtmlRenderOptions options) {
         return ResolveGeometry(MatchingRules(pageNumber, pageName), options);
     }
@@ -30,6 +32,7 @@ internal sealed class HtmlCssPageRuleSet {
             _rules.Where(rule => rule.PageName == null && rule.Selector == HtmlCssPageSelector.Generic),
             options);
         if (options.PrintFitContentWidth is double layoutWidth) {
+            options.CssMediaHeightOverride ??= geometry.Height;
             double physicalContentWidth = geometry.ContentWidth;
             double scale = physicalContentWidth / layoutWidth;
             if (scale >= 1D || layoutWidth > options.MaxSurfaceWidth)

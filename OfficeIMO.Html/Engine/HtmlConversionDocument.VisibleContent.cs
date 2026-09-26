@@ -44,7 +44,7 @@ public sealed partial class HtmlConversionDocument {
             MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.CssMediaWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaHeight = resolved.CssMediaHeight,
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone()

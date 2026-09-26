@@ -532,7 +532,7 @@ internal static class HtmlRenderResourceLoader {
             MaxResponsiveImageSizesCharacters = options.ResponsiveImageSizesCharacterLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.CssMediaWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaHeight = options.CssMediaHeight,
             DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()

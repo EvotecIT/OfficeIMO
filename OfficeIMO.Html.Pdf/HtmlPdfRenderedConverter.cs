@@ -110,6 +110,9 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlToPdfOptions renderOptions = new HtmlToPdfOptions(request.Options);
         CopyAdapterOptions(options, renderOptions);
         ApplyPrintLayoutWidth(request, renderOptions);
+        renderOptions.AutoFitWidePrintRoot = renderOptions.AutoFitWidePrintContent
+            && renderOptions.PrintLayoutWidthCssPixels == null
+            && request.Profile == HtmlRenderIntentProfile.PrintPaged;
         PdfCore.PdfOptions measurementOptions = options.PdfOptions.Clone();
         measurementOptions.SetTextShapingMode(options.TextShapingMode).SetTextShapingProvider(options.TextShapingProvider);
         if (options.FontFamily != null) measurementOptions.RegisterFontFamily(PdfCore.PdfStandardFont.Helvetica, options.FontFamily);
@@ -175,6 +178,7 @@ internal static partial class HtmlPdfRenderedConverter {
         target.FontFamily = source.FontFamily;
         target.InteractiveFormControls = source.InteractiveFormControls;
         target.PrintLayoutWidthCssPixels = source.PrintLayoutWidthCssPixels;
+        target.AutoFitWidePrintContent = source.AutoFitWidePrintContent;
         target.MaxOutlinedTextCharactersPerRun = source.MaxOutlinedTextCharactersPerRun;
         target.MaxOutlinedTextPathCommands = source.MaxOutlinedTextPathCommands;
         target.PdfOptions = source.PdfOptions.Clone();

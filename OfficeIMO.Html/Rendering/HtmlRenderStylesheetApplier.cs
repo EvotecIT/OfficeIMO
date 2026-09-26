@@ -156,7 +156,7 @@ internal static class HtmlRenderStylesheetApplier {
             MaxResponsiveImageSizesCharacters = options.ResponsiveImageSizesCharacterLimit,
             MediaContext = options.MediaContext,
             MediaWidth = options.CssMediaWidth,
-            MediaHeight = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D,
+            MediaHeight = options.CssMediaHeight,
             DevicePixelRatio = options.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = options.DefaultFontSize,
             MediaFeatures = options.MediaFeatures.Clone()
@@ -335,7 +335,7 @@ internal static class HtmlRenderStylesheetApplier {
 
     private static bool IsApplicableMedia(string mediaText, HtmlRenderOptions options) {
         double? width = options.CssMediaWidth;
-        double? height = options.Mode == HtmlRenderMode.Paged ? options.PageHeight : options.ViewportHeight ?? 1056D;
+        double? height = options.CssMediaHeight;
         return width.HasValue && height.HasValue
             ? HtmlComputedStyleEngine.IsApplicableMedia(
                 mediaText,

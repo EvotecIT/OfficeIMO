@@ -106,9 +106,14 @@ PDF keeps the resolved authored `@page` size and margins, and fits the chosen
 layout width inside their printable area. For example, a source with a
 `min-width: 1400px` print layout and `@page { size: 330mm 427mm; margin: .75in .5in }`
 can use `PrintLayoutWidthCssPixels = 1400` without replacing the authored sheet.
-The width must exceed the printable area; fitting is explicit and does not
-automatically infer a source's minimum width. The retained render result uses
-the wider CSS page dimensions; the PDF is the scaled paper-size artifact.
+An explicit width must exceed the printable area. By default, PDF conversion also detects a fixed
+`min-width` on `html` or `body` that exceeds the printable width and fits it
+within a uniform authored sheet. Named or page-specific `@page` rules and widths
+that cannot be inferred from those root declarations still need an explicit
+`PrintLayoutWidthCssPixels`. Set `AutoFitWidePrintContent = false` to keep the
+unscaled print layout.
+The retained render result uses the wider CSS page dimensions; the PDF is the
+scaled paper-size artifact.
 
 A prepared HTML report can be exported directly to a file:
 

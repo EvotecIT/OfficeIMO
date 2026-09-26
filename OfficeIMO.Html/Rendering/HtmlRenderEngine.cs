@@ -157,7 +157,7 @@ public static class HtmlRenderEngine {
             MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.CssMediaWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaHeight = resolved.CssMediaHeight,
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone()
@@ -182,6 +182,10 @@ public static class HtmlRenderEngine {
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved)) {
+            resolved.Validate();
+            styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
             document,
@@ -307,7 +311,7 @@ public static class HtmlRenderEngine {
             MaxResponsiveImageSizesCharacters = resolved.ResponsiveImageSizesCharacterLimit,
             MediaContext = resolved.MediaContext,
             MediaWidth = resolved.CssMediaWidth,
-            MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D,
+            MediaHeight = resolved.CssMediaHeight,
             DevicePixelRatio = resolved.MediaFeatures.ResolutionDpi / HtmlRenderOptions.CssPixelsPerInch,
             DefaultFontSize = resolved.DefaultFontSize,
             MediaFeatures = resolved.MediaFeatures.Clone()
@@ -326,6 +330,10 @@ public static class HtmlRenderEngine {
         cancellationToken.ThrowIfCancellationRequested();
         resolved.Validate();
         HtmlComputedStyleSet styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        if (HtmlCssPrintFitResolver.TryApplyWideRoot(document, styles, pageRules, resolved)) {
+            resolved.Validate();
+            styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
+        }
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
             limits: limits, cancellationToken: cancellationToken).Render();

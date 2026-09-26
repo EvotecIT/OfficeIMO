@@ -284,9 +284,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nestedOptions.Mode = HtmlRenderMode.Continuous;
         nestedOptions.ViewportWidth = context.Width;
         nestedOptions.CssMediaWidthOverride = null;
+        nestedOptions.CssMediaHeightOverride = null;
         nestedOptions.ViewportHeight = context.Height;
         nestedOptions.Margins = HtmlRenderMargins.All(0D);
         nestedOptions.HonorCssPageRules = false;
+        nestedOptions.AutoFitWidePrintRoot = false;
+        nestedOptions.PrintFitContentWidth = null;
+        nestedOptions.PrintFitScale = null;
         nestedOptions.BackgroundColor = OfficeColor.Transparent;
         nestedOptions.FidelityPolicy = HtmlRenderFidelityPolicy.AllowDiagnosedLoss;
         nestedOptions.MaxHtmlNodes = Math.Min(nestedOptions.MaxHtmlNodes, _options.MaxSvgForeignObjectHtmlNodes);
