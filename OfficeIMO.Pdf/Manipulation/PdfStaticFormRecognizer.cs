@@ -73,8 +73,8 @@ internal static class PdfStaticFormRecognizer {
                             backdrop.R * 0.2126D + backdrop.G * 0.7152D + backdrop.B * 0.0722D < 200D));
                 }
             }
-            List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas,
-                ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
+            List<Label> labels = GetLabels(page, suppliedText, pageWidth, pageHeight, filledAreas, effects,
+                out List<VisualRect> nativeTextBounds, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
             pageDirections[pageNumber] = PdfTextDirectionAnalysis.Resolve(PdfReadingDirection.Auto,
                 labels.Select(static label => label.Text));
             for (int candidateIndex = 0; candidateIndex < primitives.Count; candidateIndex++) {
@@ -83,7 +83,7 @@ internal static class PdfStaticFormRecognizer {
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
                 candidateScanWork = checked(candidateScanWork +
                     ((long)primitives.Count + imagePlacementCount) * (filledAreas.Count + 1L) +
-                    effects.Count + labels.Count * 2L + proposed.Count + page.FormWidgets.Count +
+                    effects.Count + labels.Count * 2L + nativeTextBounds.Count + proposed.Count + page.FormWidgets.Count +
                     page.Annotations.Count + page.LinkAnnotations.Count);
                 if (candidateScanWork > effective.MaxCandidateScanWork) {
                     throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
@@ -127,7 +127,8 @@ internal static class PdfStaticFormRecognizer {
                     AddDiagnostic("existing-annotation", pageNumber, "A visual candidate overlaps an existing annotation.");
                     continue;
                 }
-                if (labels.Any(label => OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) continue;
+                if (nativeTextBounds.Any(bounds => OverlapArea(bounds, visual) > Math.Min(bounds.Area, visual.Area) * 0.05D) ||
+                    labels.Any(label => label.IsOcr && OverlapArea(label.Bounds, visual) > Math.Min(label.Bounds.Area, visual.Area) * 0.05D)) continue;
                 Label? labelMatch = FindLabel(labels, visual, evidence, pageDirections[pageNumber]);
                 if (labelMatch is null) continue;
                 double confidence = evidence switch {
@@ -195,21 +196,29 @@ internal static class PdfStaticFormRecognizer {
 
     private static List<Label> GetLabels(PdfLogicalPage page, IReadOnlyList<PdfStaticFormTextEvidence> ocrText,
         double pageWidth, double pageHeight,
-        IReadOnlyList<PaintArea> filledAreas, ref long candidateScanWork, int maxCandidateScanWork,
+        IReadOnlyList<PaintArea> filledAreas, IReadOnlyList<PdfPageDrawingEffectTransition> effects,
+        out List<VisualRect> nativeTextBounds, ref long candidateScanWork, int maxCandidateScanWork,
         CancellationToken cancellationToken) {
         var labels = new List<Label>();
+        nativeTextBounds = new List<VisualRect>();
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
             cancellationToken.ThrowIfCancellationRequested();
             string text = NormalizeLabel(block.Text);
-            if (text.Length == 0 || text.Length > 80 || block.XEnd <= block.XStart) continue;
+            if (text.Length == 0 || block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? ToVisualBounds(page, block);
             if (!Valid(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom, pageWidth, pageHeight)) continue;
             var visual = new VisualRect(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom);
+            bool visibleText = block.Spans.Count == 0;
+            bool provableLabel = block.Spans.Count == 0;
             if (block.Spans.Count > 0) {
-                bool visibleSpan = false;
+                bool uncertainEffect = false;
                 foreach (PdfTextSpan span in block.Spans) {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (!span.IsVisible || (span.Color?.A ?? 255) <= 3) continue;
+                    PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, span.PaintOrder,
+                        contentOrderKey: span.ContentOrderKey);
+                    if (effect.SoftMask is not null || effect.HasUnresolvedSoftMask ||
+                        effect.BlendMode != OfficeBlendMode.Normal) uncertainEffect = true;
                     bool covered = false;
                     foreach (PaintArea area in filledAreas) {
                         cancellationToken.ThrowIfCancellationRequested();
@@ -223,10 +232,12 @@ internal static class PdfStaticFormRecognizer {
                             break;
                         }
                     }
-                    if (!covered) { visibleSpan = true; break; }
+                    if (!covered) visibleText = true;
                 }
-                if (!visibleSpan) continue;
+                provableLabel = visibleText && !uncertainEffect;
             }
+            if (visibleText) nativeTextBounds.Add(visual);
+            if (!provableLabel || text.Length > 80) continue;
             labels.Add(new Label(text, visual, block.Confidence, isOcr: false));
         }
         foreach (PdfStaticFormTextEvidence item in ocrText) {

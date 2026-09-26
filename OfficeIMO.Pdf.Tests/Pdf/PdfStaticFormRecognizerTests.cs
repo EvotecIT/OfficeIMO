@@ -473,6 +473,39 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void LongNativeValueInsideOutlinePreventsAnEmptyFieldProposal() {
+        string value = new string('A', 90);
+        string content = "1 w 100 205 140 20 re S BT /F1 12 Tf 20 208 Td (Name) Tj ET BT /F1 4 Tf 105 208 Td (" + value + ") Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
+    public void SoftMaskedNativeLabelDoesNotSupportAVisibleField() {
+        const string content = "1 w 100 205 120 20 re S q /GS1 gs BT /F1 12 Tf 20 208 Td (Name) Tj ET Q";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> /ExtGState << /GS1 6 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "6 0 obj", "<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>", "endobj",
+            "7 0 obj", "<< /Type /XObject /Subtype /Form /BBox [0 0 400 300] /Group << /S /Transparency >> /Length 0 >>", "stream", "", "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF", ""
+        }));
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
     public void OpaqueFieldFillCanCoverAnEarlierMark() {
         OfficeShape mark = OfficeShape.Line(0D, 0D, 9D, 9D);
         mark.StrokeColor = OfficeColor.Black;
