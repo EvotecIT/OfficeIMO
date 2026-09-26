@@ -258,6 +258,22 @@ public class PdfStampAnnotationEditorTests {
         Assert.Throws<OverflowException>(() => PdfAnnotationEditor.AddStampAnnotation(source));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StampRejectsFiniteCoordinatesWhoseEndpointOverflows(bool vertical) {
+        var options = new PdfStampAnnotationOptions();
+        if (vertical) {
+            options.Y = double.MaxValue;
+            options.Height = double.MaxValue;
+        } else {
+            options.X = double.MaxValue;
+            options.Width = double.MaxValue;
+        }
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => PdfAnnotationEditor.AddStampAnnotation(Array.Empty<byte>(), options));
+    }
+
     private static byte[] Certify(byte[] source, PdfCertificationPermissionLevel permission) {
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             source,

@@ -244,6 +244,8 @@ internal static partial class PdfAnnotationEditor {
         ValidateFinite(options.Y, nameof(options.Y));
         Guard.Positive(options.Width, nameof(options.Width));
         Guard.Positive(options.Height, nameof(options.Height));
+        ValidateFinite(options.X + options.Width, nameof(options.Width));
+        ValidateFinite(options.Y + options.Height, nameof(options.Height));
         Guard.NotNullOrWhiteSpace(options.StampName, nameof(options.StampName));
         Guard.NonNegative(options.Flags, nameof(options.Flags));
         Guard.NonNegative(options.BorderWidth, nameof(options.BorderWidth));

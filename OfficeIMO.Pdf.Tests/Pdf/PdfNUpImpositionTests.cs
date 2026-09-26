@@ -115,7 +115,11 @@ public sealed class PdfNUpImpositionTests {
     [InlineData("/Collection << /Type /Collection >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/Extensions << /ADBE << /BaseVersion /1.7 /ExtensionLevel 3 >> >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/Requirements [<< /S /EnableJavaScripts >>]", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
+    [InlineData("/NeedsRendering true", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
     [InlineData("/VP [<< /Type /Viewport /BBox [0 0 200 200] >>]", PdfImpositionSourceFeatureLoss.PageFeatures)]
+    [InlineData("/SeparationInfo << /Pages [3 0 R] >>", PdfImpositionSourceFeatureLoss.PageFeatures)]
+    [InlineData("/BoxColorInfo << /CropBox << /C [0 0 0] >> >>", PdfImpositionSourceFeatureLoss.PageFeatures)]
+    [InlineData("/PresSteps << /Type /NavNode >>", PdfImpositionSourceFeatureLoss.PageFeatures)]
     public void PortfolioOrSelectedViewportRequiresFeatureLossApproval(string feature, PdfImpositionSourceFeatureLoss expectedLoss) {
         bool catalogFeature = expectedLoss == PdfImpositionSourceFeatureLoss.CatalogFeatures;
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
@@ -131,6 +135,22 @@ public sealed class PdfNUpImpositionTests {
         Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
         options.AllowSourceFeatureLoss = true;
         Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(expectedLoss));
+    }
+
+    [Fact]
+    public void FalseNeedsRenderingDoesNotRequireFeatureLossApproval() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /NeedsRendering false >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", string.Empty
+        }));
+
+        PdfImpositionResult result = PdfDocument.Load(source).Pages.ImposeNUp(
+            new PdfNUpOptions(new PageSize(600, 400), 2, 1));
+
+        Assert.False(result.SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.CatalogFeatures));
     }
 
     [Fact]
