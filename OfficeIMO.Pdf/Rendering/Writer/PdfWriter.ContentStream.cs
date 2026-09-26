@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-internal sealed class ContentStreamBuilder {
+internal sealed partial class ContentStreamBuilder {
     private readonly StringBuilder _sb;
 
     public ContentStreamBuilder(StringBuilder sb) {
@@ -12,11 +12,16 @@ internal sealed class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
+        _textStates.Push((_textScale, _textLeading, _textWordSpacing));
         _sb.Append("q\n");
         return this;
     }
 
     public ContentStreamBuilder RestoreState() {
+        if (_textStates.Count != 0) {
+            var state = _textStates.Pop();
+            _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
+        }
         _sb.Append("Q\n");
         return this;
     }
@@ -183,6 +188,7 @@ internal sealed class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder BeginText() {
+        ResetTrackedTextMatrix();
         _sb.Append("BT\n");
         return this;
     }
@@ -199,6 +205,7 @@ internal sealed class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder TextLeading(double leading) {
+        _textLeading = leading;
         _sb.Append(F(leading)).Append(" TL\n");
         return this;
     }
@@ -208,6 +215,7 @@ internal sealed class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder TextMatrix(double a, double b, double c, double d, double e, double f) {
+        TrackTextMatrix(a, b, c, d, e, f);
         _sb.Append(F(a)).Append(' ')
             .Append(F(b)).Append(' ')
             .Append(F(c)).Append(' ')
@@ -218,16 +226,23 @@ internal sealed class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder MoveText(double x, double y) {
+        if (_isolatedText) return TextMatrix(_textA, _textB, _textC, _textD, _lineE + _textA * x + _textC * y, _lineF + _textB * x + _textD * y);
+        _lineE += _textA * x + _textC * y; _lineF += _textB * x + _textD * y;
+        _textE = _lineE; _textF = _lineF;
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(" Td\n");
         return this;
     }
 
     public ContentStreamBuilder NextTextLine() {
+        if (_isolatedText) return MoveText(0, -_textLeading);
+        _lineE -= _textC * _textLeading; _lineF -= _textD * _textLeading;
+        _textE = _lineE; _textF = _lineF;
         _sb.Append("T*\n");
         return this;
     }
 
     public ContentStreamBuilder WordSpacing(double spacing) {
+        _textWordSpacing = spacing;
         _sb.Append(F(spacing)).Append(" Tw\n");
         return this;
     }
@@ -237,6 +252,7 @@ internal sealed class ContentStreamBuilder {
             throw new ArgumentOutOfRangeException(nameof(percentage), "PDF horizontal text scaling must be positive and finite.");
         }
 
+        _textScale = percentage / 100D;
         _sb.Append(F(percentage)).Append(" Tz\n");
         return this;
     }
@@ -267,6 +283,11 @@ internal sealed class ContentStreamBuilder {
             throw new ArgumentOutOfRangeException(nameof(fontSize), "PDF text font size must be positive and finite.");
         }
 
+        if (!suppressActualText && command.LogicalGlyphs is { } logicalGlyphs) {
+            WriteIsolatedLogicalGlyphs(logicalGlyphs, fontSize, currentTextRise);
+            return this;
+        }
+
         if (!suppressActualText && command.ActualText != null) {
             _sb.Append("/Span << /ActualText ")
                 .Append(PdfSyntaxEscaper.TextString(command.ActualText))
@@ -283,6 +304,8 @@ internal sealed class ContentStreamBuilder {
             _sb.Append("EMC\n");
         }
 
+        if (command.AdvanceWidth1000.HasValue)
+            AdvanceTrackedText(command.AdvanceWidth1000.Value * fontSize / 1000D + command.WordSpaceCount * _textWordSpacing);
         return this;
     }
 

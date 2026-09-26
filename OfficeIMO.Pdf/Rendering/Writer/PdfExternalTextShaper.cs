@@ -128,7 +128,7 @@ internal static class PdfExternalTextShaper {
 
         // Automatic Latin runs retain logical clusters in ToUnicode. Avoid broad ActualText
         // scopes so partial redaction can preserve neighboring scalar and ligature glyphs.
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: includeActualText ? text : null, result.Direction, hasCompleteVerticalAdvances, result);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: includeActualText ? text : null, result.Direction, hasCompleteVerticalAdvances, result, preserveGlyphUnicode: !includeActualText);
     }
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>

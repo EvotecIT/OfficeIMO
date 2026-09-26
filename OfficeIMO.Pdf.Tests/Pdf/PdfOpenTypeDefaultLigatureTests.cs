@@ -99,4 +99,33 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.Equal(text, run.ActualText);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void MixedPresentationAndSubstitutionGlyphsPreserveEachSource(bool cff, bool reverse) {
+        byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
+        string first = reverse ? "fi" : "\uFB01";
+        string second = reverse ? "\uFB01" : "fi";
+        byte[] pdf = PdfDocument.Create(new PdfOptions().EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(paragraph => paragraph.Text(first))
+            .Paragraph(paragraph => paragraph.Text(second)).ToBytes();
+        string extracted = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("\uFB01", extracted);
+        Assert.Contains("fi", extracted);
+    }
+
+    [Fact]
+    public void SuccessfulProgramDoesNotSuppressAnotherProgramsFallbackWarning() {
+        byte[] supported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn");
+        byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn", lookupFlags: 8);
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, supported, "SharedName")
+            .EmbedStandardFont(PdfStandardFont.HelveticaBold, unsupported, "SharedName");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("fi").Bold("fi")).ToBytes();
+        Assert.Contains("unsupported-font-ligature-substitution", report.Warnings.Select(warning => warning.Code));
+    }
+
 }

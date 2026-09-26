@@ -26,6 +26,7 @@ internal static partial class PdfWriter {
     private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        options?.BeginTextShapingAttempt();
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
@@ -88,14 +89,14 @@ internal static partial class PdfWriter {
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
         }
 
-        return new PdfTextShowCommand(EncodeWinAnsiHex(text));
+        return new PdfTextShowCommand(EncodeWinAnsiHex(text), advanceWidth1000: EstimateSimpleTextWidth(text, font, 1000),
+            wordSpaceCount: text.Count(character => character == ' '));
     }
 
     private static PdfTextShowCommand EncodeActualTextAnchor(PdfStandardFont font, PdfOptions options, int count = 1) {
         PdfTextShowCommand command = EncodeTextShowCommand(new string(' ', count), font, options);
-        return command.ActualText == null
-            ? command
-            : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs);
+        return new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs,
+            advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount);
     }
 
     private static PdfTextShowCommand EncodeTextShowCommand(
@@ -105,6 +106,7 @@ internal static partial class PdfWriter {
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
         OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        options?.BeginTextShapingAttempt();
         if (namedFont.HasValue &&
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&

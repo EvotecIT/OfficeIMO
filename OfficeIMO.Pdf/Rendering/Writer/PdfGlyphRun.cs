@@ -7,15 +7,17 @@ internal sealed class PdfGlyphRun {
         : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.Auto) {
     }
 
-    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null) {
+    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null, bool preserveGlyphUnicode = false) {
         Glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
         Direction = direction;
         HasCompleteVerticalAdvances = hasCompleteVerticalAdvances;
         SourceShapingResult = sourceShapingResult;
+        PreserveGlyphUnicode = preserveGlyphUnicode;
     }
 
+    internal bool PreserveGlyphUnicode { get; }
     public IReadOnlyList<PdfGlyphInfo> Glyphs { get; }
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
     public string? ActualText { get; }
@@ -86,17 +88,22 @@ internal sealed class PdfGlyphRun {
         if (Direction == OfficeTextDirection.TopToBottom) {
             throw new InvalidOperationException("PDF horizontal text operators cannot publish a top-to-bottom shaped glyph run. Use the diagnosed vertical drawing route.");
         }
-        return new PdfTextShowCommand(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText);
+        return new PdfTextShowCommand(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText,
+            PreserveGlyphUnicode ? Glyphs : null, TotalAdvanceWidth1000);
     }
 }
 
 internal sealed class PdfTextShowCommand {
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0) {
+        LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
         GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
     }
 
+    internal IReadOnlyList<PdfGlyphInfo>? LogicalGlyphs { get; }
+    internal double? AdvanceWidth1000 { get; }
+    internal int WordSpaceCount { get; }
     internal string GlyphHex { get; }
     internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
     internal string? ActualText { get; }
@@ -242,7 +249,8 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
             ? text
             : null;
-        return new PdfGlyphRun(glyphs, diagnostics, actualText);
+        return new PdfGlyphRun(glyphs, diagnostics, actualText, preserveGlyphUnicode:
+            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
     }
 
     // Total advance width (1000-em units) without materializing a glyph run. Mirrors ShapeText's loop
