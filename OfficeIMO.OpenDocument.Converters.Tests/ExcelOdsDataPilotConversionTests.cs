@@ -99,6 +99,30 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void RejectedOversizedPivotDoesNotConsumeTheNextPivotBudget() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable rejected = source.AddDataPilotTable("Rejected",
+            "Data.A1:Data.B450000", "Data.D1:Data.E100001");
+        rejected.AddField("Region", "row");
+        rejected.AddField("Sales", "data", "sum");
+        OdsDataPilotTable accepted = source.AddDataPilotTable("Accepted",
+            "Data.A1:Data.B2", "Data.G1:Data.H75000");
+        accepted.AddField("Region", "row");
+        accepted.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Equal("Accepted", Assert.Single(target.Sheets.Single().GetPivotTables()).Name);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void DuplicateExcelAxisFieldIndexIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");
