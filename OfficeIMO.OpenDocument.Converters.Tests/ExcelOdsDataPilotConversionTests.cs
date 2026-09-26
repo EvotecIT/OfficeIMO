@@ -12,6 +12,35 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class ExcelOdsDataPilotConversionTests {
     [Fact]
+    public void ExcelPivotCacheSheetCasingUsesCanonicalOdsSheetName() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, "Region");
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        sheet.AddPivotTable("A1:B2", "D1", name: "SalesPivot", rowFields: new[] { "Region" },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+        byte[] bytes = source.ToBytes();
+        using var stream = new MemoryStream();
+        stream.Write(bytes, 0, bytes.Length);
+        stream.Position = 0;
+        using (SpreadsheetDocument package = SpreadsheetDocument.Open(stream, true)) {
+            var cache = package.WorkbookPart!.PivotTableCacheDefinitionParts.Single();
+            cache.PivotCacheDefinition!.CacheSource!.WorksheetSource!.Sheet = "data";
+            cache.PivotCacheDefinition.Save();
+        }
+        using ExcelDocument imported = ExcelDocument.Load(new MemoryStream(stream.ToArray()));
+        Assert.Equal("data", imported.Sheets.Single().GetPivotTables().Single().SourceSheet);
+        OdfConversionResult<OdsDocument> conversion = imported.ToOpenDocumentResult();
+        OdsDataPilotTable pivot = Assert.Single(conversion.Value.DataPilotTables);
+        Assert.Equal("$'Data'.A1:$'Data'.B2", pivot.SourceRangeAddress);
+        Assert.True(conversion.Value.Validate().IsValid);
+        Assert.DoesNotContain(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void DisjointPivotRangesRemainIndependentAcrossIndexedPlanning() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
