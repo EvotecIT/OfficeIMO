@@ -177,6 +177,20 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void ActualTextMappingRejectsExcessiveAmbiguousSpanWork() {
+        PdfTextSpan[] spans = Enumerable.Range(0, 2_000)
+            .Select(static _ => new PdfTextSpan("A", "F1", 12D, 10D, 20D))
+            .ToArray();
+        spans[0] = new PdfTextSpan("A", "F1", 12D, 10D, 20D, 0D, null, true, 0D, null, null,
+            hasActualText: true);
+        spans[0].SetSourceActualText("X");
+        var block = new PdfLogicalTextBlock(1, PdfLogicalElementKind.TextBlock,
+            new string('A', 2_000), 10D, 40D, 20D, 12D, spans);
+
+        Assert.Throws<PdfReadLimitException>(() => PdfReviewSemanticComparer.ReconstructSemanticText(block));
+    }
+
+    [Fact]
     public void ConfiguredButUnusedMaskDoesNotCompareExactScansByPayload() {
         const string content = "q 240 0 0 180 0 0 cm /Im0 Do Q\n";
         PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABCDEF", content, width: 1));
@@ -421,6 +435,19 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void SoftMaskedImagePayloadDoesNotCreateAVisibleImageChange() {
+        const string content = "q /GS0 gs 60 0 0 40 10 10 cm /Im0 Do Q\n";
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABC", content, withSoftMask: true));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("DEF", content, withSoftMask: true));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
+
+        Assert.DoesNotContain(report.Pages.SelectMany(static page => page.Changes),
+            static change => change.Kind is PdfReviewChangeKind.ImageChangedCandidate or
+                PdfReviewChangeKind.ImageAdded or PdfReviewChangeKind.ImageRemoved);
+    }
+
+    [Fact]
     public void IgnoredRegionCoversEffectiveClippedImageBounds() {
         const string content = "q 20 20 40 40 re W n 240 0 0 180 0 0 cm /Im0 Do Q\n";
         PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABC", content));
@@ -467,17 +494,20 @@ public sealed class PdfReviewComparerTests {
         Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
     }
 
-    private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false, int width = 1) =>
+    private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false,
+        int width = 1, bool withSoftMask = false) =>
         System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
             "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /XObject << /Im0 5 0 R >>" +
-                (withZeroOpacity ? " /ExtGState << /GS0 6 0 R >>" : string.Empty) + " >> /Contents 4 0 R >>", "endobj",
+                (withZeroOpacity || withSoftMask ? " /ExtGState << /GS0 6 0 R >>" : string.Empty) + " >> /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
             "5 0 obj", $"<< /Type /XObject /Subtype /Image /Width {width} /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length {pixels.Length} >>", "stream", pixels, "endstream", "endobj",
             withZeroOpacity ? "6 0 obj\n<< /Type /ExtGState /ca 0 >>\nendobj" : string.Empty,
-            "trailer", withZeroOpacity ? "<< /Root 1 0 R /Size 7 >>" : "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+            withSoftMask ? "6 0 obj\n<< /Type /ExtGState /SMask << /S /Alpha /G 7 0 R >> >>\nendobj" : string.Empty,
+            withSoftMask ? "7 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 1 1] /Group << /S /Transparency >> /Length 0 >>\nstream\n\nendstream\nendobj" : string.Empty,
+            "trailer", withSoftMask ? "<< /Root 1 0 R /Size 8 >>" : withZeroOpacity ? "<< /Root 1 0 R /Size 7 >>" : "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
         }));
 
     private static PdfDocument PageAt(string text, double y) => PdfDocument.Load(PdfDocument.Create(

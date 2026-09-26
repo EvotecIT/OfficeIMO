@@ -36,8 +36,8 @@ internal static class PdfReviewSemanticComparer {
 
     private static void CompareText(PdfLogicalPage expected, PdfLogicalPage actual, PdfVisualPageComparison? visual,
         PdfReviewComparisonOptions options, List<PdfReviewChange> changes, CancellationToken cancellationToken) {
-        TextFeature[] before = GetText(expected, visual, options);
-        TextFeature[] after = GetText(actual, visual, options);
+        TextFeature[] before = GetText(expected, visual, options, cancellationToken);
+        TextFeature[] after = GetText(actual, visual, options, cancellationToken);
         bool[] usedBefore = new bool[before.Length];
         bool[] usedAfter = new bool[after.Length];
         MatchIdentical(before, after, static feature => feature.Normalized, usedBefore, usedAfter,
@@ -98,30 +98,42 @@ internal static class PdfReviewSemanticComparer {
             PdfReviewChangeKind.ImageAdded, expected.PageNumber, actual.PageNumber, null, after[i].Bounds));
     }
 
-    private static TextFeature[] GetText(PdfLogicalPage page, PdfVisualPageComparison? visual, PdfReviewComparisonOptions options) {
+    private static TextFeature[] GetText(PdfLogicalPage page, PdfVisualPageComparison? visual,
+        PdfReviewComparisonOptions options, CancellationToken cancellationToken) {
         if (page.TextBlocks.Count > options.MaxTextBlocksPerPage) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, options.MaxTextBlocksPerPage, page.TextBlocks.Count);
         }
         var output = new List<TextFeature>(page.TextBlocks.Count);
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(block.Text) || block.VisualBounds is null && block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
-            string semanticText = ReconstructSemanticText(block);
+            string semanticText = ReconstructSemanticText(block, cancellationToken);
             bool canPaint = block.Spans.Count == 0 || block.Spans.Any(static span => span.IsVisible);
             output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds, canPaint));
         }
         return output.ToArray();
     }
 
-    internal static string ReconstructSemanticText(PdfLogicalTextBlock block) {
+    internal static string ReconstructSemanticText(PdfLogicalTextBlock block,
+        CancellationToken cancellationToken = default) {
         if (!block.Spans.Any(static span => span.HasActualText)) return block.Text;
+        const long maxMappingWork = 4_000_000L;
+        long mappingWork = 0L;
         var replacements = new List<(int Start, int End, string Text)>(block.Spans.Count);
         foreach (PdfTextSpan span in block.Spans) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (span.Text.Length == 0) continue;
             int searchStart = 0;
             bool matched = false;
-            while (PdfLogicalTextBlock.TryFindNormalizedSpan(block.Text, span.Text, searchStart, out int match, out int end)) {
+            while (searchStart < block.Text.Length) {
+                mappingWork = checked(mappingWork + block.Text.Length - searchStart + replacements.Count);
+                if (mappingWork > maxMappingWork) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maxMappingWork, mappingWork);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!PdfLogicalTextBlock.TryFindNormalizedSpan(block.Text, span.Text, searchStart, out int match, out int end)) break;
                 if (!replacements.Any(item => match < item.End && end > item.Start)) {
                     replacements.Add((match, end, span.SourceActualText ?? span.Text));
                     matched = true;
@@ -246,7 +258,8 @@ internal static class PdfReviewSemanticComparer {
     private static bool TryVisibleImageBounds(PdfLogicalPage page, PdfImagePlacement placement,
         bool requireExactClip, out PdfLogicalVisualBounds bounds) {
         bounds = default!;
-        if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent || placement.Opacity <= 0D) return false;
+        if (placement.Width <= 0D || placement.Height <= 0D || placement.IsHiddenOptionalContent ||
+            placement.Opacity <= 0D || placement.HasSoftMask || placement.HasUnsupportedImagePaintEffect) return false;
         (double pageWidth, double pageHeight) = page.GetVisualPageSize();
         PdfVisualBounds mapped = page.TransformBoundsToVisual(placement.X, placement.Y,
             placement.X + placement.Width, placement.Y + placement.Height);
