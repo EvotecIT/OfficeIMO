@@ -107,15 +107,20 @@ public static partial class WordOpenDocumentConversionExtensions {
                 "Default header and footer content from later Word sections is omitted because ODT conversion emits one page layout.");
             int laterAlternate = snapshot.Sections.Skip(1).Sum(section =>
                 (section.HasExplicitFirstHeader ? 1 : 0) + (section.HasExplicitFirstFooter ? 1 : 0) +
-                (section.HasExplicitEvenHeader ? 1 : 0) + (section.HasExplicitEvenFooter ? 1 : 0));
+                (section.HasExplicitEvenHeader ? 1 : 0) + (section.HasExplicitEvenFooter ? 1 : 0) +
+                (section.DifferentFirstPage && !section.HasExplicitFirstHeader && !section.HasExplicitFirstFooter ? 1 : 0));
             int inactiveAlternate = (first.DifferentFirstPage ? 0 : (first.HasExplicitFirstHeader ? 1 : 0) + (first.HasExplicitFirstFooter ? 1 : 0)) +
                 (first.DocumentOddEvenSettingEnabled ? 0 : (first.HasExplicitEvenHeader ? 1 : 0) + (first.HasExplicitEvenFooter ? 1 : 0));
             if (laterAlternate + inactiveAlternate > 0) report.Add("alternate-headers-footers", OdfConversionMappingStatus.Unsupported,
-                laterAlternate + inactiveAlternate, "Alternate header and footer parts outside the active first-section mapping are omitted.");
+                laterAlternate + inactiveAlternate, "Alternate header and footer parts or active first-page behavior outside the first-section mapping are omitted.");
         } else if (headerFooterBlocks > 0) {
             report.Add("headers-footers", OdfConversionMappingStatus.Skipped, headerFooterBlocks,
                 "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
+
+        int unsupportedPageNumberStarts = snapshot.Sections.Count(section => section.PageNumberStart is int start && start != 1);
+        if (unsupportedPageNumberStarts > 0) report.Add("page-numbering", OdfConversionMappingStatus.Unsupported,
+            unsupportedPageNumberStarts, "Word section page-number restarts are not preserved by the one-layout ODT conversion.");
 
         AddCount(report, "paragraphs", paragraphs);
         AddCount(report, "headings", headings);

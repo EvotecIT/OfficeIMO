@@ -355,6 +355,41 @@ public sealed class WordOdtAlternateHeaderFooterTests {
     }
 
     [Fact]
+    public void LaterFirstPageSettingWithoutExplicitPartsIsReportedAsLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("First body");
+        source.Sections[0].AddHeadersAndFooters();
+        source.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Odd header");
+        WordSection later = source.AddSection();
+        later.AddParagraph("Second body");
+        later.DifferentFirstPage = true;
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.ForFeature("alternate-headers-footers"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
+    [Fact]
+    public void EvenPageNumberRestartIsReportedBeforeAlternateStoryConversion() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Body");
+        WordSection section = source.Sections[0];
+        section.AddHeadersAndFooters();
+        section.DifferentOddAndEvenPages = true;
+        section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("Odd header");
+        section.GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph("Even header");
+        section.AddPageNumbering(startNumber: 2);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.ForFeature("page-numbering"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported }));
+    }
+
+    [Fact]
     public void InheritedEvenHeaderInLaterSectionIsNotAnotherLostStory() {
         using WordDocument authored = WordDocument.Create();
         authored.AddParagraph("Body");
