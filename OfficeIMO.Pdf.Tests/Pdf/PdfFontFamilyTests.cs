@@ -1691,6 +1691,7 @@ public class PdfFontFamilyTests {
         Assert.NotNull(fontPath);
         var report = new PdfConversionReport();
         var options = new PdfOptions {
+                TextShapingMode = PdfTextShapingMode.UnicodeScalar,
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false
             }

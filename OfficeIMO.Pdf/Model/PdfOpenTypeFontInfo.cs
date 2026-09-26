@@ -17,7 +17,8 @@ public sealed class PdfOpenTypeFontInfo {
         bool hasGlyphSubstitutionTable,
         bool hasGlyphPositioningTable,
         IReadOnlyList<string> glyphSubstitutionFeatureTags,
-        IReadOnlyList<string> glyphPositioningFeatureTags) {
+        IReadOnlyList<string> glyphPositioningFeatureTags,
+        IReadOnlyList<string>? latinGlyphSubstitutionFeatureTags = null) {
         FontName = string.IsNullOrWhiteSpace(fontName) ? "OfficeIMOEmbeddedFont" : fontName;
         ScalerType = scalerType ?? string.Empty;
         IsOpenTypeCff = isOpenTypeCff;
@@ -31,6 +32,7 @@ public sealed class PdfOpenTypeFontInfo {
         HasGlyphPositioningTable = hasGlyphPositioningTable;
         GlyphSubstitutionFeatureTags = CopyFeatureTags(glyphSubstitutionFeatureTags);
         GlyphPositioningFeatureTags = CopyFeatureTags(glyphPositioningFeatureTags);
+        LatinGlyphSubstitutionFeatureTags = CopyFeatureTags(latinGlyphSubstitutionFeatureTags ?? glyphSubstitutionFeatureTags);
     }
 
     /// <summary>PostScript or configured font name sanitized for PDF font dictionaries.</summary>
@@ -65,6 +67,8 @@ public sealed class PdfOpenTypeFontInfo {
 
     /// <summary>Feature tags advertised by the font's OpenType <c>GSUB</c> feature list, such as <c>liga</c> or <c>rlig</c>.</summary>
     public IReadOnlyList<string> GlyphSubstitutionFeatureTags { get; }
+    /// <summary>GSUB features attached to the default Latin language system, falling back to the default script when Latin is absent.</summary>
+    public IReadOnlyList<string> LatinGlyphSubstitutionFeatureTags { get; }
 
     /// <summary>Feature tags advertised by the font's OpenType <c>GPOS</c> feature list, such as <c>mark</c> or <c>mkmk</c>.</summary>
     public IReadOnlyList<string> GlyphPositioningFeatureTags { get; }

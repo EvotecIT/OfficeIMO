@@ -219,7 +219,8 @@ public sealed class OfficeTextShapingRequest {
         IReadOnlyDictionary<string, float>? variationCoordinates,
         bool cloneFontData,
         object? fontProgramCacheKey = null,
-        OfficeTextFeatureSettings? featureSettings = null) {
+        OfficeTextFeatureSettings? featureSettings = null,
+        bool applyDefaultLatinLigatures = false) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
         if (fontData == null) {
             throw new ArgumentNullException(nameof(fontData));
@@ -248,6 +249,7 @@ public sealed class OfficeTextShapingRequest {
         CancellationToken = cancellationToken;
         _variationCoordinates = SnapshotVariationCoordinates(variationCoordinates);
         _featureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
+        ApplyDefaultLatinLigatures = applyDefaultLatinLigatures;
     }
 
     /// <summary>Original UTF-16 text to shape.</summary>
@@ -260,6 +262,7 @@ public sealed class OfficeTextShapingRequest {
     public byte[] FontData => (byte[])_fontData.Clone();
 
     internal byte[] FontDataForShaping => _fontData;
+    internal bool ApplyDefaultLatinLigatures { get; }
 
     internal object? FontProgramCacheKeyForShaping => _fontProgramCacheKey;
 

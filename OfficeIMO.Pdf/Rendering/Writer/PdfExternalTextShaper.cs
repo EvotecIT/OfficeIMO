@@ -7,8 +7,10 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
+        bool automaticLatin = options.ShapingProvider == null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures &&
+            !OfficeManagedTextShaper.RequiresComplexLayout(text);
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
-        if (provider == null && (!options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null && (options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && !OfficeManagedTextShaper.RequiresComplexLayout(text) || !options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             glyphRun = null!;
             return false;
@@ -26,14 +28,16 @@ internal static class PdfExternalTextShaper {
             fontCollectionIndex: null,
             variationCoordinates: null,
             cloneFontData: false,
-            featureSettings: options.FeatureSettings));
+            featureSettings: options.FeatureSettings,
+            applyDefaultLatinLigatures: automaticLatin));
 
         if (result == null) {
             glyphRun = null!;
             return false;
         }
 
-        glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null);
+        glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
+            includeActualText: !automaticLatin);
         options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, false);
         return true;
     }
@@ -42,8 +46,10 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
+        bool automaticLatin = options.ShapingProvider == null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures &&
+            !OfficeManagedTextShaper.RequiresComplexLayout(text);
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
-        if (provider == null && (!options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null && (options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && !OfficeManagedTextShaper.RequiresComplexLayout(text) || !options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             glyphRun = null!;
             return false;
@@ -61,14 +67,16 @@ internal static class PdfExternalTextShaper {
             fontCollectionIndex: null,
             variationCoordinates: null,
             cloneFontData: false,
-            featureSettings: options.FeatureSettings));
+            featureSettings: options.FeatureSettings,
+            applyDefaultLatinLigatures: automaticLatin));
 
         if (result == null) {
             glyphRun = null!;
             return false;
         }
 
-        glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null);
+        glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
+            includeActualText: !automaticLatin);
         options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true);
         return true;
     }
@@ -79,7 +87,8 @@ internal static class PdfExternalTextShaper {
         int glyphCount,
         int unitsPerEm,
         Func<int, int> getGlyphWidth1000,
-        Action<int, string>? recordGlyphUsage) {
+        Action<int, string>? recordGlyphUsage,
+        bool includeActualText) {
         if (result.Glyphs.Count == 0) {
             throw new ArgumentException("PDF text shaping provider returned no glyphs for non-null text.", nameof(result));
         }
@@ -117,7 +126,9 @@ internal static class PdfExternalTextShaper {
                 offsetY1000));
         }
 
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction, hasCompleteVerticalAdvances, result);
+        // Automatic Latin runs retain logical clusters in ToUnicode. Avoid broad ActualText
+        // scopes so partial redaction can preserve neighboring scalar and ligature glyphs.
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: includeActualText ? text : null, result.Direction, hasCompleteVerticalAdvances, result, preserveGlyphUnicode: !includeActualText);
     }
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>

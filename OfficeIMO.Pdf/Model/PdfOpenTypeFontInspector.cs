@@ -73,7 +73,8 @@ public static class PdfOpenTypeFontInspector {
             hasGsubTable,
             hasGposTable,
             gsubFeatures,
-            gposFeatures);
+            gposFeatures,
+            hasGsubTable ? OfficeIMO.Drawing.OfficeOpenTypeSubstitution.TryCreate(fontData)?.GetLatinDefaultFeatureTags() ?? gsubFeatures : Array.Empty<string>());
     }
 
     /// <summary>
