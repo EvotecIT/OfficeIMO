@@ -36,9 +36,11 @@ public sealed class PdfRenderCapability {
 
 /// <summary>A page-specific occurrence of a simplified or unsupported renderer capability.</summary>
 public sealed class PdfRenderCapabilityDiagnostic {
-    internal PdfRenderCapabilityDiagnostic(PdfRenderCapability capability, string? subject = null) {
+    internal PdfRenderCapabilityDiagnostic(PdfRenderCapability capability, string? subject = null,
+        bool isStandardFontSubstitution = false) {
         Capability = capability;
         Subject = subject;
+        IsStandardFontSubstitution = isStandardFontSubstitution;
     }
 
     /// <summary>Manifest entry that defines this diagnostic.</summary>
@@ -55,6 +57,7 @@ public sealed class PdfRenderCapabilityDiagnostic {
     };
     /// <summary>Operator or resource name that triggered this occurrence, when available.</summary>
     public string? Subject { get; }
+    internal bool IsStandardFontSubstitution { get; }
     /// <summary>Human-readable diagnostic text.</summary>
     public string Message => string.IsNullOrWhiteSpace(Subject)
         ? Capability.Message
@@ -116,6 +119,10 @@ public sealed class PdfRenderCapabilityManifest {
 
 /// <summary>Stable capability registry shared by the manifest and per-page diagnostics.</summary>
 public static class PdfRenderCapabilities {
+    internal static bool HasIncompleteVisualProjection(IReadOnlyList<PdfRenderCapabilityDiagnostic> diagnostics) =>
+        diagnostics.Any(diagnostic => diagnostic.Code != FontSubstitutionId ||
+            !diagnostic.IsStandardFontSubstitution);
+
     internal const string UnknownOperatorId = "render.operator.unsupported";
     internal const string MiterLimitId = "render.operator.miter-limit-simplified";
     internal const string RenderingIntentId = "render.operator.rendering-intent";

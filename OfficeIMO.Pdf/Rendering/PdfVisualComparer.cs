@@ -105,6 +105,12 @@ public static class PdfVisualComparer {
     }
 
     private static PdfVisualPageComparison ComparePage(PdfReadDocument expectedDocument, PdfReadDocument actualDocument, int expectedPageNumber, int actualPageNumber, PdfVisualComparisonOptions options, List<string> structural, ref long totalPixels, CancellationToken cancellationToken) {
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> expectedDiagnostics = expectedDocument.Pages[expectedPageNumber - 1]
+            .GetRenderCapabilityDiagnostics(cancellationToken);
+        IReadOnlyList<PdfRenderCapabilityDiagnostic> actualDiagnostics = actualDocument.Pages[actualPageNumber - 1]
+            .GetRenderCapabilityDiagnostics(cancellationToken);
+        bool incomplete = PdfRenderCapabilities.HasIncompleteVisualProjection(expectedDiagnostics) ||
+            PdfRenderCapabilities.HasIncompleteVisualProjection(actualDiagnostics);
         OfficeDrawing expectedDrawing = PdfPageImageRenderer.RenderPage(expectedDocument, expectedPageNumber, cancellationToken);
         OfficeDrawing actualDrawing = PdfPageImageRenderer.RenderPage(actualDocument, actualPageNumber, cancellationToken);
         AddPixelBudget(expectedDrawing.Width, expectedDrawing.Height, options.Scale, options, ref totalPixels);
@@ -174,7 +180,7 @@ public static class PdfVisualComparer {
         return new PdfVisualPageComparison(
             expectedPageNumber,
             actualPageNumber,
-            !hasSizeDifference && ratio <= options.AllowedDifferenceRatio,
+            !incomplete && !hasSizeDifference && ratio <= options.AllowedDifferenceRatio,
             width,
             height,
             compared,
@@ -185,7 +191,8 @@ public static class PdfVisualComparer {
             actualPng,
             diffPng,
             hasSizeDifference,
-            different == 0 ? null : new PdfPixelRegion(left, top, right - left + 1, bottom - top + 1));
+            different == 0 ? null : new PdfPixelRegion(left, top, right - left + 1, bottom - top + 1),
+            expectedDiagnostics, actualDiagnostics);
     }
 
     private static void AddPixelBudget(double width, double height, double scale, PdfVisualComparisonOptions options, ref long totalPixels) {

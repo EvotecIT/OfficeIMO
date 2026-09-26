@@ -120,8 +120,8 @@ public static class PdfPageChangeAnalyzer {
             string fingerprint = image.Width + "x" + image.Height + ":" + Convert.ToBase64String(hash);
             // Basic unembedded fonts are rendered through the same fallback on both sides.
             // Other approximated or skipped paint can hide source differences.
-            bool incomplete = document.Pages[index].GetRenderCapabilityDiagnostics(cancellationToken)
-                .Any(diagnostic => diagnostic.Code != PdfRenderCapabilities.FontSubstitutionId);
+            bool incomplete = PdfRenderCapabilities.HasIncompleteVisualProjection(
+                document.Pages[index].GetRenderCapabilityDiagnostics(cancellationToken));
             fingerprints[index] = !incomplete
                 ? fingerprint : side + ":incomplete:" + fingerprint;
         }

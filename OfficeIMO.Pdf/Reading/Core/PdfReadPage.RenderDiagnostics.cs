@@ -1116,7 +1116,13 @@ public sealed partial class PdfReadPage {
             } else {
                 capabilityId = PdfRenderCapabilities.FontSubstitutionId;
             }
-            AddRenderDiagnostic(diagnostics, seen, capabilityId, font.ResourceName);
+            bool standardFont = capabilityId == PdfRenderCapabilities.FontSubstitutionId &&
+                string.Equals(font.FontSubtype, "Type1", StringComparison.Ordinal) &&
+                font.EmbeddedProgramSubtype == null &&
+                font.BaseFont.IndexOf('+') < 0 &&
+                PdfWriter.TryGetStandardFontByBaseFontName(font.BaseFont, out _);
+            AddRenderDiagnostic(diagnostics, seen, capabilityId, font.ResourceName,
+                isStandardFontSubstitution: standardFont);
         }
     }
 
@@ -1610,7 +1616,8 @@ public sealed partial class PdfReadPage {
         return x1.Value == x2.Value || y1.Value == y2.Value;
     }
 
-    private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {
+    private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject,
+        bool isStandardFontSubstitution = false) {
         var bounded = (BoundedRenderDiagnostics)diagnostics;
         if (bounded.TrackUnsupportedPaint &&
             (capabilityId == PdfRenderCapabilities.UnknownOperatorId ||
@@ -1625,7 +1632,7 @@ public sealed partial class PdfReadPage {
         if (characters > bounded.MaximumCharacters)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
                 characters);
-        string key = capabilityId + "\n" + subject;
+        string key = capabilityId + "\n" + subject + (isStandardFontSubstitution ? "\nstandard" : "");
         if (seen.Contains(key)) return;
         if (characters > bounded.MaximumCharacters - bounded.RetainedCharacters)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
@@ -1633,7 +1640,7 @@ public sealed partial class PdfReadPage {
         if (diagnostics.Count >= bounded.MaximumCount)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCount, diagnostics.Count + 1L);
         seen.Add(key);
-        diagnostics.Add(new PdfRenderCapabilityDiagnostic(capability, subject));
+        diagnostics.Add(new PdfRenderCapabilityDiagnostic(capability, subject, isStandardFontSubstitution));
         bounded.RetainedCharacters += characters;
     }
 }
