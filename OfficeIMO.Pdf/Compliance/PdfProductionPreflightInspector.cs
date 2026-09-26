@@ -63,9 +63,13 @@ internal static class PdfProductionPreflightInspector {
             IReadOnlyList<PdfOutputIntentInfo> intents = document.OutputIntents;
             bool strict = effective.Profile != PdfProductionPreflightProfile.GeneralPrint;
             if (intents.Count == 0) {
-                AddFinding(new PdfProductionFinding(PdfProductionFindingKind.MissingOutputIntent,
+                bool malformed = !document.OutputIntentsAreComplete;
+                AddFinding(new PdfProductionFinding(malformed
+                        ? PdfProductionFindingKind.InvalidOutputIntent : PdfProductionFindingKind.MissingOutputIntent,
                     strict ? PdfProductionFindingSeverity.Error : PdfProductionFindingSeverity.Warning,
-                    null, "No catalog output intent was found; select and embed a suitable print profile explicitly."));
+                    null, malformed
+                        ? "Catalog output intent entries are malformed or unreadable; repair them and select an inspectable print profile."
+                        : "No catalog output intent was found; select and embed a suitable print profile explicitly."));
                 return;
             }
             bool valid = document.OutputIntentsAreComplete && intents.All(IsInspectablePrintProfile);

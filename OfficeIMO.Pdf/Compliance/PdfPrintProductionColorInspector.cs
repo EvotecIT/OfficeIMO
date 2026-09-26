@@ -772,6 +772,17 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects, int maximumObjectDepth, int maximumDecodedStreamBytes) =>
         ClassifyColorSpace(value, objects, maximumObjectDepth, maximumDecodedStreamBytes).UsesDeviceIndependent;
 
+    internal static (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelectedColorSpace(
+        string? name, PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects,
+        int maximumObjectDepth, int maximumDecodedStreamBytes) {
+        if (name == null) return default;
+        ColorSpaceAliases? aliases = resources == null ? null : CreateColorSpaceAliases(
+            resources, objects, maximumObjectDepth, maximumDecodedStreamBytes);
+        ColorSpaceUsage usage = ClassifyColorSpace(new PdfName(name), objects,
+            maximumObjectDepth, maximumDecodedStreamBytes, aliases);
+        return (usage.IsKnown && usage.UsesDeviceRgb, usage.IsKnown && usage.UsesDeviceIndependent);
+    }
+
     private static ColorSpaceUsage ClassifyColorSpace(
         PdfObject? value,
         Dictionary<int, PdfIndirectObject> objects,

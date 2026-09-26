@@ -73,9 +73,10 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(proposals, nameof(proposals));
         cancellationToken.ThrowIfCancellationRequested();
-        _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.ModifyPageTree, readOptions);
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
-        PdfReadDocument document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
+        (_, PdfReadDocument document) = PdfMutationPlanner.RequireFullRewriteDocument(
+            pdf, PdfMutationOperation.ModifyPageTree, readOptions, cancellationToken: cancellationToken);
+        Dictionary<int, PdfIndirectObject> objects = document.Objects;
+        string trailerRaw = document.TrailerRaw;
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         foreach (PdfProductionFixupProposal proposal in proposals) {
             cancellationToken.ThrowIfCancellationRequested();

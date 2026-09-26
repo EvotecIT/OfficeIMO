@@ -470,6 +470,40 @@ public sealed class PdfProductionPreflightTests {
         Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceIndependentColor);
     }
 
+    [Theory]
+    [InlineData("/DeviceRGB", "")]
+    [InlineData("/CS1", "/ColorSpace << /CS1 /DeviceRGB >>")]
+    public void UnsupportedPrintRuleStillReportsRgbSelectedByGenericColorOperators(string colorSpace, string colorResources) {
+        string content = colorSpace + " cs 1 0 0 sc 10 10 20 20 re f " +
+            colorSpace + " CS 0 1 0 SC 40 10 20 20 re S /OC /Layer BDC 80 10 20 20 re f EMC\n";
+        byte[] source = RawPrintLayerPdf(content,
+            colorResources + " /Properties << /Layer 6 0 R >>",
+            "6 0 obj\n<< /Type /OCG /Name (Layer) >>\nendobj",
+            "[6 0 R]", "[6 0 R]", "/Print /View");
+
+        PdfProductionPreflightReport report = PdfDocument.Load(source).Proof.PreflightProduction(
+            new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX1aCandidate });
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.DeviceRgbColor);
+    }
+
+    [Fact]
+    public void MalformedCatalogOutputIntentIsInvalidRatherThanMissing() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Print source")).ToBytes();
+        byte[] malformed = PdfDocumentObjectGraphRewriter.Rewrite(source, null, null, (objects, security) => {
+            PdfDictionary catalog = Assert.IsType<PdfDictionary>(Assert.Single(objects.Values,
+                static item => item.Value is PdfDictionary dictionary &&
+                    dictionary.Get<PdfName>("Type")?.Name == "Catalog").Value);
+            catalog.Items["OutputIntents"] = new PdfName("Broken");
+            return security.InfoObjectNumber;
+        });
+
+        PdfProductionPreflightReport report = PdfDocument.Load(malformed).Proof.PreflightProduction();
+
+        Assert.Contains(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.InvalidOutputIntent);
+        Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.MissingOutputIntent);
+    }
+
     [Fact]
     public void UnsupportedPrintLayerAndPrintableAnnotationShareOneResolutionUnknown() {
         const string content = "/OC /Layer BDC 10 10 20 20 re f EMC\n";

@@ -24,6 +24,7 @@ public sealed partial class PdfReadPage {
             PdfDictionary? colorSpaces = ResolveDictionary(
                 currentResources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
                     ? colorSpaceObject : null);
+            var selectedColorSpaces = new Dictionary<string, (bool UsesDeviceRgb, bool UsesDeviceIndependent)>(StringComparer.Ordinal);
             bool defaultRgbIsOverridden = colorSpaces?.Items.ContainsKey("DefaultRGB") == true;
             bool fillRgb = initialFillRgb;
             bool strokeRgb = initialStrokeRgb;
@@ -78,8 +79,14 @@ public sealed partial class PdfReadPage {
                     case "RG": strokeRgb = !defaultRgbIsOverridden && operation.Operands.Count == 3; strokeIndependent = defaultRgbIsOverridden && IsIndependent("DefaultRGB", colorSpaces); break;
                     case "g": case "k": fillRgb = fillIndependent = false; break;
                     case "G": case "K": strokeRgb = strokeIndependent = false; break;
-                    case "cs": fillRgb = false; fillIndependent = operation.Operands.Count == 1 && IsIndependent(operation.Operands[0] as string, colorSpaces); break;
-                    case "CS": strokeRgb = false; strokeIndependent = operation.Operands.Count == 1 && IsIndependent(operation.Operands[0] as string, colorSpaces); break;
+                    case "cs":
+                        (fillRgb, fillIndependent) = operation.Operands.Count == 1
+                            ? ClassifySelected(operation.Operands[0] as string) : default;
+                        break;
+                    case "CS":
+                        (strokeRgb, strokeIndependent) = operation.Operands.Count == 1
+                            ? ClassifySelected(operation.Operands[0] as string) : default;
+                        break;
                     case "Tr":
                         if (operation.Operands.Count == 1 && operation.Operands[0] is double mode &&
                             mode >= 0D && mode <= 7D) textMode = (int)mode;
@@ -155,6 +162,16 @@ public sealed partial class PdfReadPage {
                         break;
                 }
             }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+
+            (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelected(string? name) {
+                if (name == null) return default;
+                if (!selectedColorSpaces.TryGetValue(name, out var usage)) {
+                    usage = PdfPrintProductionColorInspector.ClassifySelectedColorSpace(name, currentResources,
+                        _objects, _limits.MaxObjectNestingDepth, _limits.MaxDecodedStreamBytes);
+                    selectedColorSpaces.Add(name, usage);
+                }
+                return usage;
+            }
         }
 
         bool IsIndependent(string? name, PdfDictionary? colorSpaces) =>
