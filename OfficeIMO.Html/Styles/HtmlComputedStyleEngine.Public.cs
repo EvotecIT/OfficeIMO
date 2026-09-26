@@ -35,19 +35,19 @@ public static partial class HtmlComputedStyleEngine {
     }
 
     /// <summary>Computes styles keyed by owned nodes from the supplied document snapshot.</summary>
-    /// <remarks>A prepared document retains the unbounded computation contract. To apply input and CSS
-    /// budgets, create an HtmlConversionDocument with explicit limits and use that overload.</remarks>
+    /// <remarks>Prepared documents use the untrusted input and CSS budgets by default. To supply
+    /// different limits, create an HtmlConversionDocument with explicit limits and use that overload.</remarks>
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document,
         HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen) =>
-        Compute(document, mediaContext, limits: null);
+        Compute(document, mediaContext, HtmlConversionLimits.CreateUntrustedProfile());
 
     /// <summary>Computes styles keyed by owned nodes with explicit inspection options.</summary>
     public static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(
         Dom.HtmlDocument document,
         HtmlComputedStyleOptions options) {
         if (options == null) throw new ArgumentNullException(nameof(options));
-        return Compute(document, options, limits: null);
+        return Compute(document, options, HtmlConversionLimits.CreateUntrustedProfile());
     }
 
     private static IReadOnlyDictionary<Dom.HtmlElement, HtmlComputedStyle> Compute(

@@ -8,12 +8,13 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlPreparedDocumentLimitTests {
     [Fact]
-    public void OwnedStyleInspectionRemainsUnboundedWhileRawInputUsesDefaultCssBudget() {
+    public void PreparedStylesUseTheSameDefaultCssBudgetAsRawInput() {
         int rules = HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules!.Value + 1;
         string source = "<style>" + string.Concat(Enumerable.Repeat(".unused{color:red}", rules)) + "p{color:blue}</style><p>Text</p>";
         HtmlDocument owned = AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
-        HtmlElement paragraph = owned.QuerySelector("p")!;
-        Assert.Contains("0, 0, 255", HtmlComputedStyleEngine.Compute(owned)[paragraph].GetValue("color"));
+        Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(owned)).LimitSource);
+        Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(owned,
+            new HtmlComputedStyleOptions())).LimitSource);
         Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(source)).LimitSource);
     }
 
