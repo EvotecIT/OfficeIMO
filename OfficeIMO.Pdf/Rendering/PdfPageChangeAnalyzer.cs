@@ -27,8 +27,8 @@ public static class PdfPageChangeAnalyzer {
         }
 
         long totalPixels = 0;
-        string[] expectedFingerprints = FingerprintPages(expected, effective, ref totalPixels, cancellationToken);
-        string[] actualFingerprints = FingerprintPages(actual, effective, ref totalPixels, cancellationToken);
+        string[] expectedFingerprints = FingerprintPages(expected, effective, ref totalPixels, "expected", cancellationToken);
+        string[] actualFingerprints = FingerprintPages(actual, effective, ref totalPixels, "actual", cancellationToken);
         var expectedToActual = new int[expectedFingerprints.Length];
         var actualUsed = new bool[actualFingerprints.Length];
         HashSet<int> orderedExactExpectedPages = FindOrderedExactMatches(
@@ -92,7 +92,8 @@ public static class PdfPageChangeAnalyzer {
         return new PdfPageChangeReport(output, expected.Pages.Count, actual.Pages.Count, effective.RenderScale);
     }
 
-    private static string[] FingerprintPages(PdfReadDocument document, PdfPageChangeOptions options, ref long totalPixels, CancellationToken cancellationToken) {
+    private static string[] FingerprintPages(PdfReadDocument document, PdfPageChangeOptions options, ref long totalPixels,
+        string side, CancellationToken cancellationToken) {
         var fingerprints = new string[document.Pages.Count];
         for (int index = 0; index < fingerprints.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -116,7 +117,13 @@ public static class PdfPageChangeAnalyzer {
             byte[] hash;
             using (SHA256 sha = SHA256.Create()) hash = sha.ComputeHash(rgba);
 #endif
-            fingerprints[index] = image.Width + "x" + image.Height + ":" + Convert.ToBase64String(hash);
+            string fingerprint = image.Width + "x" + image.Height + ":" + Convert.ToBase64String(hash);
+            // Basic unembedded fonts are rendered through the same fallback on both sides.
+            // Other approximated or skipped paint can hide source differences.
+            bool incomplete = document.Pages[index].GetRenderCapabilityDiagnostics(cancellationToken)
+                .Any(diagnostic => diagnostic.Code != PdfRenderCapabilities.FontSubstitutionId);
+            fingerprints[index] = !incomplete
+                ? fingerprint : side + ":incomplete:" + fingerprint;
         }
         return fingerprints;
     }

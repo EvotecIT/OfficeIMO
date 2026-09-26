@@ -111,6 +111,41 @@ public sealed class PdfNUpImpositionTests {
         Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(PdfImpositionSourceFeatureLoss.PageFeatures));
     }
 
+    [Theory]
+    [InlineData("/Collection << /Type /Collection >>", PdfImpositionSourceFeatureLoss.CatalogFeatures)]
+    [InlineData("/VP [<< /Type /Viewport /BBox [0 0 200 200] >>]", PdfImpositionSourceFeatureLoss.PageFeatures)]
+    public void PortfolioOrSelectedViewportRequiresFeatureLossApproval(string feature, PdfImpositionSourceFeatureLoss expectedLoss) {
+        bool catalogFeature = expectedLoss == PdfImpositionSourceFeatureLoss.CatalogFeatures;
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R " + (catalogFeature ? feature : "") + " >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] " + (catalogFeature ? "" : feature) + " /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", string.Empty
+        }));
+        PdfDocument document = PdfDocument.Load(source);
+        var options = new PdfNUpOptions(new PageSize(600, 400), 2, 1);
+
+        Assert.Throws<NotSupportedException>(() => document.Pages.ImposeNUp(options));
+        options.AllowSourceFeatureLoss = true;
+        Assert.True(document.Pages.ImposeNUp(options).SourceFeatureLoss.HasFlag(expectedLoss));
+    }
+
+    [Fact]
+    public void CatalogVersionOverrideSurvivesAsEffectiveImposedVersion() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /Version /1.6 >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", string.Empty
+        }));
+        PdfImpositionResult result = PdfDocument.Load(source).Pages.ImposeNUp(
+            new PdfNUpOptions(new PageSize(600, 400), 2, 1));
+
+        Assert.Equal("1.6", PdfInspector.Inspect(result.Bytes).EffectiveVersion);
+    }
+
     [Fact]
     public void UnselectedPageActionDoesNotRequireCatalogFeatureLossApproval() {
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {

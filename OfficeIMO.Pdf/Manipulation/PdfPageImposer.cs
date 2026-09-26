@@ -77,6 +77,7 @@ internal static class PdfPageImposer {
         if (info.HasCatalogViewSettings || info.HasOpenActions || info.HasViewerPreferences ||
             info.HasCatalogNameTrees || info.HasCatalogUri || info.HasCatalogActions ||
             HasRawCatalogActiveContent(rawSource) ||
+            HasRawCatalogCollection(rawSource) ||
             !string.IsNullOrWhiteSpace(info.CatalogLanguage)) {
             sourceFeatureLoss |= PdfImpositionSourceFeatureLoss.CatalogFeatures;
         }
@@ -132,6 +133,7 @@ internal static class PdfPageImposer {
         if (sheetCount > options.MaxSheets) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, options.MaxSheets, sheetCount);
 
         var blank = PdfDocument.Create(new PdfOptions { PageSize = options.SheetSize,
+            FileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(info.EffectiveVersion),
             MaxGeneratedOutputBytes = options.MaxOutputBytes });
         for (int index = 0; index < sheetCount; index++) {
             if (index != 0) blank.PageBreak();
@@ -176,7 +178,7 @@ internal static class PdfPageImposer {
     }
 
     private static bool HasRawPageFeatures(PdfReadPage page, Dictionary<int, PdfIndirectObject> objects) {
-        foreach (string key in new[] { "AA", "Metadata", "PieceInfo", "Tabs", "Dur", "Trans", "TrimBox", "BleedBox", "ArtBox", "Thumb" }) {
+        foreach (string key in new[] { "AA", "Metadata", "PieceInfo", "Tabs", "Dur", "Trans", "TrimBox", "BleedBox", "ArtBox", "Thumb", "VP" }) {
             if (page.PageDictionary.Items.TryGetValue(key, out PdfObject? value) &&
                 PdfObjectLookup.ResolveChain(objects, value) is not PdfNull) return true;
         }
@@ -204,6 +206,10 @@ internal static class PdfPageImposer {
         source.CatalogDictionary is PdfDictionary catalog &&
         PdfActiveContentPolicy.MarkerNames.Any(name => catalog.Items.TryGetValue(name, out PdfObject? value) &&
             PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull);
+
+    private static bool HasRawCatalogCollection(PdfReadDocument source) =>
+        source.CatalogDictionary?.Items.TryGetValue("Collection", out PdfObject? value) == true &&
+        PdfObjectLookup.ResolveChain(source.Objects, value) is not null and not PdfNull;
 
     private static bool HasRawFormFields(PdfReadDocument source) {
         PdfDictionary? catalog = source.CatalogDictionary;

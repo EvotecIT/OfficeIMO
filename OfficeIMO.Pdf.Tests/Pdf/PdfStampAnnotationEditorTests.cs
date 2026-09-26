@@ -52,6 +52,28 @@ public class PdfStampAnnotationEditorTests {
     }
 
     [Fact]
+    public void StampOnSharedAnnotationArrayRemainsOnSelectedPage() {
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots 7 0 R /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Annots 7 0 R /Contents 6 0 R >>", "endobj",
+            "6 0 obj", "<< /Length 0 >>", "stream", string.Empty, "endstream", "endobj",
+            "7 0 obj", "[8 0 R]", "endobj",
+            "8 0 obj", "<< /Type /Annot /Subtype /Text /Rect [10 10 30 30] /Contents (Existing) >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 9 >>", "%%EOF", string.Empty
+        }));
+
+        PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.AddStamp(
+            new PdfStampAnnotationOptions { PageNumber = 1, StampName = "Reviewed" });
+        PdfReadDocument reopened = PdfReadDocument.Open(result.Bytes);
+
+        Assert.Single(reopened.Pages[0].GetAnnotations(), static annotation => annotation.Subtype == "Stamp");
+        Assert.DoesNotContain(reopened.Pages[1].GetAnnotations(), static annotation => annotation.Subtype == "Stamp");
+    }
+
+    [Fact]
     public void TransparentImageStampEmbedsItsSoftMask() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signature area")).ToBytes();
         var raster = new OfficeRasterImage(4, 4, OfficeColor.Transparent);

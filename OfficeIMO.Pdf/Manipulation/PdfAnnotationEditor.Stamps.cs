@@ -125,6 +125,20 @@ internal static partial class PdfAnnotationEditor {
             throw new NotSupportedException("The selected page /Annots entry is not a readable array.");
         }
 
+        bool sharedByAnotherPage = GetPageObjectNumbersInDocumentOrder(objects).Any(otherPageNumber =>
+            otherPageNumber != pageObjectNumber &&
+            objects.TryGetValue(otherPageNumber, out PdfIndirectObject? otherPageObject) &&
+            otherPageObject.Value is PdfDictionary otherPage &&
+            otherPage.Items.TryGetValue("Annots", out PdfObject? otherAnnotations) &&
+            ReferenceEquals(PdfObjectLookup.Resolve(objects, otherAnnotations), existingAnnotations));
+        if (sharedByAnotherPage) {
+            var isolated = new PdfArray();
+            foreach (PdfObject existing in existingAnnotations.Items) isolated.Items.Add(existing);
+            isolated.Items.Add(annotationReference);
+            page.Items["Annots"] = isolated;
+            return pageObjectNumber;
+        }
+
         existingAnnotations.Items.Add(annotationReference);
         return annotsObject is PdfReference reference ? reference.ObjectNumber : pageObjectNumber;
     }

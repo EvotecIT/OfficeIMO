@@ -70,6 +70,25 @@ public sealed class PdfPageChangeAnalyzerTests {
         Assert.Equal(2, inserted.ActualPageNumber);
     }
 
+    [Fact]
+    public void SkippedRendererOperationsDoNotProvePagesUnchanged() {
+        PdfDocument expected = PdfDocument.Load(UnsupportedOperatorPdf("UnknownPaintA"));
+        PdfDocument actual = PdfDocument.Load(UnsupportedOperatorPdf("UnknownPaintB"));
+        Assert.NotEmpty(PdfReadDocument.Open(expected.ToBytes()).Pages[0].GetRenderCapabilityDiagnostics());
+
+        PdfPageChangeReport report = expected.Proof.AnalyzePageChanges(actual);
+
+        Assert.Equal(PdfPageChangeKind.ModifiedCandidate, Assert.Single(report.Changes).Kind);
+    }
+
+    private static byte[] UnsupportedOperatorPdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + operation.Length + " >>", "stream", operation, "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", ""
+    }));
+
     private static PdfDocument BuildPages(params string[] texts) {
         PdfDocument document = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
         for (int index = 0; index < texts.Length; index++) {
