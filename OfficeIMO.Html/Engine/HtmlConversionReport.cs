@@ -13,6 +13,11 @@ public sealed class HtmlConversionReport : IOfficeConversionReport {
     /// <summary>Structured conversion diagnostics in emission order.</summary>
     public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
 
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_diagnostics.Select(static diagnostic =>
+            HtmlFidelityProjection.From(diagnostic)).ToArray());
+
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
     public bool Succeeded => !_diagnostics.Any(static diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
 

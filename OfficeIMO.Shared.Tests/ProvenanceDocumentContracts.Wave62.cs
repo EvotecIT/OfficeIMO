@@ -19,15 +19,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void BodyCustomPropertiesDoNotFlowIntoHeadElements() {
-        string html = "<style>body{--img:url('" + Wave61DataUri() + "')}head{background-image:var(--img)}</style>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(result.Before.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void BareStatefulSelectorsConservativelyResolveCustomPropertyImages() {

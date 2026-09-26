@@ -9,6 +9,9 @@ namespace OfficeIMO.Visio {
     /// Creates deterministic inspection snapshots for generated or loaded Visio documents.
     /// </summary>
     public static class VisioInspectionExtensions {
+        private static readonly IReadOnlyDictionary<string, string> EmptyDataSnapshot =
+            new ReadOnlyDictionary<string, string>(new Dictionary<string, string>(StringComparer.Ordinal));
+
         /// <summary>
         /// Creates a stable, data-oriented snapshot of the document structure.
         /// </summary>
@@ -274,9 +277,16 @@ namespace OfficeIMO.Visio {
         }
 
         private static IReadOnlyList<VisioInspectionShapeDataSnapshot> CreateShapeDataSnapshot(
-            IEnumerable<VisioShapeDataRow> rows,
+            IList<VisioShapeDataRow> rows,
             ref int remainingRows) {
-            if (remainingRows == 0) return Array.Empty<VisioInspectionShapeDataSnapshot>();
+            if (remainingRows == 0 || rows.Count == 0) return Array.Empty<VisioInspectionShapeDataSnapshot>();
+            if (rows.Count == 1) {
+                VisioShapeDataRow row = rows[0];
+                if (remainingRows != int.MaxValue) remainingRows--;
+                return Array.AsReadOnly(new[] {
+                    new VisioInspectionShapeDataSnapshot(row.Name, row.Label, row.Value, row.Type?.ToString(), row.Format, row.Prompt)
+                });
+            }
             List<VisioShapeDataRow> retained = remainingRows == int.MaxValue
                 ? rows.OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase).ToList()
                 : TakeOrderedShapeDataRows(rows, remainingRows);
@@ -352,6 +362,9 @@ namespace OfficeIMO.Visio {
             left > int.MaxValue - right ? int.MaxValue : left + right;
 
         private static IReadOnlyList<VisioInspectionUserCellSnapshot> CreateUserCellSnapshot(IEnumerable<VisioUserCell> rows) {
+            if (rows is ICollection<VisioUserCell> collection && collection.Count == 0) {
+                return Array.Empty<VisioInspectionUserCellSnapshot>();
+            }
             return rows
                 .OrderBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(row => new VisioInspectionUserCellSnapshot(row.Name, row.Value, row.Formula, row.Prompt))
@@ -360,6 +373,9 @@ namespace OfficeIMO.Visio {
         }
 
         private static IReadOnlyList<VisioInspectionConnectionPointSnapshot> CreateConnectionPointSnapshot(IEnumerable<VisioConnectionPoint> points) {
+            if (points is ICollection<VisioConnectionPoint> collection && collection.Count == 0) {
+                return Array.Empty<VisioInspectionConnectionPointSnapshot>();
+            }
             return points
                 .Select((point, index) => new VisioInspectionConnectionPointSnapshot(index, point.SectionIndex, point.X, point.Y, point.DirX, point.DirY))
                 .ToList()
@@ -370,15 +386,18 @@ namespace OfficeIMO.Visio {
             IDictionary<string, string> data,
             bool includeData) {
             if (!includeData) {
-                return new ReadOnlyDictionary<string, string>(
-                    new Dictionary<string, string>(StringComparer.Ordinal));
+                return EmptyDataSnapshot;
             }
+            if (data.Count == 0) return EmptyDataSnapshot;
             return new ReadOnlyDictionary<string, string>(
                 data.OrderBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
                     .ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
         }
 
         private static IReadOnlyList<string> SortStrings(IEnumerable<string> values) {
+            if (values is ICollection<string> collection && collection.Count == 0) {
+                return Array.Empty<string>();
+            }
             return values
                 .OrderBy(value => value, StringComparer.OrdinalIgnoreCase)
                 .ToList()

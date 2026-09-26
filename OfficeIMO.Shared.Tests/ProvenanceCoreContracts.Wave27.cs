@@ -1,11 +1,43 @@
 using System.IO.Compression;
 using System.Text;
+using OfficeIMO.OpenDocument;
 using OfficeIMO.Provenance;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
+    [Fact]
+    public void OdfUnicodeSignaturePathBlocksProvenanceMutation() {
+        byte[] package = CreateZipWithUnicodePathEntry(
+            "META-INF/harmless.xml", "META-INF/documentsignatures.xml",
+            Encoding.UTF8.GetBytes("<signatures/>"), odf: true);
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
+            OdfDocument.RemoveProvenance(package, "document.odt"));
+        Assert.Contains("invalidate package signatures", exception.Message, StringComparison.Ordinal);
+
+        var options = new OfficeProvenanceRemovalOptions {
+            SignatureMutationPolicy = OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures
+        };
+        OfficeProvenanceRemovalResult removed = OdfDocument.RemoveProvenance(package, "document.odt", options);
+        Assert.True(removed.WereInvalidatedSignaturesRemoved);
+        using var archive = new ZipArchive(new MemoryStream(removed.ToArray()), ZipArchiveMode.Read);
+        Assert.Null(archive.GetEntry("META-INF/documentsignatures.xml"));
+    }
+
+    [Theory]
+    [InlineData("../escaped.txt")]
+    [InlineData("C:/escaped.txt")]
+    [InlineData("safe\\escaped.txt")]
+    public void ZipUnicodePathCannotIntroduceUnsafeOutputName(string unicodeName) {
+        byte[] package = CreateZipWithUnicodePathEntry(
+            "safe.txt", unicodeName, Encoding.UTF8.GetBytes("keep"));
+
+        Assert.Throws<InvalidDataException>(() =>
+            OfficeProvenanceInspector.Inspect(package, "fixture.zip"));
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
@@ -39,11 +71,20 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Null(archive.GetEntry("cafe.txt"));
     }
 
-    private static byte[] CreateZipWithUnicodePathEntry(string rawName, string unicodeName, byte[] content) {
+    private static byte[] CreateZipWithUnicodePathEntry(string rawName, string unicodeName, byte[] content, bool odf = false) {
         byte[] manifest = CreateManifestStore();
         using var output = new MemoryStream();
         using var writer = new BinaryWriter(output, Encoding.UTF8, leaveOpen: true);
         var records = new List<(byte[] Name, byte[] Extra, byte[] Data, uint Crc, uint Offset)>();
+        if (odf) {
+            AddStored("mimetype", null, Encoding.ASCII.GetBytes("application/vnd.oasis.opendocument.text"));
+            AddStored("META-INF/manifest.xml", null, Encoding.UTF8.GetBytes(
+                "<manifest:manifest xmlns:manifest=\"urn:oasis:names:tc:opendocument:xmlns:manifest:1.0\">" +
+                "<manifest:file-entry manifest:full-path=\"/\" manifest:media-type=\"application/vnd.oasis.opendocument.text\"/>" +
+                "</manifest:manifest>"));
+            AddStored("content.xml", null, Encoding.UTF8.GetBytes(
+                "<office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\"/>"));
+        }
         AddStored(rawName, unicodeName, content);
         AddStored("META-INF/content_credential.c2pa", null, manifest);
         uint centralOffset = checked((uint)output.Position);

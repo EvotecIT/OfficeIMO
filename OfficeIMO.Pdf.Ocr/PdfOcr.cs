@@ -247,6 +247,7 @@ internal static partial class PdfOcr {
                     nativeTextBounds,
                     options.NativeTextOverlapThreshold,
                     options.MaxNativeTextOverlapComparisonsPerPage,
+                    options.MaxNativeTextOverlapIntersectionsPerWord,
                     ref overlapComparisons,
                     cancellationToken)) {
                 nativeOverlap++;
@@ -322,6 +323,7 @@ internal static partial class PdfOcr {
         IReadOnlyList<PdfSelectionQuad> nativeTextBounds,
         double threshold,
         long maximumComparisons,
+        int maximumRetainedIntersections,
         ref long comparisons,
         CancellationToken cancellationToken) {
         long spent = comparisons;
@@ -330,7 +332,7 @@ internal static partial class PdfOcr {
                 if (work > maximumComparisons - spent)
                     throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumComparisons, maximumComparisons + 1);
                 spent += work;
-            }, cancellationToken);
+            }, cancellationToken, maximumRetainedIntersections);
         } finally { comparisons = spent; }
     }
     private static string? NormalizeHierarchyId(

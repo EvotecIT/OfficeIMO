@@ -56,7 +56,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = MovePages(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageNumbers);
+        var bytes = MovePages(ReadPath(inputPath), insertBeforePageNumber, pageNumbers);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -67,7 +67,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, MovePages(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageNumbers));
+        WriteOutput(outputStream, MovePages(ReadPath(inputPath), insertBeforePageNumber, pageNumbers));
     }
 
     /// <summary>
@@ -75,7 +75,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] MovePages(string inputPath, int insertBeforePageNumber, params int[] pageNumbers) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return MovePages(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageNumbers);
+        return MovePages(ReadPath(inputPath), insertBeforePageNumber, pageNumbers);
     }
 
     /// <summary>
@@ -144,7 +144,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = MovePageRange(File.ReadAllBytes(inputPath), insertBeforePageNumber, firstPage, lastPage);
+        var bytes = MovePageRange(ReadPath(inputPath), insertBeforePageNumber, firstPage, lastPage);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -155,7 +155,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, MovePageRange(File.ReadAllBytes(inputPath), insertBeforePageNumber, firstPage, lastPage));
+        WriteOutput(outputStream, MovePageRange(ReadPath(inputPath), insertBeforePageNumber, firstPage, lastPage));
     }
 
     /// <summary>
@@ -166,7 +166,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = MovePageRange(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageRange);
+        var bytes = MovePageRange(ReadPath(inputPath), insertBeforePageNumber, pageRange);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -177,7 +177,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, MovePageRange(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageRange));
+        WriteOutput(outputStream, MovePageRange(ReadPath(inputPath), insertBeforePageNumber, pageRange));
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] MovePageRange(string inputPath, int insertBeforePageNumber, int firstPage, int lastPage) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return MovePageRange(File.ReadAllBytes(inputPath), insertBeforePageNumber, firstPage, lastPage);
+        return MovePageRange(ReadPath(inputPath), insertBeforePageNumber, firstPage, lastPage);
     }
 
     /// <summary>
@@ -193,7 +193,7 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] MovePageRange(string inputPath, int insertBeforePageNumber, PdfPageRange pageRange) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return MovePageRange(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageRange);
+        return MovePageRange(ReadPath(inputPath), insertBeforePageNumber, pageRange);
     }
 
     /// <summary>
@@ -237,7 +237,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNull(outputPath, nameof(outputPath));
 
         string fullOutputPath = ValidateOutputPath(outputPath);
-        var bytes = MovePageRanges(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageRanges);
+        var bytes = MovePageRanges(ReadPath(inputPath), insertBeforePageNumber, pageRanges);
         WriteOutput(fullOutputPath, bytes);
     }
 
@@ -249,7 +249,7 @@ internal static partial class PdfPageEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
 
-        WriteOutput(outputStream, MovePageRanges(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageRanges));
+        WriteOutput(outputStream, MovePageRanges(ReadPath(inputPath), insertBeforePageNumber, pageRanges));
     }
 
     /// <summary>
@@ -258,6 +258,6 @@ internal static partial class PdfPageEditor {
     /// </summary>
     public static byte[] MovePageRanges(string inputPath, int insertBeforePageNumber, params PdfPageRange[] pageRanges) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
-        return MovePageRanges(File.ReadAllBytes(inputPath), insertBeforePageNumber, pageRanges);
+        return MovePageRanges(ReadPath(inputPath), insertBeforePageNumber, pageRanges);
     }
 }

@@ -18,14 +18,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 TextRotation = BuildTextRotation(style.TextRotation),
             };
 
-            if (style.Bold || style.Italic || style.Underline || style.Strikethrough
+            if (style.Bold || style.Italic || style.Underline || style.Strikethrough || style.StrikethroughSpecified
                 || !string.IsNullOrWhiteSpace(style.FontName) || style.FontSize.HasValue
                 || !string.IsNullOrWhiteSpace(style.FontColorArgb)) {
                 payload.TextFormat = new GoogleSheetsApiTextFormatPayload {
                     Bold = style.Bold ? true : (bool?)null,
                     Italic = style.Italic ? true : (bool?)null,
                     Underline = style.Underline ? true : (bool?)null,
-                    Strikethrough = style.Strikethrough ? true : (bool?)null,
+                    Strikethrough = style.StrikethroughSpecified ? style.Strikethrough
+                        : style.Strikethrough ? true : (bool?)null,
                     FontFamily = style.FontName,
                     FontSize = style.FontSize.HasValue ? Math.Max(1, (int)Math.Round(style.FontSize.Value)) : (int?)null,
                     ForegroundColor = BuildColor(style.FontColorArgb),

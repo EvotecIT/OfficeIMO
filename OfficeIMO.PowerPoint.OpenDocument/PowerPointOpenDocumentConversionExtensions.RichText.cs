@@ -125,7 +125,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 targetParagraph,
                 ref unsupportedWritingModes,
                 ref approximatedParagraphAlignments);
-            IReadOnlyList<OdpInlineNode> inlineNodes = sourceParagraph.InlineNodes;
+            OdpInlineLeaf[] inlineNodes = FlattenOdpInlineNodes(sourceParagraph.InlineNodes).ToArray();
+            var convertedLinks = new HashSet<OdpHyperlink>();
+            var linkedTargets = new HashSet<OdpHyperlink>();
+            var unsupportedLinks = new HashSet<OdpHyperlink>();
             IReadOnlyList<PowerPointTextRun> existingRuns = targetParagraph.Runs;
             bool useExistingRun = existingRuns.Count > 0;
             var textCaseRunGroup = new List<PowerPointTextRun>();
@@ -201,7 +204,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 return runs;
             }
 
-            if (inlineNodes.Count == 0) {
+            if (inlineNodes.Length == 0) {
                 PowerPointTextRun run = useExistingRun
                     ? existingRuns[0]
                     : targetParagraph.AddRun(string.Empty);
@@ -209,50 +212,52 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                 QueueTextCaseRuns(new[] { run }, sourceParagraph.TextTransform, containsLineBreak: false);
             } else {
-                foreach (OdpInlineNode node in inlineNodes) {
+                foreach (OdpInlineLeaf leaf in inlineNodes) {
+                    OdpInlineNode node = leaf.Node;
                     IReadOnlyList<PowerPointTextRun> targetRuns = AddInlineRuns(node.Text);
-                    OdfTextTransform? effectiveTransform = node.Kind switch {
-                        OdpInlineNodeKind.Run => node.Run!.TextTransform ?? sourceParagraph.TextTransform,
-                        OdpInlineNodeKind.Hyperlink => node.Hyperlink!.TextTransform ?? sourceParagraph.TextTransform,
-                        _ => sourceParagraph.TextTransform
-                    };
-                    if (node.Kind == OdpInlineNodeKind.Run) {
+                    OdfTextTransform? effectiveTransform = leaf.Run?.TextTransform
+                        ?? leaf.StyleLink?.TextTransform ?? sourceParagraph.TextTransform;
+                    if (leaf.Run != null) {
                         foreach (PowerPointTextRun targetRun in targetRuns) {
-                            unsupportedMeasurements += ApplyOdpRun(node.Run!, sourceParagraph, targetRun, options,
+                            unsupportedMeasurements += ApplyOdpRun(leaf.Run, sourceParagraph, targetRun, options,
                                 ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         }
-                        if (!options.IncludeBasicFormatting && HasBasicFormatting(node.Run!)) skippedBasicFormatting++;
-                    } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
-                        OdpHyperlink hyperlink = node.Hyperlink!;
+                        if (!options.IncludeBasicFormatting && HasBasicFormatting(leaf.Run)) skippedBasicFormatting++;
+                    } else if (leaf.StyleLink != null) {
                         foreach (PowerPointTextRun targetRun in targetRuns) {
-                            unsupportedMeasurements += ApplyOdpHyperlink(hyperlink, sourceParagraph, targetRun, options,
+                            unsupportedMeasurements += ApplyOdpHyperlink(leaf.StyleLink, sourceParagraph, targetRun, options,
                                 ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
                         }
-                        if (!string.IsNullOrWhiteSpace(hyperlink.TargetFrameName)
-                            || !string.IsNullOrWhiteSpace(hyperlink.ShowBehavior)) {
+                        if (!options.IncludeBasicFormatting && HasBasicFormatting(leaf.StyleLink)) skippedBasicFormatting++;
+                    } else {
+                        foreach (PowerPointTextRun targetRun in targetRuns) {
+                            unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options,
+                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
+                        }
+                    }
+                    if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
+                    OdpHyperlink? hyperlink = leaf.TargetLink;
+                    if (hyperlink != null) {
+                        if (convertedLinks.Add(hyperlink)
+                            && (!string.IsNullOrWhiteSpace(hyperlink.TargetFrameName)
+                                || !string.IsNullOrWhiteSpace(hyperlink.ShowBehavior))) {
                             unsupportedHyperlinkBehaviors++;
                         }
                         if (TryResolveSlideFragment(hyperlink.Href, slides, out int targetSlideIndex)) {
                             foreach (PowerPointTextRun targetRun in targetRuns) {
                                 pendingInternalLinks.Add((targetRun, targetSlideIndex));
                             }
-                            hyperlinks++;
-                        } else if (hyperlink.Href.StartsWith("#", StringComparison.Ordinal)) {
-                            unsupportedHyperlinks++;
-                        } else if (Uri.TryCreate(hyperlink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
+                            if (linkedTargets.Add(hyperlink)) hyperlinks++;
+                        } else if (!hyperlink.Href.StartsWith("#", StringComparison.Ordinal)
+                            && Uri.TryCreate(hyperlink.Href, UriKind.RelativeOrAbsolute, out Uri? uri)) {
                             foreach (PowerPointTextRun targetRun in targetRuns) targetRun.SetHyperlink(uri);
-                            hyperlinks++;
-                            if (IsExternalOdfHref(hyperlink.Href)) externalHyperlinks++;
+                            if (linkedTargets.Add(hyperlink)) {
+                                hyperlinks++;
+                                if (IsExternalOdfHref(hyperlink.Href)) externalHyperlinks++;
+                            }
                         } else {
-                            unsupportedHyperlinks++;
+                            if (unsupportedLinks.Add(hyperlink)) unsupportedHyperlinks++;
                         }
-                        if (!options.IncludeBasicFormatting && HasBasicFormatting(hyperlink)) skippedBasicFormatting++;
-                    } else {
-                        foreach (PowerPointTextRun targetRun in targetRuns) {
-                            unsupportedMeasurements += ApplyOdpParagraphFormatting(sourceParagraph, targetRun, options,
-                                ref approximatedFontFamilyLists, ref unsupportedFontFamilies);
-                        }
-                        if (node.Kind == OdpInlineNodeKind.Other) approximatedRuns++;
                     }
                     QueueTextCaseRuns(
                         targetRuns,
@@ -270,7 +275,6 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static int ApplyOdpRun(OdpRun source, OdpParagraph paragraph, PowerPointTextRun target,
         PowerPointOpenDocumentConversionOptions options,
         ref int approximatedFontFamilyLists, ref int unsupportedFontFamilies) {
-        target.Text = source.Text;
         if (!options.IncludeBasicFormatting) return 0;
         target.Bold = source.Bold ?? paragraph.Bold ?? false;
         target.Italic = source.Italic ?? paragraph.Italic ?? false;
@@ -292,7 +296,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (fontFamily != null) target.FontName = fontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
         if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
-        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
+        OdfColor? background = source.HasTextBackgroundOverride
+            ? source.BackgroundColor : paragraph.BackgroundColor;
         if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
         return unsupported;
     }
@@ -321,7 +326,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         if (fontFamily != null) target.FontName = fontFamily;
         OdfColor? color = source.Color ?? paragraph.Color;
         if (color.HasValue) target.Color = color.Value.ToString().TrimStart('#');
-        OdfColor? background = source.BackgroundColor ?? paragraph.BackgroundColor;
+        OdfColor? background = source.HasTextBackgroundOverride
+            ? source.BackgroundColor : paragraph.BackgroundColor;
         if (background.HasValue) target.HighlightColor = background.Value.ToString().TrimStart('#');
         return unsupported;
     }
@@ -432,5 +438,26 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         }
         if (syntax!.HasFallbacks) approximatedFontFamilyLists++;
         return syntax.PrimaryFamily;
+    }
+
+    private readonly record struct OdpInlineLeaf(OdpInlineNode Node, OdpRun? Run,
+        OdpHyperlink? StyleLink, OdpHyperlink? TargetLink);
+
+    private static IEnumerable<OdpInlineLeaf> FlattenOdpInlineNodes(
+        IReadOnlyList<OdpInlineNode> nodes, OdpRun? run = null,
+        OdpHyperlink? styleLink = null, OdpHyperlink? targetLink = null) {
+        foreach (OdpInlineNode node in nodes) {
+            if (node.Kind == OdpInlineNodeKind.Run) {
+                if (node.Children.Count == 0) yield return new OdpInlineLeaf(node, node.Run, null, targetLink);
+                else foreach (OdpInlineLeaf child in FlattenOdpInlineNodes(node.Children, node.Run, null, targetLink))
+                    yield return child;
+            } else if (node.Kind == OdpInlineNodeKind.Hyperlink) {
+                if (node.Children.Count == 0) yield return new OdpInlineLeaf(node, null, node.Hyperlink, node.Hyperlink);
+                else foreach (OdpInlineLeaf child in FlattenOdpInlineNodes(node.Children, null, node.Hyperlink, node.Hyperlink))
+                    yield return child;
+            } else {
+                yield return new OdpInlineLeaf(node, run, styleLink, targetLink);
+            }
+        }
     }
 }

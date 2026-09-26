@@ -22,7 +22,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             if (!string.IsNullOrWhiteSpace(section.Title)) {
                 HtmlSemanticBlock? titleBlock = section.Blocks.FirstOrDefault();
                 contentTop = ImportTextBox(titleBlock?.SourceElement, section.Title, slide, 30D, result, budget,
-                    MeasureGenericTitleHeight(section.Title));
+                    MeasureGenericTitleHeight(section.Title), options);
             }
 
             double pictureTop = contentTop;
@@ -34,7 +34,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 bool importPicture = options.ImportPictures && block.Kind == HtmlSemanticBlockKind.Image;
                 if (importText && !isSectionTitle) {
                     if (!TryImportGenericTextBlock(block, presentation, result, budget, ref slide,
-                            ref contentTop, ref pictureTop, slideBottom)) {
+                            ref contentTop, ref pictureTop, slideBottom, options)) {
                         slideLimitReached = true;
                         break;
                     }
@@ -82,7 +82,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                                 contentTop = pictureTop = 30D;
                             }
                             int previousTextBoxes = result.TextBoxes;
-                            contentTop = ImportTextBox(null, chunk, slide, contentTop, result, budget, 130D);
+                            contentTop = ImportTextBox(null, chunk, slide, contentTop, result, budget, 130D, options);
                             if (result.TextBoxes == previousTextBoxes) {
                                 slideLimitReached = true;
                                 break;
@@ -96,8 +96,8 @@ public static partial class HtmlPowerPointConverterExtensions {
                             }
                             contentTop = pictureTop = 30D;
                         }
-                        contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, block,
-                            tableWidth, tableHeight, rowHeights);
+                        contentTop = ImportTable(block.SourceElement, slide, contentTop, result, budget, options,
+                            block, tableWidth, tableHeight, rowHeights);
                     }
                 } else if (importPicture) {
                     if (NeedsGenericContinuation(contentTop, 90D, slideBottom)) {
@@ -148,7 +148,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (!budget.TryReserveSemanticContainer(out string containerLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "Additional generic HTML content was omitted because the shared slide limit was reached.",
-                HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: containerLimit);
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, detail: containerLimit);
             slide = null!;
             return false;
         }
@@ -286,7 +286,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 foreach (HtmlRenderLayoutRegion region in sectionGroup) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An editable HTML layout region was omitted because its owning semantic slide was not created.",
-                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, region.Source,
                         "semanticSection=" + sectionGroup.Key + "; slides=" + presentation.Slides.Count);
                 }
                 continue;
@@ -326,13 +326,13 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (!budget.IsMetadataWithinLimit(region.SourceText, out string metadataLimit)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An editable HTML layout region was omitted because its text exceeded the shared metadata limit.",
-                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source, metadataLimit);
+                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, region.Source, metadataLimit);
                     continue;
                 }
                 if (!shapeReservations.TryGetValue(region, out HtmlImportBudgetReservation? shapeReservation)) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                         "An editable HTML layout region was omitted because the native shape limit was reached.",
-                        HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, region.Source,
                         shapeReservationFailures.TryGetValue(region, out string? shapeLimit)
                             ? shapeLimit
                             : nameof(HtmlImportLimits.MaxShapes));
@@ -359,7 +359,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                         if (nextTop > maximumGeometry) {
                             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                                 "An editable HTML layout region was omitted because no bounded non-overlapping slide position remained.",
-                                HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, region.Source,
+                                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, region.Source,
                                 "MaxAbsoluteGeometry=" + maximumGeometry.ToString(
                                     System.Globalization.CultureInfo.InvariantCulture));
                             placementAvailable = false;

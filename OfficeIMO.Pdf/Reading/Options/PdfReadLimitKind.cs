@@ -135,5 +135,29 @@ public enum PdfReadLimitKind {
     PositionedTextCharacters = 43,
 
     /// <summary>Characters materialized or measured for positioned-glyph visibility on one page, including invisible glyphs.</summary>
-    PositionedTextWorkCharacters = 44
+    PositionedTextWorkCharacters = 44,
+
+    /// <summary>Characters scanned while projecting positioned text, including clipped and off-page runs.</summary>
+    PositionedTextProjectionCharacters = 45,
+
+    /// <summary>Estimated face comparisons while copying fonts for clipped positioned text.</summary>
+    ClippedTextFontCopyWork = 46,
+
+    /// <summary>Distinct content contexts examined during PDF/X color inspection.</summary>
+    PrintProductionContexts = 47,
+
+    /// <summary>Aggregate content operations examined during PDF/X color inspection.</summary>
+    PrintProductionOperations = 48,
+
+    /// <summary>Capability diagnostics retained while rendering one PDF page.</summary>
+    RenderDiagnostics = 49,
+
+    /// <summary>Diagnostics retained while inspecting PDF fonts.</summary>
+    FontInspectionDiagnostics = 50,
+
+    /// <summary>Geometric line-pair comparisons while grouping text-search flows on one page.</summary>
+    TextSearchFlowComparisons = 51,
+
+    /// <summary>Work spent detecting table cell boundaries for text search on one page.</summary>
+    TextSearchTableDetectionWork = 52
 }

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -71,59 +72,117 @@ internal static class PdfSyntaxEscaper {
 #endif
     }
 
-    internal static string LiteralString(string value) {
+    internal static string LiteralString(string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(value, nameof(value));
+        cancellationToken.ThrowIfCancellationRequested();
+        var builder = new StringBuilder(value.Length + 2);
+        AppendLiteralStringCancellable(builder, value, cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(builder, 0, builder.Length, cancellationToken);
+    }
+
+    internal static void AppendLiteralStringCancellable(StringBuilder destination, string value, CancellationToken cancellationToken) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(value, nameof(value));
+        cancellationToken.ThrowIfCancellationRequested();
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[index] > byte.MaxValue) {
-                return TextString(value);
+                AppendTextStringCancellable(destination, value, cancellationToken);
+                return;
             }
         }
 
-        return "(" + EscapeLiteralContent(value) + ")";
+        destination.Append('(');
+        AppendLiteralContentCancellable(destination, value, cancellationToken);
+        destination.Append(')');
     }
 
-    internal static string WinAnsiHexString(string value) {
+    internal static string WinAnsiHexString(string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(value, nameof(value));
-        byte[] bytes = PdfWinAnsiEncoding.Encode(value);
-        return HexString(bytes);
+        cancellationToken.ThrowIfCancellationRequested();
+        byte[] bytes = PdfWinAnsiEncoding.Encode(value, cancellationToken);
+        return HexString(bytes, cancellationToken);
     }
 
-    internal static string TextString(string value) {
+    internal static string TextString(string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(value, nameof(value));
-        if (PdfWinAnsiEncoding.CanEncode(value, out _)) {
-            return WinAnsiHexString(value);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
+            return WinAnsiHexString(value, cancellationToken);
         }
 
         byte[] bytes = new byte[2 + value.Length * 2];
         bytes[0] = 0xFE;
         bytes[1] = 0xFF;
         for (int i = 0; i < value.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char ch = value[i];
             bytes[2 + i * 2] = (byte)(ch >> 8);
             bytes[3 + i * 2] = (byte)(ch & 0xFF);
         }
 
-        return HexString(bytes);
+        return HexString(bytes, cancellationToken);
     }
 
-    internal static string HexString(byte[] bytes) {
+    internal static void AppendTextStringCancellable(StringBuilder destination, string value, CancellationToken cancellationToken) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(value, nameof(value));
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('<');
+        if (PdfWinAnsiEncoding.CanEncode(value, out _, cancellationToken)) {
+            byte[] bytes = PdfWinAnsiEncoding.Encode(value, cancellationToken);
+            for (int index = 0; index < bytes.Length; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                AppendHexByte(destination, bytes[index]);
+            }
+        } else {
+            destination.Append("FEFF");
+            for (int index = 0; index < value.Length; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                AppendHexByte(destination, (byte)(value[index] >> 8));
+                AppendHexByte(destination, (byte)value[index]);
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('>');
+    }
+
+    private static void AppendHexByte(StringBuilder destination, byte value) {
+        const string digits = "0123456789ABCDEF";
+        destination.Append(digits[value >> 4]).Append(digits[value & 0x0F]);
+    }
+
+    internal static string HexString(byte[] bytes, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var sb = new StringBuilder(bytes.Length * 2 + 2);
-        sb.Append('<');
-        for (int i = 0; i < bytes.Length; i++) {
-            sb.Append(bytes[i].ToString("X2", CultureInfo.InvariantCulture));
-        }
-
-        sb.Append('>');
-        return sb.ToString();
+        AppendHexStringCancellable(sb, bytes, cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(sb, 0, sb.Length, cancellationToken);
     }
 
-    internal static string EscapeLiteralContent(string value) {
-        if (string.IsNullOrEmpty(value)) {
-            return string.Empty;
+    internal static void AppendHexStringCancellable(StringBuilder destination, byte[] bytes, CancellationToken cancellationToken) {
+        Guard.NotNull(destination, nameof(destination));
+        Guard.NotNull(bytes, nameof(bytes));
+        cancellationToken.ThrowIfCancellationRequested();
+        destination.Append('<');
+        for (int i = 0; i < bytes.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            AppendHexByte(destination, bytes[i]);
         }
+        destination.Append('>');
+    }
 
+    internal static string EscapeLiteralContent(string value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (string.IsNullOrEmpty(value)) return string.Empty;
         var sb = new StringBuilder(value.Length + 8);
+        AppendLiteralContentCancellable(sb, value, cancellationToken);
+        return PdfEncoding.StringBuilderToStringCancellable(sb, 0, sb.Length, cancellationToken);
+    }
+
+    private static void AppendLiteralContentCancellable(StringBuilder sb, string value, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int i = 0; i < value.Length; i++) {
+            if ((i & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             char ch = value[i];
             switch (ch) {
                 case '\\': sb.Append("\\\\"); break;
@@ -149,7 +208,6 @@ internal static class PdfSyntaxEscaper {
             }
         }
 
-        return sb.ToString();
     }
 
     internal static string Name(string value) {
@@ -160,12 +218,14 @@ internal static class PdfSyntaxEscaper {
     }
 
     /// <summary>Appends an escaped PDF name without allocating an intermediate escaped string.</summary>
-    internal static void AppendName(StringBuilder destination, string value) {
+    internal static void AppendName(StringBuilder destination, string value, CancellationToken cancellationToken = default) {
         Guard.NotNull(destination, nameof(destination));
         Guard.NotNull(value, nameof(value));
+        cancellationToken.ThrowIfCancellationRequested();
 
         bool requiresUtf8 = false;
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (value[index] >= 0x80) {
                 requiresUtf8 = true;
                 break;
@@ -173,12 +233,19 @@ internal static class PdfSyntaxEscaper {
         }
 
         if (requiresUtf8) {
-            byte[] bytes = Encoding.UTF8.GetBytes(value);
-            for (int index = 0; index < bytes.Length; index++) AppendNameByte(destination, bytes[index]);
+            for (int index = 0; index < value.Length;) {
+                cancellationToken.ThrowIfCancellationRequested();
+                int length = Math.Min(1024, value.Length - index);
+                if (index + length < value.Length && char.IsHighSurrogate(value[index + length - 1]) && char.IsLowSurrogate(value[index + length])) length++;
+                byte[] bytes = Encoding.UTF8.GetBytes(value.Substring(index, length));
+                foreach (byte encodedByte in bytes) AppendNameByte(destination, encodedByte);
+                index += length;
+            }
             return;
         }
 
         for (int index = 0; index < value.Length; index++) {
+            if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
             AppendNameByte(destination, (byte)value[index]);
         }
     }

@@ -396,7 +396,7 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfLinkAnnotation> readLinkAnnotations = page.GetLinkAnnotations();
         var linkAnnotations = new List<PdfLinkAnnotation>(readLinkAnnotations.Count);
         for (int i = 0; i < readLinkAnnotations.Count; i++) {
-            PdfLinkAnnotation linkAnnotation = ResolveLinkDestinationPageNumber(document, readLinkAnnotations[i]);
+            PdfLinkAnnotation linkAnnotation = ResolveLinkDestinationPageNumber(document, readLinkAnnotations[i], cancellationToken);
             linkAnnotations.Add(linkAnnotation);
             var logicalLink = new PdfLogicalLinkAnnotation(pageNumber, linkAnnotation);
             links.Add(logicalLink);
@@ -617,12 +617,13 @@ public sealed partial class PdfLogicalPage {
         }
     }
 
-    private static PdfLinkAnnotation ResolveLinkDestinationPageNumber(PdfReadDocument document, PdfLinkAnnotation link) {
+    private static PdfLinkAnnotation ResolveLinkDestinationPageNumber(PdfReadDocument document, PdfLinkAnnotation link,
+        CancellationToken cancellationToken) {
         if (link.DestinationPageNumber.HasValue || !link.DestinationPageObjectNumber.HasValue) {
             return link;
         }
 
-        return link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value));
+        return link.WithDestinationPageNumber(document.GetPageNumberForObject(link.DestinationPageObjectNumber.Value, cancellationToken));
     }
 
     private static IReadOnlyList<PdfLogicalParagraph> BuildParagraphs(
@@ -716,14 +717,17 @@ public sealed partial class PdfLogicalPage {
         IReadOnlyList<PdfImagePlacement> placements,
         IReadOnlyList<PdfUnderstandingImageRegion> regions) {
         if (placements.Count == 0 || regions.Count == 0) return Array.Empty<PdfUnderstandingImageRegion>();
+        var regionsByPlacement = new Dictionary<PdfImagePlacement, PdfUnderstandingImageRegion>();
+        for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
+            PdfUnderstandingImageRegion region = regions[regionIndex];
+            if (!regionsByPlacement.TryGetValue(region.Placement, out _)) {
+                regionsByPlacement[region.Placement] = region;
+            }
+        }
         var result = new List<PdfUnderstandingImageRegion>(placements.Count);
         for (int placementIndex = 0; placementIndex < placements.Count; placementIndex++) {
             PdfImagePlacement placement = placements[placementIndex];
-            for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
-                if (!ReferenceEquals(regions[regionIndex].Placement, placement)) continue;
-                result.Add(regions[regionIndex]);
-                break;
-            }
+            if (regionsByPlacement.TryGetValue(placement, out PdfUnderstandingImageRegion? region)) result.Add(region);
         }
         return result.Count == 0 ? Array.Empty<PdfUnderstandingImageRegion>() : result.AsReadOnly();
     }

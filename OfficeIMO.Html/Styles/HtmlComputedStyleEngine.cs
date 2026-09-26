@@ -417,7 +417,8 @@ public static partial class HtmlComputedStyleEngine {
 
         var budget = new HtmlCssProcessingBudget(limits, MatchProviderSelectorFragment);
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations =
-            ParseCustomPropertyRegistrations(document, environment);
+            ParseCustomPropertyRegistrations(document, environment, budget);
+        budget.ValidateRegistrationFanout(customPropertyRegistrations.Count, document.QuerySelectorAll("*").Length);
         IReadOnlyList<StyleRule> rules = ParseStyleRules(document, environment, budget);
         var ruleIndex = new StyleRuleIndex(rules, customPropertyRegistrations);
         var computed = new Dictionary<IElement, HtmlComputedStyle>();
@@ -520,7 +521,9 @@ public static partial class HtmlComputedStyleEngine {
 
         IReadOnlyList<StyleRule> candidateRules = rules.GetCandidates(element);
         foreach (StyleRule rule in candidateRules) {
-            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)) {
+            if (AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment,
+                    budget.HasDeclarationLimit)) {
+                if (TryParsePseudoElementSelector(rule.Selector, out _, out _)) continue;
                 // Owned matching accounts for each compound and DOM traversal itself. Retained
                 // provider matching has no such callback, so count its candidate once here.
                 if (rule.OwnedSelector == null) budget.RecordSelectorEvaluation();
@@ -532,7 +535,8 @@ public static partial class HtmlComputedStyleEngine {
                             valueAlreadyValidated: true, declarationOrder: declaration.Value.DeclarationOrder,
                             customPropertyRegistrations: rules.CustomPropertyRegistrations,
                             source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
-                            selector: rule.Selector, layerName: rule.LayerName);
+                            selector: rule.Selector, layerName: rule.LayerName,
+                            enforceResolutionLimits: budget.HasDeclarationLimit);
                     }
                 }
             }
@@ -546,7 +550,8 @@ public static partial class HtmlComputedStyleEngine {
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
             out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
             includeCascadeTraces,
-            rules.CustomPropertyRegistrations);
+            rules.CustomPropertyRegistrations,
+            enforceResolutionLimits: budget.HasDeclarationLimit);
         HtmlComputedStyle style = HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);
@@ -617,7 +622,10 @@ public static partial class HtmlComputedStyleEngine {
         bool includeCascadeTraces) {
         List<StyleRule>? matchedRules = null;
         foreach (StyleRule rule in candidateRules) {
-            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment)) continue;
+            if (!AreContainerConditionsApplicable(rule.ContainerConditions, containerContexts, environment,
+                    budget.HasDeclarationLimit)) continue;
+            if (!TryParsePseudoElementSelector(rule.Selector, out _, out HtmlPseudoElementKind ruleKind)
+                || ruleKind != kind) continue;
             if (rule.OwnedSelector == null) budget.RecordSelectorEvaluation();
             if (!MatchesSelector(element, rule, budget)) continue;
 
@@ -645,7 +653,8 @@ public static partial class HtmlComputedStyleEngine {
                     declarationOrder: declaration.Value.DeclarationOrder,
                     customPropertyRegistrations: customPropertyRegistrations,
                     source: OfficeIMO.Html.Css.HtmlCssCascadeSourceKind.StyleRule,
-                    selector: rule.Selector, layerName: rule.LayerName);
+                    selector: rule.Selector, layerName: rule.LayerName,
+                    enforceResolutionLimits: budget.HasDeclarationLimit);
             }
         }
 
@@ -656,7 +665,8 @@ public static partial class HtmlComputedStyleEngine {
             out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
             out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
             includeCascadeTraces,
-            customPropertyRegistrations);
+            customPropertyRegistrations,
+            enforceResolutionLimits: budget.HasDeclarationLimit);
         return HtmlComputedStyle.FromOwnedCollections(
             resolvedProperties, inheritedProperties, resetProperties, originRevertedProperties,
             specifiedProperties, cascadePriorities, cascadeTraces);

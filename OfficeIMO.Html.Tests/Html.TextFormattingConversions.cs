@@ -597,6 +597,22 @@ public class HtmlTextFormattingConversionTests {
     }
 
     [Fact]
+    public void PowerPointSemanticRunMetadataUsesThePreparedDocumentHyperlinkPolicy() {
+        const string html = "<section class=\"officeimo-slide\" data-officeimo-slide=\"1\"><p>" +
+            "<span data-officeimo-powerpoint-run=\"true\" data-officeimo-powerpoint-hyperlink=\"file://server/share\">Blocked</span>" +
+            "<span data-officeimo-powerpoint-run=\"true\" data-officeimo-powerpoint-hyperlink=\"https://example.com/safe\">Allowed</span>" +
+            "</p></section>";
+
+        using PowerPointPresentation imported = HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult().RequireValue();
+        PowerPointTextRun[] runs = imported.Slides.Single().TextBoxes.Single()
+            .Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
+
+        Assert.Null(Assert.Single(runs, run => run.Text == "Blocked").Hyperlink);
+        Assert.Equal("https://example.com/safe", Assert.Single(runs, run => run.Text == "Allowed").Hyperlink?.AbsoluteUri);
+    }
+
+    [Fact]
     public void GenericPowerPointTableHtmlKeepsInheritedAndNestedInlineFormatting() {
         const string html = """
             <section class="officeimo-slide" data-officeimo-slide="1">

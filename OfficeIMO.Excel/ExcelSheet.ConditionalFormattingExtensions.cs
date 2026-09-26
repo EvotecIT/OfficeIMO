@@ -153,6 +153,7 @@ namespace OfficeIMO.Excel {
                 DifferentialFontColorArgb = ExcelThemeColorResolver.Resolve(font?.Color, workbookPart),
                 DifferentialFontBold = ReadDifferentialBoolean(font?.Bold),
                 DifferentialFontItalic = ReadDifferentialBoolean(font?.Italic),
+                DifferentialFontStrike = ReadDifferentialBoolean(font?.Strike),
                 DifferentialFontUnderline = ReadDifferentialBoolean(font?.Underline),
                 DifferentialFontName = font?.FontName?.Val?.Value,
                 DifferentialFontSize = font?.FontSize?.Val?.Value,

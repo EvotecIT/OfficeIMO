@@ -5,10 +5,11 @@ namespace OfficeIMO.Excel.LegacyXls {
     /// <summary>
     /// Contains the projected OfficeIMO document and the legacy XLS import report produced from the same parse.
     /// </summary>
-    public sealed class LegacyXlsLoadResult : IDisposable {
+    public sealed class LegacyXlsLoadResult : IDisposable, IOfficeConversionReport {
         private readonly ExcelDocument? _document;
         private readonly Lazy<LegacyXlsImportReport> _importReport;
         private readonly Lazy<LegacyXlsImportSummary> _summary;
+        private readonly Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>> _fidelityDiagnostics;
 
         internal LegacyXlsLoadResult(ExcelDocument? document, LegacyXlsWorkbook workbook, Exception? projectionException = null) {
             _document = document;
@@ -16,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ProjectionException = projectionException;
             _importReport = new Lazy<LegacyXlsImportReport>(() => Workbook.CreateImportReport());
             _summary = new Lazy<LegacyXlsImportSummary>(() => new LegacyXlsImportSummary(this));
+            _fidelityDiagnostics = new Lazy<IReadOnlyList<OfficeConversionFidelityDiagnostic>>(CreateFidelityDiagnostics);
         }
 
         /// <summary>
@@ -77,7 +79,8 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>
         /// Gets whether the legacy XLS import produced error diagnostics.
         /// </summary>
-        public bool HasImportErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+        public bool HasImportErrors => ProjectionException != null ||
+            Diagnostics.Any(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
 
         /// <summary>
         /// Gets whether the legacy XLS import discovered unsupported or preserve-only features.
@@ -85,17 +88,30 @@ namespace OfficeIMO.Excel.LegacyXls {
         public bool HasUnsupportedFeatures => UnsupportedFeatures.Count > 0 || PreservedFeatures.Count > 0;
 
         /// <summary>Gets whether conversion to XLSX would omit known legacy content.</summary>
-        public bool HasConversionLoss => UnsupportedFeatures.Count > 0
-            || PreservedFeatures.Count > 0
-            || UnsupportedSheets.Count > 0
-            || CompoundFeatures.Any(feature =>
-                feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
-                || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject);
+        public bool HasConversionLoss => HasLoss;
+
+        /// <inheritdoc />
+        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics.Value;
+
+        /// <inheritdoc />
+        public bool HasLoss => FidelityDiagnostics.Any(diagnostic =>
+            diagnostic.LossKind != OfficeConversionLossKind.None);
+
+        /// <inheritdoc />
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidDataException(
+                "The legacy XLS import reported content loss. Inspect FidelityDiagnostics and the source import collections for details.");
+        }
 
         /// <summary>
         /// Throws when the legacy XLS import produced error diagnostics.
         /// </summary>
         public LegacyXlsLoadResult EnsureNoImportErrors() {
+            if (ProjectionException != null) {
+                throw new InvalidOperationException(
+                    "Legacy XLS content was parsed but could not be projected to an OfficeIMO workbook.",
+                    ProjectionException);
+            }
             if (HasImportErrors) {
                 throw new InvalidOperationException("Legacy XLS import produced errors: " + FormatDiagnostics(Diagnostics.Where(diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error)));
             }
@@ -150,6 +166,78 @@ namespace OfficeIMO.Excel.LegacyXls {
                 return $"{feature.Code}{sheet} record=0x{feature.RecordType:X4} offset={feature.RecordOffset}: {feature.Description}";
             });
             return string.Join("; ", unsupported.Concat(preserved).Distinct(StringComparer.Ordinal).Take(8));
+        }
+
+        private IReadOnlyList<OfficeConversionFidelityDiagnostic> CreateFidelityDiagnostics() {
+            var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+            if (ProjectionException != null) {
+                diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    "XLS-PROJECTION-FAILED",
+                    ProjectionException.Message,
+                    OfficeConversionLossKind.Failure,
+                    "OfficeIMO.Excel.LegacyXls.Projection",
+                    ProjectionException.GetType().FullName));
+            }
+            diagnostics.AddRange(Diagnostics.Select(diagnostic => new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                ClassifyLoss(diagnostic),
+                "OfficeIMO.Excel.LegacyXls.Reader",
+                FormatLocation(diagnostic.SheetName, diagnostic.RecordOffset))));
+            diagnostics.AddRange(UnsupportedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
+            diagnostics.AddRange(PreservedFeatures.Select(feature => new OfficeConversionFidelityDiagnostic(
+                feature.Code, feature.Description, OfficeConversionLossKind.Omission,
+                "OfficeIMO.Excel.LegacyXls.Reader", FormatLocation(feature.SheetName, feature.RecordOffset))));
+            diagnostics.AddRange(UnsupportedSheets.Select(sheet => new OfficeConversionFidelityDiagnostic(
+                "XLS-UNSUPPORTED-SHEET", $"Sheet '{sheet.Name}' is not projected as an editable worksheet.",
+                OfficeConversionLossKind.Omission, "OfficeIMO.Excel.LegacyXls.Reader",
+                FormatLocation(sheet.Name, sheet.StreamOffset))));
+            diagnostics.AddRange(CompoundFeatures
+                .Where(feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject
+                    || feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject)
+                .Select(feature => new OfficeConversionFidelityDiagnostic(
+                    "XLS-COMPOUND-" + feature.Kind.ToString().ToUpperInvariant(),
+                    $"The {feature.Kind} compound feature is preserved but not projected to XLSX.",
+                    OfficeConversionLossKind.Omission,
+                    "OfficeIMO.Excel.LegacyXls.Reader",
+                    feature.Entries.FirstOrDefault())));
+            return Array.AsReadOnly(diagnostics.ToArray());
+        }
+
+        private static OfficeConversionLossKind ClassifyLoss(LegacyXlsImportDiagnostic diagnostic) {
+            if (diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error) return OfficeConversionLossKind.Failure;
+            // Unread strings become empty cells; unread sheets and defined names are not
+            // projected rather than approximately represented.
+            if (diagnostic.Code is "XLS-BIFF-SST-SHORT" or "XLS-BIFF-SST-STRING-INVALID"
+                or "XLS-BIFF-LBL-SHORT" or "XLS-BIFF-LBL-INVALID"
+                or "XLS-BIFF-LBL-EMPTY-NAME" or "XLS-BIFF-LBL-FORMULA-UNSUPPORTED"
+                or "XLS-BIFF-LBL-SCOPE-INVALID" or "XLS-BIFF-LBL-SCOPE-UNSUPPORTED"
+                or "XLS-BIFF-BOUNDSHEET-SHORT" or "XLS-BIFF-BOUNDSHEET-INVALID"
+                or "XLS-BIFF-SHEET-OFFSET-INVALID" or "XLS-BIFF-SHEET-RECORD-INVALID"
+                or "XLS-BIFF-CHART-SHEET-OFFSET-INVALID"
+                or "XLS-BIFF-UNSUPPORTED-SHEET-OFFSET-INVALID"
+                or "XLS-BIFF-SUPBOOK-SHORT" or "XLS-BIFF-SUPBOOK-INVALID"
+                or "XLS-BIFF-EXTERNSHEET-SHORT" or "XLS-BIFF-EXTERNSHEET-INVALID"
+                or "XLS-BIFF-EXTERNNAME-SHORT" or "XLS-BIFF-EXTERNNAME-INVALID"
+                or "XLS-BIFF-EXTERNNAME-ORPHANED"
+                or "XLS-BIFF-XCT-SHORT" or "XLS-BIFF-XCT-ORPHANED"
+                or "XLS-BIFF-CRN-INVALID" or "XLS-BIFF-CRN-ORPHANED")
+                return OfficeConversionLossKind.Omission;
+            if (diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED"
+                && diagnostic.FormulaContext == "DefinedName")
+                return OfficeConversionLossKind.Omission;
+            return diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning
+                ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None;
+        }
+
+        private static string? FormatLocation(string? sheetName, int? recordOffset) {
+            if (!string.IsNullOrWhiteSpace(sheetName) && recordOffset.HasValue) {
+                return $"sheet:{sheetName}/offset:{recordOffset.Value}";
+            }
+            if (!string.IsNullOrWhiteSpace(sheetName)) return "sheet:" + sheetName;
+            return recordOffset.HasValue ? "offset:" + recordOffset.Value : null;
         }
     }
 }

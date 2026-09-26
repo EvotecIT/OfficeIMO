@@ -172,8 +172,12 @@ internal static partial class PdfWriter {
         public void Dispose() => _contentStore.Dispose();
     }
 
+    // Page content marks where an inline image draws with a comment line; the page's images replace them in
+    // one pass when the content stream is finished. Shared so the writer and the replacement agree on it.
+    private const string InlineImageDrawTokenPrefix = "\n%OIMO_INLINE_IMAGE_";
+
     private static string AllocateInlineImageDrawToken(LayoutResult.Page page) =>
-        "\n%OIMO_INLINE_IMAGE_" + (++page.NextInlineImageTokenId).ToString("D6", System.Globalization.CultureInfo.InvariantCulture) + "\n";
+        InlineImageDrawTokenPrefix + (++page.NextInlineImageTokenId).ToString("D6", System.Globalization.CultureInfo.InvariantCulture) + "\n";
 
     private sealed class LinkAnnotation {
         public double X1 { get; set; }

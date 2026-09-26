@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentNullException(nameof(name));
             }
 
-            return _shapes.FirstOrDefault(s => s.Name == name);
+            return ShapeList.FirstOrDefault(s => s.Name == name);
         }
 
         /// <summary>
@@ -31,7 +31,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            return _shapes.FirstOrDefault(shape => string.Equals(shape.Name, name, comparison));
+            return ShapeList.FirstOrDefault(shape => string.Equals(shape.Name, name, comparison));
         }
 
         /// <summary>
@@ -61,7 +61,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a shape by its non-visual drawing identifier.
         /// </summary>
         public PowerPointShape? GetShapeById(uint id) {
-            return _shapes.FirstOrDefault(shape => shape.Id == id);
+            return ShapeList.FirstOrDefault(shape => shape.Id == id);
         }
 
         /// <summary>
@@ -206,7 +206,7 @@ namespace OfficeIMO.PowerPoint {
                 SetClassicAnimations(remainingAnimations);
             }
             shape.Element.Remove();
-            _shapes.Remove(shape);
+            ShapeList.Remove(shape);
             foreach (string relationshipId in relationshipIds) {
                 RemoveSlideRelationshipIfUnused(relationshipId);
             }

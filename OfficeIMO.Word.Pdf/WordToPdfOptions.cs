@@ -10,6 +10,9 @@ namespace OfficeIMO.Word.Pdf {
     public class WordToPdfOptions {
         internal CancellationToken CancellationToken { get; set; }
 
+        /// <summary>Maximum images collected from one Word paragraph during PDF export.</summary>
+        public int MaxImagesPerParagraph { get; set; } = 1_000;
+
         private PdfCore.PdfResourcePolicy _resourcePolicy = PdfCore.PdfResourcePolicy.CreateDefault();
         private PdfCore.PdfOptions? _pdfOptions;
         private bool _pdfOptionsCreatedByRenderingProfile;
@@ -227,6 +230,7 @@ namespace OfficeIMO.Word.Pdf {
         internal WordToPdfOptions CloneForConversion() {
             var clone = new WordToPdfOptions {
                 CancellationToken = CancellationToken,
+                MaxImagesPerParagraph = MaxImagesPerParagraph,
                 PdfOptions = PdfOptions,
                 FontFamily = FontFamily,
                 ResourcePolicy = ResourcePolicy.Clone(),

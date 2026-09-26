@@ -7,6 +7,7 @@ public sealed partial class ProvenanceCoreContracts {
     [Theory]
     [InlineData(32773)]
     [InlineData(8)]
+    [InlineData(5)]
     public void TiffStrictRemovalRejectsMalformedSupportedCompressedPixelPayload(int compression) {
         byte[] malformedPayload = compression == 32773 ? new byte[] { 0xFF } : new byte[] { 0x00 };
         byte[] tiff = CreateCompressedTiff(CreateManifestStore(), compression, malformedPayload);
@@ -24,6 +25,21 @@ public sealed partial class ProvenanceCoreContracts {
             CreateManifestStore(),
             compression: 32773,
             pixelPayload: new byte[] { 2, 0, 0, 0 });
+
+        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tiff");
+
+        Assert.True(Assert.Single(result.Before.Evidence).IsStructurallyValid);
+        Assert.True(result.WasChanged);
+        Assert.Empty(result.After.Evidence);
+    }
+
+    [Fact]
+    public void TiffStrictRemovalAcceptsCompleteLzwPixelPayload() {
+        // Clear, three zero-valued samples, and end, encoded as MSB-first 9-bit codes.
+        byte[] tiff = CreateCompressedTiff(
+            CreateManifestStore(),
+            compression: 5,
+            pixelPayload: new byte[] { 0x80, 0, 0, 0, 0x08, 0x08 });
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(tiff, "fixture.tiff");
 

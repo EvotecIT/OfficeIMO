@@ -119,7 +119,8 @@ internal static class PdfImageExportEngine {
         // the shared validation step overwrite a stricter thumbnail scale.
         effective.TargetDpi = null;
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics =
-            page.GetRenderCapabilityDiagnostics(cancellationToken);
+            page.GetRenderCapabilityDiagnostics(options.MaxDiagnosticsPerPage,
+                options.MaxDiagnosticCharactersPerPage, cancellationToken);
         var diagnostics = new List<OfficeImageExportDiagnostic>(
             (initialDiagnostics?.Count ?? 0) + capabilityDiagnostics.Count);
         if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
@@ -260,11 +261,7 @@ internal static class PdfImageExportEngine {
                 diagnostic.Code,
                 diagnostic.Message,
                 diagnosticSource,
-                diagnostic.SupportLevel switch {
-                    PdfRenderSupportLevel.Simplified => OfficeConversionLossKind.Approximation,
-                    PdfRenderSupportLevel.Unsupported => OfficeConversionLossKind.Omission,
-                    _ => OfficeConversionLossKind.None
-                }));
+                diagnostic.LossKind));
         }
         return diagnostics;
     }
@@ -286,14 +283,30 @@ internal static class PdfImageExportEngine {
                 string.IsNullOrWhiteSpace(warning.Source) ? warning.Converter : warning.Source,
                 warning.LossKind));
         }
-        for (int index = 0; index < conversion.SourceConversionReports.Count; index++) {
-            if (conversion.SourceConversionReports[index].HasLoss) {
+        foreach (IOfficeConversionReport report in conversion.SourceConversionReports) {
+            bool hasTypedLoss = false;
+            foreach (OfficeConversionFidelityDiagnostic diagnostic in report.FidelityDiagnostics) {
+                hasTypedLoss |= diagnostic.LossKind != OfficeConversionLossKind.None;
                 diagnostics.Add(new OfficeImageExportDiagnostic(
-                    OfficeImageExportDiagnosticSeverity.Warning,
-                    "SourceConversionLoss",
-                    "An upstream conversion stage reported content loss. Inspect the source conversion report for details.",
-                    "source-stage:" + (index + 1),
-                    OfficeConversionLossKind.Approximation));
+                    diagnostic.LossKind == OfficeConversionLossKind.Failure
+                        ? OfficeImageExportDiagnosticSeverity.Error
+                        : diagnostic.LossKind == OfficeConversionLossKind.None
+                            ? OfficeImageExportDiagnosticSeverity.Info
+                            : OfficeImageExportDiagnosticSeverity.Warning,
+                    diagnostic.Code,
+                    diagnostic.Message,
+                    diagnostic.Location ?? diagnostic.Source,
+                    diagnostic.LossKind,
+                    diagnostic.Source,
+                    diagnostic.Location));
+            }
+            if (report.HasLoss && !hasTypedLoss) {
+                diagnostics.Add(new OfficeImageExportDiagnostic(
+                    OfficeImageExportDiagnosticSeverity.Error,
+                    "SourceConversionDiagnosticContractMismatch",
+                    "An upstream conversion stage reported aggregate loss without a typed fidelity diagnostic.",
+                    "source-conversion-report",
+                    OfficeConversionLossKind.Failure));
             }
         }
         return diagnostics.AsReadOnly();

@@ -36,30 +36,43 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
       </StackPanel>
-      <Button Classes="tool" Content="{loc:Loc Forms.PreviewAppearance}" Command="{Binding PreviewFormAppearanceCommand}" IsEnabled="{Binding CanPreviewFormAppearance}" />
-      <TextBlock Text="{Binding SelectedFormField.ValidationSummary}" IsVisible="{Binding SelectedFormField.HasValidationMessage}" TextWrapping="Wrap" />
+      <TextBlock Classes="error" Text="{Binding SelectedFormField.ValidationSummary}" IsVisible="{Binding SelectedFormField.HasValidationMessage}" />
       <StackPanel Spacing="6" IsVisible="{Binding SelectedFormField.HasDraftConflict}">
         <TextBlock Text="{loc:Loc Forms.DraftConflict}" TextWrapping="Wrap" />
-        <Button Content="{loc:Loc Forms.KeepDraft}" Command="{Binding SelectedFormField.KeepDraftCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Forms.KeepDraft}" Command="{Binding SelectedFormField.KeepDraftCommand}" />
       </StackPanel>
-      <Button Content="{loc:Loc Forms.ResetDraft}" Command="{Binding SelectedFormField.ResetDraftCommand}" IsVisible="{Binding SelectedFormField.HasDraft}" />
+      <Button Classes="tool" Content="{loc:Loc Forms.ResetDraft}" Command="{Binding SelectedFormField.ResetDraftCommand}" IsVisible="{Binding SelectedFormField.HasDraft}" />
       <TextBlock IsVisible="{Binding SelectedFormField.IsSignature}" Classes="muted"
                  Text="{loc:Loc DocumentWorkspace.ThisIsASignatureFieldUseTheSigningSectionIn}" TextWrapping="Wrap" />
       <TextBlock IsVisible="{Binding SelectedFormField.IsUnsupported}" Classes="muted"
                  Text="{loc:Loc DocumentWorkspace.ThisFieldIsNotDirectlyFillableFromThisInspector}" TextWrapping="Wrap" />
-      <Button Classes="primary" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillField}" Content="{loc:Loc DocumentWorkspace.FillField}" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
-      <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillAndFlatten}" Content="{loc:Loc DocumentWorkspace.FillAndFlatten}" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
-      <Button Classes="tool" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Content="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
+      <!-- One main action; flattening, previews and form data live in the menu beside it. -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="4">
+        <Button Classes="primary" HorizontalAlignment="Stretch" AutomationProperties.Name="{loc:Loc DocumentWorkspace.FillField}" Content="{loc:Loc DocumentWorkspace.FillField}" Command="{Binding FillFormFieldCommand}" IsEnabled="{Binding CanFillForms}" />
+        <Button Grid.Column="1" Classes="tool" Padding="8,0" AutomationProperties.Name="{loc:Loc Forms.MoreActions}" ToolTip.Tip="{loc:Loc Forms.MoreActions}">
+          <PathIcon Data="{StaticResource IconMore}" Width="14" Height="14" />
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="{loc:Loc DocumentWorkspace.FillAndFlatten}" Command="{Binding FillAndFlattenFormFieldCommand}" IsEnabled="{Binding CanFillAndFlattenForms}" />
+              <MenuItem Header="{loc:Loc DocumentWorkspace.FlattenSelectedField}" Command="{Binding FlattenSelectedFormFieldCommand}" IsEnabled="{Binding CanFlattenSelectedFormField}" />
+              <MenuItem Header="{loc:Loc Forms.PreviewAppearance}" Command="{Binding PreviewFormAppearanceCommand}" IsEnabled="{Binding CanPreviewFormAppearance}" />
+              <Separator />
+              <MenuItem Header="{loc:Loc Forms.ImportData}" Command="{Binding ImportFormDataCommand}" />
+              <MenuItem Header="{loc:Loc Forms.ExportData}" Command="{Binding ExportDocumentCommand}" CommandParameter="FormData" />
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+      </Grid>
     </StackPanel>
       <StackPanel Spacing="6" IsVisible="{Binding IsFormPreviewBusy}">
         <ProgressBar IsIndeterminate="True" />
-        <Button Content="{loc:Loc Forms.CancelPreview}" Command="{Binding ClearFormPreviewCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Forms.CancelPreview}" Command="{Binding ClearFormPreviewCommand}" />
       </StackPanel>
-      <TextBlock Text="{Binding FormPreviewError}" TextWrapping="Wrap" />
+      <TextBlock Classes="error" Text="{Binding FormPreviewError}" />
       <StackPanel Spacing="6" IsVisible="{Binding HasFormPreview}">
         <TextBlock Text="{Binding FormPreviewDescription}" TextWrapping="Wrap" Classes="muted" />
         <Image x:Name="FormAppearancePreview" Source="{Binding FormPreviewImage}" Stretch="Uniform" MaxHeight="360" />
-        <Button Content="{loc:Loc Forms.ClosePreview}" Command="{Binding ClearFormPreviewCommand}" />
+        <Button Classes="tool" Content="{loc:Loc Forms.ClosePreview}" Command="{Binding ClearFormPreviewCommand}" />
       </StackPanel>
     <Expander x:Name="DefinitionEditor" Header="{loc:Loc Forms.EditDefinition}" IsVisible="{Binding HasFormFields}" HorizontalAlignment="Stretch">
       <StackPanel Spacing="6">
@@ -112,7 +125,7 @@
     </Expander>
     <TextBlock Classes="muted" Text="{loc:Loc DocumentWorkspace.FlatteningIsExplicitAndMakesSupportedWidgetsPermanentPageContent}" TextWrapping="Wrap" />
     <TextBlock Text="{loc:Loc Forms.Unapplied}" IsVisible="{Binding HasFormDrafts}" TextWrapping="Wrap" />
-    <Button Content="{loc:Loc Forms.ApplyAll}" Command="{Binding ApplyFormDraftsCommand}" IsEnabled="{Binding CanApplyFormDrafts}" IsVisible="{Binding HasFormDrafts}" />
+    <Button Classes="tool" Content="{loc:Loc Forms.ApplyAll}" Command="{Binding ApplyFormDraftsCommand}" IsEnabled="{Binding CanApplyFormDrafts}" IsVisible="{Binding HasFormDrafts}" />
     <ItemsControl ItemsSource="{Binding UnassignedFormDrafts}">
       <ItemsControl.ItemTemplate>
         <DataTemplate x:DataType="editor:PdfFormFieldViewModel">
@@ -120,7 +133,7 @@
             <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" />
             <TextBlock Text="{loc:Loc Forms.UnassignedDraft}" TextWrapping="Wrap" />
             <TextBox Text="{Binding DraftText}" IsReadOnly="True" PasswordChar="{Binding DraftPasswordChar}" TextWrapping="Wrap" />
-            <Button Content="{loc:Loc Forms.DiscardDraft}" Command="{Binding $parent[UserControl].((shell:MainWindowViewModel)DataContext).DiscardUnassignedFormDraftCommand}" CommandParameter="{Binding}" />
+            <Button Classes="tool" Content="{loc:Loc Forms.DiscardDraft}" Command="{Binding $parent[UserControl].((shell:MainWindowViewModel)DataContext).DiscardUnassignedFormDraftCommand}" CommandParameter="{Binding}" />
           </StackPanel>
         </DataTemplate>
       </ItemsControl.ItemTemplate>

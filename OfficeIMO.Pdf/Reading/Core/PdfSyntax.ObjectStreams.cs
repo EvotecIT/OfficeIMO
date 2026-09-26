@@ -8,12 +8,30 @@ internal static partial class PdfSyntax {
         HashSet<int>? allowedObjectStreamNumbers,
         PdfReadLimits limits,
         PdfDecodedStreamBudget decodedStreamBudget,
-        Action<int> reportUnreadable) {
+        Action<int> reportUnreadable,
+        System.Threading.CancellationToken cancellationToken) {
         // Snapshot keys to avoid modifying during enumeration
-        var keys = new List<int>(map.Keys);
-        keys.Sort((left, right) => GetSourceOffset(left).CompareTo(GetSourceOffset(right)));
-        var effectiveOffsets = new Dictionary<int, int>(parsedOffsets);
+        var keys = new List<int>(map.Count);
+        foreach (int key in map.Keys) {
+            cancellationToken.ThrowIfCancellationRequested();
+            keys.Add(key);
+        }
+        try {
+            keys.Sort((left, right) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                return GetSourceOffset(left).CompareTo(GetSourceOffset(right));
+            });
+        } catch (InvalidOperationException error) when (error.InnerException is OperationCanceledException) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        var effectiveOffsets = new Dictionary<int, int>(parsedOffsets.Count);
+        foreach (KeyValuePair<int, int> offset in parsedOffsets) {
+            cancellationToken.ThrowIfCancellationRequested();
+            effectiveOffsets[offset.Key] = offset.Value;
+        }
         foreach (var id in keys) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (allowedObjectStreamNumbers is not null &&
                 !allowedObjectStreamNumbers.Contains(id)) {
                 continue;
@@ -26,18 +44,18 @@ internal static partial class PdfSyntax {
             int objectStreamOffset = GetSourceOffset(id);
 
             // Decode object stream bytes (flate only for now)
-            var data = decodedStreamBudget.Decode(s, map);
+            var data = decodedStreamBudget.Decode(s, map, limits.MaxDecodedStreamBytes, cancellationToken);
             if (!TryReadObjectStreamLayout(s.Dictionary, data.Length, limits, out int n, out int first)) {
                 reportUnreadable(id);
                 continue;
             }
             // Header: pairs of objectNumber and offset (ASCII)
-            var headerBytes = new byte[first];
-            Buffer.BlockCopy(data, 0, headerBytes, 0, first);
-            string header = PdfEncoding.Latin1GetString(headerBytes);
-            var pairs = ParsePairs(header, n, out bool completeHeader);
+            byte[] headerBytes = CopyBytes(data, 0, first, cancellationToken);
+            string header = PdfEncoding.Latin1GetStringCancellable(headerBytes, cancellationToken);
+            var pairs = ParsePairs(header, n, out bool completeHeader, cancellationToken);
             if (!completeHeader) { reportUnreadable(id); continue; }
             for (int i = 0; i < n; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 int objNum = pairs[i].Obj;
                 int off = pairs[i].Off;
                 if (map.ContainsKey(objNum) &&
@@ -53,13 +71,13 @@ internal static partial class PdfSyntax {
                     continue;
                 }
                 int len = end - start;
-                var sliceBytes = new byte[len];
-                Buffer.BlockCopy(data, start, sliceBytes, 0, len);
-                var slice = PdfEncoding.Latin1GetString(sliceBytes);
+                byte[] sliceBytes = CopyBytes(data, start, len, cancellationToken);
+                var slice = PdfEncoding.Latin1GetStringCancellable(sliceBytes, cancellationToken);
                 var parsed = ParseTopLevelObject(
                     slice,
                     limits,
-                    trackEncodedStringSourceSpans: false);
+                    trackEncodedStringSourceSpans: false,
+                    cancellationToken: cancellationToken);
                 if (parsed is not null) {
                     if (parsed.HasIncompleteSyntax) reportUnreadable(objNum);
                     map[objNum] = new PdfIndirectObject(objNum, 0, parsed);
@@ -107,11 +125,13 @@ internal static partial class PdfSyntax {
         return true;
     }
 
-    private static List<(int Obj, int Off)> ParsePairs(string header, int n, out bool complete) {
+    private static List<(int Obj, int Off)> ParsePairs(string header, int n, out bool complete,
+        System.Threading.CancellationToken cancellationToken) {
         var list = new List<(int, int)>(n);
         int i = 0; int count = 0;
         var identifiers = new HashSet<int>();
         while (i < header.Length && count < n) {
+            cancellationToken.ThrowIfCancellationRequested();
             SkipWs();
             if (!ReadInt(out int obj)) break;
             SkipWs();
@@ -125,11 +145,18 @@ internal static partial class PdfSyntax {
         complete = list.Count == n && i == header.Length;
         return list;
 
-        void SkipWs() { i = SkipWhitespaceAndComments(header, i, header.Length); }
+        void SkipWs() { i = SkipWhitespaceAndComments(header, i, header.Length, cancellationToken); }
         bool ReadInt(out int val) {
             int start = i;
             if (i < header.Length && (header[i] == '-' || header[i] == '+')) i++;
-            while (i < header.Length && header[i] >= '0' && header[i] <= '9') i++;
+            while (i < header.Length && header[i] >= '0' && header[i] <= '9') {
+                if ((i & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                i++;
+            }
+            if (i - start > MaxNumericTokenCharacters) {
+                val = default;
+                return false;
+            }
 #if NET6_0_OR_GREATER
             return int.TryParse(header.AsSpan(start, i - start), System.Globalization.NumberStyles.AllowLeadingSign,
 #else

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace OfficeIMO.Drawing;
 
@@ -34,7 +35,9 @@ public enum OfficeImageMetadataPolicy {
 }
 
 /// <summary>Typed evidence describing metadata retained or lost by optimization.</summary>
-public sealed class OfficeImageMetadataReport {
+public sealed class OfficeImageMetadataReport : IOfficeConversionReport {
+    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+
     internal OfficeImageMetadataReport(
         OfficeImageMetadataPolicy policy,
         OfficeImageMetadataKinds source,
@@ -48,6 +51,16 @@ public sealed class OfficeImageMetadataReport {
         Preserved = preserved;
         Normalized = normalized;
         PolicyApplied = policyApplied;
+        var fidelityDiagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        foreach (OfficeImageMetadataKinds kind in EnumerateKinds(Lost)) {
+            fidelityDiagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                "IMAGE_METADATA_" + kind.ToString().ToUpperInvariant() + "_LOST",
+                $"The requested {kind} image metadata could not be retained.",
+                OfficeConversionLossKind.Omission,
+                "OfficeIMO.Drawing.ImageMetadata",
+                kind.ToString()));
+        }
+        _fidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
 
     /// <summary>Requested metadata policy.</summary>
@@ -70,4 +83,26 @@ public sealed class OfficeImageMetadataReport {
         : OfficeImageMetadataKinds.None;
     /// <summary>Whether the rewrite lost any selected metadata category.</summary>
     public bool HasLoss => Lost != OfficeImageMetadataKinds.None;
+
+    /// <inheritdoc />
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+
+    /// <inheritdoc />
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException(
+            "Image optimization lost requested metadata. Inspect FidelityDiagnostics for the omitted categories.");
+    }
+
+    private static IEnumerable<OfficeImageMetadataKinds> EnumerateKinds(OfficeImageMetadataKinds kinds) {
+        foreach (OfficeImageMetadataKinds kind in new[] {
+            OfficeImageMetadataKinds.Exif,
+            OfficeImageMetadataKinds.Xmp,
+            OfficeImageMetadataKinds.Icc,
+            OfficeImageMetadataKinds.Orientation,
+            OfficeImageMetadataKinds.Comments,
+            OfficeImageMetadataKinds.Resolution
+        }) {
+            if ((kinds & kind) != 0) yield return kind;
+        }
+    }
 }

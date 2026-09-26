@@ -1,9 +1,14 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
+    private static readonly ConditionalWeakTable<string, CssStructuralIndex> StructuralIndexes = new();
+    private static readonly ConditionalWeakTable<string, CssStringIndex> StringIndexes = new();
+    private static readonly ConditionalWeakTable<string, CssAtRuleIndex> AtRuleIndexes = new();
+
     private static int GetDeclarationStart(string css, int index) {
         FindPreviousCssStructuralTokens(css, index, out int blockStart, out _, out int previousStatementEnd);
         return Math.Max(0, Math.Max(blockStart, previousStatementEnd) + 1);
@@ -15,31 +20,99 @@ public static partial class HtmlResourcePipeline {
         out int blockStart,
         out int blockEnd,
         out int statementEnd) {
-        blockStart = -1;
-        blockEnd = -1;
-        statementEnd = -1;
+        CssStructuralIndex index = StructuralIndexes.GetValue(css, BuildStructuralIndex);
+        int limit = Math.Min(Math.Max(beforeIndex, 0), css.Length);
+        blockStart = index.LastBlockStartBefore(limit);
+        blockEnd = index.LastBlockEndBefore(limit);
+        statementEnd = index.LastStatementEndBefore(limit);
+    }
+
+    private static CssStructuralIndex BuildStructuralIndex(string css) {
+        var blockStarts = new List<int>();
+        var blockEnds = new List<int>();
+        var statementEnds = new List<int>();
         char quote = '\0';
         int parenthesesDepth = 0;
-        int limit = Math.Min(Math.Max(beforeIndex, 0), css.Length);
-        for (int index = 0; index < limit; index++) {
+        for (int index = 0; index < css.Length; index++) {
             char current = css[index];
             if (quote != '\0') {
                 if (current == quote && !IsEscaped(css, index)) quote = '\0';
                 continue;
             }
             if (current is '\'' or '"') { quote = current; continue; }
-            if (current == '/' && index + 1 < limit && css[index + 1] == '*') {
+            if (current == '/' && index + 1 < css.Length && css[index + 1] == '*') {
                 index += 2;
-                while (index + 1 < limit && !(css[index] == '*' && css[index + 1] == '/')) index++;
-                if (index + 1 < limit) index++;
+                while (index + 1 < css.Length && !(css[index] == '*' && css[index + 1] == '/')) index++;
+                if (index + 1 < css.Length) index++;
                 continue;
             }
             if (current == '(') { parenthesesDepth++; continue; }
             if (current == ')' && parenthesesDepth > 0) { parenthesesDepth--; continue; }
             if (parenthesesDepth != 0) continue;
-            if (current == '{') blockStart = index;
-            else if (current == '}') blockEnd = index;
-            else if (current == ';') statementEnd = index;
+            if (current == '{') blockStarts.Add(index);
+            else if (current == '}') blockEnds.Add(index);
+            else if (current == ';') statementEnds.Add(index);
+        }
+        return new CssStructuralIndex(blockStarts.ToArray(), blockEnds.ToArray(), statementEnds.ToArray());
+    }
+
+    private sealed class CssStructuralIndex {
+        private readonly int[] _blockStarts;
+        private readonly int[] _blockEnds;
+        private readonly int[] _statementEnds;
+        private readonly Dictionary<int, string> _selectors = new();
+
+        internal CssStructuralIndex(int[] blockStarts, int[] blockEnds, int[] statementEnds) {
+            _blockStarts = blockStarts;
+            _blockEnds = blockEnds;
+            _statementEnds = statementEnds;
+        }
+
+        internal int LastBlockStartBefore(int limit) => LastBefore(_blockStarts, limit);
+        internal int LastBlockEndBefore(int limit) => LastBefore(_blockEnds, limit);
+        internal int LastStatementEndBefore(int limit) => LastBefore(_statementEnds, limit);
+        internal int NextBlockStartAtOrAfter(int index) => NextAtOrAfter(_blockStarts, index);
+        internal int NextBlockEndAtOrAfter(int index) => NextAtOrAfter(_blockEnds, index);
+        internal int NextStatementEndAtOrAfter(int index) => NextAtOrAfter(_statementEnds, index);
+
+        internal string GetSelector(string css, int blockStart) {
+            lock (_selectors) {
+                if (_selectors.TryGetValue(blockStart, out string? selector)) return selector;
+                int selectorStart = Math.Max(0,
+                    Math.Max(LastBlockEndBefore(blockStart), LastStatementEndBefore(blockStart)) + 1);
+                selector = css.Substring(selectorStart, blockStart - selectorStart)
+                    .Replace(CssCommentMask.ToString(), string.Empty)
+                    .Trim();
+                int groupingStart = selector.LastIndexOf('{');
+                if (groupingStart >= 0) selector = selector.Substring(groupingStart + 1).Trim();
+                _selectors.Add(blockStart, selector);
+                return selector;
+            }
+        }
+
+        private static int LastBefore(int[] positions, int limit) {
+            int low = 0;
+            int high = positions.Length - 1;
+            int found = -1;
+            while (low <= high) {
+                int middle = low + (high - low) / 2;
+                if (positions[middle] < limit) {
+                    found = positions[middle];
+                    low = middle + 1;
+                } else high = middle - 1;
+            }
+            return found;
+        }
+
+        private static int NextAtOrAfter(int[] positions, int index) {
+            int low = 0;
+            int high = positions.Length;
+            while (low < high) {
+                int middle = low + (high - low) / 2;
+                if (positions[middle] < index) low = middle + 1;
+                else high = middle;
+            }
+            return low < positions.Length ? positions[low] : -1;
         }
     }
 
@@ -204,7 +277,12 @@ public static partial class HtmlResourcePipeline {
         for (int index = start; index < end; index++) {
             char value = css[index];
             if (value == '\\') {
-                if (++index >= end || css[index] is '\r' or '\n' or '\f') return false;
+                if (++index >= end) return false;
+                if (css[index] is '\r' or '\n' or '\f') {
+                    if (!quoted) return false;
+                    if (css[index] == '\r' && index + 1 < end && css[index + 1] == '\n') index++;
+                    continue;
+                }
                 if (IsCssHexDigit(css[index])) {
                     int digits = 1;
                     while (digits < 6 && index + 1 < end && IsCssHexDigit(css[index + 1])) {
@@ -502,23 +580,53 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool IsInsideCssString(string css, int index) {
+        return StringIndexes.GetValue(css, BuildStringIndex).Contains(index);
+    }
+
+    private static CssStringIndex BuildStringIndex(string css) {
+        var opens = new List<int>();
+        var closes = new List<int>();
         char quote = '\0';
-        for (int i = 0; i < index && i < css.Length; i++) {
+        for (int i = 0; i < css.Length; i++) {
             char current = css[i];
             if (quote != '\0') {
                 if (current == quote && !IsEscaped(css, i)) {
+                    closes.Add(i);
                     quote = '\0';
                 }
-
                 continue;
             }
-
             if (current == '"' || current == '\'') {
                 quote = current;
+                opens.Add(i);
             }
         }
+        if (quote != '\0') closes.Add(css.Length);
+        return new CssStringIndex(opens.ToArray(), closes.ToArray());
+    }
 
-        return quote != '\0';
+    private sealed class CssStringIndex {
+        private readonly int[] _opens;
+        private readonly int[] _closes;
+
+        internal CssStringIndex(int[] opens, int[] closes) {
+            _opens = opens;
+            _closes = closes;
+        }
+
+        internal bool Contains(int index) {
+            int low = 0;
+            int high = _opens.Length - 1;
+            int previous = -1;
+            while (low <= high) {
+                int middle = low + (high - low) / 2;
+                if (_opens[middle] < index) {
+                    previous = middle;
+                    low = middle + 1;
+                } else high = middle - 1;
+            }
+            return previous >= 0 && index <= _closes[previous];
+        }
     }
 
     private static string StripCssCommentsOutsideStrings(string css) {
@@ -585,33 +693,69 @@ public static partial class HtmlResourcePipeline {
     }
 
     private static bool IsImportAtRuleUrl(string css, int index) {
-        int previousSemicolon = css.LastIndexOf(';', Math.Max(0, index - 1));
-        int previousBlockEnd = css.LastIndexOf('}', Math.Max(0, index - 1));
-        int previousBoundary = Math.Max(previousSemicolon, previousBlockEnd);
-        string statement = css.Substring(Math.Max(0, previousBoundary + 1), index - Math.Max(0, previousBoundary + 1));
-        return TryFindNextAtRule(statement, 0, "import", out _, out _);
+        CssStructuralIndex structure = StructuralIndexes.GetValue(css, BuildStructuralIndex);
+        int previousBoundary = Math.Max(structure.LastStatementEndBefore(index), structure.LastBlockEndBefore(index));
+        return AtRuleIndexes.GetValue(css, BuildAtRuleIndex).HasImportBetween(previousBoundary, index);
     }
 
     private static bool IsAtRulePreludeUrl(string css, int index) {
-        int previousOpen = css.LastIndexOf('{', Math.Max(0, index - 1));
-        int previousClose = css.LastIndexOf('}', Math.Max(0, index - 1));
-        int previousSemicolon = css.LastIndexOf(';', Math.Max(0, index - 1));
-        int previousBoundary = Math.Max(previousOpen, Math.Max(previousClose, previousSemicolon));
-        int segmentStart = Math.Max(0, previousBoundary + 1);
-        string prefix = css.Substring(segmentStart, index - segmentStart);
-        if (prefix.LastIndexOf('@') < 0) {
-            return false;
-        }
-
-        int nextOpen = css.IndexOf('{', index);
-        if (nextOpen < 0) {
-            return false;
-        }
-
-        int nextSemicolon = css.IndexOf(';', index);
-        int nextClose = css.IndexOf('}', index);
+        CssStructuralIndex structure = StructuralIndexes.GetValue(css, BuildStructuralIndex);
+        int previousBoundary = Math.Max(structure.LastBlockStartBefore(index),
+            Math.Max(structure.LastBlockEndBefore(index), structure.LastStatementEndBefore(index)));
+        if (!AtRuleIndexes.GetValue(css, BuildAtRuleIndex).HasAtRuleBetween(previousBoundary, index)) return false;
+        int nextOpen = structure.NextBlockStartAtOrAfter(index);
+        if (nextOpen < 0) return false;
+        int nextSemicolon = structure.NextStatementEndAtOrAfter(index);
+        int nextClose = structure.NextBlockEndAtOrAfter(index);
         return (nextSemicolon < 0 || nextOpen < nextSemicolon)
             && (nextClose < 0 || nextOpen < nextClose);
+    }
+
+    private static CssAtRuleIndex BuildAtRuleIndex(string css) {
+        var atRules = new List<int>();
+        var imports = new List<int>();
+        var fontFaces = new List<int>();
+        for (int index = css.IndexOf('@'); index >= 0; index = css.IndexOf('@', index + 1)) {
+            if (IsInsideCssString(css, index)) continue;
+            atRules.Add(index);
+            if (!TryReadAtRuleName(css, index, out string name, out _)) continue;
+            if (name.Equals("import", StringComparison.OrdinalIgnoreCase)) imports.Add(index);
+            else if (name.Equals("font-face", StringComparison.OrdinalIgnoreCase)) fontFaces.Add(index);
+        }
+        return new CssAtRuleIndex(atRules.ToArray(), imports.ToArray(), fontFaces.ToArray());
+    }
+
+    private sealed class CssAtRuleIndex {
+        private readonly int[] _atRules;
+        private readonly int[] _imports;
+        private readonly int[] _fontFaces;
+
+        internal CssAtRuleIndex(int[] atRules, int[] imports, int[] fontFaces) {
+            _atRules = atRules;
+            _imports = imports;
+            _fontFaces = fontFaces;
+        }
+
+        internal bool HasAtRuleBetween(int previousBoundary, int index) => HasBetween(_atRules, previousBoundary, index);
+        internal bool HasImportBetween(int previousBoundary, int index) => HasBetween(_imports, previousBoundary, index);
+        internal int LastFontFaceBefore(int index) => LastBefore(_fontFaces, index);
+
+        private static bool HasBetween(int[] positions, int previousBoundary, int index) =>
+            LastBefore(positions, index) > previousBoundary;
+
+        private static int LastBefore(int[] positions, int index) {
+            int low = 0;
+            int high = positions.Length - 1;
+            int found = -1;
+            while (low <= high) {
+                int middle = low + (high - low) / 2;
+                if (positions[middle] < index) {
+                    found = positions[middle];
+                    low = middle + 1;
+                } else high = middle - 1;
+            }
+            return found;
+        }
     }
 
     private static bool HasDisallowedRuleBeforeImport(string css, int index) {
@@ -720,10 +864,10 @@ public static partial class HtmlResourcePipeline {
 
     private static HtmlResourceKind ClassifyCssUrl(string css, int index) {
         string propertyName = GetCssDeclarationPropertyName(css, index);
-        int blockStart = css.LastIndexOf('{', Math.Max(0, index - 1));
-        string blockPrefix = blockStart >= 0 ? css.Substring(0, blockStart).ToLowerInvariant() : string.Empty;
-        int fontFaceStart = blockPrefix.LastIndexOf("@font-face", StringComparison.Ordinal);
-        int previousBlockEnd = blockPrefix.LastIndexOf('}');
+        CssStructuralIndex structure = StructuralIndexes.GetValue(css, BuildStructuralIndex);
+        int blockStart = structure.LastBlockStartBefore(index);
+        int fontFaceStart = AtRuleIndexes.GetValue(css, BuildAtRuleIndex).LastFontFaceBefore(blockStart);
+        int previousBlockEnd = structure.LastBlockEndBefore(blockStart);
         if (fontFaceStart >= 0 && fontFaceStart > previousBlockEnd) {
             return HtmlResourceKind.Font;
         }

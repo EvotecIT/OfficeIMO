@@ -8,7 +8,7 @@ namespace OfficeIMO.Visio {
     /// Represents a shape on a Visio page.
     /// </summary>
     public class VisioShape {
-        internal sealed class PreservedShapeChildEntry {
+        internal readonly struct PreservedShapeChildEntry {
             public PreservedShapeChildEntry(XElement rawElement) {
                 RawElement = new XElement(rawElement);
             }
@@ -380,6 +380,22 @@ namespace OfficeIMO.Visio {
             }
 
             return AddHyperlink(address.ToString(), description, subAddress);
+        }
+
+        /// <summary>
+        /// Adds an internal hyperlink to another page in the same Visio document.
+        /// </summary>
+        /// <param name="pageName">Target page name.</param>
+        /// <param name="description">Optional display description.</param>
+        /// <returns>The created hyperlink row.</returns>
+        public VisioHyperlink AddPageHyperlink(string pageName, string? description = null) {
+            if (string.IsNullOrWhiteSpace(pageName)) {
+                throw new ArgumentException("Target page name cannot be empty.", nameof(pageName));
+            }
+
+            VisioHyperlink hyperlink = new(null, description, pageName);
+            Hyperlinks.Add(hyperlink);
+            return hyperlink;
         }
 
         /// <summary>

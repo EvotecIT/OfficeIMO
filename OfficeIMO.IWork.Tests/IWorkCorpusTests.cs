@@ -51,6 +51,9 @@ public sealed class IWorkCorpusTests {
         Assert.True(report.TotalRecordCount >= report.UnsupportedRecords.Count);
         Assert.NotEmpty(report.UnsupportedRecords);
         Assert.True(report.HasLoss);
+        Assert.Contains(report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_UNPROJECTED_RECORDS"
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
     }
 
     [Fact]

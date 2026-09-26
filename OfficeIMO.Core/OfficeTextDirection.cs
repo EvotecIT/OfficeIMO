@@ -9,5 +9,8 @@ public enum OfficeTextDirection {
     LeftToRight = 1,
 
     /// <summary>The first strong character establishes a right-to-left base direction.</summary>
-    RightToLeft = 2
+    RightToLeft = 2,
+
+    /// <summary>Glyphs advance from the top of the line toward the bottom.</summary>
+    TopToBottom = 3
 }

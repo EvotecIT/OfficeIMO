@@ -86,6 +86,7 @@ public sealed class OfficeRasterDecodeOptions {
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
     internal long RetainedManagedBytes { get; set; }
+    internal long MaximumInspectionWorkPixels { get; set; } = OfficeRasterGuards.MaximumPixels;
 
     internal OfficeRasterDecodeOptions WithAdditionalRetainedManagedBytes(long bytes) {
         if (bytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(bytes));
@@ -94,6 +95,7 @@ public sealed class OfficeRasterDecodeOptions {
             FrameLossPolicy = FrameLossPolicy,
             MaximumEncodedBytes = MaximumEncodedBytes,
             MaximumDecodedPixels = MaximumDecodedPixels,
+            MaximumInspectionWorkPixels = MaximumInspectionWorkPixels,
             CancellationToken = CancellationToken,
             RetainedManagedBytes = checked(RetainedManagedBytes + bytes)
         };
@@ -105,6 +107,9 @@ public sealed class OfficeRasterDecodeOptions {
             throw new System.ArgumentOutOfRangeException(nameof(FrameLossPolicy));
         }
         if (RetainedManagedBytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(RetainedManagedBytes));
+        if (MaximumInspectionWorkPixels < 1L || MaximumInspectionWorkPixels > OfficeRasterGuards.MaximumPixels) {
+            throw new System.ArgumentOutOfRangeException(nameof(MaximumInspectionWorkPixels));
+        }
     }
 }
 

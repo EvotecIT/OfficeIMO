@@ -60,7 +60,8 @@ public static class OneNoteNotebookReader {
                     Code = "ONENOTE_TOC_PATH",
                     Message = "A TOC entry contains an unsafe child path: " + entry.Name,
                     Severity = OneNoteDiagnosticSeverity.Warning,
-                    SourcePath = sourceName
+                    SourcePath = sourceName,
+                    LossKind = global::OfficeIMO.OfficeConversionLossKind.Omission
                 });
                 continue;
             }
@@ -87,7 +88,8 @@ public static class OneNoteNotebookReader {
                 Code = "ONENOTE_TOC_STREAM_METADATA_ONLY",
                 Message = "A standalone .onetoc2 stream exposes hierarchy metadata only; use a path or .onepkg to load section content.",
                 Severity = OneNoteDiagnosticSeverity.Warning,
-                SourcePath = sourceName
+                SourcePath = sourceName,
+                LossKind = global::OfficeIMO.OfficeConversionLossKind.Omission
             });
         }
         return notebook;
@@ -152,7 +154,8 @@ public static class OneNoteNotebookReader {
                     Code = "ONENOTE_TOC_PATH",
                     Message = "A TOC entry contains an unsafe child path: " + entry.Name,
                     Severity = OneNoteDiagnosticSeverity.Warning,
-                    SourcePath = fullPath
+                    SourcePath = fullPath,
+                    LossKind = global::OfficeIMO.OfficeConversionLossKind.Omission
                 });
                 continue;
             }
@@ -181,7 +184,8 @@ public static class OneNoteNotebookReader {
                     Code = "ONENOTE_TOC_GROUP_MISSING",
                     Message = "A section group has no .onetoc2 file: " + childPath,
                     Severity = OneNoteDiagnosticSeverity.Warning,
-                    SourcePath = childPath
+                    SourcePath = childPath,
+                    LossKind = global::OfficeIMO.OfficeConversionLossKind.Omission
                 });
                 continue;
             }
@@ -200,7 +204,8 @@ public static class OneNoteNotebookReader {
                     Code = exception is OneNoteFormatException format ? format.Code : "ONENOTE_SECTION_READ",
                     Message = "A notebook section could not be read: " + exception.Message,
                     Severity = OneNoteDiagnosticSeverity.Warning,
-                    SourcePath = path
+                    SourcePath = path,
+                    LossKind = global::OfficeIMO.OfficeConversionLossKind.Omission
                 });
             }
         } else {
@@ -210,7 +215,8 @@ public static class OneNoteNotebookReader {
                     Code = "ONENOTE_TOC_SECTION_MISSING",
                     Message = "A section referenced by the notebook TOC does not exist: " + path,
                     Severity = OneNoteDiagnosticSeverity.Warning,
-                    SourcePath = path
+                    SourcePath = path,
+                    LossKind = global::OfficeIMO.OfficeConversionLossKind.Omission
                 });
             }
         }

@@ -9,6 +9,27 @@ namespace OfficeIMO.Invoicing.Pdf.Tests;
 
 public class PdfInvoiceDocumentTests {
     [Fact]
+    public void InvoicePdfRenderingRejectsOversizedVisibleLineAndObservesCancellation() {
+        Invoice invoice = InvoiceFixture.Create();
+        var layout = new InvoicePdfLayoutOptions { MaxLineTextCharacters = 5 };
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract(), layout);
+
+        Assert.Throws<InvalidDataException>(() => snapshot.ToPdfBytes(Options()));
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        cancellation.Cancel();
+        Assert.Throws<OperationCanceledException>(() => snapshot.ToPresentationPdfBytes(
+            Options(), cancellation.Token));
+    }
+
+    [Fact]
+    public void InvoicePdfRenderingEnforcesOutputByteLimit() {
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(InvoiceFixture.Create(), Contract(),
+            new InvoicePdfLayoutOptions { MaxOutputBytes = 128 });
+
+        Assert.Throws<InvalidDataException>(() => snapshot.ToPdfBytes(Options()));
+    }
+
+    [Fact]
     public void PresentationPdfKeepsVisibleInvoiceWithoutElectronicAttachment() {
         Invoice invoice = InvoiceFixture.Create();
         PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());

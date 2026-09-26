@@ -124,7 +124,8 @@ internal static partial class PdfPageImageRenderer {
         IReadOnlyList<PdfRenderCapabilityDiagnostic> capabilityDiagnostics = Array.Empty<PdfRenderCapabilityDiagnostic>();
         try {
             cancellationToken.ThrowIfCancellationRequested();
-            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(cancellationToken);
+            capabilityDiagnostics = document.Pages[pageNumber - 1].GetRenderCapabilityDiagnostics(
+                options.MaxDiagnosticsPerPage, options.MaxDiagnosticCharactersPerPage, cancellationToken);
             void ConfigureDrawing(OfficeDrawing scene) {
                 scene.Fonts.AddRangePreservingExisting(options.Fonts);
                 scene.TextShapingProvider = options.TextShapingProvider;
@@ -173,12 +174,24 @@ internal static partial class PdfPageImageRenderer {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.RenderBytes, options.MaxOutputBytesPerPage, bytes.LongLength);
             }
             timer.Stop();
-            return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed, capabilityDiagnostics);
+            return new PdfPageRenderResult(pageNumber, options.Format, bytes, width, height, timer.Elapsed,
+                capabilityDiagnostics, options.MaxDiagnosticCharactersPerPage);
         } catch (OperationCanceledException) {
             throw;
         } catch (Exception ex) when (options.ContinueOnError && ex is not OutOfMemoryException && ex is not StackOverflowException) {
             timer.Stop();
-            return new PdfPageRenderResult(pageNumber, options.Format, null, 0, 0, timer.Elapsed, capabilityDiagnostics, new[] { ex.GetType().Name + ": " + ex.Message });
+            string prefix = ex.GetType().Name + ": ";
+            string message = ex.Message;
+            int length = (int)Math.Min(options.MaxDiagnosticCharactersPerPage,
+                (long)prefix.Length + message.Length);
+            var characters = new char[length];
+            int prefixLength = Math.Min(prefix.Length, length);
+            prefix.CopyTo(0, characters, 0, prefixLength);
+            if (length > prefixLength)
+                message.CopyTo(0, characters, prefixLength, length - prefixLength);
+            string error = new string(characters);
+            return new PdfPageRenderResult(pageNumber, options.Format, null, 0, 0, timer.Elapsed,
+                capabilityDiagnostics, options.MaxDiagnosticCharactersPerPage, new[] { error });
         }
     }
 }

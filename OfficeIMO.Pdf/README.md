@@ -56,6 +56,30 @@ For incremental authoring, use `var document = PdfDocument.Create(options)` and
 add blocks through `document.Content`. The same builder supports both ordinary
 statements and fluent chains; callbacks remain useful for grouping and page setup.
 
+Image-file pages and image stamps accept at most 128 MiB of encoded data per
+image by default. Increase the limit for a trusted source when needed:
+
+```csharp
+var images = PdfDocument.CreateFromImages(
+    new[] { "scan-1.png", "scan-2.png" },
+    new PdfImageDocumentOptions { MaximumEncodedImageBytes = 256L * 1024 * 1024 });
+
+using var imageStream = System.IO.File.OpenRead("stamp.png");
+var stamped = PdfDocument.Load("input.pdf").Stamp.Image(
+    imageStream,
+    new PdfImageStampOptions { MaximumEncodedImageBytes = 256L * 1024 * 1024 });
+```
+
+`PdfImageDocumentSource.FromFile(path, maximumEncodedImageBytes)` applies the
+file-read budget when creating a source directly. If that source is passed to
+`CreateFromImages(IEnumerable<PdfImageDocumentSource>, options)`, set
+`PdfImageDocumentOptions.MaximumEncodedImageBytes` to the intended limit too;
+document creation checks every source independently. For edits to existing PDF
+images, set `PdfImageEditOptions.MaximumEncodedImageBytes` when adding, replacing,
+moving, or transforming a larger trusted image. Stamp streams are read from
+their current position. The byte budget applies before image decoding; decoded
+image and PDF output limits remain separate.
+
 ```csharp
 PdfDocument.Create(document => document
     .Settings(options => {
@@ -107,9 +131,19 @@ best-effort pagination.
 
 Add `using OfficeIMO.Drawing;` when applying an `OfficeRenderingProfile`.
 `Managed` selects the dependency-light shaping provider for its documented
-core-Arabic/TrueType subset. Supply a profile containing your embedded font family,
+Arabic-script/TrueType subset (core and extended Persian/Urdu letters). Supply a profile containing your embedded font family,
 fallbacks, language, and shaping provider when the document contract requires
 broader scripts or reproducible font selection.
+
+`OfficeDrawing.AddVerticalText(...)` draws native positioned glyphs in PDF when
+the selected shaping provider supplies vertical advances and complete logical
+text coverage, the chosen font is embedded, and an `/ActualText` wrapper owns
+extraction. The writer preserves shaped glyph substitutions and X/Y offsets,
+marks the original text for extraction, and clips paint to the drawing text
+box. Without that font/provider contract it retains searchable stacked text and
+reports `vertical-text-stacked-fallback`; `PdfConversionReport.RequireNoLoss()`
+rejects that approximation. The [vertical PDF reference gate](../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Vertical/SOURCE.md)
+records the tested CJK scope and independent render/extraction checks.
 
 For a complete generated sample, see
 [`Pdf.AuthoringModel.cs`](../OfficeIMO.Examples/Pdf/Pdf.AuthoringModel.cs). The
@@ -140,7 +174,7 @@ content must fit a complete frame, including padding. Otherwise allow splitting.
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, reusable typed and page-aware components, tested report/invoice/label-sheet/ticket recipes, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives. Raster inputs accepted by `OfficeIMO.Drawing` normalize once through the shared image owner before PDF embedding.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven core-Arabic/TrueType subset. The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. `UseManagedTextShaping()` selects Drawing's dependency-light positioned-glyph provider for its proven Arabic-script/TrueType subset (core and extended Persian/Urdu letters). The shared `IOfficeTextShapingProvider` contract remains the extension point for broader scripts and shaping engines.
 - Projects authored annotation appearance streams into page images. When a supported free-text, text-markup, shape, line, ink, path, stamp, or caret annotation has no usable normal appearance, the renderer reuses the bounded annotation synthesizer and reports `render.annotation.appearance-synthesized` as an approximation.
 - Shares managed CMYK, Lab, XYZ, calibrated-color conversion, bounded sampled, exponential, stitching, and Type 4 calculator color functions, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`. Catalog destination output profiles with supported RGB matrix/TRC or ICC mBA transforms soft-proof vector, text, form, pattern, and image colors through the same rendering-intent pipeline. ICC LUT-composed and output-profile-composed shadings remain fail-closed unless their final interpolation can be certified. Pages with explicit transparency retain authored colors and report `render.colorspace.icc-output-intent-transparency-simplified` until output conversion can run after composition. Color-managed DCT/JPEG images use the ICC, `/Decode`, Indexed-palette, and transparency pipeline, while simple device-color JPEGs without required color management remain lossless pass-through payloads.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. `PdfSaveResult.Serialization` records limits, peak retained bytes, spill decisions, final buffering, and passthrough without claiming forward-only layout. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
@@ -393,7 +427,7 @@ IReadOnlyList<OfficeImageExportResult> pages = markdown
     .Export();
 ```
 
-Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed.
+Source conversion warnings are copied into every page result. Use `PdfReadPage.ToDrawing()` only when an intermediate `OfficeDrawing` is needed. The returned `OfficeDrawingText.Text` keeps decoded, editable text, including multi-letter ligatures. Raster and SVG rendering use the PDF's painted glyphs where the embedded font requires them, preserving the painted order of shaped Arabic text.
 
 Supply replacement fonts and any shaping provider during projection so glyph visibility uses the final font profile:
 
@@ -583,6 +617,17 @@ IReadOnlyList<PdfExtractedImage> images = pdf.Images.Extract();
 IReadOnlyList<PdfImagePlacement> placements = pdf.Images.Placements("1-2");
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Attachments.Extract();
 ```
+
+For documents with many embedded images, `pdf.Images.Visit(image => { ... }, cancellationToken)`
+processes images one at a time. Inside the callback, `image.CopyTo(output, cancellationToken)`
+copies its file bytes to a stream without cloning the payload. Check `image.IsImageFile`
+before saving it as a standalone image file.
+
+When the application needs only one embedded file, select its metadata from
+`pdf.Inspect().Attachments` and call `pdf.Attachments.Extract(selected, maximumDecodedBytes)`.
+This bounds the selected decoded payload and avoids decoding the other files.
+`pdf.Attachments.Remove(selected)` removes the matching file specification when
+more than one attachment uses the same display name.
 
 `PdfDocument.Read(...)` is the only semantic reconstruction entry point. Both
 profiles return `PdfDocumentReadResult`; they do not maintain separate logical
@@ -1279,8 +1324,15 @@ edited.Document.Text.Add(
 ```
 
 `Text.Find(...)` supports case and whole-word filters over visible, unclipped
-text, while `Text.ReplaceAll(...)` preserves unmatched source-span text and
-keeps wide same-baseline runs such as columns independent. Edits fail closed
+text. A phrase can continue across consecutive visual lines in the same
+paragraph, including a line-end hyphen; separate columns and explicit paragraph
+breaks are not joined. `PdfTextMatch.Text` is the matched text after search
+normalization, so whitespace may be collapsed and a line-end hyphen may be
+retained as `-` or omitted. It is not an exact source-text excerpt.
+`PdfTextMatch.VisualLineBounds` gives one quad per matched visual line for
+highlighting; `VisualBounds` and `X`/`Y`/`Width`/`Height` remain the combined
+bounds. `Text.ReplaceAll(...)` preserves unmatched source-span text and keeps
+wide same-baseline runs such as columns independent. Edits fail closed
 when an atomic PDF text object would require invisible or clipped text to be
 recreated without its original rendering state.
 Region-based add and replace operations preserve the resolved font size by
@@ -1406,10 +1458,9 @@ regenerate it with `RegenerateAppearance`.
 ```csharp
 using OfficeIMO.Pdf;
 
-byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 var options = new PdfOptions()
     .UsePdfA(PdfComplianceProfile.PdfA2B)
-    .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
+    .EmbedStandardFont(PdfStandardFont.Helvetica, "SourceSerif4-Regular.otf", "Source Serif 4")
     .RequireCompliance(PdfComplianceProfile.PdfA2B);
 
 PdfComplianceArtifact artifact = PdfDocument.Create(pdf => pdf.Content(content => content
@@ -1441,6 +1492,10 @@ if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance
 ```
 
 Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. PDF/X additionally inspects the complete serialized artifact before any bytes are returned or committed to a destination. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+
+For an opened PDF, `pdf.AssessCompliance(profile, cancellationToken)` checks readback readiness and observes cancellation during inspection. Readiness does not replace external conformance validation.
+
+PDF authoring accepts font faces up to 128 MiB each. `EmbedStandardFont` and `PdfEmbeddedFontFamily.FromFiles` check file size before reading and recheck while reading, so use their path overloads when loading files. Byte-array inputs are checked before OfficeIMO copies them. An oversized face throws `InvalidDataException` without changing the authoring options.
 
 ### Generate a fail-closed PDF/X artifact
 
@@ -1568,6 +1623,10 @@ carrier configuration. Omit `conformanceLevel` to derive canonical XMP metadata
 from the XML guideline. An explicit conflicting profile, an unknown guideline,
 or an ambiguous declaration is rejected. Generation and exact PDF readback also
 check XML/XMP agreement when metadata and attachments are supplied separately.
+The low-level Factur-X/ZUGFeRD carrier methods accept at most 16 MiB of invoice
+XML, matching `PdfCiiInvoiceDocument.MaximumXmlBytes`. File overloads check
+this limit before buffering. Split or reduce a larger XML payload before
+attaching it; this limit does not establish schema or business-rule validity.
 The XMP `version` is `1.0`, not a Factur-X release number.
 The application must keep visible invoice content and
 XML consistent and validate the resulting invoice/PDF pair for its declared profile.
@@ -1602,8 +1661,7 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 ```csharp
 using OfficeIMO.Pdf;
 
-byte[] bytes = File.ReadAllBytes("incoming.pdf");
-PdfDocument pdf = PdfDocument.Load(bytes);
+PdfDocument pdf = PdfDocument.Load("incoming.pdf");
 PdfDocumentPreflight preflight = pdf.Preflight();
 
 if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
@@ -1731,7 +1789,9 @@ into a cross-version comparison.
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in core-Arabic shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, and bounded Type 3 rendering within the documented capability contract. It also supports authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. See the [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for the exact Type 3 rendering coverage and current limitations.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, reusable Unicode line breaking and Latin ligatures, bounded built-in Arabic-script shaping plus an optional HarfBuzz adapter for full GSUB/GPOS shaping, and bounded Type 3 rendering within the documented capability contract. It also supports authored and bounded-synthesized annotation appearances in page images, conservative read/manipulation workflows, password security, optional provider-backed certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves with runtime serialization evidence. See the [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md) for the exact Type 3 rendering coverage and current limitations.
+
+Vertical `OfficeDrawing` text retains its logical string through PDF `/ActualText`, but painting still uses stacked horizontal glyphs and reports `vertical-text-stacked-fallback` as an approximation. Strict no-loss profiles reject that result. Native vertical glyph output remains open until shaped vertical advances and substitutions, readable logical text, and strict-profile results pass together against independent CJK producer references.
 
 For the current capability inventory, ownership boundaries, premium conversion
 contract, and remaining general engine work, read

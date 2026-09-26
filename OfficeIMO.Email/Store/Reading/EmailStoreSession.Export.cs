@@ -63,7 +63,18 @@ public sealed partial class EmailStoreSession {
                 output.Flush();
             }
 
-            if (entries.Count == 0 || entries.Any(item => item.Succeeded)) {
+            IReadOnlyList<EmailStoreDiagnostic> candidateDiagnostics =
+                Diagnostics.Concat(reportDiagnostics).ToArray();
+            var candidateReport = new EmailStoreMboxExportReport(
+                destination, truncated, entries, candidateDiagnostics);
+            if (effective.FidelityPolicy == EmailStoreMboxExportFidelityPolicy.RequireNoLoss &&
+                candidateReport.HasLoss) {
+                reportDiagnostics.Add(new EmailStoreDiagnostic(
+                    "EMAIL_STORE_MBOX_STRICT_REJECTED",
+                    "The staged mailbox reported fidelity loss and was not committed under the selected strict policy.",
+                    EmailStoreDiagnosticSeverity.Error,
+                    destination));
+            } else if (entries.Count == 0 || entries.Any(item => item.Succeeded)) {
                 CommitExportFile(temporary, destination, effective.OverwriteExisting);
                 commit = true;
             } else {

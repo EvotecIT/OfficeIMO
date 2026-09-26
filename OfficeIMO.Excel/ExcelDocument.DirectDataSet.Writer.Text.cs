@@ -3,12 +3,12 @@ namespace OfficeIMO.Excel {
         private static partial class DirectDataSetWorkbookWriter {
 #if NET8_0_OR_GREATER
             private static readonly System.Buffers.SearchValues<char> XmlAttributeSpecialCharacters =
-                System.Buffers.SearchValues.Create("&<>\"'");
+                System.Buffers.SearchValues.Create("&<>\"'\r");
 
-            // XML text escapes and the controls removed by the existing sanitizer.
-            // Tab, line feed and carriage return remain valid text characters.
+            // XML text escapes, invalid controls, and carriage return. The latter
+            // needs a character reference to survive XML end-of-line normalization.
             private static readonly System.Buffers.SearchValues<char> XmlTextSpecialCharacters =
-                System.Buffers.SearchValues.Create("\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008\u000B\u000C\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F&<>");
+                System.Buffers.SearchValues.Create("\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007\u0008\u000B\u000C\r\u000E\u000F\u0010\u0011\u0012\u0013\u0014\u0015\u0016\u0017\u0018\u0019\u001A\u001B\u001C\u001D\u001E\u001F&<>");
 #endif
             private static void AppendEscaped(StringBuilder builder, string value) {
                 int escapeIndex = IndexOfXmlEscape(value);
@@ -152,10 +152,10 @@ namespace OfficeIMO.Excel {
                 => value < 0x20 && value != '\t' && value != '\n' && value != '\r';
 
             private static bool IsXmlEscape(char value)
-                => value is '&' or '<' or '>' or '"' or '\'';
+                => value is '&' or '<' or '>' or '"' or '\'' or '\r';
 
             private static bool IsXmlTextEscape(char value)
-                => value is '&' or '<' or '>';
+                => value is '&' or '<' or '>' or '\r';
 
             private static bool NeedsPreserveSpace(string value) {
                 return value.Length > 0 && (char.IsWhiteSpace(value[0]) || char.IsWhiteSpace(value[value.Length - 1]));
@@ -178,6 +178,9 @@ namespace OfficeIMO.Excel {
                     case '\'':
                         builder.Append("&apos;");
                         break;
+                    case '\r':
+                        builder.Append("&#xD;");
+                        break;
                 }
             }
 
@@ -198,6 +201,9 @@ namespace OfficeIMO.Excel {
                     case '\'':
                         writer.Write("&apos;");
                         break;
+                    case '\r':
+                        writer.Write("&#xD;");
+                        break;
                 }
             }
 
@@ -211,6 +217,9 @@ namespace OfficeIMO.Excel {
                         break;
                     case '>':
                         writer.Write("&gt;");
+                        break;
+                    case '\r':
+                        writer.Write("&#xD;");
                         break;
                 }
             }

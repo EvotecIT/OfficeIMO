@@ -108,7 +108,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name == "image") {
-            if (!TryAddEmbeddedSvgImage(element, drawing, style, transform, viewX, viewY)) unsupported++;
+            if (!TryAddEmbeddedSvgImage(element, drawing, style, references, transform, viewX, viewY)) unsupported++;
             return;
         }
         if (name == "svg") {
@@ -121,6 +121,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name is "g" or "a" or "switch") {
+            var elementBudget = references.CaptureSurfaceBudget();
             bool hasEffects = TryResolveSvgEffects(
                 element,
                 drawing.Width,
@@ -144,6 +145,11 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             bool capturesLink = name == "a";
+            if (hasEffects && !references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
+                references.RestoreSurfaceBudget(elementBudget);
+                unsupported++;
+                return;
+            }
             OfficeDrawing target = hasEffects || capturesLink ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             if (!ReferenceEquals(target, drawing)) target.Fonts.AddRange(drawing.Fonts);
             if (name == "switch") {
@@ -156,7 +162,7 @@ public static partial class OfficeSvgDrawingReader {
                     ref visited, ref pathCommands, ref pathCommandLimitExceeded, ref unsupported);
             }
             if (hasEffects) {
-                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
+                TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             } else if (capturesLink) {
                 drawing.AddDrawingForClippedRendering(target, 0D, 0D, null);
@@ -167,6 +173,7 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
         if (name is "use" or "text") {
+            var elementBudget = references.CaptureSurfaceBudget();
             bool hasEffects = TryResolveSvgEffects(
                 element,
                 drawing.Width,
@@ -189,6 +196,11 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeBlendMode blendMode,
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
+            if (hasEffects && !references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
+                references.RestoreSurfaceBudget(elementBudget);
+                unsupported++;
+                return;
+            }
             OfficeDrawing target = hasEffects ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
             if (hasEffects) target.Fonts.AddRange(drawing.Fonts);
             if (name == "use") {
@@ -215,7 +227,7 @@ public static partial class OfficeSvgDrawingReader {
                     ref unsupported);
             }
             if (hasEffects) {
-                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
+                TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             }
             return;
@@ -240,7 +252,9 @@ public static partial class OfficeSvgDrawingReader {
 
         ApplyTransform(shape, transform);
 
+        var shapeBudget = references.CaptureSurfaceBudget();
         try {
+            var featureBudget = references.CaptureSurfaceBudget();
             bool hasPattern = TryAddSvgPatternFill(
                 style.FillPattern,
                 shape,
@@ -260,6 +274,8 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeDrawing? patternLayer);
+            if (!hasPattern) references.RestoreSurfaceBudget(featureBudget);
+            featureBudget = references.CaptureSurfaceBudget();
             bool hasStrokePattern = TryAddSvgPatternStroke(
                 style.StrokePattern,
                 shape,
@@ -279,6 +295,7 @@ public static partial class OfficeSvgDrawingReader {
                 ref pathCommandLimitExceeded,
                 ref unsupported,
                 out OfficeDrawing? strokePatternLayer);
+            if (!hasStrokePattern) references.RestoreSurfaceBudget(featureBudget);
             bool hasMarkers = TryAddSvgMarkers(
                 shape,
                 drawing,
@@ -320,17 +337,23 @@ public static partial class OfficeSvgDrawingReader {
                 out OfficeDrawingSoftMask? softMask,
                 out SvgFilterEffect? filterEffect);
             if (hasEffects || hasPattern || hasStrokePattern || hasMarkers) {
+                if (!references.TryChargeEffectSurfaces(drawing.Width, drawing.Height, softMask != null)) {
+                    references.RestoreSurfaceBudget(shapeBudget);
+                    unsupported++;
+                    return;
+                }
                 var target = new OfficeDrawing(drawing.Width, drawing.Height);
                 if (patternLayer != null) target.AddEffectDrawing(patternLayer, OfficeTransform.Identity);
                 target.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
                 if (strokePatternLayer != null) target.AddEffectDrawing(strokePatternLayer, OfficeTransform.Identity);
                 if (markerLayer != null) target.AddEffectDrawing(markerLayer, OfficeTransform.Identity);
-                TryApplySvgFilter(target, filterEffect, transform, maximumElements, ref visited, ref unsupported, out target);
+                TryApplySvgFilter(target, filterEffect, references, transform, maximumElements, ref visited, ref unsupported, out target);
                 drawing.AddEffectDrawing(target, OfficeTransform.Identity, blendMode, softMask);
             } else {
                 drawing.AddShapeForClippedRendering(shape.Shape, shape.X, shape.Y);
             }
         } catch (ArgumentOutOfRangeException) {
+            references.RestoreSurfaceBudget(shapeBudget);
             unsupported++;
         }
     }

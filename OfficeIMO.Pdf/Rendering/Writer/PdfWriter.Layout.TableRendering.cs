@@ -297,7 +297,7 @@ internal static partial class PdfWriter {
             return skipColumns;
         }
 
-        for (int rowIndex = 0; rowIndex <= boundaryRowIndex; rowIndex++) {
+        for (int rowIndex = System.Math.Max(0, boundaryRowIndex - GetTableMaxRowSpan(table, columnCount) + 1); rowIndex <= boundaryRowIndex; rowIndex++) {
             var cells = GetTableCellLayouts(table, rowIndex, columnCount);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];
@@ -321,7 +321,7 @@ internal static partial class PdfWriter {
             return skipColumns;
         }
 
-        for (int startRow = 0; startRow < rowIndex; startRow++) {
+        for (int startRow = System.Math.Max(0, rowIndex - GetTableMaxRowSpan(table, columnCount) + 1); startRow < rowIndex; startRow++) {
             var cells = GetTableCellLayouts(table, startRow, columnCount);
             for (int cellIndex = 0; cellIndex < cells.Count; cellIndex++) {
                 TableCellLayout cell = cells[cellIndex];

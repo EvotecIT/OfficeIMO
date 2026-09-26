@@ -566,7 +566,7 @@ namespace OfficeIMO.Excel {
                 UnderlineStyle = format.FontUnderline.HasValue
                     ? format.FontUnderline.Value ? ExcelUnderlineStyle.Single : ExcelUnderlineStyle.None
                     : style.UnderlineStyle,
-                Strikethrough = style.Strikethrough,
+                Strikethrough = format.FontStrike ?? style.Strikethrough,
                 VerticalTextAlignment = style.VerticalTextAlignment,
                 FontName = string.IsNullOrWhiteSpace(format.FontName) ? style.FontName : format.FontName,
                 IsFontFamilyExplicit = !string.IsNullOrWhiteSpace(format.FontName) || style.IsFontFamilyExplicit,

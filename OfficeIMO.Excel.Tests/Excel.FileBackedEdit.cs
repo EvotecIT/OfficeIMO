@@ -1,6 +1,10 @@
 using System;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
@@ -89,6 +93,52 @@ namespace OfficeIMO.Tests {
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
             Assert.Equal("after", loaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        }
+
+        [Fact]
+        public void Test_FileBackedEdit_PreservesCarriageReturnsInLoadedWorksheet() {
+            const string value = "First\r\nSecond\rThird\nFourth";
+            string path = Path.Combine(_directoryWithFiles, "FileBackedCarriageReturns.xlsx");
+            using (var created = ExcelDocument.Create()) {
+                var sheet = created.AddWorksheet("Text");
+                sheet.CellValue(1, 1, value);
+                sheet.CellValue(1, 2, "inline");
+                sheet.CellValue(1, 3, "plain");
+                var cells = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+                cells["B1"].CellValue = null;
+                cells["B1"].DataType = CellValues.InlineString;
+                cells["B1"].InlineString = new InlineString(new Text(value));
+                cells["C1"].DataType = CellValues.String;
+                cells["C1"].CellValue = new CellValue(value);
+                sheet.MarkRequiresSavePreparation();
+                created.Save(path, new ExcelSaveOptions { DisableFastPackageWriter = true });
+            }
+
+            using (ExcelDocument document = ExcelDocument.OpenFileBacked(path)) {
+                document.Sheets[0].CellValue(2, 1, "edited");
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+            }
+
+            using (var package = SpreadsheetDocument.Open(path, false)) {
+                WorkbookPart workbook = package.WorkbookPart!;
+                var writtenCells = workbook.WorksheetParts.Single().Worksheet
+                    .Descendants<Cell>()
+                    .ToDictionary(cell => cell.CellReference!.Value!);
+                int sharedStringIndex = int.Parse(
+                    writtenCells["A1"].CellValue!.Text,
+                    CultureInfo.InvariantCulture);
+                Assert.Equal(value, workbook.SharedStringTablePart!.SharedStringTable!
+                    .Elements<SharedStringItem>().ElementAt(sharedStringIndex).InnerText);
+                Assert.Equal(value, writtenCells["B1"].InlineString!.InnerText);
+                Assert.Equal(value, writtenCells["C1"].CellValue!.Text);
+            }
+
+            using var reopened = ExcelDocument.Load(path);
+            for (int column = 1; column <= 3; column++) {
+                Assert.True(reopened["Text"].TryGetCellText(1, column, out string actual));
+                Assert.Equal(value, actual);
+            }
         }
     }
 }

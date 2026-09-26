@@ -35,11 +35,31 @@ public sealed partial class StudioJobRecord : ObservableObject {
     [ObservableProperty]
     private double _progress;
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(OutputName))]
+    [NotifyPropertyChangedFor(nameof(CanOpenOutput))]
     private string? _outputPath;
+
+    /// <summary>The output file or folder name; the full location stays in the tooltip.</summary>
+    public string OutputName => string.IsNullOrWhiteSpace(OutputPath) ? string.Empty
+        : System.IO.Path.GetFileName(OutputPath.TrimEnd('\\', '/')) is { Length: > 0 } name ? name : OutputPath;
+
+    /// <summary>Finished outcome for the progress colour: running, succeeded, failed or cancelled.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSucceeded), nameof(IsFailed), nameof(IsCancelled))]
+    private OfficeWorkflowStatus? _outcome;
+
+    public bool IsSucceeded => Outcome == OfficeWorkflowStatus.Completed;
+    public bool IsFailed => Outcome is OfficeWorkflowStatus.Failed or OfficeWorkflowStatus.Unconfirmed;
+    public bool IsCancelled => Outcome == OfficeWorkflowStatus.Cancelled;
     [ObservableProperty]
     private string? _summary;
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanOpenOutput))]
     private bool _hasOutput;
+
+    public bool CanOpenOutput => HasOutput && (!IsDirectoryOutput ||
+        OutputPath is not null && OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(OutputPath) is not null);
+    private bool IsDirectoryOutput { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(HasRecovery))]
@@ -58,8 +78,9 @@ public sealed partial class StudioJobRecord : ObservableObject {
     }
 
     internal void CompleteBatch(OfficeWorkflowStatus status, string? outputPath, string summary,
-        IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput) {
+        IReadOnlyList<OfficeWorkflowOutputRecovery> recoveries, bool hasVerifiedOutput, bool isDirectoryOutput) {
         if (!IsActive) return;
+        IsDirectoryOutput = isDirectoryOutput;
         Complete(status, outputPath, summary, recoveries.FirstOrDefault());
         Recoveries.Clear();
         foreach (var recovery in recoveries) Recoveries.Add(recovery);
@@ -96,6 +117,7 @@ public sealed partial class StudioJobRecord : ObservableObject {
             ? _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output")
             : _localizer.GetOrDefault("Workflow.Status." + status, status.ToString());
         Progress = status == OfficeWorkflowStatus.Cancelled ? Progress : 1D;
+        Outcome = status;
         _cancel = null;
         IsActive = false;
     }
@@ -104,6 +126,8 @@ public sealed partial class StudioJobRecord : ObservableObject {
         if (!IsActive) return;
         Summary = summary;
         Status = _localizer.GetOrDefault("Jobs.Unconfirmed", "Check output");
+        Outcome = OfficeWorkflowStatus.Unconfirmed;
+        Progress = 1D;
         _cancel = null;
         IsActive = false;
     }

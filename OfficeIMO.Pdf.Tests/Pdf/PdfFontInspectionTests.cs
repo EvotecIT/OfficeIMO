@@ -366,6 +366,38 @@ public sealed class PdfFontInspectionTests {
     }
 
     [Fact]
+    public void Fonts_ShareDiagnosticLimitAcrossFontAndTraversalDiagnostics() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 >>",
+            StreamObject(string.Empty));
+
+        PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
+            PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions { MaxDiagnostics = 1 }));
+        Assert.Equal(PdfReadLimitKind.FontInspectionDiagnostics, exception.Kind);
+    }
+
+    [Fact]
+    public void Fonts_StopsBeforeRetainingOversizedResourcePaths() {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /XObject << /VeryLongResourceName 4 0 R >> >> /Contents 5 0 R >>",
+            StreamObject(string.Empty, "/Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >>"),
+            StreamObject(string.Empty));
+
+        PdfFontInventory inventory = PdfDocument.Load(pdf).Resources.Fonts(new PdfFontInspectionOptions {
+            MaxResourcePathCharacters = 20
+        });
+
+        PdfFontInspectionDiagnostic diagnostic = Assert.Single(inventory.Diagnostics);
+        Assert.Equal(PdfFontInspectionDiagnosticCode.ResourceReferenceLimitExceeded, diagnostic.Code);
+        Assert.True(diagnostic.ResourcePath!.Length <= 20);
+    }
+
+    [Fact]
     public void TryFonts_UsesLogicalContentPermissionGate() {
         PdfOperationResult<PdfFontInventory> result = PdfDocument.Load(BuildFontPdf()).Reader.FontsResult();
 
@@ -465,6 +497,78 @@ public sealed class PdfFontInspectionTests {
 
         Assert.Equal(expectedBold, span.IsBold);
         Assert.Equal(expectedItalic, span.IsItalic);
+    }
+
+    [Theory]
+    [InlineData("0042", "BB")]
+    [InlineData("00660069", "fifi")]
+    public void SubstitutedSimpleFontDrawsEncodingWhileExtractionKeepsToUnicode(string mappedUnicode, string extracted) {
+        string toUnicode = "begincmap\n1 beginbfchar\n<41> <" + mappedUnicode + ">\nendbfchar\nendcmap";
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 65 /Widths [600] /ToUnicode 6 0 R >>",
+            StreamObject("BT /F1 18 Tf 20 30 Td (AA) Tj ET"),
+            StreamObject(toUnicode));
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        Assert.Equal(extracted, Assert.Single(page.GetTextSpans()).Text);
+        OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(extracted, visual.Text);
+        Assert.Equal("AA", visual.RasterText);
+    }
+
+    [Theory]
+    [InlineData("TrueType", "/FontFile2 7 0 R", "")]
+    [InlineData("Type1", "/FontFile3 7 0 R", "/Subtype /Type1C")]
+    public void UnusableEmbeddedSimpleFontStillDrawsItsEncodingGlyph(string fontSubtype, string fontFile, string programSubtype) {
+        byte[] pdf = BuildPdf(
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 100] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Font /Subtype /" + fontSubtype + " /BaseFont /Helvetica /Encoding /WinAnsiEncoding /FirstChar 65 /LastChar 65 /Widths [600] /FontDescriptor 8 0 R /ToUnicode 6 0 R >>",
+            StreamObject("BT /F1 18 Tf 20 30 Td (A) Tj ET"),
+            StreamObject("begincmap\n1 beginbfchar\n<41> <0042>\nendbfchar\nendcmap"),
+            StreamObject("invalid-font-program", programSubtype),
+            "<< /Type /FontDescriptor /FontName /Helvetica /Flags 32 /FontBBox [0 -200 1000 900] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 " + fontFile + " >>");
+
+        PdfReadPage page = PdfReadDocument.Open(pdf).Pages[0];
+        Assert.Equal("B", Assert.Single(page.GetTextSpans()).Text);
+        OfficeDrawingText visual = Assert.Single(page.ToDrawing().Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("B", visual.Text);
+        Assert.Equal("A", visual.RasterText);
+    }
+
+    [Fact]
+    public void SynthesizedCmapResolvesMappingsBeyondTheFirstFormat12GroupLimit() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var original = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+            _ => 1, _ => false);
+        var additions = new Dictionary<int, int>();
+        for (int scalar = 0x1000; scalar < 0x1000 + 9000; scalar++)
+            additions.Add(scalar, (scalar & 1) == 0 ? 1 : 2);
+
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(original, additions));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(rebuilt));
+
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000), 0, 0, 12));
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000 + 8999), 0, 0, 12));
+    }
+
+    [Fact]
+    public void SynthesizedCmapUsesReadableFormatForSparseBmpSubsetBeyondFormat4SegmentLimit() {
+        byte[] source = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B');
+        var original = new PdfDrawingFontProgram(source, new SortedDictionary<int, int> { ['A'] = 1 },
+            _ => 1, _ => false);
+        var additions = new Dictionary<int, int>();
+        for (int index = 0; index < 1024; index++) additions.Add(0x1000 + index * 2, index % 2 + 1);
+
+        byte[] rebuilt = Assert.IsType<byte[]>(PdfTrueTypeUnicodeCmap.TryAddMappings(original, additions));
+        OfficeTrueTypeFont font = Assert.IsType<OfficeTrueTypeFont>(OfficeTrueTypeFont.TryLoad(rebuilt));
+
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000), 0, 0, 12));
+        Assert.NotEmpty(font.GetTextContours(char.ConvertFromUtf32(0x1000 + 1023 * 2), 0, 0, 12));
     }
 
     private static byte[] BuildFontPdf() {

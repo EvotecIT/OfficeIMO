@@ -20,6 +20,9 @@ public static partial class OfficeDrawingRasterRenderer {
                 MaximumRasterPixels = maximumRasterPixels,
                 RasterOverflowBehavior = OfficeRasterOverflowBehavior.Throw
             });
+        canvas.ChargeIntermediateSurfacePixels(
+            (long)System.Math.Ceiling(pattern.InnerTile.Width * scale) *
+            (long)System.Math.Ceiling(pattern.InnerTile.Height * scale), maximumRasterPixels);
         OfficeRasterImage tile = Render(pattern.InnerTile, new OfficeDrawingRasterRenderOptions {
             Scale = scale,
             ImageCodec = imageCodec,
@@ -27,6 +30,7 @@ public static partial class OfficeDrawingRasterRenderer {
             TextShapingLanguage = canvas.TextShapingLanguage,
             DiagnosticSink = canvas.DiagnosticSink,
             DiagnosticSource = canvas.DiagnosticSource,
+            TransformedTextBudget = canvas.TransformedTextBudget,
             MaximumRasterPixels = maximumRasterPixels,
             CancellationToken = cancellationToken
         });

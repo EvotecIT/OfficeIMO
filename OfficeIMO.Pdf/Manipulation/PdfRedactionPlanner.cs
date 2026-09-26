@@ -56,7 +56,7 @@ internal static partial class PdfRedactionPlanner {
         cancellationToken.ThrowIfCancellationRequested();
         IReadOnlyList<string> pageIdentities = PdfRedactionPlan.CapturePageIdentities(readDocument, areaArray, reviewedTextObjectScopes);
         cancellationToken.ThrowIfCancellationRequested();
-        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions);
+        PdfDocumentReadResult logical = PdfDocumentReadResult.From(readDocument, layoutOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentInfo info = preflight.UncheckedDocumentInfo ?? PdfInspector.Inspect(pdf, options);
         var matches = new List<PdfRedactionMatch>();
@@ -127,24 +127,14 @@ internal static partial class PdfRedactionPlanner {
     /// <summary>Plans redaction impact for a PDF file.</summary>
     public static PdfRedactionPlan Plan(string path, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        cancellationToken.ThrowIfCancellationRequested();
-        byte[] pdf = File.ReadAllBytes(path);
-        cancellationToken.ThrowIfCancellationRequested();
+        byte[] pdf = PdfDocumentSource.FromPath(path, options, cancellationToken).Bytes;
         return Plan(pdf, areas, layoutOptions, options, cancellationToken);
     }
 
     /// <summary>Plans redaction impact for a readable PDF stream.</summary>
     public static PdfRedactionPlan Plan(Stream stream, IEnumerable<PdfRedactionArea> areas, PdfTextLayoutOptions? layoutOptions = null, PdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        cancellationToken.ThrowIfCancellationRequested();
-        stream.CopyTo(buffer);
-        cancellationToken.ThrowIfCancellationRequested();
-        return Plan(buffer.ToArray(), areas, layoutOptions, options, cancellationToken);
+        byte[] pdf = PdfDocumentSource.FromRemainingStream(stream, options, cancellationToken).Bytes;
+        return Plan(pdf, areas, layoutOptions, options, cancellationToken);
     }
 
     private static void AddTextMatches(PdfRedactionArea area, PdfDocumentReadResult document, List<PdfRedactionMatch> matches) {

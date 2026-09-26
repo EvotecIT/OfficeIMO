@@ -7,7 +7,8 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static IReadOnlyDictionary<string, CustomPropertyRegistration> ParseCustomPropertyRegistrations(
         IHtmlDocument document,
-        MediaEnvironment environment) {
+        MediaEnvironment environment,
+        HtmlCssProcessingBudget budget) {
         var registrations = new Dictionary<string, CustomPropertyRegistration>(HtmlCssPropertyNameComparer.Instance);
         foreach (IElement styleElement in document.QuerySelectorAll("style")) {
             if (!IsCssStyleElement(styleElement)
@@ -15,14 +16,15 @@ public static partial class HtmlComputedStyleEngine {
                 continue;
             }
 
-            ParseTopLevelCustomPropertyRegistrations(styleElement.TextContent ?? string.Empty, registrations);
+            ParseTopLevelCustomPropertyRegistrations(styleElement.TextContent ?? string.Empty, registrations, budget);
         }
         return registrations;
     }
 
     private static void ParseTopLevelCustomPropertyRegistrations(
         string css,
-        IDictionary<string, CustomPropertyRegistration> registrations) {
+        IDictionary<string, CustomPropertyRegistration> registrations,
+        HtmlCssProcessingBudget budget) {
         int depth = 0;
         char quote = '\0';
         for (int index = 0; index < css.Length; index++) {
@@ -60,8 +62,9 @@ public static partial class HtmlComputedStyleEngine {
             string nameText = css.Substring(nameStart, cursor - nameStart).Trim();
             int close = FindCustomPropertyBlockEnd(css, cursor);
             if (close < 0) return;
+            budget.RecordRule(0);
             string block = css.Substring(cursor + 1, close - cursor - 1);
-            if (TryCreateCustomPropertyRegistration(nameText, block, out CustomPropertyRegistration? registration)) {
+            if (TryCreateCustomPropertyRegistration(nameText, block, budget, out CustomPropertyRegistration? registration)) {
                 registrations[registration!.Name] = registration;
             }
             index = close;
@@ -71,18 +74,19 @@ public static partial class HtmlComputedStyleEngine {
     private static bool TryCreateCustomPropertyRegistration(
         string nameText,
         string block,
+        HtmlCssProcessingBudget budget,
         out CustomPropertyRegistration? registration) {
         registration = null;
-        if (!HtmlCssIdentifierParser.TryParse(nameText, out string name)
-            || !name.StartsWith("--", StringComparison.Ordinal)
-            || name.Length <= 2) {
-            return false;
-        }
+        bool validName = HtmlCssIdentifierParser.TryParse(nameText, out string name)
+            && name.StartsWith("--", StringComparison.Ordinal)
+            && name.Length > 2;
 
         string? syntax = null;
         bool? inherits = null;
         string? initialValue = null;
         foreach (string declaration in SplitCssDeclarations(StripCssCommentsOutsideStrings(block))) {
+            if (string.IsNullOrWhiteSpace(declaration)) continue;
+            budget.RecordDeclaration();
             int separator = declaration.IndexOf(':');
             if (separator <= 0) continue;
             string descriptor = declaration.Substring(0, separator).Trim();
@@ -99,7 +103,9 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
 
-        if (string.IsNullOrWhiteSpace(syntax) || !inherits.HasValue) return false;
+        if (!validName || string.IsNullOrWhiteSpace(syntax) || !inherits.HasValue) return false;
+        if (budget.HasDeclarationLimit && (syntax!.Length > 256 || initialValue?.Length > 1024
+            || syntax.Split('|').Length > 16)) return false;
         if (syntax != "*" && string.IsNullOrWhiteSpace(initialValue)) return false;
         if (!string.IsNullOrWhiteSpace(initialValue)
             && (HtmlCssCustomPropertyResolver.ContainsVarFunction(initialValue!)

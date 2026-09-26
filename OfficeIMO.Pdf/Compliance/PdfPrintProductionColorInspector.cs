@@ -11,10 +11,10 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         int maximumObjectDepth = document.ReadOptions.Limits.MaxObjectNestingDepth;
         int maximumDecodedStreamBytes = document.ReadOptions.Limits.MaxDecodedStreamBytes;
-        var contentStreams = new List<ContentStreamContext>();
+        var contentStreams = new ContentStreamContexts(document.ReadOptions.Limits);
         var imageDictionaries = new HashSet<PdfDictionary>();
-        var imageContexts = new List<ImageContext>();
-        var shadingContexts = new List<ShadingContext>();
+        var imageContexts = new ImageContexts();
+        var shadingContexts = new ShadingContexts();
         var graphicsStateDictionaries = new HashSet<PdfDictionary>();
         var shadingDictionaries = new HashSet<PdfDictionary>();
         int rgbImages = 0;
@@ -302,6 +302,7 @@ internal static partial class PdfPrintProductionColorInspector {
                     decodedContent,
                     document.ReadOptions.Limits.MaxContentOperations,
                     operation => {
+                        contentStreams.ChargeOperation();
                         if (operation.HasInvalidOperands) {
                             contextWasUninspectable = true;
                             return;
@@ -572,7 +573,9 @@ internal static partial class PdfPrintProductionColorInspector {
                 }
             } catch (Exception exception) when (
                 exception is InvalidDataException ||
-                exception is PdfReadLimitException ||
+                exception is PdfReadLimitException limit &&
+                    limit.Kind != PdfReadLimitKind.PrintProductionOperations &&
+                    limit.Kind != PdfReadLimitKind.PrintProductionContexts ||
                 exception is FormatException) {
                 colorState.IsIncomplete = true;
                 uninspectable++;
@@ -601,7 +604,7 @@ internal static partial class PdfPrintProductionColorInspector {
         Dictionary<int, PdfIndirectObject> objects,
         ColorSpaceAliases aliases,
         PdfDictionary? resources,
-        List<ContentStreamContext> streams,
+        ContentStreamContexts streams,
         int maximumObjectDepth,
         int pageSequenceId) {
         bool complete = true;
@@ -1269,6 +1272,7 @@ internal static partial class PdfPrintProductionColorInspector {
     }
 
     private sealed class ColorSpaceAliases {
+        private int? _valueHashCode;
         internal Dictionary<string, ColorSpaceUsage> Named { get; } = new(StringComparer.Ordinal);
         internal HashSet<string> Rgb { get; } = new(StringComparer.Ordinal);
         internal HashSet<string> Cmyk { get; } = new(StringComparer.Ordinal);
@@ -1278,6 +1282,28 @@ internal static partial class PdfPrintProductionColorInspector {
         internal ColorSpaceUsage? DefaultRgb { get; set; }
         internal ColorSpaceUsage? DefaultCmyk { get; set; }
         internal ColorSpaceUsage? DefaultGray { get; set; }
+
+        // Alias collections are fully populated before they are passed to a resource
+        // context. Cache their value hash so repeated image/shading uses remain O(1).
+        internal int ValueHashCode => _valueHashCode ??= ComputeValueHashCode();
+
+        private int ComputeValueHashCode() {
+            unchecked {
+                int hash = 17;
+                foreach (KeyValuePair<string, ColorSpaceUsage> entry in Named.OrderBy(static item => item.Key, StringComparer.Ordinal)) {
+                    hash = hash * 31 + StringComparer.Ordinal.GetHashCode(entry.Key);
+                    hash = hash * 31 + entry.Value.GetHashCode();
+                }
+                foreach (HashSet<string> set in new[] { Rgb, Cmyk, Gray, Pattern, DeviceIndependent }) {
+                    hash = hash * 31 + set.Count;
+                    foreach (string name in set.OrderBy(static name => name, StringComparer.Ordinal))
+                        hash = hash * 31 + StringComparer.Ordinal.GetHashCode(name);
+                }
+                hash = hash * 31 + (DefaultRgb?.GetHashCode() ?? 0);
+                hash = hash * 31 + (DefaultCmyk?.GetHashCode() ?? 0);
+                return hash * 31 + (DefaultGray?.GetHashCode() ?? 0);
+            }
+        }
 
         internal bool SetEquals(ColorSpaceAliases other) =>
             Named.Count == other.Named.Count && Named.All(entry =>
@@ -1346,6 +1372,66 @@ internal static partial class PdfPrintProductionColorInspector {
 
         internal ColorSpaceUsage WithPattern() =>
             new(IsKnown, UsesDeviceRgb, UsesDeviceCmyk, UsesDeviceGray, true, UsesDeviceIndependent, ComponentCount);
+    }
+
+    private sealed class ContentStreamContexts : List<ContentStreamContext> {
+        private readonly HashSet<ContentStreamContext> _seen = new(new ContextIdentityComparer());
+        private readonly Dictionary<PdfDictionary, ColorSpaceAliases> _aliasesByResources = new();
+        private readonly int _maximumContexts;
+        private readonly int _maximumOperations;
+        private long _operations;
+
+        internal ContentStreamContexts(PdfReadLimits limits) {
+            _maximumContexts = limits.MaxPrintProductionContexts;
+            _maximumOperations = limits.MaxPrintProductionOperations;
+        }
+
+        internal ColorSpaceAliases GetOrCreateAliases(
+            PdfDictionary resources,
+            Dictionary<int, PdfIndirectObject> objects,
+            PdfReadLimits limits) {
+            if (_aliasesByResources.TryGetValue(resources, out ColorSpaceAliases? aliases)) return aliases;
+            aliases = CreateColorSpaceAliases(resources, objects,
+                limits.MaxObjectNestingDepth, limits.MaxDecodedStreamBytes);
+            _aliasesByResources.Add(resources, aliases);
+            return aliases;
+        }
+
+        internal bool TryAdd(ContentStreamContext context) {
+            // Page content streams retain sequence order. Nested streams can be
+            // deduplicated by their immutable resource and inherited-state identity.
+            if (context.PageSequenceId == null && !_seen.Add(context)) return false;
+            if (Count >= _maximumContexts)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionContexts, _maximumContexts, (long)Count + 1L);
+            Add(context);
+            return true;
+        }
+
+        internal void ChargeOperation() {
+            _operations++;
+            if (_operations > _maximumOperations)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.PrintProductionOperations, _maximumOperations, _operations);
+        }
+
+        private sealed class ContextIdentityComparer : IEqualityComparer<ContentStreamContext> {
+            public bool Equals(ContentStreamContext? left, ContentStreamContext? right) =>
+                ReferenceEquals(left, right) || left != null && right != null &&
+                ReferenceEquals(left.Stream, right.Stream) &&
+                (ReferenceEquals(left.Aliases, right.Aliases) || left.Aliases.SetEquals(right.Aliases)) &&
+                ReferenceEquals(left.Resources, right.Resources) &&
+                ReferenceEquals(left.InheritedFontObject, right.InheritedFontObject) &&
+                left.InitialColorState == right.InitialColorState;
+
+            public int GetHashCode(ContentStreamContext context) {
+                unchecked {
+                    int hash = System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Stream);
+                    hash = hash * 31 + context.Aliases.ValueHashCode;
+                    hash = hash * 31 + (context.Resources == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.Resources));
+                    hash = hash * 31 + (context.InheritedFontObject == null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(context.InheritedFontObject));
+                    return hash * 31 + context.InitialColorState.GetHashCode();
+                }
+            }
+        }
     }
 
     private sealed class ContentStreamContext {

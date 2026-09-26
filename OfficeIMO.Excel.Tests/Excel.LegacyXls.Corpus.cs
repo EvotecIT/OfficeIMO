@@ -100,7 +100,9 @@ namespace OfficeIMO.Tests {
             foreach (string fixture in expectedFixtures) {
                 using LegacyXlsLoadResult result = LoadApachePoiFixture(fixture);
                 Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
-                Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
+                Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+                    diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning
+                    && diagnostic.Code != "XLS-BIFF-LBL-EMPTY-NAME");
                 Assert.Equal(0, result.ImportReport.UnsupportedProjectionGapCount);
             }
 

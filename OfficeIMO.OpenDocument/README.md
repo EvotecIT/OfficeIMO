@@ -26,10 +26,36 @@ table.Cell(1, 1).Text = "42";
 document.Save("summary.odt");
 ```
 
+Add a native ODT field in paragraph order with the value currently shown in the document:
+
+```csharp
+OdtParagraph pageLine = document.AddParagraph("Page ");
+pageLine.AddField(OdtFieldKind.PageNumber, "3");
+pageLine.AddText(" of ");
+pageLine.AddField(OdtFieldKind.PageCount, "12");
+document.Save("summary.odt");
+```
+
+`OdtParagraph.Fields` reads page number, page count, date, and time fields in order. `OdtField.DisplayText` edits the cached text; an office application can refresh a dynamic field later. `OdtField.IsFixed` retains a date, time, or page number value instead of refreshing it. Page count cannot be fixed.
+
+Add native ODT footnotes or endnotes at the current paragraph position:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph("The result is documented");
+paragraph.AddFootnote("Source and calculation details.");
+paragraph.AddText(" in the appendix.");
+paragraph.AddEndnote("Additional context.");
+```
+
+`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs, and their spans, links, and images stay on the note-body paragraph. Native note citations follow document order when notes are added to earlier paragraphs later; an imported custom citation label remains the displayed `OdtNote.Citation`. Adding a note to a document with `text:notes-configuration` for that note kind throws `NotSupportedException`, preserving its configured numbering and existing citations.
+
 Create a sparse ODS workbook:
 
 ```csharp
-using OdsDocument workbook = OdsDocument.Create();
+OdsDocument workbook = OdsDocument.Create();
 OdsSheet sheet = workbook.AddSheet("Metrics");
 sheet.Cell(0, 0).SetString("Name");
 sheet.Cell(0, 1).SetString("Value");
@@ -55,6 +81,10 @@ if (calculation.FailedCells > 0) {
 workbook.Save("metrics.ods");
 ```
 
+For a formula-based validation, use `OdsValidationConditionSyntax.CreateFormula("[.B2]>0")` and set `OdsValidation.BaseCellAddress` to an absolute sheet-qualified address such as `$'Metrics'.$B$2`. The typed formula condition accepts a local cell compared with a number, text value, or another local cell, plus `ISBLANK`, `ISNUMBER`, or `ISTEXT` on one local cell. These predicates can be combined with `AND`, `OR`, and unary `NOT`; numbers in comparisons may have a leading sign. Other OpenFormula expressions can be stored in the raw `Condition` property. The base cell determines how relative formula references apply to the validated cells.
+
+ODS conditional cell styles can be authored and edited through `OdfStyle.AddConditionalMap`. Create a common named table-cell style for the desired appearance, add a mapping to a base style, and assign the base style to cells. For example, `baseStyle.AddConditionalMap("cell-content()>0", highlightStyle.Name, "$'Metrics'.$B$2")` applies the highlight style when the condition is true. The applied style must be a common named style in the same family as the base style; `Validate()` reports a missing, automatic, or different-family target. The map and its relative-reference base survive save and reopen. OfficeIMO preserves these native rules; its renderer does not evaluate them.
+
 Create an ODP presentation:
 
 ```csharp
@@ -65,6 +95,28 @@ slide.AddRectangle(OdfRect.FromCentimeters(2, 5, 8, 3)).FillColor = OdfColor.Par
 slide.GetOrCreateSpeakerNotes().AddParagraph("Explain the result.");
 presentation.Save("summary.odp");
 ```
+
+Nest text styles and links when their formatting changes within a sentence:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph();
+OdtSpan emphasis = paragraph.AddSpan("Read ");
+emphasis.Bold = true;
+emphasis.AddHyperlink("the guide", "https://example.com/guide").Italic = true;
+
+using OdpPresentation presentation = OdpPresentation.Create();
+OdpSlide slide = presentation.AddSlide("Links");
+OdpParagraph slideText = slide.AddTextBox(
+    OdfRect.FromCentimeters(2, 9, 18, 2)).AddParagraph();
+OdpRun label = slideText.AddRun("Open ");
+label.Bold = true;
+label.AddHyperlink("the guide", "https://example.com/guide").Underline = true;
+```
+
+`InlineNodes` exposes nested `Children` in document order. A nested run inherits text properties from its containing span or link until its own style overrides them.
 
 Convert explicitly between OpenDocument and OfficeIMO Word, Excel, or PowerPoint models by installing the corresponding adapter package. Every conversion returns an `OdfConversionReport` that identifies mapped, approximated, skipped, and unsupported features.
 
@@ -117,7 +169,7 @@ Encrypted input fails with a classified `OdfEncryptedPackageException` when a pa
 | Area | Current support |
 | --- | --- |
 | Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
-| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
+| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, page number/count and date/time fields with cached display text, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
 | ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, typed named ranges, annotations, typed scalar/list validations and messages, links, print ranges |
 | ODP | Slide order and visibility, page size, masters/layouts, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
 | Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |
@@ -138,13 +190,13 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 
 - Formula evaluation covers arithmetic, comparisons, concatenation, cell/range references, and common aggregate/math functions. External data, volatile functions, matrix formulas, and the complete OpenFormula language are not included.
 - Typed validation syntax covers explicit lists and scalar whole-number, decimal, and text-length comparisons. Other valid ODF conditions remain preserved text and are reported by conversions that cannot map them exactly.
-- Ordered ODT/ODP inline syntax types direct text, spans/runs, hyperlinks, images, and bookmark markers. Nested inline markup remains preserved in the package and is surfaced as an untyped node so conversion loss is explicit.
+- Ordered ODT/ODP inline syntax types text, nested spans/runs, and hyperlinks. ODT also types inline images and bookmark markers. Unsupported inline elements remain `Other` nodes and conversion reports their approximation.
 - Tracked-change editing covers paragraph insertions and deletions. Arbitrary inline merges and conflict resolution remain preservation-oriented.
 - Animation editing covers basic shape-attribute effects and fade-in timing. Advanced timing trees are preserved when untouched.
 - Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - The bounded OfficeIMO XML package-manifest signature profile can be created and validated through an explicit `IOfficeSecurityProvider`. Arbitrary producer-specific signature profiles remain inspection or preservation oriented.
-- Pivot-table editing and complete chart editing are outside the current surface.
+- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. `OdsSheet.AddChart` creates column, bar, or line charts with one to sixteen series linked to existing one-dimensional ODS cell ranges of up to 4,096 points. Chart styling is preserved in package XML; editing imported charts and pivot tables is outside the current surface.
 - Flat XML variants (`.fodt`, `.fods`, `.fodp`) can be opened and written, including embedded raster images. Exotic embedded objects and package-only features may not project losslessly.
 - `OdsSheet.Merge` rejects merges above its default 100,000-cell materialization limit. Use the overload with an explicit lower limit when processing untrusted dimensions.
 - Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.

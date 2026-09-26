@@ -22,17 +22,26 @@ internal static partial class PdfStamper {
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
     public static byte[] StampPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
-        return StampPage(ReadStream(targetPdf, nameof(targetPdf)), ReadStream(sourcePdf, nameof(sourcePdf)), options);
+        return StampPage(
+            ReadStream(targetPdf, nameof(targetPdf)),
+            ReadStream(sourcePdf, nameof(sourcePdf), options?.SourceReadOptions),
+            options);
     }
 
     /// <summary>Imports one source PDF page above selected target pages read from streams.</summary>
     public static byte[] OverlayPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
-        return OverlayPage(ReadStream(targetPdf, nameof(targetPdf)), ReadStream(sourcePdf, nameof(sourcePdf)), options);
+        return OverlayPage(
+            ReadStream(targetPdf, nameof(targetPdf)),
+            ReadStream(sourcePdf, nameof(sourcePdf), options?.SourceReadOptions),
+            options);
     }
 
     /// <summary>Imports one source PDF page below selected target pages read from streams.</summary>
     public static byte[] UnderlayPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
-        return UnderlayPage(ReadStream(targetPdf, nameof(targetPdf)), ReadStream(sourcePdf, nameof(sourcePdf)), options);
+        return UnderlayPage(
+            ReadStream(targetPdf, nameof(targetPdf)),
+            ReadStream(sourcePdf, nameof(sourcePdf), options?.SourceReadOptions),
+            options);
     }
 
     private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options, PdfLoadOptions? targetReadOptions = null) {

@@ -12,6 +12,8 @@ public sealed class PdfReadLimits {
     internal const int DefaultMaxActualTextCharacters = 1_000_000;
     internal const int DefaultMaxDecodedTextCharacters = 10_000_000;
     internal const int DefaultMaxTextSearchMatches = 100_000;
+    internal const int DefaultMaxTextSearchFlowComparisons = 1_000_000;
+    internal const int DefaultMaxTextSearchTableDetectionWork = 1_000_000;
     internal const int DefaultMaxNameTreeNodes = 100_000;
     internal const int DefaultMaxNameTreeDepth = 128;
     internal const int DefaultMaxJavaScriptBytes = 4_000_000;
@@ -22,7 +24,12 @@ public sealed class PdfReadLimits {
     internal const long DefaultMaxTotalAttachmentBytes = 256L * 1024L * 1024L;
     internal const int DefaultMaxPositionedTextCharactersPerPage = 100_000;
     internal const int DefaultMaxPositionedTextWorkCharactersPerPage = 100_000;
+    internal const int DefaultMaxPositionedTextProjectionCharactersPerPage = 1_000_000;
+    internal const int DefaultMaxClippedTextFontCopyWorkPerPage = 1_000_000;
+    internal const int DefaultMaxPrintProductionContexts = 4_096;
+    internal const int DefaultMaxPrintProductionOperations = 5_000_000;
     internal const int DefaultMaxType3GlyphInvocationsPerPage = 1_000_000;
+    internal const int DefaultMaxImageReferenceSteps = 100_000;
 
     /// <summary>Creates default parser budgets that callers can customize without changing another options instance.</summary>
     public static PdfReadLimits Default => new PdfReadLimits();
@@ -56,6 +63,12 @@ public sealed class PdfReadLimits {
 
     /// <summary>Maximum text-search matches materialized by one Find or ReplaceAll operation. Default: 100,000.</summary>
     public int MaxTextSearchMatches { get; init; } = DefaultMaxTextSearchMatches;
+
+    /// <summary>Maximum geometric line-pair comparisons while grouping text-search flows on one page. Default: 1,000,000.</summary>
+    public int MaxTextSearchFlowComparisons { get; init; } = DefaultMaxTextSearchFlowComparisons;
+
+    /// <summary>Maximum layout work spent detecting table cells for text search on one page. Default: 1,000,000.</summary>
+    public int MaxTextSearchTableDetectionWork { get; init; } = DefaultMaxTextSearchTableDetectionWork;
 
     /// <summary>Maximum characters tokenized from one object or dictionary. Default: 1,000,000.</summary>
     public int MaxObjectCharacters { get; init; } = 1_000_000;
@@ -132,11 +145,26 @@ public sealed class PdfReadLimits {
     /// <summary>Maximum Type 3 glyph programs invoked while rendering one page, including nested forms. Default: 1,000,000.</summary>
     public int MaxType3GlyphInvocationsPerPage { get; init; } = DefaultMaxType3GlyphInvocationsPerPage;
 
+    /// <summary>Maximum indirect-reference steps followed while resolving one image's filter and decode-parameter arrays. Default: 100,000.</summary>
+    public int MaxImageReferenceSteps { get; init; } = DefaultMaxImageReferenceSteps;
+
     /// <summary>Maximum characters expanded into individually positioned drawing glyphs per page, including nested forms. Glyph frames rejected by page or clip bounds do not count. Default: 100,000.</summary>
     public int MaxPositionedTextCharactersPerPage { get; init; } = DefaultMaxPositionedTextCharactersPerPage;
 
     /// <summary>Maximum characters materialized or measured for positioned-glyph visibility in one page render, including invisible glyphs and nested forms. Charged before glyph strings or outlines are allocated. Default: 100,000.</summary>
     public int MaxPositionedTextWorkCharactersPerPage { get; init; } = DefaultMaxPositionedTextWorkCharactersPerPage;
+
+    /// <summary>Maximum characters scanned while projecting spaced text on one rendered page, including clipped and off-page runs. Default: 1,000,000.</summary>
+    public int MaxPositionedTextProjectionCharactersPerPage { get; init; } = DefaultMaxPositionedTextProjectionCharactersPerPage;
+
+    /// <summary>Maximum estimated face comparisons while copying fonts for clipped positioned text on one page. Default: 1,000,000.</summary>
+    public int MaxClippedTextFontCopyWorkPerPage { get; init; } = DefaultMaxClippedTextFontCopyWorkPerPage;
+
+    /// <summary>Maximum distinct content-stream contexts examined by one PDF/X color inspection. Default: 4,096.</summary>
+    public int MaxPrintProductionContexts { get; init; } = DefaultMaxPrintProductionContexts;
+
+    /// <summary>Maximum aggregate content operations examined by one PDF/X color inspection. Default: 5,000,000.</summary>
+    public int MaxPrintProductionOperations { get; init; } = DefaultMaxPrintProductionOperations;
 
     internal PdfReadLimits WithMinimumInputBytes(long minimumInputBytes) {
         return WithMinimumStructure(minimumInputBytes, MaxIndirectObjects);
@@ -163,6 +191,8 @@ public sealed class PdfReadLimits {
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = SaturatingAdd(MaxDecodedTextCharacters, growth.AdditionalDecodedTextCharacters),
             MaxTextSearchMatches = MaxTextSearchMatches,
+            MaxTextSearchFlowComparisons = MaxTextSearchFlowComparisons,
+            MaxTextSearchTableDetectionWork = MaxTextSearchTableDetectionWork,
             MaxObjectCharacters = Math.Max(MaxObjectCharacters, growth.MinimumObjectCharacters),
             MaxTokensPerObject = Math.Max(MaxTokensPerObject, growth.MinimumTokensPerObject),
             MaxObjectNestingDepth = Math.Max(MaxObjectNestingDepth, growth.MinimumObjectNestingDepth),
@@ -171,7 +201,7 @@ public sealed class PdfReadLimits {
             MaxPageTreeNodes = MaxPageTreeNodes,
             MaxPageTreeDepth = MaxPageTreeDepth,
             MaxPages = MaxPages,
-            MaxFormFields = MaxFormFields,
+            MaxFormFields = SaturatingAdd(MaxFormFields, growth.AdditionalFormFields),
             MaxFormFieldDepth = MaxFormFieldDepth,
             MaxNameTreeNodes = MaxNameTreeNodes,
             MaxNameTreeDepth = MaxNameTreeDepth,
@@ -189,7 +219,12 @@ public sealed class PdfReadLimits {
             MaxContentNestingDepth = SaturatingAdd(MaxContentNestingDepth, growth.AdditionalContentNestingDepth),
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
-            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
+            MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
+            MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
+            MaxPrintProductionContexts = SaturatingAdd(MaxPrintProductionContexts, growth.AdditionalPrintProductionContexts),
+            MaxPrintProductionOperations = SaturatingAdd(MaxPrintProductionOperations, growth.AdditionalPrintProductionOperations),
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage,
+            MaxImageReferenceSteps = MaxImageReferenceSteps
         };
     }
 
@@ -217,6 +252,8 @@ public sealed class PdfReadLimits {
             MaxActualTextCharacters = sources.Max(static limits => limits.MaxActualTextCharacters),
             MaxDecodedTextCharacters = sources.Max(static limits => limits.MaxDecodedTextCharacters),
             MaxTextSearchMatches = SaturatingSum(sources, static limits => limits.MaxTextSearchMatches),
+            MaxTextSearchFlowComparisons = sources.Max(static limits => limits.MaxTextSearchFlowComparisons),
+            MaxTextSearchTableDetectionWork = sources.Max(static limits => limits.MaxTextSearchTableDetectionWork),
             MaxObjectCharacters = sources.Max(static limits => limits.MaxObjectCharacters),
             MaxTokensPerObject = sources.Max(static limits => limits.MaxTokensPerObject),
             MaxObjectNestingDepth = sources.Max(static limits => limits.MaxObjectNestingDepth),
@@ -243,7 +280,12 @@ public sealed class PdfReadLimits {
             MaxContentNestingDepth = sources.Max(static limits => limits.MaxContentNestingDepth),
             MaxPositionedTextCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextCharactersPerPage),
             MaxPositionedTextWorkCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextWorkCharactersPerPage),
-            MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage)
+            MaxPositionedTextProjectionCharactersPerPage = sources.Max(static limits => limits.MaxPositionedTextProjectionCharactersPerPage),
+            MaxClippedTextFontCopyWorkPerPage = sources.Max(static limits => limits.MaxClippedTextFontCopyWorkPerPage),
+            MaxPrintProductionContexts = SaturatingSum(sources, static limits => limits.MaxPrintProductionContexts),
+            MaxPrintProductionOperations = SaturatingSum(sources, static limits => limits.MaxPrintProductionOperations),
+            MaxType3GlyphInvocationsPerPage = sources.Max(static limits => limits.MaxType3GlyphInvocationsPerPage),
+            MaxImageReferenceSteps = sources.Max(static limits => limits.MaxImageReferenceSteps)
         };
     }
 
@@ -313,6 +355,8 @@ public sealed class PdfReadLimits {
             MaxActualTextCharacters = MaxActualTextCharacters,
             MaxDecodedTextCharacters = MaxDecodedTextCharacters,
             MaxTextSearchMatches = MaxTextSearchMatches,
+            MaxTextSearchFlowComparisons = MaxTextSearchFlowComparisons,
+            MaxTextSearchTableDetectionWork = MaxTextSearchTableDetectionWork,
             MaxObjectCharacters = MaxObjectCharacters,
             MaxTokensPerObject = MaxTokensPerObject,
             MaxObjectNestingDepth = MaxObjectNestingDepth,
@@ -339,7 +383,12 @@ public sealed class PdfReadLimits {
             MaxContentNestingDepth = MaxContentNestingDepth,
             MaxPositionedTextCharactersPerPage = MaxPositionedTextCharactersPerPage,
             MaxPositionedTextWorkCharactersPerPage = MaxPositionedTextWorkCharactersPerPage,
-            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage
+            MaxPositionedTextProjectionCharactersPerPage = MaxPositionedTextProjectionCharactersPerPage,
+            MaxClippedTextFontCopyWorkPerPage = MaxClippedTextFontCopyWorkPerPage,
+            MaxPrintProductionContexts = MaxPrintProductionContexts,
+            MaxPrintProductionOperations = MaxPrintProductionOperations,
+            MaxType3GlyphInvocationsPerPage = MaxType3GlyphInvocationsPerPage,
+            MaxImageReferenceSteps = Math.Min(MaxImageReferenceSteps, maximumContainerEntries)
         };
     }
 
@@ -371,6 +420,8 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxActualTextCharacters, nameof(MaxActualTextCharacters), "Maximum ActualText characters must be positive.");
         ValidatePositive(MaxDecodedTextCharacters, nameof(MaxDecodedTextCharacters), "Maximum decoded text characters must be positive.");
         ValidatePositive(MaxTextSearchMatches, nameof(MaxTextSearchMatches), "Maximum text-search matches must be positive.");
+        ValidatePositive(MaxTextSearchFlowComparisons, nameof(MaxTextSearchFlowComparisons), "Maximum text-search flow comparisons must be positive.");
+        ValidatePositive(MaxTextSearchTableDetectionWork, nameof(MaxTextSearchTableDetectionWork), "Maximum text-search table detection work must be positive.");
 
         if (MaxObjectCharacters <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxObjectCharacters), MaxObjectCharacters, "Maximum object characters must be positive.");
@@ -414,7 +465,12 @@ public sealed class PdfReadLimits {
         ValidatePositive(MaxContentNestingDepth, nameof(MaxContentNestingDepth), "Maximum content nesting depth must be positive.");
         ValidatePositive(MaxPositionedTextCharactersPerPage, nameof(MaxPositionedTextCharactersPerPage), "Maximum positioned text characters per page must be positive.");
         ValidatePositive(MaxPositionedTextWorkCharactersPerPage, nameof(MaxPositionedTextWorkCharactersPerPage), "Maximum positioned text work characters per page must be positive.");
+        ValidatePositive(MaxPositionedTextProjectionCharactersPerPage, nameof(MaxPositionedTextProjectionCharactersPerPage), "Maximum positioned text projection characters per page must be positive.");
+        ValidatePositive(MaxClippedTextFontCopyWorkPerPage, nameof(MaxClippedTextFontCopyWorkPerPage), "Maximum clipped text font-copy work per page must be positive.");
+        ValidatePositive(MaxPrintProductionContexts, nameof(MaxPrintProductionContexts), "Maximum PDF/X content contexts must be positive.");
+        ValidatePositive(MaxPrintProductionOperations, nameof(MaxPrintProductionOperations), "Maximum PDF/X content operations must be positive.");
         ValidatePositive(MaxType3GlyphInvocationsPerPage, nameof(MaxType3GlyphInvocationsPerPage), "Maximum Type 3 glyph invocations per page must be positive.");
+        ValidatePositive(MaxImageReferenceSteps, nameof(MaxImageReferenceSteps), "Maximum image reference steps must be positive.");
     }
 
     private static void ValidatePositive(int value, string parameterName, string message) {

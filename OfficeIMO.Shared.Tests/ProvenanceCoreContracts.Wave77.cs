@@ -6,6 +6,21 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
     [Fact]
+    public void PackageMetadataReplacementReadsShareOneBudget() {
+        byte[] package = CreateCompressedZip(
+            ("first.xml", new byte[40]),
+            ("second.xml", new byte[40]));
+
+        Assert.Throws<InvalidDataException>(() => OfficeProvenanceZip.RemoveEntries(
+            package,
+            _ => false,
+            maximumExpandedBytes: 1024,
+            shouldReplace: name => name.EndsWith(".xml", StringComparison.Ordinal),
+            replace: (_, content) => content,
+            maximumReplacementBytes: 64));
+    }
+
+    [Fact]
     public void OpcMetadataRewriteAppliesTheOutputLimitAfterCompression() {
         byte[] contentTypes = Encoding.UTF8.GetBytes(
             "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +

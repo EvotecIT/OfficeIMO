@@ -39,6 +39,8 @@ internal sealed class HtmlCssProcessingBudget {
         }
     }
 
+    internal bool HasDeclarationLimit => _limits.MaxCssDeclarations.HasValue;
+
     internal void RecordRule(int declarationCount) {
         _rules++;
         if (_limits.MaxCssRules.HasValue && _rules > _limits.MaxCssRules.Value) {
@@ -52,6 +54,8 @@ internal sealed class HtmlCssProcessingBudget {
         RecordDeclarations(declarationCount);
     }
 
+    internal void RecordDeclaration() => RecordDeclarations(1);
+
     internal void RecordSelectorEvaluation() {
         _selectorEvaluations++;
         if (_limits.MaxSelectorEvaluations.HasValue && _selectorEvaluations > _limits.MaxSelectorEvaluations.Value) {
@@ -60,6 +64,18 @@ internal sealed class HtmlCssProcessingBudget {
                 nameof(HtmlConversionLimits.MaxSelectorEvaluations),
                 _selectorEvaluations,
                 _limits.MaxSelectorEvaluations.Value);
+        }
+    }
+
+    internal void ValidateRegistrationFanout(int registrations, int elements) {
+        if (!_limits.MaxCssDeclarations.HasValue) return;
+        long applications = (long)registrations * elements;
+        if (applications > _limits.MaxCssDeclarations.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssDeclarationLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssDeclarations),
+                applications,
+                _limits.MaxCssDeclarations.Value);
         }
     }
 

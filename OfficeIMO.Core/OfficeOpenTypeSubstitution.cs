@@ -122,7 +122,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
                 if (replacementCount > 1) glyphIndex += replacementCount - 1;
             }
             else if (lookupType == 3) ApplyAlternate(glyphs, glyphIndex, subtable, featureValue);
-            else if (lookupType == 4 && ApplyLigature(glyphs, glyphIndex, subtable)) glyphIndex--;
+            else if (lookupType == 4) ApplyLigature(glyphs, glyphIndex, subtable, ref operations);
             else if (lookupType == 5) ApplyContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);
             else if (lookupType == 6) ApplyChainedContextual(glyphs, glyphIndex, subtable, featureValue, cancellationToken, ref operations, 0);
         }
@@ -165,7 +165,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         if (replacement > 0 && replacement < _reader.GlyphCount) glyphs[index] = glyphs[index].WithGlyph(replacement);
     }
 
-    private bool ApplyLigature(List<GlyphToken> glyphs, int index, int subtable) {
+    private bool ApplyLigature(List<GlyphToken> glyphs, int index, int subtable, ref int operations) {
         Ensure(subtable, 6);
         if (_reader.ReadUInt16(subtable) != 1) return false;
         int coverage = Relative(subtable, _reader.ReadUInt16(subtable + 2), 4);
@@ -180,6 +180,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int bestLigature = 0;
         int bestComponentCount = 0;
         for (int ligatureIndex = 0; ligatureIndex < ligatureCount; ligatureIndex++) {
+            ChargeOperations(ref operations, 1);
             int ligature = Relative(set, _reader.ReadUInt16(set + 2 + ligatureIndex * 2), 4);
             int replacement = _reader.ReadUInt16(ligature);
             int componentCount = _reader.ReadUInt16(ligature + 2);
@@ -187,6 +188,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             Ensure(ligature + 4, checked((componentCount - 1) * 2));
             bool matches = true;
             for (int component = 1; component < componentCount; component++) {
+                ChargeOperations(ref operations, 1);
                 if (glyphs[index + component].GlyphId != _reader.ReadUInt16(ligature + 4 + (component - 1) * 2)) {
                     matches = false;
                     break;
@@ -198,12 +200,25 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             }
         }
         if (bestComponentCount == 0) return false;
-        string unicode = string.Empty;
-        for (int component = 0; component < bestComponentCount; component++) unicode += glyphs[index + component].UnicodeText;
+        int unicodeLength = 0;
+        for (int component = 0; component < bestComponentCount; component++) {
+            int length = glyphs[index + component].UnicodeText.Length;
+            ChargeOperations(ref operations, length);
+            unicodeLength += length;
+        }
+        var unicodeBuilder = new System.Text.StringBuilder(unicodeLength);
+        for (int component = 0; component < bestComponentCount; component++) unicodeBuilder.Append(glyphs[index + component].UnicodeText);
         GlyphToken first = glyphs[index];
-        glyphs[index] = new GlyphToken(bestLigature, unicode, first.TextIndex, first.Scalar);
+        glyphs[index] = new GlyphToken(bestLigature, unicodeBuilder.ToString(), first.TextIndex, first.Scalar);
         glyphs.RemoveRange(index + 1, bestComponentCount - 1);
         return true;
+    }
+
+    private static void ChargeOperations(ref int operations, int count) {
+        if (count < 0 || count > MaximumOperations - operations) {
+            throw new InvalidDataException("GSUB shaping exceeded the managed operation budget.");
+        }
+        operations += count;
     }
 
     private int CoverageIndex(int coverage, int glyphId) {

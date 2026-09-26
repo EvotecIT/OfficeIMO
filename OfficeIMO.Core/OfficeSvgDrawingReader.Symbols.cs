@@ -45,6 +45,12 @@ public static partial class OfficeSvgDrawingReader {
             return;
         }
 
+        var symbolBudget = references.CaptureSurfaceBudget();
+        if (!references.TryChargeNestedViewport(width, height, viewBox[2], viewBox[3])) {
+            unsupported++;
+            return;
+        }
+
         var scene = new OfficeDrawing(viewBox[2], viewBox[3]);
         scene.Fonts.AddRange(drawing.Fonts);
         SvgPaintContext style = ResolvePaintContext(symbol, inheritedStyle, paintServers, ref unsupported);
@@ -56,7 +62,12 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform viewportTransform = ResolveViewportTransform(viewBox[2], viewBox[3], width, height, alignment, slice);
 
         OfficeDrawing viewport = FitSvgViewport(scene, width, height, viewportTransform,
-            maximumViewportDimension, maximumViewportPixels, ref unsupported);
+            maximumViewportDimension, maximumViewportPixels, ref unsupported, out double retainedScenePixels);
+        if (!references.TryChargeNestedViewportExpansion(retainedScenePixels - viewBox[2] * viewBox[3])) {
+            references.RestoreSurfaceBudget(symbolBudget);
+            unsupported++;
+            return;
+        }
         var clipped = new OfficeDrawing(width, height);
         clipped.AddClippedDrawing(viewport, 0D, 0D, OfficeClipPath.Rectangle(width, height));
         drawing.AddEffectDrawing(clipped, OfficeTransform.Translate(x, y).Then(inheritedTransform));

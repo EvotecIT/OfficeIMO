@@ -12,14 +12,21 @@ public sealed partial class PdfDocument {
     /// Generated documents use layout evidence; opened documents use artifact readback evidence.
     /// </summary>
     /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
-    public PdfComplianceReadinessReport AssessCompliance(PdfComplianceProfile profile) {
+    public PdfComplianceReadinessReport AssessCompliance(PdfComplianceProfile profile) =>
+        AssessCompliance(profile, default);
+
+    /// <summary>Analyzes a compliance profile while observing cancellation during opened-PDF readback.</summary>
+    public PdfComplianceReadinessReport AssessCompliance(
+        PdfComplianceProfile profile, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
-            var snapshot = GetReadSnapshot();
-            PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document);
-            return PdfComplianceAnalyzer.AssessReadback(profile, snapshot.Document, info);
+            var snapshot = GetReadSnapshot(cancellationToken: cancellationToken);
+            PdfDocumentInfo info = PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
+            return PdfComplianceAnalyzer.AssessReadback(profile, snapshot.Document, info, cancellationToken);
         }
 
         PdfGeneratedDocumentComplianceEvidence evidence = PdfWriter.CollectGeneratedComplianceEvidence(this, _blocks, _options);
+        cancellationToken.ThrowIfCancellationRequested();
         return PdfComplianceAnalyzer.AssessDocument(profile, _options, evidence, _title);
     }
 
@@ -119,7 +126,7 @@ public sealed partial class PdfDocument {
 
             byte[] bytes = RenderBytesCore(cancellationToken);
             timer.Stop();
-            PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(bytes, ReadOptions);
+            PdfArtifactSnapshot output = PdfArtifactSnapshot.Capture(bytes, ReadOptions, cancellationToken);
             PdfPipelineReport pipeline = AppendOutputStep("ToBytes", output, timer.Elapsed);
             return PdfBytesResult.Success(bytes, pipeline);
         } catch (OperationCanceledException) {
@@ -394,7 +401,7 @@ public sealed partial class PdfDocument {
         }
     }
 
-    private static string ValidateOutputPath(string path) {
+    internal static string ValidateOutputPath(string path) {
         Guard.NotNull(path, nameof(path));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Path cannot be empty or whitespace.", nameof(path));
 

@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
@@ -101,6 +102,37 @@ public sealed partial class IWorkBoundaryTests {
             resourceTargetObjectBody: "[/DeviceRGB]\n");
 
         Assert.True(IWorkPdfInfo.IsComplete(pdf));
+    }
+
+    [Fact]
+    public void Pdf_resource_reference_chain_stops_before_exhausting_the_stack() {
+        const int chainLength = 300;
+        int lastObject = 3 + chainLength;
+        var pdf = new StringBuilder("%PDF-1.4\n");
+        var offsets = new List<int> { 0 };
+        void AddObject(int number, string body) {
+            Assert.Equal(number, offsets.Count);
+            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
+            pdf.Append(number).Append(" 0 obj\n").Append(body).Append("\nendobj\n");
+        }
+        AddObject(1, "<< /Type /Catalog /Pages 2 0 R >>");
+        AddObject(2, "<< /Type /Pages /MediaBox [0 0 612 792] /Count 1 /Kids [3 0 R] >>");
+        AddObject(3, "<< /Type /Page /Parent 2 0 R /Resources 4 0 R >>");
+        for (int number = 4; number <= lastObject; number++) {
+            string body = number == lastObject
+                ? "<< /ProcSet [/PDF] >>"
+                : "<< /Next " + (number + 1) + " 0 R >>";
+            AddObject(number, body);
+        }
+        int xrefOffset = Encoding.ASCII.GetByteCount(pdf.ToString());
+        pdf.Append("xref\n0 ").Append(lastObject + 1).Append("\n0000000000 65535 f \n");
+        for (int number = 1; number <= lastObject; number++)
+            pdf.Append(offsets[number].ToString("D10", System.Globalization.CultureInfo.InvariantCulture))
+                .Append(" 00000 n \n");
+        pdf.Append("trailer\n<< /Size ").Append(lastObject + 1)
+            .Append(" /Root 1 0 R >>\nstartxref\n").Append(xrefOffset).Append("\n%%EOF\n");
+
+        Assert.False(IWorkPdfInfo.IsComplete(Encoding.ASCII.GetBytes(pdf.ToString())));
     }
 
     private static MemoryStream CreatePackageWithMalformedTableCatalog(

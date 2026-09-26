@@ -128,7 +128,13 @@ public static class PdfLogicalReadingOrderAnalysis {
         if (scope is not (PdfLogicalReadingOrderScope.SemanticBody or PdfLogicalReadingOrderScope.PageContent)) {
             throw new ArgumentOutOfRangeException(nameof(scope), scope, "Unsupported logical reading-order scope.");
         }
-        Action<long>? consumeWork = page.Analysis.ConsumeWork;
+        // The read operation detaches its token and work counter before returning
+        // the lazy page model. Give every explicit projection its own bounded work.
+        var projectionBudget = new PdfUnderstandingWorkBudget(page.Analysis.MaxWorkUnitsPerPage, System.Threading.CancellationToken.None);
+        Action<long> consumeWork = units => {
+            page.Analysis.CancellationCheck?.Invoke();
+            projectionBudget.Consume(units);
+        };
         Action? cancellationCheck = page.Analysis.CancellationCheck;
         cancellationCheck?.Invoke();
         var candidates = BuildCandidates(page, scope, consumeWork, cancellationCheck);
@@ -149,18 +155,34 @@ public static class PdfLogicalReadingOrderAnalysis {
             .OrderBy(static item => item.Top)
             .ThenBy(static item => item.Left)
             .ToArray();
+        Candidate[] positionedByTop = positioned.OrderBy(static item => item.Top).ToArray();
+        int nextPositionedIndex = 0;
         var ordered = new List<Candidate>(candidates.Count);
         var consumed = new HashSet<Candidate>();
         double bandTop = 0D;
         for (int index = 0; index < spanning.Length; index++) {
+            cancellationCheck?.Invoke();
             Candidate divider = spanning[index];
-            AddBand(positioned.Where(item => !consumed.Contains(item) && !ReferenceEquals(item, divider) && item.Top >= bandTop && item.Top < divider.Top), ordered, consumed);
+            var band = new List<Candidate>();
+            while (nextPositionedIndex < positionedByTop.Length &&
+                   positionedByTop[nextPositionedIndex].Top < divider.Top) {
+                Candidate item = positionedByTop[nextPositionedIndex++];
+                consumeWork(1);
+                if (item.Top >= bandTop && !consumed.Contains(item)) band.Add(item);
+            }
+            AddBand(band, ordered, consumed);
             divider.SpansColumns = true;
             divider.ColumnIndex = 0;
             if (consumed.Add(divider)) ordered.Add(divider);
             bandTop = Math.Max(bandTop, divider.Bottom);
         }
-        AddBand(positioned.Where(item => !consumed.Contains(item) && item.Top >= bandTop), ordered, consumed);
+        var finalBand = new List<Candidate>();
+        while (nextPositionedIndex < positionedByTop.Length) {
+            Candidate item = positionedByTop[nextPositionedIndex++];
+            consumeWork(1);
+            if (item.Top >= bandTop && !consumed.Contains(item)) finalBand.Add(item);
+        }
+        AddBand(finalBand, ordered, consumed);
         // Overlapping content can fall inside a wide table or visual band without being
         // represented by that semantic projection. Merge those candidates back at their
         // visual position instead of appending them after lower-page content.
@@ -170,6 +192,8 @@ public static class PdfLogicalReadingOrderAnalysis {
             .ThenBy(static item => item.Left)
             .ThenBy(static item => item.Sequence)) {
             item.ColumnIndex = 0;
+            // FindIndex and List.Insert each traverse or shift the current result.
+            consumeWork(Math.Max(1, ordered.Count));
             int insertionIndex = ordered.FindIndex(existing =>
                 existing.Top > item.Top ||
                 existing.Top == item.Top && existing.Left > item.Left ||
@@ -207,7 +231,7 @@ public static class PdfLogicalReadingOrderAnalysis {
                 item.HasGeometry, item.IsClipped, item.Left, item.Top, item.Right, item.Bottom,
                 confidence, evidence.AsReadOnly());
         }
-        return ApplyCanonicalOrder(page, result);
+        return ApplyCanonicalOrder(page, result, consumeWork, cancellationCheck);
 
         void AddBand(IEnumerable<Candidate> source, List<Candidate> destination, HashSet<Candidate> seen) {
             Candidate[] band = source.OrderBy(static item => item.Left).ThenBy(static item => item.Top).ToArray();
@@ -249,30 +273,36 @@ public static class PdfLogicalReadingOrderAnalysis {
 
     private static IReadOnlyList<PdfLogicalReadingOrderItem> ApplyCanonicalOrder(
         PdfLogicalPage page,
-        PdfLogicalReadingOrderItem[] items) {
+        PdfLogicalReadingOrderItem[] items,
+        Action<long> consumeWork,
+        Action? cancellationCheck) {
         if (page.Analysis.ReadingOrder.Count == 0 ||
             items.Length < 2) return items;
 
         Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines =
-            IndexCanonicalLines(page.Analysis.ReadingOrder);
+            IndexCanonicalLines(page.Analysis.ReadingOrder, consumeWork, cancellationCheck);
         var ranked = new CanonicalRank[items.Length];
         var matchedIndexes = new List<int>();
         for (int index = 0; index < items.Length; index++) {
-            bool matched = TryGetCanonicalPosition(page, items[index], canonicalLines, out long position);
+            cancellationCheck?.Invoke();
+            consumeWork(1);
+            bool matched = TryGetCanonicalPosition(page, items[index], canonicalLines, consumeWork, out long position);
             ranked[index] = new CanonicalRank(items[index], index, matched, matched ? position : 0D);
             if (matched) matchedIndexes.Add(index);
         }
         if (matchedIndexes.Count == 0) return items;
 
+        var nextMatchedIndexes = new int[ranked.Length];
+        int nextMatchedIndex = -1;
+        for (int index = ranked.Length - 1; index >= 0; index--) {
+            nextMatchedIndexes[index] = nextMatchedIndex;
+            if (ranked[index].Matched) nextMatchedIndex = index;
+        }
+        int previousMatchedIndex = -1;
         for (int index = 0; index < ranked.Length; index++) {
-            if (ranked[index].Matched) continue;
-            int previous = -1;
-            int next = -1;
-            for (int matchIndex = 0; matchIndex < matchedIndexes.Count; matchIndex++) {
-                int candidate = matchedIndexes[matchIndex];
-                if (candidate < index) previous = candidate;
-                else if (candidate > index) { next = candidate; break; }
-            }
+            if (ranked[index].Matched) { previousMatchedIndex = index; continue; }
+            int previous = previousMatchedIndex;
+            int next = nextMatchedIndexes[index];
 
             double position;
             if (previous >= 0 && next >= 0 && ranked[previous].Position < ranked[next].Position) {
@@ -336,6 +366,7 @@ public static class PdfLogicalReadingOrderAnalysis {
         PdfLogicalPage page,
         PdfLogicalReadingOrderItem item,
         Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>> canonicalLines,
+        Action<long> consumeWork,
         out long position) {
         position = 0L;
         IReadOnlyList<PdfLogicalTextBlock>? lines = item.Kind switch {
@@ -360,10 +391,12 @@ public static class PdfLogicalReadingOrderAnalysis {
                             (baselineBucket + baselineOffset, xBucket + xOffset, text),
                             out IReadOnlyList<CanonicalLinePosition>? candidates)) continue;
                     for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+                        consumeWork(1);
                         CanonicalLinePosition candidate = candidates[candidateIndex];
                         if (Math.Abs(candidate.BaselineY - block.BaselineY) > 0.25D ||
                             Math.Abs(candidate.XStart - block.XStart) > 0.5D) continue;
                         best = Math.Min(best, candidate.Position);
+                        break;
                     }
                 }
             }
@@ -374,11 +407,14 @@ public static class PdfLogicalReadingOrderAnalysis {
     }
 
     private static Dictionary<(long BaselineBucket, long XBucket, string Text), IReadOnlyList<CanonicalLinePosition>>
-        IndexCanonicalLines(IReadOnlyList<PdfUnderstandingRegion> regions) {
+        IndexCanonicalLines(IReadOnlyList<PdfUnderstandingRegion> regions, Action<long> consumeWork,
+            Action? cancellationCheck) {
         var index = new Dictionary<(long BaselineBucket, long XBucket, string Text), List<CanonicalLinePosition>>();
         for (int regionIndex = 0; regionIndex < regions.Count; regionIndex++) {
             IReadOnlyList<PdfUnderstandingLine> lines = regions[regionIndex].Lines;
             for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
+                consumeWork(1);
+                if ((lineIndex & 255) == 0) cancellationCheck?.Invoke();
                 PdfUnderstandingLine line = lines[lineIndex];
                 var key = (
                     GetCanonicalBucket(line.BaselineY, 0.25D),

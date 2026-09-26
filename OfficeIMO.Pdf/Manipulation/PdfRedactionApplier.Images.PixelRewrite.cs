@@ -106,7 +106,7 @@ internal static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                if (TryRewriteImageStreamPixels(objects, resources, invocation.Name, imageReference, imageStream, target, invocationTransform, options, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber)) {
+                if (TryRewriteImageStreamPixels(objects, resources, invocation.Name, imageReference, imageStream, target, invocationTransform, options, limits, hasEffectiveOutputIntentColorTransform, ref nextObjectNumber)) {
                     AddRemovedImageTargets(new[] { target }, removedMatches, null);
                     changed = true;
                 }
@@ -457,6 +457,7 @@ internal static partial class PdfRedactionApplier {
         ImageRedactionTarget target,
         Matrix2D transform,
         PdfRedactionApplyOptions options,
+        PdfReadLimits limits,
         bool hasEffectiveOutputIntentColorTransform,
         ref int nextObjectNumber) {
         if (!TryGetSimpleWritableImage(imageStream, objects, options.MaximumDecodedImageBytes, out int width, out int height, out int components, out ImageSampleRewriteEncoder imageEncoder, out ImageSoftMaskRewriteTarget softMask)) {
@@ -464,7 +465,7 @@ internal static partial class PdfRedactionApplier {
                 ResourceResolver.HasIccBasedImageColorSpace(imageStream.Dictionary, resources, objects)) {
                 return false;
             }
-            return TryRewriteNormalizedImagePixels(objects, resources, resourceName, imageReference, imageStream, target, transform, options, ref nextObjectNumber);
+            return TryRewriteNormalizedImagePixels(objects, resources, resourceName, imageReference, imageStream, target, transform, options, limits, ref nextObjectNumber);
         }
 
         long expectedLengthLong = (long)width * height * components;
@@ -533,6 +534,7 @@ internal static partial class PdfRedactionApplier {
         ImageRedactionTarget target,
         Matrix2D transform,
         PdfRedactionApplyOptions options,
+        PdfReadLimits limits,
         ref int nextObjectNumber) {
         PdfExtractedImage extracted = ResourceResolver.BuildExtractedImage(
             0,
@@ -542,7 +544,8 @@ internal static partial class PdfRedactionApplier {
             imageStream,
             objects,
             resources: resources,
-            maxDecodedStreamBytes: options.MaximumDecodedImageBytes);
+            maxDecodedStreamBytes: options.MaximumDecodedImageBytes,
+            maxImageReferenceSteps: limits.MaxImageReferenceSteps);
         if (!TryDecodeRedactionRaster(extracted, imageStream, objects, options, out int width, out int height, out byte[] rgba) ||
             !TryGetRedactionPixelBounds(target.Match.Area, transform, width, height, out int x0, out int y0, out int x1, out int y1)) {
             return false;

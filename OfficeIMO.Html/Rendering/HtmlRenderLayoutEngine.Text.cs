@@ -915,12 +915,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int minimumWordLength = Math.Max(1, style.HyphenateMinimumWordLength);
         int minimumPrefix = Math.Max(1, style.HyphenateMinimumPrefixLength);
         int minimumSuffix = Math.Max(1, style.HyphenateMinimumSuffixLength);
-        int[] FilterBreaks(IEnumerable<int> candidates) => CountCssHyphenationCharacters(logicalText, 0, logicalText.Length) < minimumWordLength
+        int[] graphemeStarts = StringInfo.ParseCombiningCharacters(logicalText);
+        int[] characterCounts = new int[graphemeStarts.Length + 1];
+        for (int index = 0; index < graphemeStarts.Length; index++) {
+            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(logicalText, graphemeStarts[index]);
+            characterCounts[index + 1] = characterCounts[index] +
+                (category == UnicodeCategory.NonSpacingMark || IsPunctuationCategory(category) ? 0 : 1);
+        }
+        int totalCharacters = characterCounts[graphemeStarts.Length];
+        int[] FilterBreaks(IEnumerable<int> candidates) => totalCharacters < minimumWordLength
             ? Array.Empty<int>()
             : candidates
-                .Where(point => OfficeTextLineBreaks.IsValidBreakPosition(logicalText, point))
-                .Where(point => CountCssHyphenationCharacters(logicalText, 0, point) >= minimumPrefix
-                    && CountCssHyphenationCharacters(logicalText, point, logicalText.Length - point) >= minimumSuffix)
+                .Where(point => point > 0 && point < logicalText.Length)
+                .Select(point => Array.BinarySearch(graphemeStarts, point))
+                .Where(index => index > 0 && characterCounts[index] >= minimumPrefix
+                    && totalCharacters - characterCounts[index] >= minimumSuffix)
+                .Select(index => graphemeStarts[index])
                 .Distinct()
                 .OrderBy(point => point)
                 .ToArray();
@@ -931,16 +941,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? FilterBreaks(automaticBreaks.Where(point => !manualBreaks.Contains(point)))
             : Array.Empty<int>();
         return new HyphenationToken(paint.ToString(), logicalText, primaryBreaks, secondaryBreaks, sourceBoundaries.ToArray());
-    }
-
-    private static int CountCssHyphenationCharacters(string value, int start, int length) {
-        int count = 0;
-        foreach (string element in OfficeTextElements.Enumerate(value.Substring(start, length))) {
-            UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(element, 0);
-            if (category == UnicodeCategory.NonSpacingMark || IsPunctuationCategory(category)) continue;
-            count++;
-        }
-        return count;
     }
 
     private static bool IsPunctuationCategory(UnicodeCategory category) => category == UnicodeCategory.ConnectorPunctuation

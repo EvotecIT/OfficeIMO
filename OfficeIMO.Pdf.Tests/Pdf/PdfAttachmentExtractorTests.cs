@@ -10,6 +10,22 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfAttachmentExtractorTests {
     [Fact]
+    public void SelectedExtractionDoesNotDecodeOtherAttachmentPayloads() {
+        byte[] pdf = PdfDocument.Create()
+            .AttachFile("first.bin", new byte[40])
+            .AttachFile("second.bin", new byte[40])
+            .ToBytes();
+        PdfDocument document = PdfDocument.Load(pdf);
+        PdfAttachmentInfo second = document.Inspect().Attachments.Single(item => item.FileName == "second.bin");
+
+        PdfExtractedAttachment selected = document.Attachments.Extract(second, 50);
+
+        Assert.Equal("second.bin", selected.FileName);
+        Assert.Equal(40, selected.Bytes.Length);
+        Assert.Throws<PdfReadLimitException>(() => document.Attachments.Extract(second, 39));
+    }
+
+    [Fact]
     public void ExtractAttachments_ReadsGeneratedEmbeddedAndAssociatedFiles() {
         byte[] invoiceXml = Encoding.UTF8.GetBytes("<invoice>42</invoice>");
         byte[] sourceBytes = Encoding.UTF8.GetBytes("Source payload");

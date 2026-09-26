@@ -85,6 +85,53 @@ namespace OfficeIMO.Core.Internal {
             return result;
         }
 
+        /// <summary>Validates one exact zlib payload with a fixed-size decode buffer.</summary>
+        internal static bool TryValidateExact(
+            byte[] bytes,
+            int offset,
+            int count,
+            int expectedOutputBytes,
+            CancellationToken cancellationToken = default) {
+            if (bytes == null || offset < 0 || count < 6 || expectedOutputBytes < 0 ||
+                offset > bytes.Length - count) return false;
+            int compressionMethodAndInfo = bytes[offset];
+            int flags = bytes[offset + 1];
+            if ((compressionMethodAndInfo & 0x0F) != 8 ||
+                (compressionMethodAndInfo >> 4) > 7 ||
+                ((compressionMethodAndInfo << 8) + flags) % 31 != 0 ||
+                (flags & 0x20) != 0 ||
+                !OfficeDeflateStreamValidator.TryValidateExact(
+                    bytes, offset + 2, count - 6, expectedOutputBytes, cancellationToken)) return false;
+
+            uint a = 1;
+            uint b = 0;
+            int total = 0;
+            byte[] buffer = new byte[8192];
+            try {
+                using var source = new MemoryStream(bytes, offset + 2, count - 6, writable: false);
+                using var deflate = new DeflateStream(source, CompressionMode.Decompress);
+                int read;
+                while ((read = deflate.Read(buffer, 0, buffer.Length)) != 0) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (read > expectedOutputBytes - total) return false;
+                    total += read;
+                    for (int start = 0; start < read; start += 5552) {
+                        int end = Math.Min(start + 5552, read);
+                        for (int index = start; index < end; index++) {
+                            a += buffer[index];
+                            b += a;
+                        }
+                        a %= 65521;
+                        b %= 65521;
+                    }
+                }
+            } catch (InvalidDataException) {
+                return false;
+            }
+            return total == expectedOutputBytes &&
+                ((b << 16) | a) == ReadBigEndianUInt32(bytes, offset + count - 4);
+        }
+
         private static uint Adler32(byte[] data, CancellationToken cancellationToken = default) {
             const uint Modulus = 65521;
             const int MaximumChunk = 5552;

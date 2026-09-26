@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>Measures union coverage of visual selection quads without counting duplicate spans twice.</summary>
 internal static partial class PdfSelectionCoverage {
     internal static bool Covers(PdfSelectionQuad target, IReadOnlyList<PdfSelectionQuad> regions, double threshold,
-        Action<long> consumeWork, CancellationToken cancellationToken) {
+        Action<long> consumeWork, CancellationToken cancellationToken, int maximumRetainedIntersections = int.MaxValue) {
         cancellationToken.ThrowIfCancellationRequested();
         var targetPoints = Points(target);
         double targetArea = Area(targetPoints);
@@ -26,6 +26,8 @@ internal static partial class PdfSelectionCoverage {
             double area;
             if (targetIsRectangle && IsRectangle(region)) {
                 area = (right - left) * (bottom - top);
+                if (area >= required) return true;
+                EnsureRetainedIntersectionCapacity();
                 rectangles.Add(new CoverageRectangle(left, top, right, bottom));
             } else {
                 // Convex quad clipping has at most eight output vertices and four clip edges.
@@ -33,9 +35,10 @@ internal static partial class PdfSelectionCoverage {
                 List<OfficePoint> clipped = PdfPageClipPath.ClipPolygonToConvexPolygon(Points(region), targetPoints, null);
                 area = Area(clipped);
                 if (area <= 0D) continue;
+                if (area >= required) return true;
+                EnsureRetainedIntersectionCapacity();
                 polygons.Add(clipped);
             }
-            if (area >= required) return true;
             summedArea += area;
         }
         if (summedArea < required || summedArea <= 0D) return false;
@@ -45,6 +48,12 @@ internal static partial class PdfSelectionCoverage {
             new OfficePoint(rectangle.Right, rectangle.Bottom), new OfficePoint(rectangle.Left, rectangle.Bottom)
         });
         return PolygonUnionArea(polygons, required, consumeWork, cancellationToken) >= required;
+
+        void EnsureRetainedIntersectionCapacity() {
+            if ((long)rectangles.Count + polygons.Count >= maximumRetainedIntersections)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts,
+                    maximumRetainedIntersections, (long)rectangles.Count + polygons.Count + 1L);
+        }
     }
 
     private static double PolygonUnionArea(List<List<OfficePoint>> polygons, double stopAt,

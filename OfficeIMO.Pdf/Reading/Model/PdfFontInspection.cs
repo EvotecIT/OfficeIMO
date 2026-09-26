@@ -37,6 +37,15 @@ public sealed class PdfFontInspectionOptions {
     /// <summary>Maximum nested Form XObject resource-context traversals performed by one inspection. Default: 10,000.</summary>
     public int MaxFormResourceTraversals { get; init; } = 10_000;
 
+    /// <summary>Maximum characters retained in one resource path. Default: 4,096.</summary>
+    public int MaxResourcePathCharacters { get; init; } = 4_096;
+
+    /// <summary>Maximum aggregate resource-path characters visited by one inspection. Default: 4 MiB.</summary>
+    public long MaxTotalResourcePathCharacters { get; init; } = 4L * 1024L * 1024L;
+
+    /// <summary>Maximum diagnostics retained by one inspection. Default: 10,000.</summary>
+    public int MaxDiagnostics { get; init; } = 10_000;
+
     internal static PdfFontInspectionOptions Resolve(PdfFontInspectionOptions? options) {
         PdfFontInspectionOptions effective = options ?? new PdfFontInspectionOptions();
         if (effective.MaxEmbeddedProgramBytes <= 0) {
@@ -60,6 +69,8 @@ public sealed class PdfFontInspectionOptions {
         if (effective.MaxFormResourceTraversals <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options), effective.MaxFormResourceTraversals, "Maximum Form resource traversals must be positive.");
         }
+        if (effective.MaxResourcePathCharacters <= 0 || effective.MaxTotalResourcePathCharacters <= 0 || effective.MaxDiagnostics <= 0)
+            throw new ArgumentOutOfRangeException(nameof(options), "Font resource-path and diagnostic limits must be positive.");
         return effective;
     }
 }

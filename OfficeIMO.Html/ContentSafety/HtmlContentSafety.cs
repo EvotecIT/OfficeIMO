@@ -371,6 +371,13 @@ public static partial class HtmlContentSafety {
         if (string.Equals(display, "none", StringComparison.OrdinalIgnoreCase)) {
             return new Concealment(OfficeContentConcealmentKind.HiddenByProperty, "Computed CSS display is none.");
         }
+        if (TryParseScalar(style.GetValue("opacity"), out double opacity) && opacity <= 0.01D) {
+            return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS opacity is " + opacity.ToString("0.###", CultureInfo.InvariantCulture) + ".");
+        }
+        string filter = style.GetValue("filter");
+        if (TryGetCssFilterOpacity(filter, out double filterOpacity) && filterOpacity <= 0.01D) {
+            return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS filter applies zero opacity.");
+        }
         string visibility = style.GetValue("visibility").Trim();
         if (string.Equals(visibility, "hidden", StringComparison.OrdinalIgnoreCase) || string.Equals(visibility, "collapse", StringComparison.OrdinalIgnoreCase)) {
             return new Concealment(
@@ -378,19 +385,12 @@ public static partial class HtmlContentSafety {
                 "Computed CSS visibility is " + visibility + ".",
                 descendantsMayOverride: true);
         }
-        if (TryParseScalar(style.GetValue("opacity"), out double opacity) && opacity <= 0.01D) {
-            return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS opacity is " + opacity.ToString("0.###", CultureInfo.InvariantCulture) + ".");
-        }
         if (TryParseCssColor(style.GetValue("color"), out OfficeColor textColor) && textColor.A <= 3) {
             return new Concealment(
                 OfficeContentConcealmentKind.TransparentText,
                 "Computed CSS text color is fully or nearly transparent.",
                 descendantsMayOverride: true,
                 reportOnly: !isHtmlElement);
-        }
-        string filter = style.GetValue("filter");
-        if (TryGetCssFilterOpacity(filter, out double filterOpacity) && filterOpacity <= 0.01D) {
-            return new Concealment(OfficeContentConcealmentKind.TransparentText, "Computed CSS filter applies zero opacity.");
         }
         if (TryParseLengthPoints(style.GetValue("font-size"), out double fontPoints) && fontPoints <= options.MaximumTinyFontSizePoints) {
             return new Concealment(

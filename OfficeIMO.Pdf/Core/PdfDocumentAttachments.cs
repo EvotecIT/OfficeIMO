@@ -7,6 +7,25 @@ public sealed class PdfDocumentAttachments {
     /// <summary>Extracts every embedded or associated file payload.</summary>
     public IReadOnlyList<PdfExtractedAttachment> Extract(PdfLoadOptions? readOptions = null) =>
         _document.Reader.Attachments(readOptions);
+    /// <summary>Extracts one selected attachment without decoding unrelated payloads.</summary>
+    public PdfExtractedAttachment Extract(PdfAttachmentInfo attachment, long maximumDecodedBytes,
+        System.Threading.CancellationToken cancellationToken = default) {
+        Guard.NotNull(attachment, nameof(attachment));
+        PdfReadDocument document = _document.GetReadDocument(_document.ReadOptions, cancellationToken);
+        IReadOnlyList<PdfExtractedAttachment> selected = PdfAttachmentExtractor.ExtractAttachments(
+            document,
+            candidate => candidate.FileSpecObjectNumber == attachment.FileSpecObjectNumber &&
+                         candidate.EmbeddedFileObjectNumber == attachment.EmbeddedFileObjectNumber &&
+                         string.Equals(candidate.Name, attachment.Name, StringComparison.Ordinal) &&
+                         string.Equals(candidate.FileName, attachment.FileName, StringComparison.Ordinal) &&
+                         string.Equals(candidate.Source, attachment.Source, StringComparison.Ordinal),
+            maximumDecodedBytes,
+            maxDecodedBytesPerAttachment: maximumDecodedBytes,
+            maxSelectedAttachments: 1,
+            requireSuccessfulDecoding: true,
+            cancellationToken: cancellationToken);
+        return selected.Count == 1 ? selected[0] : throw new KeyNotFoundException("The selected PDF attachment is no longer present.");
+    }
     /// <summary>Attempts to extract attachment payloads, returning preflight diagnostics when blocked or failed.</summary>
     public PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> ExtractResult(PdfLoadOptions? readOptions = null) =>
         _document.Reader.AttachmentsResult(readOptions);
@@ -20,4 +39,7 @@ public sealed class PdfDocumentAttachments {
     public PdfAttachmentEditResult Rename(string fileName, string newFileName) => PdfAttachmentEditor.Rename(_document.GetBytesForOperation(), fileName, newFileName, _document.ReadOptions);
     /// <summary>Removes one attachment.</summary>
     public PdfAttachmentEditResult Remove(string fileName) => PdfAttachmentEditor.Remove(_document.GetBytesForOperation(), fileName, _document.ReadOptions);
+    /// <summary>Removes one selected attachment by its source object identity.</summary>
+    public PdfAttachmentEditResult Remove(PdfAttachmentInfo attachment) =>
+        PdfAttachmentEditor.Edit(_document.GetBytesForOperation(), session => session.Remove(attachment), _document.ReadOptions);
 }

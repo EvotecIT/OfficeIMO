@@ -26,6 +26,8 @@ public sealed partial class OfficeRasterCanvas {
     private readonly System.Threading.CancellationToken _cancellationToken;
     private bool _reportedBoundedTextShapingFallback;
     private bool _reportedIncompleteTextShapingFallback;
+    private const long MaximumTransformedTextIntermediatePixels = 64_000_000L;
+    private OfficeRasterTransformedTextBudget _transformedTextBudget = new OfficeRasterTransformedTextBudget();
     private int CoverageSamples => _target != null && _target.Supersampling > 1 ? 1 : AntiAliasSamples;
 
     private static bool IsFinite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
@@ -122,6 +124,31 @@ public sealed partial class OfficeRasterCanvas {
     internal OfficeTrueTypeFont? OutlineFont => _font;
 
     internal OfficeFontFaceCollection? Fonts => _fonts;
+
+    internal void ChargeTransformedTextIntermediatePixels(long pixels, long maximumRasterPixels) {
+        long consumed = _transformedTextBudget.Pixels;
+        if (pixels < 0L || pixels > MaximumTransformedTextIntermediatePixels - consumed) {
+            throw new OfficeImageExportLimitException(1D,
+                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
+                MaximumTransformedTextIntermediatePixels,
+                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+        }
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
+        _transformedTextBudget.Pixels = consumed + pixels;
+    }
+
+    internal void ReleaseTransformedTextIntermediatePixels(long pixels) {
+        _transformedTextBudget.Pixels -= pixels;
+        _transformedTextBudget.ReleaseIntermediateSurfacePixels(pixels);
+    }
+
+    internal OfficeRasterTransformedTextBudget TransformedTextBudget => _transformedTextBudget;
+
+    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) =>
+        _transformedTextBudget.ChargeIntermediateSurfacePixels(pixels, maximumRasterPixels);
+
+    internal void ShareTransformedTextBudget(OfficeRasterTransformedTextBudget budget) =>
+        _transformedTextBudget = budget;
 
     internal System.Threading.CancellationToken CancellationToken => _cancellationToken;
 
@@ -1406,4 +1433,26 @@ public sealed partial class OfficeRasterCanvas {
     private static int Clamp(int value, int min, int max) => value < min ? min : value > max ? max : value;
 
     private static double Clamp(double value, double min, double max) => value < min ? min : value > max ? max : value;
+}
+
+internal sealed class OfficeRasterTransformedTextBudget {
+    internal long Pixels;
+    internal long IntermediatePixels;
+
+    internal void EnsureIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
+        long consumed = IntermediatePixels;
+        if (pixels < 0L || pixels > maximumRasterPixels - consumed) {
+            throw new OfficeImageExportLimitException(1D,
+                pixels > long.MaxValue - consumed ? long.MaxValue : consumed + pixels,
+                maximumRasterPixels,
+                OfficeRasterImageEncoder.GetMaximumDimension(OfficeImageExportFormat.Png));
+        }
+    }
+
+    internal void ChargeIntermediateSurfacePixels(long pixels, long maximumRasterPixels) {
+        EnsureIntermediateSurfacePixels(pixels, maximumRasterPixels);
+        IntermediatePixels += pixels;
+    }
+
+    internal void ReleaseIntermediateSurfacePixels(long pixels) => IntermediatePixels -= pixels;
 }

@@ -8,10 +8,19 @@
   <Grid RowDefinitions="Auto,*" Background="{DynamicResource StudioWindowBrush}">
     <Border Grid.Row="0" Padding="24,17" Background="{DynamicResource StudioPanelBrush}"
             BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
-      <StackPanel Spacing="4">
-        <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RecognizeText}" Classes="pageTitle" />
-        <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe}" Classes="muted" />
-      </StackPanel>
+      <!-- The main action stays in the header so it is visible without scrolling in small windows. -->
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+        <StackPanel Spacing="4">
+          <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.RecognizeText}" Classes="pageTitle" />
+          <TextBlock TextWrapping="Wrap" Text="{loc:Loc SearchablePdfOcr.TurnScannedPagesIntoASearchablePDFWhileKeepingThe}" Classes="muted" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center" IsVisible="{Binding !OcrWorkbench.HasReview}">
+          <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Cancel}" Content="{loc:Loc SearchablePdfOcr.Cancel}"
+                  IsVisible="{Binding OcrWorkbench.CanCancel}" Command="{Binding OcrWorkbench.CancelCommand}" />
+          <Button Classes="primary" AutomationProperties.Name="{loc:Loc Ocr.Review.Recognize}" Content="{loc:Loc Ocr.Review.Recognize}"
+                  Command="{Binding OcrWorkbench.RunCommand}" />
+        </StackPanel>
+      </Grid>
     </Border>
 
     <ScrollViewer Grid.Row="1" IsVisible="{Binding !OcrWorkbench.HasReview}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
@@ -29,8 +38,13 @@
             <TextBox Text="{Binding OcrWorkbench.Pages, Mode=TwoWay}" PlaceholderText="{loc:Loc SearchablePdfOcr.AllPagesOr135}" IsEnabled="{Binding !OcrWorkbench.IsBusy}" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Pages}" />
 
           <StackPanel Spacing="9" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
-              <TextBlock TextWrapping="Wrap" Text="{Binding OcrWorkbench.LanguageSummary}" Classes="muted" VerticalAlignment="Center" />
-            <Expander Header="{loc:Loc SearchablePdfOcr.RecognitionLanguages}">
+            <Expander>
+              <Expander.Header>
+                <StackPanel Spacing="1">
+                  <TextBlock Text="{loc:Loc SearchablePdfOcr.RecognitionLanguages}" />
+                  <TextBlock Text="{Binding OcrWorkbench.LanguageSummary}" Classes="caption" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+              </Expander.Header>
             <ScrollViewer MaxHeight="220" HorizontalScrollBarVisibility="Disabled">
             <Border Classes="card" Padding="15">
               <ItemsControl ItemsSource="{Binding OcrWorkbench.Languages}">
@@ -72,10 +86,6 @@
             <TextBlock Text="{Binding OcrWorkbench.OutputName}" TextWrapping="Wrap" Classes="muted" ToolTip.Tip="{Binding OcrWorkbench.OutputPath}" />
             <Button Classes="tool" AutomationProperties.Name="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" Content="{loc:Loc OutputIntakeWorkbench.ChooseOutput}" HorizontalAlignment="Left"
                     Command="{Binding OcrWorkbench.ChooseOutputCommand}" IsEnabled="{Binding !OcrWorkbench.IsBusy}" />
-            <Button Classes="primary" AutomationProperties.Name="{loc:Loc Ocr.Review.Recognize}" Content="{loc:Loc Ocr.Review.Recognize}"
-                    Command="{Binding OcrWorkbench.RunCommand}" Margin="0,7,0,0" />
-            <Button Classes="tool" AutomationProperties.Name="{loc:Loc SearchablePdfOcr.Cancel}" Content="{loc:Loc SearchablePdfOcr.Cancel}" HorizontalAlignment="Left"
-                    IsVisible="{Binding OcrWorkbench.CanCancel}" Command="{Binding OcrWorkbench.CancelCommand}" />
             <Expander Header="{loc:Loc Ocr.FileOptions}" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" IsEnabled="{Binding !OcrWorkbench.IsBusy}">
               <StackPanel Spacing="8" Margin="0,8,0,0">
                 <TextBlock Text="{loc:Loc SearchablePdfOcr.ScannedPDF}" />

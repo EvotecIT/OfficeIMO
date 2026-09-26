@@ -231,11 +231,11 @@ internal static partial class OfficeImageMetadataInspector {
             else if (type == "tEXt" || type == "zTXt" || type == "iTXt") snapshot.Kinds |= OfficeImageMetadataKinds.Comments;
             offset = checked(offset + 12 + length);
         }
-        bool hasCompleteStandardColorimetry =
-            hasGamma && hasStandardGamma && hasChromaticities && hasStandardChromaticities;
-        if (hasStandardRgb
-                ? (hasGamma && !hasStandardGamma) || (hasChromaticities && !hasStandardChromaticities)
-                : (hasGamma || hasChromaticities) && !hasCompleteStandardColorimetry) {
+        // Matching gAMA/cHRM values alone do not declare the exact sRGB transfer
+        // function. The decoder leaves those chunks unapplied, so classification
+        // can only use the original bytes when an sRGB declaration is present.
+        if ((hasGamma || hasChromaticities) &&
+            (!hasStandardRgb || hasGamma && !hasStandardGamma || hasChromaticities && !hasStandardChromaticities)) {
             snapshot.HasColorRenderingMetadata = true;
         }
     }

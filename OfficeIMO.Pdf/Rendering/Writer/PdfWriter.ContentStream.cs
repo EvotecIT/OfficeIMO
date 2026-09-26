@@ -341,8 +341,34 @@ internal sealed class ContentStreamBuilder {
             value = 0D;
         }
 
-        return FormatNumber(value, "0.###");
+        // Content streams repeat the same few numbers (colour components, font sizes, line widths, column
+        // edges), and the custom "0.###" format is slow, so each thread memoises recent results in a small
+        // direct-mapped table. A hit returns the exact characters the format produced for that value. The
+        // clamp above is what keeps -0 (which == 0 but formats as "-0") out of the table; NaN never matches.
+        double[] keys = _fKeys ??= new double[FCacheSlots];
+        byte[] lengths = _fLengths ??= new byte[FCacheSlots];
+        char[] chars = _fChars ??= new char[FCacheSlots * FSlotChars];
+        long bits = BitConverter.DoubleToInt64Bits(value);
+        int slot = (int)((ulong)(bits * unchecked((long)0x9E3779B97F4A7C15UL)) >> (64 - FCacheBits));
+        int at = slot * FSlotChars;
+        if (lengths[slot] != 0 && keys[slot] == value) {
+            return chars.AsSpan(at, lengths[slot]);
+        }
+
+        if (!value.TryFormat(chars.AsSpan(at, FSlotChars), out int written, "0.###", CultureInfo.InvariantCulture)) {
+            lengths[slot] = 0;
+            return value.ToString("0.###", CultureInfo.InvariantCulture).AsSpan();
+        }
+
+        keys[slot] = value;
+        lengths[slot] = (byte)written;
+        return chars.AsSpan(at, written);
     }
+
+    private const int FCacheBits = 10, FCacheSlots = 1 << FCacheBits, FSlotChars = 24;
+    [ThreadStatic] private static double[]? _fKeys;
+    [ThreadStatic] private static byte[]? _fLengths;
+    [ThreadStatic] private static char[]? _fChars;
 
     // Formats into a reused per-thread buffer and returns a span. Every call site is _sb.Append(F(x)),
     // which copies the span immediately, so the buffer can be overwritten by the next call; this avoids

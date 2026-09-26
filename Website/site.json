@@ -18,7 +18,7 @@
   "Sources": [
     {
       "Repo": "EvotecIT/PSWriteOffice",
-      "Ref": "v3.0.5",
+      "Ref": "71c77cb93c8b33a8668509a7c305f4e49c1d59da",
       "Slug": "pswriteoffice",
       "Destination": "./projects/pswriteoffice",
       "Clean": true
@@ -353,8 +353,6 @@
         ],
         "Js": [
           "/js/site.js",
-          "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js",
           "/js/source-viewer.js"
         ]
       },
@@ -693,22 +691,36 @@
       "Items": [
         {
           "Title": "Studio",
-          "Url": "/studio/"
+          "Url": "/studio/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Desktop workspace for PDFs and documents"
         },
         {
-          "Title": "Browser tools",
-          "Url": "/convert/"
+          "Title": "Browser",
+          "Url": "/convert/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Convert files right in your tab"
         },
         {
           "Title": "CLI",
-          "Url": "/tool/"
+          "Url": "/tool/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Scripts, CI jobs and MCP"
         },
         {
-          "Title": "Libraries",
-          "Url": "/libraries/"
+          "Title": ".NET",
+          "Url": "/libraries/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "NuGet packages for every format"
         },
         {
-          "Title": "Documentation",
+          "Title": "PowerShell",
+          "Url": "/products/pswriteoffice/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "PSWriteOffice module"
+        },
+        {
+          "Title": "Docs",
           "Url": "/docs/"
         },
         {
@@ -720,18 +732,22 @@
               "Items": [
                 {
                   "Title": "Document showcase",
+                    "Description": "Real documents, previews, and source",
                   "Url": "/showcase/"
                 },
                 {
                   "Title": "Code examples",
+                    "Description": "Start with C# or PowerShell",
                   "Url": "/libraries/#code-examples"
                 },
                 {
                   "Title": "Blog",
+                    "Description": "Guides and project news",
                   "Url": "/blog/"
                 },
                 {
                   "Title": "Solutions",
+                    "Description": "Find a workflow for your document task",
                   "Url": "/solutions/"
                 }
               ]
@@ -741,22 +757,27 @@
               "Items": [
                 {
                   "Title": "Format support",
+                    "Description": "Supported operations and known limits",
                   "Url": "/compatibility/"
                 },
                 {
                   "Title": "Benchmarks",
+                    "Description": "Measured performance and workloads",
                   "Url": "/benchmarks/"
                 },
                 {
                   "Title": "PDF corpus evidence",
+                    "Description": "Rendering and compatibility results",
                   "Url": "/corpus/"
                 },
                 {
                   "Title": "Comparisons",
+                    "Description": "Choose the right library",
                   "Url": "/comparisons/"
                 },
                 {
                   "Title": "Support and services",
+                    "Description": "Get help with your integration",
                   "Url": "/pricing/"
                 }
               ]
@@ -775,6 +796,10 @@
         {
           "Title": "Studio",
           "Url": "/studio/"
+        },
+        {
+          "Title": "Browser tools",
+          "Url": "/convert/"
         },
         {
           "Title": "CLI",
@@ -877,8 +902,13 @@
           "External": true
         },
         {
-          "Title": "Report Issue",
+          "Title": "Report an issue",
           "Url": "https://github.com/EvotecIT/OfficeIMO/issues",
+          "External": true
+        },
+        {
+          "Title": "Sponsor",
+          "Url": "https://github.com/sponsors/PrzemyslawKlys",
           "External": true
         }
       ]

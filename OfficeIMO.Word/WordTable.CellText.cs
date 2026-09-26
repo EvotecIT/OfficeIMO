@@ -18,10 +18,24 @@ public partial class WordTable {
         if (columnIndex < 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));
         List<TableRow> rows = GetRowElements();
         if ((uint)rowIndex >= (uint)rows.Count) throw new ArgumentOutOfRangeException(nameof(rowIndex));
-        TableCell? cell = rows[rowIndex].Elements<TableCell>().ElementAtOrDefault(columnIndex);
+        TableCell? cell = rows[rowIndex].GetFirstChild<TableCell>();
+        for (int index = 0; index < columnIndex && cell != null; index++) {
+            cell = cell.NextSibling<TableCell>();
+        }
         if (cell == null) throw new ArgumentOutOfRangeException(nameof(columnIndex));
 
-        Paragraph paragraph = cell.Elements<Paragraph>().FirstOrDefault() ?? cell.AppendChild(new Paragraph());
+        Paragraph paragraph = cell.GetFirstChild<Paragraph>() ?? cell.AppendChild(new Paragraph());
+        // Generated cells already contain an empty run. Fill it directly before taking the
+        // general replacement path, which must still clear existing rich cell content.
+        if (paragraph.FirstChild is ParagraphProperties properties &&
+            properties.NextSibling() is Run emptyRun &&
+            emptyRun.FirstChild == null &&
+            emptyRun.NextSibling() == null) {
+            if (bold) emptyRun.RunProperties = new RunProperties(new Bold());
+            emptyRun.Append(new Text(text ?? string.Empty) { Space = SpaceProcessingModeValues.Preserve });
+            return this;
+        }
+
         OpenXmlElement? child = paragraph.FirstChild;
         while (child != null) {
             OpenXmlElement? next = child.NextSibling();

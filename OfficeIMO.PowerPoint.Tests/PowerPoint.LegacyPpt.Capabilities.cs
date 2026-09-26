@@ -51,6 +51,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WritePreflight_ExposesTypedOmissionsAndStrictAcceptance() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddChart();
+
+            LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
+            IOfficeConversionReport commonReport = report;
+
+            LegacyPptWriteFinding finding = Assert.Single(
+                report.Findings,
+                item => item.Code == "PPT-WRITE-CHART-CONVERTED");
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                commonReport.FidelityDiagnostics,
+                item => item.Code == finding.Code);
+            Assert.True(report.HasConversionLoss);
+            Assert.True(commonReport.HasLoss);
+            Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+            Assert.Equal("OfficeIMO.PowerPoint.LegacyPpt.Writer", diagnostic.Source);
+            Assert.Equal($"slide:{finding.SlideIndex!.Value + 1}/shape:{finding.ShapeIndex!.Value + 1}",
+                diagnostic.Location);
+            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsNativeRasterAuthoringAndPreservingRoundTrip() {
             LegacyPptCapability raster = LegacyPptCapabilityCatalog.Get(LegacyPptFeature.RasterPictures);
 

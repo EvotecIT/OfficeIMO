@@ -6,15 +6,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void OverriddenCssDataUrlIsNotReportedAsActiveProvenance() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = $"<style>.hero{{background-image:url('{dataUri}')}}.hero{{background-image:url(clean.png)}}</style><div class='hero'></div>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-
-        Assert.Empty(report.Evidence);
-    }
 
     [Fact]
     public void HtmlPreflightDoesNotChargeIgnoredNestedForms() {

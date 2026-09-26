@@ -1,62 +1,87 @@
+@font-face {
+  font-family: "Hanken Grotesk";
+  font-style: normal;
+  font-weight: 500 800;
+  font-display: swap;
+  src: url("/fonts/hanken-grotesk-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Palette matches the officeimo.com workbench theme. */
 :root {
   color-scheme: light;
-  --ocx-bg: #ffffff;
-  --ocx-bg-alt: #f5f7fb;
+  --ocx-bg: #f5f7fb;
+  --ocx-bg-alt: #eef2f8;
   --ocx-panel: #ffffff;
-  --ocx-border: #d9e1ec;
-  --ocx-border-strong: #bcc8d8;
-  --ocx-text: #0b1830;
-  --ocx-muted: #40516c;
+  --ocx-border: #dde3ec;
+  --ocx-border-strong: #c5cedb;
+  --ocx-text: #0d1526;
+  --ocx-muted: #45526a;
   --ocx-blue: #145df5;
-  --ocx-blue-dark: #0f4dd4;
+  --ocx-blue-dark: #0b46c4;
   --ocx-action-bg: #145df5;
-  --ocx-action-hover: #0f4dd4;
+  --ocx-action-hover: #0b46c4;
   --ocx-action-text: #ffffff;
-  --ocx-cyan: #0891b2;
-  --ocx-focus: #1d4ed8;
+  --ocx-cyan: #0b8a87;
+  --ocx-focus: #145df5;
   --ocx-green: #059669;
   --ocx-red: #dc2626;
-  --ocx-code-bg: #f6f8fc;
-  --ocx-code-border: #c7d2e2;
+  --ocx-code-bg: #f3f6fb;
+  --ocx-code-border: #cfd8e5;
   --ocx-code-text: #111d33;
   --ocx-code-muted: #596579;
   --ocx-code-accent: #075985;
   --ocx-shadow: 0 18px 48px rgba(20, 33, 58, 0.1);
+  --ocx-browser: #0b8a87;
+  --ocx-hover-wash: color-mix(in srgb, #0b8a87 7%, #ffffff);
+  --ocx-font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --ocx-font-display: "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --ocx-bg: #07101e;
-  --ocx-bg-alt: #0c1728;
-  --ocx-panel: #111f33;
-  --ocx-border: #2a3b54;
-  --ocx-border-strong: #3b5272;
-  --ocx-text: #f3f7fd;
-  --ocx-muted: #bcc9da;
-  --ocx-blue: #74a9ff;
-  --ocx-blue-dark: #9bc2ff;
-  --ocx-action-bg: #2563eb;
-  --ocx-action-hover: #1d4ed8;
-  --ocx-action-text: #ffffff;
-  --ocx-cyan: #57c7dd;
-  --ocx-focus: #91bcff;
+  --ocx-bg: #0a0f1e;
+  --ocx-bg-alt: #0c1224;
+  --ocx-panel: #111a2e;
+  --ocx-border: #1f2a40;
+  --ocx-border-strong: #2e3c58;
+  --ocx-text: #eaf0fa;
+  --ocx-muted: #b6c2d6;
+  --ocx-blue: #7aa2ff;
+  --ocx-blue-dark: #a3beff;
+  --ocx-action-bg: #7aa2ff;
+  --ocx-action-hover: #a3beff;
+  --ocx-action-text: #08101f;
+  --ocx-cyan: #3cc7c1;
+  --ocx-focus: #a3beff;
   --ocx-green: #34d399;
   --ocx-red: #fb7185;
-  --ocx-code-bg: #091426;
-  --ocx-code-border: #304765;
+  --ocx-code-bg: #0b1224;
+  --ocx-code-border: #26344f;
   --ocx-code-text: #eef4fc;
   --ocx-code-muted: #aebcd0;
   --ocx-code-accent: #7dd3fc;
-  --ocx-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+  --ocx-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+  --ocx-browser: #3cc7c1;
+  --ocx-hover-wash: color-mix(in srgb, #3cc7c1 8%, #111a2e);
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.ocx-startup { width:min(600px,calc(100% - 40px)); margin:clamp(32px,10vh,96px) auto; padding:clamp(24px,4vw,40px); border:1px solid var(--ocx-border); border-radius:16px; background:var(--ocx-panel); box-shadow:var(--ocx-shadow); }
+.ocx-startup__eyebrow { color:var(--ocx-blue); font-size:12px; font-weight:700; }
+.ocx-startup h1 { font-size:clamp(24px,4vw,32px); line-height:1.2; letter-spacing:-.03em; }
+.ocx-startup p, .ocx-startup small { color:var(--ocx-muted); }
+.ocx-startup progress { display:block; width:100%; height:8px; margin-top:28px; accent-color:var(--ocx-blue); }
+.ocx-startup small { display:block; border-top:1px solid var(--ocx-border); padding-top:20px; margin-top:24px; }
+.ocx-startup a { color:var(--ocx-blue); text-decoration:underline; }
+.ocx-startup button { padding:10px 18px; background:var(--ocx-action-bg); color:var(--ocx-action-text); border:0; border-radius:8px; cursor:pointer; }
 
 .officeimo-converter-standalone {
   margin: 0;
   color: var(--ocx-text);
   background: var(--ocx-bg);
-  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--ocx-font-body);
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
@@ -379,7 +404,7 @@
   justify-content: center;
   min-height: 285px;
   padding: 1.5rem;
-  border: 1px dashed #aebbd0;
+  border: 1px dashed var(--ocx-border-strong);
   border-radius: 10px;
   background:
     radial-gradient(circle at 50% 32%, rgba(37, 99, 235, 0.06), transparent 30%),
@@ -393,9 +418,6 @@
 .ocx-dropzone.has-file > small { grid-column:1; margin:0; font-size:12px; }
 .ocx-dropzone.has-file .ocx-dropzone__icon { display:none; }
 .ocx-dropzone.has-file .ocx-button--choose { grid-column:2; grid-row:1 / 3; min-width:100px; box-shadow:none; }
-.ocx-dropzone:hover { border-color: var(--ocx-blue); background-color: #f3f7ff; }
-[data-theme="dark"] .ocx-dropzone:hover { background-color: #101d31; }
-
 .ocx-dropzone__icon {
   position: relative;
   display: grid;
@@ -869,9 +891,9 @@
 }
 
 .ocx-dropzone:hover {
-  border-color: var(--ocx-blue);
+  border-color: var(--ocx-browser);
   background:
-    radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--ocx-blue) 8%, transparent), transparent 34%),
+    radial-gradient(circle at 50% 36%, color-mix(in srgb, var(--ocx-browser) 10%, transparent), transparent 34%),
     var(--ocx-panel);
 }
 
@@ -1131,3 +1153,8 @@
     gap: 0.35rem;
   }
 }
+
+/* Workbench alignment: display headings and the browser tool accent. */
+.officeimo-converter-standalone :where(h1, h2) { font-family: var(--ocx-font-display); font-weight: 800; letter-spacing: -0.03em; }
+.officeimo-converter-standalone .ocx-panel-heading h2 { font-weight: 750; }
+.ocx-dropzone:focus-within { border-color: var(--ocx-browser); }

@@ -145,7 +145,7 @@ internal sealed partial class ProjectScheduler {
                 _externalDependencies.Add(link, (resolved.Task, resolved.Schedule.Document));
                 if (!_externalSources.ContainsKey(resolved.Schedule.Document)) foreach (var diagnostic in resolved.Schedule.Report.Diagnostics.Where(d => d.Severity != ProjectDiagnosticSeverity.Error))
                     _diagnostics.Add(new ProjectDiagnostic(diagnostic.Code, diagnostic.Severity, "External project: " + diagnostic.Message,
-                        "/ExternalProject[" + resolved.Reference + "]" + diagnostic.Location, diagnostic.RepresentsLoss));
+                        "/ExternalProject[" + resolved.Reference + "]" + diagnostic.Location, diagnostic.LossKind));
                 _externalSources[resolved.Schedule.Document] = new ProjectExternalScheduleSource(resolved.Reference, resolved.Schedule.Document, resolved.Schedule.ModelRevision);
                 foreach (var source in resolved.Schedule.ExternalSources) _externalSources[source.Document] = source;
                 local.In.Add(link); continue;

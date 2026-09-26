@@ -57,7 +57,13 @@ Unsupported features: 0
 Unsupported projection gaps: 0
 Preserved feature records: 0
 Errors: 0
-Warnings: 0
+Warnings: 3
+
+## Diagnostics By Code
+
+| Key | Count |
+| --- | --- |
+| XLS-BIFF-LBL-EMPTY-NAME | 3 |
 
 ## Formula Tokens By Name
 

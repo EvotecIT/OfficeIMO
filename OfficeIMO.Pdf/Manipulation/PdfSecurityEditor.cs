@@ -62,7 +62,7 @@ internal static class PdfSecurityEditor {
         PdfStandardEncryptionOptions encryption) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfSecurityMutationResult result = Encrypt(File.ReadAllBytes(inputPath), encryption);
+        PdfSecurityMutationResult result = Encrypt(PdfDocumentSource.FromPath(inputPath, null).Bytes, encryption);
         OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }
@@ -71,7 +71,7 @@ internal static class PdfSecurityEditor {
     public static PdfSecurityMutationResult Decrypt(string inputPath, string outputPath, string ownerPassword) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        PdfSecurityMutationResult result = Decrypt(File.ReadAllBytes(inputPath), ownerPassword);
+        PdfSecurityMutationResult result = Decrypt(PdfDocumentSource.FromPath(inputPath, null).Bytes, ownerPassword);
         OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }

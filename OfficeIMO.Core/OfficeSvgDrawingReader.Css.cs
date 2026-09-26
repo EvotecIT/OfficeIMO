@@ -624,6 +624,14 @@ public static partial class OfficeSvgDrawingReader {
             limitExceeded = true;
             return false;
         }
+        // Failed fallback branches still perform parsing and allocation work. Charge every
+        // attempted resolution so repeated equivalent failures cannot branch exponentially.
+        long attemptedCharacters = Math.Max(1, resolved.Length);
+        if (attemptedCharacters > remainingSubstitutionCharacters) {
+            limitExceeded = true;
+            return false;
+        }
+        remainingSubstitutionCharacters -= attemptedCharacters;
         int start = resolved.IndexOf("var(", StringComparison.OrdinalIgnoreCase);
         while (start >= 0) {
             int close = FindSvgCssBlockEnd(resolved, start + 4, '(', ')');
@@ -783,7 +791,7 @@ public static partial class OfficeSvgDrawingReader {
                 quote = current;
                 continue;
             }
-            if (!css.Substring(index, 4).Equals("url(", StringComparison.OrdinalIgnoreCase) ||
+            if (string.Compare(css, index, "url(", 0, 4, StringComparison.OrdinalIgnoreCase) != 0 ||
                 index > 0 && (char.IsLetterOrDigit(css[index - 1]) || css[index - 1] == '-' || css[index - 1] == '_')) continue;
             int cursor = index + 4;
             while (cursor < css.Length && IsSvgCssWhitespace(css[cursor])) cursor++;
@@ -792,6 +800,9 @@ public static partial class OfficeSvgDrawingReader {
                 if (cursor + 1 < css.Length && css[cursor] == '/' && css[cursor + 1] == '*') return true;
                 cursor++;
             }
+            // This token has been inspected through its closing parenthesis (or end of input).
+            // Nested url( text is malformed and must not restart a scan over the same suffix.
+            index = cursor;
         }
         return false;
     }

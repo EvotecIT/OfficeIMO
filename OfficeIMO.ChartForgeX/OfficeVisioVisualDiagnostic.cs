@@ -77,7 +77,13 @@ public enum OfficeVisioVisualDiagnosticCode {
     /// <summary>A semantic node kind was normalized to a coarser native shape kind.</summary>
     NodeKindNormalized,
     /// <summary>A visible artifact title was retained only as document metadata.</summary>
-    TitleNotProjected
+    TitleNotProjected,
+    /// <summary>Preserved geometry extends beyond the declared page bounds.</summary>
+    GeometryOutsidePage,
+    /// <summary>A sequence deactivation with no corresponding activation was not projected.</summary>
+    ActivationNotProjected,
+    /// <summary>A sequence branch divider could not be projected, although its guard was retained.</summary>
+    BranchDividerNotProjected
 }
 
 /// <summary>Identifies the source entity associated with a projection diagnostic.</summary>

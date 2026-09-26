@@ -20,6 +20,27 @@ public sealed class BrowserDocumentWorkflowTests {
     }
 
     [Fact]
+    public void WebsiteFileDropOffersProvenanceForTheQualifiedBrowserExtensions() {
+        string? directory = AppContext.BaseDirectory;
+        string? template = null;
+        while (directory is not null && template is null) {
+            string candidate = Path.Combine(directory, "themes", "officeimo", "partials", "shortcodes", "browser-tools.html");
+            if (System.IO.File.Exists(candidate)) template = candidate;
+            directory = Path.GetDirectoryName(directory);
+        }
+        Assert.NotNull(template);
+
+        System.Text.RegularExpressions.Match match = System.Text.RegularExpressions.Regex.Match(
+            System.IO.File.ReadAllText(template!), @"provenance_extensions = \[(?<list>[^\]]*)\]");
+        Assert.True(match.Success, "browser-tools.html must declare provenance_extensions.");
+        string[] declared = match.Groups["list"].Value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(value => value.Trim('"'))
+            .ToArray();
+        Assert.Equal(OfficeProvenanceWorkflowCatalog.BrowserExtensions, declared);
+    }
+
+    [Fact]
     public void SessionChainsResultsAndRestoresOriginalSelection() {
         var session = new BrowserDocumentSession();
         var first = File("first.pdf", [1, 2]); var second = File("second.pdf", [3]);

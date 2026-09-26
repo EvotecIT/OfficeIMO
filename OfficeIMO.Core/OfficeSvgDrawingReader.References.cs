@@ -75,6 +75,28 @@ public static partial class OfficeSvgDrawingReader {
     private sealed class SvgElementReferenceRegistry {
         private readonly SvgDefinitionRegistry _definitions;
         private readonly ISet<string> _activeIds = new HashSet<string>(StringComparer.Ordinal);
+        private const int MaximumExpandedTextCharacters = 131_072;
+        private int _expandedTextCharacters;
+        private int _patternStrokeOperations;
+        private const double MaximumIntermediateSurfacePixels = 64_000_000D;
+        private double _intermediateSurfacePixels;
+        private const long MaximumEmbeddedRasterBytes = 64L * 1024L * 1024L;
+        private long _embeddedRasterBytes;
+        private readonly Dictionary<XAttribute, (byte[] Bytes, string ContentType, OfficeImageInfo Info)> _embeddedRasters =
+            new Dictionary<XAttribute, (byte[] Bytes, string ContentType, OfficeImageInfo Info)>();
+        private const int MaximumForeignObjectRenderCalls = 128;
+        private const long MaximumForeignObjectSourceCharacters = 8L * 1024L * 1024L;
+        private const double MaximumForeignObjectPixels = 64_000_000D;
+        private int _foreignObjectRenderCalls;
+        private long _foreignObjectSourceCharacters;
+        private long _foreignObjectSerializedCharacters;
+        private double _foreignObjectPixels;
+        private const double MaximumMarkerScenePixels = 64_000_000D;
+        private double _markerScenePixels;
+        private readonly Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements, double NestedPixels)> _foreignObjects =
+            new Dictionary<(XElement Element, double Width, double Height), (OfficeDrawing Drawing, int Elements, double NestedPixels)>();
+        private readonly Dictionary<XElement, bool> _foreignObjectHasContent = new Dictionary<XElement, bool>();
+        internal OfficeCffOperationBudget CffOperationBudget { get; } = new OfficeCffOperationBudget();
 
         internal SvgElementReferenceRegistry(
             SvgDefinitionRegistry definitions,
@@ -86,6 +108,150 @@ public static partial class OfficeSvgDrawingReader {
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
 
         internal XNamespace NativeNamespace => _definitions.NativeNamespace;
+
+        internal bool CanChargeTextCharacters(int count) =>
+            count >= 0 && count <= MaximumExpandedTextCharacters - _expandedTextCharacters;
+
+        internal bool TryChargeTextCharacters(int count) {
+            if (!CanChargeTextCharacters(count)) return false;
+            _expandedTextCharacters += count;
+            return true;
+        }
+
+        internal bool TryChargePatternStrokeOperation() {
+            if (_patternStrokeOperations >= MaximumSvgPathCommands) return false;
+            _patternStrokeOperations++;
+            return true;
+        }
+
+        internal bool TryChargeNestedViewport(double width, double height, double sceneWidth, double sceneHeight) {
+            // The viewBox scene can be much larger than its displayed viewport.
+            // Raster rendering retains that full scene before fitting. The clipped
+            // group draws into its parent without another viewport-sized surface.
+            return TryChargeIntermediatePixels(width * height + sceneWidth * sceneHeight);
+        }
+
+        internal bool TryChargeNestedViewportExpansion(double extraPixels) {
+            return !double.IsNaN(extraPixels) && !double.IsInfinity(extraPixels)
+                && (extraPixels <= 0D || TryChargeIntermediatePixels(extraPixels));
+        }
+
+        internal bool TryChargeIntermediateSurface(double width, double height, int surfaces = 1) =>
+            TryChargeIntermediatePixels(width * height * surfaces);
+
+        internal bool TryChargeEffectSurfaces(double width, double height, bool hasSoftMask) =>
+            TryChargeIntermediateSurface(width, height, hasSoftMask ? 4 : 1);
+
+        internal bool TryChargeEmbeddedImage(double canvasWidth, double canvasHeight,
+            int imageWidth, int imageHeight, double opacity) =>
+            TryChargeIntermediatePixels(canvasWidth * canvasHeight +
+                (double)imageWidth * imageHeight * (opacity < 1D ? 2D : 1D));
+
+        internal bool TryChargePatternSurfaces(double canvasWidth, double canvasHeight,
+            double tileWidth, double tileHeight) =>
+            TryChargeIntermediatePixels(canvasWidth * canvasHeight * 2D +
+                Math.Ceiling(tileWidth) * Math.Ceiling(tileHeight));
+
+        private bool TryChargeIntermediatePixels(double pixels) {
+            // Full-size effect, image, viewport, and symbol layers all reach the
+            // raster renderer; count their retained surfaces in one document budget.
+            if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels < 0D
+                || pixels > MaximumIntermediateSurfacePixels - _intermediateSurfacePixels) return false;
+            _intermediateSurfacePixels += pixels;
+            return true;
+        }
+
+        internal bool TryGetEmbeddedRaster(XAttribute source, out byte[] bytes, out string contentType, out OfficeImageInfo info) {
+            if (_embeddedRasters.TryGetValue(source, out var cached)) {
+                bytes = cached.Bytes;
+                contentType = cached.ContentType;
+                info = cached.Info;
+                return true;
+            }
+            bytes = Array.Empty<byte>();
+            contentType = string.Empty;
+            info = null!;
+            return false;
+        }
+
+        internal bool TryCacheEmbeddedRaster(XAttribute source, byte[] bytes, string contentType, OfficeImageInfo info) {
+            if (bytes.Length > MaximumEmbeddedRasterBytes - _embeddedRasterBytes) return false;
+            _embeddedRasterBytes += bytes.Length;
+            _embeddedRasters.Add(source, (bytes, contentType, info));
+            return true;
+        }
+
+        internal bool TryGetForeignObject(XElement element, double width, double height,
+            out OfficeDrawing drawing, out int elements, out double nestedPixels) {
+            if (_foreignObjects.TryGetValue((element, width, height), out var cached)) {
+                drawing = cached.Drawing;
+                elements = cached.Elements;
+                nestedPixels = cached.NestedPixels;
+                return true;
+            }
+            drawing = null!;
+            elements = 0;
+            nestedPixels = 0D;
+            return false;
+        }
+
+        internal bool HasForeignObjectContent(XElement element) {
+            if (_foreignObjectHasContent.TryGetValue(element, out bool hasContent)) return hasContent;
+            hasContent = element.Nodes().Any(node => node is XElement || node is XText text && !string.IsNullOrWhiteSpace(text.Value));
+            _foreignObjectHasContent[element] = hasContent;
+            return hasContent;
+        }
+
+        internal bool TryReserveForeignObject(XElement element, double width, double height) {
+            double pixels = width * height;
+            if (_foreignObjectRenderCalls >= MaximumForeignObjectRenderCalls
+                || double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels < 0D
+                || pixels > MaximumForeignObjectPixels - _foreignObjectPixels) return false;
+            long characters = 0;
+            foreach (XElement node in element.DescendantsAndSelf()) {
+                characters += node.Name.LocalName.Length + 4;
+                foreach (XAttribute attribute in node.Attributes()) characters += attribute.Name.LocalName.Length + attribute.Value.Length + 4;
+                foreach (XText text in node.Nodes().OfType<XText>()) characters += text.Value.Length;
+                if (characters > MaximumForeignObjectSourceCharacters - _foreignObjectSourceCharacters) return false;
+            }
+            _foreignObjectRenderCalls++;
+            _foreignObjectSourceCharacters += characters;
+            _foreignObjectPixels += pixels;
+            return true;
+        }
+
+        internal void CacheForeignObject(XElement element, double width, double height,
+            OfficeDrawing drawing, int elements, double nestedPixels) =>
+            _foreignObjects[(element, width, height)] = (drawing, elements, nestedPixels);
+
+        internal bool TryChargeForeignObjectPlacement(double drawingWidth, double drawingHeight, double nestedPixels) {
+            // Every placement renders its cached nested scene and outer effect surface.
+            return TryChargeIntermediatePixels(drawingWidth * drawingHeight + nestedPixels);
+        }
+
+        internal bool TryChargeSerializedForeignObject(int characters) {
+            if (characters < 0 || characters > MaximumForeignObjectSourceCharacters - _foreignObjectSerializedCharacters) return false;
+            _foreignObjectSerializedCharacters += characters;
+            return true;
+        }
+
+        internal bool TryChargeMarkerScene(double width, double height) {
+            double pixels = width * height;
+            if (double.IsNaN(pixels) || double.IsInfinity(pixels) || pixels <= 0D
+                || pixels > MaximumMarkerScenePixels - _markerScenePixels
+                || pixels > MaximumIntermediateSurfacePixels - _intermediateSurfacePixels) return false;
+            _markerScenePixels += pixels;
+            _intermediateSurfacePixels += pixels;
+            return true;
+        }
+
+        internal (double IntermediatePixels, double MarkerPixels) CaptureSurfaceBudget() =>
+            (_intermediateSurfacePixels, _markerScenePixels);
+
+        internal void RestoreSurfaceBudget((double IntermediatePixels, double MarkerPixels) budget) {
+            _intermediateSurfacePixels = budget.IntermediatePixels;
+            _markerScenePixels = budget.MarkerPixels;
+        }
 
         internal bool TryEnter(XElement use, out string id, out XElement? target) {
             return TryEnterDetailed(use, out id, out target) == SvgElementReferenceEntryResult.Entered;

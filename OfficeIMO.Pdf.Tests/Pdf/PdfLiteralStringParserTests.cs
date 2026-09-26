@@ -20,4 +20,14 @@ public class PdfLiteralStringParserTests {
             new byte[] { 0x41, 0x42, 0x43, 0x44 },
             PdfStringParser.ParseLiteralToBytes("A\\\r\nB\\\nC\\\rD\\"));
     }
+
+    [Fact]
+    public void LargeEscapedLiteralRetainsEveryDecodedByte() {
+        string source = string.Concat(Enumerable.Repeat("\\n", 100_000));
+
+        byte[] decoded = PdfStringParser.ParseLiteralToBytes(source);
+
+        Assert.Equal(100_000, decoded.Length);
+        Assert.All(decoded, static value => Assert.Equal((byte)'\n', value));
+    }
 }

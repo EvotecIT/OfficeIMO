@@ -265,9 +265,9 @@ internal static partial class PdfTextEditor {
         IReadOnlyList<TextSearchHit> hits,
         bool allowTextRenderingMode3) {
         foreach (IGrouping<int, TextSearchHit> pageHits in hits.GroupBy(static hit => hit.PageNumber)) {
-            foreach (IGrouping<PdfTextSpan[], TextSearchHit> lineHits in pageHits.GroupBy(
-                         static hit => hit.LineSpans,
-                         TextSpanArrayReferenceComparer.Instance)) {
+            foreach (IGrouping<PdfTextSpan[], TextSearchHit> lineHits in pageHits
+                         .SelectMany(static hit => hit.Lines.Select(line => (Line: line, Hit: hit)))
+                         .GroupBy(static item => item.Line, static item => item.Hit, TextSpanArrayReferenceComparer.Instance)) {
                 PdfTextSpan[] lineSpans = lineHits.Key;
                 var ordinals = new Dictionary<PdfTextSpan, int>();
                 for (int lineIndex = 0; lineIndex < lineSpans.Length; lineIndex++) {

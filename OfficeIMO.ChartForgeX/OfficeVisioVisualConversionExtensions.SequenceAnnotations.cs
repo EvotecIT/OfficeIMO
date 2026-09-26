@@ -157,7 +157,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             if (primary || start <= parent.Annotation.StartIndex) {
                 builder.FragmentGuard(parent.ShapeId, label, Math.Max(start, parent.Annotation.StartIndex!.Value), nativeId);
                 if (!primary && start <= parent.Annotation.StartIndex) {
-                    report.Warn(OfficeVisioVisualDiagnosticCode.SemanticLoss, OfficeVisioVisualEntityKind.Annotation, branch.Id, "branchDivider",
+                    report.Warn(OfficeVisioVisualDiagnosticCode.BranchDividerNotProjected, OfficeVisioVisualEntityKind.Annotation, branch.Id, "branchDivider",
                         $"Sequence branch '{branch.Id}' was retained as a guard without a divider because its boundary is not after the parent fragment start.");
                 }
             } else {

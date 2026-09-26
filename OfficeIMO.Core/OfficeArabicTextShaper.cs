@@ -5,7 +5,8 @@ using System.Text;
 namespace OfficeIMO.Drawing;
 
 /// <summary>
-/// Applies dependency-free contextual presentation forms for the core Arabic alphabet.
+/// Applies dependency-free contextual presentation forms for the Arabic alphabet and its common
+/// extended letters (Persian, Urdu, Sindhi, Pashto, Kurdish and Uyghur).
 /// </summary>
 /// <remarks>
 /// The shaper preserves one UTF-16 character per base letter and intentionally does not
@@ -16,7 +17,7 @@ public static class OfficeArabicTextShaper {
     private static readonly IReadOnlyDictionary<char, ArabicForms> Forms = CreateForms();
     private static readonly IReadOnlyDictionary<char, char> LogicalForms = CreateLogicalForms();
 
-    /// <summary>Shapes supported Arabic letters into their contextual presentation forms.</summary>
+    /// <summary>Shapes supported Arabic letters into their Presentation Forms-A and -B contextual forms.</summary>
     public static string Shape(string? value) {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
 
@@ -39,7 +40,7 @@ public static class OfficeArabicTextShaper {
 
     /// <summary>
     /// Returns <see langword="true"/> when every joining-script letter in the value is covered
-    /// by the bounded core-Arabic shaper. Marks, controls, punctuation, and digits are neutral.
+    /// by the bounded Arabic shaper. Marks, controls, punctuation, and digits are neutral.
     /// </summary>
     public static bool CanShapeAllJoiningCharacters(string? value) {
         if (string.IsNullOrEmpty(value)) return true;
@@ -59,7 +60,7 @@ public static class OfficeArabicTextShaper {
         return true;
     }
 
-    /// <summary>Maps presentation forms produced by this shaper back to core Arabic letters.</summary>
+    /// <summary>Maps presentation forms produced by this shaper back to their Arabic letters.</summary>
     public static string ToLogicalText(string? value) {
         if (string.IsNullOrEmpty(value)) return value ?? string.Empty;
         // Fast path: if no character has a logical (Arabic presentation-form) mapping — the case for all
@@ -153,7 +154,47 @@ public static class OfficeArabicTextShaper {
         ['\u0647'] = new('\uFEE9', '\uFEEA', '\uFEEB', '\uFEEC'),
         ['\u0648'] = new('\uFEED', '\uFEEE'),
         ['\u0649'] = new('\uFEEF', '\uFEF0'),
-        ['\u064A'] = new('\uFEF1', '\uFEF2', '\uFEF3', '\uFEF4')
+        ['\u064A'] = new('\uFEF1', '\uFEF2', '\uFEF3', '\uFEF4'),
+        // Extended letters for Persian, Urdu, Sindhi, Pashto, Kurdish and Uyghur (Presentation Forms-A).
+        ['\u0671'] = new('\uFB50', '\uFB51'),
+        ['\u0679'] = new('\uFB66', '\uFB67', '\uFB68', '\uFB69'),
+        ['\u067A'] = new('\uFB5E', '\uFB5F', '\uFB60', '\uFB61'),
+        ['\u067B'] = new('\uFB52', '\uFB53', '\uFB54', '\uFB55'),
+        ['\u067E'] = new('\uFB56', '\uFB57', '\uFB58', '\uFB59'),
+        ['\u067F'] = new('\uFB62', '\uFB63', '\uFB64', '\uFB65'),
+        ['\u0680'] = new('\uFB5A', '\uFB5B', '\uFB5C', '\uFB5D'),
+        ['\u0683'] = new('\uFB76', '\uFB77', '\uFB78', '\uFB79'),
+        ['\u0684'] = new('\uFB72', '\uFB73', '\uFB74', '\uFB75'),
+        ['\u0686'] = new('\uFB7A', '\uFB7B', '\uFB7C', '\uFB7D'),
+        ['\u0687'] = new('\uFB7E', '\uFB7F', '\uFB80', '\uFB81'),
+        ['\u0688'] = new('\uFB88', '\uFB89'),
+        ['\u068C'] = new('\uFB84', '\uFB85'),
+        ['\u068D'] = new('\uFB82', '\uFB83'),
+        ['\u068E'] = new('\uFB86', '\uFB87'),
+        ['\u0691'] = new('\uFB8C', '\uFB8D'),
+        ['\u0698'] = new('\uFB8A', '\uFB8B'),
+        ['\u06A4'] = new('\uFB6A', '\uFB6B', '\uFB6C', '\uFB6D'),
+        ['\u06A6'] = new('\uFB6E', '\uFB6F', '\uFB70', '\uFB71'),
+        ['\u06A9'] = new('\uFB8E', '\uFB8F', '\uFB90', '\uFB91'),
+        ['\u06AD'] = new('\uFBD3', '\uFBD4', '\uFBD5', '\uFBD6'),
+        ['\u06AF'] = new('\uFB92', '\uFB93', '\uFB94', '\uFB95'),
+        ['\u06B1'] = new('\uFB9A', '\uFB9B', '\uFB9C', '\uFB9D'),
+        ['\u06B3'] = new('\uFB96', '\uFB97', '\uFB98', '\uFB99'),
+        ['\u06BA'] = new('\uFB9E', '\uFB9F'),
+        ['\u06BB'] = new('\uFBA0', '\uFBA1', '\uFBA2', '\uFBA3'),
+        ['\u06BE'] = new('\uFBAA', '\uFBAB', '\uFBAC', '\uFBAD'),
+        ['\u06C0'] = new('\uFBA4', '\uFBA5'),
+        ['\u06C1'] = new('\uFBA6', '\uFBA7', '\uFBA8', '\uFBA9'),
+        ['\u06C5'] = new('\uFBE0', '\uFBE1'),
+        ['\u06C6'] = new('\uFBD9', '\uFBDA'),
+        ['\u06C7'] = new('\uFBD7', '\uFBD8'),
+        ['\u06C8'] = new('\uFBDB', '\uFBDC'),
+        ['\u06C9'] = new('\uFBE2', '\uFBE3'),
+        ['\u06CB'] = new('\uFBDE', '\uFBDF'),
+        ['\u06CC'] = new('\uFBFC', '\uFBFD', '\uFBFE', '\uFBFF'),
+        ['\u06D0'] = new('\uFBE4', '\uFBE5', '\uFBE6', '\uFBE7'),
+        ['\u06D2'] = new('\uFBAE', '\uFBAF'),
+        ['\u06D3'] = new('\uFBB0', '\uFBB1')
     };
 
     private static IReadOnlyDictionary<char, char> CreateLogicalForms() {

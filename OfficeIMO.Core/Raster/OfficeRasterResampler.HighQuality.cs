@@ -13,7 +13,9 @@ public static partial class OfficeRasterResampler {
         int height,
         OfficeRasterResamplingMode mode,
         OfficeRasterResamplingColorSpace colorSpace,
-        long retainedManagedBytes, CancellationToken cancellationToken) {
+        long retainedManagedBytes,
+        CancellationToken cancellationToken,
+        Action? resamplingWorkStarted) {
         if (!TryMeasureSeparableWorkingSet(
                 source.Width,
                 source.Height,
@@ -36,10 +38,10 @@ public static partial class OfficeRasterResampler {
         var result = new OfficeRasterImage(width, height);
         float[] intermediate = AllocateExactHighQualityScratch(intermediateLength);
         if (horizontalFirstLength <= verticalFirstLength) {
-            ResampleHorizontal(source.PixelBuffer, source.Width, source.Height, width, horizontal, intermediate, colorSpace, cancellationToken);
+            ResampleHorizontal(source.PixelBuffer, source.Width, source.Height, width, horizontal, intermediate, colorSpace, cancellationToken, resamplingWorkStarted);
             ResampleVertical(intermediate, width, height, vertical, result.PixelBuffer, colorSpace, cancellationToken);
         } else {
-            ResampleVertical(source.PixelBuffer, source.Width, source.Height, height, vertical, intermediate, colorSpace, cancellationToken);
+            ResampleVertical(source.PixelBuffer, source.Width, source.Height, height, vertical, intermediate, colorSpace, cancellationToken, resamplingWorkStarted);
             ResampleHorizontal(intermediate, source.Width, width, height, horizontal, result.PixelBuffer, colorSpace, cancellationToken);
         }
         return result;
@@ -313,7 +315,8 @@ public static partial class OfficeRasterResampler {
         int destinationWidth,
         AxisContributions contributions,
         float[] output,
-        OfficeRasterResamplingColorSpace colorSpace, CancellationToken cancellationToken) {
+        OfficeRasterResamplingColorSpace colorSpace, CancellationToken cancellationToken,
+        Action? resamplingWorkStarted) {
         for (int y = 0; y < sourceHeight; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < destinationWidth; x++) {
@@ -321,6 +324,7 @@ public static partial class OfficeRasterResampler {
                 int target = ((y * destinationWidth) + x) * 4;
                 AccumulateBytes(input, (y * sourceWidth) * 4, 4, contributions, x, output, target, colorSpace, cancellationToken);
             }
+            if (y == 0) resamplingWorkStarted?.Invoke();
         }
     }
 
@@ -331,7 +335,8 @@ public static partial class OfficeRasterResampler {
         int destinationHeight,
         AxisContributions contributions,
         float[] output,
-        OfficeRasterResamplingColorSpace colorSpace, CancellationToken cancellationToken) {
+        OfficeRasterResamplingColorSpace colorSpace, CancellationToken cancellationToken,
+        Action? resamplingWorkStarted) {
         for (int y = 0; y < destinationHeight; y++) {
             cancellationToken.ThrowIfCancellationRequested();
             for (int x = 0; x < sourceWidth; x++) {
@@ -339,6 +344,7 @@ public static partial class OfficeRasterResampler {
                 int target = ((y * sourceWidth) + x) * 4;
                 AccumulateBytes(input, x * 4, sourceWidth * 4, contributions, y, output, target, colorSpace, cancellationToken);
             }
+            if (y == 0) resamplingWorkStarted?.Invoke();
         }
     }
 

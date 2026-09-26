@@ -139,6 +139,7 @@ namespace OfficeIMO.Excel {
 
             cancellationToken.ThrowIfCancellationRequested();
             PrepareWorkbookForSave(options);
+            var carriageReturnParts = CollectLoadedCarriageReturnParts(WorkbookPartRoot);
             PackagePropertiesSnapshot properties = PackagePropertiesSnapshot.Capture(_spreadSheetDocument);
             long temporaryLimit = ResolveFileBackedTemporaryPackageLimit(options);
             string temporaryPath = string.Empty;
@@ -156,6 +157,44 @@ namespace OfficeIMO.Excel {
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
+                if (carriageReturnParts.Count != 0) {
+                    string rewrittenPath = string.Empty;
+                    try {
+                        using (var stagedSource = new FileStream(
+                            temporaryPath,
+                            FileMode.Open,
+                            FileAccess.Read,
+                            FileShare.Read,
+                            81920,
+                            FileOptions.SequentialScan))
+                        using (var rewrittenFile = CreateTemporarySaveFile(
+                            targetPath,
+                            FileOptions.SequentialScan,
+                            out rewrittenPath))
+                        using (var bounded = new ExcelBoundedSeekableStream(
+                            rewrittenFile,
+                            temporaryLimit,
+                            leaveOpen: true,
+                            cancellationToken)) {
+                            RewritePackageWithPreservedCarriageReturns(
+                                stagedSource,
+                                bounded,
+                                carriageReturnParts);
+                        }
+
+                        cancellationToken.ThrowIfCancellationRequested();
+                        EnsureFileBackedTemporaryPackageWithinLimit(
+                            rewrittenPath,
+                            temporaryLimit);
+                        string clonedPath = temporaryPath;
+                        temporaryPath = rewrittenPath;
+                        rewrittenPath = string.Empty;
+                        DeleteFileIfExists(clonedPath);
+                    } finally {
+                        DeleteFileIfExists(rewrittenPath);
+                    }
+                }
+
                 properties.ApplyTo(temporaryPath);
                 EnsureFileBackedTemporaryPackageWithinLimit(temporaryPath, temporaryLimit);
                 cancellationToken.ThrowIfCancellationRequested();

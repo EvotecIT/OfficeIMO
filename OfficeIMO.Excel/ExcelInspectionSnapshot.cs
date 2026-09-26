@@ -160,6 +160,9 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name { get; internal set; } = string.Empty;
 
+        /// <summary>Number of standard and Office extension conditional-formatting rules captured with this worksheet.</summary>
+        public int ConditionalFormattingRuleCount { get; internal set; }
+
         /// <summary>
         /// Zero-based worksheet index in workbook order.
         /// </summary>

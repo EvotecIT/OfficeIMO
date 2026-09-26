@@ -417,6 +417,32 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderPaintedRightToLeftContoursFollowVisualOrderButKeepLogicalText() {
+        const string prefix = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 70'>"
+            + "<defs><linearGradient id='ink'><stop stop-color='red'/><stop offset='1' stop-color='blue'/></linearGradient></defs>";
+        var options = new OfficeSvgDrawingReaderOptions();
+        options.Fonts.Add("Painted", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 0x05D0));
+        string rtl = prefix + "<text x='80' y='40' text-anchor='middle' direction='rtl' "
+            + "font-family='Painted' font-size='22' fill='url(#ink)' stroke='black'>Aא</text></svg>";
+        string visual = prefix + "<text x='80' y='40' text-anchor='middle' direction='ltr' "
+            + "font-family='Painted' font-size='22' fill='url(#ink)' stroke='black'>אA</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(rtl), options,
+            out OfficeDrawing? actual, out int unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(visual), options,
+            out OfficeDrawing? expected, out unsupported));
+        Assert.Equal(0, unsupported);
+        Assert.Equal("Aא", Assert.Single(actual!.Elements.OfType<OfficeDrawingGroup>()).ActualText);
+        Assert.Contains("aria-label=\"Aא\"", OfficeDrawingSvgExporter.ToSvg(actual), StringComparison.Ordinal);
+        OfficeRasterImage actualRaster = OfficeDrawingRasterRenderer.Render(actual);
+        OfficeRasterImage expectedRaster = OfficeDrawingRasterRenderer.Render(expected!);
+        for (int y = 0; y < actualRaster.Height; y++)
+            for (int x = 0; x < actualRaster.Width; x++)
+                Assert.Equal(expectedRaster.GetPixel(x, y), actualRaster.GetPixel(x, y));
+    }
+
+    [Fact]
     public void SvgReaderPlacesSearchableGraphemesAlongReferencedTextPath() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 40' fill='navy'>"
             + "<defs><path id='curve' d='M 10 30 C 35 5 80 5 110 25'/></defs>"
@@ -931,18 +957,16 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
-    public void SvgReaderBoundsNestedTextTransformsAndSymbolSurfaces() {
+    public void SvgReaderRejectsOverNestedTextAndBoundsSymbolSurfaces() {
         var nested = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><text>");
         for (int index = 0; index < 160; index++) nested.Append("<tspan>");
         nested.Append("Text");
         for (int index = 0; index < 160; index++) nested.Append("</tspan>");
         nested.Append("</text><line x2='10' y2='10' stroke='black' stroke-dasharray='1 1' transform='scale(1000000000)'/></svg>");
 
-        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(nested.ToString()),
-            out OfficeDrawing? bounded, out int unsupported));
-        Assert.NotNull(bounded);
-        Assert.True(unsupported >= 2);
-        OfficeDrawingRasterRenderer.Render(bounded!);
+        Assert.False(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(nested.ToString()),
+            out OfficeDrawing? bounded, out _));
+        Assert.Null(bounded);
 
         const string oversized = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
             + "<defs><symbol id='large' viewBox='0 0 100000 100000'><rect width='1' height='1'/></symbol></defs>"

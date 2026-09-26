@@ -508,7 +508,7 @@ public static partial class PowerPointPdfConverterExtensions {
         for (int blockIndex = 0; blockIndex < page.TextBlocks.Count; blockIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalTextBlock block = page.TextBlocks[blockIndex];
-            if (!CanReconstructEditableTextBlock(block, page.Height)) {
+            if (!CanReconstructEditableTextBlock(block, page)) {
                 omitted++;
                 continue;
             }
@@ -559,10 +559,12 @@ public static partial class PowerPointPdfConverterExtensions {
 
     private static bool CanReconstructEditableTextBlock(
         PdfCore.PdfLogicalTextBlock block,
-        double pageHeight) =>
+        PdfCore.PdfLogicalPage page) =>
         block.Spans.Count == 0
-            ? block.VisualBounds != null
-            : block.Spans.All(span => span.CanProjectCompleteText(pageHeight));
+            ? block.VisualBounds != null && block.VisualBounds.Left >= 0D && block.VisualBounds.Top >= 0D &&
+                block.VisualBounds.Right <= page.GetVisualPageSize().Width &&
+                block.VisualBounds.Bottom <= page.GetVisualPageSize().Height
+            : block.Spans.All(span => span.CanProjectCompleteText(page));
 
     private static void ApplyEditableTextRuns(
         PptCore.PowerPointTextBox textBox,
@@ -865,9 +867,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
                     ? PdfCore.PdfConversionWarningSeverity.Warning
                     : PdfCore.PdfConversionWarningSeverity.Information,
-                diagnostic.SupportLevel == PdfCore.PdfRenderSupportLevel.Unsupported
-                    ? OfficeConversionLossKind.Omission
-                    : OfficeConversionLossKind.Approximation,
+                diagnostic.LossKind,
                 details: new Dictionary<string, string> {
                     ["pageNumber"] = pageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
                     ["construct"] = diagnostic.Capability.Feature,

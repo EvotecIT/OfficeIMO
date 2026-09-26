@@ -18,6 +18,26 @@ using StorageModeFlags = OpenMcdf.StorageModeFlags;
 namespace OfficeIMO.Tests {
     public partial class Word {
         [Fact]
+        public void LegacyDoc_LoadResult_ProjectsCapturedProjectionExceptionAsTypedFailure() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Projection source");
+            using LegacyDocLoadResult parsed = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+            using var failed = new LegacyDocLoadResult(
+                document: null,
+                parsed.LegacyDocument,
+                new InvalidDataException("Projection failed."));
+
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                failed.FidelityDiagnostics,
+                item => item.Code == "DOC-PROJECTION-FAILED");
+
+            Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
+            Assert.True(failed.HasLoss);
+            Assert.True(failed.HasImportErrors);
+            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsPlainTextParagraphs() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("First paragraph", "Second paragraph");
 
@@ -351,6 +371,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-MERGED-TABLE-CELLS-PRESENT"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["MergedTableCell|DOC-MERGED-TABLE-CELLS-PRESENT|PAPX:sprmTDefTable"]);
             Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "DOC-MERGED-TABLE-CELLS-PRESENT");
+            IOfficeConversionReport commonResult = result;
+            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+                commonResult.FidelityDiagnostics,
+                item => item.Code == feature.Code && item.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Equal("PAPX:sprmTDefTable", diagnostic.Location);
+            Assert.True(result.Summary.HasLoss);
+            Assert.Throws<InvalidDataException>(commonResult.RequireNoLoss);
+            Assert.Throws<InvalidDataException>(result.Summary.RequireNoLoss);
 
             WordTable table = Assert.Single(result.Document.Tables);
             WordTableRow row = Assert.Single(table.Rows);
@@ -1880,6 +1908,59 @@ namespace OfficeIMO.Tests {
             } finally {
                 DeleteIfExists(docxPath);
             }
+        }
+
+        [Theory]
+        [InlineData(false, "DOC-FOOTNOTE-PLC-INVALID")]
+        [InlineData(true, "DOC-ENDNOTE-PLC-INVALID")]
+        public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadNotesAsOmissions(bool endnote, string code) {
+            byte[] docBytes = endnote
+                ? LegacyDocTestBuilder.CreateSimpleDocWithEndnoteStory("Body with note", "Lost endnote", omitReferencePlc: true)
+                : LegacyDocTestBuilder.CreateSimpleDocWithFootnoteStory("Body with note", "Lost footnote", omitReferencePlc: true);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
+                new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == code);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(result.Summary.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Empty(endnote ? result.Document.EndNotes : result.Document.FootNotes);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+            Assert.Throws<InvalidDataException>(() => result.Summary.RequireNoLoss());
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadCommentsAsOmissions() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithCommentStory(
+                "Body with comment", "Lost comment", omitReferencePlc: true);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
+                new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Empty(result.LegacyDocument.Comments);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "DOC-COMMENT-PLC-INVALID" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
+        }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void LegacyDoc_LoadLegacyDocWithReport_ClassifiesUnreadOlePropertiesAsOmission(bool documentSummary, bool emptyStream) {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnreadableProperties("Retained text", documentSummary, emptyStream);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(
+                new MemoryStream(docBytes), new LegacyDocImportOptions { ReportUnsupportedContent = false });
+            Assert.True(result.HasDocument);
+            Assert.Equal("Retained text", result.Document.Sections[0].Paragraphs[0].Text);
+            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+                diagnostic.Code == "DOC-OLE-PROPERTIES-UNREADABLE"
+                && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Throws<InvalidDataException>(() => result.RequireNoLoss());
         }
 
         [Fact]
@@ -12710,6 +12791,21 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithUnreadableProperties(string paragraph, bool documentSummary, bool emptyStream) {
+                string text = paragraph + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, documentSummary ? "\u0005DocumentSummaryInformation" : "\u0005SummaryInformation",
+                        emptyStream ? Array.Empty<byte>() : new byte[] { 1, 2, 3, 4 });
+                }
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithBinaryCustomDocumentProperty(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
@@ -13049,7 +13145,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithFootnoteStory(string bodyText, string footnoteText) {
+            internal static byte[] CreateSimpleDocWithFootnoteStory(string bodyText, string footnoteText, bool omitReferencePlc = false) {
                 string documentText = bodyText + "\u0002\r";
                 string footnoteStory = footnoteText + "\r";
                 string text = documentText + footnoteStory;
@@ -13069,7 +13165,7 @@ namespace OfficeIMO.Tests {
                     text,
                     ccpFtn: footnoteStory.Length,
                     fcPlcffndRef: fcPlcffndRef,
-                    lcbPlcffndRef: footnoteReferencePlc.Length,
+                    lcbPlcffndRef: omitReferencePlc ? 0 : footnoteReferencePlc.Length,
                     fcPlcffndTxt: fcPlcffndTxt,
                     lcbPlcffndTxt: footnoteTextPlc.Length,
                     ccpTextOverride: documentText.Length);
@@ -13083,7 +13179,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithCommentStory(string bodyText, string commentText) {
+            internal static byte[] CreateSimpleDocWithCommentStory(string bodyText, string commentText, bool omitReferencePlc = false) {
                 string documentText = bodyText + "\u0005\r";
                 string commentStory = commentText + "\r";
                 string text = documentText + commentStory;
@@ -13103,7 +13199,7 @@ namespace OfficeIMO.Tests {
                     text,
                     ccpAtn: commentStory.Length,
                     fcPlcfandRef: fcPlcfandRef,
-                    lcbPlcfandRef: commentReferencePlc.Length,
+                    lcbPlcfandRef: omitReferencePlc ? 0 : commentReferencePlc.Length,
                     fcPlcfandTxt: fcPlcfandTxt,
                     lcbPlcfandTxt: commentTextPlc.Length,
                     ccpTextOverride: documentText.Length);
@@ -13239,7 +13335,7 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateSimpleDocWithEndnoteStory(string bodyText, string endnoteText) {
+            internal static byte[] CreateSimpleDocWithEndnoteStory(string bodyText, string endnoteText, bool omitReferencePlc = false) {
                 string documentText = bodyText + "\u0002\r";
                 string endnoteStory = endnoteText + "\r";
                 string text = documentText + endnoteStory;
@@ -13260,7 +13356,7 @@ namespace OfficeIMO.Tests {
                     text,
                     ccpEdn: endnoteStory.Length,
                     fcPlcfendRef: fcPlcfendRef,
-                    lcbPlcfendRef: endnoteReferencePlc.Length,
+                    lcbPlcfendRef: omitReferencePlc ? 0 : endnoteReferencePlc.Length,
                     fcPlcfendTxt: fcPlcfendTxt,
                     lcbPlcfendTxt: endnoteTextPlc.Length,
                     textOffset: textOffset,

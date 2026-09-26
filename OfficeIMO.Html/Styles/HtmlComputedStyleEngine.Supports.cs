@@ -581,7 +581,8 @@ public static partial class HtmlComputedStyleEngine {
         out Dictionary<string, HtmlCssCascadePriority> cascadePriorities,
         out Dictionary<string, OfficeIMO.Html.Css.HtmlCssCascadeTrace>? cascadeTraces,
         bool includeCascadeTraces,
-        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null,
+        bool enforceResolutionLimits = true) {
         var raw = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         var deferredFonts = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         var inherited = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
@@ -647,14 +648,14 @@ public static partial class HtmlComputedStyleEngine {
                 }
             }
         }
-        ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations);
-        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset);
+        ApplyRegisteredCustomPropertyFallbacks(raw, parentProperties, specified, inherited, customPropertyRegistrations, enforceResolutionLimits);
+        ResolveDeferredFontLonghands(raw, deferredFonts, parentProperties, inherited, reset, enforceResolutionLimits);
         bool requiresCustomPropertyResolution = raw.Any(pair =>
             !pair.Key.StartsWith("--", StringComparison.Ordinal)
             && HtmlCssCustomPropertyResolver.ContainsVarFunction(pair.Value));
         var invalidAtComputedValue = new HashSet<string>(HtmlCssPropertyNameComparer.Instance);
         Dictionary<string, string> resolved = requiresCustomPropertyResolution
-            ? ResolveCustomPropertyValues(raw, parentProperties, inherited, specified, invalidAtComputedValue)
+            ? ResolveCustomPropertyValues(raw, parentProperties, inherited, specified, invalidAtComputedValue, enforceResolutionLimits)
             : raw;
 
         ExpandResolvedCascadeShorthands(resolved, priorities, inherited, reset, specified);
@@ -688,7 +689,8 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         ISet<string> specifiedProperties,
         ISet<string> inheritedProperties,
-        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations) {
+        IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations,
+        bool enforceResolutionLimits) {
         if (customPropertyRegistrations == null || customPropertyRegistrations.Count == 0) return;
         foreach (CustomPropertyRegistration registration in customPropertyRegistrations.Values) {
             bool locallySpecified = specifiedProperties.Contains(registration.Name);
@@ -696,7 +698,7 @@ public static partial class HtmlComputedStyleEngine {
                 bool resolved = HtmlCssCustomPropertyResolver.TryResolve(
                     authoredValue,
                     name => raw.TryGetValue(name, out string? customValue) ? customValue : null,
-                    out string computedValue);
+                    out string computedValue, enforceResolutionLimits);
                 if (resolved && IsRegisteredCustomPropertyValueValid(registration.Syntax, computedValue)) {
                     raw[registration.Name] = computedValue;
                     continue;
@@ -735,7 +737,8 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, string>? parentProperties,
         ISet<string> inheritedProperties,
         ISet<string> specifiedProperties,
-        ISet<string> invalidAtComputedValueProperties) {
+        ISet<string> invalidAtComputedValueProperties,
+        bool enforceResolutionLimits) {
         var resolved = new Dictionary<string, string>(HtmlCssPropertyNameComparer.Instance);
         foreach (KeyValuePair<string, string> pair in raw) {
             if (pair.Key.StartsWith("--", StringComparison.Ordinal)) {
@@ -748,7 +751,7 @@ public static partial class HtmlComputedStyleEngine {
                 name => raw.TryGetValue(name, out string? local)
                     ? local
                     : parentProperties != null && parentProperties.TryGetValue(name, out string? inherited) ? inherited : null,
-                out string value);
+                out string value, enforceResolutionLimits);
             if (success && IsSupportedDeclarationValue(pair.Key, value)) {
                 resolved[pair.Key] = value;
                 continue;

@@ -20,10 +20,10 @@ internal sealed partial class ProjectNativeWriter {
                 if (field == null) continue;
                 Handle(path + "/FieldId");
                 if (definition.FieldName == null || definition.FieldName == field.Name) Handle(path + "/FieldName");
-                Loss("PROJECT_NATIVE_DEFINITION_LOSS", "Project 98 custom-field definitions have no qualified definition record and are omitted.", path + "/FieldId");
+                Omission("PROJECT_NATIVE_DEFINITION_LOSS", "Project 98 custom-field definitions have no qualified definition record and are omitted.", path + "/FieldId");
                 if (definition.Alias != null && Changed(path + "/Alias")) {
                     Handle(path + "/Alias");
-                    Loss("PROJECT_NATIVE_ALIAS_LOSS", "Project 98 custom-field values are retained, but aliases have no qualified encoding and are omitted.", path + "/Alias");
+                    Omission("PROJECT_NATIVE_ALIAS_LOSS", "Project 98 custom-field values are retained, but aliases have no qualified encoding and are omitted.", path + "/Alias");
                 }
             }
             return;

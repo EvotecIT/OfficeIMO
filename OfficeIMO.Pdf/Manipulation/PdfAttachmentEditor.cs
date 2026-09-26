@@ -239,7 +239,8 @@ internal static class PdfAttachmentEditor {
                 fileSpecificationsByOriginalEmbeddedFile.TryGetValue(
                     annotation.EmbeddedFileObjectNumber, out replacement);
             }
-            if (replacement == null && annotation.FileName != null &&
+            if (replacement == null && annotation.FileSpecObjectNumber <= 0 &&
+                annotation.EmbeddedFileObjectNumber <= 0 && annotation.FileName != null &&
                 retainedOriginalNames.TryGetValue(annotation.FileName, out string? retainedName) &&
                 fileSpecificationsByName.TryGetValue(retainedName, out PdfReference? nameReplacement)) {
                 replacement = nameReplacement;

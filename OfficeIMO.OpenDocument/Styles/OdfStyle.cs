@@ -30,6 +30,23 @@ public sealed class OdfStyle {
     }
     /// <summary>True for an automatic style.</summary>
     public bool IsAutomatic { get; }
+    /// <summary>Conditional style mappings in their authored evaluation order.</summary>
+    public IReadOnlyList<OdfStyleMap> ConditionalMaps => _element.Elements(OdfNamespaces.Style + "map")
+        .Select(element => new OdfStyleMap(_document, element, PartPath)).ToList();
+
+    /// <summary>Adds a native ODF conditional style mapping.</summary>
+    public OdfStyleMap AddConditionalMap(string condition, string applyStyleName, string? baseCellAddress = null) {
+        if (string.IsNullOrWhiteSpace(condition)) throw new ArgumentException("A condition is required.", nameof(condition));
+        if (string.IsNullOrWhiteSpace(applyStyleName)) throw new ArgumentException("An applied style name is required.", nameof(applyStyleName));
+        OdfStyleMap.ValidateBaseCellAddress(baseCellAddress);
+        var element = new XElement(OdfNamespaces.Style + "map",
+            new XAttribute(OdfNamespaces.Style + "condition", condition),
+            new XAttribute(OdfNamespaces.Style + "apply-style-name", applyStyleName));
+        if (baseCellAddress != null) element.SetAttributeValue(OdfNamespaces.Style + "base-cell-address", baseCellAddress);
+        _element.Add(element);
+        _document.MarkPartDirty(PartPath);
+        return new OdfStyleMap(_document, element, PartPath);
+    }
     /// <summary>Referenced number, currency, percentage, date, or time data style.</summary>
     public string? DataStyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Style + "data-style-name");
@@ -177,7 +194,33 @@ public sealed class OdfStyle {
     /// <summary>Explicit horizontal paragraph alignment.</summary>
     public string? TextAlign {
         get => (string?)ParagraphProperties?.Attribute(OdfNamespaces.Fo + "text-align");
-        set => SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+        set {
+            string? alignmentSource = Family == OdfStyleFamily.TableCell ? CellTextAlignSource : null;
+            SetAttribute(GetProperties(OdfNamespaces.Style + "paragraph-properties"), OdfNamespaces.Fo + "text-align", value);
+            if (Family == OdfStyleFamily.TableCell && (alignmentSource is null or "fix"))
+                CellTextAlignSource = value == null ? null : "fix";
+        }
+    }
+    /// <summary>Whether table-cell horizontal alignment is fixed or follows the value type.</summary>
+    public string? CellTextAlignSource {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Style + "text-align-source");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Style + "text-align-source", value);
+    }
+    /// <summary>Explicit table-cell vertical alignment token.</summary>
+    public string? CellVerticalAlign {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Style + "vertical-align");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Style + "vertical-align", value);
+    }
+    /// <summary>Explicit table-cell text wrapping token.</summary>
+    public string? CellWrapOption {
+        get => (string?)_element.Element(OdfNamespaces.Style + "table-cell-properties")?
+            .Attribute(OdfNamespaces.Fo + "wrap-option");
+        set => SetAttribute(GetProperties(OdfNamespaces.Style + "table-cell-properties"),
+            OdfNamespaces.Fo + "wrap-option", value);
     }
     /// <summary>Explicit ODF paragraph writing-mode token.</summary>
     public string? WritingMode {
@@ -231,10 +274,20 @@ public sealed class OdfStyle {
         XElement? properties = _element.Element(name);
         if (properties == null) {
             properties = new XElement(name);
-            _element.Add(properties);
+            int order = PropertyOrder(name);
+            XElement? next = _element.Elements().FirstOrDefault(child =>
+                child.Name == OdfNamespaces.Style + "map" || PropertyOrder(child.Name) > order);
+            if (next == null) _element.Add(properties);
+            else next.AddBeforeSelf(properties);
             _document.MarkPartDirty(PartPath);
         }
         return properties;
+    }
+
+    private static int PropertyOrder(XName name) {
+        if (name == OdfNamespaces.Style + "text-properties") return 3;
+        if (name == OdfNamespaces.Style + "paragraph-properties") return 2;
+        return 1;
     }
 
     internal void SetProperty(XName propertyElement, XName attribute, string? value) {

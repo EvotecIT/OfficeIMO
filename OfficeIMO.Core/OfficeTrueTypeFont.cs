@@ -36,6 +36,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _name;
     private readonly HashSet<int> _validFormat4Subtables;
     private readonly HashSet<int> _validFormat12Subtables;
+    private readonly HashSet<int> _paintedNotdefScalars;
     private readonly OfficeTrueTypeVariations? _variations;
     private readonly OfficeFontVariationModel _variationModel;
     private readonly int _unitsPerEm;
@@ -89,6 +90,17 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             _cmapLength,
             OfficeOpenTypeCmap.MaximumSubtables,
             OfficeOpenTypeCmap.MaximumFormat12Groups);
+        _paintedNotdefScalars = new HashSet<int>();
+        if (tables.TryGetValue("pG00", out int provenance) && tableLengths.TryGetValue("pG00", out int provenanceLength) &&
+            provenanceLength >= 4) {
+            uint count = ReadUInt32(_data, provenance);
+            if (count <= OfficeOpenTypeCmap.MaximumFormat12Groups && count <= (uint)((provenanceLength - 4) / 4)) {
+                for (int index = 0; index < count; index++) {
+                    uint scalar = ReadUInt32(_data, provenance + 4 + index * 4);
+                    if (scalar <= 0x10FFFF && !(scalar >= 0xD800 && scalar <= 0xDFFF)) _paintedNotdefScalars.Add((int)scalar);
+                }
+            }
+        }
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = reader != null && _variationModel.IsVariable
@@ -314,6 +326,9 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             uint offsetValue = ReadUInt32(data, record + 8);
             uint lengthValue = ReadUInt32(data, record + 12);
             if (offsetValue > int.MaxValue || lengthValue > int.MaxValue || tables.ContainsKey(tag)) return null;
+            // Subsetters can leave an empty optional table recorded at the end of the file.
+            // It carries no data, so treat it as absent instead of rejecting the whole face.
+            if (lengthValue == 0 && offsetValue <= (uint)data.Length) continue;
             var offset = CheckedOffset(data, offsetValue);
             int length = checked((int)lengthValue);
             if (offset > data.Length - length) return null;
@@ -429,7 +444,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             cancellationToken.ThrowIfCancellationRequested();
             ushort glyph = glyphs[index].Glyph;
             double glyphX = cursor + positioning[index].XPlacement * scale;
-            List<List<OfficePoint>> glyphContours = ReadGlyphContours(
+            List<List<OfficePoint>> glyphContours = glyph == 0 && !HasPaintedNotdefMapping(glyphs[index].Scalar)
+                ? new List<List<OfficePoint>>() : ReadGlyphContours(
                 glyph,
                 new FontTransform(scale, 0, 0, -scale, glyphX, baseline),
                 0,
@@ -458,7 +474,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         return OfficeOpenTypeCmap.HasGlyphs(
             value,
             scalar => MapGlyph(scalar),
-            MapVariationGlyph);
+            MapVariationGlyph,
+            HasPaintedNotdefMapping);
     }
 
     private int ReadMappedGlyph(string text, ref int index, out int scalar) =>
@@ -540,6 +557,59 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static bool IsWhitespaceScalar(int scalar) => scalar <= char.MaxValue && char.IsWhiteSpace((char)scalar);
+
+    // A PDF may explicitly map a character to an inked .notdef glyph. A cmap lookup returns
+    // zero for both that mapping and an absent character, so coverage must inspect the cmap
+    // entry before treating the painted placeholder as missing.
+    private bool HasPaintedNotdefMapping(int scalar) {
+        if (!_paintedNotdefScalars.Contains(scalar) || _numGlyphs == 0 ||
+            GlyphOffset(0) == GlyphOffset(1) && _colorGlyphs?.HasColorGlyph(0) != true || _cmapLength < 4)
+            return false;
+        int end = checked(_cmap + _cmapLength);
+        int count = ReadUInt16(_data, _cmap + 2);
+        if (count == 0 || count > OfficeOpenTypeCmap.MaximumSubtables || _cmap + 4 > end - count * 8)
+            return false;
+        for (int index = 0; index < count; index++) {
+            int record = _cmap + 4 + index * 8;
+            if (!OfficeOpenTypeCmap.IsUnicodeEncoding(ReadUInt16(_data, record), ReadUInt16(_data, record + 2))) continue;
+            uint relative = ReadUInt32(_data, record + 4);
+            if (relative > (uint)(_cmapLength - 2)) continue;
+            int table = _cmap + checked((int)relative);
+            int format = ReadUInt16(_data, table);
+            if (format == 4 && scalar <= char.MaxValue && _validFormat4Subtables.Contains(table)) {
+                int segments = ReadUInt16(_data, table + 6) / 2;
+                int endCodes = table + 14;
+                int starts = endCodes + segments * 2 + 2;
+                int low = 0;
+                int high = segments - 1;
+                while (low <= high) {
+                    int segment = low + (high - low) / 2;
+                    int first = ReadUInt16(_data, starts + segment * 2);
+                    int last = ReadUInt16(_data, endCodes + segment * 2);
+                    if (scalar < first) high = segment - 1;
+                    else if (scalar > last) low = segment + 1;
+                    else {
+                        if (scalar != 0xffff && MapFormat4(table, end, scalar) == 0) return true;
+                        break;
+                    }
+                }
+            } else if (format == 12 && _validFormat12Subtables.Contains(table)) {
+                uint groups = ReadUInt32(_data, table + 12);
+                int firstGroup = table + 16;
+                uint low = 0;
+                uint high = groups;
+                while (low < high) {
+                    uint group = low + (high - low) / 2;
+                    int entry = firstGroup + checked((int)group * 12);
+                    uint first = ReadUInt32(_data, entry);
+                    if (first < scalar) low = group + 1;
+                    else if (first > scalar) high = group;
+                    else return ReadUInt32(_data, entry + 8) == 0;
+                }
+            }
+        }
+        return false;
+    }
 
     private ushort MapGlyph(int scalar) {
         if (scalar < 0 || scalar > 0x10FFFF) return 0;
@@ -717,7 +787,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
         List<OfficePoint>? attachmentPoints) {
         cancellationToken.ThrowIfCancellationRequested();
         var contours = new List<List<OfficePoint>>();
-        if (glyph == 0 || glyph >= _numGlyphs || depth > 8) return contours;
+        if (glyph >= _numGlyphs || depth > 8) return contours;
         var glyphStart = GlyphOffset(glyph);
         var glyphEnd = GlyphOffset((ushort)(glyph + 1));
         if (glyphStart == glyphEnd) return contours;
@@ -1145,6 +1215,28 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             yield return "Georgia";
             yield return "Liberation Serif";
             yield return "DejaVu Serif";
+            yield break;
+        }
+
+        // PDF standard fonts are drawn with their installed or metric-compatible substitutes.
+        if (key == "helvetica") {
+            yield return family;
+            yield return "Arial";
+            yield return "Liberation Sans";
+            yield break;
+        }
+
+        if (key == "times" || key == "timesroman") {
+            yield return family;
+            yield return "Times New Roman";
+            yield return "Liberation Serif";
+            yield break;
+        }
+
+        if (key == "courier") {
+            yield return family;
+            yield return "Courier New";
+            yield return "Liberation Mono";
             yield break;
         }
 

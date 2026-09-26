@@ -2,7 +2,7 @@
   <div class="imo-library-catalog__intro"><div><p class="imo-application-eyebrow">Document capabilities</p><h2 id="library-catalog-title">Find the right library</h2></div><p>Each library has its own guide and supported-format boundaries. <a href="/compatibility/">Check format support →</a></p></div>
   <div class="imo-library-catalog__grid">
     {{ for product in data.products }}
-    <article class="imo-library">
+    <article class="imo-library"{{ if product.color }} style="--imo-library-color: {{ product.color }}"{{ end }}>
       <div class="imo-library__heading"><span class="imo-library__icon" aria-hidden="true">{{ product.icon_svg }}</span><h3><a href="{{ product.url }}">{{ product.title }}</a></h3></div>
       <p>{{ product.tagline }}</p>
       <div class="imo-library__links"><a href="{{ product.url }}">Capabilities<span class="imo-visually-hidden"> of {{ product.title }}</span> →</a><a href="{{ product.secondary_url }}">{{ product.secondary_label }}<span class="imo-visually-hidden"> for {{ product.title }}</span> →</a></div>

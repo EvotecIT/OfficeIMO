@@ -11,5 +11,6 @@ builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.
 builder.Services.AddScoped<BrowserConversionService>();
 builder.Services.AddScoped<BrowserPdfToolService>();
 builder.Services.AddScoped<BrowserDocumentSession>();
+builder.Services.AddScoped<BrowserToolLoader>();
 
 await builder.Build().RunAsync();

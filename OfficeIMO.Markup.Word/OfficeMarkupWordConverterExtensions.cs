@@ -89,7 +89,10 @@ public static class OfficeMarkupWordConverterExtensions {
                     options.IncludeUnsupportedBlocksAsText
                         ? $"{block.Kind} markup is represented as plain text in Word output."
                         : $"{block.Kind} markup is omitted from Word output.",
-                    block));
+                    block,
+                    options.IncludeUnsupportedBlocksAsText
+                        ? OfficeConversionLossKind.Approximation
+                        : OfficeConversionLossKind.Omission));
             }
         }
 

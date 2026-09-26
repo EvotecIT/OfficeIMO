@@ -6,6 +6,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderAllSeverityBatch12SecurityTests {
     [Fact]
+    public void PreferContentRejectsOversizedPathAndSeekableStreamBeforeDetection() {
+        string path = Path.Combine(Path.GetTempPath(),
+            "officeimo-prefer-content-" + Guid.NewGuid().ToString("N") + ".blob");
+        try {
+            using (FileStream output = new(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                output.SetLength(64L * 1024L * 1024L + 1);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddMarkdownHandler().Build();
+            ReaderOptions options = new() { DetectionMode = ReaderDetectionMode.PreferContent };
+
+            Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
+            using FileStream input = File.OpenRead(path);
+            Assert.Throws<IOException>(() => reader.ReadDocument(input, "source.blob", options));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void MarkdownHandler_DefaultInputLimitRejectsOversizedPath() {
         string path = Path.Combine(Path.GetTempPath(),
             Guid.NewGuid().ToString("N") + ".md");

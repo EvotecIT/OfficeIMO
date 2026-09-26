@@ -9,6 +9,79 @@ namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
     [Fact]
+    public void WarningDiagnosticIsTypedApproximationAndParticipatesInStrictLossPolicy() {
+        var warning = new IWorkDiagnostic(
+            IWorkDiagnosticSeverity.Warning,
+            "IWORK_APPROXIMATION_TEST",
+            "A source feature was approximated.",
+            lossKind: OfficeConversionLossKind.Approximation);
+        var report = new IWorkConversionReport(
+            IWorkDocumentKind.Pages,
+            IWorkProjectionKind.EditableReconstruction,
+            Array.Empty<string>(),
+            Array.Empty<IWorkArchiveRecord>(),
+            new[] { warning },
+            visualPreview: null,
+            totalRecordCount: 0,
+            unsupportedRecordCount: 0,
+            reconstructedItemCount: 1);
+
+        Assert.True(report.HasLoss);
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+    }
+
+    [Theory]
+    [InlineData("IWORK_KEYNOTE_SLIDE_MISSING")]
+    [InlineData("IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED")]
+    [InlineData("IWORK_TABLE_CELL_DECODE")]
+    public void MissingOrUnprojectedContentIsTypedAsOmission(string code) {
+        var warning = new IWorkDiagnostic(
+            IWorkDiagnosticSeverity.Warning,
+            code,
+            "Source content was not represented.");
+        var report = new IWorkConversionReport(
+            IWorkDocumentKind.Pages,
+            IWorkProjectionKind.EditableReconstruction,
+            Array.Empty<string>(),
+            Array.Empty<IWorkArchiveRecord>(),
+            new[] { warning },
+            visualPreview: null,
+            totalRecordCount: 0,
+            unsupportedRecordCount: 0,
+            reconstructedItemCount: 1);
+
+        Assert.Equal(OfficeConversionLossKind.Omission,
+            Assert.Single(report.FidelityDiagnostics).LossKind);
+    }
+
+    [Theory]
+    [InlineData(IWorkVisualCoverage.Unknown, OfficeConversionLossKind.Omission)]
+    [InlineData(IWorkVisualCoverage.FirstPageOrCompositePreview, OfficeConversionLossKind.Omission)]
+    [InlineData(IWorkVisualCoverage.FullDocument, OfficeConversionLossKind.Approximation)]
+    public void VisualFallbackCategoryReflectsPreviewCoverage(
+        IWorkVisualCoverage coverage, OfficeConversionLossKind expected) {
+        var preview = new IWorkPreviewAsset(
+            "preview.png", "image/png", coverage, 1, 1, new byte[] { 1 });
+        var report = new IWorkConversionReport(
+            IWorkDocumentKind.Pages,
+            IWorkProjectionKind.VisualFallback,
+            Array.Empty<string>(),
+            Array.Empty<IWorkArchiveRecord>(),
+            Array.Empty<IWorkDiagnostic>(),
+            preview,
+            totalRecordCount: 0,
+            unsupportedRecordCount: 0,
+            reconstructedItemCount: 0);
+
+        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
+            report.FidelityDiagnostics,
+            item => item.Code == "IWORK_VISUAL_FALLBACK");
+        Assert.Equal(expected, diagnostic.LossKind);
+    }
+
+    [Fact]
     public void Enforces_the_combined_decompressed_iwa_budget_across_entries() {
         byte[] first = ArchiveRecord(1, 1, new byte[48]);
         byte[] second = ArchiveRecord(2, 6000, new byte[48]);
@@ -1470,21 +1543,23 @@ public sealed partial class IWorkBoundaryTests {
     private static byte[] ValidPreviewPng() => Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
-    private static byte[] CreateSizedPreviewPng(int width, int height, byte bitDepth = 8) {
+    private static byte[] CreateSizedPreviewPng(int width, int height, byte bitDepth = 8,
+        byte colorType = 0) {
         var header = new byte[13];
         WriteBigEndian32(header, 0, width);
         WriteBigEndian32(header, 4, height);
         header[8] = bitDepth;
-        header[9] = 0;
+        header[9] = colorType;
         using var imageData = new MemoryStream();
         imageData.WriteByte(0x78);
         imageData.WriteByte(0x9c);
         using (var deflate = new DeflateStream(imageData, CompressionMode.Compress, leaveOpen: true)) {
-            int rowBytes = checked((int)(((long)width * bitDepth + 7) / 8));
+            int channels = colorType == 6 ? 4 : 1;
+            int rowBytes = checked((int)(((long)width * channels * bitDepth + 7) / 8));
             var row = new byte[checked(rowBytes + 1)];
             for (int index = 0; index < height; index++) deflate.Write(row, 0, row.Length);
         }
-        long decodedLength = checked((((long)width * bitDepth + 7) / 8 + 1) * height);
+        long decodedLength = checked((((long)width * (colorType == 6 ? 4 : 1) * bitDepth + 7) / 8 + 1) * height);
         uint adler = (uint)(decodedLength % 65521) << 16 | 1u;
         var checksum = new byte[4];
         WriteBigEndian32(checksum, 0, unchecked((int)adler));

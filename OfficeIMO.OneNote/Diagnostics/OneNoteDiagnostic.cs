@@ -30,6 +30,8 @@ public sealed class OneNoteDiagnostic {
 
     /// <summary>Optional source path associated with the diagnostic.</summary>
     public string? SourcePath { get; set; }
+
+    internal global::OfficeIMO.OfficeConversionLossKind LossKind { get; set; }
 }
 
 /// <summary>

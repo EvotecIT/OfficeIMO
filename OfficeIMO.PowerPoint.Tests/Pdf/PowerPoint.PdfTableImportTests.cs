@@ -821,7 +821,8 @@ public class PowerPointPdfTableImportTests {
             1,
             1,
             TimeSpan.Zero,
-            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
+            new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage);
         var failedRender = new PdfCore.PdfPageRenderResult(
             2,
             PdfCore.PdfPageRenderFormat.Png,
@@ -830,6 +831,7 @@ public class PowerPointPdfTableImportTests {
             0,
             TimeSpan.Zero,
             Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
+            new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage,
             new[] { "render failed" });
         var sourceScope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 2,
@@ -916,7 +918,8 @@ public class PowerPointPdfTableImportTests {
         bool hasOmittedPageContent) {
         var successfulRender = new PdfCore.PdfPageRenderResult(
             1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
-            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
+            new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage);
         var scope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 1, pagesWithTables: 1, detectedTableCount: 1,
             nonTableTextBlockCount: 0, vectorPrimitiveCount: 0, imageCount: 0,
@@ -965,10 +968,13 @@ public class PowerPointPdfTableImportTests {
     public void PdfPowerPointConversionReport_ClassifiesPartiallyOmittedHybridContentAsOmission() {
         var successfulRender = new PdfCore.PdfPageRenderResult(
             1, PdfCore.PdfPageRenderFormat.Png, new byte[] { 1 }, 1, 1, TimeSpan.Zero,
-            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>());
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
+            new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage);
         var failedRender = new PdfCore.PdfPageRenderResult(
             2, PdfCore.PdfPageRenderFormat.Png, null, 0, 0, TimeSpan.Zero,
-            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(), new[] { "render failed" });
+            Array.Empty<PdfCore.PdfRenderCapabilityDiagnostic>(),
+            new PdfCore.PdfPageRenderOptions().MaxDiagnosticCharactersPerPage,
+            new[] { "render failed" });
         var sourceScope = new PdfCore.PdfTableExtractionScopeReport(
             sourcePageCount: 2, pagesWithTables: 0, detectedTableCount: 0,
             nonTableTextBlockCount: 2, vectorPrimitiveCount: 0, imageCount: 0,

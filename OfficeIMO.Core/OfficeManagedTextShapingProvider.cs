@@ -13,7 +13,7 @@ namespace OfficeIMO.Drawing;
 /// bounded managed core. Callers then retain their normal scalar fallback and diagnostics. This
 /// keeps <see cref="IOfficeTextShapingProvider"/> as the single shaping contract used by Drawing and PDF.
 /// </remarks>
-public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider {
+public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     /// <summary>Shared stateless provider instance.</summary>
     public static OfficeManagedTextShapingProvider Instance { get; } = new OfficeManagedTextShapingProvider();
 
@@ -21,10 +21,14 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     }
 
     /// <inheritdoc />
+    public OfficeTextShapingBackend Backend => OfficeTextShapingBackend.Managed;
+
+    /// <inheritdoc />
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
-        if (string.IsNullOrEmpty(request.Text) ||
+        if (request.Direction == OfficeTextDirection.TopToBottom ||
+            string.IsNullOrEmpty(request.Text) ||
             !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault ||
             OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
@@ -65,7 +69,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             scalars[index] = tokens[index].Scalar;
         }
         OfficeOpenTypeGlyphPositioning[] positioning = kerningEnabled
-            ? PositionGlyphRun(font, glyphIds, scalars)
+            ? PositionGlyphRun(font, glyphIds, scalars, request.CancellationToken)
             : new OfficeOpenTypeGlyphPositioning[tokens.Count];
         var glyphs = new List<OfficeShapedGlyph>(tokens.Count);
         var advanceAdjustments = new List<int>(tokens.Count);
@@ -86,7 +90,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             advanceAdjustments.Add(positioning[index].XAdvance);
         }
 
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments);
+        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, request.Direction);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(
@@ -142,9 +146,10 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
     private static OfficeOpenTypeGlyphPositioning[] PositionGlyphRun(
         IOfficeFontProgram font,
         IReadOnlyList<int> glyphIds,
-        IReadOnlyList<int> scalars) {
-        if (font is OfficeTrueTypeFont trueType) return trueType.PositionGlyphRun(glyphIds, scalars);
-        if (font is OfficeOpenTypeCffFont cff) return cff.PositionGlyphRun(glyphIds, scalars);
+        IReadOnlyList<int> scalars,
+        System.Threading.CancellationToken cancellationToken) {
+        if (font is OfficeTrueTypeFont trueType) return trueType.PositionGlyphRun(glyphIds, scalars, cancellationToken);
+        if (font is OfficeOpenTypeCffFont cff) return cff.PositionGlyphRun(glyphIds, scalars, cancellationToken);
         return new OfficeOpenTypeGlyphPositioning[glyphIds.Count];
     }
 

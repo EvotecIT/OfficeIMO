@@ -14,10 +14,11 @@ internal static class OfficeProvenanceXmp {
     private const string VocabularyPrefix = "http://cv.iptc.org/newscodes/digitalsourcetype/";
 
     internal static void Inspect(byte[] packet, OfficeProvenanceOptions options, OfficeProvenanceContext context, string location,
-        bool carrierIsStructurallyValid = true) {
+        bool carrierIsStructurallyValid = true,
+        bool allowDirectRootIptc = false) {
         if (!TryLoad(packet, options, out XDocument? document) || document == null) return;
         int index = 0;
-        foreach (XmpValue value in FindValues(document)) {
+        foreach (XmpValue value in FindValues(document, allowDirectRootIptc)) {
             context.Add(new OfficeProvenanceEvidence(
                 OfficeProvenanceCarrierKind.IptcDigitalSourceType,
                 $"{location}/DigitalSourceType[{index++}]",
@@ -33,11 +34,12 @@ internal static class OfficeProvenanceXmp {
         string location,
         List<OfficeProvenanceChange> changes,
         out byte[] output,
-        bool carrierIsStructurallyValid = true) {
+        bool carrierIsStructurallyValid = true,
+        bool allowDirectRootIptc = false) {
         output = packet;
         if (!carrierIsStructurallyValid && options.RequireStructurallyValidCarrier) return false;
         if (!options.RemoveAiSourceMetadata || !TryLoad(packet, options.Limits, out XDocument? document) || document == null) return false;
-        XmpValue[] values = FindValues(document).ToArray();
+        XmpValue[] values = FindValues(document, allowDirectRootIptc).ToArray();
         bool changed = false;
         int index = 0;
         foreach (XmpValue value in values) {
@@ -88,7 +90,14 @@ internal static class OfficeProvenanceXmp {
         };
     }
 
-    private static IEnumerable<XmpValue> FindValues(XDocument document) {
+    private static IEnumerable<XmpValue> FindValues(XDocument document, bool allowDirectRootIptc = false) {
+        if (allowDirectRootIptc && document.Root != null) {
+            foreach (XAttribute attribute in document.Root.Attributes()) {
+                if (attribute.Name.NamespaceName == IptcNamespace && attribute.Name.LocalName == "DigitalSourceType") {
+                    yield return new XmpValue(attribute.Value, Classify(attribute.Value), attribute, null, isStructurallyValid: true);
+                }
+            }
+        }
         foreach (XElement description in document.Descendants(RdfNamespace + "Description")
             .Where(candidate => candidate.Ancestors().Any(ancestor => ancestor.Name == RdfNamespace + "RDF"))) {
             if (IsInsideXmlLiteral(description)) continue;

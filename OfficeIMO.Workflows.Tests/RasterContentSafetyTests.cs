@@ -417,7 +417,7 @@ public sealed partial class RasterContentSafetyTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task InspectAcceptsCanonicalSrgbGammaAndChromaticities(bool includeSrgbChunk) {
+    public async Task InspectRequiresSrgbDeclarationForCanonicalGammaAndChromaticities(bool includeSrgbChunk) {
         byte[] image = CreateImage(20, 10, OfficeColor.White, null, null);
         byte[] gamma = new byte[4];
         BinaryPrimitives.WriteUInt32BigEndian(gamma, 45455U);
@@ -437,11 +437,15 @@ public sealed partial class RasterContentSafetyTests {
             standardRgb = InsertPngChunkBefore(standardRgb, "IDAT", "sRGB", new byte[] { 0 });
         }
 
-        OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
-            standardRgb,
-            CreateEngine(_ => new OcrResult()));
-
-        Assert.Empty(report.Findings);
+        if (includeSrgbChunk) {
+            OfficeContentSafetyReport report = await OfficeRasterContentSafety.InspectAsync(
+                standardRgb,
+                CreateEngine(_ => new OcrResult()));
+            Assert.Empty(report.Findings);
+        } else {
+            await Assert.ThrowsAsync<InvalidDataException>(() =>
+                OfficeRasterContentSafety.InspectAsync(standardRgb, CreateEngine(_ => new OcrResult())));
+        }
     }
 
     [Fact]

@@ -97,13 +97,13 @@ public sealed partial class ProjectDocument {
                 diagnostics.AddRange(ProjectMpxWriter.Plan(this, WithFormat(options, format), false, token).Report.Diagnostics);
         } else if (IsNativeFormat(format)) {
             diagnostics.RemoveAll(d => d.Code == "PROJECT_OPAQUE_REFERENCES");
-            if (MpxSource != null) diagnostics.AddRange(MpxSource.Unmodeled.Select(d => new ProjectDiagnostic("PROJECT_MPX_CONVERSION_LOSS", ProjectDiagnosticSeverity.Warning, d.Message + " This source content is omitted during conversion.", d.Location, true)));
+            if (MpxSource != null) diagnostics.AddRange(MpxSource.Unmodeled.Select(d => new ProjectDiagnostic("PROJECT_MPX_CONVERSION_LOSS", ProjectDiagnosticSeverity.Warning, d.Message + " This source content is omitted during conversion.", d.Location, OfficeConversionLossKind.Omission)));
             if (includeNativePlan && !diagnostics.Any(d => d.Severity == ProjectDiagnosticSeverity.Error))
                 diagnostics.AddRange(ProjectNativeWriter.Plan(this, WithFormat(options, format), false, token).Report.Diagnostics);
         } else if (NativeSource != null) {
             if (Settings.CurrencyCode == null) diagnostics.Add(new ProjectDiagnostic("PROJECT_CURRENCY_CODE", ProjectDiagnosticSeverity.Error,
                 "Set a currency code before converting this native project to MSPDI.", "/Project/CurrencyCode"));
-            void Loss(string code, string message, string location = "/") => diagnostics.Add(new ProjectDiagnostic(code, ProjectDiagnosticSeverity.Warning, message, location, true));
+            void Loss(string code, string message, string location = "/") => diagnostics.Add(new ProjectDiagnostic(code, ProjectDiagnosticSeverity.Warning, message, location, OfficeConversionLossKind.Omission));
             Loss("PROJECT_NATIVE_PRESENTATION_LOSS", "Native views, filters, groups, drawings, report definitions, and other unmodeled records are omitted from XML output.");
             Loss("PROJECT_NATIVE_CURVE_LOSS", "Native timephased work/cost curves and rate tables are not decoded into XML. Modeled scalar totals are retained.");
             Loss("PROJECT_NATIVE_CUSTOM_METADATA_LOSS", "Unmodeled custom-field formulas, lookups, graphical indicators, and enterprise metadata are omitted. Modeled aliases and scalar values are retained.");
@@ -116,10 +116,10 @@ public sealed partial class ProjectDocument {
         if (format == ProjectFileFormat.Xml && MpxSource != null) {
             if (Settings.CurrencyCode == null) diagnostics.Add(new ProjectDiagnostic("PROJECT_CURRENCY_CODE", ProjectDiagnosticSeverity.Error,
                 "Set a currency code before converting MPX to MSPDI; an MPX symbol does not identify a currency unambiguously.", "/Project/CurrencyCode"));
-            diagnostics.AddRange(MpxSource.Unmodeled.Select(d => new ProjectDiagnostic("PROJECT_MPX_CONVERSION_LOSS", ProjectDiagnosticSeverity.Warning, d.Message + " This source content is omitted during conversion.", d.Location, true)));
+            diagnostics.AddRange(MpxSource.Unmodeled.Select(d => new ProjectDiagnostic("PROJECT_MPX_CONVERSION_LOSS", ProjectDiagnosticSeverity.Warning, d.Message + " This source content is omitted during conversion.", d.Location, OfficeConversionLossKind.Omission)));
         }
         if (format != ProjectFileFormat.Mpx4 && MpxSource?.Comments.Count > 0) diagnostics.Add(new ProjectDiagnostic("PROJECT_MPX_COMMENT_LOSS", ProjectDiagnosticSeverity.Warning,
-            "MPX comment records have no model mapping and are omitted during conversion.", "/", true));
+            "MPX comment records have no model mapping and are omitted during conversion.", "/", OfficeConversionLossKind.Omission));
         return new ProjectReport(Revision, diagnostics);
     }
     private void AddXmlRangeDiagnostics(List<ProjectDiagnostic> diagnostics, CancellationToken token) {

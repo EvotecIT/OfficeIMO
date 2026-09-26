@@ -32,12 +32,13 @@ public sealed class PdfReadCacheTests {
     private static async Task VerifyCancelledWait<T>(T expected) {
         var cache = new PdfReadCache<T>();
         using var entered = new ManualResetEventSlim();
+        using var waitStarted = new ManualResetEventSlim();
         using var release = new ManualResetEventSlim();
         int initializations = 0;
         T Initialize(CancellationToken token) {
             Interlocked.Increment(ref initializations);
             entered.Set();
-            if (!release.Wait(TimeSpan.FromSeconds(10), token)) throw new TimeoutException("Read initialization was not released.");
+            if (!release.Wait(TimeSpan.FromSeconds(30), token)) throw new TimeoutException("Read initialization was not released.");
             return expected;
         }
         Func<CancellationToken, T> initialize = Initialize;
@@ -45,11 +46,18 @@ public sealed class PdfReadCacheTests {
             CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
         Task<T>? waiting = null;
         try {
-            Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
-            using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
-            waiting = Task.Factory.StartNew(() => cache.GetOrCreate(initialize, static (factory, token) => factory(token), cancellation.Token),
+            Assert.True(entered.Wait(TimeSpan.FromSeconds(10)));
+            using var cancellation = new CancellationTokenSource();
+            waiting = Task.Factory.StartNew(() => {
+                    waitStarted.Set();
+                    return cache.GetOrCreate(initialize, static (factory, token) => factory(token), cancellation.Token);
+                },
                 CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-            Assert.Same(waiting, await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(2))));
+            // Thread creation can stall on a loaded CI host. Measure cancellation only after
+            // the waiter actually starts, not from when its LongRunning task was queued.
+            Assert.True(waitStarted.Wait(TimeSpan.FromSeconds(10)));
+            cancellation.CancelAfter(TimeSpan.FromMilliseconds(100));
+            Assert.Same(waiting, await Task.WhenAny(waiting, Task.Delay(TimeSpan.FromSeconds(10))));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await waiting);
             Assert.False(first.IsCompleted);
         } finally {

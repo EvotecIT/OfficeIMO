@@ -305,6 +305,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TranslationReport_ExposesExactTypedLossAndStrictAcceptance() {
+            var report = new TranslationReport();
+            report.Add(TranslationSeverity.Warning, "Notes", "Notes were omitted.",
+                path: "Slides[0].Notes", code: "WORKSPACE.TEST.SKIP", action: TranslationAction.Skip);
+            report.Add(TranslationSeverity.Warning, "Charts", "Chart was flattened.",
+                code: "WORKSPACE.TEST.FLATTEN", action: TranslationAction.Flatten);
+            report.Add(TranslationSeverity.Warning, "Drawing", "Drawing was rasterized.",
+                code: "WORKSPACE.TEST.RASTERIZE", action: TranslationAction.Rasterize);
+            report.Add(TranslationSeverity.Error, "Export", "Export failed.",
+                code: "WORKSPACE.TEST.FAIL", action: TranslationAction.Fail);
+            report.Add(TranslationSeverity.Info, "Text", "Text was preserved.",
+                code: "WORKSPACE.TEST.PRESERVE", action: TranslationAction.Preserve);
+
+            IOfficeConversionReport common = report;
+
+            Assert.Equal(OfficeConversionLossKind.Omission,
+                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.SKIP").LossKind);
+            Assert.All(common.FidelityDiagnostics.Where(item =>
+                    item.Code is "WORKSPACE.TEST.FLATTEN" or "WORKSPACE.TEST.RASTERIZE"),
+                item => Assert.Equal(OfficeConversionLossKind.Approximation, item.LossKind));
+            Assert.Equal(OfficeConversionLossKind.Failure,
+                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.FAIL").LossKind);
+            Assert.Equal(OfficeConversionLossKind.None,
+                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.PRESERVE").LossKind);
+            Assert.Equal("Slides[0].Notes",
+                Assert.Single(common.FidelityDiagnostics, item => item.Code == "WORKSPACE.TEST.SKIP").Location);
+            Assert.True(common.HasLoss);
+            Assert.Throws<InvalidOperationException>(common.RequireNoLoss);
+        }
+
+        [Fact]
         public async Task Test_GoogleSheetsExporter_DiagnosticSink_ReceivesTokenFailureEntries() {
             string filePath = Path.Combine(Path.GetTempPath(), "GoogleSheetsExporterDiagnosticSinkAuth-" + Guid.NewGuid().ToString("N") + ".xlsx");
 

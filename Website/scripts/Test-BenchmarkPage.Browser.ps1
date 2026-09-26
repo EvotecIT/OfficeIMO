@@ -112,7 +112,9 @@ try {
     if (Test-Path -LiteralPath $profileRoot) {
         foreach ($attempt in 1..20) {
             try {
-                Remove-Item -LiteralPath $profileRoot -Recurse -ErrorAction Stop
+                # -Force: on Unix, PowerShell treats dotfiles as hidden, and a killed Chromium can
+                # leave dot-prefixed temporary files behind in the profile.
+                Remove-Item -LiteralPath $profileRoot -Recurse -Force -ErrorAction Stop
                 break
             } catch {
                 if ($attempt -ge 20) {

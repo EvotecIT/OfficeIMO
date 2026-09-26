@@ -6,11 +6,82 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.OpenDocument.Testing;
+using OfficeIMO.Provenance;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentHardeningTests {
+    [Fact]
+    public void ProducerSignatureFilenameDoesNotClassifyAnUnrelatedXmlNamespace() {
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry("META-INF/auditsignatures.xml",
+                Encoding.UTF8.GetBytes("<audit:Signature xmlns:audit='urn:example:audit'/>"))
+        });
+
+        Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+        document.Metadata.Title = "Changed";
+        byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
+        Assert.True(ContainsEntry(output, "META-INF/auditsignatures.xml"));
+    }
+
+    [Fact]
+    public void ProducerSignatureFilenameDoesNotClassifyAnUnnamespacedResourceRoot() {
+        const string entryName = "META-INF/auditsignatures.xml";
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry(entryName, Encoding.UTF8.GetBytes("<signatures><audit>keep</audit></signatures>"))
+        });
+
+        Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+        document.Metadata.Title = "Changed";
+        byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
+        Assert.True(ContainsEntry(output, entryName));
+    }
+
+    [Fact]
+    public void ProducerSignatureFilenameRequiresTheOdfSignatureNamespace() {
+        const string entryName = "META-INF/auditsignatures.xml";
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry(entryName, Encoding.UTF8.GetBytes("<document-signatures><audit>keep</audit></document-signatures>"))
+        });
+
+        Assert.Empty(OdfDocument.FindSignatureEntries(package, new OfficeProvenanceOptions()));
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+        document.Metadata.Title = "Changed";
+        byte[] output = document.ToBytes(new OdfSaveOptions { SignatureHandling = OdfSignatureHandling.RemoveInvalidated });
+        Assert.True(ContainsEntry(output, entryName));
+    }
+
+    [Fact]
+    public void UnchangedSaveAndFeatureInspectionPreserveMalformedProducerCandidate() {
+        const string entryName = "META-INF/auditsignatures.xml";
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry(entryName, Encoding.UTF8.GetBytes("<document-signatures"))
+        });
+        OdtDocument document = OdtDocument.Load(new MemoryStream(package));
+
+        byte[] output = document.ToBytes();
+        OdfFeatureReport report = document.InspectFeatures();
+
+        Assert.True(ContainsEntry(output, entryName));
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "ODF_FEATURE_SIGNATURE_UNREADABLE");
+    }
+
+    [Fact]
+    public void ProducerSignatureClassificationHasAnAggregateReadBudget() {
+        byte[] package = RewritePackage(OdtDocument.Create().ToBytes(), additions: new[] {
+            new OdfTestPackageEntry("META-INF/firstsignatures.xml", Encoding.UTF8.GetBytes("<resource>" + new string(' ', 700000) + "</resource>")),
+            new OdfTestPackageEntry("META-INF/secondsignatures.xml", Encoding.UTF8.GetBytes("<resource>" + new string(' ', 700000) + "</resource>"))
+        });
+        var limits = new OfficeProvenanceOptions { MaxExpandedContainerBytes = 1024 * 1024 };
+
+        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+            OdfDocument.FindSignatureEntries(package, limits));
+        Assert.Contains("signature classification", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void PlainTextFastPathPreservesTheDecodedCharacterLimit() {
         var paragraph = new XElement(OdfNamespaces.Text + "p", new string('x', (16 * 1024 * 1024) + 1));

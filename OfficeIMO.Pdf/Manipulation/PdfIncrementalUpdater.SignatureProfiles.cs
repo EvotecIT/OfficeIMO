@@ -46,6 +46,7 @@ internal static partial class PdfIncrementalUpdater {
         int signatureObjectNumber,
         PdfExternalSignatureOptions options,
         PdfSignatureProfile profile,
+        PdfLoadOptions readOptions,
         ref int nextObjectNumber,
         ref bool catalogChanged,
         HashSet<int> changedObjects,
@@ -70,6 +71,7 @@ internal static partial class PdfIncrementalUpdater {
                 signatureField,
                 options.FieldName,
                 options.VisibleAppearance,
+                readOptions,
                 ref nextObjectNumber,
                 changedObjects,
                 cancellationToken);
@@ -107,12 +109,13 @@ internal static partial class PdfIncrementalUpdater {
         PdfDictionary signatureField,
         string fieldName,
         PdfVisibleSignatureAppearanceOptions options,
+        PdfLoadOptions readOptions,
         ref int nextObjectNumber,
         HashSet<int> changedObjects,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         ValidateVisibleAppearance(options);
-        PdfReadDocument document = PdfReadDocument.Open(sourcePdf, options: null, cancellationToken);
+        PdfReadDocument document = PdfReadDocument.Open(sourcePdf, readOptions, cancellationToken);
         if (options.PageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(options), "Visible signature page exceeds the document page count.");
         }
@@ -124,7 +127,7 @@ internal static partial class PdfIncrementalUpdater {
         }
 
         string appearanceText = string.IsNullOrWhiteSpace(options.Text) ? fieldName : options.Text!;
-        if (options.ShowText && !PdfWinAnsiEncoding.CanEncode(appearanceText, out int unsupportedIndex)) {
+        if (options.ShowText && !PdfWinAnsiEncoding.CanEncode(appearanceText, out int unsupportedIndex, cancellationToken)) {
             char unsupportedCharacter = appearanceText[unsupportedIndex];
             throw new ArgumentException("Visible signature text contains unsupported Helvetica character '" + unsupportedCharacter + "'.", nameof(options));
         }

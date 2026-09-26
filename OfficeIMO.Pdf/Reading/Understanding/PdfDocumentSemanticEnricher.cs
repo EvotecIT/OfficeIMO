@@ -91,7 +91,8 @@ internal static partial class PdfDocumentSemanticEnricher {
                 page.RestrictLogicalProjectionToReadingOrder,
                 tableCandidates[pageIndex],
                 page.ImagePlacements,
-                RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]));
+                RemapImageCaptions(imageRegions[pageIndex], elements[pageIndex]),
+                page.MaxWorkUnitsPerPage);
         }
         return Array.AsReadOnly(result);
     }
@@ -444,7 +445,7 @@ internal static partial class PdfDocumentSemanticEnricher {
                 workBudget.Consume();
                 int? pageObjectNumber = reference.PageObjectNumber ?? binding.Value.PageObjectNumber;
                 int? pageNumber = pageObjectNumber.HasValue
-                    ? document.GetPageNumberForObject(pageObjectNumber.Value)
+                    ? document.GetPageNumberForObject(pageObjectNumber.Value, workBudget.CancellationToken)
                     : null;
                 if (!pageNumber.HasValue) continue;
                 index.Add(

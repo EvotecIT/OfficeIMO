@@ -11,6 +11,7 @@ internal sealed partial class OdfPackage {
     private bool _entryGraphChanged;
     private bool _sourceIsEncrypted;
     private bool? _pendingOutputEncrypted;
+    internal int ExternalXmlEditVersion { get; private set; }
 
     private OdfPackage(OdfDocumentKind kind, OdfVersion version, OdfLoadOptions loadOptions) {
         Kind = kind;
@@ -23,7 +24,8 @@ internal sealed partial class OdfPackage {
     internal string MediaType => OdfMediaTypes.ForKind(Kind);
     internal IReadOnlyList<OdfDiagnostic> Diagnostics => _diagnostics;
     internal IReadOnlyList<OdfPackageEntry> Entries => _entries.Where(entry => !entry.IsRemoved).ToList();
-    internal bool IsSigned => _entries.Any(entry => !entry.IsRemoved && IsSignaturePath(entry.Name));
+    internal bool IsSigned => _entries.Any(entry => !entry.IsRemoved && IsSignatureCandidatePath(entry.Name) &&
+        IsSignatureEntry(entry.Name, entry.GetBytesForSave()));
     internal bool SourceIsEncrypted => _sourceIsEncrypted;
 
     internal static OdfPackage Create(OdfDocumentKind kind, OdfVersion version = OdfVersion.V1_4) {
@@ -213,7 +215,12 @@ internal sealed partial class OdfPackage {
         return GetXml(name);
     }
 
-    internal void MarkXmlDirty(string name) => GetRequiredEntry(name).MarkDirty();
+    internal void MarkXmlDirty(string name) {
+        GetRequiredEntry(name).MarkDirty();
+        ExternalXmlEditVersion++;
+    }
+
+    internal void MarkXmlDirtyFromDocument(string name) => GetRequiredEntry(name).MarkDirty();
 
     internal void AddDiagnostic(OdfDiagnostic diagnostic) {
         if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
@@ -222,6 +229,7 @@ internal sealed partial class OdfPackage {
 
     internal void AddOrReplaceEntry(string name, byte[] data, string mediaType) {
         ValidateNewEntryName(name);
+        if (name == "content.xml" || name == "styles.xml") ExternalXmlEditVersion++;
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? existing)) {
             existing.ReplaceBytes(data, mediaType);
         } else {
@@ -234,6 +242,7 @@ internal sealed partial class OdfPackage {
 
     internal void RemoveEntry(string name) {
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? entry) && !entry.IsRemoved) {
+            if (name == "content.xml" || name == "styles.xml") ExternalXmlEditVersion++;
             entry.Remove();
             _entryGraphChanged = true;
         }
@@ -245,11 +254,12 @@ internal sealed partial class OdfPackage {
         OdfVersion outputVersion = ResolveOutputVersion(effective.CompatibilityProfile);
         bool outputEncrypted = effective.Encryption != null;
         bool hasChanges = outputVersion != Version || _entryGraphChanged || _entries.Any(entry => entry.IsDirty) || outputEncrypted;
-        if (IsSigned && hasChanges) {
+        if (hasChanges && IsSigned) {
             if (effective.SignatureHandling == OdfSignatureHandling.RejectInvalidation) {
                 throw new InvalidOperationException("Saving this changed document would invalidate its signatures. Set SignatureHandling to RemoveInvalidated to continue.");
             }
-            foreach (OdfPackageEntry signature in _entries.Where(entry => IsSignaturePath(entry.Name)).ToList()) {
+            foreach (OdfPackageEntry signature in _entries.Where(entry =>
+                IsSignatureCandidatePath(entry.Name) && IsSignatureEntry(entry.Name, entry.GetBytesForSave())).ToList()) {
                 signature.Remove();
             }
             _entryGraphChanged = true;
@@ -333,7 +343,10 @@ internal sealed partial class OdfPackage {
         foreach (XElement fileEntry in fileEntries) {
             string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
             if (string.IsNullOrEmpty(path) || path == "/") continue;
-            if (path == "mimetype" || path == "META-INF/manifest.xml" || !actualPaths.Contains(path!)) {
+            bool backedDirectory = path!.EndsWith("/", StringComparison.Ordinal) &&
+                actualPaths.Any(actual => actual.StartsWith(path, StringComparison.Ordinal));
+            if (path == "mimetype" || path == "META-INF/manifest.xml" ||
+                !actualPaths.Contains(path) && !backedDirectory) {
                 fileEntry.Remove();
             }
         }
@@ -358,10 +371,28 @@ internal sealed partial class OdfPackage {
     }
 
     private void UpdateXmlVersions(OdfVersion outputVersion) {
-        foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }) {
+        var chartDirectories = new HashSet<string>(_entries.Where(entry => !entry.IsRemoved &&
+            entry.Name.EndsWith("/", StringComparison.Ordinal) &&
+            entry.MediaType == "application/vnd.oasis.opendocument.chart")
+            .Select(entry => entry.Name), StringComparer.Ordinal);
+        XDocument manifest = GetXml("META-INF/manifest.xml");
+        foreach (XElement fileEntry in manifest.Root!.Elements(OdfNamespaces.Manifest + "file-entry")) {
+            if ((string?)fileEntry.Attribute(OdfNamespaces.Manifest + "media-type") !=
+                "application/vnd.oasis.opendocument.chart") continue;
+            string? path = (string?)fileEntry.Attribute(OdfNamespaces.Manifest + "full-path");
+            if (path != null && path.EndsWith("/", StringComparison.Ordinal)) chartDirectories.Add(path);
+        }
+        IEnumerable<string> chartParts = _entries.Where(entry => !entry.IsRemoved &&
+            (entry.Name.EndsWith("/content.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/styles.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/meta.xml", StringComparison.Ordinal) ||
+             entry.Name.EndsWith("/settings.xml", StringComparison.Ordinal)) &&
+            chartDirectories.Contains(entry.Name.Substring(0, entry.Name.LastIndexOf('/') + 1)))
+            .Select(entry => entry.Name);
+        foreach (string path in new[] { "content.xml", "styles.xml", "meta.xml", "settings.xml" }.Concat(chartParts)) {
             if (!ContainsEntry(path)) continue;
             XDocument xml = GetXml(path);
-            if (xml.Root != null) {
+            if (xml.Root?.Name.Namespace == OdfNamespaces.Office) {
                 xml.Root.SetAttributeValue(OdfNamespaces.Office + "version", outputVersion.ToToken());
                 MarkXmlDirty(path);
             }
@@ -401,6 +432,39 @@ internal sealed partial class OdfPackage {
         return string.Equals(path, "META-INF/documentsignatures.xml", StringComparison.Ordinal) ||
             string.Equals(path, "META-INF/macrosignatures.xml", StringComparison.Ordinal);
     }
+
+    internal static bool IsSignatureEntry(string path, byte[] content) {
+        if (IsSignaturePath(path)) return true;
+        if (!IsSignatureCandidatePath(path)) return false;
+        // Producer-specific signature filenames are permitted. Inspect only the XML root;
+        // ambiguous content must not be deleted as if it were a signature.
+        if (IsPngContent(content, content.Length)) return false;
+        try {
+            var settings = new System.Xml.XmlReaderSettings {
+                DtdProcessing = System.Xml.DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 1024 * 1024
+            };
+            using var stream = new MemoryStream(content, writable: false);
+            using System.Xml.XmlReader reader = System.Xml.XmlReader.Create(stream, settings);
+            reader.MoveToContent();
+            const string odfSignatureNamespace = "urn:oasis:names:tc:opendocument:xmlns:digitalsignature:1.0";
+            const string xmlSignatureNamespace = "http://www.w3.org/2000/09/xmldsig#";
+            return reader.LocalName == "document-signatures" && reader.NamespaceURI == odfSignatureNamespace ||
+                reader.LocalName == "Signature" && reader.NamespaceURI == xmlSignatureNamespace;
+        } catch (System.Xml.XmlException exception) {
+            throw new InvalidDataException("An ODF signature-like entry could not be classified safely.", exception);
+        }
+    }
+
+    internal static bool IsPngContent(byte[] content, int length) => length >= 8 &&
+        content[0] == 0x89 && content[1] == (byte)'P' &&
+        content[2] == (byte)'N' && content[3] == (byte)'G' && content[4] == 0x0D &&
+        content[5] == 0x0A && content[6] == 0x1A && content[7] == 0x0A;
+
+    internal static bool IsSignatureCandidatePath(string path) => IsSignaturePath(path) ||
+        path.StartsWith("META-INF/", StringComparison.Ordinal) &&
+        path.EndsWith("signatures.xml", StringComparison.OrdinalIgnoreCase);
 
     private static string GuessMediaType(string path) {
         string extension = Path.GetExtension(path).ToLowerInvariant();

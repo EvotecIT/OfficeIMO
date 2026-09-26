@@ -16,9 +16,6 @@ namespace OfficeIMO.Drawing;
 public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     where TBuilder : OfficeImageExportBatchBuilder<TBuilder, TOptions>
     where TOptions : OfficeImageExportOptions {
-    private const int MaximumPortableBaseNameLength = 120;
-    private const string PortableInvalidFileNameCharacters = "<>:\"/\\|?*";
-    private static readonly char[] PlatformInvalidFileNameCharacters = Path.GetInvalidFileNameChars();
     private readonly Func<OfficeImageExportFormat, TOptions, IReadOnlyList<OfficeImageExportResult>> _export;
     private readonly Func<OfficeImageExportFormat, TOptions, CancellationToken, Task<IReadOnlyList<OfficeImageExportResult>>>? _exportAsync;
     private readonly Action<OfficeImageExportFormat, TOptions, OfficeImageExportConsumer, CancellationToken>? _exportEach;
@@ -493,7 +490,7 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         string name = string.IsNullOrWhiteSpace(result.Name)
             ? "image-" + (index + 1).ToString(CultureInfo.InvariantCulture)
             : result.Name!;
-        string fileName = GetUniqueFileName(SanitizeFileName(name), _format.GetFileExtension(), usedFileNames);
+        string fileName = GetUniqueFileName(OfficePortableFileName.SanitizeBaseName(name), _format.GetFileExtension(), usedFileNames);
         return OfficeImageExportPath.NormalizeFile(Path.Combine(folder, fileName), _format);
     }
 
@@ -515,49 +512,6 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         Directory.CreateDirectory(fullFolder);
         return fullFolder;
     }
-
-    private static string SanitizeFileName(string name) {
-        char[] chars = name.ToCharArray();
-        for (int i = 0; i < chars.Length; i++) {
-            if (chars[i] < 32 ||
-                PortableInvalidFileNameCharacters.IndexOf(chars[i]) >= 0 ||
-                Array.IndexOf(PlatformInvalidFileNameCharacters, chars[i]) >= 0) {
-                chars[i] = '_';
-            }
-        }
-
-        string sanitized = new string(chars).Trim().TrimEnd('.', ' ');
-        if (sanitized.Length > MaximumPortableBaseNameLength) {
-            int length = MaximumPortableBaseNameLength;
-            if (length > 0 && char.IsHighSurrogate(sanitized[length - 1])) length--;
-            sanitized = sanitized.Substring(0, length).TrimEnd('.', ' ');
-        }
-        if (IsReservedWindowsFileName(sanitized)) sanitized = "_" + sanitized;
-        return sanitized;
-    }
-
-    private static bool IsReservedWindowsFileName(string name) {
-        if (string.IsNullOrWhiteSpace(name)) return false;
-        string candidate = name;
-        int dot = candidate.IndexOf('.');
-        if (dot >= 0) candidate = candidate.Substring(0, dot);
-        if (candidate.Equals("CON", StringComparison.OrdinalIgnoreCase) ||
-            candidate.Equals("PRN", StringComparison.OrdinalIgnoreCase) ||
-            candidate.Equals("AUX", StringComparison.OrdinalIgnoreCase) ||
-            candidate.Equals("NUL", StringComparison.OrdinalIgnoreCase)) return true;
-        if (candidate.Length == 4 &&
-            (candidate.StartsWith("COM", StringComparison.OrdinalIgnoreCase) ||
-             candidate.StartsWith("LPT", StringComparison.OrdinalIgnoreCase))) {
-            return IsReservedDeviceDigit(candidate[3]);
-        }
-        return false;
-    }
-
-    private static bool IsReservedDeviceDigit(char value) =>
-        value >= '1' && value <= '9' ||
-        value == '\u00B9' ||
-        value == '\u00B2' ||
-        value == '\u00B3';
 
     private static string GetUniqueFileName(string baseName, string extension, ISet<string> usedFileNames) {
         if (string.IsNullOrWhiteSpace(baseName)) baseName = "image";

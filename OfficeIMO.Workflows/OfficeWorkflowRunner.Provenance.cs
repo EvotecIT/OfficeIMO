@@ -183,9 +183,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 throw;
             }
             cancellationToken.ThrowIfCancellationRequested();
-            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.Before.ExpandedInspectionBytes);
-            if (!ReferenceEquals(removal.Before, removal.After))
-                ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.After.ExpandedInspectionBytes);
+            ConsumeExpandedProcessingBytes(ref remainingExpandedBytes, removal.ExpandedInspectionBytes);
             inputSnapshot!.VerifyPrimaryFile(cancellationToken);
 
             failureStage = WorkflowFailureStage.Output;

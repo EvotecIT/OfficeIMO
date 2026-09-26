@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Linq;
@@ -815,6 +816,26 @@ internal static partial class PdfWriter {
         return TryBuildImageStream(img.Data, img.Info, img.W, img.H, out image, out unsupportedReason);
     }
 
+    private static bool SameImageStream(PdfImageStream a, PdfImageStream b) =>
+        a.PixelWidth == b.PixelWidth &&
+        a.PixelHeight == b.PixelHeight &&
+        string.Equals(a.DictionarySuffix, b.DictionarySuffix, StringComparison.Ordinal) &&
+        BytesEqual(a.Data, b.Data) &&
+        (a.SoftMask == null ? b.SoftMask == null : b.SoftMask != null && SameImageStream(a.SoftMask, b.SoftMask));
+
+    private static void AddImageXObjectToHashIndex(
+        Dictionary<string, List<(PdfImageStream Stream, int Id)>> index,
+        string key,
+        PdfImageStream stream,
+        int id) {
+        if (!index.TryGetValue(key, out List<(PdfImageStream Stream, int Id)>? matches)) {
+            matches = new List<(PdfImageStream Stream, int Id)>();
+            index.Add(key, matches);
+        }
+
+        matches.Add((stream, id));
+    }
+
     private static string BuildImageXObjectCacheKey(PdfImageStream image) {
         using var hash = System.Security.Cryptography.SHA256.Create();
         AppendImageStreamHash(hash, image);
@@ -850,6 +871,19 @@ internal static partial class PdfWriter {
             (byte)(value & 0xFF)
         };
         AppendHashBytes(hash, bytes);
+    }
+
+    private static bool BytesEqual(byte[] a, byte[] b) {
+        if (ReferenceEquals(a, b)) return true;
+        if (a.Length != b.Length) return false;
+#if NET6_0_OR_GREATER
+        return a.AsSpan().SequenceEqual(b);
+#else
+        for (int i = 0; i < a.Length; i++) {
+            if (a[i] != b[i]) return false;
+        }
+        return true;
+#endif
     }
 
     private static void AppendHashBytes(System.Security.Cryptography.HashAlgorithm hash, byte[] data) {

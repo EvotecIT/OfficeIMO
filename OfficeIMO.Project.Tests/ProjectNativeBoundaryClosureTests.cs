@@ -5,6 +5,28 @@ using System.Xml.Linq;
 namespace OfficeIMO.Project.Tests;
 
 public sealed class ProjectNativeBoundaryClosureTests {
+    [Theory]
+    [InlineData(ProjectFileFormat.Mpp8)]
+    [InlineData(ProjectFileFormat.Mpp9)]
+    [InlineData(ProjectFileFormat.Mpt8)]
+    [InlineData(ProjectFileFormat.Mpt9)]
+    public void LegacyNativeWorkWeekFlatteningIsAnOmission(ProjectFileFormat format) {
+        using var document = ProjectNativeAuthoringTests.Create();
+        var week = document.Calendar!.WorkWeeks.Add(); week.Name = "Special";
+        week.FromDate = new DateTime(2026, 10, 12); week.ToDate = new DateTime(2026, 10, 16, 23, 59, 0);
+
+        ProjectReport report = document.AssessSave(new ProjectSaveOptions { Format = format });
+        ProjectDiagnostic[] omissions = report.Diagnostics.Where(item =>
+            item.Code == "PROJECT_NATIVE_WORK_WEEK_FLATTENED").ToArray();
+        Assert.NotEmpty(omissions);
+        Assert.Contains(omissions, item => item.Location == "/Calendar[UID=" + document.Calendar.Uid + "]");
+        Assert.All(omissions, item => Assert.Equal(OfficeConversionLossKind.Omission, item.LossKind));
+        Assert.All(report.FidelityDiagnostics.Where(item => item.Code == "PROJECT_NATIVE_WORK_WEEK_FLATTENED"),
+            item => Assert.Equal(OfficeConversionLossKind.Omission, item.LossKind));
+        Assert.Throws<InvalidOperationException>(() => document.Save(new MemoryStream(),
+            new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Block }));
+    }
+
     [Fact]
     public void NativeVariableValuesShareOneConfiguredBudgetAcrossTables() {
         byte[] source = File.ReadAllBytes(ProjectNativeTests.Fixture("delivery.mpp"));

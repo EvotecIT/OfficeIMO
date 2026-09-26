@@ -5,6 +5,21 @@ namespace OfficeIMO.Invoicing.Tests;
 
 public class InvoiceDiagnosticLimitTests {
     [Fact]
+    public void IncompleteValidationMarkerSurvivesTheOuterReportBudget() {
+        var stage = new InvoiceDiagnosticBuffer();
+        for (int index = 0; index < 1000; index++)
+            stage.Add("warning", "warning", "Invoice", InvoiceDiagnosticSeverity.Warning);
+        stage.MarkWorkStopped();
+        var report = new InvoiceDiagnosticBuffer();
+        report.AddRange(stage.ToList());
+
+        IReadOnlyList<InvoiceDiagnostic> result = report.ToList();
+        Assert.Equal(1000, result.Count);
+        Assert.Contains(result, item => item.Code == InvoiceDiagnosticBuffer.IncompleteCode &&
+            item.Severity == InvoiceDiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void TruncationCannotHideAnErrorBehindEarlierWarnings() {
         var buffer = new InvoiceDiagnosticBuffer();
         for (int i = 0; i < 2000; i++) buffer.Add("warning", "warning", "Invoice", InvoiceDiagnosticSeverity.Warning);

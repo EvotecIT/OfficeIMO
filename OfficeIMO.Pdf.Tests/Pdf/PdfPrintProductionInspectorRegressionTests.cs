@@ -7,6 +7,41 @@ namespace OfficeIMO.Pdf.Tests;
 
 public sealed class PdfPrintProductionInspectorRegressionTests {
     [Fact]
+    public void ColorInspectorChargesFinalColorPassToAggregateOperationBudget() {
+        byte[] pdf = BuildInspectionPdf("/F1 Do", resources: "/XObject << /F1 5 0 R >>",
+            extraObjects: "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>\nstream\n\nendstream\nendobj\n");
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPrintProductionOperations = 1 }
+        });
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => document.InspectPrintProductionColors());
+        Assert.Equal(PdfReadLimitKind.PrintProductionOperations, error.Kind);
+    }
+
+    [Fact]
+    public void ColorInspectorBoundsAggregateOperationsAcrossContexts() {
+        byte[] pdf = BuildInspectionPdf("/DeviceRGB cs 1 0 0 rg");
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPrintProductionOperations = 1 }
+        });
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => document.InspectPrintProductionColors());
+        Assert.Equal(PdfReadLimitKind.PrintProductionOperations, error.Kind);
+    }
+
+    [Fact]
+    public void ColorInspectorBoundsDistinctFormContexts() {
+        byte[] pdf = BuildInspectionPdf("/F1 Do", resources: "/XObject << /F1 5 0 R >>",
+            extraObjects: "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Length 0 >>\nstream\n\nendstream\nendobj\n");
+        var document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPrintProductionContexts = 1 }
+        });
+
+        PdfReadLimitException error = Assert.Throws<PdfReadLimitException>(() => document.InspectPrintProductionColors());
+        Assert.Equal(PdfReadLimitKind.PrintProductionContexts, error.Kind);
+    }
+
+    [Fact]
     public void ColorInspectorFindsDirectResourceAndPatternShadingDictionaries() {
         byte[] pdf = BuildInspectionPdf(
             "/S1 sh /Pattern cs /P1 scn",
@@ -439,6 +474,27 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
 
         Assert.Equal(2, evidence.DeviceRgbOperatorCount);
         Assert.Equal(0, evidence.UninspectableContentStreamCount);
+    }
+
+    [Fact]
+    public void ColorInspectorDeduplicatesEquivalentFormColorSpaceContexts() {
+        const string formContent = "/PrintRgb cs 1 0 0 sc";
+        byte[] pdf = BuildInspectionPdf(
+            "/Fm Do /Fm Do /Fm Do",
+            resources: "/XObject << /Fm 5 0 R >>",
+            extraObjects:
+                "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 10 10] " +
+                "/Resources << /ColorSpace << /PrintRgb /DeviceRGB >> >> /Length " +
+                formContent.Length +
+                " >>\nstream\n" + formContent + "\nendstream\nendobj\n");
+        var options = new PdfLoadOptions {
+            Limits = new PdfReadLimits { MaxPrintProductionContexts = 2 }
+        };
+
+        PdfPrintProductionColorEvidence evidence = PdfReadDocument.Open(pdf, options).InspectPrintProductionColors();
+
+        Assert.True(evidence.IsComplete);
+        Assert.Equal(2, evidence.DeviceRgbOperatorCount);
     }
 
     [Theory]

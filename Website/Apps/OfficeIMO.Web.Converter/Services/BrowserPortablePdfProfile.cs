@@ -150,7 +150,7 @@ internal static class BrowserPortablePdfProfile {
     }
 
     private static byte[] ReadResource(string fileName) {
-        Assembly assembly = typeof(BrowserPortablePdfProfile).Assembly;
+        Assembly assembly = typeof(OfficeIMO.Web.Fonts.BrowserFontResources).Assembly;
         string resourceName = assembly.GetManifestResourceNames()
             .SingleOrDefault(name => name.EndsWith(".Assets.Fonts." + fileName, StringComparison.Ordinal))
             ?? throw new InvalidOperationException($"The browser PDF font resource '{fileName}' is missing.");

@@ -1,7 +1,8 @@
 {
   "studio": {
     "eyebrow": "Desktop document workspace",
-    "headline": "Your documents. A clearer workspace.",
+    "headlineLead": "Your documents.",
+    "headlineAccent": "A clearer workspace.",
     "summary": "Edit supported PDF text and images, review comments, fill forms, and organize pages. Convert and assemble documents, then inspect the result before saving.",
     "primaryLabel": "Explore the workspace",
     "primaryUrl": "#application-guide",
@@ -9,6 +10,7 @@
     "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme",
     "availability": "Build Studio from source using the Studio guide",
     "image": "/images/studio/workspace-light.png",
+    "imageDark": "/images/studio/workspace-dark.png",
     "imageAlt": "OfficeIMO Studio displaying the public document showcase dashboard with page navigation and document tools.",
     "caption": "Actual Studio window with an OfficeIMO sample PDF. Desktop source build. Select the image to open it at full size.",
     "facts": ["Windows · macOS · Linux development", "Local document workflows", "MIT licensed"],
@@ -18,7 +20,8 @@
   },
   "tool": {
     "eyebrow": "Command-line document tools",
-    "headline": "Put document work in your scripts.",
+    "headlineLead": "Put document work",
+    "headlineAccent": "in your scripts.",
     "summary": "Convert files, extract readable content, inspect documents, and run supported workflows from one command-line tool.",
     "primaryLabel": "Install the CLI",
     "primaryUrl": "#application-guide",

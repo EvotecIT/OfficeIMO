@@ -5,11 +5,13 @@ namespace OfficeIMO.OneNote.Markdown;
 
 /// <summary>One loss or compatibility diagnostic produced by semantic OneNote-to-Markdown projection.</summary>
 public sealed class OneNoteMarkdownDiagnostic {
-    internal OneNoteMarkdownDiagnostic(string code, OneNoteDiagnosticSeverity severity, string source, string message) {
+    internal OneNoteMarkdownDiagnostic(string code, OneNoteDiagnosticSeverity severity, string source, string message,
+        OfficeConversionLossKind? lossKind = null) {
         Code = code;
         Severity = severity;
         Source = source;
         Message = message;
+        LossKind = lossKind;
     }
 
     /// <summary>Stable diagnostic code.</summary>
@@ -23,6 +25,8 @@ public sealed class OneNoteMarkdownDiagnostic {
 
     /// <summary>Human-readable diagnostic message.</summary>
     public string Message { get; }
+
+    internal OfficeConversionLossKind? LossKind { get; }
 }
 
 /// <summary>A Markdown document paired with explicit semantic-projection diagnostics.</summary>
@@ -39,10 +43,20 @@ public sealed class OneNoteMarkdownConversionResult : OfficeConversionResult<Mar
 public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
     internal OneNoteMarkdownConversionReport(IReadOnlyList<OneNoteMarkdownDiagnostic> diagnostics) {
         Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(Diagnostics.Select(static diagnostic =>
+            new OfficeConversionFidelityDiagnostic(
+                diagnostic.Code,
+                diagnostic.Message,
+                GetLossKind(diagnostic),
+                "OfficeIMO.OneNote.Markdown",
+                diagnostic.Source)).ToArray());
     }
 
     /// <summary>Source and projection diagnostics in discovery order.</summary>
     public IReadOnlyList<OneNoteMarkdownDiagnostic> Diagnostics { get; }
+
+    /// <summary>Category-preserving conversion diagnostics.</summary>
+    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>True when projection reported an approximation, omission, or error.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic =>
@@ -53,6 +67,23 @@ public sealed class OneNoteMarkdownConversionReport : IOfficeConversionReport {
         if (HasLoss) {
             throw new InvalidOperationException("OneNote-to-Markdown conversion reported one or more lossy mappings.");
         }
+    }
+
+    private static OfficeConversionLossKind GetLossKind(OneNoteMarkdownDiagnostic diagnostic) {
+        if (diagnostic.LossKind.HasValue) {
+            return diagnostic.LossKind.Value;
+        }
+        if (diagnostic.Severity == OneNoteDiagnosticSeverity.Information) {
+            return OfficeConversionLossKind.None;
+        }
+        if (diagnostic.Severity != OneNoteDiagnosticSeverity.Warning) {
+            return OfficeConversionLossKind.Failure;
+        }
+        return diagnostic.Code switch {
+            "ONENOTE_MARKDOWN_ASSET_PLACEHOLDER" => OfficeConversionLossKind.Omission,
+            "ONENOTE_MARKDOWN_OPAQUE_CONTENT_OMITTED" => OfficeConversionLossKind.Omission,
+            _ => OfficeConversionLossKind.Approximation
+        };
     }
 }
 
@@ -180,8 +211,24 @@ internal static class OneNoteMarkdownDiagnosticCollector {
                 string.IsNullOrWhiteSpace(diagnostic.Code) ? "ONENOTE_SOURCE_DIAGNOSTIC" : diagnostic.Code,
                 diagnostic.Severity,
                 string.IsNullOrWhiteSpace(diagnostic.SourcePath) ? fallbackSource : diagnostic.SourcePath!,
-                diagnostic.Message));
+                diagnostic.Message,
+                ResolveSourceLossKind(diagnostic)));
         }
+    }
+
+    private static OfficeConversionLossKind? ResolveSourceLossKind(OneNoteDiagnostic diagnostic) {
+        if (diagnostic.LossKind != OfficeConversionLossKind.None) {
+            return diagnostic.LossKind;
+        }
+        return diagnostic.Code switch {
+            "ONENOTE_SECTION_READ" => OfficeConversionLossKind.Omission,
+            "ONENOTE_PACKAGE_SECTION_READ" => OfficeConversionLossKind.Omission,
+            "ONENOTE_TOC_SECTION_MISSING" => OfficeConversionLossKind.Omission,
+            "ONENOTE_TOC_GROUP_MISSING" => OfficeConversionLossKind.Omission,
+            "ONENOTE_TOC_STREAM_METADATA_ONLY" => OfficeConversionLossKind.Omission,
+            "ONENOTE_TOC_PATH" => OfficeConversionLossKind.Omission,
+            _ => null
+        };
     }
 
     private static void AddOpaqueDiagnostic(List<OneNoteMarkdownDiagnostic> diagnostics, int count, string source) {

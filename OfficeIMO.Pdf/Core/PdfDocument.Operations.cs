@@ -108,6 +108,13 @@ public sealed partial class PdfDocument {
         return PdfInspector.Inspect(snapshot.Bytes, snapshot.Document, cancellationToken);
     }
 
+    internal PdfDocumentInfo InspectSelectedPages(IReadOnlyList<int> pageNumbers, CancellationToken cancellationToken) {
+        Guard.NotNull(pageNumbers, nameof(pageNumbers));
+        var snapshot = GetReadSnapshot(ReadOptions, cancellationToken);
+        snapshot.Document.DemandContentExtraction("logical object");
+        return PdfInspector.InspectSelectedPages(snapshot.Bytes, snapshot.Document, pageNumbers.ToArray(), cancellationToken);
+    }
+
     /// <summary>
     /// Reports read and rewrite capabilities for this PDF.
     /// </summary>
@@ -227,13 +234,23 @@ public sealed partial class PdfDocument {
     /// Type 3/CFF substitution, ICC, pattern, annotation-appearance, blend, mask, and resource gaps
     /// tied to one registry rather than a duplicate compatibility table.
     /// </remarks>
-    public PdfRenderCompatibilityReport AssessRenderCompatibility(PdfLoadOptions? options = null) {
+    public PdfRenderCompatibilityReport AssessRenderCompatibility(PdfLoadOptions? options = null) =>
+        AssessRenderCompatibility(options, null);
+
+    /// <summary>Assesses managed page-render fidelity with configurable per-page diagnostic limits.</summary>
+    public PdfRenderCompatibilityReport AssessRenderCompatibility(
+        PdfLoadOptions? options, PdfPageRenderOptions? renderOptions) {
+        var diagnosticOptions = renderOptions ?? new PdfPageRenderOptions();
+        diagnosticOptions.Validate();
         var snapshot = GetReadSnapshot(options);
         var pages = new PdfRenderCompatibilityPage[snapshot.Document.Pages.Count];
         for (int index = 0; index < pages.Length; index++) {
             pages[index] = new PdfRenderCompatibilityPage(
                 index + 1,
-                snapshot.Document.Pages[index].GetRenderCapabilityDiagnostics());
+                snapshot.Document.Pages[index].GetRenderCapabilityDiagnostics(
+                    diagnosticOptions.MaxDiagnosticsPerPage,
+                    diagnosticOptions.MaxDiagnosticCharactersPerPage,
+                    default));
         }
         return new PdfRenderCompatibilityReport(Array.AsReadOnly(pages));
     }
@@ -670,7 +687,7 @@ public sealed partial class PdfDocument {
     }
 
     private PdfDocument MergeWith(string path, PdfLoadOptions targetReadOptions) {
-        return MergeWith(File.ReadAllBytes(path), targetReadOptions);
+        return MergeWith(PdfDocumentSource.FromPath(path, options: null).Bytes, targetReadOptions);
     }
 
     /// <summary>
@@ -694,9 +711,7 @@ public sealed partial class PdfDocument {
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return MergeWith(buffer.ToArray(), targetReadOptions);
+        return MergeWith(PdfDocumentSource.FromRemainingStream(stream, options: null).Bytes, targetReadOptions);
     }
 
     /// <summary>

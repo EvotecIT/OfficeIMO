@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 
 namespace OfficeIMO.Drawing;
@@ -35,25 +36,32 @@ public static partial class OfficeSvgDrawingReader {
             || double.IsNaN(baselineOffset) || double.IsInfinity(baselineOffset)) return false;
         baselineOffset = Math.Max(0D, Math.Min(lineHeight, baselineOffset));
         int pointAllowance = Math.Max(1, remainingCommands / 2);
+        // The contours are visual ink, while ActualText below retains the source's logical text.
+        OfficeManagedTextFallback shaped = OfficeManagedTextShaper.Resolve(
+            run.Text, bounded, run.TextDirection, CancellationToken.None);
+        string outlineText = shaped.Used ? shaped.Text : run.Text;
         List<List<OfficePoint>> contours;
         try {
             contours = bounded is IOfficeCffBoundedFontProgram cff
                 ? cff.GetTextContoursBounded(
-                    run.Text,
+                    outlineText,
                     run.X,
                     run.Baseline - baselineOffset,
                     run.FontSize,
                     pointAllowance,
                     CancellationToken.None,
-                    new OfficeCffOperationBudget())
+                    references.CffOperationBudget)
                 : bounded.GetTextContoursBounded(
-                    run.Text,
+                    outlineText,
                     run.X,
                     run.Baseline - baselineOffset,
                     run.FontSize,
                     pointAllowance,
                     CancellationToken.None);
         } catch (InvalidOperationException) {
+            pathCommandLimitExceeded = true;
+            return false;
+        } catch (InvalidDataException) {
             pathCommandLimitExceeded = true;
             return false;
         } catch (ArgumentException) {
@@ -119,6 +127,7 @@ public static partial class OfficeSvgDrawingReader {
             ? run.Transform
             : OfficeTransform.RotateDegrees(run.RotationDegrees, run.RotationCenterX, run.RotationCenterY).Then(run.Transform);
         ApplyTransform(positioned, textTransform);
+        var featureBudget = references.CaptureSurfaceBudget();
         bool hasPattern = TryAddSvgPatternFill(
             run.Style.FillPattern,
             positioned,
@@ -138,6 +147,8 @@ public static partial class OfficeSvgDrawingReader {
             ref pathCommandLimitExceeded,
             ref unsupported,
             out OfficeDrawing? patternLayer);
+        if (!hasPattern) references.RestoreSurfaceBudget(featureBudget);
+        featureBudget = references.CaptureSurfaceBudget();
         bool hasStrokePattern = TryAddSvgPatternStroke(
             run.Style.StrokePattern,
             positioned,
@@ -158,6 +169,7 @@ public static partial class OfficeSvgDrawingReader {
             ref unsupported,
             out OfficeDrawing? strokePatternLayer);
 
+        if (!hasStrokePattern) references.RestoreSurfaceBudget(featureBudget);
         var paint = new OfficeDrawing(drawing.Width, drawing.Height);
         paint.Fonts.AddRange(drawing.Fonts);
         if (hasPattern && patternLayer != null) paint.AddEffectDrawing(patternLayer, OfficeTransform.Identity);

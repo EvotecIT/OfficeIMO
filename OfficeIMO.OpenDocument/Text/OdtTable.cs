@@ -55,6 +55,14 @@ public sealed class OdtTable {
     public OdtTableCell Merge(int row, int column, int rowSpan, int columnSpan) {
         if (rowSpan < 1) throw new ArgumentOutOfRangeException(nameof(rowSpan));
         if (columnSpan < 1) throw new ArgumentOutOfRangeException(nameof(columnSpan));
+        // Resolve and validate every logical cell before changing the anchor.
+        // Materializing a repeated row or cell that already contains a note
+        // would clone its identity, so the merge must fail without mutation.
+        for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
+            for (int columnOffset = 0; columnOffset < columnSpan; columnOffset++) {
+                Cell(row + rowOffset, column + columnOffset).PreflightMerge();
+            }
+        }
         OdtTableCell anchor = Cell(row, column);
         anchor.SetSpans(rowSpan, columnSpan);
         for (int rowOffset = 0; rowOffset < rowSpan; rowOffset++) {
@@ -128,6 +136,10 @@ public sealed class OdtTableRow {
             _resolveRow = null;
         }
         if (_element.Attribute(OdfNamespaces.Table + "number-rows-repeated") == null) return;
+        if (OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
+            _element.Descendants(OdfNamespaces.Text + "note").Any()) {
+            throw new NotSupportedException("Splitting a repeated table row containing a note is not supported.");
+        }
         _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-rows-repeated", _repeatOffset);
     }
 
@@ -170,20 +182,52 @@ public sealed class OdtTableCell {
     /// <summary>Column span on the anchor cell.</summary>
     public int ColumnSpan => ReadCount(OdfNamespaces.Table + "number-columns-spanned");
     /// <summary>Paragraphs directly stored in this cell.</summary>
-    public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
-        .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
-        .Select(element => new OdtParagraph(_document, element)).ToList();
+    public IReadOnlyList<OdtParagraph> Paragraphs {
+        get {
+            // Reading a repeated cell must remain sparse. A paragraph resolves its
+            // logical row and cell only if a note is actually inserted.
+            return _element.Elements()
+                .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+                .Select((element, index) => new OdtParagraph(_document, element,
+                    materializeForNote: () => ResolveParagraphForNote(index))).ToList();
+        }
+    }
+
+    private XElement ResolveParagraphForNote(int index) {
+        // Splitting a repeated row or cell clones its existing notes. Their IDs
+        // would then be shared by several physical notes, so reject before the
+        // first XML mutation instead of inserting against a stale note index.
+        bool repeatsCellWithNote =
+            OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-columns-repeated") > 1 &&
+            _element.Descendants(OdfNamespaces.Text + "note").Any();
+        bool repeatsRowWithNote = _element.Parent is XElement row &&
+            row.Name == OdfNamespaces.Table + "table-row" &&
+            OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
+            row.Descendants(OdfNamespaces.Text + "note").Any();
+        if (repeatsCellWithNote || repeatsRowWithNote) {
+            throw new NotSupportedException("Adding a note while splitting a repeated table cell or row containing a note is not supported.");
+        }
+        EnsureMaterialized();
+        return _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+            .ElementAt(index);
+    }
     /// <summary>Cell text joined across paragraphs.</summary>
     public string Text {
-        get => string.Join("\n", Paragraphs.Select(paragraph => paragraph.Text));
+        get => string.Join("\n", _element.Elements()
+            .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
+            .Select(element => new OdtParagraph(_document, element).Text));
         set {
             if (IsCovered) throw new InvalidOperationException("Covered table cells cannot contain text.");
             EnsureMaterialized();
+            bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
+            if (hadNotes) _document.PrepareNoteIndexForMutation();
             _element.RemoveNodes();
             var paragraph = new XElement(OdfNamespaces.Text + "p");
             OdfTextCodec.Append(paragraph, value);
             _element.Add(paragraph);
             _element.SetAttributeValue(OdfNamespaces.Office + "value-type", "string");
+            if (hadNotes) _document.RefreshNoteIndexAfterMutation();
             Dirty();
         }
     }
@@ -215,9 +259,12 @@ public sealed class OdtTableCell {
 
     internal void ReplaceWithCoveredCell() {
         EnsureMaterialized();
+        bool hadNotes = _element.Descendants(OdfNamespaces.Text + "note").Any();
+        if (hadNotes) _document.PrepareNoteIndexForMutation();
         var covered = new XElement(OdfNamespaces.Table + "covered-table-cell");
         _element.ReplaceWith(covered);
         _element = covered;
+        if (hadNotes) _document.RefreshNoteIndexAfterMutation();
         Dirty();
     }
 
@@ -226,14 +273,34 @@ public sealed class OdtTableCell {
     }
 
     private void EnsureMaterialized() {
+        bool resolvedRow = false;
         if (_resolveRowCell != null) {
             OdfRepeatedElementPosition position = _resolveRowCell();
             _element = position.Element;
             _repeatOffset = position.Offset;
             _resolveRowCell = null;
+            resolvedRow = true;
         }
-        if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") == null) return;
-        _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
+        if (_element.Attribute(OdfNamespaces.Table + "number-columns-repeated") != null) {
+            if (OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-columns-repeated") > 1 &&
+                _element.Descendants(OdfNamespaces.Text + "note").Any()) {
+                throw new NotSupportedException("Splitting a repeated table cell containing a note is not supported.");
+            }
+            _element = OdsRepeatModel.Split(_element, OdfNamespaces.Table + "number-columns-repeated", _repeatOffset);
+            Dirty();
+        } else if (resolvedRow) {
+            Dirty();
+        }
+    }
+
+    internal void PreflightMerge() {
+        if (OdsRepeatModel.Read(_element, OdfNamespaces.Table + "number-columns-repeated") > 1 &&
+            _element.Descendants(OdfNamespaces.Text + "note").Any() ||
+            _element.Parent is XElement row && row.Name == OdfNamespaces.Table + "table-row" &&
+            OdsRepeatModel.Read(row, OdfNamespaces.Table + "number-rows-repeated") > 1 &&
+            row.Descendants(OdfNamespaces.Text + "note").Any()) {
+            throw new NotSupportedException("Merging a repeated table row or cell containing a note is not supported.");
+        }
     }
 
     private void Dirty() => _document.MarkPartDirty("content.xml");

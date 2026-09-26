@@ -9,7 +9,8 @@
       "task": "sources-sync",
       "id": "sync-sources",
       "config": "./site.json",
-      "lockMode": "off",
+      "lockMode": "verify",
+      "lockPath": "./.powerforge/git-sync-lock.json",
       "writeManifest": true
     },
     {
@@ -437,7 +438,13 @@
         {
           "product": "officeimo.studio",
           "label": "OfficeIMO Studio",
-          "match": ["OfficeIMO-Studio-*.msi", "OfficeIMO-Studio-*-portable.zip"]
+          "match": [
+            "OfficeIMO-Studio-*.msi",
+            "OfficeIMO-Studio-*-portable.zip",
+            "OfficeIMO-Studio-linux-*-PortableCompat.zip",
+            "officeimo-studio_*.deb",
+            "OfficeIMO-Studio-*-osx-*.zip"
+          ]
         },
         {
           "product": "officeimo.googleworkspace.auth.googleapis",
@@ -579,6 +586,8 @@
       "publishPath": "./static/data/ecosystem/stats.json",
       "summaryPath": "./Build/sync-ecosystem-stats-last-run.json",
       "title": "OfficeIMO Package Telemetry",
+      "githubOrg": "EvotecIT",
+      "githubTokenEnv": "GITHUB_TOKEN",
       "nugetOwner": "Evotec",
       "timeoutSeconds": 60,
       "preserveOnWarnings": true
@@ -1630,8 +1639,24 @@
     },
     {
       "task": "optimize",
-      "id": "optimize-site",
+      "id": "optimize-showcase-previews",
       "dependsOn": "validate-discovery-artifacts",
+      "skipModes": ["dev"],
+      "siteRoot": "./_site",
+      "optimizeImages": true,
+      "imageInclude": [ "downloads/showcase/**/preview*.png", "downloads/showcase/**/*-page1.png" ],
+      "imageGenerateWebp": true,
+      "imagePreferNextGen": true,
+      "imageWidths": [ "480" ],
+      "minifyHtml": false,
+      "minifyCss": false,
+      "minifyJs": false,
+      "hashAssets": false
+    },
+    {
+      "task": "optimize",
+      "id": "optimize-site",
+      "dependsOn": "optimize-showcase-previews",
       "skipModes": ["dev"],
       "siteRoot": "./_site",
       "config": "./site.json",

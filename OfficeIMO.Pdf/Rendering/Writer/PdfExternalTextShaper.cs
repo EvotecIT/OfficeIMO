@@ -8,7 +8,7 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(font, nameof(font));
 
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
-        if (provider == null && !options.FeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null && (!options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             glyphRun = null!;
             return false;
@@ -20,7 +20,7 @@ internal static class PdfExternalTextShaper {
             font.FontDataForInspection,
             isOpenTypeCff: false,
             font.UnitsPerEm,
-            OfficeTextElements.ResolveBaseDirection(text),
+            options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language,
             default,
             fontCollectionIndex: null,
@@ -43,7 +43,7 @@ internal static class PdfExternalTextShaper {
         Guard.NotNull(font, nameof(font));
 
         IOfficeTextShapingProvider? provider = options.ShapingProvider;
-        if (provider == null && !options.FeatureSettings.IsDefault) provider = OfficeManagedTextShapingProvider.Instance;
+        if (provider == null && (!options.FeatureSettings.IsDefault || options.Direction != OfficeTextDirection.Auto)) provider = OfficeManagedTextShapingProvider.Instance;
         if (provider == null) {
             glyphRun = null!;
             return false;
@@ -55,7 +55,7 @@ internal static class PdfExternalTextShaper {
             font.FontDataForInspection,
             isOpenTypeCff: true,
             font.UnitsPerEm,
-            OfficeTextElements.ResolveBaseDirection(text),
+            options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language,
             default,
             fontCollectionIndex: null,
@@ -85,6 +85,7 @@ internal static class PdfExternalTextShaper {
         }
 
         var glyphs = new List<PdfGlyphInfo>(result.Glyphs.Count);
+        bool hasCompleteVerticalAdvances = result.Direction == OfficeTextDirection.TopToBottom;
         foreach (OfficeShapedGlyph shapedGlyph in result.Glyphs) {
             if (shapedGlyph.GlyphId <= 0 || shapedGlyph.GlyphId >= glyphCount) {
                 throw new ArgumentException("PDF text shaping provider returned glyph id " + shapedGlyph.GlyphId.ToString(System.Globalization.CultureInfo.InvariantCulture) + ", which is outside the embedded font glyph range.", nameof(result));
@@ -98,6 +99,10 @@ internal static class PdfExternalTextShaper {
             int advanceWidth1000 = shapedGlyph.AdvanceWidth.HasValue
                 ? ScaleToPdfUnits(shapedGlyph.AdvanceWidth.Value, unitsPerEm)
                 : nominalWidth1000;
+            int advanceHeight1000 = shapedGlyph.AdvanceHeight.HasValue
+                ? ScaleToPdfUnits(shapedGlyph.AdvanceHeight.Value, unitsPerEm)
+                : 0;
+            hasCompleteVerticalAdvances &= shapedGlyph.AdvanceHeight.HasValue;
             int offsetX1000 = ScaleToPdfUnits(shapedGlyph.OffsetX, unitsPerEm);
             int offsetY1000 = ScaleToPdfUnits(shapedGlyph.OffsetY, unitsPerEm);
             recordGlyphUsage?.Invoke(shapedGlyph.GlyphId, shapedGlyph.UnicodeText);
@@ -107,11 +112,12 @@ internal static class PdfExternalTextShaper {
                 shapedGlyph.TextIndex,
                 nominalWidth1000,
                 advanceWidth1000,
+                advanceHeight1000,
                 offsetX1000,
                 offsetY1000));
         }
 
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: text, result.Direction, hasCompleteVerticalAdvances, result);
     }
 
     private static int ScaleToPdfUnits(int value, int unitsPerEm) =>

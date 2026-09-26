@@ -26,7 +26,11 @@ public sealed class ProjectFormatRegressionTests {
         document.AssessSave(exact).ThrowIfErrors();
         using var copy = new MemoryStream(); document.Save(copy, exact); Assert.Equal(bytes, copy.ToArray());
         var tooSmall = new ProjectSaveOptions { Format = format, MaxOutputBytes = bytes.Length - 1, LossPolicy = OfficeConversionLossPolicy.Allow };
-        Assert.True(document.AssessSave(tooSmall).HasErrors);
+        ProjectReport assessment = document.AssessSave(tooSmall);
+        Assert.True(assessment.HasErrors);
+        Assert.True(assessment.HasLoss);
+        Assert.Contains(assessment.FidelityDiagnostics,
+            diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
         using var destination = new MemoryStream(new byte[] { 1, 2, 3 }, true);
         Assert.Throws<InvalidDataException>(() => document.Save(destination, tooSmall));
         Assert.Equal(new byte[] { 1, 2, 3 }, destination.ToArray());

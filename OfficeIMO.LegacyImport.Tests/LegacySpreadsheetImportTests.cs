@@ -554,6 +554,9 @@ public sealed class LegacySpreadsheetImportTests {
             new LegacySpreadsheetImportOptions { FormatHint = LegacySpreadsheetFormat.MicrosoftWorks });
         Assert.Contains(compound.Report.Findings, finding => finding.Code == "LEGACY_COMPOUND_INVENTORY_INCOMPLETE");
         Assert.True(compound.Report.HasLoss);
+        Assert.Contains(compound.Report.FidelityDiagnostics, diagnostic =>
+            diagnostic.Code == "LEGACY_COMPOUND_INVENTORY_INCOMPLETE"
+            && diagnostic.LossKind != OfficeConversionLossKind.None);
 
         using LegacySpreadsheetImportResult validCompound = LegacySpreadsheetImporter.Import(
             LegacyFixtureFactory.CompoundSheet(),

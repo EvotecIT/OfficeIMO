@@ -37,6 +37,46 @@ public sealed class PowerPointPdfEditableDefaultContracts {
     }
 
     [Fact]
+    public void DefaultEditableImportOmitsTextOutsideThePageBoundary() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 72 720 Td (Visible text) Tj 650 0 Td (Off-page secret) Tj ET");
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult();
+
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        string[] text = package.PresentationPart!.SlideParts
+            .SelectMany(part => part.Slide.Descendants<A.Text>())
+            .Select(value => value.Text ?? string.Empty)
+            .ToArray();
+        Assert.Contains(text, value => value.Contains("Visible text", StringComparison.Ordinal));
+        Assert.DoesNotContain(text, value => value.Contains("Off-page secret", StringComparison.Ordinal));
+        Assert.Contains(result.Warnings, warning => warning.Code == "PdfTextNotReconstructed");
+    }
+
+    [Fact]
+    public void DefaultEditableImportOmitsFullyTransparentText() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "BT /F1 12 Tf 72 720 Td (Visible text) Tj ET q /GS0 gs BT /F1 12 Tf 72 690 Td (Transparent secret) Tj ET Q",
+            includeTransparentState: true);
+
+        PdfPowerPointConversionResult result = PdfCore.PdfDocument.Load(pdf)
+            .ToPowerPointPresentationResult();
+
+        using var presentation = new MemoryStream();
+        using (result.Value) result.Value.Save(presentation);
+        using PresentationDocument package = PresentationDocument.Open(new MemoryStream(presentation.ToArray()), false);
+        string[] text = package.PresentationPart!.SlideParts
+            .SelectMany(part => part.Slide.Descendants<A.Text>())
+            .Select(value => value.Text ?? string.Empty)
+            .ToArray();
+        Assert.Contains(text, value => value.Contains("Visible text", StringComparison.Ordinal));
+        Assert.DoesNotContain(text, value => value.Contains("Transparent secret", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void DefaultEditableImportDoesNotExposeInvisibleTableCellText() {
         byte[] pdf = BuildSingleStreamPdf(string.Join("\n", new[] {
             "BT /F1 10 Tf",
@@ -183,7 +223,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         explicitDefaultResult.Value.Dispose();
     }
 
-    private static byte[] BuildSingleStreamPdf(string streamContent) {
+    private static byte[] BuildSingleStreamPdf(string streamContent, bool includeTransparentState = false) {
         streamContent = streamContent.TrimEnd('\n');
         int streamLength = Encoding.ASCII.GetByteCount(streamContent);
         string pdf = string.Join("\n", new[] {
@@ -195,7 +235,8 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 612 792] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+            "<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >>" +
+                (includeTransparentState ? " /ExtGState << /GS0 6 0 R >>" : string.Empty) + " >> /Contents 5 0 R >>",
             "endobj",
             "4 0 obj",
             "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
@@ -206,6 +247,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             streamContent,
             "endstream",
             "endobj",
+            includeTransparentState ? "6 0 obj << /Type /ExtGState /ca 0 >> endobj" : string.Empty,
             "trailer",
             "<< /Root 1 0 R >>",
             "%%EOF"

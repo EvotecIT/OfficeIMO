@@ -153,6 +153,16 @@ public sealed class MainWindowViewModelTests {
             viewModel.Pages[0].SelectObject(CreateAnnotationSelection(objectNumber));
             viewModel.SelectedAnnotationContents = "Edited contents";
             viewModel.SelectedAnnotationAuthor = "Edited author";
+            viewModel.EditorColorHex = "oops";
+
+            await viewModel.UpdateSelectedAnnotationCommand.ExecuteAsync(null);
+            Assert.NotNull(viewModel.ErrorMessage);
+            Assert.True(viewModel.HasSelectedAnnotation);
+            viewModel.AnnotationReplyText = "Reply";
+            await viewModel.ReplyToSelectedAnnotationCommand.ExecuteAsync(null);
+            Assert.NotNull(viewModel.ErrorMessage);
+            Assert.True(viewModel.HasSelectedAnnotation);
+            viewModel.EditorColorHex = "#000000";
 
             await viewModel.UpdateSelectedAnnotationCommand.ExecuteAsync(null);
             await viewModel.SaveCommand.ExecuteAsync(null);

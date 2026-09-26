@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -15,10 +16,10 @@ namespace OfficeIMO.Drawing.HarfBuzz;
 /// <see cref="IOfficeTextShapingProvider"/> contract. Core Drawing and PDF
 /// packages remain independent of HarfBuzz and its native assets.
 /// </remarks>
-public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider {
+public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
     private readonly ConditionalWeakTable<object, CachedFontCollection> _fontCache = new();
-    private readonly object _languageSync = new();
-    private readonly Dictionary<string, Language> _languages = new(StringComparer.Ordinal);
+    private static readonly object LanguageSync = new();
+    private static readonly Dictionary<string, Language> Languages = new(StringComparer.Ordinal);
 
     /// <summary>Shared provider instance with a weak cache of parsed font faces.</summary>
     public static OfficeHarfBuzzTextShapingProvider Instance { get; } = new();
@@ -27,11 +28,13 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
     }
 
     /// <inheritdoc />
+    public OfficeTextShapingBackend Backend => OfficeTextShapingBackend.HarfBuzz;
+
+    /// <inheritdoc />
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
         if (request == null) throw new ArgumentNullException(nameof(request));
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Text.Length == 0) return null;
-
         byte[] fontData = request.FontDataForShaping;
         object fontCacheKey = request.FontProgramCacheKeyForShaping ?? fontData;
         ResolvedLanguage language = ResolveLanguage(request.Language);
@@ -65,7 +68,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
     private const int MaxCachedResultsPerFont = 4096;
     private const int MaxCacheableTextLength = 4096;
     private const int MaxCacheableLanguageLength = 255;
-    internal const int MaxInternedLanguagesPerProvider = 256;
+    internal const int MaxInternedLanguagesPerProcess = 1024;
     private const long MaxCachedResultBytesPerFont = 8L * 1024L * 1024L;
 
     private OfficeTextShapingResult? ShapeUncached(
@@ -73,7 +76,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
         CachedFontCollection fontCollection,
         Language? language) {
         fontCollection.Shape(request, language, out int glyphCount, out GlyphInfo[] infos, out GlyphPosition[] positions);
-        if (glyphCount <= 1) return null;
+        if (glyphCount == 0) return null;
         GC.KeepAlive(request.FontDataForShaping);
         if (infos.Length == 0 || infos.Length != positions.Length) return null;
 
@@ -93,11 +96,12 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 unicodeText,
                 textIndex,
                 position.XAdvance,
+                position.YAdvance,
                 position.XOffset,
                 position.YOffset));
         }
 
-        return new OfficeTextShapingResult(glyphs);
+        return new OfficeTextShapingResult(glyphs, request.Direction);
     }
 
     private ResolvedLanguage ResolveLanguage(string? value) {
@@ -106,16 +110,19 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
             return default;
         }
 
-        lock (_languageSync) {
-            if (_languages.TryGetValue(normalized, out Language? language)) {
+        lock (LanguageSync) {
+            if (Languages.TryGetValue(normalized, out Language? language)) {
                 return new ResolvedLanguage(normalized, language);
             }
-            if (_languages.Count >= MaxInternedLanguagesPerProvider) {
+            if (Languages.Count >= MaxInternedLanguagesPerProcess) {
+                // HarfBuzz interns language strings for the process lifetime. Shape with
+                // its inferred language after saturation so one document cannot make
+                // later unrelated requests fail or grow the native intern table.
                 return default;
             }
 
             language = new Language(normalized);
-            _languages.Add(normalized, language);
+            Languages.Add(normalized, language);
             return new ResolvedLanguage(normalized, language);
         }
     }
@@ -339,6 +346,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
                 buffer.Direction = request.Direction switch {
                     OfficeTextDirection.LeftToRight => Direction.LeftToRight,
                     OfficeTextDirection.RightToLeft => Direction.RightToLeft,
+                    OfficeTextDirection.TopToBottom => Direction.TopToBottom,
                     _ => buffer.Direction
                 };
                 if (language != null) {

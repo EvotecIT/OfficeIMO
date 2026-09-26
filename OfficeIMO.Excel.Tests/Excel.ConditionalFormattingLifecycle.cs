@@ -388,5 +388,94 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ConditionalFormattingLifecycle_PreservesExplicitFontOffValues(bool officeExtension) {
+            string path = Path.Combine(_directoryWithFiles,
+                officeExtension ? "ConditionalFontOffExtension.xlsx" : "ConditionalFontOffStandard.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Styles");
+                sheet.CellAt(1, 1).SetValue(1);
+                sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                    Source = officeExtension
+                        ? ExcelConditionalFormattingSource.Office2010Extension
+                        : ExcelConditionalFormattingSource.Standard,
+                    Range = "A1",
+                    Type = "CellIs",
+                    Operator = "GreaterThan",
+                    Formulas = new[] { "0" },
+                    DifferentialFontBold = false,
+                    DifferentialFontItalic = false,
+                    DifferentialFontStrike = false,
+                    DifferentialFontUnderline = false,
+                    DifferentialFontName = "Liberation Serif",
+                    DifferentialFontSize = 11.5D
+                });
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(path)) {
+                ExcelConditionalFormattingInfo rule = Assert.Single(document.Sheets[0].GetConditionalFormattingRules());
+                Assert.False(rule.DifferentialFontBold);
+                Assert.False(rule.DifferentialFontItalic);
+                Assert.False(rule.DifferentialFontStrike);
+                Assert.False(rule.DifferentialFontUnderline);
+                Assert.Equal("Liberation Serif", rule.DifferentialFontName);
+                Assert.Equal(11.5D, rule.DifferentialFontSize);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void ConditionalFormattingLifecycle_PreservesStrikeOnlyStyle(bool officeExtension) {
+            string path = Path.Combine(_directoryWithFiles,
+                officeExtension ? "ConditionalStrikeExtension.xlsx" : "ConditionalStrikeStandard.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Styles");
+                sheet.CellAt(1, 1).SetValue(1);
+                sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
+                    Source = officeExtension
+                        ? ExcelConditionalFormattingSource.Office2010Extension
+                        : ExcelConditionalFormattingSource.Standard,
+                    Range = "A1",
+                    Type = "CellIs",
+                    Operator = "GreaterThan",
+                    Formulas = new[] { "0" },
+                    DifferentialFontStrike = true
+                });
+                document.Save();
+            }
+
+            using (var document = ExcelDocument.Load(path)) {
+                ExcelConditionalFormattingInfo rule = Assert.Single(document.Sheets[0].GetConditionalFormattingRules());
+                Assert.True(rule.DifferentialFontStrike);
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Theory]
+        [InlineData(false, 0.5D)]
+        [InlineData(false, 410D)]
+        [InlineData(true, 0.5D)]
+        [InlineData(true, 410D)]
+        public void ConditionalFormattingLifecycle_RejectsOutOfRangeFontSize(bool officeExtension, double fontSize) {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Styles");
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddConditionalFormattingRule(
+                new ExcelConditionalFormattingInfo {
+                    Source = officeExtension
+                        ? ExcelConditionalFormattingSource.Office2010Extension
+                        : ExcelConditionalFormattingSource.Standard,
+                    Range = "A1",
+                    Type = "CellIs",
+                    Operator = "GreaterThan",
+                    Formulas = new[] { "0" },
+                    DifferentialFontSize = fontSize
+                }));
+        }
     }
 }

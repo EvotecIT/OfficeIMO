@@ -28,7 +28,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         ref PptCore.PowerPointSlide slide,
         ref double contentTop,
         ref double pictureTop,
-        double slideBottom) {
+        double slideBottom,
+        HtmlToPowerPointOptions options) {
         string text = block.Text;
         if (text.Length == 0) return true;
         if (!budget.IsMetadataWithinLimit(text, out string metadataLimit)) {
@@ -48,7 +49,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
             int previous = result.TextBoxes;
             contentTop = ImportTextBox(block.SourceElement, text, slide, contentTop, result, budget,
-                minimumHeight, block);
+                minimumHeight, options, block);
             ReportGenericFormApproximation(block, result, result.TextBoxes > previous);
             return result.TextBoxes > previous;
         }
@@ -110,13 +111,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                 completeBlock ? applicableMinimumHeight : 52D);
             int previousTextBoxes = result.TextBoxes;
             contentTop = ImportTextBox(completeBlock ? block.SourceElement : null, chunk, slide,
-                contentTop, result, budget, height, completeBlock ? block : null);
+                contentTop, result, budget, height, options, completeBlock ? block : null);
             if (result.TextBoxes == previousTextBoxes) return false;
             importedAny = true;
 
             if (!completeBlock) {
                 PptCore.PowerPointTextBox textBox = slide.TextBoxes.Last();
-                if (!TryApplyGenericTextSliceRuns(textBox, block, offset, end) && !reportedStyleLoss) {
+                if (!TryApplyGenericTextSliceRuns(textBox, block, offset, end,
+                        options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy) && !reportedStyleLoss) {
                     AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                         "A paginated HTML text block could not retain its rich run formatting.",
                         lossKind: OfficeConversionLossKind.Approximation,
@@ -254,7 +256,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         PptCore.PowerPointTextBox textBox,
         HtmlSemanticBlock block,
         int start,
-        int end) {
+        int end,
+        HtmlUrlPolicy hyperlinkPolicy) {
         if (block.Runs.Count == 0 || textBox.Paragraphs.Count != 1
             || textBox.Text.IndexOf('\n') >= 0
             || !string.Equals(string.Concat(block.Runs.Select(run => run.Text)), block.Text,
@@ -275,10 +278,10 @@ public static partial class HtmlPowerPointConverterExtensions {
 
         PptCore.PowerPointParagraph paragraph = textBox.Paragraphs[0];
         paragraph.Text = slices[0].Text;
-        ApplySemanticRun(paragraph.Runs[0], slices[0].Run, preserveTargetText: true);
+        ApplySemanticRun(paragraph.Runs[0], slices[0].Run, hyperlinkPolicy, preserveTargetText: true);
         for (int index = 1; index < slices.Count; index++) {
             PptCore.PowerPointTextRun target = paragraph.AddRun(slices[index].Text);
-            ApplySemanticRun(target, slices[index].Run, preserveTargetText: true);
+            ApplySemanticRun(target, slices[index].Run, hyperlinkPolicy, preserveTargetText: true);
         }
         return true;
     }

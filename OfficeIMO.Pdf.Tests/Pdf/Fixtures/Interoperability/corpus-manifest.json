@@ -36,6 +36,27 @@
       "features": [ "word-2003", "acrobat-9", "embedded-subset-font", "tagged" ]
     },
     {
+      "id": "producer-multipage-web-capture",
+      "file": "openpreserve-web-capture.pdf",
+      "source": "openpreserve-format-corpus",
+      "sourcePath": "pdfCabinetOfHorrors/webCapture.pdf",
+      "sha256": "8211e0a66a54cab73fdb63733ac28556893a0ba77b60c5d75914b87e0e9afd4d",
+      "byteLength": 213342,
+      "pageCount": 3,
+      "minimumTextCharacters": 3000,
+      "minimumAttachments": 0,
+      "minimumLinks": 100,
+      "minimumAnnotations": 100,
+      "minimumFonts": 4,
+      "minimumEmbeddedFonts": 1,
+      "expectedAnnotationActionTypes": [ "GoTo", "URI", "SubmitForm" ],
+      "expectedRepairCodes": [],
+      "expectedRenderSucceeded": true,
+      "expectedRenderDiagnosticCodes": [ "render.resource.annotation-appearance-missing", "render.resource.font-substitution" ],
+      "expectedMutationMode": "Blocked",
+      "features": [ "pdfmaker-word", "acrobat-9", "multi-page", "web-capture", "tagged", "links", "forms" ]
+    },
+    {
       "id": "producer-pdfa1b-text",
       "file": "openpreserve-pdfa1b-text.pdf",
       "source": "openpreserve-format-corpus",
@@ -183,7 +204,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.resource.font-substitution" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-1a", "tounicode", "tagged" ]
     },
@@ -260,7 +281,7 @@
       "expectedAnnotationActionTypes": [],
       "expectedRepairCodes": [],
       "expectedRenderSucceeded": true,
-      "expectedRenderDiagnosticCodes": [ "render.resource.font-substitution" ],
+      "expectedRenderDiagnosticCodes": [],
       "expectedMutationMode": "AppendOnly",
       "features": [ "verapdf", "pdfa-4", "optional-content", "tagged" ]
     },

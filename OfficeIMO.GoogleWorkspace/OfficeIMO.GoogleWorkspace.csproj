@@ -49,6 +49,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Core\OfficeIMO.Core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Using Include="System" />
         <Using Include="System.Collections.Generic" />
         <Using Include="System.Linq" />

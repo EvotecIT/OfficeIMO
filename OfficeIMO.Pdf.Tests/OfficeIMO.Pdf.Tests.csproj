@@ -64,11 +64,17 @@
     <Compile Include="..\OfficeIMO.TestAssets\SparseAnnotationTestSource.cs" Link="Shared\SparseAnnotationTestSource.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="Shared\TypographyEvidenceCorpus.cs" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="Pdf\Fixtures\Interoperability\**\*" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Pdf\Fixtures\Rendering\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\Carlito-Regular.ttf" Link="Typography\Carlito-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Website\Apps\OfficeIMO.Web.Converter\Assets\Fonts\NotoSansArabic-Regular.ttf" Link="Typography\NotoSansArabic-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansDevanagari-Regular.ttf" Link="Typography\NotoSansDevanagari-Regular.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoSansSC-BaselineSubset.ttf" Link="Typography\NotoSansSC-BaselineSubset.ttf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.Drawing.Tests\TestAssets\NotoEmoji-VariableFont_wght.ttf" Link="Typography\NotoEmoji-VariableFont_wght.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

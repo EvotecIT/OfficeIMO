@@ -172,7 +172,15 @@ internal sealed partial class PstStoreWriterCore {
                     "EMAIL_STORE_PST_WRITE_STRUCTURED_STORAGE_OMITTED",
                     "Structured-storage attachment streams require an original compound payload and were retained as metadata only.",
                     EmailStoreDiagnosticSeverity.Error,
-                    string.Concat("attachment/0x", attachmentNid.ToString("X8", CultureInfo.InvariantCulture))));
+                    string.Concat("attachment/0x", attachmentNid.ToString("X8", CultureInfo.InvariantCulture)),
+                    operation: "write",
+                    byteOffset: null,
+                    limitName: null,
+                    actualValue: null,
+                    maximumValue: null,
+                    disposition: EmailDiagnosticDisposition.Skipped,
+                    dataLossRisk: EmailDataLossRisk.Confirmed,
+                    suggestedAction: null));
             }
         } else if (TryWriteAttachmentPayload(attachment, out ulong contentBid,
             out contentLength, cancellationToken)) {
@@ -185,7 +193,15 @@ internal sealed partial class PstStoreWriterCore {
                 "EMAIL_STORE_PST_WRITE_ATTACHMENT_CONTENT_UNAVAILABLE",
                 "Attachment content was unavailable and only its metadata could be written.",
                 EmailStoreDiagnosticSeverity.Error,
-                string.Concat("attachment/0x", attachmentNid.ToString("X8", CultureInfo.InvariantCulture))));
+                string.Concat("attachment/0x", attachmentNid.ToString("X8", CultureInfo.InvariantCulture)),
+                operation: "write",
+                byteOffset: null,
+                limitName: null,
+                actualValue: null,
+                maximumValue: null,
+                disposition: EmailDiagnosticDisposition.Skipped,
+                dataLossRisk: EmailDataLossRisk.Confirmed,
+                suggestedAction: null));
         }
         builder.Set(MapiKnownProperties.PidTag.AttachSize, 0);
         TranslateDiagnostics(diagnostics);

@@ -1,4 +1,12 @@
 .ocx-tool-guide { margin-top:24px; overflow:hidden; border:1px solid var(--ocx-border); border-radius:14px; background:var(--ocx-panel); box-shadow:0 8px 28px #14213a0a; }
+.ocx-tool-guide > summary { cursor:pointer; list-style:none; border-bottom:0; }
+.ocx-tool-guide > summary::-webkit-details-marker { display:none; }
+.ocx-tool-guide > summary:focus-visible { outline:2px solid var(--ocx-blue); outline-offset:-4px; }
+.ocx-tool-guide[open] > summary { border-bottom:1px solid var(--ocx-border); }
+.ocx-tool-guide__expand { font-size:24px; color:var(--ocx-blue); }
+.ocx-tool-guide[open] .ocx-tool-guide__expand { transform:rotate(45deg); }
+.ocx-tool-guide__link { margin:16px 24px; }
+.ocx-tool-guide__link a { color:var(--ocx-blue); font-size:13px; }
 .ocx-tool-guide__heading { display:flex; align-items:end; justify-content:space-between; gap:20px; padding:22px 24px 18px; border-bottom:1px solid var(--ocx-border); }
 .ocx-tool-guide__heading p { margin:0 0 6px; color:var(--ocx-muted); font-size:11px; font-weight:750; letter-spacing:.09em; text-transform:uppercase; }
 .ocx-tool-guide__heading h2 { margin:0; font-size:20px; line-height:1.3; letter-spacing:-.025em; }

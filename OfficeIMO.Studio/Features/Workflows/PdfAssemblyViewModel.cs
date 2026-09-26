@@ -99,6 +99,7 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
     private string _summary = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasOutput))]
     private string? _publishedPath;
 
     [ObservableProperty]
@@ -208,8 +209,11 @@ public sealed partial class PdfAssemblyViewModel : ObservableObject, IDisposable
                 Status = _localizer.GetOrDefault($"Workflow.Progress.{update.Stage}", update.Message);
                 job?.Report(update);
             });
-            ownerStarted = true;
-            PdfAssemblyResult result = await _runner.AssemblePdfAsync(request, progress, operation.Token).ConfigureAwait(true);
+            PdfAssemblyResult result = await Task.Run(
+                () => {
+                    ownerStarted = true;
+                    return _runner.AssemblePdfAsync(request, progress, operation.Token);
+                }, operation.Token).ConfigureAwait(true);
             job?.Complete(result.Status, result.OutputPath, result.Summary, result.Recovery);
             HasRecovery = result.Recovery is not null;
             Summary = result.Summary;

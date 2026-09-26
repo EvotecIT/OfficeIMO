@@ -8,8 +8,37 @@
   window.Prism = window.Prism || {};
   window.Prism.manual = true;
 
+  var BACKGROUND_KEY = "imo-bg";
+  // Matches the phone tier in site-shell.css, where the menu becomes a hamburger panel.
+  var phoneNavQuery = window.matchMedia ? window.matchMedia("(max-width: 799px)") : null;
+  function isPhoneNav() { return phoneNavQuery ? phoneNavQuery.matches : window.innerWidth < 800; }
+  var BACKGROUNDS = ["blueprint", "paper", "aurora", "plain"];
+  var colorSchemeQuery = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+
+  function readPreference(key) {
+    try { return localStorage.getItem(key); } catch (error) { return null; }
+  }
+
+  function writePreference(key, value) {
+    try {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch (error) { /* Storage can be unavailable; the page still works. */ }
+  }
+
   function getDefaultTheme() {
-    return "light";
+    return colorSchemeQuery && colorSchemeQuery.matches ? "dark" : "light";
+  }
+
+  function getThemePreference() {
+    var stored = readPreference(THEME_KEY);
+    return stored === "light" || stored === "dark" ? stored : "system";
+  }
+
+  function setPressed(selector, attribute, value) {
+    document.querySelectorAll(selector).forEach(function (btn) {
+      btn.setAttribute("aria-pressed", btn.getAttribute(attribute) === value ? "true" : "false");
+    });
   }
 
   function applyTheme(mode) {
@@ -22,20 +51,77 @@
       if (sun) sun.style.display = resolved === "dark" ? "none" : "block";
       if (moon) moon.style.display = resolved === "dark" ? "block" : "none";
     });
+    setPressed("[data-imo-theme]", "data-imo-theme", getThemePreference());
+  }
+
+  function applyBackground(background) {
+    var resolved = BACKGROUNDS.indexOf(background) >= 0 ? background : BACKGROUNDS[0];
+    document.documentElement.setAttribute("data-bg", resolved);
+    setPressed("[data-imo-bg]", "data-imo-bg", resolved);
   }
 
   function initTheme() {
-    var stored = localStorage.getItem(THEME_KEY);
-    if (stored !== "light" && stored !== "dark") {
-      stored = getDefaultTheme();
+    applyTheme(getThemePreference());
+    applyBackground(readPreference(BACKGROUND_KEY));
+
+    if (colorSchemeQuery) {
+      var onSystemChange = function () {
+        if (getThemePreference() === "system") applyTheme("system");
+      };
+      if (colorSchemeQuery.addEventListener) colorSchemeQuery.addEventListener("change", onSystemChange);
+      else if (colorSchemeQuery.addListener) colorSchemeQuery.addListener(onSystemChange);
     }
-    applyTheme(stored);
+
     document.querySelectorAll(".imo-theme-toggle").forEach(function (btn) {
       btn.addEventListener("click", function () {
         var cur = document.documentElement.getAttribute("data-theme") || getDefaultTheme();
         var next = cur === "dark" ? "light" : "dark";
-        localStorage.setItem(THEME_KEY, next);
+        writePreference(THEME_KEY, next);
         applyTheme(next);
+      });
+    });
+
+    document.querySelectorAll("[data-imo-theme]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var choice = btn.getAttribute("data-imo-theme");
+        writePreference(THEME_KEY, choice === "light" || choice === "dark" ? choice : null);
+        applyTheme(choice);
+      });
+    });
+
+    document.querySelectorAll("[data-imo-bg]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var choice = btn.getAttribute("data-imo-bg");
+        writePreference(BACKGROUND_KEY, choice === BACKGROUNDS[0] ? null : choice);
+        applyBackground(choice);
+      });
+    });
+  }
+
+  function initHeaderMenus() {
+    var menus = Array.prototype.slice.call(document.querySelectorAll("details.imo-menu"));
+    if (!menus.length) return;
+
+    menus.forEach(function (menu) {
+      menu.addEventListener("toggle", function () {
+        if (!menu.open) return;
+        menus.forEach(function (other) { if (other !== menu) other.open = false; });
+      });
+    });
+
+    document.addEventListener("click", function (event) {
+      menus.forEach(function (menu) {
+        if (menu.open && !menu.contains(event.target)) menu.open = false;
+      });
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape") return;
+      menus.forEach(function (menu) {
+        if (!menu.open) return;
+        menu.open = false;
+        var summary = menu.querySelector("summary");
+        if (summary) summary.focus();
       });
     });
   }
@@ -60,7 +146,7 @@
 
     var actualCurrent = normalizePath(window.location.pathname);
     var current = actualCurrent;
-    if (current.indexOf('/products/') === 0) current = '/libraries';
+    if (current.indexOf('/products/') === 0 && current !== '/products/pswriteoffice') current = '/libraries';
     if (document.body.classList.contains('imo-body--docs')) current = '/docs';
     var navLinks = Array.prototype.slice.call(document.querySelectorAll(".imo-header .imo-nav a[href]"));
     var matchingLinks = [];
@@ -177,7 +263,7 @@
     });
 
     window.addEventListener("resize", function () {
-      if (window.innerWidth >= 1024 && nav.classList.contains("is-open")) {
+      if (!isPhoneNav() && nav.classList.contains("is-open")) {
         closeNav();
       }
     });
@@ -206,9 +292,9 @@
       if (!btn) return;
       item.classList.toggle("is-open", open);
       btn.setAttribute("aria-expanded", open ? "true" : "false");
-      if (!open) delete item.dataset.openedByHover;
       var menu = item.querySelector(":scope > .imo-dropdown");
-      if (!open || window.innerWidth < 1024) {
+      if (menu) menu.hidden = !open;
+      if (!open || isPhoneNav()) {
         if (menu) menu.style.removeProperty("--imo-menu-shift");
         return;
       }
@@ -233,9 +319,7 @@
       btn.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var wasOpenedByHover = item.dataset.openedByHover === "true";
-        delete item.dataset.openedByHover;
-        var willOpen = wasOpenedByHover || !item.classList.contains("is-open");
+        var willOpen = !item.classList.contains("is-open");
         closeAll(item);
         setOpen(item, willOpen);
       });
@@ -252,23 +336,8 @@
         });
       });
 
-      item.addEventListener("mouseenter", function () {
-        if (window.innerWidth >= 1024 && window.matchMedia("(hover: hover)").matches) {
-          if (item.classList.contains("is-open")) return;
-          closeAll(item);
-          setOpen(item, true);
-          item.dataset.openedByHover = "true";
-        }
-      });
-
-      item.addEventListener("mouseleave", function () {
-        if (window.innerWidth >= 1024 && window.matchMedia("(hover: hover)").matches && !item.contains(document.activeElement)) {
-          setOpen(item, false);
-        }
-      });
-
       item.addEventListener("focusout", function () {
-        if (window.innerWidth < 1024) return;
+        if (isPhoneNav()) return;
         window.requestAnimationFrame(function () {
           if (!item.contains(document.activeElement)) setOpen(item, false);
         });
@@ -382,20 +451,57 @@
   }
 
   function initConverterFrame() {
-    var frame = document.querySelector('.imo-converter-launch__frame');
-    if (!frame) return;
+    var template = document.getElementById('browser-workspace-template');
+    if (!template) return;
+    var directory = document.querySelector('.imo-browser-tools');
+    var search = directory.querySelector('.imo-browser-tools__search');
+    var input = search.querySelector('input');
+    var countLabel = search.querySelector('[data-tool-count]');
+    var cards = Array.from(directory.querySelectorAll('.imo-browser-tools__card'));
+    var frameShell = document.querySelector('.imo-converter-launch__frame-shell');
+    var frame = null;
+    var workspaceUrl = null;
+    var pendingFile = null;
+    search.hidden = false;
 
-    // The app owns route validation; the website forwards only its public selection keys.
-    var workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
-    var pageParameters = new URLSearchParams(window.location.search);
-    ['workspace', 'route', 'tool'].forEach(function (key) {
-      if (pageParameters.has(key)) workspaceUrl.searchParams.set(key, pageParameters.get(key));
+    function fileExtension(name) {
+      var dot = name.lastIndexOf('.');
+      return dot > 0 ? name.slice(dot).toLowerCase() : '';
+    }
+
+    function acceptsPendingFile(card) {
+      if (!pendingFile) return true;
+      return (card.getAttribute('data-accept') || '').split(',').indexOf(fileExtension(pendingFile.name)) >= 0;
+    }
+
+    function filterTools() {
+      var query = input.value.trim().toLowerCase();
+      var matches = 0;
+      cards.forEach(function (card) {
+        var terms = card.textContent.replace(/\s+/g, ' ').trim();
+        card.hidden = !terms.toLowerCase().includes(query) || !acceptsPendingFile(card);
+        if (!card.hidden) matches++;
+      });
+      directory.querySelectorAll('[data-tool-group]').forEach(function (group) {
+        group.hidden = !group.querySelector('.imo-browser-tools__card:not([hidden])');
+      });
+      countLabel.textContent = matches ? matches + (matches === 1 ? ' tool' : ' tools') : 'No tools match your search.';
+      return matches;
+    }
+    input.addEventListener('input', filterTools);
+    directory.querySelectorAll('.imo-browser-tools__toolbar nav a').forEach(function (link) {
+      link.addEventListener('click', function () { input.value = ''; filterTools(); });
     });
-    if (workspaceUrl.href !== frame.src) frame.src = workspaceUrl.href;
+    filterTools();
+
+    function hasWorkspaceSelection(parameters) {
+      var workspace = (parameters.get('workspace') || '').toLowerCase();
+      return !!(parameters.get('route') || '').trim() || workspace === 'pdf' || workspace === 'provenance';
+    }
 
     function syncTheme() {
       try {
-        var frameRoot = frame.contentDocument && frame.contentDocument.documentElement;
+        var frameRoot = frame && frame.contentDocument && frame.contentDocument.documentElement;
         if (!frameRoot) return;
         var theme = document.documentElement.getAttribute('data-theme') || 'light';
         frameRoot.setAttribute('data-theme', theme);
@@ -405,36 +511,215 @@
       }
     }
 
-    window.addEventListener('message', function (event) {
-      if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
-          !event.data || event.data.type !== 'officeimo:workspace-selection') return;
-      var selection = event.data;
-      if (['workspace', 'route', 'tool'].some(function (key) {
-        return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
-      })) return;
-      if (selection.title != null && (typeof selection.title !== 'string' ||
-          selection.title.length > 160 || selection.title.trim().length === 0)) return;
-      var target = new URL(window.location.href);
-      ['workspace', 'route', 'tool'].forEach(function (key) {
-        var value = selection[key];
-        if (key === 'workspace' && value === 'convert') value = null;
-        if (value) target.searchParams.set(key, value);
-        else target.searchParams.delete(key);
+    function createFrame() {
+      frameShell.appendChild(template.content.cloneNode(true));
+      frame = frameShell.querySelector('iframe');
+      workspaceUrl = new URL(frame.getAttribute('data-workspace-src'), window.location.href);
+
+      window.addEventListener('message', function (event) {
+        if (event.source !== frame.contentWindow || event.origin !== workspaceUrl.origin ||
+            !event.data || event.data.type !== 'officeimo:workspace-selection') return;
+        var selection = event.data;
+        if (['workspace', 'route', 'tool'].some(function (key) {
+          return selection[key] != null && (typeof selection[key] !== 'string' || selection[key].length > 100);
+        })) return;
+        if (selection.title != null && (typeof selection.title !== 'string' ||
+            selection.title.length > 160 || selection.title.trim().length === 0)) return;
+        var target = new URL(window.location.href);
+        ['workspace', 'route', 'tool'].forEach(function (key) {
+          var value = selection[key];
+          if (key === 'workspace' && value === 'convert') value = null;
+          if (value) target.searchParams.set(key, value);
+          else target.searchParams.delete(key);
+        });
+        if (target.href !== window.location.href) {
+          window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
+        }
+        if (selection.title) document.title = selection.title;
       });
-      if (target.href !== window.location.href) {
-        window.history[selection.replace === true ? 'replaceState' : 'pushState'](null, '', target);
+      frame.addEventListener('load', syncTheme);
+      new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
+
+    // The app owns route validation; the website forwards only its public selection keys.
+    function workspaceAddress(parameters) {
+      var address = new URL(workspaceUrl.href);
+      ['workspace', 'route', 'tool'].forEach(function (key) {
+        if (parameters.has(key)) address.searchParams.set(key, parameters.get(key));
+      });
+      return address.href;
+    }
+
+    // The app listens for selection messages only after its workspace has rendered.
+    function workspaceReady() {
+      try { return !!(frame.contentDocument && frame.contentDocument.querySelector('.ocx-workspace-content')); } catch (error) { return false; }
+    }
+
+    // Browsing the directory never creates a frame or starts the WebAssembly runtime.
+    function openWorkspace(parameters) {
+      directory.hidden = true;
+      frameShell.hidden = false;
+      showNotice('');
+      if (!frame) {
+        createFrame();
+        frame.src = workspaceAddress(parameters);
+        syncTheme();
+      } else if (!workspaceReady()) {
+        frame.src = workspaceAddress(parameters);
+      } else {
+        frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
+          workspace: parameters.get('workspace'), route: parameters.get('route'), tool: parameters.get('tool')
+        }, workspaceUrl.origin);
       }
-      if (selection.title) document.title = selection.title;
-    });
+      window.scrollTo(0, 0);
+    }
+
+    function showDirectory() {
+      frameShell.hidden = true;
+      directory.hidden = false;
+    }
+
+    var notice = null;
+    function showNotice(message) {
+      if (!notice) {
+        if (!message) return;
+        notice = document.createElement('p');
+        notice.className = 'imo-handoff-notice';
+        notice.setAttribute('role', 'status');
+        frameShell.insertBefore(notice, frameShell.firstChild);
+      }
+      notice.textContent = message;
+      notice.hidden = !message;
+    }
+
+    // Hands a file chosen on the directory to the tool's own input once the workspace renders it.
+    function deliverFile(file, card) {
+      var route = card.getAttribute('data-route');
+      var tool = card.getAttribute('data-pdf-tool');
+      var isText = card.getAttribute('data-input') === 'text';
+      var selector = route
+        ? (isText ? '.ocx-conversion-workspace[data-active-route="' + route + '"] .ocx-textarea' : '#conversion-file-input-' + route)
+        : tool ? '#pdf-file-input-' + tool : '#provenance-file-input';
+      var started = Date.now();
+      var tooLarge = file.name + ' is too long for this text tool. Paste a shorter section, or convert the file with another tool.';
+      (function attempt() {
+        var element = null;
+        try { element = frame.contentDocument && frame.contentDocument.querySelector(selector); } catch (error) { return; }
+        if (!element) {
+          if (frameShell.hidden) return;
+          if (Date.now() - started < 120000) setTimeout(attempt, 200);
+          else showNotice('The tool did not finish loading, so ' + file.name + ' was not opened. Choose the file again inside the tool.');
+          return;
+        }
+        var view = frame.contentWindow;
+        if (isText) {
+          // UTF-8 uses at most four bytes per character, so larger files cannot fit.
+          if (element.maxLength > 0 && file.size > element.maxLength * 4) { showNotice(tooLarge); return; }
+          file.text().then(function (text) {
+            if (element.maxLength > 0 && text.length > element.maxLength) { showNotice(tooLarge); return; }
+            element.value = text;
+            element.dispatchEvent(new view.Event('input', { bubbles: true }));
+          }, function () {
+            showNotice(file.name + ' could not be read. Choose it again inside the tool.');
+          });
+          return;
+        }
+        var transfer = new view.DataTransfer();
+        transfer.items.add(new view.File([file], file.name, { type: file.type, lastModified: file.lastModified }));
+        element.files = transfer.files;
+        element.dispatchEvent(new view.Event('change', { bubbles: true }));
+      })();
+    }
+
+    function initFileDrop(drop) {
+      var fileInput = drop.querySelector('#browser-drop-input');
+      var target = drop.querySelector('[data-browser-drop-target]');
+      var selected = drop.querySelector('[data-browser-drop-selected]');
+      var status = drop.querySelector('[data-browser-drop-status]');
+      drop.hidden = false;
+
+      function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB';
+        return (bytes / 1048576).toFixed(1) + ' MB';
+      }
+
+      function choose(file) {
+        pendingFile = file || null;
+        input.value = '';
+        var matches = filterTools();
+        target.hidden = !!pendingFile;
+        selected.hidden = !pendingFile;
+        drop.classList.toggle('has-file', !!pendingFile);
+        if (!pendingFile) return;
+        drop.querySelector('[data-browser-drop-name]').textContent = pendingFile.name;
+        drop.querySelector('[data-browser-drop-size]').textContent = formatSize(pendingFile.size);
+        status.textContent = matches === 0
+          ? 'No browser tool opens this file type yet.'
+          : matches === 1 ? 'Open the tool below to continue.' : 'Pick one of the ' + matches + ' tools below.';
+      }
+
+      function carriesFiles(event) {
+        return event.dataTransfer && Array.prototype.indexOf.call(event.dataTransfer.types, 'Files') >= 0;
+      }
+
+      fileInput.addEventListener('change', function () { choose(fileInput.files[0]); });
+      drop.querySelector('[data-browser-drop-clear]').addEventListener('click', function () {
+        fileInput.value = '';
+        choose(null);
+        target.focus();
+      });
+
+      var dragDepth = 0;
+      document.addEventListener('dragenter', function (event) {
+        if (!carriesFiles(event) || directory.hidden) return;
+        dragDepth++;
+        drop.classList.add('is-dragging');
+      });
+      document.addEventListener('dragleave', function (event) {
+        if (!carriesFiles(event)) return;
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) drop.classList.remove('is-dragging');
+      });
+      document.addEventListener('dragover', function (event) {
+        if (!carriesFiles(event) || directory.hidden) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+      });
+      document.addEventListener('drop', function (event) {
+        if (!carriesFiles(event) || directory.hidden) return;
+        event.preventDefault();
+        dragDepth = 0;
+        drop.classList.remove('is-dragging');
+        choose(event.dataTransfer.files[0]);
+      });
+
+      cards.forEach(function (card) {
+        card.addEventListener('click', function (event) {
+          if (!pendingFile || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+          event.preventDefault();
+          var destination = new URL(card.href, window.location.href);
+          window.history.pushState(null, '', destination);
+          openWorkspace(destination.searchParams);
+          deliverFile(pendingFile, card);
+        });
+      });
+    }
+
+    var drop = directory.querySelector('[data-browser-drop]');
+    if (drop) initFileDrop(drop);
+
     window.addEventListener('popstate', function () {
       var selection = new URLSearchParams(window.location.search);
-      frame.contentWindow.postMessage({ type: 'officeimo:restore-selection',
-        workspace: selection.get('workspace'), route: selection.get('route'), tool: selection.get('tool')
-      }, workspaceUrl.origin);
+      if (!hasWorkspaceSelection(selection)) {
+        showDirectory();
+        return;
+      }
+      openWorkspace(selection);
     });
-    frame.addEventListener('load', syncTheme);
-    new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-    syncTheme();
+
+    var pageParameters = new URLSearchParams(window.location.search);
+    if (hasWorkspaceSelection(pageParameters)) openWorkspace(pageParameters);
   }
 
   function initDocsSidebar() {
@@ -532,40 +817,50 @@
     });
   }
 
+  var prismLoading = null;
+
+  function prismReady() {
+    return typeof Prism !== "undefined" && (typeof Prism.highlightAllUnder === "function" || typeof Prism.highlightAll === "function");
+  }
+
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src="' + src + '"]');
+      if (existing && existing.getAttribute("data-loaded") === "true") { resolve(); return; }
+      var script = existing || document.createElement("script");
+      script.addEventListener("load", function () { script.setAttribute("data-loaded", "true"); resolve(); });
+      script.addEventListener("error", reject);
+      if (!existing) { script.src = src; document.head.appendChild(script); }
+    });
+  }
+
+  // Loads the highlighter only for pages that show code, so other pages skip it entirely.
+  function ensurePrism() {
+    if (prismReady()) return Promise.resolve();
+    if (!prismLoading) {
+      prismLoading = loadScript("/assets/prism/prism-core.min.js")
+        .then(function () { return loadScript("/assets/prism/prism-autoloader.min.js"); })
+        .then(function () {
+          Prism.manual = true;
+          Prism.plugins = Prism.plugins || {};
+          if (Prism.plugins.autoloader) Prism.plugins.autoloader.languages_path = PRISM_LANGUAGES_PATH;
+        });
+    }
+    return prismLoading;
+  }
+  window.OfficeIMOEnsurePrism = ensurePrism;
+
   function initPrism() {
-    var attempts = 0;
-
-    function configurePrism() {
-      if (typeof Prism === "undefined") return false;
-      Prism.manual = true;
-      Prism.plugins = Prism.plugins || {};
-      if (Prism.plugins.autoloader && Prism.plugins.autoloader.languages_path !== PRISM_LANGUAGES_PATH) {
-        Prism.plugins.autoloader.languages_path = PRISM_LANGUAGES_PATH;
-      }
-      return typeof Prism.highlightAll === "function" || typeof Prism.highlightAllUnder === "function";
-    }
-
-    function highlight() {
-      attempts += 1;
-      if (!configurePrism()) {
-        if (attempts < 10) {
-          setTimeout(highlight, 60);
-        }
-        return;
-      }
-
-      if (typeof Prism.highlightAllUnder === "function") {
-        Prism.highlightAllUnder(document);
-      } else if (typeof Prism.highlightAll === "function") {
-        Prism.highlightAll();
-      }
-    }
-
-    highlight();
+    if (!document.querySelector('code[class*="language-"], pre[class*="language-"]')) return;
+    ensurePrism().then(function () {
+      if (typeof Prism.highlightAllUnder === "function") Prism.highlightAllUnder(document);
+      else Prism.highlightAll();
+    }).catch(function () { /* Code stays readable without highlighting. */ });
   }
 
   function init() {
     initTheme();
+    initHeaderMenus();
     initMobileNav();
     initDropdowns();
     initHeaderLinks();

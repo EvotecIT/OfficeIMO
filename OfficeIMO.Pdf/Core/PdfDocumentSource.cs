@@ -73,8 +73,16 @@ internal sealed class PdfDocumentSource {
     }
 
     /// <summary>Reads and owns one bounded file snapshot.</summary>
-    internal static PdfDocumentSource FromPath(string path, PdfLoadOptions? options) {
+    internal static PdfDocumentSource FromPath(string path, PdfLoadOptions? options) =>
+        FromPath(path, options, CancellationToken.None);
+
+    /// <summary>Reads and owns one bounded file snapshot with cooperative cancellation.</summary>
+    internal static PdfDocumentSource FromPath(
+        string path,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         string fullPath = Path.GetFullPath(path);
         var file = new FileInfo(fullPath);
@@ -85,7 +93,7 @@ internal sealed class PdfDocumentSource {
             FileMode.Open,
             FileAccess.Read,
             FileShare.ReadWrite | FileShare.Delete);
-        return FromBoundedStream(stream, effectiveOptions);
+        return FromBoundedStream(stream, effectiveOptions, cancellationToken);
     }
 
     /// <summary>
@@ -99,14 +107,25 @@ internal sealed class PdfDocumentSource {
     /// <summary>
     /// Reads and owns one bounded stream snapshot from the caller's current position.
     /// </summary>
-    internal static PdfDocumentSource FromRemainingStream(Stream stream, PdfLoadOptions? options) {
+    internal static PdfDocumentSource FromRemainingStream(Stream stream, PdfLoadOptions? options) =>
+        FromRemainingStream(stream, options, CancellationToken.None);
+
+    /// <summary>
+    /// Reads and owns one bounded stream snapshot from the caller's current position with cooperative cancellation.
+    /// </summary>
+    internal static PdfDocumentSource FromRemainingStream(
+        Stream stream,
+        PdfLoadOptions? options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(stream, nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+        cancellationToken.ThrowIfCancellationRequested();
         PdfLoadOptions effectiveOptions = PdfLoadOptions.Resolve(options);
         long limit = effectiveOptions.Limits.MaxInputBytes;
         try {
-            byte[] bytes = OfficeStreamReader.ReadRemainingBytes(stream, limit);
+            byte[] bytes = OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, limit);
             return FromOwnedBytes(bytes, effectiveOptions);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, limit, remainingOnly: true);
         }
     }
@@ -187,13 +206,19 @@ internal sealed class PdfDocumentSource {
         return PdfArtifactSnapshot.CaptureKnownPageCount(_bytes, pageCount);
     }
 
-    private static PdfDocumentSource FromBoundedStream(Stream stream, PdfLoadOptions options) {
+    private static PdfDocumentSource FromBoundedStream(Stream stream, PdfLoadOptions options) =>
+        FromBoundedStream(stream, options, CancellationToken.None);
+
+    private static PdfDocumentSource FromBoundedStream(
+        Stream stream,
+        PdfLoadOptions options,
+        CancellationToken cancellationToken) {
         Guard.NotNull(stream, nameof(stream));
         long limit = options.Limits.MaxInputBytes;
         try {
-            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, limit);
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, limit);
             return FromOwnedBytes(bytes, options);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, limit);
         }
     }
@@ -209,7 +234,7 @@ internal sealed class PdfDocumentSource {
                 .ReadAllBytesAsync(stream, cancellationToken, limit)
                 .ConfigureAwait(false);
             return FromOwnedBytes(bytes, options);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (OfficeStreamReader.IsSizeLimitException(exception)) {
             throw CreateInputLimitException(stream, limit);
         }
     }
@@ -228,7 +253,7 @@ internal sealed class PdfDocumentSource {
         long actual = limit + 1;
         if (stream.CanSeek) {
             try {
-                actual = remainingOnly ? stream.Length - stream.Position : stream.Length;
+                actual = Math.Max(actual, remainingOnly ? stream.Length - stream.Position : stream.Length);
             } catch (NotSupportedException) {
                 // The bounded reader already proved the limit was exceeded.
             }

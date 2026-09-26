@@ -10,6 +10,12 @@ namespace OfficeIMO.Visio.Diagrams {
     /// </summary>
     public sealed partial class VisioGraphDiagramBuilder {
         private void GetZoneBounds(ZoneItem zone, out double left, out double bottom, out double right, out double top) {
+            if (_preserveLayout && zone.Placement != null) {
+                left = zone.Placement.PinX - zone.Placement.Width / 2;
+                bottom = zone.Placement.PinY - zone.Placement.Height / 2;
+                right = left + zone.Placement.Width; top = bottom + zone.Placement.Height;
+                return;
+            }
             const double horizontalPadding = 0.45D;
             const double verticalPadding = 0.35D;
             left = double.MaxValue;
@@ -117,6 +123,11 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private void GetNodeShape(NodeItem node, out string masterNameU, out double width, out double height) {
+            GetDefaultNodeShape(node, out masterNameU, out width, out height);
+            if (_preserveLayout && node.Placement != null) { width = node.Placement.Width; height = node.Placement.Height; }
+        }
+
+        private void GetDefaultNodeShape(NodeItem node, out string masterNameU, out double width, out double height) {
             width = node.Stencil?.DefaultWidth ?? _nodeWidth;
             height = node.Stencil?.DefaultHeight ?? _nodeHeight;
             if (node.Stencil != null) {

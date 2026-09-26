@@ -164,14 +164,8 @@ internal static partial class PdfIncrementalUpdater {
 
     /// <summary>Appends a form-field revision from a readable stream using optional password and parsing settings.</summary>
     public static byte[] UpdateFormFields(Stream input, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
-        Guard.NotNull(input, nameof(input));
-        if (!input.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(input));
-        }
-
-        using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
-        return UpdateFormFields(buffer.ToArray(), fieldValues, options, readOptions);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions);
+        return UpdateFormFields(source.Bytes, fieldValues, options, source.Options);
     }
 
     /// <summary>Appends a simple AcroForm field-value revision to a PDF file and writes the result to <paramref name="outputPath"/>.</summary>
@@ -209,7 +203,8 @@ internal static partial class PdfIncrementalUpdater {
     public static void UpdateFormFields(string inputPath, string outputPath, IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? options, PdfLoadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        OfficeFileCommit.WriteAllBytes(outputPath, UpdateFormFields(File.ReadAllBytes(inputPath), fieldValues, options, readOptions));
+        PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions);
+        OfficeFileCommit.WriteAllBytes(outputPath, UpdateFormFields(source.Bytes, fieldValues, options, source.Options));
     }
 
     private static Dictionary<string, PdfFormFieldValue> ToIncrementalFormFieldValues(IReadOnlyDictionary<string, string> fieldValues) {

@@ -99,8 +99,8 @@ internal static class PdfSignatureValidator {
 
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a PDF file.</summary>
     public static PdfSignatureValidationReport Validate(string path, PdfLoadOptions? options = null) {
-        Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Validate(File.ReadAllBytes(path), options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return Validate(source.Bytes, source.Options);
     }
 
     /// <summary>Validates PDF signatures in a file through an optional cryptography provider.</summary>
@@ -110,19 +110,14 @@ internal static class PdfSignatureValidator {
         PdfLoadOptions? options = null) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
-        return Validate(File.ReadAllBytes(path), cryptographyProvider, options);
+        PdfDocumentSource source = PdfDocumentSource.FromPath(path, options);
+        return Validate(source.Bytes, cryptographyProvider, source.Options);
     }
 
     /// <summary>Validates signature structure, byte ranges, and preservation markers in a readable PDF stream.</summary>
     public static PdfSignatureValidationReport Validate(Stream stream, PdfLoadOptions? options = null) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Validate(buffer.ToArray(), options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return Validate(source.Bytes, source.Options);
     }
 
     /// <summary>Validates PDF signatures from a readable stream through an optional cryptography provider.</summary>
@@ -132,13 +127,8 @@ internal static class PdfSignatureValidator {
         PdfLoadOptions? options = null) {
         Guard.NotNull(stream, nameof(stream));
         Guard.NotNull(cryptographyProvider, nameof(cryptographyProvider));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Validate(buffer.ToArray(), cryptographyProvider, options);
+        PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(stream, options);
+        return Validate(source.Bytes, cryptographyProvider, source.Options);
     }
 
     private static PdfSignatureValidationResult ValidateSignature(

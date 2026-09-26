@@ -56,7 +56,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     private static void ReportGraphSemanticFidelity(
         VisualArtifactInterchangeEnvelope envelope,
         OfficeVisioVisualConversionReport report,
-        bool flow) {
+        bool flow, bool preserve = false) {
         foreach (VisualArtifactInterchangeNode node in envelope.Nodes) {
             if (node.Details.Count > 0) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.DetailsNotRendered, OfficeVisioVisualEntityKind.Node, node.Id, "details",
@@ -85,14 +85,14 @@ public static partial class OfficeVisioVisualConversionExtensions {
         }
         foreach (VisualArtifactInterchangeEdge edge in envelope.Edges) {
             VisualArtifactInterchangeTopologyEdge topology = edge.Topology!;
-            if (topology.Waypoints.Count > 0 || topology.DashPattern.Count > 0 || topology.SourceMarker.HasValue || topology.TargetMarker.HasValue ||
+            if ((!preserve && topology.Waypoints.Count > 0) || topology.DashPattern.Count > 0 || topology.SourceMarker.HasValue || topology.TargetMarker.HasValue ||
                 topology.StrokeWidth.HasValue || topology.Opacity.HasValue || topology.IsMuted || topology.RoutingPriority != 0 || topology.RouteLane.HasValue ||
                 topology.LabelOffsetX != 0D || topology.LabelOffsetY != 0D || topology.LabelAnchor != null || topology.LabelAnchorNodeId != null ||
                 topology.LayoutInference != TopologyEdgeLayoutInference.None || topology.PreferredLength.HasValue || topology.MinimumRankSpan != 0 ||
                 topology.Routing is TopologyEdgeRouting.Curved or TopologyEdgeRouting.ObstacleAvoidingOrthogonal ||
                 topology.Emphasis != TopologyEdgeEmphasis.Normal) {
                 report.Warn(OfficeVisioVisualDiagnosticCode.EdgePresentationNormalized, OfficeVisioVisualEntityKind.Edge, edge.Id, "edgePresentation",
-                    $"Edge '{edge.Id}' advanced routing or presentation remains in the CFX envelope because native Visio graph layout recomputed the connector.");
+                    $"Edge '{edge.Id}' advanced routing or presentation remains in the CFX envelope because the native Visio connector does not reproduce every presentation setting.");
             }
         }
     }

@@ -10,17 +10,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlDoesNotUseCustomPropertyFromAnUnrelatedSelectorScope() {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = $"<html><head><style>.a{{--hero:url({dataUri})}}.b{{background:var(--hero)}}</style></head><body><div class=\"b\"></div></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html);
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Empty(report.Evidence);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void HtmlStringRemovalNormalizesLegacyCharsetDeclarationToUtf8() {

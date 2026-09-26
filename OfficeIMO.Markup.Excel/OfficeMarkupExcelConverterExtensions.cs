@@ -105,5 +105,6 @@ public static class OfficeMarkupExcelConverterExtensions {
     private static OfficeMarkupDiagnostic Omitted(OfficeMarkupBlock block) => new OfficeMarkupDiagnostic(
         OfficeMarkupDiagnosticSeverity.Warning,
         $"{block.Kind} markup is omitted from Excel output.",
-        block);
+        block,
+        OfficeConversionLossKind.Omission);
 }

@@ -82,7 +82,18 @@ public sealed partial class PdfPageInteractionMap {
         PdfPageInteractionOptions options,
         List<PdfPageInteractionRegion> regions,
         Func<PdfContentOrderKey?, string?> watermarkIdentity) {
-        IReadOnlyList<PdfImagePlacement> placements = PdfImageEditor.Placements(document, pdf, pageNumber);
+        // Keep a small allowance for hidden or off-page placements while bounding
+        // discovery before the editor creates normalized placement copies.
+        int discoveryLimit = options.MaxImageRegions > (int.MaxValue - 32) / 4
+            ? int.MaxValue
+            : Math.Max(32, options.MaxImageRegions * 4);
+        IReadOnlyList<PdfImagePlacement> placements;
+        try {
+            placements = PdfImageEditor.Placements(document, pdf, pageNumber, discoveryLimit);
+        } catch (PdfReadLimitException exception) when (exception.Kind == PdfReadLimitKind.UnderstandingArtifacts &&
+            exception.Limit == discoveryLimit) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.InteractionRegions, discoveryLimit, exception.Actual);
+        }
         (double originX, double originY) = page.GetPageBoundaryOrigin();
         int emitted = 0;
         for (int i = 0; i < placements.Count; i++) {
@@ -153,13 +164,21 @@ public sealed partial class PdfPageInteractionMap {
         return true;
     }
 
-    internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page) {
-        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans();
+    internal static IReadOnlyList<PdfSelectionQuad> GetOcrOverlapTextSpanBounds(PdfReadPage page,
+        int maximumSpans, int maximumCharacters, System.Threading.CancellationToken cancellationToken) {
+        IReadOnlyList<PdfTextSpan> spans = page.GetInteractionTextSpans(maximumSpans, maximumCharacters, cancellationToken);
+        if (spans.Count > maximumSpans)
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumSpans, spans.Count);
         (double pageWidth, double pageHeight) = page.GetInteractionPageSize();
         var bounds = new List<PdfSelectionQuad>(spans.Count);
         var geometryBudget = new PdfReadPage.VisualGeometryBudget();
+        long inspectedCharacters = 0;
         for (int spanIndex = 0; spanIndex < spans.Count; spanIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfTextSpan span = spans[spanIndex];
+            inspectedCharacters += span.Text.Length;
+            if (inspectedCharacters > maximumCharacters)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, maximumCharacters, inspectedCharacters);
             // Rendering mode 3 is the standard invisible searchable-text layer. Include it
             // for OCR deduplication without allowing other concealed/clipped text to mask pixels.
             if (string.IsNullOrEmpty(span.Text) || (!span.IsVisible && span.TextRenderingMode != 3)) continue;
