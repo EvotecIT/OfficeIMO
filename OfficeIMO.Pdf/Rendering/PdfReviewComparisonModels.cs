@@ -26,7 +26,7 @@ public enum PdfReviewChangeKind {
 
 /// <summary>One page-linked change with optional top-left visual geometry and text evidence.</summary>
 public sealed class PdfReviewChange {
-    internal PdfReviewChange(PdfReviewChangeKind kind, int expectedPageNumber, int actualPageNumber, PdfLogicalVisualBounds? expectedBounds, PdfLogicalVisualBounds? actualBounds, string? expectedText = null, string? actualText = null) {
+    internal PdfReviewChange(PdfReviewChangeKind kind, int expectedPageNumber, int actualPageNumber, PdfLogicalVisualBounds? expectedBounds, PdfLogicalVisualBounds? actualBounds, string? expectedText = null, string? actualText = null, bool canCoverRenderedPixels = true) {
         Kind = kind;
         ExpectedPageNumber = expectedPageNumber;
         ActualPageNumber = actualPageNumber;
@@ -34,6 +34,7 @@ public sealed class PdfReviewChange {
         ActualBounds = actualBounds;
         ExpectedText = expectedText;
         ActualText = actualText;
+        CanCoverRenderedPixels = canCoverRenderedPixels;
     }
     /// <summary>Classification, including explicit uncertainty for scans and unsupported visual changes.</summary>
     public PdfReviewChangeKind Kind { get; }
@@ -49,6 +50,7 @@ public sealed class PdfReviewChange {
     public string? ExpectedText { get; }
     /// <summary>Current readable text, when relevant.</summary>
     public string? ActualText { get; }
+    internal bool CanCoverRenderedPixels { get; }
 }
 
 /// <summary>One aligned pair with retained rendered proof and navigable content changes.</summary>

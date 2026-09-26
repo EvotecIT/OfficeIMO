@@ -44,10 +44,12 @@ internal static class PdfReviewSemanticComparer {
             (i, j, distance) => {
                 if (!string.Equals(before[i].SemanticText, after[j].SemanticText, StringComparison.Ordinal)) {
                     changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextChanged, expected.PageNumber, actual.PageNumber,
-                        before[i].Bounds, after[j].Bounds, before[i].SemanticText, after[j].SemanticText));
+                        before[i].Bounds, after[j].Bounds, before[i].SemanticText, after[j].SemanticText,
+                        canCoverRenderedPixels: before[i].Text != after[j].Text && (before[i].CanPaint || after[j].CanPaint)));
                 } else if (distance > 0.01D) {
                     changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextMoved, expected.PageNumber, actual.PageNumber,
-                        before[i].Bounds, after[j].Bounds, before[i].Text, after[j].Text));
+                        before[i].Bounds, after[j].Bounds, before[i].Text, after[j].Text,
+                        canCoverRenderedPixels: before[i].CanPaint || after[j].CanPaint));
                 }
             }, cancellationToken);
         for (int i = 0; i < before.Length; i++) {
@@ -58,12 +60,15 @@ internal static class PdfReviewSemanticComparer {
             usedBefore[i] = true;
             usedAfter[best] = true;
             changes.Add(new PdfReviewChange(PdfReviewChangeKind.TextChanged, expected.PageNumber, actual.PageNumber,
-                before[i].Bounds, after[best].Bounds, before[i].Text, after[best].Text));
+                before[i].Bounds, after[best].Bounds, before[i].Text, after[best].Text,
+                canCoverRenderedPixels: before[i].CanPaint || after[best].CanPaint));
         }
         for (int i = 0; i < before.Length; i++) if (!usedBefore[i]) changes.Add(new PdfReviewChange(
-            PdfReviewChangeKind.TextRemoved, expected.PageNumber, actual.PageNumber, before[i].Bounds, null, before[i].Text));
+            PdfReviewChangeKind.TextRemoved, expected.PageNumber, actual.PageNumber, before[i].Bounds, null, before[i].Text,
+            canCoverRenderedPixels: before[i].CanPaint));
         for (int i = 0; i < after.Length; i++) if (!usedAfter[i]) changes.Add(new PdfReviewChange(
-            PdfReviewChangeKind.TextAdded, expected.PageNumber, actual.PageNumber, null, after[i].Bounds, actualText: after[i].Text));
+            PdfReviewChangeKind.TextAdded, expected.PageNumber, actual.PageNumber, null, after[i].Bounds, actualText: after[i].Text,
+            canCoverRenderedPixels: after[i].CanPaint));
     }
 
     private static void CompareImages(PdfLogicalPage expected, PdfLogicalPage actual, PdfVisualPageComparison? visual,
@@ -103,7 +108,8 @@ internal static class PdfReviewSemanticComparer {
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
             string semanticText = ReconstructSemanticText(block);
-            output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds));
+            bool canPaint = block.Spans.Count == 0 || block.Spans.Any(static span => span.IsVisible);
+            output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds, canPaint));
         }
         return output.ToArray();
     }
@@ -196,7 +202,7 @@ internal static class PdfReviewSemanticComparer {
             for (int candidate = 0; candidate < after.Length; candidate++) {
                 if (matched[candidate] ||
                     !string.Equals(before[index].Hash, after[candidate].Hash, StringComparison.Ordinal) ||
-                    Distance(before[index].Bounds, after[candidate].Bounds) > 0.01D) continue;
+                    BoundsDiffer(before[index].Bounds, after[candidate].Bounds)) continue;
                 matched[candidate] = true;
                 found = true;
                 break;
@@ -211,6 +217,7 @@ internal static class PdfReviewSemanticComparer {
         List<PdfReviewChange> changes, CancellationToken cancellationToken) {
         var classified = new List<PdfPixelRegion>(changes.Count * 2);
         foreach (PdfReviewChange change in changes) {
+            if (!change.CanCoverRenderedPixels) continue;
             if (change.ExpectedBounds is PdfLogicalVisualBounds before &&
                 ToPixelRegion(before, expected, visual, options, out PdfPixelRegion expectedRegion)) classified.Add(expectedRegion);
             if (change.ActualBounds is PdfLogicalVisualBounds after &&
@@ -406,15 +413,17 @@ internal static class PdfReviewSemanticComparer {
 
     private interface IBoundedFeature { PdfLogicalVisualBounds Bounds { get; } }
     private sealed class TextFeature : IBoundedFeature {
-        internal TextFeature(string text, string semanticText, string normalized, PdfLogicalVisualBounds bounds) {
+        internal TextFeature(string text, string semanticText, string normalized, PdfLogicalVisualBounds bounds, bool canPaint) {
             Text = text;
             SemanticText = semanticText;
             Normalized = normalized;
             Bounds = bounds;
+            CanPaint = canPaint;
         }
         internal string Text { get; }
         internal string SemanticText { get; }
         internal string Normalized { get; }
+        internal bool CanPaint { get; }
         public PdfLogicalVisualBounds Bounds { get; }
     }
     private sealed class ImageFeature : IBoundedFeature {

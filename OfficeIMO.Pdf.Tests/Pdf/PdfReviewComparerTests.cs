@@ -124,6 +124,19 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void InvisibleTextChangeDoesNotCoverAnUnrelatedRenderedChange() {
+        PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Searchable original",
+            vectorPaint: "0 0 0 rg 20 87 70 5 re f"));
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Searchable revised",
+            vectorPaint: "1 0 0 rg 20 87 70 5 re f"));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.TextChanged);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.UnclassifiedVisual);
+    }
+
+    [Fact]
     public void DetectsChangedActualTextWhitespaceWhenRenderedPixelsMatch() {
         PdfDocument expected = PdfDocument.Load(InvisibleTextPdf("Visible", actualTextHex: "FEFF004100200042"));
         PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Visible", actualTextHex: "FEFF004100A00042"));
@@ -436,6 +449,24 @@ public sealed class PdfReviewComparerTests {
             static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
     }
 
+    [Fact]
+    public void PartiallyMaskedScanResizeAroundSameCenterRemainsUncertain() {
+        byte[] image = PdfPngTestImages.CreateRgbPng(20, 60, 180);
+        PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Image(image, 0D, 0D, 240D, 180D)).ToBytes());
+        PdfDocument actual = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
+            .Canvas(canvas => canvas.Image(image, 10D, 10D, 220D, 160D)).ToBytes());
+        var options = new PdfReviewComparisonOptions();
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 12, 180));
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(228, 0, 12, 180));
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 240, 12));
+        options.Visual.IgnoredRegions.Add(new PdfPixelRegion(0, 168, 240, 12));
+
+        PdfReviewPageComparison page = Assert.Single(expected.Proof.CompareReview(actual, options).Pages);
+
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.ScannedPageUncertain);
+    }
+
     private static byte[] ImageWithPaintStatePdf(string pixels, string content, bool withZeroOpacity = false, int width = 1) =>
         System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",
@@ -509,11 +540,12 @@ public sealed class PdfReviewComparerTests {
     }
 
     private static byte[] InvisibleTextPdf(string text, bool rotated = false, double y = 90D,
-        string? actualTextHex = null) {
+        string? actualTextHex = null, string? vectorPaint = null) {
         string position = rotated ? "0 1 -1 0 100 20 Tm " : "20 " + y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Td ";
         string prefix = actualTextHex is null ? string.Empty : "/Span << /ActualText <" + actualTextHex + "> >> BDC ";
         string suffix = actualTextHex is null ? string.Empty : " EMC";
-        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + "BT /F1 12 Tf 3 Tr " + position + "(" + text + ") Tj ET" + suffix + "\n");
+        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + "BT /F1 12 Tf 3 Tr " + position + "(" + text + ") Tj ET" + suffix +
+            "\n" + vectorPaint + "\n");
         using var stream = new System.IO.MemoryStream();
         void Write(string value) {
             byte[] bytes = System.Text.Encoding.ASCII.GetBytes(value);
