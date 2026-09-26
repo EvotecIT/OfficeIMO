@@ -121,6 +121,7 @@ public sealed class PdfNUpImpositionTests {
     [InlineData("/SeparationInfo << /Pages [3 0 R] >>", PdfImpositionSourceFeatureLoss.PageFeatures)]
     [InlineData("/BoxColorInfo << /CropBox << /C [0 0 0] >> >>", PdfImpositionSourceFeatureLoss.PageFeatures)]
     [InlineData("/PresSteps << /Type /NavNode >>", PdfImpositionSourceFeatureLoss.PageFeatures)]
+    [InlineData("/PZ 1.5", PdfImpositionSourceFeatureLoss.PageFeatures)]
     public void PortfolioOrSelectedViewportRequiresFeatureLossApproval(string feature, PdfImpositionSourceFeatureLoss expectedLoss) {
         bool catalogFeature = expectedLoss == PdfImpositionSourceFeatureLoss.CatalogFeatures;
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {

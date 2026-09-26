@@ -182,7 +182,7 @@ internal static class PdfPageImposer {
     }
 
     private static bool HasRawPageFeatures(PdfReadPage page, Dictionary<int, PdfIndirectObject> objects) {
-        foreach (string key in new[] { "AA", "Metadata", "PieceInfo", "Tabs", "Dur", "Trans", "TrimBox", "BleedBox", "ArtBox", "Thumb", "VP", "SeparationInfo", "BoxColorInfo", "PresSteps" }) {
+        foreach (string key in new[] { "AA", "Metadata", "PieceInfo", "Tabs", "Dur", "Trans", "PZ", "TrimBox", "BleedBox", "ArtBox", "Thumb", "VP", "SeparationInfo", "BoxColorInfo", "PresSteps" }) {
             if (page.PageDictionary.Items.TryGetValue(key, out PdfObject? value) &&
                 PdfObjectLookup.ResolveChain(objects, value) is not PdfNull) return true;
         }
