@@ -4,7 +4,7 @@ The [H10 selection manifest](../../../../../OfficeIMO.Pdf.Benchmarks.Comparisons
 
 ## EPA: three distinct PDF intents
 
-At clean source `64f1e80749d169b99934c622729a55b05b58ba5d`, the opt-in `html-mhtml-evidence` runner replayed the unchanged EPA archive offline with Chromium 151.0.7922.34, PeachPDF 0.9.19, and OfficeIMO. All 13 PDF operations completed. The current replay's 60 dpi rasters are pixel-identical, page for page, to the earlier capture for the five main Chromium and OfficeIMO intents; PDF binary metadata changed on the Chromium side. Every printed page was inspected in contact sheets.
+At clean source `64f1e80749d169b99934c622729a55b05b58ba5d`, the opt-in `html-mhtml-evidence` runner replayed the unchanged EPA archive offline with Chromium 151.0.7922.34, PeachPDF 0.9.19, and OfficeIMO. All 13 PDF operations completed. The current replay's 60 dpi rasters are pixel-identical, page for page, to the earlier capture for the five main Chromium and OfficeIMO intents; Chromium PDF byte hashes differed despite identical rasters. All pages in those five intents were inspected in contact sheets.
 
 | Intent | Chromium | OfficeIMO | Observed difference |
 | --- | ---: | ---: | --- |
