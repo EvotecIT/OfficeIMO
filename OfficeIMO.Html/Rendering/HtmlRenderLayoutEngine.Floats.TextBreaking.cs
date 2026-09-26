@@ -78,7 +78,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string paintToken,
         string logicalToken) {
         if (paintToken.Length != logicalToken.Length) return false;
-        IReadOnlyList<int> breaks = OfficeTextLineBreaks.GetBreakPositions(
+        IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
             allowCjkBreaks: run.Style.WordBreak != "keep-all");
         if (breaks.Count == 0) return false;

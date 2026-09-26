@@ -69,6 +69,24 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(word.TextAdvanceWidth > 60D);
     }
 
+    [Fact]
+    public void HtmlRendering_PrintedUrlDoesNotWrapAtSolidusWhenItFitsTheNextLine() {
+        const string html = "<style>body{margin:0;font:16px Arial}p{width:500px;margin:0}"
+            + "a::after{content:' (https://www.w3.org/WAI/tutorials/tables/irregular/)'}</style>"
+            + "<p><a href='https://www.w3.org/WAI/tutorials/tables/irregular/'>Tables with irregular headers</a> have header cells</p>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 700D, Margins = HtmlRenderMargins.All(0D) });
+
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .GroupBy(text => text.Y)
+            .OrderBy(group => group.Key)
+            .Select(group => string.Concat(group.OrderBy(text => text.X).Select(text => text.Text)).Trim())
+            .ToArray();
+
+        Assert.Equal("Tables with irregular headers", lines[0]);
+        Assert.StartsWith("(https://www.w3.org/WAI/tutorials/tables/irregular/)", lines[1], StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("overflow-wrap:anywhere")]
     [InlineData("overflow-wrap:break-word")]

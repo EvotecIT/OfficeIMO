@@ -159,7 +159,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (split > 0 && split < token.Length) return true;
         }
 
-        IReadOnlyList<int> preferred = OfficeTextLineBreaks.GetBreakPositions(
+        IReadOnlyList<int> preferred = GetHtmlPreferredBreakPositions(
             searchToken,
             allowCjkBreaks: layoutStyle.WordBreak != "keep-all");
         split = FindLargestFittingFirstLineBreak(searchToken, preferred, string.Empty, firstLineStyle, width);

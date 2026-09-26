@@ -1074,7 +1074,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double width,
         int logicalStartProgress) {
         if (paintToken.Length != logicalToken.Length) return false;
-        IReadOnlyList<int> breaks = OfficeTextLineBreaks.GetBreakPositions(
+        IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
             allowCjkBreaks: run.Style.WordBreak != "keep-all");
         if (breaks.Count == 0) return false;
@@ -1103,6 +1103,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             start = end;
         }
         return start == paintToken.Length;
+    }
+
+    private static IReadOnlyList<int> GetHtmlPreferredBreakPositions(string text, bool allowCjkBreaks) {
+        // Normal HTML line layout keeps unspaced solidus text together in Chromium.
+        // Explicit overflow-wrap and word-break modes can still split it later.
+        return OfficeTextLineBreaks.GetBreakPositions(text, allowCjkBreaks)
+            .Where(point => text[point - 1] != '/')
+            .ToArray();
     }
 
     private double MeasureTabExpandedText(string value, HtmlRenderBoxStyle style, double currentWidth) {
