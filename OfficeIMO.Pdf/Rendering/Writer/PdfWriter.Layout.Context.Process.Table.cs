@@ -7,6 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            if (style.Position is { VerticalAlignment: not PdfTableVerticalAlignment.Top })
+                throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;
             LayoutResult.Page? pageBeforeTable = currentPage;
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
@@ -22,7 +24,7 @@ internal static partial class PdfWriter {
                     logicalBottomBoundary: batch.IsLast,
                     restoreVerticalFlow: false);
             }
-            if (!style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+            if ((!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
             }
         }
@@ -231,7 +233,7 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
-            if (style.Position is { } verticalPosition) y = PositionTableY(verticalPosition, tableContentHeight);
+            if (logicalTopBoundary && style.Position is { } verticalPosition) y = PositionTableY(verticalPosition, tableContentHeight);
             double tableSpacingBefore = y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore : 0D;
             if (style.KeepTogether) {
                 double keepHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;

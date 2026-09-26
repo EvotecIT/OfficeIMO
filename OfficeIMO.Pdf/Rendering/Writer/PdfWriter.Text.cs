@@ -693,7 +693,7 @@ internal static partial class PdfWriter {
             double inlineDescent = Math.Max(0D, -inlineElement.BaselineOffset);
             currentLineHeight = Math.Max(
                 currentLineHeight,
-                Math.Max(baseAscent, inlineAscent) + Math.Max(baseDescent, inlineDescent));
+                Math.Max(baseAscent, inlineAscent) + Math.Max(baseDescent, inlineDescent) + (currentFrame?.Gap ?? 0));
         }
 
         void StartNewLine() {

@@ -24,6 +24,7 @@ public enum PdfTableVerticalAlignment {
 /// Immutable placement and text clearance for a floating table. Distances are in points;
 /// positive vertical offsets move down the page. Following paragraphs wrap around the table.
 /// </summary>
+/// <remarks>Deferred tables support top alignment because their total height is not known before streaming their rows.</remarks>
 public sealed class PdfTablePosition {
     /// <summary>Creates placement relative to the selected anchor rectangles.</summary>
     public PdfTablePosition(PdfTableAnchor horizontalAnchor = PdfTableAnchor.Margin,

@@ -139,10 +139,21 @@ internal static partial class PdfWriter {
             List<double>? floatingLineWidths = null;
             List<double>? floatingLineGaps = null;
             HashSet<int>? floatingPageStarts = null;
+            var originalLines = lines;
+            var originalLineHeights = lineHeights;
+            void RestoreUnobstructedWrapping() {
+                lines = originalLines; lineHeights = originalLineHeights;
+                floatingLineOffsets = null; floatingLineWidths = null; floatingLineGaps = null; floatingPageStarts = null;
+            }
             if (HasFloatingTables) {
                 floatingLineOffsets = new(); floatingLineWidths = new(); floatingLineGaps = new();
                 floatingPageStarts = new();
                 double wrapLeading = Math.Max(leading, rpb.Runs.Select(run => (run.FontSize ?? size) * leading / size).DefaultIfEmpty(leading).Max());
+                double inlineWidth = rpb.Runs.Select(run => run.InlineElement?.Width ?? 0).DefaultIfEmpty(0).Max();
+                double exclusionHeight = Math.Max(wrapLeading, rpb.Runs.Select(run => run.InlineElement is { } element
+                    ? Math.Max(GetAscenderForOptions(ChooseNormal(currentOpts.DefaultFont), size, currentOpts), element.BaselineOffset + element.Height)
+                        + Math.Max(GetDescenderForOptions(ChooseNormal(currentOpts.DefaultFont), size, currentOpts), -element.BaselineOffset)
+                    : 0).DefaultIfEmpty(0).Max());
                 double simulatedTop = y - (y < frameStart - 0.001 ? spacingBefore : 0);
                 double previousHeight = 0;
                 bool onOriginalPage = true;
@@ -155,8 +166,8 @@ internal static partial class PdfWriter {
                         if (simulatedTop - wrapLeading < currentOpts.MarginBottom) { simulatedTop = frameStart; onOriginalPage = false; floatingPageStarts.Add(index); }
                         double left = index == 0 ? textFrame.FirstLineX : textFrame.X;
                         double availableWidth = index == 0 ? textFrame.FirstLineWidth : textFrame.Width;
-                        var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, wrapLeading) : (X: left, Width: availableWidth, Gap: 0D);
-                        if (simulatedTop - frame.Gap - wrapLeading < currentOpts.MarginBottom) {
+                        var frame = onOriginalPage ? GetFloatingTextFrame(left, availableWidth, simulatedTop, exclusionHeight, inlineWidth) : (X: left, Width: availableWidth, Gap: 0D);
+                        if (simulatedTop - frame.Gap - exclusionHeight < currentOpts.MarginBottom) {
                             frame = (left, availableWidth, 0D);
                             simulatedTop = frameStart;
                             onOriginalPage = false;
@@ -168,6 +179,13 @@ internal static partial class PdfWriter {
                         return (frame.Width, frame.X - textFrame.X, frame.Gap);
                     }, minimumLineHeight: wrapLeading);
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
+                double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
+                double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
+                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, actualHeight) : 0;
+                bool mustMove = paragraphStyle?.KeepTogether == true && actualHeight > y - currentOpts.MarginBottom + 0.001;
+                mustMove |= nextHeight > 0 && actualHeight + nextHeight > y - currentOpts.MarginBottom + 0.001 &&
+                    originalLineHeights.Sum() + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
+                if (mustMove) { NewPage(); RestoreUnobstructedWrapping(); }
             }
 
             int lineIndex = 0;
@@ -212,6 +230,7 @@ internal static partial class PdfWriter {
 
                 if (TryApplyWidowControl(paragraphStyle, lines.Count, lineIndex, ref take, ref heightSum, lineHeights, y < frameStart - 0.001)) {
                     NewPage();
+                    if (lineIndex == 0) RestoreUnobstructedWrapping();
                     firstSegment = false;
                     continue;
                 }

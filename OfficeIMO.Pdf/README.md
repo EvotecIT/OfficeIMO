@@ -535,6 +535,12 @@ These recipes compose normal flow, table, and panel primitives. `IPdfContextComp
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
 
+### Floating tables
+
+Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.
+
+Floating placement does not advance the text cursor. Deferred tables apply their top anchor once across all batches. Center and bottom alignment require an eager table because a deferred table's total height is not known before its rows are streamed. Floating placement is supported in document flow; Word multi-column sections retain an approximation diagnostic.
+
 ### Hyphenation and inline visuals
 
 ```csharp

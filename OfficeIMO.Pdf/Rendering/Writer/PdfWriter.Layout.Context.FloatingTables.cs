@@ -44,7 +44,7 @@ internal static partial class PdfWriter {
         }
 
         // Choose the widest connected text interval; a line that cannot fit moves below the obstruction.
-        private (double X, double Width, double Gap) GetFloatingTextFrame(double left, double lineWidth, double top, double height) {
+        private (double X, double Width, double Gap) GetFloatingTextFrame(double left, double lineWidth, double top, double height, double minimumWidth = 0) {
             double originalTop = top;
             for (int attempt = 0; attempt <= floatingTables.Count; attempt++) {
                 var intervals = new List<(double Left, double Right)> { (left, left + lineWidth) };
@@ -62,7 +62,7 @@ internal static partial class PdfWriter {
                     intervals = remaining;
                 }
                 var best = intervals.OrderByDescending(interval => interval.Right - interval.Left).FirstOrDefault();
-                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(24, currentOpts.DefaultFontSize * 2)))
+                if (best.Right - best.Left >= Math.Min(lineWidth, Math.Max(minimumWidth, Math.Max(24, currentOpts.DefaultFontSize * 2))))
                     return (best.Left, best.Right - best.Left, originalTop - top);
                 if (nextBottom >= top) break;
                 top = nextBottom;
