@@ -175,7 +175,7 @@
     {
       "id": "cdc-global-drinking-water",
       "sourceClass": "substantial-illustrated-article-with-definition-table",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-25",
       "url": "https://www.cdc.gov/global-water-sanitation-hygiene/about/global-drinking-water.html",
       "rightsUrl": "https://www.cdc.gov/other/agencymaterials.html",
@@ -214,7 +214,55 @@
           "inspect": ["heading hierarchy", "service-level definition table", "links and image reference", "serialized and reparsed content"]
         }
       ],
-      "reason": "A CDC article with explanatory prose, a five-row term/definition table, links and an article image on a different publisher and stylesheet system from the development pages. Selected from published source content and verified HTTP accessibility, before OfficeIMO capture or conversion."
+      "reason": "A CDC article with explanatory prose, a five-row term/definition table, links and an article image on a different publisher and stylesheet system from the earlier development pages. Selected before capture, but its print and editable findings have since informed renderer and adapter fixes, so it is now a development regression."
+    },
+    {
+      "id": "nws-chicago-climate-normals",
+      "sourceClass": "long-data-tables",
+      "role": "held-out",
+      "selectionDate": "2026-09-26",
+      "url": "https://www.weather.gov/lot/chicago_normals",
+      "rightsUrl": "https://www.weather.gov/disclaimer",
+      "rightsNotes": "NWS says its web-page information is public domain unless noted otherwise. Keep captured bytes in ignored local evidence, identify the source and date, and do not imply NOAA/NWS endorsement or present altered output as official material. Check individual third-party resources and protected marks before publishing visual excerpts.",
+      "requiredVisibleMarkers": ["Daily, Monthly, and Annual Climate Normals", "January:", "Day of Month", "Precipitation", "MONTH"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["all monthly table sections", "column heading and numeric cell alignment", "page-boundary row integrity", "text and link preservation"]},
+        {"intent": "screen-media-pagination", "inspect": ["all monthly table sections", "wide-table overflow and clipping", "page-boundary row integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation across slices", "visible navigation and numeric data"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable report", "inspect": ["monthly section headings", "daily tables and numeric cells", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed daily data tables", "inspect": ["day and measurement columns in separate cells", "monthly totals", "saved and reopened numeric values"]},
+        {"target": "PowerPoint", "profile": "editable summary slides", "inspect": ["ordered month sections", "readable non-overlapping table content", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic pages", "inspect": ["section headings", "tables and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable report", "inspect": ["section headings", "table rows and numeric cells", "links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text and tables", "inspect": ["month headings", "table headers and daily rows", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "A long public data page with twelve daily climate tables and monthly totals from a publisher and layout system absent from the development corpus. Selected by reading its source and reuse policy and checking HTTP access, before capture or OfficeIMO conversion."
+    },
+    {
+      "id": "nps-cuyahoga-beaver-marsh",
+      "sourceClass": "illustrated-park-article",
+      "role": "held-out",
+      "selectionDate": "2026-09-26",
+      "url": "https://www.nps.gov/cuva/planyourvisit/the-beaver-marsh.htm",
+      "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
+      "rightsNotes": "NPS-created material is generally public domain, but third-party content and government marks are exceptions. Keep capture bytes in ignored local evidence and check each credited image before publishing visual excerpts; do not imply NPS endorsement.",
+      "requiredVisibleMarkers": ["The Beaver Marsh", "Cuyahoga Valley National Park", "Observing throughout the year", "Over 50 bird species", "Visiting and volunteering"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["article title and seasonal paragraphs", "image and credit pairing", "visiting tips", "all-page header and footer flow"]},
+        {"intent": "screen-media-pagination", "inspect": ["article and image placement", "seasonal section flow", "off-canvas navigation exclusion"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "article and image visibility", "slice-boundary image integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "semantic illustrated article", "inspect": ["title and section hierarchy", "picture and caption or credit pairing", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["seasonal section text and picture placement", "visiting-tip grouping", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable illustrated slides", "inspect": ["ordered article sections", "editable pictures and captions", "visible non-overlapping text", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic pages", "inspect": ["heading and paragraph flow", "links and credited pictures", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "links and images", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and credits", "link destinations", "serialized and reparsed content"]}
+      ],
+      "reason": "An illustrated park article with long seasonal sections, credited images and visitor tips, distinct from the Yellowstone gallery landing page. Selected by reading its source and reuse policy and checking HTTP access, before capture or OfficeIMO conversion."
     }
   ]
 }
