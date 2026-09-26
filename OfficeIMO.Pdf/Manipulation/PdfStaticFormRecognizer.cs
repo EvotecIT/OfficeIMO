@@ -99,6 +99,14 @@ internal static partial class PdfStaticFormRecognizer {
                         "A visual field candidate uses compositing that cannot prove an empty field.");
                     continue;
                 }
+                // Dash arrays and phase are retained by the reader, but transformed geometry
+                // alone does not prove which portions of a dashed outline actually paint.
+                if (primitive.StrokeDashPattern is PdfStrokeDashPattern dash && dash.Array.Count > 0 ||
+                    primitive.StrokeDashStyle != OfficeStrokeDashStyle.Solid) {
+                    AddDiagnostic("unsupported-outline-dash", pageNumber,
+                        "Dashed field outlines require painted-segment visibility evidence.");
+                    continue;
+                }
                 if (!HasVisibleOutline(primitive, visual, evidence, filledAreas, cancellationToken)) {
                     AddDiagnostic("invisible-outline", pageNumber,
                         "A field outline cannot be distinguished from its painted background.");

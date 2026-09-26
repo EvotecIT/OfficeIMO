@@ -332,8 +332,10 @@ if (accepted.Length > 0)
     File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(accepted).ToBytes());
 ```
 
-Recognition proposes text fields from empty outlines or writing lines and check
-boxes from small square outlines. Nearby native text supplies labels; callers
+Recognition proposes text fields from empty continuous outlines or writing lines
+and check boxes from small square outlines. Dashed outlines and writing lines are
+skipped with an `unsupported-outline-dash` diagnostic because their painted
+segments cannot be proven from the recognition geometry. Nearby native text supplies labels; callers
 can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
 installing an OCR runtime in `OfficeIMO.Pdf`. The report includes page-local tab
 order suggestions and collision diagnostics. It does not infer radio groups,

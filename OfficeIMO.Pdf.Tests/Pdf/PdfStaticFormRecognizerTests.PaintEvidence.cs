@@ -90,6 +90,27 @@ public sealed partial class PdfStaticFormRecognizerTests {
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
     }
 
+    [Theory]
+    [InlineData("[1 10000] 2 d", "80 120 m 200 120 l S")]
+    [InlineData("[1 10000] 2 d", "80 80 120 20 re S")]
+    [InlineData("[1 10000] 2 d", "80 80 15 15 re S")]
+    [InlineData("[1 10000] 2 d", "80 120 m 200 120 l 80 80 m 200 80 l S")]
+    [InlineData("[3 3] 0 d", "80 120 m 200 120 l S")]
+    public void DashedGeometryRequiresPaintedSegmentEvidence(string dash, string geometry) {
+        byte[] source = StaticPdf("0 0 0 RG 1 w " + dash + " " + geometry);
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 60D, 70D, 80D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "unsupported-outline-dash");
+    }
+
+    [Fact]
+    public void EmptyDashArrayResetsToContinuousWritingLine() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w [1 10000] 2 d [] 0 d 80 120 m 200 120 l S");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 60D, 70D, 80D, 1D) };
+        Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
+    }
+
     [Fact]
     public void TightClipAroundUnderlineStillAllowsItsInferredField() {
         byte[] source = StaticPdf("q 79 118 122 3 re W n 0 0 0 RG 1 w 80 120 m 200 120 l S Q");
