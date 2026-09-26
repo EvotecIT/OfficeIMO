@@ -35,6 +35,53 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void OdsPivotCannotWriteBeyondItsDeclaredTargetRange() {
+        OdsDocument source = CreateSimpleOdsPivot("SmallTarget", "Data.D1:Data.D1");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void DuplicateOdsAxisFieldIsExplicitLoss() {
+        OdsDocument source = CreateSimpleOdsPivot("DuplicateAxis", "Data.D1:Data.G3");
+        source.DataPilotTables.Single().AddField("Region", "column");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void PivotNameThatExcelWouldTrimIsExplicitLoss() {
+        OdsDocument source = CreateSimpleOdsPivot(" PivotName ", "Data.D1:Data.E3");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    private static OdsDocument CreateSimpleOdsPivot(string name, string targetRange) {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable(name, "Data.A1:Data.B2", targetRange);
+        pivot.AddField("Region", "row");
+        pivot.AddField("Sales", "data", "sum");
+        return source;
+    }
+
+    [Fact]
     public void DuplicateHeaderAddedAfterPivotCreationRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddWorksheet("Data");

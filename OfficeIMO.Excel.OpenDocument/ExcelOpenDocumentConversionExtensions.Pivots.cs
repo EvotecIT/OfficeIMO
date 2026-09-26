@@ -146,11 +146,24 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         int converted = 0;
         // The Excel cache scans the source for each pivot. Bound the total work across the conversion.
         long remainingPivotScanCells = 1_000_000;
+        var convertedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
             if (pivot.HasAdvancedSettings || pivot.Fields.Count == 0 || pivot.Fields.Count > 17
+                || string.IsNullOrWhiteSpace(pivot.Name) || pivot.Name != pivot.Name.Trim()
+                || convertedNames.Contains(pivot.Name)
                 || !TryGetLocalPivotRanges(pivot, options, out string? sourceSheetName,
                     out string? targetSheetName, out string? sourceRange, out string? destination,
                     out long destinationRow, out long destinationColumn)) continue;
+            if (!SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? sourceBounds) || sourceBounds?.End == null
+                || !SpreadsheetRangeReference.TryParse(pivot.TargetRangeAddress, SpreadsheetAddressDialect.OpenDocument,
+                    out SpreadsheetRangeReference? targetBounds) || targetBounds?.End == null) continue;
+            long sourceRows = sourceBounds.End.Row!.Value - sourceBounds.Start.Row!.Value + 1;
+            long sourceColumns = sourceBounds.End.Column!.Value - sourceBounds.Start.Column!.Value + 1;
+            if (sourceRows <= 0 || sourceColumns <= 0 || sourceRows > remainingPivotScanCells / sourceColumns)
+                continue;
+            // Charge each candidate before scanning retained cells, including candidates rejected later.
+            remainingPivotScanCells -= sourceRows * sourceColumns;
             (OdsSheet Source, ExcelSheet Target) pair = sheets.FirstOrDefault(item =>
                 string.Equals(item.Source.Name, sourceSheetName, StringComparison.Ordinal)
                 && string.Equals(item.Source.Name, targetSheetName, StringComparison.Ordinal));
@@ -181,22 +194,20 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 if (unsupported) break;
             }
             if (unsupported || data.Count != 1 || rows.Count + columns.Count == 0
-                || rows.Count + columns.Count + data.Count != pivot.Fields.Count) continue;
-            if (!SpreadsheetRangeReference.TryParse(pivot.SourceRangeAddress, SpreadsheetAddressDialect.OpenDocument,
-                    out SpreadsheetRangeReference? sourceBounds) || sourceBounds?.End == null) continue;
-            long sourceRows = sourceBounds.End.Row!.Value - sourceBounds.Start.Row!.Value + 1;
-            long sourceColumns = sourceBounds.End.Column!.Value - sourceBounds.Start.Column!.Value + 1;
-            if (sourceRows <= 0 || sourceColumns <= 0 || sourceRows > remainingPivotScanCells / sourceColumns
+                || rows.Count + columns.Count + data.Count != pivot.Fields.Count
+                || rows.Concat(columns).Distinct(StringComparer.OrdinalIgnoreCase).Count() != rows.Count + columns.Count
                 || HasAmbiguousPivotHeaders(pair.Source, sourceBounds)) continue;
             long generatedLastRow = destinationRow + 1;
             long generatedLastColumn = destinationColumn + rows.Count + columns.Count + data.Count - 1;
             if (generatedLastRow > Math.Min(options.MaximumRows, 1_048_576)
-                || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)) continue;
-            remainingPivotScanCells -= sourceRows * sourceColumns;
+                || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)
+                || generatedLastRow > targetBounds.End.Row!.Value
+                || generatedLastColumn > targetBounds.End.Column!.Value) continue;
             try {
                 pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
                     rowFields: rows, columnFields: columns, dataFields: data,
                     layout: ExcelPivotLayout.Outline);
+                convertedNames.Add(pivot.Name);
                 converted++;
             } catch (ArgumentException) {
                 // Invalid or missing source headers cannot be represented as an Excel pivot.
