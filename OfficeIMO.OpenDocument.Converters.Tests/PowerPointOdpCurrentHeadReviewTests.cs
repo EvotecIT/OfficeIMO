@@ -243,6 +243,60 @@ public sealed class PowerPointOdpCurrentHeadReviewTests {
         AssertPowerPointLoss(source, "shape-appearance");
     }
 
+    [Theory]
+    [InlineData(80000)]
+    [InlineData(-10000)]
+    public void PowerPointRunBaselineMagnitudeIsExplicitLoss(int baseline) {
+        using PowerPointPresentation source = CreatePowerPoint();
+        source.Slides[0].AddTextBoxPoints("Shifted", 20, 20, 100, 50);
+        A.Run run = source.OpenXmlDocument.PresentationPart!.SlideParts.Single().Slide!
+            .Descendants<A.Run>().Single();
+        run.RunProperties ??= new A.RunProperties();
+        run.RunProperties.Baseline = baseline;
+
+        AssertPowerPointLoss(source, "text-typography");
+    }
+
+    [Fact]
+    public void OdpTextBoxSizingConstraintsAreExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2));
+        XElement textBox = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "text-box").Single();
+        textBox.SetAttributeValue(OdfNamespaces.Fo + "min-height", "3cm");
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertOdpLoss(source, "text-box-layout");
+    }
+
+    [Theory]
+    [InlineData("rel-width", "50%")]
+    [InlineData("rel-height", "75%")]
+    public void RelativeOdpTextBoxFrameSizingIsExplicitLoss(string attributeName, string value) {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide().AddTextBox(OdfRect.FromCentimeters(1, 1, 4, 2));
+        XElement frame = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "frame").Single();
+        frame.SetAttributeValue(OdfNamespaces.Style + attributeName, value);
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertOdpLoss(source, "text-box-layout");
+    }
+
+    [Fact]
+    public void OdpSlideFooterDeclarationIsExplicitLoss() {
+        OdpPresentation source = OdpPresentation.Create();
+        source.AddSlide();
+        XElement page = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Draw + "page").Single();
+        page.AddBeforeSelf(new XElement(OdfNamespaces.Presentation + "footer-decl",
+            new XAttribute(OdfNamespaces.Presentation + "name", "Footer1"), "Confidential"));
+        page.SetAttributeValue(OdfNamespaces.Presentation + "use-footer-name", "Footer1");
+        source.Package.MarkXmlDirty("content.xml");
+
+        AssertOdpLoss(source, "slide-headers-footers");
+    }
+
     [Fact]
     public void InternalPowerPointTextLinkUsesPreservedOdpSlideName() {
         using PowerPointPresentation source = CreatePowerPoint();

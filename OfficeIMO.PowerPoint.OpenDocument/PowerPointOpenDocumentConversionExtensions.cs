@@ -254,7 +254,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         AddUnsupported(report, "text-colors", unsupportedTextColors,
             "Inherited, theme, system, transformed, and other unsupported run or highlight colors were not transferred to ODP.");
         AddUnsupported(report, "text-typography", unsupportedTextTypography,
-            "PowerPoint run character spacing, kerning, script-specific fonts, and unsupported direct run effects were not transferred to ODP.");
+            "PowerPoint run character spacing, kerning, exact baseline shifts, script-specific fonts, and unsupported direct run effects were not transferred to ODP.");
         AddUnsupported(report, "embedded-fonts", unsupportedEmbeddedFonts,
             "Embedded PowerPoint font payloads were not transferred to ODP.");
         AddUnsupported(report, "theme", unsupportedThemes,
@@ -571,6 +571,10 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             "ODP image crop outside the PowerPoint representable range was clamped or omitted.");
         AddUnsupported(report, "text-box-chains", CountUnmappedOdpTextBoxChains(source),
             "Linked ODP text boxes were converted as independent boxes; text flow between frames was not retained.");
+        AddUnsupported(report, "text-box-layout", CountUnmappedOdpTextBoxLayout(source),
+            "Authored ODP text-box sizing and layout attributes were not transferred to PowerPoint.");
+        AddUnsupported(report, "slide-headers-footers", CountUnmappedOdpHeaderFooterDeclarations(source),
+            "ODP slide header, footer, and date-time declarations or their slide references were not transferred to PowerPoint.");
         AddUnsupported(report, "shape-text", unsupportedBasicShapeText,
             "Text inside ODP rectangle, ellipse, and line shapes was omitted because basic PowerPoint auto-shapes have no editable text mapping in this adapter.");
         AddUnsupported(report, "shape-accessibility", unsupportedShapeAccessibility,

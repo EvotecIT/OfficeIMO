@@ -133,7 +133,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         root.Descendants<A.EndParagraphRunProperties>().Count(HasUnmappedPowerPointInheritedRunFormatting);
 
     private static bool HasUnmappedPowerPointTextTypography(OpenXmlElement properties) =>
-        properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern") ||
+        properties.GetAttributes().Any(attribute => attribute.LocalName is "spc" or "kern" ||
+            attribute.LocalName == "baseline" && attribute.Value != "0") ||
         properties.ChildElements.Any(child => !IsMappedPowerPointRunChild(child));
 
     private static bool IsMappedPowerPointRunChild(OpenXmlElement child) =>
@@ -305,6 +306,34 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
             shape.Element.DescendantsAndSelf().Any(element =>
                 element.Name == OdfNamespaces.Draw + "text-box" &&
                 element.Attribute(OdfNamespaces.Draw + "chain-next-name") != null)));
+
+    private static int CountUnmappedOdpTextBoxLayout(OdpPresentation source) =>
+        source.Slides.Sum(slide => slide.Shapes.Count(shape =>
+            shape is OdpTextBox && shape.Element.Attributes().Any(attribute =>
+                attribute.Name == OdfNamespaces.Style + "rel-width" ||
+                attribute.Name == OdfNamespaces.Style + "rel-height" ||
+                attribute.Name == OdfNamespaces.Fo + "min-width" ||
+                attribute.Name == OdfNamespaces.Fo + "max-width" ||
+                attribute.Name == OdfNamespaces.Fo + "min-height" ||
+                attribute.Name == OdfNamespaces.Fo + "max-height") ||
+            shape.Element.DescendantsAndSelf().Any(element =>
+                element.Name == OdfNamespaces.Draw + "text-box" &&
+                element.Attributes().Any(attribute => !attribute.IsNamespaceDeclaration &&
+                    attribute.Name != OdfNamespaces.Draw + "chain-next-name"))));
+
+    private static int CountUnmappedOdpHeaderFooterDeclarations(OdpPresentation source) {
+        XElement? presentation = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Office + "presentation").FirstOrDefault();
+        if (presentation == null) return 0;
+        int declarations = presentation.Elements().Count(element => element.Name == OdfNamespaces.Presentation + "header-decl" ||
+            element.Name == OdfNamespaces.Presentation + "footer-decl" ||
+            element.Name == OdfNamespaces.Presentation + "date-time-decl");
+        int selected = presentation.Elements(OdfNamespaces.Draw + "page").Sum(page => page.Attributes().Count(attribute =>
+            attribute.Name == OdfNamespaces.Presentation + "use-header-name" ||
+            attribute.Name == OdfNamespaces.Presentation + "use-footer-name" ||
+            attribute.Name == OdfNamespaces.Presentation + "use-date-time-name"));
+        return declarations + selected;
+    }
 
     private static int CountUnmappedOdpHeadings(OdpPresentation source) =>
         source.Package.GetXml("content.xml").Descendants(OdfNamespaces.Text + "h")
