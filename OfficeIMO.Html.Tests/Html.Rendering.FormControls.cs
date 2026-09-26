@@ -412,6 +412,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_AutoHeightButtonContainsWrappedChildText() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='wrapped' style='display:block;width:72px;font-size:16px;line-height:20px;padding:2px;border:1px solid #000'>Alpha Beta Gamma</button>" +
+            "<p>After</p>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#wrapped" && shape.Shape.FillColor.HasValue);
+        HtmlRenderText[] label = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.Text.Contains("Alpha", StringComparison.Ordinal)
+                || text.Text.Contains("Beta", StringComparison.Ordinal)
+                || text.Text.Contains("Gamma", StringComparison.Ordinal)).ToArray();
+        Assert.True(label.Length >= 2);
+        Assert.All(label, text => Assert.True(text.Y + text.Height <= button.Y + button.Height + 0.01D));
+        HtmlRenderText after = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), text => text.Text == "After");
+        Assert.True(after.Y >= button.Y + button.Height);
+    }
+
+    [Fact]
+    public void HtmlRendering_ButtonIntrinsicWidthIncludesIconBesideLabel() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='mixed' style='display:block;padding:0 6px;border:1px solid #000'>" +
+            "<svg width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8'/></svg> Save</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#mixed" && shape.Shape.FillColor.HasValue);
+        Assert.True(button.Width >= 70D);
+    }
+
+    [Fact]
     public void HtmlRendering_IconButtonIncludesSvgIntrinsicWidth() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<button id='icon' style='display:block;padding:0 6px;border:1px solid #000'><svg width='24' height='24' viewBox='0 0 24 24'><circle cx='12' cy='12' r='8'/></svg></button>",

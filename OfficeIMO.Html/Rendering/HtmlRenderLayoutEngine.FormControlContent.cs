@@ -13,7 +13,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxY,
         double boxWidth,
         double boxHeight,
-        string source) {
+        string source,
+        HtmlInlineLayout? buttonInline) {
         string tag = element.TagName.ToLowerInvariant();
         string type = NormalizeInputType(element);
         double contentX = boxX + style.BorderLeftWidth + style.PaddingLeft;
@@ -64,14 +65,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         if (tag == "button") {
-            AddButtonInlineContent(visuals, element, style, contentX, contentY, contentWidth, contentHeight);
+            AddButtonInlineContent(visuals, buttonInline!, contentX, contentY, contentHeight);
             return;
         }
 
         string value;
         bool isPlaceholder = false;
         OfficeTextAlignment alignment = OfficeTextAlignment.Left;
-        if (tag == "button" || tag == "input" && IsButtonInputType(type)) {
+        if (tag == "input" && IsButtonInputType(type)) {
             value = ResolveButtonLabel(element, type);
             alignment = OfficeTextAlignment.Center;
         } else if (tag == "input" && type == "file") {
@@ -101,19 +102,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source);
     }
 
-    private void AddButtonInlineContent(
-        ICollection<HtmlRenderVisual> visuals,
-        IElement element,
-        HtmlRenderBoxStyle style,
-        double x,
-        double y,
-        double width,
-        double height) {
+    private HtmlInlineLayout LayoutButtonInlineContent(IElement element, HtmlRenderBoxStyle style, double width) {
         HtmlRenderBoxStyle contentStyle = style.Clone();
         if (!_styleResolver.IsPropertySpecified(element, "text-align")) {
             contentStyle.Alignment = OfficeTextAlignment.Center;
         }
-        HtmlInlineLayout inline = LayoutInlineNodes(element.ChildNodes, width, contentStyle, 0, null, element);
+        return LayoutInlineNodes(element.ChildNodes, width, contentStyle, 0, null, element);
+    }
+
+    private static void AddButtonInlineContent(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlInlineLayout inline,
+        double x,
+        double y,
+        double height) {
         double offsetY = y + Math.Max(0D, (height - inline.Height) / 2D);
         foreach (HtmlRenderVisual visual in inline.Visuals) {
             visuals.Add(visual.Translate(x, offsetY, visuals.Count));

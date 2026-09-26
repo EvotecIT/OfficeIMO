@@ -50,7 +50,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double defaultContentWidth = ResolveDefaultFormControlContentWidth(element, style, availableWidth);
         double boxWidth = ResolveFormControlBoxWidth(style, defaultContentWidth, availableWidth);
+        HtmlInlineLayout? buttonInline = string.Equals(element.LocalName, "button", StringComparison.OrdinalIgnoreCase)
+            ? LayoutButtonInlineContent(element, style, Math.Max(0.01D, boxWidth - style.HorizontalInsets))
+            : null;
         double defaultContentHeight = ResolveDefaultFormControlContentHeight(element, style);
+        if (buttonInline != null && !style.ExplicitHeight.HasValue) {
+            defaultContentHeight = Math.Max(defaultContentHeight, buttonInline.Height);
+        }
         double boxHeight = ResolveFormControlBoxHeight(style, defaultContentHeight);
         double x = style.MarginLeft;
         double y = style.MarginTop;
@@ -58,7 +64,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var visuals = new List<HtmlRenderVisual>();
         AddBoxPaint(visuals, style, x, y, boxWidth, boxHeight, element);
         if (style.PaintVisible) {
-            AddFormControlContent(visuals, element, style, x, y, boxWidth, boxHeight, source);
+            AddFormControlContent(visuals, element, style, x, y, boxWidth, boxHeight, source, buttonInline);
             AddBoxOutlinePaint(visuals, style, x, y, boxWidth, boxHeight, element);
             if (TryCreateFormFieldVisual(element, style, x, y, boxWidth, boxHeight, visuals, source, out HtmlRenderFormField? formField)) {
                 visuals = new List<HtmlRenderVisual> { formField! };
@@ -134,14 +140,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             int columns = ParsePositiveInteger(element.GetAttribute("cols"), 20, 1, 200);
             return Math.Max(80D, MeasureInlineText(new string('0', columns), style));
         }
-        if (tag == "button" || tag == "input" && IsButtonInputType(type)) {
+        if (tag == "button") {
             string label = ResolveButtonLabel(element, type);
-            if (tag == "button" && label.Length == 0) {
-                IReadOnlyList<GridIntrinsicTextRun> content = ResolveGridInFlowTextRuns(
-                    new FlexItem(element, style, 0), availableWidth);
-                return content.Count == 0 ? 0D : MeasureGridMaxContentRuns(content);
-            }
-            return Math.Max(44D, MeasureInlineText(label, style) + 12D);
+            IReadOnlyList<GridIntrinsicTextRun> content = ResolveGridInFlowTextRuns(
+                new FlexItem(element, style, 0), availableWidth);
+            double contentWidth = content.Count == 0 ? 0D : MeasureGridMaxContentRuns(content);
+            return label.Length == 0
+                ? contentWidth
+                : Math.Max(44D, Math.Max(MeasureInlineText(label, style), contentWidth) + 12D);
+        }
+        if (tag == "input" && IsButtonInputType(type)) {
+            return Math.Max(44D, MeasureInlineText(ResolveButtonLabel(element, type), style) + 12D);
         }
         if (tag == "select") {
             string longest = element.QuerySelectorAll("option")
