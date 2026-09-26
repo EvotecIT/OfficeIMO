@@ -459,6 +459,58 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void ReportsRotatedSquareImageWithUnchangedBoundsAndPixels() {
+        PdfDocument expected = PdfDocument.Load(ImageWithPaintStatePdf("ABC", "q 20 0 0 20 20 20 cm /Im0 Do Q\n"));
+        PdfDocument actual = PdfDocument.Load(ImageWithPaintStatePdf("ABC", "q 0 20 -20 0 40 20 cm /Im0 Do Q\n"));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes, static change => change.Kind == PdfReviewChangeKind.ImageMoved);
+    }
+
+    [Fact]
+    public void ReportsInvisibleTextExtentChangeWithUnchangedCenter() {
+        byte[] beforeBytes = InvisibleTextPdf("Searchable", fontSize: 12D);
+        byte[] provisionalBytes = InvisibleTextPdf("Searchable", fontSize: 18D);
+        PdfLogicalVisualBounds before = Assert.IsType<PdfLogicalVisualBounds>(
+            Assert.Single(PdfDocument.Load(beforeBytes).Reader.TextBlocks()).VisualBounds);
+        PdfLogicalVisualBounds provisional = Assert.IsType<PdfLogicalVisualBounds>(
+            Assert.Single(PdfDocument.Load(provisionalBytes).Reader.TextBlocks()).VisualBounds);
+        double shiftX = (before.Left + before.Right - provisional.Left - provisional.Right) / 2D;
+        double shiftY = (provisional.Top + provisional.Bottom - before.Top - before.Bottom) / 2D;
+        PdfDocument actual = PdfDocument.Load(InvisibleTextPdf("Searchable", x: 20D + shiftX,
+            y: 90D + shiftY, fontSize: 18D));
+
+        PdfReviewComparisonReport report = PdfDocument.Load(beforeBytes).Proof.CompareReview(actual);
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes, static change => change.Kind == PdfReviewChangeKind.TextMoved);
+    }
+
+    [Fact]
+    public void ReportsMovedMiddleSpanInsideUnchangedInvisibleTextBounds() {
+        byte[] expectedBytes = InvisibleThreeSpanPdf(30D);
+        byte[] actualBytes = InvisibleThreeSpanPdf(36D);
+        PdfLogicalTextBlock before = Assert.Single(PdfDocument.Load(expectedBytes).Reader.TextBlocks());
+        PdfLogicalTextBlock after = Assert.Single(PdfDocument.Load(actualBytes).Reader.TextBlocks());
+        Assert.Equal(before.Text, after.Text);
+        Assert.NotNull(before.VisualBounds);
+        Assert.NotNull(after.VisualBounds);
+        Assert.Equal(before.VisualBounds!.Left, after.VisualBounds!.Left);
+        Assert.Equal(before.VisualBounds.Top, after.VisualBounds.Top);
+        Assert.Equal(before.VisualBounds.Right, after.VisualBounds.Right);
+        Assert.Equal(before.VisualBounds.Bottom, after.VisualBounds.Bottom);
+        Assert.Equal(3, before.Spans.Count);
+
+        PdfReviewComparisonReport report = PdfDocument.Load(expectedBytes).Proof.CompareReview(
+            PdfDocument.Load(actualBytes));
+
+        Assert.False(report.IsMatch);
+        Assert.Contains(Assert.Single(report.Pages).Changes, static change => change.Kind == PdfReviewChangeKind.TextMoved);
+    }
+
+    [Fact]
     public void RemovingTheFirstOfTwoIdenticalTextBlocksDoesNotMoveTheSecond() {
         PdfDocument expected = PdfDocument.Load(PdfDocument.Create(new PdfOptions { PageWidth = 240D, PageHeight = 180D })
             .Canvas(canvas => {
@@ -677,7 +729,7 @@ public sealed class PdfReviewComparerTests {
 
     private static byte[] InvisibleTextPdf(string text, bool rotated = false, double y = 90D,
         string? actualTextHex = null, string? vectorPaint = null, bool clippedText = false,
-        double x = 20D, bool visibleText = false) {
+        double x = 20D, bool visibleText = false, double fontSize = 12D) {
         string position = rotated ? "0 1 -1 0 100 20 Tm " :
             x.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
             y.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Td ";
@@ -685,7 +737,8 @@ public sealed class PdfReviewComparerTests {
         string suffix = actualTextHex is null ? string.Empty : " EMC";
         string clipPrefix = clippedText ? "q 0 0 5 5 re W n " : string.Empty;
         string clipSuffix = clippedText ? " Q" : string.Empty;
-        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + clipPrefix + "BT /F1 12 Tf " +
+        byte[] content = System.Text.Encoding.ASCII.GetBytes(prefix + clipPrefix + "BT /F1 " +
+            fontSize.ToString(System.Globalization.CultureInfo.InvariantCulture) + " Tf " +
             (clippedText || visibleText ? "0" : "3") + " Tr " + position + "(" + text + ") Tj ET" + clipSuffix + suffix +
             "\n" + vectorPaint + "\n");
         using var stream = new System.IO.MemoryStream();
@@ -703,5 +756,19 @@ public sealed class PdfReviewComparerTests {
         Write("5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n");
         Write("trailer\n<< /Root 1 0 R /Size 6 >>\n%%EOF\n");
         return stream.ToArray();
+    }
+
+    private static byte[] InvisibleThreeSpanPdf(double middleX) {
+        string content = "BT /F1 12 Tf 3 Tr 1 0 0 1 10 90 Tm (A) Tj 1 0 0 1 " +
+            middleX.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+            " 90 Tm (B) Tj 1 0 0 1 50 90 Tm (C) Tj ET";
+        return System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
     }
 }
