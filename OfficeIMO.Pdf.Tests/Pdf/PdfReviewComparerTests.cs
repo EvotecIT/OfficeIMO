@@ -37,6 +37,26 @@ public sealed class PdfReviewComparerTests {
     }
 
     [Fact]
+    public void UnsupportedPaintRetainsExplicitReviewUncertainty() {
+        static byte[] Pdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + operation.Length + " >>", "stream", operation, "endstream", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", ""
+        }));
+        PdfDocument expected = PdfDocument.Load(Pdf("UnknownPaintA"));
+        PdfDocument actual = PdfDocument.Load(Pdf("UnknownPaintB"));
+
+        PdfReviewComparisonReport report = expected.Proof.CompareReview(actual);
+
+        Assert.False(report.IsMatch);
+        PdfReviewPageComparison page = Assert.Single(report.Pages);
+        Assert.Equal(0, Assert.IsType<PdfVisualPageComparison>(page.Visual).DifferentPixels);
+        Assert.Contains(page.Changes, static change => change.Kind == PdfReviewChangeKind.RenderUncertain);
+    }
+
+    [Fact]
     public void ToleratedPageDoesNotSpendRetainedArtifactByteBudget() {
         var options = new PdfReviewComparisonOptions();
         options.Visual.AllowedDifferenceRatio = 1D;

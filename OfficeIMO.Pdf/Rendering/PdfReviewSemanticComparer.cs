@@ -19,6 +19,12 @@ internal static class PdfReviewSemanticComparer {
         ValidateImagePlacementCount(actual, options, cancellationToken);
         bool scanned = IsScan(expected, cancellationToken) || IsScan(actual, cancellationToken);
         CompareText(expected, actual, visual, options, changes, cancellationToken);
+        if (visual != null &&
+            (PdfRenderCapabilities.HasIncompleteVisualProjection(visual.ExpectedCapabilityDiagnostics) ||
+             PdfRenderCapabilities.HasIncompleteVisualProjection(visual.ActualCapabilityDiagnostics))) {
+            changes.Add(new PdfReviewChange(PdfReviewChangeKind.RenderUncertain,
+                expectedPage, actualPage, null, null));
+        }
         if (scanned) {
             if (visual is { IsMatch: false } ||
                 usesIgnoredRegions && HasDifferentUnignoredScanImages(expected, actual, visual, options, cancellationToken)) {
@@ -104,13 +110,15 @@ internal static class PdfReviewSemanticComparer {
             throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, options.MaxTextBlocksPerPage, page.TextBlocks.Count);
         }
         var output = new List<TextFeature>(page.TextBlocks.Count);
+        long remainingMappingWork = 4_000_000L;
         foreach (PdfLogicalTextBlock block in page.TextBlocks) {
             cancellationToken.ThrowIfCancellationRequested();
             if (string.IsNullOrWhiteSpace(block.Text) || block.VisualBounds is null && block.XEnd <= block.XStart) continue;
             PdfLogicalVisualBounds bounds = block.VisualBounds ?? TextBounds(page, block);
             if (IsIgnored(bounds, page, visual, options.Visual)) continue;
-            string semanticText = ReconstructSemanticText(block, cancellationToken);
-            bool canPaint = block.Spans.Count == 0 || block.Spans.Any(static span => span.IsVisible);
+            string semanticText = ReconstructSemanticText(block, ref remainingMappingWork, cancellationToken);
+            bool canPaint = block.Spans.Count == 0 || block.Spans.Any(static span =>
+                span.IsVisible && (span.Color?.A ?? 255) > 3);
             output.Add(new TextFeature(block.Text, semanticText, Normalize(block.Text), bounds, canPaint));
         }
         return output.ToArray();
@@ -118,9 +126,14 @@ internal static class PdfReviewSemanticComparer {
 
     internal static string ReconstructSemanticText(PdfLogicalTextBlock block,
         CancellationToken cancellationToken = default) {
+        long remainingMappingWork = 4_000_000L;
+        return ReconstructSemanticText(block, ref remainingMappingWork, cancellationToken);
+    }
+
+    private static string ReconstructSemanticText(PdfLogicalTextBlock block,
+        ref long remainingMappingWork, CancellationToken cancellationToken) {
         if (!block.Spans.Any(static span => span.HasActualText)) return block.Text;
         const long maxMappingWork = 4_000_000L;
-        long mappingWork = 0L;
         var replacements = new List<(int Start, int End, string Text)>(block.Spans.Count);
         foreach (PdfTextSpan span in block.Spans) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -128,10 +141,12 @@ internal static class PdfReviewSemanticComparer {
             int searchStart = 0;
             bool matched = false;
             while (searchStart < block.Text.Length) {
-                mappingWork = checked(mappingWork + block.Text.Length - searchStart + replacements.Count);
-                if (mappingWork > maxMappingWork) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, maxMappingWork, mappingWork);
+                long work = (long)block.Text.Length - searchStart + replacements.Count;
+                if (work > remainingMappingWork) {
+                    throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                        maxMappingWork, maxMappingWork - remainingMappingWork + work);
                 }
+                remainingMappingWork -= work;
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!PdfLogicalTextBlock.TryFindNormalizedSpan(block.Text, span.Text, searchStart, out int match, out int end)) break;
                 if (!replacements.Any(item => match < item.End && end > item.Start)) {

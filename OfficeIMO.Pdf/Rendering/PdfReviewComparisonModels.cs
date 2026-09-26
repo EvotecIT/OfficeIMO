@@ -21,7 +21,9 @@ public enum PdfReviewChangeKind {
     /// <summary>A scanned or image-dominated page differs and requires visual or OCR review.</summary>
     ScannedPageUncertain,
     /// <summary>Rendered pixels differ without a supported semantic classification.</summary>
-    UnclassifiedVisual
+    UnclassifiedVisual,
+    /// <summary>Managed rendering skipped or approximated page content, so equality cannot be proved.</summary>
+    RenderUncertain
 }
 
 /// <summary>One page-linked change with optional top-left visual geometry and text evidence.</summary>
