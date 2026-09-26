@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
@@ -150,7 +151,8 @@ public sealed class WordOdtAlternateHeaderFooterTests {
             package.MainDocumentPart.Document!.Save();
         }
         using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
-        Assert.True(source.Sections[0].DifferentOddAndEvenPages);
+        Assert.False(source.Sections[0].DifferentOddAndEvenPages);
+        Assert.True(source.CreateInspectionSnapshot().Sections[0].DocumentOddEvenSettingEnabled);
         OdtDocument odt = source.ToOpenDocument();
         Assert.Equal("Odd header", Assert.Single(odt.PageLayout.Header.Paragraphs).Text);
         Assert.Equal("Odd footer", Assert.Single(odt.PageLayout.Footer.Paragraphs).Text);
@@ -215,5 +217,110 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         Assert.Equal("First footer", Assert.Single(reversed.Sections[0].Footer.First!.Paragraphs).Text);
         Assert.Equal("Even header", Assert.Single(reversed.Sections[0].Header.Even!.Paragraphs).Text);
         Assert.Equal("Default footer", Assert.Single(reversed.Sections[0].Footer.Even!.Paragraphs).Text);
+    }
+
+    [Fact]
+    public void FirstPageStoriesCannotBeSavedAsOdf13() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.EnsureFirstHeader().AddParagraph("First page");
+
+        Assert.Throws<InvalidOperationException>(() => source.ToBytes(new OdfSaveOptions {
+            CompatibilityProfile = OdfCompatibilityProfile.Odf13
+        }));
+        Assert.NotEmpty(source.ToBytes());
+
+        OdtDocument older = OdtDocument.Load(new MemoryStream(OdtDocument.Create().ToBytes(
+            new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 })));
+        older.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
+        Assert.Throws<InvalidOperationException>(() => older.ToBytes(new OdfSaveOptions {
+            CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
+        }));
+    }
+
+    [Fact]
+    public void FallbackHeaderDoesNotDoubleCountSourceHyperlink() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.Header.AddParagraph().AddHyperlink("Link", "https://example.test/");
+        source.PageLayout.EnsureFirstFooter().AddParagraph("First footer");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Equal("Link", target.Sections[0].Header.First!.Paragraphs.Single().Text);
+        Assert.Contains(conversion.Report.ForFeature("hyperlinks"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Converted && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void AlternateHeadingKeepsItsWordHeadingStyle() {
+        OdtDocument source = OdtDocument.Create();
+        source.AddParagraph("Body");
+        source.PageLayout.EnsureFirstHeader();
+        XElement first = source.Package.GetXml("styles.xml")
+            .Descendants(OdfNamespaces.Style + "header-first").Single();
+        first.Add(new XElement(OdfNamespaces.Text + "h",
+            new XAttribute(OdfNamespaces.Text + "outline-level", "2"), "Heading"));
+        source.Package.MarkXmlDirty("styles.xml");
+
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
+        Assert.Equal(WordParagraphStyles.Heading2,
+            target.Sections[0].Header.First!.Paragraphs.Single().Style);
+    }
+
+    [Fact]
+    public void EmptyLaterDefaultHeaderIsReportedAsLoss() {
+        using WordDocument source = WordDocument.Create();
+        source.AddParagraph("Body");
+        source.Sections[0].AddHeadersAndFooters();
+        source.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph("First section");
+        WordSection later = source.AddSection();
+        later.AddParagraph("Later body");
+        later.AddHeadersAndFooters();
+        later.GetOrCreateHeader(WordHeaderFooterType.Default);
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Contains(conversion.Report.ForFeature("section-headers-footers"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 1);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
+            LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
+        }));
+    }
+
+    [Fact]
+    public void InheritedEvenHeaderInLaterSectionIsNotAnotherLostStory() {
+        using WordDocument authored = WordDocument.Create();
+        authored.AddParagraph("Body");
+        authored.Sections[0].AddHeadersAndFooters();
+        authored.Sections[0].DifferentOddAndEvenPages = true;
+        authored.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Even).AddParagraph("Even header");
+        WordSection later = authored.AddSection();
+        later.AddParagraph("Later body");
+
+        using var stream = new MemoryStream();
+        byte[] bytes = authored.ToBytes();
+        stream.Write(bytes, 0, bytes.Length);
+        stream.Position = 0;
+        using (WordprocessingDocument package = WordprocessingDocument.Open(stream, true)) {
+            SectionProperties[] sections = package.MainDocumentPart!.Document!.Body!
+                .Descendants<SectionProperties>().ToArray();
+            Assert.Equal(2, sections.Length);
+            foreach (HeaderReference reference in sections[1].Elements<HeaderReference>()
+                         .Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToArray())
+                reference.Remove();
+            foreach (FooterReference reference in sections[1].Elements<FooterReference>()
+                         .Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToArray())
+                reference.Remove();
+            package.MainDocumentPart.Document.Save();
+        }
+
+        using WordDocument source = WordDocument.Load(new MemoryStream(stream.ToArray()));
+        var inherited = source.CreateInspectionSnapshot().Sections[1];
+        Assert.NotNull(inherited.EvenHeader);
+        Assert.False(inherited.HasExplicitEvenHeader);
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(conversion.Report.ForFeature("alternate-headers-footers"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 }

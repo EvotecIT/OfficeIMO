@@ -872,18 +872,15 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets whether the document-wide odd/even header and footer setting is enabled. A missing
-        /// even-page part in the first section represents an empty story. Setting the value to
+        /// Gets whether this section has an explicit or inherited even-page header or footer while the
+        /// document-wide odd/even setting is enabled. Setting the value to
         /// <see langword="true"/> creates even-page references for this section and enables that setting;
         /// setting it to <see langword="false"/> disables the document-wide setting.
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
-                EvenAndOddHeaders? setting = _wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?
-                    .Settings?
-                    .GetFirstChild<EvenAndOddHeaders>();
-                return setting?.Val?.Value ?? setting is not null;
+                if (!DocumentOddEvenSettingEnabled) return false;
+                return ResolveEvenHeader() != null || ResolveEvenFooter() != null;
 
             }
             set {
@@ -904,6 +901,16 @@ namespace OfficeIMO.Word {
                 EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
                 if (setting == null) settings.Append(new EvenAndOddHeaders());
                 else setting.Val = true;
+            }
+        }
+
+        internal bool DocumentOddEvenSettingEnabled {
+            get {
+                EvenAndOddHeaders? setting = _wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?
+                    .Settings?
+                    .GetFirstChild<EvenAndOddHeaders>();
+                return setting?.Val?.Value ?? setting is not null;
             }
         }
 

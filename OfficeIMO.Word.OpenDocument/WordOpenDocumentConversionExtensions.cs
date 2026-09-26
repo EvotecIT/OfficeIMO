@@ -91,7 +91,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 CopyHeaderFooter(first.FirstFooter, target.PageLayout.EnsureFirstFooter(), effective, imageValidationBudget,
                     ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
             }
-            if (first.DifferentOddAndEvenPages) {
+            if (first.DocumentOddEvenSettingEnabled) {
                 CopyHeaderFooter(first.EvenHeader, target.PageLayout.EnsureLeftHeader(), effective, imageValidationBudget,
                     ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
                 CopyHeaderFooter(first.EvenFooter, target.PageLayout.EnsureLeftFooter(), effective, imageValidationBudget,
@@ -101,14 +101,15 @@ public static partial class WordOpenDocumentConversionExtensions {
             if (firstTables > 0) report.Add("header-footer-tables", OdfConversionMappingStatus.Skipped, firstTables,
                 "Header and footer tables are not represented by the current ODT header/footer surface.");
             int laterDefaultBlocks = snapshot.Sections.Skip(1).Sum(section =>
-                (section.DefaultHeader?.Elements.Count ?? 0) + (section.DefaultFooter?.Elements.Count ?? 0));
+                (section.HasExplicitDefaultHeader ? Math.Max(1, section.DefaultHeader?.Elements.Count ?? 0) : 0) +
+                (section.HasExplicitDefaultFooter ? Math.Max(1, section.DefaultFooter?.Elements.Count ?? 0) : 0));
             if (laterDefaultBlocks > 0) report.Add("section-headers-footers", OdfConversionMappingStatus.Skipped, laterDefaultBlocks,
                 "Default header and footer content from later Word sections is omitted because ODT conversion emits one page layout.");
             int laterAlternate = snapshot.Sections.Skip(1).Sum(section =>
-                (section.FirstHeader == null ? 0 : 1) + (section.FirstFooter == null ? 0 : 1) +
-                (section.EvenHeader == null ? 0 : 1) + (section.EvenFooter == null ? 0 : 1));
-            int inactiveAlternate = (first.DifferentFirstPage ? 0 : (first.FirstHeader == null ? 0 : 1) + (first.FirstFooter == null ? 0 : 1)) +
-                (first.DifferentOddAndEvenPages ? 0 : (first.EvenHeader == null ? 0 : 1) + (first.EvenFooter == null ? 0 : 1));
+                (section.HasExplicitFirstHeader ? 1 : 0) + (section.HasExplicitFirstFooter ? 1 : 0) +
+                (section.HasExplicitEvenHeader ? 1 : 0) + (section.HasExplicitEvenFooter ? 1 : 0));
+            int inactiveAlternate = (first.DifferentFirstPage ? 0 : (first.HasExplicitFirstHeader ? 1 : 0) + (first.HasExplicitFirstFooter ? 1 : 0)) +
+                (first.DocumentOddEvenSettingEnabled ? 0 : (first.HasExplicitEvenHeader ? 1 : 0) + (first.HasExplicitEvenFooter ? 1 : 0));
             if (laterAlternate + inactiveAlternate > 0) report.Add("alternate-headers-footers", OdfConversionMappingStatus.Unsupported,
                 laterAlternate + inactiveAlternate, "Alternate header and footer parts outside the active first-section mapping are omitted.");
         } else if (headerFooterBlocks > 0) {
@@ -260,10 +261,15 @@ public static partial class WordOpenDocumentConversionExtensions {
                     ? firstSection.GetOrCreateHeader(kind)
                     : firstSection.GetOrCreateFooter(kind);
                 if (!effectiveStory.IsDisplayed) continue;
-                CopyOdtHeaderFooter(effectiveStory, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
-                    ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
-                    handledUnsupportedFieldElements, notes);
+                if (story == null) {
+                    CopyOdtHeaderFooterFallback(effectiveStory, destination, effective, textCaseCulture,
+                        handledUnsupportedFieldElements, notes);
+                } else {
+                    CopyOdtHeaderFooter(effectiveStory, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
+                        ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+                        handledUnsupportedFieldElements, notes);
+                }
             }
             AddCount(report, "headers-footers", displayedHeaderFooterParagraphs);
             if (hiddenHeaderFooterBlocks > 0) report.Add("hidden-header-footer-content", OdfConversionMappingStatus.Skipped,
@@ -751,7 +757,7 @@ public static partial class WordOpenDocumentConversionExtensions {
             .Concat(section.DifferentFirstPage
                 ? new[] { section.FirstHeader, section.FirstFooter }
                 : Array.Empty<WordHeaderFooterSnapshot?>())
-            .Concat(section.DifferentOddAndEvenPages
+            .Concat(section.DocumentOddEvenSettingEnabled
                 ? new[] { section.EvenHeader, section.EvenFooter }
                 : Array.Empty<WordHeaderFooterSnapshot?>());
 

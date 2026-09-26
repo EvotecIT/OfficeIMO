@@ -142,6 +142,7 @@ IReadOnlyList<string> lossy = result.Report.LossyEntries;
 ```
 
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
+Distinct first-page master-page headers and footers require ODF 1.4. Saving those stories with the ODF 1.3 profile, or preserving an older source version, fails before writing an invalid package.
 
 ## Encrypt and decrypt ODF packages
 

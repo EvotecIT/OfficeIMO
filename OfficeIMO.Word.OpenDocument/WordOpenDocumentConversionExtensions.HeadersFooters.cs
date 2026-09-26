@@ -38,10 +38,25 @@ public static partial class WordOpenDocumentConversionExtensions {
         HashSet<XElement> handledUnsupportedFieldElements, NoteMappingStats notes) {
         foreach (OdtParagraph paragraph in source.Paragraphs) {
             WordParagraph converted = target.AddParagraph();
+            if (paragraph.HeadingLevel.HasValue)
+                converted.Style = HeadingStyle(paragraph.HeadingLevel.Value);
             CopyParagraph(paragraph, converted, options, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
                 ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges,
                 ref unsupportedMeasurements, ref approximatedFontFamilyLists, ref unsupportedFontFamilies,
                 ref mappedFields, ref unsupportedFields, handledUnsupportedFieldElements, notes, allowNotes: false);
         }
+    }
+
+    private static void CopyOdtHeaderFooterFallback(OdtHeaderFooter source, WordHeaderFooter target,
+        WordOpenDocumentConversionOptions options, CultureInfo textCaseCulture,
+        HashSet<XElement> handledUnsupportedFieldElements, NoteMappingStats notes) {
+        // The fallback renders the same source story in another page slot; it is not another source item.
+        int hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
+        int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
+        int approximatedFontFamilyLists = 0, unsupportedFontFamilies = 0, mappedFields = 0, unsupportedFields = 0;
+        CopyOdtHeaderFooter(source, target, options, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
+            ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+            ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+            handledUnsupportedFieldElements, notes);
     }
 }
