@@ -62,7 +62,7 @@ document.SaveAsPdf("report.pdf");
 
 `DATE` uses the current clock during the refresh. `CREATEDATE` and `SAVEDATE` use the document's stored properties. Table borders follow the Word style and direct cell settings: `nil` suppresses a shared edge while `none` yields to the opposing border. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
 
-Positioned tables do not advance the following text's vertical flow. Exact text wrapping around them and explicit vertical anchor offsets remain approximations and are reported in the conversion diagnostics.
+Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
 
 ### Export to bytes or streams
 

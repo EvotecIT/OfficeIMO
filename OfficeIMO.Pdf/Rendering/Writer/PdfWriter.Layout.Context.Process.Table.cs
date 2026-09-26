@@ -7,6 +7,8 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
             PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            if (style.Position is { VerticalAlignment: not PdfTableVerticalAlignment.Top })
+                throw new ArgumentException("Deferred floating tables support top alignment; use an eager table for center or bottom alignment.", nameof(deferredTable));
             double flowYBeforeTable = y;
             LayoutResult.Page? pageBeforeTable = currentPage;
             foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
@@ -22,7 +24,7 @@ internal static partial class PdfWriter {
                     logicalBottomBoundary: batch.IsLast,
                     restoreVerticalFlow: false);
             }
-            if (!style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+            if ((!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
             }
         }
@@ -207,6 +209,7 @@ internal static partial class PdfWriter {
                 colPixel[0],
                 colPixel[colPixel.Length - 1]);
             double xOrigin = ResolveTableX(tb.Align, style, currentOpts.MarginLeft, contentWidth, tableWidth);
+            if (style.Position is { } horizontalPosition) xOrigin = PositionTableX(horizontalPosition, tableWidth);
 
             double maxContentHeight = GetFullPageContentHeight();
             string? captionText = string.IsNullOrWhiteSpace(style.Caption) ? null : style.Caption;
@@ -230,6 +233,7 @@ internal static partial class PdfWriter {
             }
 
             double tableContentHeight = (captionLines == null ? 0 : captionHeight + style.CaptionSpacingAfter) + GetTableRowsHeight(rowHeights, 0, rowHeights.Length, rowGapPx);
+            if (logicalTopBoundary && style.Position is { } verticalPosition) y = PositionTableY(verticalPosition, tableContentHeight);
             double tableSpacingBefore = y < GetCurrentFramePageStartY() - 0.001 ? style.SpacingBefore : 0D;
             if (style.KeepTogether) {
                 double keepHeight = tableSpacingBefore + tableContentHeight + style.SpacingAfter;
@@ -755,6 +759,7 @@ internal static partial class PdfWriter {
                         borderX += colPixel[borderColumn] + colGapPx;
                     }
                 }
+                if (style?.Position is { } floatingPosition) ReserveFloatingTable(floatingPosition, xOrigin, y, tableWidth, rowHeight + (wholeRowSegment ? GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx) : 0));
                 y -= rowHeight;
                 if (wholeRowSegment) {
                     y -= GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
@@ -823,7 +828,7 @@ internal static partial class PdfWriter {
             }
 
             y -= style.SpacingAfter;
-            if (restoreVerticalFlow && !style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+            if (restoreVerticalFlow && (!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
                 y = flowYBeforeTable;
             }
         }
