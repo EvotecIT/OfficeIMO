@@ -294,13 +294,17 @@ public sealed class HtmlSemanticRun {
 
 /// <summary>Typed semantic table.</summary>
 public sealed class HtmlSemanticTable {
-    internal HtmlSemanticTable(string caption, IReadOnlyList<HtmlSemanticTableRow> rows) {
+    internal HtmlSemanticTable(string caption, IReadOnlyList<HtmlSemanticRun> captionRuns,
+        IReadOnlyList<HtmlSemanticTableRow> rows) {
         Caption = caption;
+        CaptionRuns = Array.AsReadOnly((captionRuns ?? throw new ArgumentNullException(nameof(captionRuns))).ToArray());
         Rows = Array.AsReadOnly((rows ?? throw new ArgumentNullException(nameof(rows))).ToArray());
     }
 
     /// <summary>Resolved table caption or shared fallback title.</summary>
     public string Caption { get; }
+    /// <summary>Text and inline formatting from an authored caption, empty when the title is a fallback.</summary>
+    public IReadOnlyList<HtmlSemanticRun> CaptionRuns { get; }
     /// <summary>Rows in source order.</summary>
     public IReadOnlyList<HtmlSemanticTableRow> Rows { get; }
 }

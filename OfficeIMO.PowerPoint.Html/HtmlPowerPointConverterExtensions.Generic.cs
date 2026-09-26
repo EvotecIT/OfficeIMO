@@ -51,14 +51,56 @@ public static partial class HtmlPowerPointConverterExtensions {
                         tableHeight = authoredHeight.Value;
                     }
                     bool singleCellText = TryGetOversizedGenericTableText(block, budget, out string tableText);
+                    bool authoredTableGeometry = block.SourceElement.HasAttribute("data-officeimo-top")
+                        || block.SourceElement.HasAttribute("data-officeimo-height");
                     bool tooTallForSlide = tableHeight > slideBottom - 30D
-                        && !block.SourceElement.HasAttribute("data-officeimo-top")
-                        && !block.SourceElement.HasAttribute("data-officeimo-height");
-                    if (singleCellText || tooTallForSlide) {
+                        && !authoredTableGeometry;
+                    var captionElement = block.SourceElement.Children.FirstOrDefault(child =>
+                        string.Equals(child.LocalName, "caption", StringComparison.OrdinalIgnoreCase));
+                    string caption = string.Concat(block.Table?.CaptionRuns.Select(run => run.Text)
+                        ?? Enumerable.Empty<string>());
+                    if (caption.Length > 0 && !budget.IsMetadataWithinLimit(caption, out string captionLimit)) {
+                        AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded,
+                            "A table caption was omitted because it exceeded the shared field limit; the table remains importable.",
+                            lossKind: OfficeConversionLossKind.Omission, detail: captionLimit);
+                        caption = string.Empty;
+                    }
+                    double captionHeight = caption.Length > 0 ? MeasureGenericTitleHeight(caption) : 0D;
+                    bool captionAndTableTooTall = caption.Length > 0 && !singleCellText && !tooTallForSlide
+                        && !authoredTableGeometry
+                        && captionHeight + tableHeight > slideBottom - 30D;
+                    if (caption.Length > 0) {
+                        double minimumFollowingHeight = authoredTableGeometry ? 0D
+                            : (singleCellText || tooTallForSlide || captionAndTableTooTall ? 130D : tableHeight);
+                        if (NeedsGenericContinuation(contentTop, captionHeight + minimumFollowingHeight, slideBottom)) {
+                            if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
+                                slideLimitReached = true;
+                                break;
+                            }
+                            contentTop = pictureTop = 30D;
+                        }
+                        int previousTextBoxes = result.TextBoxes;
+                        contentTop = ImportTextBox(captionElement, caption, slide, contentTop, result, budget,
+                            captionHeight, options, semanticRuns: block.Table!.CaptionRuns);
+                        if (result.TextBoxes == previousTextBoxes) {
+                            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                                "A table caption could not be imported as an editable text box; the table remains importable.",
+                                lossKind: OfficeConversionLossKind.Omission,
+                                detail: "projection=precedingTextBox");
+                        } else {
+                            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                                "A table caption was retained as a separate editable text box because PowerPoint tables have no native caption.",
+                                lossKind: OfficeConversionLossKind.Approximation,
+                                detail: "projection=precedingTextBox");
+                        }
+                    }
+                    if (singleCellText || tooTallForSlide || captionAndTableTooTall) {
                         long tableTextLength = singleCellText ? tableText.Length
                             : block.Table!.Rows.Sum(row => row.Cells.Sum(cell => (long)cell.Text.Length));
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
-                            tooTallForSlide
+                            captionAndTableTooTall
+                                ? "An HTML table and its caption could not fit on one slide and were split into editable text; native cell structure and rich cell runs were not retained."
+                                : tooTallForSlide
                                 ? "An HTML table too tall for one slide was split into editable text; native cell structure and rich cell runs were not retained."
                                 : "A long single-cell HTML table was split into editable text; native cell structure and rich cell runs were not retained.",
                             lossKind: OfficeConversionLossKind.Approximation,

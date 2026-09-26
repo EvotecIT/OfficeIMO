@@ -19,6 +19,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         public HtmlToMarkdownOptions Options { get; }
+        public List<HtmlDiagnostic> Diagnostics { get; } = new();
         public int SavedBase64ImageCount { get; set; }
         public int DefinitionListEntryExpansionCount { get; set; }
         public Dictionary<string, string> SavedBase64ImagesBySource { get; } = new(StringComparer.Ordinal);
@@ -114,6 +115,7 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         var markdown = MarkdownDoc.Create();
         markdown.AddRange(ConvertNodesToBlocks(root.ChildNodes, context));
+        _diagnostics.AddRange(context.Diagnostics);
 
         return MarkdownDocumentTransformPipeline.Apply(
             markdown,

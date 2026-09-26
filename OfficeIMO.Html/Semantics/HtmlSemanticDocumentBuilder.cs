@@ -205,7 +205,11 @@ internal static class HtmlSemanticDocumentBuilder {
             }
             if (cells.Count > 0) rows.Add(new HtmlSemanticTableRow(cells.AsReadOnly(), HtmlSemanticSourceLocation.FromElement(rowElement)));
         }
-        return new HtmlSemanticTable(title, rows.AsReadOnly());
+        IElement? caption = table.Children.FirstOrDefault(child => Is(child, "caption"));
+        IReadOnlyList<HtmlSemanticRun> captionRuns = caption != null
+            ? BuildRuns(caption, styles)
+            : Array.Empty<HtmlSemanticRun>();
+        return new HtmlSemanticTable(title, captionRuns, rows.AsReadOnly());
     }
 
     private static IReadOnlyList<HtmlSemanticRun> BuildRuns(

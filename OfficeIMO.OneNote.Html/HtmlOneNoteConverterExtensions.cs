@@ -326,6 +326,18 @@ public static class HtmlOneNoteConverterExtensions {
         }
         if (table.Rows.Count == 0) return;
         SetImportedTableColumnWidths(source, table, result);
+        string caption = string.Concat(sourceTable.CaptionRuns.Select(run => run.Text));
+        if (caption.Length > 0) {
+            OneNoteParagraph? captionParagraph = CreateParagraph(caption, sourceTable.CaptionRuns,
+                0, null, result, budget);
+            if (captionParagraph != null) {
+                target.Add(captionParagraph);
+                Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                    "A table caption was retained as a preceding paragraph because OneNote tables have no native caption.",
+                    HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
+                    "projection=adjacentParagraph");
+            }
+        }
         target.Add(table);
         result.Elements++;
         result.Tables++;

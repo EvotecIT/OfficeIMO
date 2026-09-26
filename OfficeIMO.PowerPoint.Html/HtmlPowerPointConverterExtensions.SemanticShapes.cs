@@ -108,7 +108,8 @@ public static partial class HtmlPowerPointConverterExtensions {
         HtmlImportBudget budget,
         double fallbackHeight,
         HtmlToPowerPointOptions options,
-        HtmlSemanticBlock? semanticBlock = null) {
+        HtmlSemanticBlock? semanticBlock = null,
+        IReadOnlyList<HtmlSemanticRun>? semanticRuns = null) {
         if (text.Length == 0) {
             return fallbackTop;
         }
@@ -142,6 +143,9 @@ public static partial class HtmlPowerPointConverterExtensions {
         } else if (source != null && TryApplyTargetSemanticRuns(textBox, source, options.HyperlinkUrlPolicy)) {
         } else if (semanticBlock != null && semanticBlock.Runs.Count > 0) {
             ApplySemanticRuns(textBox, semanticBlock.Runs,
+                options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
+        } else if (semanticRuns?.Count > 0) {
+            ApplySemanticRuns(textBox, semanticRuns,
                 options.NormalizedHyperlinkUrlPolicy ?? options.HyperlinkUrlPolicy);
         }
         if (source != null) ApplyShapeTransforms(source, textBox, budget, result);

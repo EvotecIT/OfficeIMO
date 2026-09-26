@@ -30,7 +30,23 @@ public static partial class HtmlExcelConverterExtensions {
                 HtmlSemanticBlock table = tables[index].Block;
                 int semanticTableNumber = tables[index].Number;
                 string title = table.Table?.Caption ?? "Table " + semanticTableNumber;
-                ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(title, usedNames));
+                string sheetName = GetUniqueSheetName(title, usedNames);
+                if (!string.Equals(title, sheetName, StringComparison.Ordinal)
+                    && table.SourceElement.Children.Any(child =>
+                        string.Equals(child.LocalName, "caption", StringComparison.OrdinalIgnoreCase))) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                        "A table caption was changed to fit worksheet naming rules.",
+                        lossKind: OfficeConversionLossKind.Approximation,
+                        detail: "originalLength=" + title.Length + "; worksheet=" + sheetName);
+                }
+                int captionLinks = table.Table?.CaptionRuns.Count(run => !string.IsNullOrWhiteSpace(run.Hyperlink)) ?? 0;
+                if (captionLinks > 0) {
+                    AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                        "Hyperlinks in a table caption were not retained in the worksheet name.",
+                        lossKind: OfficeConversionLossKind.Omission,
+                        detail: "hyperlinkRuns=" + captionLinks);
+                }
+                ExcelSheet sheet = workbook.AddWorksheet(sheetName);
                 tableSheets[semanticTableNumber] = sheet;
                 result.Sheets++;
                 ImportTableGrid(

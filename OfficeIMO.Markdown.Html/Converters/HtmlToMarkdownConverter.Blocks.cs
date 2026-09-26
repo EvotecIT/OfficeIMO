@@ -260,6 +260,25 @@ internal sealed partial class HtmlToMarkdownConverter {
             case "PRE":
                 return new IMarkdownBlock[] { ConvertPreElement(element) };
             case "TABLE":
+                IElement? caption = element.Children.FirstOrDefault(child =>
+                    HasEffectiveTagName(child, context, "CAPTION"));
+                if (caption != null) {
+                    InlineSequence captionInlines = NormalizeInlineSequenceForBlock(
+                        ConvertInlineNodesToInlineSequence(caption.ChildNodes, context));
+                    if (HasVisibleInlineContent(captionInlines)) {
+                        context.Diagnostics.Add(new HtmlDiagnostic(
+                            "OfficeIMO.Markdown.Html",
+                            HtmlConversionDiagnosticCodes.ContentApproximated,
+                            "A table caption was retained as a preceding paragraph because Markdown tables have no native caption.",
+                            HtmlDiagnosticSeverity.Warning,
+                            source: !string.IsNullOrEmpty(element.Id) ? "#" + element.Id : "table",
+                            detail: "projection=adjacentParagraph",
+                            lossKind: OfficeConversionLossKind.Approximation));
+                        return new IMarkdownBlock[] {
+                            new ParagraphBlock(captionInlines), ConvertTableElement(element, context)
+                        };
+                    }
+                }
                 return new IMarkdownBlock[] { ConvertTableElement(element, context) };
             case "HR":
                 return new IMarkdownBlock[] { new HorizontalRuleBlock() };
