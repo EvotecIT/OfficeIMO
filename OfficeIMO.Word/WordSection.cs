@@ -837,7 +837,7 @@ namespace OfficeIMO.Word {
                 if (sectionProperties != null) {
                     var titlePage = sectionProperties.ChildElements.OfType<TitlePage>().FirstOrDefault();
                     if (titlePage != null) {
-                        return true;
+                        return titlePage.Val?.Value ?? true;
                     }
                 }
 
@@ -863,7 +863,8 @@ namespace OfficeIMO.Word {
                         titlePage.Remove();
                     }
                 } else {
-                    sectionProperties.Append(new TitlePage());
+                    if (titlePage == null) sectionProperties.Append(new TitlePage());
+                    else titlePage.Val = true;
                     WordHeadersAndFooters.AddHeaderReference(this._document, this, HeaderFooterValues.First);
                     WordHeadersAndFooters.AddFooterReference(this._document, this, HeaderFooterValues.First);
                 }
@@ -872,18 +873,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Gets whether this section has an explicit or inherited even-page header or footer while the
-        /// document-wide odd/even header and footer setting is enabled. Setting the value to
+        /// document-wide odd/even setting is enabled. Setting the value to
         /// <see langword="true"/> creates even-page references for this section and enables that setting;
         /// setting it to <see langword="false"/> disables the document-wide setting.
         /// </summary>
         public bool DifferentOddAndEvenPages {
             get {
-                EvenAndOddHeaders? setting = _wordprocessingDocument.MainDocumentPart?
-                    .DocumentSettingsPart?
-                    .Settings?
-                    .GetFirstChild<EvenAndOddHeaders>();
-                if (!(setting?.Val?.Value ?? setting is not null)) return false;
-
+                if (!DocumentOddEvenSettingEnabled) return false;
                 return ResolveEvenHeader() != null || ResolveEvenFooter() != null;
 
             }
@@ -905,6 +901,16 @@ namespace OfficeIMO.Word {
                 EvenAndOddHeaders? setting = settings.GetFirstChild<EvenAndOddHeaders>();
                 if (setting == null) settings.Append(new EvenAndOddHeaders());
                 else setting.Val = true;
+            }
+        }
+
+        internal bool DocumentOddEvenSettingEnabled {
+            get {
+                EvenAndOddHeaders? setting = _wordprocessingDocument.MainDocumentPart?
+                    .DocumentSettingsPart?
+                    .Settings?
+                    .GetFirstChild<EvenAndOddHeaders>();
+                return setting?.Val?.Value ?? setting is not null;
             }
         }
 

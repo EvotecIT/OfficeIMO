@@ -142,6 +142,7 @@ IReadOnlyList<string> lossy = result.Report.LossyEntries;
 ```
 
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
+Distinct first-page master-page headers and footers require ODF 1.4. Saving those stories with the ODF 1.3 profile, or preserving an older source version, fails before writing an invalid package.
 
 ## Encrypt and decrypt ODF packages
 
@@ -169,7 +170,7 @@ Encrypted input fails with a classified `OdfEncryptedPackageException` when a pa
 | Area | Current support |
 | --- | --- |
 | Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
-| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, page number/count and date/time fields with cached display text, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
+| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, page number/count and date/time fields with cached display text, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, default/first/left master-page headers and footers, page breaks, images, paragraph insertion/deletion tracking |
 | ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, typed named ranges, annotations, typed scalar/list validations and messages, links, print ranges |
 | ODP | Slide order and visibility, page size, masters/layouts, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
 | Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |

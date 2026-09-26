@@ -48,6 +48,27 @@ public sealed class OdtPageLayout {
     public OdtHeaderFooter Header => GetHeaderFooter(OdfNamespaces.Style + "header");
     /// <summary>Master-page footer content.</summary>
     public OdtHeaderFooter Footer => GetHeaderFooter(OdfNamespaces.Style + "footer");
+    /// <summary>Whether the master already defines a default header.</summary>
+    public bool HasHeader => _master.Element(OdfNamespaces.Style + "header") != null;
+    /// <summary>Whether the master already defines a default footer.</summary>
+    public bool HasFooter => _master.Element(OdfNamespaces.Style + "footer") != null;
+    /// <summary>First-page header content, when the master defines a distinct first page.</summary>
+    public OdtHeaderFooter? FirstHeader => FindHeaderFooter(OdfNamespaces.Style + "header-first");
+    /// <summary>First-page footer content, when the master defines a distinct first page.</summary>
+    public OdtHeaderFooter? FirstFooter => FindHeaderFooter(OdfNamespaces.Style + "footer-first");
+    /// <summary>Left-page header content, used for even pages in a standard left-to-right document.</summary>
+    public OdtHeaderFooter? LeftHeader => FindHeaderFooter(OdfNamespaces.Style + "header-left");
+    /// <summary>Left-page footer content, used for even pages in a standard left-to-right document.</summary>
+    public OdtHeaderFooter? LeftFooter => FindHeaderFooter(OdfNamespaces.Style + "footer-left");
+
+    /// <summary>Creates or returns the distinct first-page header.</summary>
+    public OdtHeaderFooter EnsureFirstHeader() => GetHeaderFooter(OdfNamespaces.Style + "header-first");
+    /// <summary>Creates or returns the distinct first-page footer.</summary>
+    public OdtHeaderFooter EnsureFirstFooter() => GetHeaderFooter(OdfNamespaces.Style + "footer-first");
+    /// <summary>Creates or returns the left-page header.</summary>
+    public OdtHeaderFooter EnsureLeftHeader() => GetHeaderFooter(OdfNamespaces.Style + "header-left");
+    /// <summary>Creates or returns the left-page footer.</summary>
+    public OdtHeaderFooter EnsureLeftFooter() => GetHeaderFooter(OdfNamespaces.Style + "footer-left");
 
     internal static OdtPageLayout GetOrCreate(OdtDocument document) {
         bool changed = false;
@@ -92,11 +113,33 @@ public sealed class OdtPageLayout {
     private OdtHeaderFooter GetHeaderFooter(XName name) {
         XElement? element = _master.Element(name);
         if (element == null) {
+            if (name == OdfNamespaces.Style + "header-left" || name == OdfNamespaces.Style + "header-first")
+                GetHeaderFooter(OdfNamespaces.Style + "header");
+            if (name == OdfNamespaces.Style + "footer-left" || name == OdfNamespaces.Style + "footer-first")
+                GetHeaderFooter(OdfNamespaces.Style + "footer");
             element = new XElement(name);
-            _master.Add(element);
+            int order = HeaderFooterOrder(name);
+            XElement? following = _master.Elements().FirstOrDefault(child => HeaderFooterOrder(child.Name) > order);
+            if (following == null) _master.Add(element);
+            else following.AddBeforeSelf(element);
             Dirty();
         }
         return new OdtHeaderFooter(_document, element);
+    }
+
+    private static int HeaderFooterOrder(XName name) {
+        if (name == OdfNamespaces.Style + "header") return 0;
+        if (name == OdfNamespaces.Style + "header-left") return 1;
+        if (name == OdfNamespaces.Style + "header-first") return 2;
+        if (name == OdfNamespaces.Style + "footer") return 3;
+        if (name == OdfNamespaces.Style + "footer-left") return 4;
+        if (name == OdfNamespaces.Style + "footer-first") return 5;
+        return 6;
+    }
+
+    private OdtHeaderFooter? FindHeaderFooter(XName name) {
+        XElement? element = _master.Element(name);
+        return element == null ? null : new OdtHeaderFooter(_document, element);
     }
 
     private OdfLength ReadLength(XName name, string fallback, bool useCommonMargin = true) {
@@ -123,10 +166,23 @@ public sealed class OdtHeaderFooter {
         _element = element;
     }
 
+    /// <summary>Whether this header or footer is displayed by the master page.</summary>
+    public bool IsDisplayed {
+        get => OdfBoolean.ReadCompatible((string?)_element.Attribute(OdfNamespaces.Style + "display"), true);
+        set {
+            _element.SetAttributeValue(OdfNamespaces.Style + "display", value ? null : "false");
+            _document.MarkPartDirty("styles.xml");
+        }
+    }
+
     /// <summary>Paragraphs in this header or footer.</summary>
     public IReadOnlyList<OdtParagraph> Paragraphs => _element.Elements()
         .Where(element => element.Name == OdfNamespaces.Text + "p" || element.Name == OdfNamespaces.Text + "h")
         .Select(element => new OdtParagraph(_document, element, "styles.xml")).ToList();
+
+    /// <summary>Direct content blocks outside the paragraph and heading surface.</summary>
+    public int NonParagraphBlockCount => _element.Elements()
+        .Count(element => element.Name != OdfNamespaces.Text + "p" && element.Name != OdfNamespaces.Text + "h");
 
     /// <summary>Adds a paragraph.</summary>
     public OdtParagraph AddParagraph(string? text = null) {
@@ -135,5 +191,16 @@ public sealed class OdtHeaderFooter {
         _element.Add(paragraph);
         _document.MarkPartDirty("styles.xml");
         return new OdtParagraph(_document, paragraph, "styles.xml");
+    }
+
+    /// <summary>Adds a heading with an outline level from 1 through 10.</summary>
+    public OdtParagraph AddHeading(string text, int level = 1) {
+        if (level < 1 || level > 10) throw new ArgumentOutOfRangeException(nameof(level), "Heading level must be between 1 and 10.");
+        var heading = new XElement(OdfNamespaces.Text + "h",
+            new XAttribute(OdfNamespaces.Text + "outline-level", level));
+        OdfTextCodec.Append(heading, text);
+        _element.Add(heading);
+        _document.MarkPartDirty("styles.xml");
+        return new OdtParagraph(_document, heading, "styles.xml");
     }
 }

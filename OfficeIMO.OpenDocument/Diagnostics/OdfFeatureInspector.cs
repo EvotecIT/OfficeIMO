@@ -129,7 +129,11 @@ internal static class OdfFeatureInspector {
         }
         if (partPath == "styles.xml") {
             if (paragraph.Parent?.Name != OdfNamespaces.Style + "header" &&
-                paragraph.Parent?.Name != OdfNamespaces.Style + "footer") return false;
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "header-first" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer-first" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "header-left" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer-left") return false;
             XElement? firstMaster = element.Document?.Root?
                 .Element(OdfNamespaces.Office + "master-styles")?
                 .Elements(OdfNamespaces.Style + "master-page").FirstOrDefault();

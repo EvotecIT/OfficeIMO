@@ -75,6 +75,19 @@ namespace OfficeIMO.Word {
                     FooterCount = CountFooterParts(section.Footer),
                     DifferentFirstPage = section.DifferentFirstPage,
                     DifferentOddAndEvenPages = section.DifferentOddAndEvenPages,
+                    DocumentOddEvenSettingEnabled = section.DocumentOddEvenSettingEnabled,
+                    HasExplicitDefaultHeader = section._sectionProperties?.Elements<HeaderReference>()
+                        .Any(reference => reference.Type?.Value == HeaderFooterValues.Default) == true,
+                    HasExplicitDefaultFooter = section._sectionProperties?.Elements<FooterReference>()
+                        .Any(reference => reference.Type?.Value == HeaderFooterValues.Default) == true,
+                    HasExplicitFirstHeader = section._sectionProperties?.Elements<HeaderReference>()
+                        .Any(reference => reference.Type?.Value == HeaderFooterValues.First) == true,
+                    HasExplicitFirstFooter = section._sectionProperties?.Elements<FooterReference>()
+                        .Any(reference => reference.Type?.Value == HeaderFooterValues.First) == true,
+                    HasExplicitEvenHeader = section._sectionProperties?.Elements<HeaderReference>()
+                        .Any(reference => reference.Type?.Value == HeaderFooterValues.Even) == true,
+                    HasExplicitEvenFooter = section._sectionProperties?.Elements<FooterReference>()
+                        .Any(reference => reference.Type?.Value == HeaderFooterValues.Even) == true,
                     DefaultHeader = BuildHeaderFooterSnapshot(section.Header?.Default, "header", "default", expansionContext),
                     DefaultFooter = BuildHeaderFooterSnapshot(section.Footer?.Default, "footer", "default", expansionContext),
                     FirstHeader = BuildHeaderFooterSnapshot(section.Header?.First, "header", "first", expansionContext),
