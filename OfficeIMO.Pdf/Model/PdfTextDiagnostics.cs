@@ -1180,7 +1180,7 @@ internal static class PdfTextDiagnostics {
     }
 
     private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset) {
-        if (HasAnyFeature(info.GlyphSubstitutionFeatureTags, "liga", "clig", "dlig", "rlig")) {
+        if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "liga", "clig", "rlig")) {
             int ligatureIndex = FindLatinLigatureSequenceIndex(text);
             if (ligatureIndex >= 0) {
                 int sourceIndex = ligatureIndex + indexOffset;
@@ -1196,7 +1196,7 @@ internal static class PdfTextDiagnostics {
                     scalar,
                     "OpenType GSUB ligature",
                     "unsupported-font-ligature-substitution",
-                    "Text contains a Latin ligature sequence at index " + sourceIndex.ToString(CultureInfo.InvariantCulture) + ", and embedded font '" + info.FontName + "' advertises GSUB ligature features. OfficeIMO.Pdf currently writes scalar glyph ids without applying OpenType ligature substitution, so generated output may be visually simplified.",
+                    "Text contains a Latin ligature sequence at index " + sourceIndex.ToString(CultureInfo.InvariantCulture) + ", and embedded font '" + info.FontName + "' advertises default Latin GSUB ligature features that this output path has not applied. Generated output may be visually simplified.",
                     isCoveredByBuiltInShaping);
             }
         }

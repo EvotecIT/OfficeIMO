@@ -10,7 +10,10 @@ public enum PdfTextShapingMode {
     UnicodeScalar = 0,
 
     /// <summary>Apply built-in substitutions for the standard Latin presentation ligatures ff, fi, fl, ffi, and ffl when the embedded font covers them.</summary>
-    LatinLigatures = 1
+    LatinLigatures = 1,
+
+    /// <summary>Apply the embedded font's default Latin GSUB ligatures, preserving source text for extraction. Unsupported lookups retain scalar output and diagnostics.</summary>
+    OpenTypeLigatures = 2
 }
 
 public sealed partial class PdfOptions {
@@ -20,7 +23,7 @@ public sealed partial class PdfOptions {
     public PdfTextShapingMode TextShapingMode {
         get => _textShapingMode;
         set {
-            if (value != PdfTextShapingMode.UnicodeScalar && value != PdfTextShapingMode.LatinLigatures) {
+            if (value != PdfTextShapingMode.UnicodeScalar && value != PdfTextShapingMode.LatinLigatures && value != PdfTextShapingMode.OpenTypeLigatures) {
                 throw new ArgumentOutOfRangeException(nameof(value), "Unsupported PDF text shaping mode.");
             }
 
@@ -89,7 +92,8 @@ public sealed partial class PdfOptions {
         }
 
         foreach (PdfTextShapingDiagnostic diagnostic in diagnostics) {
-            if (deferProviderCoverable && _textShapingProvider != null && IsProviderCoveredDiagnostic(diagnostic)) {
+            if (deferProviderCoverable && ((_textShapingProvider != null && IsProviderCoveredDiagnostic(diagnostic)) ||
+                (_textShapingMode == PdfTextShapingMode.OpenTypeLigatures && diagnostic.Code == "unsupported-font-ligature-substitution"))) {
                 continue;
             }
 
@@ -157,7 +161,7 @@ public sealed partial class PdfOptions {
         _recordProviderShapedTextRunDelegate ??= RecordProviderShapedTextRun;
 
     internal void RecordProviderShapedTextRun(string text, string fontName, bool isOpenTypeCff) {
-        if (_textShapingProvider == null || string.IsNullOrEmpty(text)) {
+        if ((_textShapingProvider == null && _textShapingMode != PdfTextShapingMode.OpenTypeLigatures) || string.IsNullOrEmpty(text)) {
             return;
         }
 

@@ -439,6 +439,24 @@ OfficeDrawing drawing = document.Pages[0].ToDrawing(fonts);
 
 Use the PDF's resolved font family name when registering a replacement. The overload also accepts `textShapingProvider`, `textShapingLanguage`, and `cancellationToken`. Supplied faces replace matching embedded faces and apply to nested drawings. Adding fonts after `ToDrawing()` cannot restore glyphs already discarded by visibility checks.
 
+### Embedded-font Latin ligatures
+
+Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default. Embedded
+TrueType and OpenType/CFF fonts apply supported `liga`, `clig`, and `rlig`
+lookups from their default Latin language system, or the default script when
+no Latin script is present. Measurement and painting use the same glyph run;
+Unicode mappings retain the source text for extraction, search, and redaction.
+
+Set `PdfOptions.TextShapingMode = PdfTextShapingMode.UnicodeScalar` to retain
+separate scalar glyphs and the previous wrapping behavior. Per-run feature
+settings such as `OfficeTextFeatureSettings.Default.With("liga", 0)` disable
+that feature. `LatinLigatures` remains available for the presentation-character
+substitutions supported by that mode.
+
+Unsupported GSUB lookups retain scalar output and conversion diagnostics.
+Automatic Latin ligatures do not enable complex-script shaping or GPOS
+positioning; use `TextShapingProvider` for those contracts.
+
 ### Write a generated PDF
 
 ```csharp

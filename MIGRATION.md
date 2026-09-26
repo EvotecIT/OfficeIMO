@@ -9,6 +9,15 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Default PDF Latin ligatures
+
+`PdfOptions.TextShapingMode` now defaults to `OpenTypeLigatures`. Supported
+ligature substitutions in embedded TrueType and OpenType/CFF fonts can change
+text widths and line breaks. Extraction retains the original logical text.
+Applications that require the previous scalar widths should set
+`TextShapingMode = PdfTextShapingMode.UnicodeScalar`. Existing explicit shaping
+providers and the `LatinLigatures` mode retain their selection behavior.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to
