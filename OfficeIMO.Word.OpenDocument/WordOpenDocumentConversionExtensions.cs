@@ -807,9 +807,16 @@ public static partial class WordOpenDocumentConversionExtensions {
         table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColorHex != null || cell.LeftBorder != null ||
             cell.RightBorder != null || cell.TopBorder != null || cell.BottomBorder != null);
 
-    private static int CountHeaderFooterBlocks(WordSectionSnapshot section) => new[] {
-        section.DefaultHeader, section.DefaultFooter, section.FirstHeader, section.FirstFooter, section.EvenHeader, section.EvenFooter
-    }.Where(item => item != null).Sum(item => item!.Elements.Count);
+    private static int CountHeaderFooterBlocks(WordSectionSnapshot section) =>
+        CountBlocks(section.DefaultHeader, section.Index == 0 || section.HasExplicitDefaultHeader) +
+        CountBlocks(section.DefaultFooter, section.Index == 0 || section.HasExplicitDefaultFooter) +
+        CountBlocks(section.FirstHeader, section.Index == 0 || section.HasExplicitFirstHeader) +
+        CountBlocks(section.FirstFooter, section.Index == 0 || section.HasExplicitFirstFooter) +
+        CountBlocks(section.EvenHeader, section.Index == 0 || section.HasExplicitEvenHeader) +
+        CountBlocks(section.EvenFooter, section.Index == 0 || section.HasExplicitEvenFooter);
+
+    private static int CountBlocks(WordHeaderFooterSnapshot? part, bool authoredHere) =>
+        authoredHere ? part?.Elements.Count ?? 0 : 0;
 
     private static void ApplyWordPageLayout(WordSectionSnapshot source, OdtPageLayout target) {
         if (source.PageWidthPoints.HasValue) target.Width = OdfLength.Points(source.PageWidthPoints.Value);

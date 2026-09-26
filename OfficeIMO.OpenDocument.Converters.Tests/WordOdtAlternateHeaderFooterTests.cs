@@ -422,11 +422,9 @@ public sealed class WordOdtAlternateHeaderFooterTests {
             SectionProperties[] sections = package.MainDocumentPart!.Document!.Body!
                 .Descendants<SectionProperties>().ToArray();
             Assert.Equal(2, sections.Length);
-            foreach (HeaderReference reference in sections[1].Elements<HeaderReference>()
-                         .Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToArray())
+            foreach (HeaderReference reference in sections[1].Elements<HeaderReference>().ToArray())
                 reference.Remove();
-            foreach (FooterReference reference in sections[1].Elements<FooterReference>()
-                         .Where(reference => reference.Type?.Value == HeaderFooterValues.Even).ToArray())
+            foreach (FooterReference reference in sections[1].Elements<FooterReference>().ToArray())
                 reference.Remove();
             package.MainDocumentPart.Document.Save();
         }
@@ -438,5 +436,12 @@ public sealed class WordOdtAlternateHeaderFooterTests {
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
         Assert.DoesNotContain(conversion.Report.ForFeature("alternate-headers-footers"), mapping =>
             mapping.Status == OdfConversionMappingStatus.Unsupported);
+        var first = source.CreateInspectionSnapshot().Sections[0];
+        int firstStoryBlocks = new[] { first.DefaultHeader, first.DefaultFooter, first.FirstHeader,
+                first.FirstFooter, first.EvenHeader, first.EvenFooter }
+            .Where(part => part != null).Sum(part => part!.Elements.Count);
+        OdfConversionResult<OdtDocument> omitted = source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { IncludeHeadersAndFooters = false });
+        Assert.Equal(firstStoryBlocks, Assert.Single(omitted.Report.ForFeature("headers-footers")).Count);
     }
 }
