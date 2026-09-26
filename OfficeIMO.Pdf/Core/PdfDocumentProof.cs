@@ -22,6 +22,11 @@ public sealed class PdfDocumentProof {
             _document.ReadOptions, actualDocument.ReadOptions, cancellationToken);
     }
 
+    /// <summary>Aligns pages and classifies supported text, image, scan, and visual differences for review.</summary>
+    public PdfReviewComparisonReport CompareReview(PdfDocument actualDocument, PdfReviewComparisonOptions? options = null,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        PdfReviewComparer.Compare(_document, actualDocument, options, cancellationToken);
+
     /// <summary>Compares this document with PDF bytes through the managed renderer.</summary>
     public PdfVisualComparisonReport CompareVisual(byte[] actualPdf, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null, PdfLoadOptions? actualReadOptions = null) =>
         _document.CompareVisual(actualPdf, selection, options, actualReadOptions);

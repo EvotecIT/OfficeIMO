@@ -1199,6 +1199,7 @@ internal static class TextContentParser {
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
                     embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                if (actualTextState is not null) span.SetSourceActualText(rawText);
                 if (usedVisualEncoding && actualTextState is null) {
                     string logicalText = NormalizeShatteredSpan(wholeDecoded);
                     if (logicalText.Length > 0 && !string.Equals(logicalText, span.Text, StringComparison.Ordinal)) {

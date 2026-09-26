@@ -857,23 +857,35 @@ create an unsigned source derivative first. The result reports
 Layered PDFs are rejected because their visibility settings cannot yet be
 preserved on imposed sheets.
 
-For review after page insertion or reordering, align pages before comparing
-the ones that need closer inspection:
+For review after page insertion or reordering, align pages and inspect the
+changed pairs with retained rendered proof and page-linked classifications:
 
 ```csharp
 PdfDocument revised = PdfDocument.Load("packet-revised.pdf");
-PdfPageChangeReport changes = source.Proof.AnalyzePageChanges(revised);
-foreach (PdfPageChange change in changes.Changes) {
-    if (change.Kind != PdfPageChangeKind.ModifiedCandidate) continue;
-    PdfVisualPageComparison detail = source.Proof.CompareVisualPages(
-        change.ExpectedPageNumber!.Value, revised, change.ActualPageNumber!.Value);
-    Console.WriteLine($"Page {change.ExpectedPageNumber}: {detail.DifferentPixels} changed pixels");
+PdfReviewComparisonReport review = source.Proof.CompareReview(revised);
+foreach (PdfReviewPageComparison page in review.Pages) {
+    Console.WriteLine($"Page {page.ExpectedPageNumber} -> {page.ActualPageNumber}");
+    if (page.Visual is not null)
+        Console.WriteLine($"  {page.Visual.DifferentPixels} changed pixels");
+    foreach (PdfReviewChange change in page.Changes)
+        Console.WriteLine($"  {change.Kind}: {change.ExpectedText} -> {change.ActualText}");
 }
 ```
 
-Alignment uses exact rendered pixels at the chosen scale. A changed-page pair
-is a review candidate; the report does not claim to identify semantic text or
-image edits.
+`review.PageAlignment` reports inserted, deleted, moved, and changed page
+candidates. Changed rendered pairs retain expected, actual, and highlighted
+difference PNGs. Native text is also checked on visually identical pages, so
+searchable-layer changes remain visible in the report. Native text and image
+placements can be classified as added, removed,
+changed, or moved; scan-dominated pages and unsupported differences remain
+explicitly uncertain. `PdfReviewComparisonOptions` bounds page pairs, content,
+pixels, and output bytes and accepts visual ignore regions. Classification is
+review evidence, not a claim about authoring intent or OCR accuracy. An ignored
+pixel region suppresses a semantic text block or image only when it fully
+contains that element; a mask over part of a line leaves its text change for
+review. When setting a custom render scale or background, use the same values
+for `PageAlignment` and `Visual` so exact-page alignment remains valid review
+evidence.
 
 ### Merge, reorder, delete, duplicate, move, and rotate
 

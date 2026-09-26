@@ -16,10 +16,11 @@ public enum PdfPageChangeKind {
 
 /// <summary>One page alignment. Null page numbers identify insertion or deletion.</summary>
 public sealed class PdfPageChange {
-    internal PdfPageChange(PdfPageChangeKind kind, int? expectedPageNumber, int? actualPageNumber) {
+    internal PdfPageChange(PdfPageChangeKind kind, int? expectedPageNumber, int? actualPageNumber, bool usesIgnoredRegions = false) {
         Kind = kind;
         ExpectedPageNumber = expectedPageNumber;
         ActualPageNumber = actualPageNumber;
+        UsesIgnoredRegions = usesIgnoredRegions;
     }
 
     /// <summary>Relationship between the pages.</summary>
@@ -28,8 +29,10 @@ public sealed class PdfPageChange {
     public int? ExpectedPageNumber { get; }
     /// <summary>One-based page in the actual document, when present.</summary>
     public int? ActualPageNumber { get; }
-    /// <summary>True only when rendered pixels match at the configured scale.</summary>
-    public bool IsExactRenderedMatch => Kind == PdfPageChangeKind.Unchanged || Kind == PdfPageChangeKind.Moved;
+    /// <summary>Whether ignored pixel regions contributed to this alignment.</summary>
+    public bool UsesIgnoredRegions { get; }
+    /// <summary>True only when all rendered pixels match at the configured scale without masked regions.</summary>
+    public bool IsExactRenderedMatch => !UsesIgnoredRegions && (Kind == PdfPageChangeKind.Unchanged || Kind == PdfPageChangeKind.Moved);
 }
 
 /// <summary>Bounded page alignment for review. Changes remain candidates until inspected at full fidelity.</summary>

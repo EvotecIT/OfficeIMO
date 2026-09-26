@@ -126,7 +126,7 @@ public sealed class PdfLogicalTextBlock : IPdfLogicalElement {
         return Array.AsReadOnly(runs.ToArray());
     }
 
-    private static bool TryFindNormalizedSpan(
+    internal static bool TryFindNormalizedSpan(
         string text,
         string spanText,
         int start,
