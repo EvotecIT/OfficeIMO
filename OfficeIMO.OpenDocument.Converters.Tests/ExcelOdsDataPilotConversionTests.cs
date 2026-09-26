@@ -57,6 +57,47 @@ public sealed class ExcelOdsDataPilotConversionTests {
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
 
+    [Theory]
+    [InlineData("sales")]
+    [InlineData(" Sales ")]
+    public void StaleOdsFieldBindingIsExplicitLoss(string staleName) {
+        OdsDocument source = CreateSimpleOdsPivot("StaleBinding", "Data.D1:Data.E3");
+        XElement field = source.Package.GetXml("content.xml")
+            .Descendants(OdfNamespaces.Table + "data-pilot-field").Last();
+        field.SetAttributeValue(OdfNamespaces.Table + "source-field-name", staleName);
+        source.MarkPartDirty("content.xml");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void RetainedTargetRangesShareThePivotScanBudget() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("Region");
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetString("North");
+        sheet.Cell(1, 1).SetNumber(10);
+        foreach ((string name, string targetRange) in new[] {
+            ("First", "Data.D1:Data.E350000"),
+            ("Second", "Data.G1:Data.H350000")
+        }) {
+            OdsDataPilotTable pivot = source.AddDataPilotTable(name, "Data.A1:Data.B2", targetRange);
+            pivot.AddField("Region", "row");
+            pivot.AddField("Sales", "data", "sum");
+        }
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Single(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
     [Fact]
     public void DuplicateExcelAxisFieldIndexIsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();

@@ -162,10 +162,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     out SpreadsheetRangeReference? targetBounds) || targetBounds?.End == null) continue;
             long sourceRows = sourceBounds.End.Row!.Value - sourceBounds.Start.Row!.Value + 1;
             long sourceColumns = sourceBounds.End.Column!.Value - sourceBounds.Start.Column!.Value + 1;
+            long targetRows = targetBounds.End.Row!.Value - targetBounds.Start.Row!.Value + 1;
+            long targetColumns = targetBounds.End.Column!.Value - targetBounds.Start.Column!.Value + 1;
             if (sourceRows <= 0 || sourceColumns <= 0 || sourceRows > remainingPivotScanCells / sourceColumns)
                 continue;
-            // Charge each candidate before scanning retained cells, including candidates rejected later.
+            // Both source and target retained-range scans consume the shared per-conversion budget.
             remainingPivotScanCells -= sourceRows * sourceColumns;
+            if (targetRows <= 0 || targetColumns <= 0 || targetRows > remainingPivotScanCells / targetColumns)
+                continue;
+            remainingPivotScanCells -= targetRows * targetColumns;
             (OdsSheet Source, ExcelSheet Target) pair = sheets.FirstOrDefault(item =>
                 string.Equals(item.Source.Name, sourceSheetName, StringComparison.Ordinal)
                 && string.Equals(item.Source.Name, targetSheetName, StringComparison.Ordinal));
@@ -198,7 +203,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (unsupported || data.Count != 1 || rows.Count + columns.Count == 0
                 || rows.Count + columns.Count + data.Count != pivot.Fields.Count
                 || rows.Concat(columns).Distinct(StringComparer.OrdinalIgnoreCase).Count() != rows.Count + columns.Count
-                || HasAmbiguousPivotHeaders(pair.Source, sourceBounds)) continue;
+                || HasAmbiguousPivotHeaders(pair.Source, sourceBounds, pivot.Fields)) continue;
             long generatedLastRow = destinationRow + 1;
             long generatedLastColumn = destinationColumn + rows.Count + columns.Count + data.Count - 1;
             if (generatedLastRow > Math.Min(options.MaximumRows, 1_048_576)
@@ -220,7 +225,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return converted;
     }
 
-    private static bool HasAmbiguousPivotHeaders(OdsSheet sheet, SpreadsheetRangeReference range) {
+    private static bool HasAmbiguousPivotHeaders(OdsSheet sheet, SpreadsheetRangeReference range,
+        IReadOnlyList<OdsDataPilotField> fields) {
         long firstRow = range.Start.Row!.Value - 1;
         long firstColumn = range.Start.Column!.Value - 1;
         long lastColumn = range.End!.Column!.Value - 1;
@@ -228,6 +234,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             firstRow >= run.StartRow && firstRow < SaturatingAdd(run.StartRow, run.RepeatCount));
         if (header == null) return true;
         var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var exactNames = new HashSet<string>(StringComparer.Ordinal);
         long nextColumn = firstColumn;
         foreach (OdsCellRun cell in header.CellRuns) {
             if (cell.StartColumn > lastColumn) break;
@@ -235,12 +242,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (end < firstColumn) continue;
             long start = Math.Max(cell.StartColumn, firstColumn);
             if (cell.IsCovered || start != nextColumn) return true;
-            string name = cell.Value.DisplayText.Trim();
-            if (string.IsNullOrWhiteSpace(name) || !names.Add(name) || end > start)
+            OdsCellValue value = cell.Value;
+            string name = value.DisplayText;
+            if (value.Kind != OdsCellValueKind.String || string.IsNullOrWhiteSpace(name)
+                || name != name.Trim() || !names.Add(name) || end > start)
                 return true;
+            exactNames.Add(name);
             nextColumn = end + 1;
         }
-        return nextColumn <= lastColumn;
+        return nextColumn <= lastColumn || fields.Any(field => !exactNames.Contains(field.SourceFieldName));
     }
 
     private static bool PivotRangeRetained(OdsSheet sheet, string address,
