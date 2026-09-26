@@ -517,8 +517,10 @@ public sealed partial class PdfStaticFormRecognizerTests {
         Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
     }
 
-    [Fact]
-    public void JpxEmbeddedAlphaIsNotAnOpaqueNativeLabelCover() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void JpxEmbeddedAlphaNeedsSeparateLabelVisibilityEvidence(bool suppliedOcr) {
         const string content = "BT /F1 12 Tf 20 160 Td (Name:) Tj ET 1 w 105 145 115 20 re S q 90 0 0 30 10 145 cm /Im1 Do Q";
         const string jpx = "unsupported";
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
@@ -534,7 +536,8 @@ public sealed partial class PdfStaticFormRecognizerTests {
 
         PdfExtractedImage extracted = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetImages());
         Assert.True(extracted.HasTransparencyMask);
-        Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+        var ocr = suppliedOcr ? new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 30D, 70D, 50D, 1D) } : null;
+        Assert.Equal(suppliedOcr ? 1 : 0, PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr).Proposals.Count);
     }
 
 }

@@ -349,7 +349,10 @@ page and any rectangular clip. Patterned or combined fill-and-stroke labels,
 labels with partial or unproven clipping, and image backdrops need separate
 visibility evidence such as positioned
 OCR. Native text crossing a page or crop edge still counts as possible field
-occupancy within the visible page. Unsupported graphics-state paint is excluded
+occupancy within the visible page. Labels partially covered by later paint are excluded.
+A label names at most one nearest eligible field; equally plausible assignments
+require manual authoring. Detected table text and table regions are excluded from
+automatic form evidence. Unsupported graphics-state paint is excluded
 from field evidence. The report includes page-local tab
 order suggestions and collision diagnostics. It does not infer radio groups,
 choice values, calculations, or form actions from static marks. Applying selected

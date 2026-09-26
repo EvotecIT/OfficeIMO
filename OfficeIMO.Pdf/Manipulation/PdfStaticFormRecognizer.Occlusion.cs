@@ -49,23 +49,7 @@ internal static partial class PdfStaticFormRecognizer {
             cancellationToken.ThrowIfCancellationRequested();
             if (!paint.HasStrokePaint || paint.StrokeOpacity == 0D ||
                 !IsLater(paint.PaintOrder, paint.ContentOrderKey, outline.PaintOrder, outline.ContentOrderKey)) continue;
-            double strokePadding = Math.Max(0.5D, paint.StrokeWidth * Math.Sqrt(2D)) / 2D;
-            var bounds = paint.Kind == PdfPageVisualPrimitiveKind.Line
-                ? new VisualRect(Math.Min(paint.X1, paint.X2) - strokePadding,
-                    Math.Min(paint.Y1, paint.Y2) - strokePadding,
-                    Math.Max(paint.X1, paint.X2) + strokePadding,
-                    Math.Max(paint.Y1, paint.Y2) + strokePadding)
-                : new VisualRect(paint.X - strokePadding, paint.Y - strokePadding,
-                    paint.X + paint.Width + strokePadding, paint.Y + paint.Height + strokePadding);
-            VisualRect? hollow = paint.Kind == PdfPageVisualPrimitiveKind.Rectangle
-                ? new VisualRect(paint.X + strokePadding, paint.Y + strokePadding,
-                    paint.X + paint.Width - strokePadding, paint.Y + paint.Height - strokePadding) : null;
-            if (paint.ClipPath is { IsRectangle: true, IsExact: true, ContainsTextClipping: false } clip) {
-                bounds = new VisualRect(Math.Max(bounds.Left, clip.X), Math.Max(bounds.Top, clip.Y),
-                    Math.Min(bounds.Right, clip.X + clip.Width), Math.Min(bounds.Bottom, clip.Y + clip.Height));
-                if (hollow is VisualRect empty) hollow = new VisualRect(Math.Max(empty.Left, clip.X), Math.Max(empty.Top, clip.Y),
-                    Math.Min(empty.Right, clip.X + clip.Width), Math.Min(empty.Bottom, clip.Y + clip.Height));
-            }
+            if (!TryGetStrokeBounds(paint, out VisualRect bounds, out VisualRect? hollow)) continue;
             if (OutlineOverlap(bounds) - (hollow is VisualRect hole ? OutlineOverlap(hole) : 0D) > 0.000001D) return true;
         }
         foreach (PdfLogicalImage image in page.Images) {
@@ -101,5 +85,29 @@ internal static partial class PdfStaticFormRecognizer {
             if (outline.Kind != PdfPageVisualPrimitiveKind.Line) overlap -= OverlapArea(bounds, inner);
             return overlap;
         }
+    }
+
+    private static bool TryGetStrokeBounds(PdfPageVisualPrimitive paint, out VisualRect bounds, out VisualRect? hollow) {
+        bounds = default;
+        hollow = null;
+        if (!paint.HasStrokePaint || paint.StrokeOpacity == 0D) return false;
+        double strokePadding = Math.Max(0.5D, paint.StrokeWidth * Math.Sqrt(2D)) / 2D;
+        bounds = paint.Kind == PdfPageVisualPrimitiveKind.Line
+            ? new VisualRect(Math.Min(paint.X1, paint.X2) - strokePadding,
+                Math.Min(paint.Y1, paint.Y2) - strokePadding,
+                Math.Max(paint.X1, paint.X2) + strokePadding,
+                Math.Max(paint.Y1, paint.Y2) + strokePadding)
+            : new VisualRect(paint.X - strokePadding, paint.Y - strokePadding,
+                paint.X + paint.Width + strokePadding, paint.Y + paint.Height + strokePadding);
+        hollow = paint.Kind == PdfPageVisualPrimitiveKind.Rectangle
+            ? new VisualRect(paint.X + strokePadding, paint.Y + strokePadding,
+                paint.X + paint.Width - strokePadding, paint.Y + paint.Height - strokePadding) : null;
+        if (paint.ClipPath is { IsRectangle: true, IsExact: true, ContainsTextClipping: false } clip) {
+            bounds = new VisualRect(Math.Max(bounds.Left, clip.X), Math.Max(bounds.Top, clip.Y),
+                Math.Min(bounds.Right, clip.X + clip.Width), Math.Min(bounds.Bottom, clip.Y + clip.Height));
+            if (hollow is VisualRect empty) hollow = new VisualRect(Math.Max(empty.Left, clip.X), Math.Max(empty.Top, clip.Y),
+                Math.Min(empty.Right, clip.X + clip.Width), Math.Min(empty.Bottom, clip.Y + clip.Height));
+        }
+        return bounds.Area > 0D;
     }
 }
