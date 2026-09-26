@@ -26,17 +26,20 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var headersBySheet = new Dictionary<string, Dictionary<int, List<(int Column, string Name)>>>(StringComparer.Ordinal);
         foreach (ExcelWorksheetSnapshot worksheet in snapshot.Worksheets) {
             if (!convertedCellsBySheet.TryGetValue(worksheet.Name, out HashSet<(int Row, int Column)>? convertedCells)) continue;
+            ExcelSheet? sourceSheet = source.Sheets.FirstOrDefault(sheet =>
+                string.Equals(sheet.Name, worksheet.Name, StringComparison.Ordinal));
             var omitted = new List<(int Row, int Column)>();
             var headerRows = new Dictionary<int, List<(int Column, string Name)>>();
             neededHeaderRows.TryGetValue(worksheet.Name, out HashSet<int>? neededRows);
             foreach (ExcelCellSnapshot cell in worksheet.Cells) {
                 if (!convertedCells.Contains((cell.Row, cell.Column))) omitted.Add((cell.Row, cell.Column));
-                if (neededRows?.Contains(cell.Row) == true && cell.Value is string name) {
+                if (neededRows?.Contains(cell.Row) == true && sourceSheet?.TryGetCellText(cell.Row, cell.Column, out string? text) == true
+                    && !string.IsNullOrWhiteSpace(text)) {
                     if (!headerRows.TryGetValue(cell.Row, out List<(int Column, string Name)>? headers)) {
                         headers = new List<(int Column, string Name)>();
                         headerRows.Add(cell.Row, headers);
                     }
-                    headers.Add((cell.Column, name));
+                    headers.Add((cell.Column, text.Trim()));
                 }
             }
             omitted.Sort((left, right) => left.Row != right.Row
@@ -63,7 +66,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         != pivot.RowFields.Count + pivot.ColumnFields.Count
                     || !TryMapPivotFunction(pivot.DataFields[0].Function, out string? function)
                     || authoredNames.Contains(pivot.Name)
-                    || !TryGetExcelPivotRanges(pivot, options, snapshot, omittedCellsBySheet, headersBySheet,
+                    || !TryGetExcelPivotRanges(pivot, options, snapshot, target, omittedCellsBySheet, headersBySheet,
                         out string? sourceAddress, out string? targetAddress)) continue;
                 OdsDataPilotTable authored = target.AddDataPilotTable(pivot.Name, sourceAddress!, targetAddress!);
                 foreach (string fieldName in pivot.ColumnFields) authored.AddField(fieldName, "column");
@@ -76,7 +79,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     }
 
     private static bool TryGetExcelPivotRanges(ExcelPivotTableInfo pivot,
-        ExcelOpenDocumentConversionOptions options, ExcelWorkbookSnapshot snapshot,
+        ExcelOpenDocumentConversionOptions options, ExcelWorkbookSnapshot snapshot, OdsDocument target,
         IReadOnlyDictionary<string, List<(int Row, int Column)>> omittedCellsBySheet,
         IReadOnlyDictionary<string, Dictionary<int, List<(int Column, string Name)>>> headersBySheet,
         out string? sourceAddress, out string? targetAddress) {
@@ -118,6 +121,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 && column >= destination.Start.Column && column <= destination.End.Column;
             if (withinSource || withinTarget) return false;
         }
+        OdsSheet? projectedSheet = target.GetSheet(pivot.SourceSheet!);
+        if (projectedSheet == null || headerCells.Any(cell =>
+            cell.Column >= source.Start.Column && cell.Column <= source.End.Column
+            && !string.Equals(projectedSheet.Cell(source.Start.Row.Value - 1, cell.Column - 1).Text,
+                cell.Name, StringComparison.Ordinal))) return false;
         sourceAddress = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(pivot.SourceRange!, pivot.SourceSheet);
         targetAddress = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(pivot.Location!, pivot.SheetName);
         return sourceAddress.Length > 0 && targetAddress.Length > 0;
@@ -149,6 +157,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         // The Excel cache scans the source for each pivot. Bound the total work across the conversion.
         long remainingPivotScanCells = 1_000_000;
         var convertedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var generatedFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
+        var sourceFootprints = new List<(string Sheet, long FirstRow, long LastRow, long FirstColumn, long LastColumn)>();
         var rowRunsBySheet = new Dictionary<OdsSheet, IReadOnlyList<OdsRowRun>>();
         foreach (OdsDataPilotTable pivot in source.DataPilotTables) {
             if (pivot.HasAdvancedSettings || pivot.Fields.Count == 0 || pivot.Fields.Count > 17
@@ -210,22 +220,41 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (unsupported || data.Count != 1 || rows.Count + columns.Count == 0
                 || rows.Count + columns.Count + data.Count != pivot.Fields.Count
                 || rows.Concat(columns).Distinct(StringComparer.OrdinalIgnoreCase).Count() != rows.Count + columns.Count
-                || HasAmbiguousPivotHeaders(rowRuns, sourceBounds, pivot.Fields)) continue;
+                || HasAmbiguousPivotHeaders(rowRuns, sourceBounds, pivot.Fields, pair.Target)) continue;
             long generatedLastRow = destinationRow + 1;
             long generatedLastColumn = destinationColumn + rows.Count + columns.Count + data.Count - 1;
             if (generatedLastRow > Math.Min(options.MaximumRows, 1_048_576)
                 || generatedLastColumn > Math.Min(options.MaximumColumns, 16_384)
                 || generatedLastRow > targetBounds.End.Row!.Value
                 || generatedLastColumn > targetBounds.End.Column!.Value
-                || sourceBounds.Start.Row!.Value <= generatedLastRow
-                    && sourceBounds.End.Row!.Value >= destinationRow
-                    && sourceBounds.Start.Column!.Value <= generatedLastColumn
-                    && sourceBounds.End.Column!.Value >= destinationColumn) continue;
+                || PivotFootprintsOverlap(sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
+                    sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value,
+                    destinationRow, generatedLastRow, destinationColumn, generatedLastColumn)
+                || generatedFootprints.Any(footprint =>
+                    string.Equals(footprint.Sheet, pair.Source.Name, StringComparison.Ordinal) &&
+                    PivotFootprintsOverlap(footprint.FirstRow, footprint.LastRow,
+                        footprint.FirstColumn, footprint.LastColumn,
+                        destinationRow, generatedLastRow, destinationColumn, generatedLastColumn))
+                || sourceFootprints.Any(footprint =>
+                    string.Equals(footprint.Sheet, pair.Source.Name, StringComparison.Ordinal) &&
+                    PivotFootprintsOverlap(footprint.FirstRow, footprint.LastRow,
+                        footprint.FirstColumn, footprint.LastColumn,
+                        destinationRow, generatedLastRow, destinationColumn, generatedLastColumn))
+                || generatedFootprints.Any(footprint =>
+                    string.Equals(footprint.Sheet, pair.Source.Name, StringComparison.Ordinal) &&
+                    PivotFootprintsOverlap(footprint.FirstRow, footprint.LastRow,
+                        footprint.FirstColumn, footprint.LastColumn,
+                        sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
+                        sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value))) continue;
             try {
                 pair.Target.AddPivotTable(sourceRange!, destination!, pivot.Name,
                     rowFields: rows, columnFields: columns, dataFields: data,
                     layout: ExcelPivotLayout.Outline);
                 convertedNames.Add(pivot.Name);
+                generatedFootprints.Add((pair.Source.Name, destinationRow, generatedLastRow,
+                    destinationColumn, generatedLastColumn));
+                sourceFootprints.Add((pair.Source.Name, sourceBounds.Start.Row!.Value, sourceBounds.End.Row!.Value,
+                    sourceBounds.Start.Column!.Value, sourceBounds.End.Column!.Value));
                 converted++;
             } catch (ArgumentException) {
                 // Invalid or missing source headers cannot be represented as an Excel pivot.
@@ -236,8 +265,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return converted;
     }
 
+    private static bool PivotFootprintsOverlap(long firstRow, long lastRow, long firstColumn, long lastColumn,
+        long otherFirstRow, long otherLastRow, long otherFirstColumn, long otherLastColumn) =>
+        firstRow <= otherLastRow && lastRow >= otherFirstRow &&
+        firstColumn <= otherLastColumn && lastColumn >= otherFirstColumn;
+
     private static bool HasAmbiguousPivotHeaders(IReadOnlyList<OdsRowRun> rowRuns, SpreadsheetRangeReference range,
-        IReadOnlyList<OdsDataPilotField> fields) {
+        IReadOnlyList<OdsDataPilotField> fields, ExcelSheet target) {
         long firstRow = range.Start.Row!.Value - 1;
         long firstColumn = range.Start.Column!.Value - 1;
         long lastColumn = range.End!.Column!.Value - 1;
@@ -255,8 +289,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             if (cell.IsCovered || start != nextColumn) return true;
             OdsCellValue value = cell.Value;
             string name = value.DisplayText;
-            if (value.Kind != OdsCellValueKind.String || string.IsNullOrWhiteSpace(name)
-                || name != name.Trim() || !names.Add(name) || end > start)
+            if (value.Kind == OdsCellValueKind.Empty || string.IsNullOrWhiteSpace(name)
+                || name != name.Trim() || !names.Add(name) || end > start
+                || !target.TryGetCellText((int)(firstRow + 1), (int)(start + 1), out string projectedName)
+                || !string.Equals(projectedName, name, StringComparison.Ordinal))
                 return true;
             exactNames.Add(name);
             nextColumn = end + 1;

@@ -35,6 +35,63 @@ public sealed class ExcelOdsDataPilotConversionTests {
     }
 
     [Fact]
+    public void NumericExcelPivotHeaderUsesAuthoredCellText() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, 42d);
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, "North");
+        sheet.CellValue(2, 2, 10d);
+        Assert.True(sheet.TryGetCellText(1, 1, out string header));
+        sheet.AddPivotTable("A1:B2", "D1", name: "NumericHeader",
+            rowFields: new[] { header },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("NumericHeader", Assert.Single(conversion.Value.DataPilotTables).Name);
+        Assert.DoesNotContain(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void BooleanExcelPivotHeaderReportsLossInsteadOfThrowing() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        sheet.CellValue(1, 1, true);
+        sheet.CellValue(1, 2, "Sales");
+        sheet.CellValue(2, 1, false);
+        sheet.CellValue(2, 2, 10d);
+        Assert.True(sheet.TryGetCellText(1, 1, out string header));
+        sheet.AddPivotTable("A1:B2", "D1", name: "BooleanHeader",
+            rowFields: new[] { header },
+            dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) });
+
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Empty(conversion.Value.DataPilotTables);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void BooleanOdsPivotHeaderReportsLossWhenExcelHeaderTextChanges() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        sheet.Cell(0, 0).SetBoolean(true);
+        sheet.Cell(0, 1).SetString("Sales");
+        sheet.Cell(1, 0).SetBoolean(false);
+        sheet.Cell(1, 1).SetNumber(10);
+        OdsDataPilotTable pivot = source.AddDataPilotTable("BooleanHeader", "Data.A1:Data.B2", "Data.D1:Data.E3");
+        pivot.AddField("TRUE", "row");
+        pivot.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Empty(target.Sheets.Single().GetPivotTables());
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void OdsPivotCannotWriteBeyondItsDeclaredTargetRange() {
         OdsDocument source = CreateSimpleOdsPivot("SmallTarget", "Data.D1:Data.D1");
 
@@ -60,6 +117,39 @@ public sealed class ExcelOdsDataPilotConversionTests {
             new ExcelOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             }));
+    }
+
+    [Fact]
+    public void OdsPivotsCannotOverlapEachOthersGeneratedFootprints() {
+        OdsDocument source = CreateSimpleOdsPivot("First", "Data.D1:Data.E3");
+        OdsDataPilotTable second = source.AddDataPilotTable("Second", "Data.A1:Data.B2", "Data.E1:Data.F3");
+        second.AddField("Region", "row");
+        second.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Equal("First", Assert.Single(target.Sheets.Single().GetPivotTables()).Name);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void OdsPivotOutputCannotOverlapAnotherPivotsSource() {
+        OdsDocument source = CreateSimpleOdsPivot("First", "Data.D1:Data.E3");
+        OdsSheet sheet = source.GetSheet("Data")!;
+        sheet.Cell(0, 6).SetString("Region");
+        sheet.Cell(0, 7).SetString("Sales");
+        sheet.Cell(1, 6).SetString("South");
+        sheet.Cell(1, 7).SetNumber(20);
+        OdsDataPilotTable second = source.AddDataPilotTable("Second", "Data.G1:Data.H2", "Data.A1:Data.B3");
+        second.AddField("Region", "row");
+        second.AddField("Sales", "data", "sum");
+
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
+        Assert.Equal("First", Assert.Single(target.Sheets.Single().GetPivotTables()).Name);
+        Assert.Contains(conversion.Report.ForFeature("pivot-tables"), mapping =>
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
     }
 
     [Fact]

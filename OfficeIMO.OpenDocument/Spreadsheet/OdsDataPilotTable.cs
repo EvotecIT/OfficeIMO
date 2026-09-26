@@ -164,7 +164,7 @@ public sealed class OdsDataPilotTable {
                     ? long.MaxValue : cell.StartColumn + cell.RepeatCount;
                 long lastExclusive = Math.Min(lastColumn + 1, cellEnd);
                 if (firstIncluded >= lastExclusive) continue;
-                if (cell.Value.Kind == OdsCellValueKind.String
+                if (cell.Value.Kind != OdsCellValueKind.Empty
                     && string.Equals(cell.Text, fieldName, StringComparison.Ordinal)) {
                     if (matched || lastExclusive - firstIncluded > 1) return false;
                     matched = true;
