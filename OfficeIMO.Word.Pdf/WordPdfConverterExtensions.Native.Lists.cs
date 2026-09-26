@@ -442,11 +442,12 @@ namespace OfficeIMO.Word.Pdf {
             WordComplexFieldRunVisibility fieldVisibility) {
             foreach (var element in container.ChildElements) {
                 if (element is W.Run sourceRun) {
-                    W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun);
+                    W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun, out var visibleSourceChildren);
                     if (visibleRun != null)
                         runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
                             _hyperlink = hyperlink,
-                            _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun
+                            _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun,
+                            _visibleRunSourceChildren = visibleSourceChildren
                         });
                 } else if (element is W.Hyperlink nestedHyperlink) {
                     AddNativeVisibleRuns(runs, paragraph, nestedHyperlink, nestedHyperlink, fieldVisibility);

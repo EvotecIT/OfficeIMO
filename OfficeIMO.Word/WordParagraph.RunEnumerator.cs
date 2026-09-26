@@ -25,11 +25,12 @@ namespace OfficeIMO.Word {
             WordComplexFieldRunVisibility fieldVisibility) {
             foreach (DocumentFormat.OpenXml.OpenXmlElement element in container.ChildElements) {
                 if (element is Run runElement) {
-                    Run? visibleRun = fieldVisibility.GetVisibleRun(runElement);
+                    Run? visibleRun = fieldVisibility.GetVisibleRun(runElement, out var visibleSourceChildren);
                     if (visibleRun != null)
                         yield return new WordParagraph(_document, _paragraph!, runElement) {
                             _hyperlink = hyperlink,
-                            _visibleRun = ReferenceEquals(visibleRun, runElement) ? null : visibleRun
+                            _visibleRun = ReferenceEquals(visibleRun, runElement) ? null : visibleRun,
+                            _visibleRunSourceChildren = visibleSourceChildren
                         };
                 } else if (element is CustomXmlRun customXml) {
                     foreach (WordParagraph run in EnumerateVisibleRuns(customXml, hyperlink, fieldVisibility)) {

@@ -325,12 +325,14 @@ public partial class Word {
     [InlineData(4, false)]
     [InlineData(5, true)]
     [InlineData(6, false)]
+    [InlineData(7, true)]
+    [InlineData(8, true)]
     public void SaveAsPdf_TableBorderVisibility_FollowsWordOverrides(int borderMode, bool expectedStroke) {
         string docPath = Path.Combine(_directoryWithFiles, $"PdfBorderVisibility{borderMode}.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, $"PdfBorderVisibility{borderMode}.pdf");
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordTable table = document.AddTable(2, 2);
-            if (borderMode == 0 || borderMode == 3) {
+            if (borderMode == 0 || borderMode == 3 || borderMode == 7) {
                 table._tableProperties!.TableStyle?.Remove();
             } else {
                 table.Style = WordTableStyle.TableGrid;
@@ -346,6 +348,8 @@ public partial class Word {
             } else if (borderMode == 5) {
                 table._tableProperties!.TableBorders = new TableBorders(
                     new TopBorder { Val = BorderValues.Nil });
+            } else if (borderMode == 7 || borderMode == 8) {
+                table._tableProperties!.TableBorders = new TableBorders();
             }
             for (int row = 0; row < 2; row++) {
                 for (int column = 0; column < 2; column++) {
@@ -363,7 +367,7 @@ public partial class Word {
             document.Save();
             document.SaveAsPdf(pdfPath, new WordToPdfOptions {
                 IncludePageNumbers = false,
-                DefaultTableBorders = borderMode == 3
+                DefaultTableBorders = borderMode == 3 || borderMode == 7
             });
         }
 
@@ -408,6 +412,29 @@ public partial class Word {
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Issued 2020-01-02 approved", pdfText);
         Assert.Contains("Cell date 2020-01-03 done", pdfText);
+    }
+
+    [Fact]
+    public void SaveAsPdf_DoesNotRenderInstructionFromMixedRunWithEmptyResult() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfEmptyFieldResultVisibility.pdf");
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Body ")._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new Text("Hidden body instruction"),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+        WordParagraph cell = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        cell._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new Text("Hidden cell instruction"),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Body", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden body instruction", pdfText, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden cell instruction", pdfText, StringComparison.Ordinal);
     }
 
     [Fact]

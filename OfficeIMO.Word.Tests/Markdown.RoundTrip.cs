@@ -97,6 +97,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_ReportsBordersFromEnabledConditionalTableStyle() {
+            using var document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Conditional";
+            table._tableProperties!.TableStyle!.Val = "ConditionalOnly";
+            var conditional = new TableStyleProperties { Type = TableStyleOverrideValues.FirstRow };
+            conditional.Append(new TableStyleConditionalFormattingTableCellProperties(
+                new TableCellBorders(new TopBorder { Val = BorderValues.Single })));
+            document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
+                new Style(conditional) { Type = StyleValues.Table, StyleId = "ConditionalOnly" });
+
+            table.ConditionalFormattingFirstRow = false;
+            Assert.DoesNotContain(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+
+            table.ConditionalFormattingFirstRow = true;
+            Assert.Contains(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic =>
+                diagnostic.Message.Contains("table borders", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void Markdown_To_Word_To_Markdown_RoundTrip_Preserves_CoreFeatures() {
             string md = "" +
                 "# Report\n" +

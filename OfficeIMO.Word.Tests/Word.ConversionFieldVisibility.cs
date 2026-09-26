@@ -2,9 +2,15 @@ using System;
 using System.Linq;
 using DocumentFormat.OpenXml.Wordprocessing;
 using M = DocumentFormat.OpenXml.Math;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
+using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
+using V = DocumentFormat.OpenXml.Vml;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
+using OfficeIMO.Word.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -51,6 +57,120 @@ public sealed class WordConversionFieldVisibilityTests {
         projected.Text = "Changed";
         Assert.Equal("Changed", projected.Text);
         Assert.Contains("Changed", mixed.InnerText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HiddenDrawingInMixedFieldRunIsAbsentFromVisibleArtifacts() {
+        using WordDocument document = WordDocument.Create();
+        var drawing = new WordDrawing(new DW.Inline(
+            new A.Graphic(new A.GraphicData(new PIC.Picture()))));
+        WordParagraph paragraph = document.AddParagraph();
+        paragraph._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            drawing,
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            new Text("Visible"),
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        WordParagraph run = Assert.Single(paragraph.GetRuns());
+        Assert.Equal("Visible", run.Text);
+        Assert.Null(run.Image);
+        Assert.Empty(run.GetPositionedImages());
+        Assert.DoesNotContain("<img", document.ToHtml(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(document.ToPdfDocumentResult().Warnings, warning =>
+            warning.Code.Contains("image", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void HiddenDrawingInTableCellInstructionIsAbsentFromPdf() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph cell = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+        cell._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new WordDrawing(new DW.Inline(new A.Graphic(new A.GraphicData(new PIC.Picture())))),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            new Text("Cell result"),
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        Assert.DoesNotContain(document.ToPdfDocumentResult().Warnings, warning =>
+            warning.Code.Contains("image", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void VisibleDrawingInMixedHeaderFieldRetainsItsSourcePart() {
+        using WordDocument document = WordDocument.Create();
+        document.AddHeadersAndFooters();
+        WordParagraph paragraph = document.Header!.Default!.AddParagraph();
+        var drawing = new WordDrawing(new DW.Inline(
+            new A.Graphic(new A.GraphicData(new PIC.Picture()))));
+        paragraph._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new Text("Instruction"),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            drawing,
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        WordParagraph projected = Assert.Single(paragraph.GetRuns());
+        Assert.Same(drawing, projected.Image!._Image);
+        Assert.Contains(drawing.Ancestors<Header>(), _ => true);
+    }
+
+    [Fact]
+    public void VisibleBreakInMixedFieldRemovesTheSourceBreak() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph();
+        var sourceBreak = new Break { Type = BreakValues.Page };
+        var sourceRun = new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new Text("Instruction"),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            sourceBreak,
+            new FieldChar { FieldCharType = FieldCharValues.End });
+        paragraph._paragraph.Append(sourceRun);
+
+        WordParagraph projected = Assert.Single(paragraph.GetRuns());
+        projected.Break!.Remove();
+
+        Assert.Null(sourceBreak.Parent);
+        Assert.Empty(sourceRun.Elements<Break>());
+    }
+
+    [Fact]
+    public void VisibleVmlShapeAndLineInMixedFieldSelectSourceArtifacts() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph();
+        var hidden = new V.Rectangle { FillColor = "#FF0000" };
+        var shown = new V.Rectangle { FillColor = "#00FF00" };
+        var hiddenLine = new V.Line { StrokeColor = "#FF0000" };
+        var shownLine = new V.Line { StrokeColor = "#00FF00" };
+        paragraph._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new Picture(hidden, hiddenLine),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            new Picture(shown, shownLine),
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        WordParagraph projected = Assert.Single(paragraph.GetRuns());
+        Assert.Same(shown, projected.Shape!._rectangle);
+        Assert.Same(shownLine, projected.Line!._line);
+    }
+
+    [Fact]
+    public void VisibleDirectDrawingTextBoxIgnoresHiddenVmlTextBoxInSameRun() {
+        using WordDocument document = WordDocument.Create();
+        WordDrawing visibleDrawing = (WordDrawing)document.AddTextBox("Visible box").Drawing!.CloneNode(true);
+        WordParagraph paragraph = document.AddParagraph();
+        var hiddenVml = new V.TextBox(new TextBoxContent(new Paragraph(new Run(new Text("Hidden box")))));
+        paragraph._paragraph.Append(new Run(
+            new FieldChar { FieldCharType = FieldCharValues.Begin },
+            new Picture(new V.Shape(hiddenVml)),
+            new FieldChar { FieldCharType = FieldCharValues.Separate },
+            visibleDrawing,
+            new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        WordParagraph projected = Assert.Single(paragraph.GetRuns());
+        Assert.Same(visibleDrawing, projected.TextBox!.Drawing);
+        Assert.Contains("Visible box", projected.TextBox.Content!.InnerText);
     }
 
     [Fact]

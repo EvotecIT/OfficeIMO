@@ -1101,7 +1101,11 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var builder = new StringBuilder();
-            var state = new NativeHeaderFooterFieldState();
+            WordComplexFieldRunVisibility prefix = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
+            var state = new NativeHeaderFooterFieldState {
+                CollectingFieldCode = prefix.HasOpenField && !prefix.IsVisible,
+                SkippingFieldResult = prefix.HasOpenField && prefix.IsVisible
+            };
             bool hasFieldToken = false;
             bool hasConflictingStyles = false;
             foreach (var element in paragraph._paragraph.ChildElements) {
@@ -1140,6 +1144,7 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             if (element is W.SimpleField simpleField) {
+                if (state.CollectingFieldCode || state.SkippingFieldResult) return;
                 string fieldCode = simpleField.Instruction?.Value ?? string.Empty;
                 if (TryGetNativeHeaderFooterFieldToken(fieldCode, out string? token, out PdfCore.PdfPageNumberStyle? style)) {
                     builder.Append(token);

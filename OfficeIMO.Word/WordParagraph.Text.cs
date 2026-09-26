@@ -110,6 +110,7 @@ namespace OfficeIMO.Word {
                 if (contentRuns == null && ReferenceEquals(textContainer, run) &&
                     TrySetSimpleRunText(run, value ?? string.Empty)) {
                     _visibleRun = null;
+                    _visibleRunSourceChildren = null;
                     return;
                 }
 
@@ -242,6 +243,7 @@ namespace OfficeIMO.Word {
                     preservedIndex++;
                 }
                 _visibleRun = null;
+                _visibleRunSourceChildren = null;
             }
         }
 

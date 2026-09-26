@@ -244,12 +244,15 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                Run? visibleRun = item is Run sourceRun ? fieldVisibility.GetVisibleRun(sourceRun) : null;
+                IReadOnlyList<OpenXmlElement>? visibleSourceChildren = null;
+                Run? visibleRun = item is Run sourceRun
+                    ? fieldVisibility.GetVisibleRun(sourceRun, out visibleSourceChildren) : null;
                 if (item is Run && visibleRun == null) continue;
                 if (item is SdtRun && !fieldVisibility.IsVisible) continue;
                 var run = visibleRun != null
                     ? new WordParagraph(this, paragraph._paragraph, (Run)item) {
-                        _visibleRun = ReferenceEquals(visibleRun, item) ? null : visibleRun
+                        _visibleRun = ReferenceEquals(visibleRun, item) ? null : visibleRun,
+                        _visibleRunSourceChildren = visibleSourceChildren
                     }
                     : new WordParagraph(this, paragraph._paragraph, (SdtRun)item);
                 // Read the content control itself before attaching hyperlink metadata;

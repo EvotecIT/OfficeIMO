@@ -865,7 +865,8 @@ namespace OfficeIMO.Word.Markdown {
                 return true;
             }
 
-            return run._run?.Descendants<Break>().Any(br => br.Type?.Value == BreakValues.Page) == true;
+            return (run._visibleRun ?? run._run)?.Descendants<Break>()
+                .Any(br => br.Type?.Value == BreakValues.Page) == true;
         }
 
         private void AppendParagraphBlocksFromSegment(
@@ -1810,8 +1811,30 @@ namespace OfficeIMO.Word.Markdown {
                 if (style == null) break;
                 if (style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>()?.ChildElements.Count > 0)
                     return true;
+                if (style.Elements<TableStyleProperties>().Any(properties =>
+                    IsActiveConditionalTableStyle(properties.Type?.Value, table) &&
+                    (properties.Descendants<TableBorders>().Any(borders => borders.HasChildren) ||
+                     properties.Descendants<TableCellBorders>().Any(borders => borders.HasChildren))))
+                    return true;
                 styleId = style.BasedOn?.Val?.Value;
             }
+            return false;
+        }
+
+        private static bool IsActiveConditionalTableStyle(TableStyleOverrideValues? type, WordTable table) {
+            if (type == TableStyleOverrideValues.WholeTable) return true;
+            if (type == TableStyleOverrideValues.FirstRow) return table.ConditionalFormattingFirstRow == true;
+            if (type == TableStyleOverrideValues.LastRow) return table.ConditionalFormattingLastRow == true;
+            if (type == TableStyleOverrideValues.FirstColumn) return table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.LastColumn) return table.ConditionalFormattingLastColumn == true;
+            if (type == TableStyleOverrideValues.Band1Horizontal) return table.ConditionalFormattingNoHorizontalBand != true;
+            if (type == TableStyleOverrideValues.Band2Horizontal) return table.ConditionalFormattingNoHorizontalBand != true && table.Rows.Count > 1;
+            if (type == TableStyleOverrideValues.Band1Vertical) return table.ConditionalFormattingNoVerticalBand != true;
+            if (type == TableStyleOverrideValues.Band2Vertical) return table.ConditionalFormattingNoVerticalBand != true && table.Rows.Any(row => row.Cells.Count > 1);
+            if (type == TableStyleOverrideValues.NorthWestCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.NorthEastCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingLastColumn == true;
+            if (type == TableStyleOverrideValues.SouthWestCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.SouthEastCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingLastColumn == true;
             return false;
         }
 

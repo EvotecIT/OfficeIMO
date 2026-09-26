@@ -949,6 +949,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void ApplyNativeTableBorders(WordTable table, PdfCore.PdfTableStyle style, NativeTableStyleDefaults tableStyleDefaults) {
             W.TableBorders? directBorders = table._tableProperties?.TableBorders;
+            if (directBorders?.HasChildren != true) directBorders = null;
             W.TableBorders? tableBorders = directBorders == null
                 ? tableStyleDefaults.Borders
                 : MergeNativeTableBorders(tableStyleDefaults.Borders, directBorders);

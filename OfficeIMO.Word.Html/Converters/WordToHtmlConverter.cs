@@ -29,7 +29,8 @@ namespace OfficeIMO.Word.Html {
                     IReadOnlyList<WordFieldInfo>? fieldInfo = options.FieldPolicy == WordFieldExportPolicy.VisibleResultWithReviewMetadata && exportInspection.HasFields
                         ? document.InspectFields().Where(field => IsSelectedFieldLocation(field.LocationKind, options)).ToArray()
                         : null;
-                    return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
+                    using (WordComplexFieldRunVisibility.BeginConversionScope())
+                        return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
                 } finally {
                     restoreReviewProjection();
                 }

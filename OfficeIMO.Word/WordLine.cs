@@ -33,11 +33,11 @@ namespace OfficeIMO.Word {
             _run.Append(pict);
         }
 
-        internal WordLine(WordDocument document, Paragraph paragraph, Run run) {
+        internal WordLine(WordDocument document, Paragraph paragraph, Run run, V.Line? selectedLine = null) {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
-            _line = run.Descendants<V.Line>().FirstOrDefault()
+            _line = selectedLine ?? run.Descendants<V.Line>().FirstOrDefault()
                 ?? throw new ArgumentException("The provided run does not contain a VML line.", nameof(run));
         }
 

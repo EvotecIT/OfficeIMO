@@ -178,6 +178,30 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_HeaderFieldInstructionAcrossParagraphsDoesNotEmitSimpleFieldToken() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfHeaderCrossParagraphField.pdf");
+        using (WordDocument document = WordDocument.Create()) {
+            document.AddHeadersAndFooters();
+            WordHeader header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
+            header.AddParagraph()._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+            WordParagraph continuation = header.AddParagraph();
+            continuation._paragraph.Append(
+                new Run(new Text("Hidden instruction")),
+                new SimpleField(new Run(new Text("1"))) { Instruction = " PAGE " },
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("Visible header")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            document.AddParagraph("Body text");
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        string text = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
+        Assert.Contains("Visible header", text);
+        Assert.DoesNotContain("Hidden instruction", text);
+        Assert.DoesNotContain("1Visible header", text);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Caps_HeaderFooter_Text_Runs() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsHeaderFooterText.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeCapsHeaderFooterText.pdf");

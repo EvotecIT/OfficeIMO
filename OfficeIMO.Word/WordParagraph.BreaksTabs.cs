@@ -27,9 +27,9 @@ namespace OfficeIMO.Word {
         public WordBreak? PageBreak {
             get {
                 if (_run != null) {
-                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
+                    var brake = (_visibleRunSourceChildren ?? _run.ChildElements).OfType<Break>().FirstOrDefault();
                     if (brake != null && brake.Type != null && brake.Type.Value == BreakValues.Page) {
-                        return new WordBreak(_document, _paragraph, _run);
+                        return new WordBreak(_document, _paragraph, _run, brake);
                     }
                 }
 
@@ -43,9 +43,9 @@ namespace OfficeIMO.Word {
         public WordBreak? Break {
             get {
                 if (_run != null) {
-                    var brake = _run.ChildElements.OfType<Break>().FirstOrDefault();
+                    var brake = (_visibleRunSourceChildren ?? _run.ChildElements).OfType<Break>().FirstOrDefault();
                     if (brake != null) {
-                        return new WordBreak(_document, _paragraph, _run);
+                        return new WordBreak(_document, _paragraph, _run, brake);
                     }
                 }
 

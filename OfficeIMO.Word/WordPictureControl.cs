@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 using System.IO;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 
@@ -57,8 +58,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordImage? Image {
             get {
-                WordDrawing? drawing = _sdtRun.SdtContentRun?.Descendants<WordDrawing>().FirstOrDefault();
-                return drawing == null ? null : new WordImage(_document, drawing);
+                var visibility = WordComplexFieldRunVisibility.ForParagraph(_paragraph);
+                foreach (Run run in _paragraph.Descendants<Run>()
+                    .Where(run => ReferenceEquals(run.Ancestors<Paragraph>().FirstOrDefault(), _paragraph))) {
+                    Run? visible = visibility.GetVisibleRun(run, out IReadOnlyList<OpenXmlElement>? sourceChildren);
+                    if (visible == null || !run.Ancestors<SdtRun>().Any(control => ReferenceEquals(control, _sdtRun))) continue;
+                    IEnumerable<OpenXmlElement> children = sourceChildren ?? run.ChildElements;
+                    WordDrawing? drawing = children.SelectMany(child => child.Descendants<WordDrawing>().Prepend(child).OfType<WordDrawing>())
+                        .FirstOrDefault();
+                    if (drawing != null) return new WordImage(_document, drawing);
+                }
+                return null;
             }
         }
 

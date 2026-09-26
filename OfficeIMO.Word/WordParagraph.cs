@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
@@ -157,6 +158,7 @@ namespace OfficeIMO.Word {
         }
         internal Run? _run;
         internal Run? _visibleRun;
+        internal IReadOnlyList<OpenXmlElement>? _visibleRunSourceChildren;
 
         internal ParagraphProperties? _paragraphProperties {
             get {
