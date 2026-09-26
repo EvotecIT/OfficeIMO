@@ -78,6 +78,50 @@ public sealed partial class PdfStaticFormRecognizerTests {
         Assert.True(report.Proposals[0].VisualBounds.Left > report.Proposals[1].VisualBounds.Left);
     }
 
+    [Fact]
+    public void NonrectangularImageClipOutsideFieldDoesNotOccupyIt() {
+        const string content = "0 0 0 RG 1 w 80 80 120 20 re S q 190 101 m 210 101 l 210 120 l h W n 150 0 0 60 70 70 cm /Im1 Do Q";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>",
+            "stream", "AAA", "endstream", "endobj", "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
+        }));
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        Assert.Single(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label).Proposals);
+    }
+
+    [Fact]
+    public void LaterWhiteFillCoveringOnlyTheLargeMarkRestoresAnEmptyField() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S 0 0 0 rg 82 81 116 18 re f 1 1 1 rg 82 81 116 18 re f");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+        Assert.True(report.Proposals.Count == 1,
+            "Expected an erased mark; diagnostics: " + string.Join(", ", report.Diagnostics.Select(static diagnostic => diagnostic.Code)));
+    }
+
+    [Fact]
+    public void LargePaintedValueReportsAnOccupiedField() {
+        byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re S 0 0 0 rg 82 81 116 18 re f");
+        var label = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Theory]
+    [InlineData(-1D, 0D, 10D, 10D)]
+    [InlineData(0D, -1D, 10D, 10D)]
+    public void OcrEvidenceRejectsNegativeVisualOrigin(double left, double top, double right, double bottom) {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new PdfStaticFormTextEvidence(1, "Name", left, top, right, bottom, 1D));
+    }
+
     private static byte[] StaticPdf(string content, string resources = "") =>
         System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",

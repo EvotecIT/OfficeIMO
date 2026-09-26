@@ -19,7 +19,8 @@ public sealed class PdfStaticFormTextEvidence {
         Guard.PositiveInteger(pageNumber, nameof(pageNumber));
         Guard.NotNullOrWhiteSpace(text, nameof(text));
         if (text.Length > 256) throw new ArgumentOutOfRangeException(nameof(text), "OCR evidence text must not exceed 256 characters.");
-        if (!IsFinite(left) || !IsFinite(top) || !IsFinite(right) || !IsFinite(bottom) || right <= left || bottom <= top) {
+        if (!IsFinite(left) || !IsFinite(top) || !IsFinite(right) || !IsFinite(bottom) ||
+            left < 0D || top < 0D || right <= left || bottom <= top) {
             throw new ArgumentOutOfRangeException(nameof(left), "OCR evidence requires a finite positive visual rectangle.");
         }
         if (!IsFinite(confidence) || confidence < 0D || confidence > 1D) throw new ArgumentOutOfRangeException(nameof(confidence));

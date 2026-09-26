@@ -119,7 +119,10 @@ internal static partial class PdfStaticFormRecognizer {
                         "A visual field outline is covered by later opaque paint.");
                     continue;
                 }
-                if (HasPaintedInterior(filledAreas, primitive, visual, evidence, cancellationToken)) continue;
+                if (HasPaintedInterior(filledAreas, primitive, visual, evidence, cancellationToken)) {
+                    AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
+                    continue;
+                }
                 if (HasInteriorMark(primitives, filledAreas, effects, candidateIndex, visual, evidence, cancellationToken) ||
                     HasImageInterior(page, filledAreas, visual, cancellationToken)) {
                     AddDiagnostic("occupied-field", pageNumber, "A visual field candidate contains a painted mark.");
@@ -389,31 +392,25 @@ internal static partial class PdfStaticFormRecognizer {
         IReadOnlyList<PaintArea> filledAreas,
         PdfPageVisualPrimitive outline, VisualRect candidate, PdfStaticFormEvidenceKind evidence,
         CancellationToken cancellationToken) {
-        PaintArea? latestPaint = null;
-        bool painted = false;
+        var paintedRegions = new List<PaintArea>();
         foreach (PaintArea area in filledAreas) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (latestPaint.HasValue && !IsLater(area.PaintOrder, area.ContentOrderKey,
-                latestPaint.Value.PaintOrder, latestPaint.Value.ContentOrderKey)) continue;
             if (IsCandidateBackdrop(area, outline, candidate, evidence)) {
-                latestPaint = area;
-                painted = false;
+                paintedRegions.RemoveAll(mark => IsLater(area.PaintOrder, area.ContentOrderKey,
+                    mark.PaintOrder, mark.ContentOrderKey));
                 continue;
             }
-            if (area.IsEmpty) {
-                if (area.IsOpaqueWhite && area.Bounds.Left <= candidate.Left && area.Bounds.Top <= candidate.Top &&
-                    area.Bounds.Right >= candidate.Right && area.Bounds.Bottom >= candidate.Bottom) {
-                    latestPaint = area;
-                    painted = false;
-                }
-            } else {
-                if (area.Bounds.Area > candidate.Area * 1.25D ||
-                    OverlapArea(area.Bounds, candidate) < candidate.Area * 0.8D) continue;
-                latestPaint = area;
-                painted = true;
+            if (area.IsOpaqueWhite) {
+                paintedRegions.RemoveAll(mark =>
+                    IsLater(area.PaintOrder, area.ContentOrderKey, mark.PaintOrder, mark.ContentOrderKey) &&
+                    area.Bounds.Left <= mark.Bounds.Left && area.Bounds.Top <= mark.Bounds.Top &&
+                    area.Bounds.Right >= mark.Bounds.Right && area.Bounds.Bottom >= mark.Bounds.Bottom);
             }
+            if (area.IsEmpty || area.Bounds.Area > candidate.Area * 1.25D ||
+                OverlapArea(area.Bounds, candidate) < candidate.Area * 0.8D) continue;
+            paintedRegions.Add(area);
         }
-        return painted;
+        return paintedRegions.Count > 0;
     }
 
     private static bool IsCandidateBackdrop(PaintArea area, PdfPageVisualPrimitive outline,
@@ -468,6 +465,9 @@ internal static partial class PdfStaticFormRecognizer {
                 bottom = Math.Min(bottom, clip.Y + clip.Height);
             }
             if (right <= left || bottom <= top) continue;
+            if (IsOpaqueWhiteFill(primitive) &&
+                RepaintsEarlierMarkOnWhiteBackdrop(filledAreas, candidatePrimitive,
+                    primitive, candidate, new VisualRect(left, top, right, bottom))) continue;
             PdfPageDrawingEffect effect = PdfReadPage.ResolveDrawingEffect(effects, primitive.PaintOrder,
                 contentOrderKey: primitive.ContentOrderKey);
             bool uncertainEffect = effect.BlendMode != OfficeBlendMode.Normal || effect.SoftMask is not null ||
@@ -486,6 +486,24 @@ internal static partial class PdfStaticFormRecognizer {
             if (visible.Area > (filled ? 0D : 0.5D) &&
                 !IsCoveredByLaterOpaqueFill(filledAreas, visible, primitive.PaintOrder,
                     primitive.ContentOrderKey)) return true;
+        }
+        return false;
+    }
+
+    private static bool RepaintsEarlierMarkOnWhiteBackdrop(IReadOnlyList<PaintArea> filledAreas,
+        PdfPageVisualPrimitive outline, PdfPageVisualPrimitive repaint,
+        VisualRect candidate, VisualRect repaintBounds) {
+        foreach (PaintArea mark in filledAreas) {
+            if (!mark.IsOpaqueCover || mark.Color is not OfficeColor color ||
+                !ColorsContrast(color, OfficeColor.White) ||
+                !IsLater(mark.PaintOrder, mark.ContentOrderKey, outline.PaintOrder, outline.ContentOrderKey) ||
+                !IsLater(repaint.PaintOrder, repaint.ContentOrderKey, mark.PaintOrder, mark.ContentOrderKey) ||
+                mark.Bounds.Area > candidate.Area * 1.25D ||
+                OverlapArea(mark.Bounds, candidate) <= 0.5D ||
+                repaintBounds.Left > mark.Bounds.Left || repaintBounds.Top > mark.Bounds.Top ||
+                repaintBounds.Right < mark.Bounds.Right || repaintBounds.Bottom < mark.Bounds.Bottom) continue;
+            if (!HasContrastingBackdrop(filledAreas, mark.Bounds, mark.PaintOrder,
+                mark.ContentOrderKey)) return true;
         }
         return false;
     }
@@ -511,9 +529,17 @@ internal static partial class PdfStaticFormRecognizer {
                 }
                 var inside = new VisualRect(Math.Max(visible.Left, interior.Left), Math.Max(visible.Top, interior.Top),
                     Math.Min(visible.Right, interior.Right), Math.Min(visible.Bottom, interior.Bottom));
-                if (inside.Area > 0.5D &&
-                    !IsCoveredByLaterOpaqueFill(filledAreas, inside, placement.PaintOrder,
-                        placement.ContentOrderKey)) return true;
+                if (inside.Area <= 0.5D) continue;
+                if (placement.Clip is { IsRectangle: false, IsExact: true, ContainsTextClipping: false } clipPath &&
+                    PdfPageClipPath.TryCreatePath(clipPath.Commands, clipPath.FillRule, out PdfPageClipPath exactClip)) {
+                    PdfPageRectangle user = page.MapVisualRectangleToUserSpace(
+                        inside.Left, inside.Top, inside.Right, inside.Bottom);
+                    PdfPageClipPath fieldClip = PdfPageClipPath.Rectangle(user.Left,
+                        page.Height - user.Top, user.Width, user.Height);
+                    if (exactClip.CanProveNoPositiveAreaIntersection(fieldClip)) continue;
+                }
+                if (!IsCoveredByLaterOpaqueFill(filledAreas, inside, placement.PaintOrder,
+                    placement.ContentOrderKey)) return true;
             }
         }
         return false;
