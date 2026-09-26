@@ -427,7 +427,8 @@ internal static partial class PdfWriter {
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
             PdfColor? decorationColor = null,
             OfficeTextFeatureSettings? featureSettings = null,
-            OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+            OfficeTextDirection textDirection = OfficeTextDirection.Auto,
+            PdfTabStop? leadingTabStop = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -444,6 +445,7 @@ internal static partial class PdfWriter {
             MeasuredWidth = measuredWidth;
             LeadingSpace = leadingSpace;
             LeadingAdvance = leadingAdvance;
+            LeadingTabStop = leadingTabStop;
             LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
             LeadingTabLeader = leadingTabLeader;
             EndsWithHardBreak = endsWithHardBreak;
@@ -498,6 +500,7 @@ internal static partial class PdfWriter {
         public bool LeadingSpace { get; }
 
         public double LeadingAdvance { get; }
+        public PdfTabStop? LeadingTabStop { get; }
 
         public bool LeadingSpaceIsExpandable { get; }
 
@@ -516,13 +519,16 @@ internal static partial class PdfWriter {
         public OfficeTextDirection TextDirection { get; }
 
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
+
+        public RichSeg WithLeadingAdvance(double advance) =>
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
     }
 
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
@@ -769,6 +775,15 @@ internal static partial class PdfWriter {
             pendingLeadingTabStop = null;
         }
 
+        void RevalidateLeadingTabFrame(double contentHeight, double followingWidth, double spaceWidth, string followingText, PdfStandardFont font, double size, PdfTextBaseline baseline) {
+            if (lineLayout == null || !pendingLeadingIsTab || lines[lines.Count - 1].Count != 0) return;
+            PrepareLineFrame(contentHeight, pendingLeadingAdvance + followingWidth);
+            // The selected interval may change the tab's origin. Retain its resolved stop,
+            // then validate the complete advance again rather than consuming another stop.
+            pendingLeadingAdvance = CalculateTabAdvance(lineWidth, followingWidth, spaceWidth, pendingLeadingTabAlignment, tabStopWidth, followingText, font, size, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings);
+            PrepareLineFrame(contentHeight, pendingLeadingAdvance + followingWidth);
+        }
+
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
             if (!hadTab) {
                 pendingLeadingAdvance = spaceW;
@@ -837,6 +852,8 @@ internal static partial class PdfWriter {
 
                 if (pendingLeadingIsTab) {
                     ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                    RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                    currentMaxWidth = CurrentMaxWidth();
                 }
 
                 List<RichSeg> currentLine = lines[lines.Count - 1];
@@ -851,6 +868,7 @@ internal static partial class PdfWriter {
                     currentLine = lines[lines.Count - 1];
                     if (pendingLeadingIsTab) {
                         ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                        RevalidateLeadingTabFrame(inlineHeight, inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
                     }
 
                     leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
@@ -880,7 +898,8 @@ internal static partial class PdfWriter {
                     underlineStyle: underlineStyle,
                     strikeStyle: strikeStyle,
                     decorationColor: currentRunDecorationColor,
-                    featureSettings: currentRunFeatureSettings));
+                    featureSettings: currentRunFeatureSettings,
+                    leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null));
                 lineWidth += leadingAdvance + inlineElement.Width;
                 RegisterInlineLineHeight(inlineElement);
                 ResetPendingLeading();
@@ -1000,6 +1019,8 @@ internal static partial class PdfWriter {
                 }
                 if (token.Length > 0 && pendingLeadingIsTab) {
                     pendingLeadingAdvance = CalculateTabAdvance(lineWidth, tokenW, spaceW, pendingLeadingTabAlignment, tabStopWidth, token, fontForRun, runFontSize, baseline, options, CurrentMaxWidth(), pendingLeadingTabStop, CurrentLineOriginOffset(), currentRunNamedFont, currentRunFeatureSettings);
+                    RevalidateLeadingTabFrame(runFontSize * lineHeightRatio, tokenW, spaceW, token, fontForRun, runFontSize, baseline);
+                    currentMaxWidth = CurrentMaxWidth();
                 }
                 needed = lastLine.Count == 0
                     ? (pendingLeadingIsTab ? pendingLeadingAdvance + tokenW : tokenW)
@@ -1015,6 +1036,7 @@ internal static partial class PdfWriter {
                     PrepareLineFrame(runFontSize * lineHeightRatio, tokenW);
                     if (token.Length > 0 && pendingLeadingIsTab) {
                         ResolvePendingLeadingTabForCurrentLine(tokenW, spaceW, token, fontForRun, runFontSize, baseline);
+                        RevalidateLeadingTabFrame(runFontSize * lineHeightRatio, tokenW, spaceW, token, fontForRun, runFontSize, baseline);
                     }
                 }
                 if (token.Length > 0) {
@@ -1022,7 +1044,7 @@ internal static partial class PdfWriter {
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
                     ResetPendingLeading();

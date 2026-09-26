@@ -39,7 +39,10 @@ internal static partial class PdfWriter {
                     block is ChoiceFieldBlock || block is RadioButtonGroupBlock || block is ShapeBlock || block is DrawingBlock || block is RowBlock || block is ContainerBlock ||
                     block is TableBlock ordinaryTable && (ordinaryTable.Style ?? currentOpts.DefaultTableStyleSnapshot)?.Position == null ||
                     block is DeferredTableBlock ordinaryDeferredTable && (ordinaryDeferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot)?.Position == null)) {
-                    AvoidFloatingBlock(Math.Max(1, MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)));
+                    double collisionHeight = block is ContainerBlock
+                        ? MeasureWholeBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) ?? GetCurrentFramePageStartY() - currentOpts.MarginBottom
+                        : MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                    AvoidFloatingBlock(Math.Max(1, collisionHeight));
                 }
 
                 if (block is SemanticBlock semantic) { RenderSemanticBlock(semantic); continue; }

@@ -10,28 +10,30 @@ internal static partial class PdfWriter {
                 NewPage();
             }
 
-            EnsurePage();
-            AddNamedDestinationName(section.DestinationName, y);
-            currentPage!.Sections.Add(new PageSection {
-                DestinationName = section.DestinationName,
-                Title = section.Title,
-                Level = section.Options.Level,
-                Y = y,
-                Reference = section.Options.Reference
-            });
+            void CaptureSectionPlacement() {
+                EnsurePage();
+                AddNamedDestinationName(section.DestinationName, y);
+                currentPage!.Sections.Add(new PageSection {
+                    DestinationName = section.DestinationName,
+                    Title = section.Title,
+                    Level = section.Options.Level,
+                    Y = y,
+                    Reference = section.Options.Reference
+                });
+            }
 
             flowSemanticScopes.Add(new FlowSemanticScope(PdfSemanticRole.Section, alternativeText: null));
             try {
                 if (section.Options.IncludeHeading) {
-                    ProcessBlocks(new IPdfBlock[] {
-                        new HeadingBlock(
+                    var heading = new HeadingBlock(
                             section.Options.Level,
                             section.Title,
                             PdfAlign.Left,
                             color: null,
-                            style: section.Options.HeadingStyle)
-                    });
-                }
+                            style: section.Options.HeadingStyle);
+                    if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureHeadingBlockHeight(heading, width)));
+                    RenderHeadingFlowBlock(heading, null, new IPdfBlock[] { heading }, 0, CaptureSectionPlacement);
+                } else CaptureSectionPlacement();
 
                 ProcessBlocks(section.Blocks);
             } finally {

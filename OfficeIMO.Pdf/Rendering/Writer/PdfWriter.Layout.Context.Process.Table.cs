@@ -24,8 +24,8 @@ internal static partial class PdfWriter {
                     logicalBottomBoundary: batch.IsLast,
                     restoreVerticalFlow: false);
             }
-            if ((!style.ConsumesVerticalFlow || style.Position != null) && ReferenceEquals(currentPage, pageBeforeTable)) {
-                y = flowYBeforeTable;
+            if (style.Position != null || !style.ConsumesVerticalFlow && ReferenceEquals(currentPage, pageBeforeTable)) {
+                y = ReferenceEquals(currentPage, pageBeforeTable) ? flowYBeforeTable : GetCurrentFramePageStartY();
             }
         }
 
@@ -241,6 +241,8 @@ internal static partial class PdfWriter {
             void NewInitialTablePage() {
                 NewPage();
                 if (style.Position is { } position) {
+                    flowYBeforeTable = y;
+                    pageBeforeTable = currentPage;
                     xOrigin = PositionTableX(position, tableWidth);
                     y = PositionTableY(position, Math.Min(maxContentHeight, tableContentHeight));
                 }
@@ -380,6 +382,8 @@ internal static partial class PdfWriter {
             void NewTablePage(int rowIndex, int startLine = 0, bool requireWholeRow = false) {
                 NewPage();
                 if (style.Position is { } continuationPosition) {
+                    flowYBeforeTable = y;
+                    pageBeforeTable = currentPage;
                     xOrigin = PositionTableX(continuationPosition, tableWidth);
                     double continuationHeight = GetTableRowsHeight(rowHeights, rowIndex, rowHeights.Length - rowIndex, rowGapPx);
                     if (startLine > 0)
