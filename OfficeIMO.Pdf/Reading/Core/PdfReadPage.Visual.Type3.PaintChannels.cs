@@ -87,7 +87,8 @@ public sealed partial class PdfReadPage {
                 form.Dictionary);
             Matrix2D formTransform = Matrix2D.Multiply(invocationState.Transform, authoredFormMatrix);
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+                content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
             IReadOnlyList<PdfPageDrawingEffectTransition> effects = PdfPageGraphicsEffectTimelineParser.Parse(
@@ -227,7 +228,8 @@ public sealed partial class PdfReadPage {
                                  type3GlyphBudget,
                                  depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
-                         pageWidth: pageWidth)) {
+                         pageWidth: pageWidth,
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
                 if (invocation.InlineImage != null &&
                     !IsInvisibleInlineImageInvocation(
                         invocation,

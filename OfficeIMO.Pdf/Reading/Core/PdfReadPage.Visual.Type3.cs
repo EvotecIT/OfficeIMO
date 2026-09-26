@@ -1288,7 +1288,8 @@ public sealed partial class PdfReadPage {
         try {
             string content = PdfEncoding.Latin1GetString(pageContentBudget.Decode(stream));
             PdfType3PaintChannels channels = PdfType3PaintChannels.None;
-            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+                content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
@@ -1419,7 +1420,8 @@ public sealed partial class PdfReadPage {
                                  type3GlyphBudget,
                                  depth + 1),
                          visibleShadingVisitor: _ => channels |= PdfType3PaintChannels.Visible,
-                         pageWidth: pageWidth)) {
+                         pageWidth: pageWidth,
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
                 if (invocation.InlineImage != null) {
                     if (!IsInvisibleInlineImageInvocation(
                             invocation,

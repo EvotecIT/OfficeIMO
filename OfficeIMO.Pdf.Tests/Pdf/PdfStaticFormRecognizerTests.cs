@@ -48,6 +48,55 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void CorrectedOcrLabelSupersedesConflictingNativeExtraction() {
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => canvas.Text("Narne:", 20D, 28D, 70D, 20D)
+                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+        var corrected = new[] { new PdfStaticFormTextEvidence(1, "Name", 20D, 28D, 90D, 48D, 0.95D) };
+
+        PdfStaticFormFieldProposal proposal = Assert.Single(
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: corrected).Proposals);
+
+        Assert.Equal("Name", proposal.Label);
+        Assert.True(proposal.UsedOcrLabel);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WhiteNativeLabelRequiresAContrastingBackdrop(bool darkBackdrop) {
+        OfficeShape backdrop = OfficeShape.Rectangle(95D, 35D);
+        backdrop.FillColor = OfficeColor.Black;
+        backdrop.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
+            .Canvas(canvas => {
+                if (darkBackdrop) canvas.Shape(backdrop, 10D, 20D);
+                canvas.Text("Name:", 20D, 28D, 70D, 20D, color: PdfColor.FromRgb(255, 255, 255))
+                    .Shape(Box(140D, 20D), 100D, 28D);
+            }).ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Equal(darkBackdrop ? 1 : 0, report.Proposals.Count);
+    }
+
+    [Fact]
+    public void PartialWhiteRepaintOverDarkBackdropCannotProveWhiteLabelContrast() {
+        OfficeShape dark = OfficeShape.Rectangle(400D, 300D);
+        dark.FillColor = OfficeColor.Black;
+        dark.StrokeColor = null;
+        OfficeShape white = OfficeShape.Rectangle(65D, 35D);
+        white.FillColor = OfficeColor.White;
+        white.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(dark, 0D, 0D).Shape(white, 10D, 20D)
+                .Text("Name:", 20D, 28D, 70D, 20D, color: PdfColor.FromRgb(255, 255, 255))
+                .Shape(Box(140D, 20D), 100D, 28D)).ToBytes();
+
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout().Proposals);
+    }
+
+    [Fact]
     public void OcrEvidenceBelowHalfConfidenceUsesTheConfiguredProposalThreshold() {
         byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400, PageHeight = 300 })
             .Canvas(canvas => canvas.Shape(Box(140D, 20D), 100D, 30D)).ToBytes();
@@ -396,6 +445,43 @@ public sealed class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void SubpointFilledCheckmarkOccupiesAStaticBox() {
+        OfficeShape mark = OfficeShape.Rectangle(0.5D, 8D);
+        mark.FillColor = OfficeColor.Black;
+        mark.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(Box(15D, 15D), 100D, 75D)
+                .Shape(mark, 107D, 78D).Text("I agree", 125D, 72D, 100D, 20D)).ToBytes();
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
+    public void WhiteMarkOnDarkBackdropOccupiesATransparentCheckbox() {
+        OfficeShape backdrop = OfficeShape.Rectangle(400D, 300D);
+        backdrop.FillColor = OfficeColor.Black;
+        backdrop.StrokeColor = null;
+        OfficeShape box = Box(15D, 15D);
+        box.FillColor = null;
+        box.StrokeColor = OfficeColor.White;
+        OfficeShape mark = OfficeShape.Rectangle(0.5D, 8D);
+        mark.FillColor = OfficeColor.White;
+        mark.StrokeColor = null;
+        byte[] source = PdfDocument.Create(new PdfOptions { PageWidth = 400D, PageHeight = 300D })
+            .Canvas(canvas => canvas.Shape(backdrop, 0D, 0D).Shape(box, 100D, 75D)
+                .Shape(mark, 107D, 78D)).ToBytes();
+        var label = new[] { new PdfStaticFormTextEvidence(1, "I agree", 125D, 72D, 225D, 92D, 1D) };
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: label);
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
     public void StrokeCrossingCheckboxEdgeOccupiesTheField() {
         OfficeShape mark = OfficeShape.Line(0D, 0D, 30D, 8D);
         mark.StrokeColor = OfficeColor.Black;
@@ -626,6 +712,58 @@ public sealed class PdfStaticFormRecognizerTests {
             "4 0 obj", "<< /Length " + System.Text.Encoding.ASCII.GetByteCount(content) + " >>", "stream", content.TrimEnd('\n'), "endstream", "endobj",
             "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
             "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", string.Empty
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
+    public void PaintCrossingCheckboxOnlyOutsideItsClipDoesNotOccupyIt() {
+        const string content = "q 0 0 10 10 re W n 0 0 0 rg 0 0 115 220 re f Q 1 w 100 205 15 15 re S BT /F1 12 Tf 125 208 Td (I agree) Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Single(report.Proposals);
+    }
+
+    [Fact]
+    public void LargeEarlierPaintClippedInsideCheckboxOccupiesIt() {
+        const string content = "q 105 210 5 5 re W n 0 0 0 rg 0 0 115 220 re f Q 1 w 100 205 15 15 re S BT /F1 12 Tf 125 208 Td (I agree) Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
+        }));
+
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();
+
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, static diagnostic => diagnostic.Code == "occupied-field");
+    }
+
+    [Fact]
+    public void LaterOpaquePaintClippedToCheckboxInteriorClearsAnEarlierMark() {
+        const string content = "1 w 100 205 15 15 re S 0 0 0 rg 105 210 5 5 re f q 101 206 13 13 re W n 1 1 1 rg 0 0 400 300 re f Q BT /F1 12 Tf 125 208 Td (I agree) Tj ET";
+        byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+            "%PDF-1.7", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 400 300] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
+            "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
+            "5 0 obj", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 6 >>", "%%EOF", ""
         }));
 
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout();

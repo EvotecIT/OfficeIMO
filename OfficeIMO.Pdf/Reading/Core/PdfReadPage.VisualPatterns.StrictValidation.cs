@@ -22,7 +22,8 @@ public sealed partial class PdfReadPage {
             graphicsStates,
             GetColorSpaceResources(
                 resources,
-                GetInvokedResourceNames(content, resources).ColorSpaces,
+                GetInvokedResourceNames(content, resources,
+                    pageContentBudget.CancellationToken.ThrowIfCancellationRequested).ColorSpaces,
                 pageContentBudget),
             null,
             null,

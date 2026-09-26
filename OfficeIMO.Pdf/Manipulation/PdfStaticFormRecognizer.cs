@@ -249,6 +249,13 @@ internal static class PdfStaticFormRecognizer {
                         }
                     }
                     if (covered) continue;
+                    if (span.Color is OfficeColor ink && ink.R >= 245 && ink.G >= 245 && ink.B >= 245 &&
+                        !HasContrastingBackdrop(filledAreas, spanVisual, span.PaintOrder, span.ContentOrderKey)) {
+                        // Keep the text as possible field occupancy, but do not infer a label without visible contrast.
+                        nativeTextBounds.Add(spanVisual);
+                        uncertainEffect = true;
+                        continue;
+                    }
                     visibleSpans.Add(span);
                     nativeTextBounds.Add(spanVisual);
                     labelBounds = labelBounds.HasValue
@@ -275,7 +282,13 @@ internal static class PdfStaticFormRecognizer {
             string text = NormalizeLabel(item.Text);
             if (text.Length == 0 || text.Length > 80 || !Valid(item.Left, item.Top, item.Right, item.Bottom, pageWidth, pageHeight)) continue;
             var bounds = new VisualRect(item.Left, item.Top, item.Right, item.Bottom);
-            if (labels.Any(label => OverlapArea(label.Bounds, bounds) > bounds.Area * 0.5D)) continue;
+            if (labels.Any(label => string.Equals(label.Text, text, StringComparison.OrdinalIgnoreCase) &&
+                OverlapArea(label.Bounds, bounds) >= Math.Max(label.Bounds.Area, bounds.Area) * 0.8D)) continue;
+            if (item.Confidence >= 0.8D) {
+                // A high-confidence caller correction supersedes conflicting native extraction at the same location.
+                labels.RemoveAll(label => !label.IsOcr &&
+                    OverlapArea(label.Bounds, bounds) > Math.Min(label.Bounds.Area, bounds.Area) * 0.5D);
+            }
             labels.Add(new Label(text, bounds, item.Confidence, isOcr: true));
         }
         return labels;
@@ -328,10 +341,7 @@ internal static class PdfStaticFormRecognizer {
         (primitive.FillOpacity ?? 1D) >= 0.999D &&
         primitive.FillGradient is null && primitive.FillRadialGradient is null && primitive.FillTilingPattern is null &&
         (primitive.ClipPath is not PdfPageClipPath clip ||
-         clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping &&
-         clip.X <= primitive.X && clip.Y <= primitive.Y &&
-         clip.X + clip.Width >= primitive.X + primitive.Width &&
-         clip.Y + clip.Height >= primitive.Y + primitive.Height) &&
+         clip.IsRectangle && clip.IsExact && !clip.ContainsTextClipping) &&
         primitive.FillColor is OfficeColor color && color.A >= 254;
 
     private static bool HasPaintedInterior(
@@ -375,8 +385,8 @@ internal static class PdfStaticFormRecognizer {
             bool paintedAfterCandidate = IsLater(primitive.PaintOrder, primitive.ContentOrderKey,
                 candidatePrimitive.PaintOrder, candidatePrimitive.ContentOrderKey);
             bool stroked = primitive.HasStrokePaint && primitive.StrokeOpacity != 0D;
-            bool filled = primitive.HasFillPaint && primitive.FillOpacity != 0D && !IsEmptyFill(primitive);
-            if (!stroked && !filled) continue;
+            bool hasFillPaint = primitive.HasFillPaint && primitive.FillOpacity != 0D;
+            if (!stroked && !hasFillPaint) continue;
             double left = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Min(primitive.X1, primitive.X2) : primitive.X;
             double top = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Min(primitive.Y1, primitive.Y2) : primitive.Y;
             double right = primitive.Kind == PdfPageVisualPrimitiveKind.Line ? Math.Max(primitive.X1, primitive.X2) : primitive.X + primitive.Width;
@@ -388,17 +398,26 @@ internal static class PdfStaticFormRecognizer {
                 right += strokePadding;
                 bottom += strokePadding;
             }
+            if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
+                !clip.ContainsTextClipping) {
+                left = Math.Max(left, clip.X);
+                top = Math.Max(top, clip.Y);
+                right = Math.Min(right, clip.X + clip.Width);
+                bottom = Math.Min(bottom, clip.Y + clip.Height);
+            }
+            if (right <= left || bottom <= top) continue;
+            bool filled = hasFillPaint && (!IsEmptyFill(primitive) ||
+                HasContrastingBackdrop(filledAreas, new VisualRect(left, top, right, bottom),
+                    primitive.PaintOrder, primitive.ContentOrderKey));
+            if (!stroked && !filled) continue;
             if (primitive.Kind != PdfPageVisualPrimitiveKind.Line &&
                 (right - left) * (bottom - top) > candidate.Area * 1.25D &&
                 !paintedAfterCandidate && left <= candidate.Left && top <= candidate.Top &&
                 right >= candidate.Right && bottom >= candidate.Bottom) continue;
-            if (right - left < 1D || bottom - top < 1D) continue;
-            if (primitive.ClipPath is PdfPageClipPath clip && clip.IsRectangle && clip.IsExact &&
-                !clip.ContainsTextClipping &&
-                (clip.X >= right || clip.Y >= bottom || clip.X + clip.Width <= left || clip.Y + clip.Height <= top)) continue;
+            if (!filled && (right - left < 1D || bottom - top < 1D)) continue;
             var visible = new VisualRect(Math.Max(left, interior.Left), Math.Max(top, interior.Top),
                 Math.Min(right, interior.Right), Math.Min(bottom, interior.Bottom));
-            if (visible.Area > 0.5D &&
+            if (visible.Area > (filled ? 0D : 0.5D) &&
                 !IsCoveredByLaterOpaqueFill(filledAreas, visible, primitive.PaintOrder,
                     primitive.ContentOrderKey)) return true;
         }
@@ -451,12 +470,13 @@ internal static class PdfStaticFormRecognizer {
         PaintArea? latest = null;
         foreach (PaintArea area in filledAreas) {
             if (!area.IsOpaqueCover || !IsLater(paintOrder, contentOrderKey, area.PaintOrder, area.ContentOrderKey) ||
-                area.Bounds.Left > outline.Left || area.Bounds.Top > outline.Top ||
-                area.Bounds.Right < outline.Right || area.Bounds.Bottom < outline.Bottom) continue;
+                OverlapArea(area.Bounds, outline) <= 0D) continue;
             if (!latest.HasValue || IsLater(area.PaintOrder, area.ContentOrderKey,
                 latest.Value.PaintOrder, latest.Value.ContentOrderKey)) latest = area;
         }
-        return latest?.ContrastsWithWhite == true;
+        return latest?.ContrastsWithWhite == true &&
+            latest.Value.Bounds.Left <= outline.Left && latest.Value.Bounds.Top <= outline.Top &&
+            latest.Value.Bounds.Right >= outline.Right && latest.Value.Bounds.Bottom >= outline.Bottom;
     }
 
     internal static bool IsLater(double candidateOrder, PdfContentOrderKey? candidateKey,

@@ -962,7 +962,8 @@ public sealed partial class PdfReadPage {
         activeType3Glyphs ??= new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
+            content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
