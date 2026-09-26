@@ -348,16 +348,18 @@ internal static partial class PdfFormFiller {
     internal static byte[] FlattenFields(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: true);
 
-    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null) {
-        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false);
+    internal static byte[] FlattenFieldsWithinPlannedRewrite(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options = null, PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        return FlattenFieldsCore(pdf, fieldNames, options, readOptions, requireMutationPlan: false, cancellationToken);
     }
 
-    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan) {
+    private static byte[] FlattenFieldsCore(byte[] pdf, IReadOnlyCollection<string> fieldNames, PdfFormFillerOptions? options, PdfLoadOptions? readOptions, bool requireMutationPlan, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         Guard.NotNull(pdf, nameof(pdf));
-        ValidateFlattenFieldNames(fieldNames);
-        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.FlattenFormFields, readOptions, fieldNames: fieldNames);
+        ValidateFlattenFieldNames(fieldNames, cancellationToken);
+        if (requireMutationPlan) _ = PdfMutationPlanner.RequireFullRewriteDocument(pdf, PdfMutationOperation.FlattenFormFields, readOptions, fieldNames: fieldNames, cancellationToken: cancellationToken);
 
-        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions);
+        var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         int catalogObjectNumber = FindCatalogObjectNumber(objects, trailerRaw);
         if (catalogObjectNumber == 0 ||
             objects[catalogObjectNumber].Value is not PdfDictionary catalog ||
@@ -390,7 +392,7 @@ internal static partial class PdfFormFiller {
             options,
             widgets,
             removableObjects,
-            ref nextObjectNumber);
+            ref nextObjectNumber, cancellationToken);
 
         if (matched.Count != requested.Count) {
             throw new ArgumentException("PDF form field was not found: " + string.Join(", ", requested.Where(name => !matched.Contains(name))), nameof(fieldNames));
@@ -399,21 +401,24 @@ internal static partial class PdfFormFiller {
             throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
         }
 
-        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber);
+        int flattenedWidgetCount = FlattenPageWidgets(objects, widgets, ref nextObjectNumber, cancellationToken);
         if (flattenedWidgetCount != widgets.Count) {
             throw new NotSupportedException(UnsupportedFlattenAnnotationMessage);
         }
 
-        FilterCalculationOrder(objects, acroForm, removableObjects);
+        FilterCalculationOrder(objects, acroForm, removableObjects, cancellationToken);
         if (fields.Items.Count == 0) {
             catalog.Items.Remove("AcroForm");
             if (acroFormObject is PdfReference acroFormReference) removableObjects.Add(acroFormReference.ObjectNumber);
         }
 
-        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys);
-        foreach (int objectNumber in removableObjects) objects.Remove(objectNumber);
-        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber);
-        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions).UncheckedMetadata, pdf);
+        PdfStructureTreeAnnotationPruner.RemoveAnnotationReferences(objects, widgets.Keys, cancellationToken);
+        foreach (int objectNumber in removableObjects) {
+            cancellationToken.ThrowIfCancellationRequested();
+            objects.Remove(objectNumber);
+        }
+        PdfObjectGraphPruner.PruneUnreachableObjects(objects, catalogObjectNumber, cancellationToken);
+        return RewriteAllObjects(objects, catalogObjectNumber, PdfReadDocument.Open(pdf, readOptions, cancellationToken).UncheckedMetadata, pdf, cancellationToken);
     }
 
     /// <summary>

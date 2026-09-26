@@ -81,6 +81,15 @@ public sealed partial class PdfStaticFormRecognizerTests {
     }
 
     [Fact]
+    public void ErasedBackingDoesNotMakeAWhiteOutlineVisible() {
+        byte[] source = StaticPdf("0 0 0 rg 80 80 120 20 re f 1 1 1 rg 0 0 240 200 re f 1 1 1 RG 1 w 80 80 120 20 re S");
+        var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr);
+        Assert.Empty(report.Proposals);
+        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "invisible-outline");
+    }
+
+    [Fact]
     public void PartialWhiteRepaintOverDarkBackdropCannotProveWhiteLabelContrast() {
         OfficeShape dark = OfficeShape.Rectangle(400D, 300D);
         dark.FillColor = OfficeColor.Black;
@@ -112,23 +121,38 @@ public sealed partial class PdfStaticFormRecognizerTests {
         Assert.Contains(rejected.Diagnostics, static diagnostic => diagnostic.Code == "low-confidence");
     }
 
-    [Fact]
-    public void GradientStrokeIsAVisibleOutlineCandidate() {
-        const string content = "/Pattern CS /P1 SCN 1 w 80 80 120 20 re S";
+    [Theory]
+    [InlineData(false, "1 0 0", "0 0 1", true, "")]
+    [InlineData(true, "1 0 0", "0 0 1", true, "")]
+    [InlineData(false, "1 1 1", "1 1 1", false, "")]
+    [InlineData(true, "1 1 1", "1 1 1", false, "")]
+    [InlineData(false, "0 0 0", "1 1 1", false, "")]
+    [InlineData(false, "1 1 1", "1 1 1", true, "0 0 0 rg 80 80 120 20 re f ")]
+    [InlineData(true, "1 1 1", "1 1 1", true, "0 0 0 rg 80 80 120 20 re f ")]
+    [InlineData(false, "1 1 1", "1 1 1", false, "0 0 0 rg 80 80 120 20 re f 1 1 1 rg 0 0 240 200 re f ")]
+    public void GradientOutlineRequiresContrast(bool radial, string start, string end, bool visible, string backing) {
+        string content = backing + "/Pattern CS /P1 SCN 1 w 80 80 120 20 re S";
         byte[] source = System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
             "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 240 200] >>", "endobj",
             "3 0 obj", "<< /Type /Page /Parent 2 0 R /Resources << /Pattern << /P1 5 0 R >> >> /Contents 4 0 R >>", "endobj",
             "4 0 obj", "<< /Length " + content.Length + " >>", "stream", content, "endstream", "endobj",
-            "5 0 obj", "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [80 80 200 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>", "endobj",
+            "5 0 obj", "<< /Type /Pattern /PatternType 2 /Shading << /ShadingType " + (radial ? "3" : "2") +
+                " /ColorSpace /DeviceRGB /Coords " + (radial ? "[80 80 0 80 80 120]" : "[80 80 200 80]") +
+                " /Function << /FunctionType 2 /Domain [0 1] /C0 [" + start + "] /C1 [" + end + "] /N 1 >> /Extend [true true] >> >>", "endobj",
             "trailer", "<< /Root 1 0 R >>", "%%EOF", ""
         }));
 
         IReadOnlyList<PdfPageVisualPrimitive> primitives = PdfReadDocument.Open(source).Pages[0].GetIdentityVisualPrimitives();
-        Assert.Contains(primitives, primitive => primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle && primitive.StrokeGradient != null);
+        Assert.Contains(primitives, primitive => primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle &&
+            (radial ? primitive.StrokeRadialGradient != null : primitive.StrokeGradient != null));
         var ocr = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
         PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: ocr);
-        Assert.Single(report.Proposals);
+        if (visible) Assert.Single(report.Proposals);
+        else {
+            Assert.Empty(report.Proposals);
+            Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "invisible-outline");
+        }
     }
 
     [Fact]

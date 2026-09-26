@@ -99,19 +99,10 @@ internal static partial class PdfStaticFormRecognizer {
                         "A visual field candidate uses compositing that cannot prove an empty field.");
                     continue;
                 }
-                if (primitive.StrokeColor is OfficeColor strokeColor &&
-                    primitive.StrokeGradient is null && primitive.StrokeRadialGradient is null &&
-                    primitive.StrokeTilingPattern is null) {
-                    bool visible = IsOpaqueWhiteFill(primitive) && primitive.FillColor is OfficeColor ownFill
-                        ? ColorsContrast(strokeColor, ownFill)
-                        : filledAreas.Any(area => IsCandidateBackdrop(area, primitive, visual, evidence)) ||
-                          HasContrastingBackdrop(filledAreas, OutlinePaintBounds(primitive, visual), strokeColor,
-                              primitive.PaintOrder, primitive.ContentOrderKey, outlinedStroke: true);
-                    if (!visible) {
-                        AddDiagnostic("invisible-outline", pageNumber,
-                            "A field outline cannot be distinguished from its painted background.");
-                        continue;
-                    }
+                if (!HasVisibleOutline(primitive, visual, evidence, filledAreas, cancellationToken)) {
+                    AddDiagnostic("invisible-outline", pageNumber,
+                        "A field outline cannot be distinguished from its painted background.");
+                    continue;
                 }
                 if (IsCoveredByLaterOpaqueFill(filledAreas, OutlinePaintBounds(primitive, visual),
                     primitive.PaintOrder, primitive.ContentOrderKey)) {
@@ -429,8 +420,7 @@ internal static partial class PdfStaticFormRecognizer {
     private static bool IsCandidateBackdrop(PaintArea area, PdfPageVisualPrimitive outline,
         VisualRect candidate, PdfStaticFormEvidenceKind evidence) =>
         evidence == PdfStaticFormEvidenceKind.OutlinedField && area.IsOpaqueCover &&
-        area.Color is OfficeColor background && outline.StrokeColor is OfficeColor ink &&
-        ColorsContrast(ink, background) &&
+        area.Color is OfficeColor background && OutlineContrastsColor(outline, background) &&
         IsLater(outline.PaintOrder, outline.ContentOrderKey, area.PaintOrder, area.ContentOrderKey) &&
         area.Bounds.Left <= candidate.Left && area.Bounds.Top <= candidate.Top &&
         area.Bounds.Right >= candidate.Right && area.Bounds.Bottom >= candidate.Bottom &&
@@ -599,7 +589,7 @@ internal static partial class PdfStaticFormRecognizer {
         HasContrastingBackdrop(filledAreas, outline, OfficeColor.White, paintOrder, contentOrderKey);
 
     private static bool HasContrastingBackdrop(IReadOnlyList<PaintArea> filledAreas, VisualRect outline,
-        OfficeColor ink, double paintOrder, PdfContentOrderKey? contentOrderKey, bool outlinedStroke = false) {
+        OfficeColor ink, double paintOrder, PdfContentOrderKey? contentOrderKey, bool outlinedStroke = false, OfficeColor? gradientEnd = null) {
         PaintArea? latestFullCover = null;
         foreach (PaintArea area in filledAreas) {
             if (!area.IsOpaqueCover || !IsLater(paintOrder, contentOrderKey, area.PaintOrder, area.ContentOrderKey) ||
@@ -610,7 +600,7 @@ internal static partial class PdfStaticFormRecognizer {
                     latestFullCover.Value.PaintOrder, latestFullCover.Value.ContentOrderKey))) latestFullCover = area;
         }
         OfficeColor backdrop = latestFullCover?.Color ?? OfficeColor.White;
-        if (!ColorsContrast(ink, backdrop)) return false;
+        if (!ColorRangeContrasts(ink, gradientEnd ?? ink, backdrop)) return false;
         foreach (PaintArea area in filledAreas) {
             if (!IsLater(paintOrder, contentOrderKey, area.PaintOrder, area.ContentOrderKey) ||
                 latestFullCover.HasValue && !IsLater(area.PaintOrder, area.ContentOrderKey,
@@ -619,7 +609,7 @@ internal static partial class PdfStaticFormRecognizer {
             // Paint wholly inside a stroked outline does not cover its visible border.
             if (outlinedStroke && area.Bounds.Left > outline.Left && area.Bounds.Top > outline.Top &&
                 area.Bounds.Right < outline.Right && area.Bounds.Bottom < outline.Bottom) continue;
-            if (!area.IsOpaqueCover || area.Color is not OfficeColor color || !ColorsContrast(ink, color)) return false;
+            if (!area.IsOpaqueCover || area.Color is not OfficeColor color || !ColorRangeContrasts(ink, gradientEnd ?? ink, color)) return false;
         }
         return true;
     }

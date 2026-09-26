@@ -15,6 +15,7 @@ internal static partial class PdfAcroFormEditor {
 
         var session = new PdfAcroFormEditSession(source.ReadOptions.Limits);
         edit(session);
+        cancellationToken.ThrowIfCancellationRequested();
         if (session.Commands.Count == 0) throw new ArgumentException("At least one AcroForm edit command is required.", nameof(edit));
         ValidatePlannedWidgetJavaScriptBudget(source, session.Commands);
         string[] fieldNames = session.Commands.SelectMany(GetCommandFieldNames).Distinct(StringComparer.Ordinal).ToArray();
@@ -38,6 +39,7 @@ internal static partial class PdfAcroFormEditor {
             IReadOnlyDictionary<string, PdfFormField> rewrittenFields =
                 PdfInspector.Inspect(output, rewrittenDocument, cancellationToken).FormFieldsByName;
             foreach (string fieldName in refillValues.Keys.ToArray()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (rewrittenFields.TryGetValue(fieldName, out PdfFormField? field) && field.IsPushButton) {
                     refillValues.Remove(fieldName);
                 }
@@ -50,13 +52,13 @@ internal static partial class PdfAcroFormEditor {
         }
         if (flattenNames.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
-            output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames, readOptions: savedReadOptions);
+            output = PdfFormFiller.FlattenFieldsWithinPlannedRewrite(output, flattenNames, readOptions: savedReadOptions, cancellationToken: cancellationToken);
             savedReadOptions = PdfLoadOptions.WithMinimumInputBytes(source.ReadOptions, output.LongLength);
         }
 
         PdfReadDocument savedDocument = PdfReadDocument.Open(output, savedReadOptions, cancellationToken);
         PdfDocumentInfo saved = PdfInspector.Inspect(output, savedDocument, cancellationToken);
-        IReadOnlyList<string> calculationOrder = ReadCalculationOrder(savedDocument);
+        IReadOnlyList<string> calculationOrder = ReadCalculationOrder(savedDocument, cancellationToken);
         ValidateReadback(saved, calculationOrder, session.Commands);
         bool requiresDocumentVersionUpgrade = RequiresDocumentVersionUpgrade(pdf, savedDocument);
         var preservationOptions = new PdfRewritePreservationOptions {

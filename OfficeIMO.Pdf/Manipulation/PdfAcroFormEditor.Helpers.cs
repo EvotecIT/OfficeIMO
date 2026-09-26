@@ -31,15 +31,17 @@ internal static partial class PdfAcroFormEditor {
         return acroForm;
     }
 
-    private static EditableField RequireField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name, includeNonterminalFields: false) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
+    private static EditableField RequireField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, System.Threading.CancellationToken cancellationToken) => FindField(objects, fields, name, includeNonterminalFields: false, cancellationToken) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
 
-    private static EditableField RequireFieldSubtree(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) => FindField(objects, fields, name, includeNonterminalFields: true) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
+    private static EditableField RequireFieldSubtree(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, System.Threading.CancellationToken cancellationToken) => FindField(objects, fields, name, includeNonterminalFields: true, cancellationToken) ?? throw new ArgumentException("PDF form field was not found: " + name, nameof(name));
 
-    private static EditableField? FindField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, bool includeNonterminalFields) {
+    private static EditableField? FindField(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, bool includeNonterminalFields, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var found = new List<EditableField>();
-        CollectFields(objects, fields, null, null, found, new HashSet<int>(), includeNonterminalFields);
+        CollectFields(objects, fields, null, null, found, new HashSet<int>(), includeNonterminalFields, cancellationToken);
         EditableField? match = null;
         for (int i = 0; i < found.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!string.Equals(found[i].FullName, name, StringComparison.Ordinal)) continue;
             if (match is not null) throw new InvalidOperationException("PDF contains duplicate fully qualified form field names: " + name);
             match = found[i];
@@ -47,13 +49,16 @@ internal static partial class PdfAcroFormEditor {
         return match;
     }
 
-    private static bool FieldPathExists(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name) {
+    private static bool FieldPathExists(Dictionary<int, PdfIndirectObject> objects, PdfArray fields, string name, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var pending = new Stack<(PdfArray Owner, string? ParentName)>();
         var visited = new HashSet<int>();
         pending.Push((fields, null));
         while (pending.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             (PdfArray owner, string? parentName) = pending.Pop();
             for (int index = 0; index < owner.Items.Count; index++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (owner.Items[index] is not PdfReference reference || !visited.Add(reference.ObjectNumber)) {
                     throw new NotSupportedException("Transactional AcroForm editing requires an acyclic indirect field tree.");
                 }
@@ -63,6 +68,7 @@ internal static partial class PdfAcroFormEditor {
                 if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) || ResolveArray(objects, kidsObject) is not PdfArray kids) continue;
                 bool hasNamedFieldKids = false;
                 for (int kidIndex = 0; kidIndex < kids.Items.Count; kidIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PdfDictionary? kid = ResolveDictionary(objects, kids.Items[kidIndex]);
                     if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) {
                         hasNamedFieldKids = true;
@@ -75,7 +81,8 @@ internal static partial class PdfAcroFormEditor {
         return false;
     }
 
-    private static IReadOnlyList<string> ReadCalculationOrder(PdfReadDocument document) {
+    private static IReadOnlyList<string> ReadCalculationOrder(PdfReadDocument document, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDocumentSecurityInfo security = document.Security;
         Dictionary<int, PdfIndirectObject> objects = document.Objects;
         PdfDictionary catalog = RequireCatalog(objects, security);
@@ -83,18 +90,21 @@ internal static partial class PdfAcroFormEditor {
             !acroForm.Items.TryGetValue("Fields", out PdfObject? fieldsObject) || ResolveArray(objects, fieldsObject) is not PdfArray fields ||
             !acroForm.Items.TryGetValue("CO", out PdfObject? orderObject) || ResolveArray(objects, orderObject) is not PdfArray order) return Array.Empty<string>();
         var editable = new List<EditableField>();
-        CollectFields(objects, fields, null, null, editable, new HashSet<int>(), includeNonterminalFields: false);
+        CollectFields(objects, fields, null, null, editable, new HashSet<int>(), includeNonterminalFields: false, cancellationToken);
         var names = editable.Where(static field => field.Reference is PdfReference).ToDictionary(static field => ((PdfReference)field.Reference).ObjectNumber, static field => field.FullName);
         var result = new List<string>(order.Items.Count);
         for (int i = 0; i < order.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (order.Items[i] is not PdfReference reference || !names.TryGetValue(reference.ObjectNumber, out string? name)) throw new InvalidOperationException("AcroForm calculation order references an unreadable field.");
             result.Add(name);
         }
         return result.AsReadOnly();
     }
 
-    private static void CollectFields(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, string? parentName, string? inheritedType, List<EditableField> result, HashSet<int> visited, bool includeNonterminalFields = false) {
+    private static void CollectFields(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, string? parentName, string? inheritedType, List<EditableField> result, HashSet<int> visited, bool includeNonterminalFields, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int i = 0; i < owner.Items.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfObject fieldObject = owner.Items[i];
             if (fieldObject is not PdfReference reference || !visited.Add(reference.ObjectNumber)) throw new NotSupportedException("Transactional AcroForm editing requires an acyclic indirect field tree.");
             PdfDictionary field = RequireDictionary(objects, reference.ObjectNumber);
@@ -103,32 +113,34 @@ internal static partial class PdfAcroFormEditor {
             PdfArray? kids = field.Items.TryGetValue("Kids", out PdfObject? kidsObject) ? ResolveArray(objects, kidsObject) : null;
             bool hasNamedFieldKids = false;
             if (kids is not null) for (int k = 0; k < kids.Items.Count; k++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 PdfDictionary? kid = ResolveDictionary(objects, kids.Items[k]);
                 if (kid is not null && !string.IsNullOrEmpty(ReadText(kid, "T"))) { hasNamedFieldKids = true; break; }
             }
             if (kids is not null && hasNamedFieldKids) {
                 if (includeNonterminalFields && !string.IsNullOrEmpty(fullName)) {
                     var subtreeWidgetNumbers = new List<int>(); var subtreeObjectNumbers = new List<int>();
-                    CollectSubtreeObjects(objects, fieldObject, subtreeObjectNumbers, subtreeWidgetNumbers, new HashSet<int>());
+                    CollectSubtreeObjects(objects, fieldObject, subtreeObjectNumbers, subtreeWidgetNumbers, new HashSet<int>(), cancellationToken);
                     result.Add(new EditableField(fullName!, fieldType, field, owner, fieldObject, subtreeWidgetNumbers.AsReadOnly(), subtreeObjectNumbers.AsReadOnly()));
                 }
-                CollectFields(objects, kids, fullName, fieldType, result, visited, includeNonterminalFields);
+                CollectFields(objects, kids, fullName, fieldType, result, visited, includeNonterminalFields, cancellationToken);
                 continue;
             }
             if (string.IsNullOrEmpty(fullName)) continue;
             var widgetNumbers = new List<int>(); var objectNumbers = new List<int>();
-            CollectSubtreeObjects(objects, fieldObject, objectNumbers, widgetNumbers, new HashSet<int>());
+            CollectSubtreeObjects(objects, fieldObject, objectNumbers, widgetNumbers, new HashSet<int>(), cancellationToken);
             result.Add(new EditableField(fullName!, fieldType, field, owner, fieldObject, widgetNumbers.AsReadOnly(), objectNumbers.AsReadOnly()));
         }
     }
 
-    private static void CollectSubtreeObjects(Dictionary<int, PdfIndirectObject> objects, PdfObject value, List<int> objectNumbers, List<int> widgetNumbers, HashSet<int> visited) {
+    private static void CollectSubtreeObjects(Dictionary<int, PdfIndirectObject> objects, PdfObject value, List<int> objectNumbers, List<int> widgetNumbers, HashSet<int> visited, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (value is not PdfReference reference || !visited.Add(reference.ObjectNumber)) return;
         objectNumbers.Add(reference.ObjectNumber);
         PdfDictionary field = RequireDictionary(objects, reference.ObjectNumber);
         if (string.Equals(ReadName(field, "Subtype"), "Widget", StringComparison.Ordinal)) widgetNumbers.Add(reference.ObjectNumber);
         if (field.Items.TryGetValue("Kids", out PdfObject? kidsObject) && ResolveArray(objects, kidsObject) is PdfArray kids)
-            for (int i = 0; i < kids.Items.Count; i++) CollectSubtreeObjects(objects, kids.Items[i], objectNumbers, widgetNumbers, visited);
+            for (int i = 0; i < kids.Items.Count; i++) CollectSubtreeObjects(objects, kids.Items[i], objectNumbers, widgetNumbers, visited, cancellationToken);
     }
 
     private static PdfDictionary RequirePage(Dictionary<int, PdfIndirectObject> objects, int[] pageObjectNumbers, int pageNumber) {
@@ -159,15 +171,18 @@ internal static partial class PdfAcroFormEditor {
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray fields,
         string fullName,
-        ref int nextObjectNumber) {
+        ref int nextObjectNumber, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string[] components = fullName.Split('.');
         PdfArray owner = fields;
         PdfReference? parentReference = null;
         for (int componentIndex = 0; componentIndex < components.Length - 1; componentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             string component = components[componentIndex];
             PdfReference? matchingReference = null;
             PdfDictionary? matchingDictionary = null;
             for (int fieldIndex = 0; fieldIndex < owner.Items.Count; fieldIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (owner.Items[fieldIndex] is not PdfReference candidateReference) {
                     throw new NotSupportedException("Transactional AcroForm editing requires an indirect field tree.");
                 }
@@ -196,6 +211,7 @@ internal static partial class PdfAcroFormEditor {
                 bool hasUnnamedWidgetKids = false;
                 if (existingKids is not null) {
                     for (int kidIndex = 0; kidIndex < existingKids.Items.Count; kidIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         PdfDictionary? kid = ResolveDictionary(objects, existingKids.Items[kidIndex]);
                         if (kid is null) continue;
                         if (!string.IsNullOrEmpty(ReadText(kid, "T"))) {
@@ -209,7 +225,7 @@ internal static partial class PdfAcroFormEditor {
                 }
                 if (string.Equals(ReadName(matchingDictionary, "Subtype"), "Widget", StringComparison.Ordinal) ||
                     hasUnnamedWidgetKids ||
-                    (ReadInheritedFieldType(objects, matchingDictionary) is not null && !hasNamedFieldKids)) {
+                    (ReadInheritedFieldType(objects, matchingDictionary, cancellationToken) is not null && !hasNamedFieldKids)) {
                     throw new ArgumentException("PDF form field path collides with an existing terminal field: " + component, nameof(fullName));
                 }
             }
@@ -232,13 +248,14 @@ internal static partial class PdfAcroFormEditor {
         PdfArray fields,
         string fullName,
         int currentFieldNodeCount,
-        PdfReadLimits limits) {
+        PdfReadLimits limits, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         string[] components = fullName.Split('.');
         if (components.Length > limits.MaxFormFieldDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, limits.MaxFormFieldDepth, components.Length);
         }
 
-        int missingParents = CountMissingCreatedFieldParents(objects, fields, components);
+        int missingParents = CountMissingCreatedFieldParents(objects, fields, components, cancellationToken);
         int addedFieldNodes = missingParents + 1;
         long finalFieldNodeCount = (long)currentFieldNodeCount + addedFieldNodes;
         if (finalFieldNodeCount > limits.MaxFormFields) {
@@ -255,11 +272,14 @@ internal static partial class PdfAcroFormEditor {
     private static int CountMissingCreatedFieldParents(
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray fields,
-        string[] components) {
+        string[] components, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfArray owner = fields;
         for (int componentIndex = 0; componentIndex < components.Length - 1; componentIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? matchingDictionary = null;
             for (int fieldIndex = 0; fieldIndex < owner.Items.Count; fieldIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (owner.Items[fieldIndex] is not PdfReference candidateReference) {
                     throw new NotSupportedException("Transactional AcroForm editing requires an indirect field tree.");
                 }
@@ -282,12 +302,14 @@ internal static partial class PdfAcroFormEditor {
     private static int CountFormFieldNodes(
         Dictionary<int, PdfIndirectObject> objects,
         PdfArray fields,
-        PdfReadLimits limits) {
+        PdfReadLimits limits, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var visitedReferences = new HashSet<(int ObjectNumber, int Generation)>();
         var visitedDictionaries = new HashSet<PdfDictionary>();
         int count = 0;
         for (int index = 0; index < fields.Items.Count; index++) {
-            CountFormFieldNode(objects, fields.Items[index], depth: 1, limits, visitedReferences, visitedDictionaries, ref count);
+            cancellationToken.ThrowIfCancellationRequested();
+            CountFormFieldNode(objects, fields.Items[index], depth: 1, limits, visitedReferences, visitedDictionaries, ref count, cancellationToken);
         }
         return count;
     }
@@ -299,7 +321,8 @@ internal static partial class PdfAcroFormEditor {
         PdfReadLimits limits,
         HashSet<(int ObjectNumber, int Generation)> visitedReferences,
         HashSet<PdfDictionary> visitedDictionaries,
-        ref int count) {
+        ref int count, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (depth > limits.MaxFormFieldDepth) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.FormFieldDepth, limits.MaxFormFieldDepth, depth);
         }
@@ -314,43 +337,57 @@ internal static partial class PdfAcroFormEditor {
         if (!field.Items.TryGetValue("Kids", out PdfObject? kidsObject) ||
             ResolveArray(objects, kidsObject) is not PdfArray kids) return;
         for (int index = 0; index < kids.Items.Count; index++) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? kid = ResolveDictionary(objects, kids.Items[index]);
             if (kid != null &&
                 string.Equals(ReadName(kid, "Subtype"), "Widget", StringComparison.Ordinal) &&
                 string.IsNullOrEmpty(ReadText(kid, "T"))) continue;
-            CountFormFieldNode(objects, kids.Items[index], depth + 1, limits, visitedReferences, visitedDictionaries, ref count);
+            CountFormFieldNode(objects, kids.Items[index], depth + 1, limits, visitedReferences, visitedDictionaries, ref count, cancellationToken);
         }
     }
 
-    private static void RemoveWidgetReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> widgetNumbers) {
+    private static void RemoveWidgetReferences(Dictionary<int, PdfIndirectObject> objects, HashSet<int> widgetNumbers, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (indirect.Value is not PdfDictionary page || !string.Equals(ReadName(page, "Type"), "Page", StringComparison.Ordinal) || !page.Items.TryGetValue("Annots", out PdfObject? annotsObject) || ResolveArray(objects, annotsObject) is not PdfArray annots) continue;
-            for (int i = annots.Items.Count - 1; i >= 0; i--) if (annots.Items[i] is PdfReference reference && widgetNumbers.Contains(reference.ObjectNumber)) annots.Items.RemoveAt(i);
+            for (int i = annots.Items.Count - 1; i >= 0; i--) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (annots.Items[i] is PdfReference reference && widgetNumbers.Contains(reference.ObjectNumber)) annots.Items.RemoveAt(i);
+            }
             if (annots.Items.Count == 0) page.Items.Remove("Annots");
         }
     }
 
-    private static void FilterReferenceArray(Dictionary<int, PdfIndirectObject> objects, PdfDictionary owner, string key, HashSet<int> removed) {
+    private static void FilterReferenceArray(Dictionary<int, PdfIndirectObject> objects, PdfDictionary owner, string key, HashSet<int> removed, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!owner.Items.TryGetValue(key, out PdfObject? value) || ResolveArray(objects, value) is not PdfArray array) return;
-        for (int i = array.Items.Count - 1; i >= 0; i--) if (array.Items[i] is PdfReference reference && removed.Contains(reference.ObjectNumber)) array.Items.RemoveAt(i);
+        for (int i = array.Items.Count - 1; i >= 0; i--) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (array.Items[i] is PdfReference reference && removed.Contains(reference.ObjectNumber)) array.Items.RemoveAt(i);
+        }
         if (array.Items.Count == 0) owner.Items.Remove(key);
     }
 
-    private static void RemoveEmptyParents(Dictionary<int, PdfIndirectObject> objects, PdfArray owner) {
+    private static void RemoveEmptyParents(Dictionary<int, PdfIndirectObject> objects, PdfArray owner, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         for (int i = owner.Items.Count - 1; i >= 0; i--) {
+            cancellationToken.ThrowIfCancellationRequested();
             PdfDictionary? field = ResolveDictionary(objects, owner.Items[i]);
             if (field is null || !field.Items.TryGetValue("Kids", out PdfObject? kidsObject) || ResolveArray(objects, kidsObject) is not PdfArray kids) continue;
-            RemoveEmptyParents(objects, kids);
+            RemoveEmptyParents(objects, kids, cancellationToken);
             if (kids.Items.Count == 0 && !string.Equals(ReadName(field, "Subtype"), "Widget", StringComparison.Ordinal)) owner.Items.RemoveAt(i);
         }
     }
 
     private static PdfArray CreateRectangle(double x1, double y1, double x2, double y2) { var result = new PdfArray(); result.Items.Add(new PdfNumber(x1)); result.Items.Add(new PdfNumber(y1)); result.Items.Add(new PdfNumber(x2)); result.Items.Add(new PdfNumber(y2)); return result; }
 
-    private static string? ReadInheritedFieldType(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field) {
+    private static string? ReadInheritedFieldType(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var visited = new HashSet<PdfDictionary>();
         PdfDictionary? current = field;
         while (current is not null && visited.Add(current)) {
+            cancellationToken.ThrowIfCancellationRequested();
             string? fieldType = ReadName(current, "FT");
             if (fieldType is not null) return fieldType;
             current = current.Items.TryGetValue("Parent", out PdfObject? parentObject)
@@ -366,10 +403,12 @@ internal static partial class PdfAcroFormEditor {
 
     private static string? ReadInheritedSimpleValue(
         Dictionary<int, PdfIndirectObject> objects,
-        PdfDictionary dictionary) {
+        PdfDictionary dictionary, System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var visited = new HashSet<int>();
         PdfDictionary? current = dictionary;
         while (current != null) {
+            cancellationToken.ThrowIfCancellationRequested();
             string? value = ReadSimpleValue(current);
             if (value != null || current.Items.ContainsKey("V")) return value;
             if (!current.Items.TryGetValue("Parent", out PdfObject? parentObject)) return null;
