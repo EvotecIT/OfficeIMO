@@ -381,7 +381,8 @@ public abstract partial class OdfDocument {
         if (!string.IsNullOrWhiteSpace(cellBackground)) state.Background = string.Equals(cellBackground, "transparent", StringComparison.OrdinalIgnoreCase)
             ? null : cellBackground;
         string? paragraphBackground = (string?)style.Element.Element(OdfNamespaces.Style + "paragraph-properties")?.Attribute(OdfNamespaces.Fo + "background-color");
-        if (!string.IsNullOrWhiteSpace(paragraphBackground) && !string.Equals(paragraphBackground, "transparent", StringComparison.OrdinalIgnoreCase)) state.Background = paragraphBackground;
+        if (!string.IsNullOrWhiteSpace(paragraphBackground)) state.ParagraphBackground =
+            string.Equals(paragraphBackground, "transparent", StringComparison.OrdinalIgnoreCase) ? null : paragraphBackground;
     }
 
     private static bool TryGetOdsColumnElement(XElement owner, out XElement? column) {
@@ -428,7 +429,7 @@ public abstract partial class OdfDocument {
         evidence = string.Empty;
         if (!OdfColor.TryParse(state.Foreground, out OdfColor foreground)) return false;
         OdfColor background;
-        if (OdfColor.TryParse(state.TextBackground ?? state.Background, out OdfColor parsedBackground)) {
+        if (OdfColor.TryParse(state.TextBackground ?? state.ParagraphBackground ?? state.Background, out OdfColor parsedBackground)) {
             background = parsedBackground;
         } else if (state.CanUseDefaultWhiteBackground) {
             background = new OdfColor(255, 255, 255);
@@ -474,6 +475,7 @@ public abstract partial class OdfDocument {
         internal double? FontSizePoints { get; set; }
         internal string? Foreground { get; set; }
         internal string? Background { get; set; }
+        internal string? ParagraphBackground { get; set; }
         internal string? TextBackground { get; set; }
         internal bool CanUseDefaultWhiteBackground { get; set; }
         internal bool NonPrimary { get; set; }
