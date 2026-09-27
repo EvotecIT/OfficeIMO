@@ -7,6 +7,40 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartAppearanceIntegrityTests {
+    [Fact]
+    public void SharedReader_ReportsUnmappedDashWhileKeepingNativeDataUpdatesAvailable() {
+        using PowerPointPresentation document = PowerPointPresentation.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d },
+            null, OfficeColor.Parse("#168A56")) });
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, data);
+        var part = document.Slides.Single().SlidePart.ChartParts.Single();
+        var outline = part.ChartSpace!.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+        outline.AddChild(new A.PresetDash { Val = A.PresetLineDashValues.LargeDash }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        chart.UpdateData(data);
+        Assert.Equal(A.PresetLineDashValues.LargeDash,
+            part.ChartSpace.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.PresetDash>()!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Fact]
+    public void SharedReader_PreservesMarkerAppearanceAndSeriesDash() {
+        using PowerPointPresentation document = PowerPointPresentation.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d },
+            null, OfficeColor.Parse("#168A56"), null, true, markerSize: 9, markerShape: OfficeChartMarkerShape.Diamond,
+            markerOutlineColor: OfficeColor.Parse("#333333"), markerOutlineWidth: 2, strokeWidth: 3,
+            strokeDashStyle: OfficeStrokeDashStyle.Dash) });
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, data);
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        var series = snapshot.Data.Series.Single();
+        Assert.Equal(9, series.MarkerSize);
+        Assert.Equal(OfficeChartMarkerShape.Diamond, series.MarkerShape);
+        Assert.Equal(OfficeColor.Parse("#333333"), series.MarkerOutlineColor);
+        Assert.Equal(2d, series.MarkerOutlineWidth);
+        Assert.Equal(3d, series.StrokeWidth);
+        Assert.Equal(OfficeStrokeDashStyle.Dash, series.StrokeDashStyle);
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Radar)]
@@ -17,7 +51,11 @@ public sealed class PowerPointChartAppearanceIntegrityTests {
                 color, null, true, connectLine: connect, markerSize: 1) });
         using PowerPointPresentation document = PowerPointPresentation.Create();
         var chart = document.AddSlide().AddChart(kind, Data(false));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot disabled));
+        Assert.False(disabled.Data.Series.Single().ConnectLine);
         chart.UpdateData(Data(true));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot enabled));
+        Assert.True(enabled.Data.Series.Single().ConnectLine);
         var part = document.Slides.Single().SlidePart.ChartParts.Single();
         var series = part.ChartSpace!.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(e => e.LocalName == "ser");
         Assert.Null(series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!.GetFirstChild<A.NoFill>());

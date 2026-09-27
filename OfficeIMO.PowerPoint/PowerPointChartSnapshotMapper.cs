@@ -15,9 +15,14 @@ namespace OfficeIMO.PowerPoint {
                     markerOutlineWidth: item.StrokeWidth,
                     showMarkerOutline: item.ShowStroke)
                 : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                    pointColors: item.PointColors, showMarkers: true,
-                    showInLegend: item.ShowInLegend, connectLine: true,
+                    pointColors: item.PointColors, showMarkers: item.SharedAppearance?.ShowMarkers ?? true,
+                    showInLegend: item.ShowInLegend, connectLine: item.SharedAppearance?.ConnectLine ?? true,
+                    markerSize: item.SharedAppearance?.MarkerSize,
+                    markerShape: item.SharedAppearance?.MarkerShape,
+                    markerOutlineColor: item.SharedAppearance?.MarkerOutlineColor,
+                    markerOutlineWidth: item.SharedAppearance?.MarkerOutlineWidth,
                     strokeWidth: item.StrokeWidth,
+                    strokeDashStyle: item.SharedAppearance?.StrokeDashStyle,
                     renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
                     axisGroup: item.AxisGroup)).Select((series, index) =>
                         series.WithPointStyles(snapshot.Data.Series[index].PointStyles)).ToList();
