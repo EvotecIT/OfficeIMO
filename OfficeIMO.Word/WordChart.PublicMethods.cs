@@ -64,6 +64,7 @@ namespace OfficeIMO.Word {
         /// <param name="value">Data value for the slice.</param>
         /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart AddPie<T>(string category, T value) {
+            RejectPieAppendToDoughnut();
             // if value is a list we need to throw as not supported
             if (!(value is int || value is double || value is float)) {
                 throw new NotSupportedException("Value must be of type int, double, or float");
@@ -82,6 +83,7 @@ namespace OfficeIMO.Word {
         /// <param name="value">Data value for the slice.</param>
         /// <returns>The current <see cref="WordChart"/> instance.</returns>
         public WordChart AddPie3D<T>(string category, T value) {
+            RejectPieAppendToDoughnut();
             if (!(value is int || value is double || value is float)) {
                 throw new NotSupportedException("Value must be of type int, double, or float");
             }
