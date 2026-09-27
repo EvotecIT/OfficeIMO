@@ -2044,6 +2044,9 @@ internal static partial class PdfWriter {
                     } else {
                         content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
+                        // Composite fonts encode spaces as two-byte CIDs, to which Tw
+                        // does not apply. Position the next word at the measured gap.
+                        content.TextMatrix(lineXOrigin + xCursor, lineY);
                     }
                 }
                 if (s.InlineElement != null) {

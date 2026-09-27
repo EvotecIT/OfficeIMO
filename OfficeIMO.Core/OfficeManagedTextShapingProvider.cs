@@ -46,12 +46,14 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex));
         if (font == null) return null;
 
+        OfficeTextDirection resolvedDirection = request.Direction == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(request.Text) : request.Direction;
         string contextual = request.ApplyDefaultLatinLigatures ? request.Text : OfficeArabicTextShaper.Shape(request.Text);
         IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(
             request.Text,
             contextual,
-            request.Direction,
-            request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures);
+            resolvedDirection,
+            request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures || request.Direction != OfficeTextDirection.Auto);
         if (visualElements.Count == 0) return null;
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
         if (!font.HasGlyphs(visual)) return null;
@@ -100,7 +102,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
 
         int[]? clusterStarts = tokens.Any(token => token.ClusterStart != token.TextIndex)
             ? tokens.Select(token => token.ClusterStart).ToArray() : null;
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, request.Direction, clusterStarts);
+        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, resolvedDirection, clusterStarts);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(

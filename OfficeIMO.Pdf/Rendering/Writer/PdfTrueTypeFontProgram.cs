@@ -113,7 +113,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
     }
 
-    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool, bool>? providerShapedTextRecorder, string? language = null) {
         Guard.NotNull(text, nameof(text));
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder, language)).ToGlyphHex();
     }

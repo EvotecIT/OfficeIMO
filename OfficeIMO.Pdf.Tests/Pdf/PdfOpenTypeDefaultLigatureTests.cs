@@ -9,6 +9,65 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
     [Fact]
+    public void DeclinedComplexScriptRetainsFallbackDiagnostic() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x20, 0x0915, 0x094D, 0x0937);
+        var report = new PdfConversionReport();
+        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).UseManagedTextShaping()
+            .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.Text("\u0915\u094D\u0937")).ToBytes();
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EmbeddedCompositeJustificationPositionsWordsAtMeasuredGap(bool cff) {
+        byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
+        var options = new PdfOptions { PageWidth = 250, MarginLeft = 20, MarginRight = 20 }
+            .EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test");
+        byte[] pdf = PdfDocument.Create(options).Paragraph(p => p.Text("office affinity fine flow efficient office affinity fine flow efficient"), PdfAlign.Justify).ToBytes();
+        using var reader = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var firstLine = reader.GetPage(1).GetWords().GroupBy(word => System.Math.Round(word.BoundingBox.Bottom, 1))
+            .OrderByDescending(group => group.Key).First().OrderBy(word => word.BoundingBox.Left).ToArray();
+        Assert.True(firstLine.Length > 1);
+        Assert.InRange(firstLine.Last().BoundingBox.Right, 225, 232);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DecliningConfiguredProviderRetainsAutomaticLatinLigatures(bool cff) {
+        byte[] data = File.ReadAllBytes((cff ? PdfComplianceTestFonts.FindBundledOpenTypeCffFont() : PdfComplianceTestFonts.FindBundledTrueTypeFont())!);
+        var options = PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+            shapingProvider: OfficeManagedTextShapingProvider.Instance);
+        var run = cff ? PdfOpenTypeCffFontProgram.Parse(data, "Test").ShapeText("office", options)
+            : PdfTrueTypeFontProgram.Parse(data, "Test").ShapeText("office", options);
+        Assert.True(run.Glyphs.Count < 6);
+        Assert.Equal("office", string.Concat(run.Glyphs.Select(g => g.UnicodeText)));
+    }
+
+    [Fact]
+    public void AutomaticLatinHonorsExplicitRtlNeutralMirroring() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('(', ')', '[', ']');
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
+        var run = font.ShapeText("([)]", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+            direction: OfficeTextDirection.RightToLeft));
+        // Reverse visual order with mirrored parentheses/brackets: [(])
+        Assert.Equal(new[] { 3, 1, 4, 2 }, run.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal("([)]", run.ActualText);
+    }
+
+    [Fact]
+    public void TwoByteLogicalGlyphCodesIgnorePdfWordSpacing() {
+        var glyphs = new[] { new PdfGlyphInfo(32, " ", 0, 600, 600, 0, 0, 0), new PdfGlyphInfo(33, "A", 1, 600, 600, 0, 0, 0) };
+        var output = new System.Text.StringBuilder();
+        new ContentStreamBuilder(output).BeginText().TextMatrix(40, 400).WordSpacing(20)
+            .ShowText(new PdfGlyphRun(glyphs, System.Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true).ToTextShowCommand(), 10).EndText();
+        Assert.Contains("1 0 0 1 46 400 Tm", output.ToString());
+        Assert.DoesNotContain("1 0 0 1 66 400 Tm", output.ToString());
+    }
+
+    [Fact]
     public void RedactingOneOrdinaryCharacterPreservesOtherCharactersInWord() {
         byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'a', 'h', 'l', 'p');
         byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))

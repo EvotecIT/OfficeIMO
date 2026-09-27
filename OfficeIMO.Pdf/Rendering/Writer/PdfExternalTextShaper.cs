@@ -21,7 +21,7 @@ internal static class PdfExternalTextShaper {
             font.FontDataForInspection,
             isOpenTypeCff: false,
             font.UnitsPerEm,
-            options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
+            automaticLatin ? options.Direction : options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language,
             default,
             fontCollectionIndex: null,
@@ -30,6 +30,15 @@ internal static class PdfExternalTextShaper {
             featureSettings: options.FeatureSettings,
             applyDefaultLatinLigatures: automaticLatin));
 
+        if (result == null && options.ShapingProvider != null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures) {
+            automaticLatin = true;
+            result = OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
+                text, font.FontName, font.FontDataForInspection, isOpenTypeCff: false, font.UnitsPerEm,
+                automaticLatin ? options.Direction : options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
+                options.Language, default, fontCollectionIndex: null, variationCoordinates: null,
+                cloneFontData: false, featureSettings: options.FeatureSettings, applyDefaultLatinLigatures: true));
+        }
+
         if (result == null) {
             glyphRun = null!;
             return false;
@@ -37,7 +46,7 @@ internal static class PdfExternalTextShaper {
 
         glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
             includeActualText: !automaticLatin || result.Direction != OfficeTextDirection.LeftToRight || OfficeManagedTextShaper.RequiresComplexLayout(text));
-        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, false);
+        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, false, automaticLatin);
         return true;
     }
 
@@ -59,7 +68,7 @@ internal static class PdfExternalTextShaper {
             font.FontDataForInspection,
             isOpenTypeCff: true,
             font.UnitsPerEm,
-            options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
+            automaticLatin ? options.Direction : options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
             options.Language,
             default,
             fontCollectionIndex: null,
@@ -68,6 +77,15 @@ internal static class PdfExternalTextShaper {
             featureSettings: options.FeatureSettings,
             applyDefaultLatinLigatures: automaticLatin));
 
+        if (result == null && options.ShapingProvider != null && options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures) {
+            automaticLatin = true;
+            result = OfficeManagedTextShapingProvider.Instance.ShapeText(new OfficeTextShapingRequest(
+                text, font.FontName, font.FontDataForInspection, isOpenTypeCff: true, font.UnitsPerEm,
+                automaticLatin ? options.Direction : options.Direction == OfficeTextDirection.Auto ? OfficeTextElements.ResolveBaseDirection(text) : options.Direction,
+                options.Language, default, fontCollectionIndex: null, variationCoordinates: null,
+                cloneFontData: false, featureSettings: options.FeatureSettings, applyDefaultLatinLigatures: true));
+        }
+
         if (result == null) {
             glyphRun = null!;
             return false;
@@ -75,7 +93,7 @@ internal static class PdfExternalTextShaper {
 
         glyphRun = BuildGlyphRun(text, result, font.GlyphCount, font.UnitsPerEm, font.GetGlyphWidth1000, options.RecordGlyphUsage ? font.RecordGlyphUsage : null,
             includeActualText: !automaticLatin || result.Direction != OfficeTextDirection.LeftToRight || OfficeManagedTextShaper.RequiresComplexLayout(text));
-        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true);
+        options.ProviderShapedTextRecorder?.Invoke(text, font.FontName, true, automaticLatin);
         return true;
     }
 

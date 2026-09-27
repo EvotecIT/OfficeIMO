@@ -125,7 +125,7 @@ public sealed partial class PdfOptions {
     private System.Collections.Generic.HashSet<string>? _reportedLayoutDiagnostics;
     private System.Collections.Generic.HashSet<string>? _providerShapedTextRuns;
     private string? _automaticLatinShapedTextRun;
-    private System.Action<string, string, bool>? _recordProviderShapedTextRunDelegate;
+    private System.Action<string, string, bool, bool>? _recordProviderShapedTextRunDelegate;
     private Func<string, IReadOnlyList<int>>? _textLineBreakCallback;
     private PdfTextHyphenationCallback? _textHyphenationCallback;
     private PdfTextShapingMode _textShapingMode = PdfTextShapingMode.OpenTypeLigatures;

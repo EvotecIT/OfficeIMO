@@ -157,16 +157,16 @@ public sealed partial class PdfOptions {
 
     // Passing the RecordProviderShapedTextRun method group as an Action allocates a new delegate on
     // every call site invocation; the text-show path hits it per drawn run. Memoize one delegate.
-    internal System.Action<string, string, bool> RecordProviderShapedTextRunDelegate =>
+    internal System.Action<string, string, bool, bool> RecordProviderShapedTextRunDelegate =>
         _recordProviderShapedTextRunDelegate ??= RecordProviderShapedTextRun;
 
-    internal void RecordProviderShapedTextRun(string text, string fontName, bool isOpenTypeCff) {
+    internal void RecordProviderShapedTextRun(string text, string fontName, bool isOpenTypeCff, bool automaticLatin) {
         if ((_textShapingProvider == null && _textShapingMode != PdfTextShapingMode.OpenTypeLigatures) || string.IsNullOrEmpty(text)) {
             return;
         }
 
         string key = BuildProviderShapedTextRunKey(text, fontName, isOpenTypeCff);
-        if (_textShapingProvider != null) (_providerShapedTextRuns ??= new HashSet<string>()).Add(key);
+        if (!automaticLatin && _textShapingProvider != null) (_providerShapedTextRuns ??= new HashSet<string>()).Add(key);
         else _automaticLatinShapedTextRun = key;
     }
 
