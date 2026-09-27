@@ -7,6 +7,7 @@ param(
         'all',
         'csv',
         'csvwrite',
+        'csvasyncread',
         'xls',
         'xlsx',
         'xlsxwrite',
@@ -135,6 +136,25 @@ $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatfor
 }
 
 $definitions = [ordered]@{
+    csvasyncread = [pscustomobject]@{
+        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
+        Filter = '*CsvAsyncReadBenchmarks*'
+        ComparisonId = "csv-async-read-$Framework"
+        Suite = 'OfficeIMO.CSV.AsyncRead'
+        CatalogEligible = $false
+        IdentityVariables = @('operation', 'rowcount', 'shape')
+        ExpectedCases = @(
+            foreach ($operation in @('FirstRow', 'AllRows')) {
+                foreach ($rowCount in @(1000, 100000)) {
+                    foreach ($shape in @('Plain', 'Multiline')) {
+                        foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
+                            "$scenario|Operation=$operation&RowCount=$rowCount&Shape=$shape"
+                        }
+                    }
+                }
+            }
+        )
+    }
     pdfnative = [pscustomobject]@{
         Project = 'OfficeIMO.Pdf.Benchmarks.Comparisons\OfficeIMO.Pdf.Benchmarks.Comparisons.csproj'
         Filter = '*PdfNativeOperationsBenchmarks*'

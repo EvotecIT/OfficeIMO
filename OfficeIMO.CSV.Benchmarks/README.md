@@ -2,6 +2,29 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
+## Asynchronous input
+
+`CsvAsyncReadBenchmarks` measures `OpenDataReaderAsync` and
+`OpenStreamingDataReaderAsync` with 1,000 and 100,000 rows containing distinct
+labels and either plain notes or quoted Unicode multiline notes. `FirstRow`
+measures opening and returning one row; `AllRows` consumes every field.
+Snapshot initialization reads the complete file in both cases. Incremental
+initialization reads the header and then advances through source buffers.
+Setup validates every observed field, row count, ID sum, and character count
+for both APIs before timing. Input creation and removal are outside timing.
+BenchmarkDotNet reports elapsed time and allocations; allocation totals do
+not establish peak resident memory. File reads use the warmed operating-system
+cache after setup, so this lane does not measure cold-disk throughput.
+
+Run the local evidence lane with:
+
+```powershell
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csvasyncread -RunMode quick -Framework net10.0 -OutputRoot ./Ignore/Benchmarks/AsyncCsv
+```
+
+Use `-PlanOnly` to inspect the 16-case matrix without executing it. The lane
+does not update the website evidence catalog or generated comparison tables.
+
 ## Text export and quote density
 
 `CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
