@@ -7,6 +7,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind) {
+            var labels = ReadLabels(chart);
             var legend = chart.GetFirstChild<C.Legend>();
             var position = legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
             var sharedPosition = position == C.LegendPositionValues.Left ? OfficeChartLegendPosition.Left :
@@ -40,6 +41,9 @@ namespace OfficeIMO.OpenXml.Internal {
             return new OfficeChartLayout(overlayLegend: legend?.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false,
                 overlayTitle: chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>() is C.Overlay title && title.Val?.Value != false,
                 showLegend: legend != null, legendPosition: sharedPosition, hiddenCategoryLegendIndexes: hidden,
+                showDataLabels: labels.Visible, showDataLabelValues: labels.Values, showDataLabelCategoryNames: labels.Categories,
+                showDataLabelSeriesNames: labels.SeriesNames, showDataLabelPercentages: labels.Percentages,
+                dataLabelSeparator: labels.Separator, dataLabelNumberFormat: labels.NumberFormat, dataLabelPosition: labels.Position,
                 fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
                 categoryAxisTitle: ReadLayoutTitle(horizontal), valueAxisTitle: ReadLayoutTitle(vertical),
                 categoryAxisNumberFormat: horizontal is C.ValueAxis ? null : ReadLayoutFormat(horizontal),

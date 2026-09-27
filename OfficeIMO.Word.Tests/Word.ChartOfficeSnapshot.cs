@@ -11,6 +11,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_PreservesBasicDataLabelsAndRejectsPerPointText() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Share", new[] { 3d, 1d }) }));
+        var labels = chart.ChartPart!.ChartSpace!.Descendants<C.DataLabels>().Single();
+        labels.GetFirstChild<C.ShowPercent>()!.Val = true;
+        labels.GetFirstChild<C.ShowCategoryName>()!.Val = true;
+        labels.AddChild(new C.Separator(" / "), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.True(snapshot.Layout!.ShowDataLabels);
+        Assert.True(snapshot.Layout.ShowDataLabelPercentages);
+        Assert.True(snapshot.Layout.ShowDataLabelCategoryNames);
+        Assert.Equal(" / ", snapshot.Layout.DataLabelSeparator);
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("A / 75%"));
+        labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+    [Fact]
     public void OfficeSnapshot_PreservesCombinationPlottingOrder() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
