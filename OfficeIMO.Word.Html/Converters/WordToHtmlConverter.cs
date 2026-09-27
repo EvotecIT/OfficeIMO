@@ -367,6 +367,15 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     bool appendedBreak = false;
+                    if (artifactElement is CarriageReturn || artifactElement is Break) {
+                        var lineBreak = CreateOutputElement(htmlDoc, "br");
+                        if (artifactElement is Break specificBreak && specificBreak.Type?.Value == BreakValues.Page)
+                            SetOutputAttribute(lineBreak, "style", "break-after:page", "RunBreak:page");
+                        else if (artifactElement is Break columnBreak && columnBreak.Type?.Value == BreakValues.Column)
+                            SetOutputAttribute(lineBreak, "style", "break-after:column", "RunBreak:column");
+                        target.Add(lineBreak);
+                        return true;
+                    }
                     if ((includeAll || artifactElement is Break || artifactElement is CarriageReturn) && run.Break != null && run.PageBreak == null) {
                         target.Add(CreateOutputElement(htmlDoc, "br"));
                         appendedBreak = true;
@@ -817,7 +826,8 @@ namespace OfficeIMO.Word.Html {
                     return;
                 }
 
-                if (para.Borders.BottomStyle != null && string.IsNullOrWhiteSpace(para.Text)) {
+                if (para.Borders.BottomStyle != null && string.IsNullOrWhiteSpace(para.Text) &&
+                    !para.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage || run.IsStructuredDocumentTag || run.IsEquation)) {
                     var hr = CreateOutputElement(htmlDoc, "hr");
                     ApplyBookmarkId(hr, para);
                     parent.AppendChild(hr);
@@ -1522,8 +1532,8 @@ namespace OfficeIMO.Word.Html {
 
             CloseLists();
 
-            AppendFootnotes(htmlDoc, body, footnotes, options, cancellationToken);
-            AppendEndnotes(htmlDoc, body, endnotes, options, cancellationToken);
+            AppendFootnotes(htmlDoc, body, footnotes, options, cancellationToken, (parent, paragraph) => AppendParagraph(parent, paragraph), CloseLists);
+            AppendEndnotes(htmlDoc, body, endnotes, options, cancellationToken, (parent, paragraph) => AppendParagraph(parent, paragraph), CloseLists);
             AppendComments(htmlDoc, body, comments, options, cancellationToken);
             AppendReviewInventories(htmlDoc, body, reviewInfo, fieldInfo, options);
             AppendListDefinitions(htmlDoc, head, listDefinitions, cancellationToken);
