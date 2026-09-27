@@ -102,6 +102,6 @@ namespace OfficeIMO.Word.Html {
         private static bool IsRenderableHeaderFooterParagraph(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.Text) ||
             paragraph.IsListItem ||
-            paragraph.GetRuns().Any(run => run.IsChart || run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
+            paragraph.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
     }
 }
