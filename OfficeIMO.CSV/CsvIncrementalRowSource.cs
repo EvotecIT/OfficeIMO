@@ -62,6 +62,7 @@ internal sealed class CsvIncrementalRowSource : ICsvAsyncDataReaderRowSource, IC
             CurrentPhysicalLineNumber = CurrentPhysicalEndLineNumber = null;
             return false;
         }
+        effective.ThrowIfCancellationRequested();
         SetCurrent(new BufferedRecord(_records.Current.Values, _records.StartLine, _records.EndLine));
         return true;
     }

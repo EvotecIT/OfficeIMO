@@ -231,6 +231,38 @@ public class CsvIncrementalAsyncReaderTests
         finally { File.Delete(path); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Synchronous_Failed_Advance_Hides_Previous_Row_And_Ends_Reader(bool mismatch)
+    {
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes(mismatch ? "Name\nAlpha\nBeta,Extra\nGamma\n" : "Name\nAlpha\n\"unfinished"));
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input, new CsvLoadOptions
+        {
+            QuoteParsingMode = CsvQuoteParsingMode.Strict, ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
+        });
+        Assert.True(await reader.ReadAsync());
+        Assert.ThrowsAny<CsvException>(() => reader.Read());
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+        Assert.Throws<InvalidOperationException>(() => reader.GetString(0));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+    }
+
+    [Fact]
+    public async Task Cancellation_From_Progress_Callback_Ends_The_Advance()
+    {
+        using var cancellation = new CancellationTokenSource();
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Name\nAlpha\nBeta\n"));
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input, new CsvLoadOptions
+        {
+            ProgressReportInterval = 1,
+            ProgressCallback = progress => { if (progress.RecordsRead == 2) cancellation.Cancel(); }
+        });
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.ReadAsync(cancellation.Token));
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+    }
+
     private sealed class AsyncInput : Stream
     {
         private readonly byte[] _bytes;

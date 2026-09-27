@@ -1110,7 +1110,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
     {
 #if NET8_0_OR_GREATER
         if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
-            return ReadIncrementalAsync(asynchronousRows, cancellationToken);
+            return ReadIncrementalAsync(asynchronousRows, asynchronous: true, cancellationToken).AsTask();
 #endif
         try
         {
@@ -1127,21 +1127,35 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
     }
 
 #if NET8_0_OR_GREATER
-    private async Task<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, CancellationToken cancellationToken)
+    private bool _incrementalReadFailed;
+
+    private async ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed) return false;
-        if (_hasBufferedRow) return ReadSlow(cancellationToken);
-        // A failed or cancelled advance must not leave the previous row exposed.
-        ClearCurrentRow();
-        bool available = await rows.ReadAsync(cancellationToken).ConfigureAwait(false);
-        cancellationToken.ThrowIfCancellationRequested();
-        _processingCancellationToken.ThrowIfCancellationRequested();
-        _hasCurrentTextRow = available;
-        _hasRows ??= available;
-        if (available) _rowIndex++;
-        return available;
+        if (_incrementalReadFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+        try
+        {
+            if (_hasBufferedRow) return ReadSlow(cancellationToken);
+            // Both synchronous and asynchronous failed advances hide the previous row.
+            ClearCurrentRow();
+            bool available = asynchronous
+                ? await rows.ReadAsync(cancellationToken).ConfigureAwait(false)
+                : rows.Read(cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
+            _hasCurrentTextRow = available;
+            _hasRows ??= available;
+            if (available) _rowIndex++;
+            return available;
+        }
+        catch
+        {
+            _incrementalReadFailed = true;
+            ClearCurrentRow();
+            throw;
+        }
     }
 #endif
 
@@ -1158,6 +1172,11 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
         {
             return false;
         }
+
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
+            return ReadIncrementalAsync(asynchronousRows, asynchronous: false, cancellationToken).GetAwaiter().GetResult();
+#endif
 
         if (_useDirectTextSourceStrings && !_hasBufferedRow)
         {
