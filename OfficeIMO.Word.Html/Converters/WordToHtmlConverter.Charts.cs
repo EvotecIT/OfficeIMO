@@ -1,0 +1,53 @@
+using AngleSharp.Dom;
+using OfficeIMO.Drawing;
+using OfficeIMO.Html;
+using System.Globalization;
+
+namespace OfficeIMO.Word.Html {
+    internal partial class WordToHtmlConverter {
+        private static IElement? CreateChartImage(IDocument owner, WordChart chart,
+            WordToHtmlOptions options, ref long embeddedImageBytes) {
+            if (!chart.TryGetOfficeSnapshot(out var snapshot)) {
+                AddExportDiagnostic(options, "WordChartOmitted",
+                    "A Word chart was omitted because its complete cached data and appearance cannot be projected.",
+                    OfficeConversionLossKind.Omission);
+                return null;
+            }
+
+            byte[] bytes;
+            try {
+                var rendering = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
+                if (rendering.QualityReport.HasIssues) {
+                    AddExportDiagnostic(options, "WordChartRenderingApproximation",
+                        "A Word chart was rendered with shared drawing quality warnings.", OfficeConversionLossKind.Approximation);
+                }
+                bytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing);
+            } catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is NotSupportedException) {
+                AddExportDiagnostic(options, "WordChartOmitted", "A Word chart could not be rendered as an HTML image.",
+                    OfficeConversionLossKind.Omission);
+                return null;
+            }
+
+            if (bytes.LongLength > options.MaxEmbeddedImageBytes)
+                ThrowExportLimitExceeded(options, "WordImageSizeLimitExceeded", "A rendered chart exceeds the per-image HTML export limit.",
+                    "WordChart", bytes.LongLength, options.MaxEmbeddedImageBytes);
+            if (bytes.LongLength > options.MaxTotalEmbeddedImageBytes - embeddedImageBytes)
+                ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Rendered charts and embedded images exceed the aggregate HTML export limit.",
+                    "WordChart", SaturatingAdd(embeddedImageBytes, bytes.LongLength), options.MaxTotalEmbeddedImageBytes);
+
+            const string prefix = "data:image/svg+xml;base64,";
+            long characters = prefix.Length + ((bytes.LongLength + 2L) / 3L) * 4L;
+            ReserveOutputCharacters(owner, characters, "A rendered chart exceeds the HTML output-character limit.", "WordChart:src");
+            var image = CreateOutputElement(owner, "img");
+            SetOutputAttributeAfterValueReservation(owner, image, "src", prefix + System.Convert.ToBase64String(bytes), "WordChart:src");
+            SetOutputAttribute(image, "alt", string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!, "WordChart:alt");
+            SetOutputAttribute(image, "width", Math.Round(snapshot.WidthPoints * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:width");
+            SetOutputAttribute(image, "height", Math.Round(snapshot.HeightPoints * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:height");
+            embeddedImageBytes += bytes.LongLength;
+            AddExportDiagnostic(options, "WordChartRenderedAsImage",
+                "A Word chart is represented by a static SVG image; its editable data and native layout are not preserved in HTML.",
+                OfficeConversionLossKind.Approximation);
+            return image;
+        }
+    }
+}
