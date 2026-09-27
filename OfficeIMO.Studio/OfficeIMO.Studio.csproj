@@ -8,7 +8,7 @@
     <AssemblyTitle>OfficeIMO Studio</AssemblyTitle>
     <Product>OfficeIMO Studio</Product>
     <ApplicationIcon>Assets\OfficeIMO.Studio.ico</ApplicationIcon>
-    <Version>0.1.9765</Version>
+    <Version>0.1.9766</Version>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -25,7 +25,6 @@
   <ItemGroup>
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.ico" />
     <AvaloniaResource Include="Assets\OfficeIMO.Studio.png" />
-    <None Update="Assets\OfficeIMO.Studio.png" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Avalonia.Desktop" Version="12.1.1" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.1" />
     <PackageReference Include="Avalonia.BuildServices" Version="11.3.2" ExcludeAssets="all" PrivateAssets="all" />
