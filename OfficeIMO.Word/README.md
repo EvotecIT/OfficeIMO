@@ -500,7 +500,8 @@ bars is rejected. Nonstandard axis arrangements, title or legend shape fills,
 manual title layouts, unsupported numeric formats, exploded slices, and nondefault bar spacing
 require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
-multiline, rotated or aligned text layouts, chart data tables, and category-label skipping also reject projection. Visible-only
+multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
+category-label skipping or offsets, rounded chart frames, and nondefault cross-between geometry also reject projection. Visible-only
 charts with hidden workbook source rows or columns reject projection; literal charts remain supported.
 Header and footer charts use relationships owned
 by their containing story, including when the same relationship ID exists in the document body.
