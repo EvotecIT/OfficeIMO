@@ -13,6 +13,54 @@ public sealed class WordChartImportedPreservationTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void SharedUpdate_PreservesSingleCategoryLayerWithRepositionedPrimaryValueAxis(bool top) {
+        var position = top ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) });
+        var chart = document.AddChart(OfficeChartKind.Line, data);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        plot.GetFirstChild<C.LineChart>()!.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val = position;
+        chart.SetData(OfficeChartKind.Line, data);
+        plot = chart.ChartPart.ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!;
+        Assert.True(plot.GetFirstChild<C.LineChart>()!.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.ShowValue>()?.Val?.Value);
+        Assert.Equal(position, plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedUpdate_RejectsScatterLayersWithDifferentAxisPairsBeforeMutation(bool cacheOnly) {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }), new OfficeChartSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }) });
+        var chart = document.AddChart(OfficeChartKind.Scatter, data);
+        var part = chart.ChartPart!;
+        var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var first = plot.GetFirstChild<C.ScatterChart>()!;
+        var second = (C.ScatterChart)first.CloneNode(true);
+        first.Elements<C.ScatterChartSeries>().Last().Remove(); second.Elements<C.ScatterChartSeries>().First().Remove();
+        var horizontal = (C.ValueAxis)plot.Elements<C.ValueAxis>().First().CloneNode(true);
+        var vertical = (C.ValueAxis)plot.Elements<C.ValueAxis>().Last().CloneNode(true);
+        horizontal.AxisId!.Val = 400001; horizontal.CrossingAxis!.Val = 400002;
+        vertical.AxisId!.Val = 400002; vertical.CrossingAxis!.Val = 400001;
+        second.Elements<C.AxisId>().First().Val = 400001; second.Elements<C.AxisId>().Last().Val = 400002;
+        plot.InsertAfter(second, first); plot.Append(horizontal, vertical);
+        if (cacheOnly) { part.ChartSpace.GetFirstChild<C.ExternalData>()!.Remove(); part.DeletePart(part.GetPartsOfType<EmbeddedPackagePart>().Single()); }
+        Assert.Empty(document.ValidateDocument());
+        string before = part.ChartSpace.OuterXml;
+        byte[] Workbook() { if (cacheOnly) return Array.Empty<byte>(); using var output = new System.IO.MemoryStream(); using (var stream = part.GetPartsOfType<EmbeddedPackagePart>().Single().GetStream()) stream.CopyTo(output); return output.ToArray(); }
+        byte[] workbookBefore = Workbook();
+        Assert.Throws<NotSupportedException>(() => chart.SetData(OfficeChartKind.Scatter, data));
+        Assert.Equal(before, part.ChartSpace.OuterXml);
+        Assert.Equal(workbookBefore, Workbook());
+        if (cacheOnly) Assert.Empty(part.GetPartsOfType<EmbeddedPackagePart>());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void SharedUpdate_RejectsRepeatedLayersWithDifferentAxisPairsBeforeMutation(bool cacheOnly) {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {

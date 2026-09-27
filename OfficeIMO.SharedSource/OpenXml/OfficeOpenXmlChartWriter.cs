@@ -365,8 +365,24 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static IEnumerable<OpenXmlElement> GetSharedNativeChartLayers(C.PlotArea plotArea) =>
             plotArea.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.OrdinalIgnoreCase));
 
-        private static bool IsOnlySharedScatterPlot(C.PlotArea plotArea) => plotArea.Elements<C.ScatterChart>().Any() &&
-            GetSharedNativeChartLayers(plotArea).All(element => element is C.ScatterChart);
+        private static bool IsOnlySharedScatterPlot(C.PlotArea plotArea) {
+            if (!plotArea.Elements<C.ScatterChart>().Any() ||
+                !GetSharedNativeChartLayers(plotArea).All(element => element is C.ScatterChart)) return false;
+            var axisCounts = plotArea.Elements<C.ValueAxis>().Where(axis => axis.AxisId?.Val != null)
+                .GroupBy(axis => axis.AxisId!.Val!.Value).ToDictionary(group => group.Key, group => group.Count());
+            uint[]? expected = null;
+            foreach (C.ScatterChart layer in plotArea.Elements<C.ScatterChart>()) {
+                var references = layer.Elements<C.AxisId>().Take(3).ToList();
+                if (references.Count != 2 || references.Any(axis => axis.Val == null))
+                    throw new NotSupportedException("In-place scatter updates require two referenced value axes per layer.");
+                uint[] pair = references.Select(axis => axis.Val!.Value).ToArray();
+                if (pair[0] == pair[1] || pair.Any(id => !axisCounts.TryGetValue(id, out int count) || count != 1) ||
+                    expected != null && !expected.SequenceEqual(pair))
+                    throw new NotSupportedException("In-place scatter updates require all layers to share the same ordered value-axis pair.");
+                expected ??= pair;
+            }
+            return true;
+        }
 
         private static C.Legend CreateSharedLegend(OfficeChartData data, OfficeChartKind kind) {
             C.Legend legend = new(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });

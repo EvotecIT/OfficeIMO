@@ -73,12 +73,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool IsSecondarySharedChartLayer(OpenXmlCompositeElement chartLayer,
             C.PlotArea plotArea) {
-            // Numeric chart axes can use top/right positions on their primary
-            // pair. Those positions do not declare a secondary category group.
-            if (chartLayer is C.BubbleChart || chartLayer is C.ScatterChart) return false;
-            var references = new HashSet<uint>(chartLayer.Elements<C.AxisId>().Where(axis => axis.Val != null).Select(axis => axis.Val!.Value));
-            return plotArea.Elements<C.ValueAxis>().Any(axis => axis.AxisId?.Val != null && references.Contains(axis.AxisId.Val.Value) &&
-                (axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right || axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top));
+            return OfficeOpenXmlChartAxisGroups.Read(plotArea, chartLayer) == OfficeIMO.Drawing.OfficeChartAxisGroup.Secondary;
         }
 
         private static void ReplaceSharedSeriesData(
