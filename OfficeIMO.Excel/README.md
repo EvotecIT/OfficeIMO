@@ -263,6 +263,10 @@ the original serial, including cached formula values. A cell converter returning
 retains default conversion. Explicit converter results, including handled nulls,
 take precedence. Type converters see the reader's original value before numeric
 mapping uses the serial.
+Explicit `RowMapper<T>` bindings also support aliases, optional source columns,
+per-column culture, date formats and converters through
+[`RowMappingColumnOptions`](../OfficeIMO.Core/README.md#per-column-row-mapping).
+These controls apply to sequential, asynchronous and parallel projections.
 
 `ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
 decompression with workbook metadata parsing on a spare worker. It is disabled by default,

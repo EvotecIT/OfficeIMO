@@ -19,6 +19,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
 
     internal void CaptureReaderValues(DbDataReader reader, object?[] values) {
         foreach (MappingBinding binding in _bindings) {
+            if (binding.ColumnIndex < 0) continue;
             if (values[binding.ColumnIndex] is not DataReaderMappingValue) {
                 values[binding.ColumnIndex] = DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Entry.ValueType);
             }
@@ -31,7 +32,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         var mapper = new RowMapper<T>();
         configure(mapper);
         MappingBinding[] bindings = mapper.Entries
-            .Select(entry => new MappingBinding(FindColumn(headers, entry.ColumnNames), entry))
+            .Select(entry => new MappingBinding(FindColumn(headers, entry.ColumnNames, entry.Optional), entry))
             .ToArray();
         return new ExplicitRowMappingPlan<T>(bindings);
     }
@@ -44,6 +45,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
         T instance = new T();
         foreach (MappingBinding binding in _bindings) {
+            if (binding.ColumnIndex < 0) continue;
             instance = binding.Entry.Apply(
                 instance,
                 getValue(binding.ColumnIndex),
@@ -63,6 +65,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
         T instance = new T();
         foreach (MappingBinding binding in _bindings) {
+            if (binding.ColumnIndex < 0) continue;
             instance = binding.Entry.Apply(
                 instance,
                 values[binding.ColumnIndex],
@@ -82,6 +85,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
         T instance = new T();
         foreach (MappingBinding binding in _bindings) {
+            if (binding.ColumnIndex < 0) continue;
             instance = binding.Entry.ApplyReader(
                 instance,
                 reader,
@@ -94,7 +98,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
         return instance;
     }
 
-    private static int FindColumn(IReadOnlyList<string> headers, IReadOnlyList<string> columnNames) {
+    private static int FindColumn(IReadOnlyList<string> headers, IReadOnlyList<string> columnNames, bool optional) {
         for (int nameIndex = 0; nameIndex < columnNames.Count; nameIndex++) {
             int found = -1;
             for (int headerIndex = 0; headerIndex < headers.Count; headerIndex++) {
@@ -115,6 +119,7 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
             if (found >= 0) return found;
         }
 
+        if (optional) return -1;
         throw new DataMappingException(
             $"None of the columns '{string.Join("', '", columnNames)}' were found.");
     }

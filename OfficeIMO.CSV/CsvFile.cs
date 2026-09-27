@@ -25,14 +25,14 @@ internal static partial class CsvFile
         options ??= new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: false);
-        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
     }
 
     internal static TextReader OpenTextReaderForAsyncRead(string path, CsvLoadOptions options, int bufferSize = 256 * 1024)
     {
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: true);
-        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks, bufferSize: bufferSize);
     }
 
     internal static TextReader OpenTextReader(Stream source, CsvLoadOptions options, bool leaveOpen, int bufferSize = 256 * 1024)
@@ -64,7 +64,7 @@ internal static partial class CsvFile
         return new StreamReader(
             new CsvBomReadStream(input),
             encoding,
-            detectEncodingFromByteOrderMarks: true,
+            detectEncodingFromByteOrderMarks: options.DetectEncodingFromByteOrderMarks,
             bufferSize,
             leaveOpen: false);
     }

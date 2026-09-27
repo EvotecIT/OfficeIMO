@@ -111,6 +111,44 @@ document.EnsureInferredSchema()
     .ValidateOrThrow();
 ```
 
+## Policy profiles
+
+Use a profile to select explicit defaults, then edit the returned options for the
+file's dialect. Each call creates independent options; existing constructors and
+APIs retain their current defaults.
+
+```csharp
+CsvLoadOptions input = CsvProfiles.CreateLoadOptions(CsvProfile.Strict);
+input.Delimiter = ';';
+CsvDocument document = CsvDocument.Load("input.csv", input);
+
+CsvSaveOptions output = CsvProfiles.CreateSaveOptions(CsvProfile.Spreadsheet);
+document.Save("spreadsheet.csv", output);
+```
+
+| Profile | Input policy | Byte decoding | Output policy |
+|---|---|---|---|
+| Strict | Strict quotes and field counts; duplicate headers fail; comments remain records | Fixed UTF-8, optional matching BOM, invalid bytes fail | UTF-8 without BOM, CRLF, values preserved |
+| Compatibility | Existing lenient quotes, padded missing fields, ignored extras, generated and renamed headers | Existing UTF-8 fallback with BOM detection | Existing newline and encoding defaults, values preserved |
+| Spreadsheet | Strict quotes and field counts; delimiter detection; generated and renamed headers; comments remain records | UTF-8 fallback with BOM detection | UTF-8 with BOM, CRLF, formula-like text prefixed with an apostrophe |
+
+Strict and Spreadsheet redact source values and custom-converter details in
+mapping failures. Parse failures throw by default; use `CollectParseErrors`,
+`ParseErrors`, `MaxParseErrors` and `ParseErrorAction` to configure collection or
+row skipping. Both profiles disable W3C header interpretation. All profiles
+retain the configured input-size and decompression limits.
+
+Formula escaping applies to text and configured text tokens; typed negative
+numbers remain numeric. Escaping changes the exported text, so use a preserving
+profile when exact values are required. Load profiles retain formula-like input
+as text; they do not execute or rewrite it.
+
+`DetectEncodingFromByteOrderMarks = false` keeps the configured encoding
+authoritative. Its own preamble is accepted; a different BOM does not switch the
+decoder. Text inputs are already decoded, and TextWriter output has no byte
+encoding. Profiles do not impose a culture-specific spreadsheet dialect; select
+the delimiter and culture explicitly when needed.
+
 ## Typed mapping
 
 For ordinary DTOs, `RowsAs<T>()` matches headers to writable properties without
@@ -229,6 +267,13 @@ public sealed class Person {
     public string City { get; set; } = "";
 }
 ```
+
+Use the three-argument `FromColumn` or `FromColumns` overload with
+`RowMappingColumnOptions` for an optional column, a column-specific culture,
+date/time formats, or a converter. Missing optional columns preserve the model's
+initialized value; present invalid values still fail. These controls share the
+same [Core mapping owner](../OfficeIMO.Core/README.md#per-column-row-mapping)
+across document, reader, async and parallel projections.
 
 For a non-positional record with a public parameterless constructor, an
 assignment can return a new value from each step:
