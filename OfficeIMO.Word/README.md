@@ -483,6 +483,15 @@ explicit array containing null entries to clear those points' fill and outline o
 Native authoring is separate from static export support: Word's current snapshot and PDF
 routes do not project bubble or combination charts. Use the native DOCX for those families.
 
+Category and scatter snapshots retain supported native line and marker appearance.
+Call `snapshot.Data.Series[index].ToOfficeSeries()` to obtain the shared series,
+including connecting-line visibility, stroke width and dash, marker shape and
+size, marker outlines, and point overrides. Word page images and Markdown chart
+drawings use that same series. Unqualified native dashes, curved lines, distinct
+marker and connecting-line colours, or unfilled marker treatments reject the
+managed snapshot rather than changing their appearance. Cached projections are
+bounded to 10,000 positions per Word cache and 100,000 positions across a chart.
+
 `RadialLayout` reads native pie rotation and doughnut hole size. `SetRadialLayout(...)`
 updates an existing two-dimensional pie or doughnut chart. These settings survive
 save/reopen, data updates, snapshots, managed images, PDF, and chart projections to Markdown.

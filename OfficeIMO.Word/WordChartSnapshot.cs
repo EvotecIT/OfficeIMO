@@ -45,13 +45,16 @@ namespace OfficeIMO.Word {
     /// Series values extracted from cached Word chart data.
     /// </summary>
     public sealed class WordChartSeries {
-        internal WordChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues = null, OfficeIMO.Drawing.OfficeColor? color = null, IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? pointColors = null, IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? pointStyles = null) {
-            Name = name ?? string.Empty;
-            Values = new ReadOnlyCollection<double>(new List<double>(values ?? Array.Empty<double>()));
-            XValues = xValues == null ? null : new ReadOnlyCollection<double>(new List<double>(xValues));
-            Color = color;
-            PointColors = pointColors == null ? null : new ReadOnlyCollection<OfficeIMO.Drawing.OfficeColor?>(new List<OfficeIMO.Drawing.OfficeColor?>(pointColors));
-            PointStyles = pointStyles == null ? null : new ReadOnlyCollection<OfficeIMO.Drawing.OfficeChartPointStyle?>(new List<OfficeIMO.Drawing.OfficeChartPointStyle?>(pointStyles));
+        private readonly OfficeIMO.Drawing.OfficeChartSeries _sharedSeries;
+
+        internal WordChartSeries(OfficeIMO.Drawing.OfficeChartSeries series) {
+            _sharedSeries = series;
+            Name = series.Name;
+            Values = series.Values;
+            XValues = series.XValues;
+            Color = series.Color;
+            PointColors = series.PointColors;
+            PointStyles = series.PointStyles;
         }
 
         /// <summary>Series display name.</summary>
@@ -71,6 +74,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Point fill, hatch, and outline overrides read from native chart properties.</summary>
         public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
+
+        /// <summary>Returns the shared series, retaining native line, marker and point appearance.</summary>
+        public OfficeIMO.Drawing.OfficeChartSeries ToOfficeSeries() => _sharedSeries;
     }
 
     /// <summary>

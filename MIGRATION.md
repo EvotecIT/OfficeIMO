@@ -50,6 +50,11 @@ Native Word, Excel, and PowerPoint writers clamp shared marker sizes to the
 DrawingML range of 2–72 points. Excel's explicit `SetSeriesMarker` methods reject
 sizes outside that range; use 2 instead of 1 for the smallest native marker.
 
+Default numeric chart ticks no longer infer percentages from fractional values.
+For example, `0.75` renders as `0.75`, rather than `75%`. Set an explicit percentage
+axis number format when those values represent ratios; 100% stacked chart
+families continue to use percentage labels by default.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to

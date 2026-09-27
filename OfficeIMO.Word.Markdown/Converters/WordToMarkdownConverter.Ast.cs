@@ -1374,7 +1374,7 @@ namespace OfficeIMO.Word.Markdown {
 
         private static OfficeChartSnapshot CreateOfficeChartSnapshot(WordChartSnapshot snapshot) {
             var series = snapshot.Data.Series
-                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color, item.PointColors).WithPointStyles(item.PointStyles))
+                .Select(item => item.ToOfficeSeries())
                 .ToList();
             var data = new OfficeChartData(snapshot.Data.Categories, series);
             var style = CreateOfficeChartStyle(snapshot);

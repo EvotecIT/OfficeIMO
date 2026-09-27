@@ -7,6 +7,42 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartAppearanceIntegrityTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SharedReader_InheritsGroupMarkerAndConnectionVisibilityAcrossSaveReopen(int mode) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(mode == 0 ? OfficeChartKind.Line : OfficeChartKind.Scatter,
+            new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }, mode == 0 ? null : new[] { 1d, 2d }) }));
+        var plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        if (mode == 0) plot.GetFirstChild<C.LineChart>()!.AddChild(new C.ShowMarker { Val = false }, true);
+        else plot.GetFirstChild<C.ScatterChart>()!.ScatterStyle!.Val = mode == 1 ? C.ScatterStyleValues.Line : C.ScatterStyleValues.Marker;
+        plot.Descendants<C.Marker>().Single().Remove();
+        using var bytes = new MemoryStream(document.ToBytes());
+        using var reopened = PowerPointPresentation.Load(bytes);
+        Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out var snapshot));
+        var series = snapshot.Data.Series.Single();
+        Assert.Equal(mode == 2, series.ShowMarkers);
+        Assert.Equal(mode != 2, series.ConnectLine);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
+    public void SharedReader_RejectsTheAggregateCacheBudgetAcrossMixedLayers() {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Line", new[] { 1d, 2d }),
+            new OfficeChartSeries("Columns", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered) }));
+        var plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        foreach (var count in plot.Descendants<C.PointCount>()) count.Val = 50000;
+        Assert.True(chart.TryGetOfficeSnapshot(out var bounded));
+        Assert.Equal(2, bounded.Data.Series.Count);
+        plot.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.Values>()!.Descendants<C.PointCount>().Single().Val = 50001;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Empty(document.ValidateDocument());
+    }
+
     [Fact]
     public void SharedReader_ReportsUnmappedDashWhileKeepingNativeDataUpdatesAvailable() {
         using PowerPointPresentation document = PowerPointPresentation.Create();
