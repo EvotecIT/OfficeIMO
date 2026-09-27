@@ -554,70 +554,6 @@ public sealed partial class PdfEmbeddedFontFamily {
         }
     }
 
-    private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata) {
-        metadata = null;
-        try {
-            if (data.Length < 12) {
-                return false;
-            }
-
-            var tables = ReadFontTableDirectory(data);
-            if (!tables.TryGetValue("name", out FontTableRecord nameTable)) {
-                return false;
-            }
-
-            return TryReadTrueTypeNameTable(data, nameTable.Offset,
-                nameTable.Length, out metadata);
-        } catch (System.Exception exception) when (exception is System.NotSupportedException) {
-            return false;
-        }
-    }
-
-    private static bool TryReadTrueTypeNameTable(byte[] data, int offset,
-        int tableLength, out TrueTypeNameMetadata? metadata) {
-        metadata = null;
-        try {
-            EnsureRange(data, offset, tableLength);
-            var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
-            int count = ReadUInt16(data, offset + 2);
-            int stringOffset = offset + ReadUInt16(data, offset + 4);
-            for (int i = 0; i < count; i++) {
-                int record = offset + 6 + i * 12;
-                EnsureRange(data, record, 12);
-                int platformId = ReadUInt16(data, record);
-                int encodingId = ReadUInt16(data, record + 2);
-                int nameId = ReadUInt16(data, record + 6);
-                if (nameId != 1 && nameId != 2 && nameId != 4 && nameId != 6 && nameId != 16 && nameId != 17) {
-                    continue;
-                }
-
-                int length = ReadUInt16(data, record + 8);
-                int valueOffset = stringOffset + ReadUInt16(data, record + 10);
-                EnsureRange(data, valueOffset, length);
-                string? value = DecodeNameValue(data, valueOffset, length, platformId, encodingId);
-                if (string.IsNullOrWhiteSpace(value)) {
-                    continue;
-                }
-
-                int score = GetNameValueScore(platformId);
-                if (!names.TryGetValue(nameId, out TrueTypeNameValue? existing) || score > existing.Score) {
-                    names[nameId] = new TrueTypeNameValue(value!.Trim(), score);
-                }
-            }
-
-            metadata = new TrueTypeNameMetadata(
-                GetName(names, 1),
-                GetName(names, 2),
-                GetName(names, 4),
-                GetName(names, 6),
-                GetName(names, 16),
-                GetName(names, 17));
-            return true;
-        } catch (System.Exception exception) when (exception is System.NotSupportedException) {
-            return false;
-        }
-    }
-
     private static System.Collections.Generic.Dictionary<string, FontTableRecord> ReadFontTableDirectory(byte[] data) {
         int numTables = ReadUInt16(data, 4);
         var tables = new System.Collections.Generic.Dictionary<string, FontTableRecord>(System.StringComparer.Ordinal);
@@ -638,35 +574,6 @@ public sealed partial class PdfEmbeddedFontFamily {
 
         return tables;
     }
-
-    private static string? DecodeNameValue(byte[] data, int offset, int length, int platformId, int encodingId) {
-        if (platformId == 3 || platformId == 0) {
-            return length % 2 == 0
-                ? System.Text.Encoding.BigEndianUnicode.GetString(data, offset, length).TrimEnd('\0')
-                : null;
-        }
-
-        if (platformId == 1 && encodingId == 0) {
-            return System.Text.Encoding.ASCII.GetString(data, offset, length).TrimEnd('\0');
-        }
-
-        return null;
-    }
-
-    private static int GetNameValueScore(int platformId) {
-        if (platformId == 3) {
-            return 30;
-        }
-
-        if (platformId == 0) {
-            return 20;
-        }
-
-        return 10;
-    }
-
-    private static string? GetName(System.Collections.Generic.Dictionary<int, TrueTypeNameValue> names, int nameId) =>
-        names.TryGetValue(nameId, out TrueTypeNameValue? value) ? value.Value : null;
 
     private static ushort ReadUInt16(byte[] data, int offset) {
         EnsureRange(data, offset, 2);
@@ -738,71 +645,6 @@ public sealed partial class PdfEmbeddedFontFamily {
                 return prefixes.Any(prefix => fileName.StartsWith(prefix, System.StringComparison.Ordinal));
             }).ToArray();
         }
-    }
-
-    private sealed class TrueTypeNameMetadata {
-        public TrueTypeNameMetadata(
-            string? familyName,
-            string? subfamilyName,
-            string? fullName,
-            string? postScriptName,
-            string? typographicFamilyName,
-            string? typographicSubfamilyName) {
-            FamilyName = familyName;
-            SubfamilyName = subfamilyName;
-            FullName = fullName;
-            PostScriptName = postScriptName;
-            TypographicFamilyName = typographicFamilyName;
-            TypographicSubfamilyName = typographicSubfamilyName;
-        }
-
-        public string? FamilyName { get; }
-
-        public string? SubfamilyName { get; }
-
-        public string? FullName { get; }
-
-        public string? PostScriptName { get; }
-
-        public string? TypographicFamilyName { get; }
-
-        public string? TypographicSubfamilyName { get; }
-
-        public System.Collections.Generic.IEnumerable<string?> GetFamilyNames() {
-            yield return TypographicFamilyName;
-            yield return FamilyName;
-        }
-
-        public System.Collections.Generic.IEnumerable<string?> GetFaceNames() {
-            yield return FullName;
-            yield return PostScriptName;
-            yield return CombineFamilyAndSubfamily(TypographicFamilyName, TypographicSubfamilyName);
-            yield return CombineFamilyAndSubfamily(FamilyName, SubfamilyName);
-        }
-
-        private static string? CombineFamilyAndSubfamily(string? familyName, string? subfamilyName) {
-            if (string.IsNullOrWhiteSpace(familyName)) {
-                return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(subfamilyName) ||
-                string.Equals(subfamilyName, "Regular", System.StringComparison.OrdinalIgnoreCase)) {
-                return familyName;
-            }
-
-            return familyName + " " + subfamilyName;
-        }
-    }
-
-    private sealed class TrueTypeNameValue {
-        public TrueTypeNameValue(string value, int score) {
-            Value = value;
-            Score = score;
-        }
-
-        public string Value { get; }
-
-        public int Score { get; }
     }
 
     private readonly struct FontTableRecord {
