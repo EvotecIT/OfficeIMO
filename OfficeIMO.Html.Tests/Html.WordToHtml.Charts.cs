@@ -11,6 +11,19 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
     [Fact]
+    public void Export_ReportsConfiguredAggregateLimitWhenTheFirstChartExhaustsIt() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        string source = new HtmlParser().ParseDocument(document.ToHtml()).QuerySelector("img")!.GetAttribute("src")!;
+        long exactLimit = Convert.FromBase64String(source.Substring("data:image/svg+xml;base64,".Length)).LongLength;
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordToHtmlOptions { MaxTotalEmbeddedImageBytes = exactLimit }));
+        Assert.Equal("WordImageTotalSizeLimitExceeded", error.Code);
+        Assert.Equal(exactLimit, error.Limit);
+        Assert.True(error.Actual > exactLimit);
+    }
+
+    [Fact]
     public void Export_PreservesChartAlternativeTextAndAuthoredSmallCanvas() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "Visible title", width: 120, height: 40);
