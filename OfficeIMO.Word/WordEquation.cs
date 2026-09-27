@@ -343,7 +343,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            foreach (OpenXmlElement child in element.ChildElements) {
+            foreach (OpenXmlElement child in WordAlternateContentResolver.EnumerateEffectiveChildren(element)) {
                 AppendVisibleContentSegments(
                     segments,
                     child,
