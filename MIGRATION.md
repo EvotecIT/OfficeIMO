@@ -36,6 +36,10 @@ legacy data updates; embed an XLSX workbook first. Repeated native layers of the
 same family and axis group retain their separate formatting when they share
 axis references. Layers with different axis pairs require an explicit native
 editing path and reject shared replacement before mutation.
+In-place scatter updates require the same ordered X/Y value-axis pair across
+all layers. Conflicting, missing, or ambiguous axis references reject before
+changing native XML or workbook bytes. A category chart's only value-axis pair
+remains primary when its value axis is positioned at the top or right.
 
 Shared chart series stroke and marker outline widths must be finite, greater
 than zero, and at most 1584 points. Replace invalid widths before constructing
