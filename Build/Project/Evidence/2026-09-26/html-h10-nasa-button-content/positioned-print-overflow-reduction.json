@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "worktreeHead": "7d54852a25c81816c35192b10de5aaef79fd41fb",
+  "ownerAssemblySource": "ee77d7d1a0e84407af72c4684bec6c59bd237aa3",
+  "sourceBoundary": "The worktree head differs from the owner assembly commit only by the prior qualification evidence JSON. No runtime source edits occurred in this diagnostic turn.",
+  "archiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "chromiumVersion": "151.0.7922.34",
+  "browserOptions": {
+    "viewport": [
+      816,
+      900
+    ],
+    "format": "A4",
+    "preferCssPageSize": true,
+    "printBackground": true,
+    "offline": true
+  },
+  "officeimoOptions": {
+    "intent": "PrintPaged",
+    "viewportWidth": 816,
+    "margins": 0,
+    "pageSize": "A4"
+  },
+  "cases": [
+    {
+      "id": "ratio-1",
+      "fixtureSha256": "c89e5590c461df08ef8bc11d22362aac6eba5f0b7b8752d089a7be74ddde4817",
+      "chromiumPages": 4,
+      "chromiumMarkerHeightPoints": 16.757811999999998,
+      "chromiumPdfSha256": "794711ece8e34cb0b5abc9a4d28d842a6d26e47c046037b767b2932f9556487f",
+      "officeimoPages": 4,
+      "officeimoPdfSha256": "34405f08768d1f8ffcf9e33608e344ee01a23335dfb2ae45add02cb0a0f337a8",
+      "officeimoDiagnostics": [
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "A scrollable overflow box was clipped at its initial static scroll position without interactive scrollbars."
+        },
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "The propagated root overflow rendered the initial static viewport without interactive scrollbars."
+        }
+      ]
+    },
+    {
+      "id": "ratio-9",
+      "fixtureSha256": "36de2d414351ea49bb1b1e06fe612e607f4e9c8edf5225dffe2bf8da6d8ad68e",
+      "chromiumPages": 3,
+      "chromiumMarkerHeightPoints": 11.171875,
+      "chromiumPdfSha256": "ee8ac92cca36a3ade9a517eb05f3c57fe70a048e598923b98b67a805ecb9849d",
+      "officeimoPages": 4,
+      "officeimoPdfSha256": "f53d0d3edf426e83fa7e58be499cacc82564e193d1e7c0b23ecade62c3a5a3d9",
+      "officeimoDiagnostics": [
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "A scrollable overflow box was clipped at its initial static scroll position without interactive scrollbars."
+        },
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "The propagated root overflow rendered the initial static viewport without interactive scrollbars."
+        }
+      ]
+    },
+    {
+      "id": "fixed-1",
+      "fixtureSha256": "6fe4fbd032cf961dc09711e2c774649ae0c923029b77931f1abba939c9652382",
+      "chromiumPages": 4,
+      "chromiumMarkerHeightPoints": 16.757811999999998,
+      "chromiumPdfSha256": "2ed23dc0bc826844669051dbe1835ff98e968c86ae73690e088de70896b59e18",
+      "officeimoPages": 4,
+      "officeimoPdfSha256": "b0a0a071abd3ae70ae4efe1787eef92f2619f256e537875014c108813ff17895",
+      "officeimoDiagnostics": [
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "A scrollable overflow box was clipped at its initial static scroll position without interactive scrollbars."
+        },
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "The propagated root overflow rendered the initial static viewport without interactive scrollbars."
+        }
+      ]
+    },
+    {
+      "id": "fixed-9",
+      "fixtureSha256": "0d56b5b58027ae1144a9a2c53b006eef48d18ce4d07de165fe53501afe89fa4b",
+      "chromiumPages": 4,
+      "chromiumMarkerHeightPoints": 16.757811999999998,
+      "chromiumPdfSha256": "06934c77a8f1bb0742443da4a2d94908159de49d3a8be1c7b0a92bd53bcad74c",
+      "officeimoPages": 4,
+      "officeimoPdfSha256": "2754ffe73493d9a141ac00ffe0a7edf7e50c17e289863cbadbc1fcd8ded32c5e",
+      "officeimoDiagnostics": [
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "A scrollable overflow box was clipped at its initial static scroll position without interactive scrollbars."
+        },
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "The propagated root overflow rendered the initial static viewport without interactive scrollbars."
+        }
+      ]
+    },
+    {
+      "id": "absolute-1",
+      "fixtureSha256": "48a6b8aa60c99b6dbcd25711b212829f902b9c4318fea11c9769df10aa3b7216",
+      "chromiumPages": 4,
+      "chromiumMarkerHeightPoints": 16.757811999999998,
+      "chromiumPdfSha256": "a0b4fc2136ea7c22c7882663fcd496ad0129c4bd4458d75d609ce256a1cbfa4c",
+      "officeimoPages": 4,
+      "officeimoPdfSha256": "b8cb658949a42d66b85fc744f8f84f1f29c91c50aedc8b70e6cb4644aad80f6c",
+      "officeimoDiagnostics": [
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "A scrollable overflow box was clipped at its initial static scroll position without interactive scrollbars."
+        },
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "The propagated root overflow rendered the initial static viewport without interactive scrollbars."
+        }
+      ]
+    },
+    {
+      "id": "absolute-9",
+      "fixtureSha256": "cd9c6cbace31cc7fc4f0d30f4978ca421420dffc4b2fc7520728178a0cc14b45",
+      "chromiumPages": 3,
+      "chromiumMarkerHeightPoints": 11.171875,
+      "chromiumPdfSha256": "4e34dde687bafd5f7100f3f34c93b03d45c9f7a28f0cf0c857c3d79dac316663",
+      "officeimoPages": 4,
+      "officeimoPdfSha256": "e3626a3a4edb44051966a404807d33e0d065b0a761e38a1487b77a915cfe6ce2",
+      "officeimoDiagnostics": [
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "A scrollable overflow box was clipped at its initial static scroll position without interactive scrollbars."
+        },
+        {
+          "Code": "HtmlRenderOverflowScrollSnapshot",
+          "Message": "The propagated root overflow rendered the initial static viewport without interactive scrollbars."
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "The reduced archived gallery changes from three to four pages when nine cards are reduced to one or emptied, with near-identical root and gallery screen bounds.",
+    "A standalone clipped flex gallery reproduces print shrinking with absolute headers or ratio boxes containing absolute descendants; in-flow fixed-height and padding-based headers do not reproduce it.",
+    "Six final fixtures use 30 ordinary 100px paragraph blocks rather than a monolithic filler; no forced-fragmentation diagnostic remains.",
+    "Chromium marker height changes from 16.757812 points to 11.171875 points in both nine-card positioned cases, establishing a two-thirds scale. OfficeIMO stays at four pages in all six cases."
+  ],
+  "limits": [
+    "Archive beforeprint/afterprint hooks did not execute. Standalone hooks execute but sample screen geometry, so neither proves internal paginated overflow bounds.",
+    "This establishes a reachable print-compatibility difference; it does not justify ignoring every overflow clip or claim NASA parity.",
+    "A general bounded owner fix, sibling regression checks and final NASA/H4 replay remain required."
+  ],
+  "artifacts": "Ignore/HtmlUnknownPageQualification/h10-nasa-gallery-reduction-7d54852a2",
+  "renderedProof": {
+    "allPageMontagesInspected": 6,
+    "pagesRasterized": 46,
+    "allThirtyParagraphsRetainedOnceByBoth": true,
+    "observation": "The positioned nine-card cases show smaller browser cards/text and three pages versus four in OfficeIMO. In-flow and one-card controls remain full scale; small paragraph/page-boundary differences remain separate."
+  }
+}
