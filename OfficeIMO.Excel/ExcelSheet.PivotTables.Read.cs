@@ -87,11 +87,12 @@ namespace OfficeIMO.Excel {
             return fields;
         }
 
-        private static List<string> ResolveFieldNames(IEnumerable<Field>? fields, IReadOnlyList<string> cacheFields) {
+        private static List<string> ResolveFieldNames(IEnumerable<Field>? fields, IReadOnlyList<string> cacheFields, bool sourceFieldsOnly = false) {
             var list = new List<string>();
             if (fields == null) return list;
             foreach (var field in fields) {
                 if (field.Index == null) continue;
+                if (sourceFieldsOnly && field.Index.Value < 0) continue;
                 list.Add(ResolveFieldName(field.Index.Value, cacheFields));
             }
             return list;

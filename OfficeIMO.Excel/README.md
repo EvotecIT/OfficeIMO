@@ -551,7 +551,7 @@ return typed errors for unknown items, fields or measures and zero for a blank
 intersection of existing items. Lookup accepts at most 256 fields/measures and
 criteria, 100,000 shared keys per field, 100,001 axis/field items (including a
 total or default item), and one million output cells. Grouped views,
-page fields, compressed axis prefixes and views without saved axis items remain
+page fields and views without saved axis items remain
 unsupported. The public method throws `NotSupportedException` for those profiles;
 formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
 and refresh-on-open settings; it does not populate an output view for lookup.
@@ -563,12 +563,16 @@ ExcelPivotMaterializationResult result = sheet.MaterializePivotTable("SalesPivot
 Console.WriteLine(result.OutputRange);
 ```
 
-Materialization supports one ordinary measure, all eleven aggregation modes,
+Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
 and at most one ungrouped field on each axis. It writes a tabular view in
 first-seen key order, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
 cached results; materialization does not calculate them.
+For multiple measures, the Values field appears on exactly one axis. Both Values-first
+and Values-last ordering are preserved, including views without real row or column
+fields. `AddPivotTable` creates this field on columns by default, or on rows when
+`dataOnRows` is true. Repeated native axis prefixes are expanded during saved-view lookup.
 Regeneration normalizes imported axis subtotal settings to match this view;
 custom intermediate subtotal layouts are not retained.
 
@@ -578,10 +582,12 @@ materialized view and clears its stale tail while retaining existing cell styles
 Preparation and writing run under the workbook lock; the shared mutation owner
 rolls back interrupted writes or invalid generated metadata. Use
 `ExcelMutationPlanOptions` to lower source/output and rollback budgets. The source
-and affected output are each capped at one million cells, fields at 256, and
-distinct items per field and observed aggregate groups at 100,000.
+and affected output are each capped at one million cells, as are source rows times
+measure count. Fields and measures are capped at 256; distinct shared keys per field
+and observed aggregate states across measures are capped at 100,000. Saved axis
+items, including totals, are capped at 100,001.
 
-Multiple measures, multiple real fields per axis, grouping, date/error item keys,
+Multiple real fields per axis, grouping, date/error item keys,
 filters, page fields, calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

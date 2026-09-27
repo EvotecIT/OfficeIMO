@@ -114,18 +114,27 @@ namespace OfficeIMO.Excel {
             }
             int found = -1;
             int position = -1;
+            var expanded = new uint[axisFields.Length];
+            bool previousComplete = false;
             foreach (var item in axis.ChildElements) {
                 position++;
                 string type = PivotLookupAttribute(item, "t");
-                if (!TryPivotLookupUnsigned(item, "r", 0, out uint repeat) || repeat != 0)
-                    throw new NotSupportedException("Compressed pivot axis prefixes are not supported.");
+                if (!TryPivotLookupUnsigned(item, "r", 0, out uint repeat) || repeat > axisFields.Length
+                    || (repeat > 0 && !previousComplete) || item.ChildElements.Count > axisFields.Length - repeat)
+                    throw new NotSupportedException("The saved pivot axis has an invalid repeated prefix.");
+                if (repeat == 0) Array.Clear(expanded, 0, expanded.Length);
+                for (int index = 0; index < item.ChildElements.Count; index++) {
+                    if (!TryPivotLookupUnsigned(item.ChildElements[index], "v", 0, out uint axisIndex)) return -1;
+                    expanded[(int)repeat + index] = axisIndex;
+                }
+                previousComplete = repeat + item.ChildElements.Count == axisFields.Length;
+                if ((type.Length == 0 || type == "data") && !previousComplete) return -1;
                 if (!TryPivotLookupUnsigned(item, "i", 0, out uint itemMeasure)) return -1;
                 if (hasMeasures && itemMeasure != measure) continue;
                 if (needsGrand ? type != "grand" : type.Length != 0 && type != "data") continue;
                 if (hasCriterion) {
-                    var indices = item.ChildElements;
                     int realPosition = Array.IndexOf(axisFields, realField);
-                    if (indices.Count <= realPosition || !TryPivotLookupUnsigned(indices[realPosition], "v", 0, out uint key)) return -1;
+                    uint key = expanded[realPosition];
                     if (key >= fieldItems.Length) return -1;
                     if (!TryPivotLookupUnsigned(fieldItems[(int)key], "x", uint.MaxValue, out uint sharedIndex) || sharedIndex >= sharedItems.Length) return -1;
                     object? expected = criteria[fields[realField].Name?.Value ?? ""];

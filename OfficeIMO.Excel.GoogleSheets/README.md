@@ -62,6 +62,12 @@ Console.WriteLine(result.WebViewLink);
 - Exports to a new Google Sheets spreadsheet or replaces an existing spreadsheet through `Location.ExistingFileId`.
 - Imports through native Sheets resources or Drive-exported XLSX.
 - Maps supported formulas, styles, filters, validation, protection, conditional formatting, charts, pivots, outlines, and native tables with explicit support boundaries.
+
+Pivot export separates source grouping fields from the Values pseudo-field and
+preserves horizontal or vertical measure placement. A source column named
+`Values` remains a real grouping field. Layouts with Values before any source
+grouping field are reported as unsupported, because the request model cannot
+preserve that measure nesting.
 - Uses values batching for value-heavy writes and structural batches for formats and objects.
 - Supports range/field-mask native import, version evidence, and pre-apply diff planning.
 - Uses session-level default Drive and folder placement.

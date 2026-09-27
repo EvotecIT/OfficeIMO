@@ -67,6 +67,16 @@ namespace OfficeIMO.Excel {
             definition.CompactData = false;
             definition.OutlineData = false;
             definition.DataOnRows = false;
+            NormalizeMaterializedPivotFields(definition, maps, rowField, columnField);
+            definition.RowItems = new RowItems { Count = (uint)(rows + (rowTotal ? 1 : 0)) };
+            definition.ColumnItems = new ColumnItems { Count = (uint)(columns + (columnTotal ? 1 : 0)) };
+            for (int row = 0; row < rows; row++) definition.RowItems.AppendChild(CreateMaterializedPivotAxisItem(row, hasField: rowField >= 0));
+            if (rowTotal) definition.RowItems.AppendChild(CreateMaterializedPivotAxisItem(0, true));
+            for (int column = 0; column < columns; column++) definition.ColumnItems.AppendChild(CreateMaterializedPivotAxisItem(column, hasField: columnField >= 0));
+            if (columnTotal) definition.ColumnItems.AppendChild(CreateMaterializedPivotAxisItem(0, true));
+        }
+
+        private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps, int rowField, int columnField) {
             var fields = definition.PivotFields!.Elements<PivotField>().ToArray();
             foreach (int field in new[] { rowField, columnField }.Where(f => f >= 0)) {
                 var items = new Items { Count = (uint)(maps[field].Items.Count + 1) };
@@ -91,12 +101,6 @@ namespace OfficeIMO.Excel {
                 fields[field].Outline = false;
                 fields[field].SortType = FieldSortValues.Manual;
             }
-            definition.RowItems = new RowItems { Count = (uint)(rows + (rowTotal ? 1 : 0)) };
-            definition.ColumnItems = new ColumnItems { Count = (uint)(columns + (columnTotal ? 1 : 0)) };
-            for (int row = 0; row < rows; row++) definition.RowItems.AppendChild(CreateMaterializedPivotAxisItem(row, hasField: rowField >= 0));
-            if (rowTotal) definition.RowItems.AppendChild(CreateMaterializedPivotAxisItem(0, true));
-            for (int column = 0; column < columns; column++) definition.ColumnItems.AppendChild(CreateMaterializedPivotAxisItem(column, hasField: columnField >= 0));
-            if (columnTotal) definition.ColumnItems.AppendChild(CreateMaterializedPivotAxisItem(0, true));
         }
 
         private static RowItem CreateMaterializedPivotAxisItem(int index, bool grand = false, bool hasField = true) {

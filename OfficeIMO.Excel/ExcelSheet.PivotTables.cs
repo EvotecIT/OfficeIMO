@@ -46,6 +46,11 @@ namespace OfficeIMO.Excel {
                     var filterInfos = ResolvePivotFilterInfos(def.PivotFilters?.Elements<PivotFilter>(), cacheFields, dataFields);
                     var calculatedFieldInfos = ResolveCalculatedFieldInfos(cacheDef, numberFormatCodes);
                     var groupingInfos = ResolvePivotGroupingInfos(cacheDef, cacheFields);
+                    var rowAxisIndices = def.RowFields?.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray() ?? Array.Empty<int>();
+                    var columnAxisIndices = def.ColumnFields?.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray() ?? Array.Empty<int>();
+                    int valuesFieldCount = rowAxisIndices.Count(f => f == -2) + columnAxisIndices.Count(f => f == -2);
+                    ExcelPivotTableAxis? valuesAxis = valuesFieldCount == 1
+                        ? rowAxisIndices.Contains(-2) ? ExcelPivotTableAxis.AxisRow : ExcelPivotTableAxis.AxisColumn : null;
 
                     var layout = ResolveLayout(def.CompactData, def.OutlineData);
 
@@ -89,8 +94,12 @@ namespace OfficeIMO.Excel {
                         saveSourceData: cacheDef?.SaveData?.Value,
                         preserveFormatting: def.PreserveFormatting?.Value,
                         enableDrill: def.EnableDrill?.Value,
-                        hasValuesAxisField: def.RowFields?.Elements<Field>().Any(field => field.Index?.Value == -2) == true
-                            || def.ColumnFields?.Elements<Field>().Any(field => field.Index?.Value == -2) == true));
+                        hasValuesAxisField: valuesFieldCount > 0) {
+                        RowSourceFields = ResolveFieldNames(def.RowFields?.Elements<Field>(), cacheFields, sourceFieldsOnly: true),
+                        ColumnSourceFields = ResolveFieldNames(def.ColumnFields?.Elements<Field>(), cacheFields, sourceFieldsOnly: true),
+                        ValuesAxis = valuesAxis,
+                        ValuesAxisPosition = valuesAxis.HasValue ? Array.IndexOf(valuesAxis == ExcelPivotTableAxis.AxisRow ? rowAxisIndices : columnAxisIndices, -2) : null
+                    });
                 }
 
                 return list;
@@ -327,8 +336,12 @@ namespace OfficeIMO.Excel {
                 ReportPivotTiming("AddPivotTable.ResolveFields");
 
                 var dataFieldIndices = new HashSet<int>();
+                var measureCaptions = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var df in dataFieldList) {
                     int idx = ResolveFieldIndex(df.FieldName, headerIndex, nameof(dataFields));
+                    string caption = df.DisplayName ?? $"{df.Function} of {allFields[idx]}";
+                    if (string.IsNullOrWhiteSpace(caption) || !measureCaptions.Add(caption))
+                        throw new ArgumentException("Pivot measures require unique non-empty captions.", nameof(dataFields));
                     dataFieldIndices.Add(idx);
                 }
 
@@ -497,6 +510,17 @@ namespace OfficeIMO.Excel {
                 var columnFieldsElement = columnFieldIndices.Count > 0 ? new ColumnFields { Count = (uint)columnFieldIndices.Count } : null;
                 if (columnFieldsElement != null) {
                     foreach (int idx in columnFieldIndices) columnFieldsElement.Append(new Field { Index = idx });
+                }
+                if (dataFieldList.Count > 1) {
+                    if (dataOnRows == true) {
+                        rowFieldsElement ??= new RowFields();
+                        rowFieldsElement.AppendChild(new Field { Index = -2 });
+                        rowFieldsElement.Count = (uint)rowFieldsElement.ChildElements.Count;
+                    } else {
+                        columnFieldsElement ??= new ColumnFields();
+                        columnFieldsElement.AppendChild(new Field { Index = -2 });
+                        columnFieldsElement.Count = (uint)columnFieldsElement.ChildElements.Count;
+                    }
                 }
 
                 var pageFieldsElement = pageFieldIndices.Count > 0 ? new PageFields { Count = (uint)pageFieldIndices.Count } : null;

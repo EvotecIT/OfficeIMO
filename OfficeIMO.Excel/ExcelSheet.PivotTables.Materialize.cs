@@ -8,11 +8,11 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Generates a saved pivot view and its source cache from current worksheet values.
-        /// Supports one measure and at most one ungrouped field on each axis, with deterministic
+        /// Supports up to 256 measures and at most one ungrouped real field on each axis, with deterministic
         /// first-seen key order and optional grand totals. Source formulas use their saved typed caches.
         /// </summary>
         /// <param name="pivotTableName">Pivot definition on this worksheet.</param>
-        /// <param name="options">Source, output and rollback limits. Source and output each use MaximumAffectedCells, capped at one million.</param>
+        /// <param name="options">Source, measure-input, output and rollback limits. Each cell/work budget uses MaximumAffectedCells, capped at one million.</param>
         /// <param name="cancellationToken">Cancels preparation or rolls back an interrupted write.</param>
         /// <exception cref="NotSupportedException">The pivot uses an unqualified grouping, filter, calculated field, shared cache or measure layout.</exception>
         /// <exception cref="InvalidOperationException">A budget or destination collision prevents generation.</exception>
@@ -84,19 +84,29 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("The pivot source exceeds the materialization budget or has no data records.");
             var fields = cache.CacheFields?.Elements<CacheField>().Take(257).ToArray() ?? Array.Empty<CacheField>();
             var pivotFields = definition.PivotFields?.Elements<PivotField>().Take(257).ToArray() ?? Array.Empty<PivotField>();
-            var measures = definition.DataFields?.Elements<DataField>().Take(2).ToArray() ?? Array.Empty<DataField>();
-            if (fields.Length != fieldCount || pivotFields.Length != fieldCount || measures.Length != 1
+            var measures = definition.DataFields?.Elements<DataField>().Take(257).ToArray() ?? Array.Empty<DataField>();
+            if (fields.Length != fieldCount || pivotFields.Length != fieldCount || measures.Length == 0 || measures.Length > 256
                 || fields.Any(f => f.FieldGroup != null || f.Formula != null || f.DatabaseField?.Value == false)
                 || definition.PageFields?.ChildElements.Count > 0 || definition.PivotFilters?.ChildElements.Count > 0
                 || pivotFields.Any(f => f.Items?.Elements<Item>().Any(i => i.Hidden?.Value == true) == true)
-                || (measures[0].ShowDataAs?.Value is ShowDataAsValues mode && mode != ShowDataAsValues.Normal))
-                throw new NotSupportedException("Materialization requires one ordinary measure, no calculated/grouped fields, and no filters or page fields.");
+                || measures.Any(m => m.ShowDataAs?.Value is ShowDataAsValues mode && mode != ShowDataAsValues.Normal))
+                throw new NotSupportedException("Materialization requires ordinary measures, no calculated/grouped fields, and no filters or page fields.");
             if (!sourceSheet.BuildPivotHeaders(r1, c1, c2).SequenceEqual(fields.Select(f => f.Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase))
                 throw new InvalidOperationException("The source headers no longer match the pivot cache fields.");
-            int rowField = ResolveMaterializationAxis(definition.RowFields);
-            int columnField = ResolveMaterializationAxis(definition.ColumnFields);
-            if (measures[0].Field == null || measures[0].Field!.Value >= fieldCount)
+            var rowAxis = ResolveMaterializationAxis(definition.RowFields);
+            var columnAxis = ResolveMaterializationAxis(definition.ColumnFields);
+            int rowField = rowAxis.RealField;
+            int columnField = columnAxis.RealField;
+            if (measures.Any(m => m.Field == null || m.Field.Value >= fieldCount))
                 throw new NotSupportedException("The pivot measure does not match the source fields.");
+            if ((long)(r2 - r1) * measures.Length > limit)
+                throw new InvalidOperationException("The pivot measure input visits exceed the materialization budget.");
+            if (measures.Length > 1 && (measures.Any(m => string.IsNullOrWhiteSpace(m.Name?.Value))
+                || measures.Select(m => m.Name!.Value!).Distinct(StringComparer.OrdinalIgnoreCase).Count() != measures.Length))
+                throw new InvalidOperationException("Multiple pivot measures require unique non-empty captions.");
+            int valuesAxes = (rowAxis.HasValues ? 1 : 0) + (columnAxis.HasValues ? 1 : 0);
+            if ((measures.Length > 1 && valuesAxes != 1) || (measures.Length == 1 && valuesAxes != 0))
+                throw new NotSupportedException("Multiple measures require exactly one Values axis; single measures use real axes only.");
             int measureField = (int)measures[0].Field!.Value;
             if (rowField >= fieldCount || columnField >= fieldCount || measureField < 0 || measureField >= fieldCount || (rowField >= 0 && rowField == columnField))
                 throw new NotSupportedException("The pivot axes or measure do not match the source fields.");
@@ -132,6 +142,16 @@ namespace OfficeIMO.Excel {
             int dataColumn = rowField >= 0 || columnField >= 0 ? 1 : 0;
             int height = dataRow + rowKeys + (rowTotal ? 1 : 0);
             int width = dataColumn + columnKeys + (columnTotal ? 1 : 0);
+            if (measures.Length > 1) {
+                dataRow = columnField >= 0 ? columnAxis.Fields.Length + 1 : 1;
+                dataColumn = rowAxis.Fields.Length;
+                int rowItems = (rowKeys + (rowTotal ? 1 : 0)) * (rowAxis.HasValues ? measures.Length : 1);
+                int columnItems = (columnKeys + (columnTotal ? 1 : 0)) * (columnAxis.HasValues ? measures.Length : 1);
+                if (rowItems > 100_001 || columnItems > 100_001)
+                    throw new InvalidOperationException("The generated pivot axis exceeds 100,001 saved items.");
+                height = dataRow + rowItems;
+                width = dataColumn + columnItems;
+            }
             bool hasOldView = definition.RowItems?.ChildElements.Count > 0 && definition.ColumnItems?.ChildElements.Count > 0;
             if (!hasOldView) { oldBottom = top - 1; oldRight = left - 1; }
             long bottom = (long)top + height - 1, right = (long)left + width - 1;
@@ -143,8 +163,13 @@ namespace OfficeIMO.Excel {
             var plan = new PivotMaterializationPlan { Part = part, CachePart = cachePart, Definition = (PivotTableDefinition)definition.CloneNode(true),
                 Cache = (PivotCacheDefinition)cache.CloneNode(true), Top = top, Left = left, Bottom = (int)bottom, Right = (int)right,
                 OldBottom = oldBottom, OldRight = oldRight, AffectedBottom = (int)affectedBottom, AffectedRight = (int)affectedRight, SourceRecords = r2 - r1 };
-            FillMaterializedPivot(plan, sourceSheet, r1, c1, r2, maps, rowField, columnField, measureField,
-                (measures[0].Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum(), rowTotal, columnTotal, dataRow, dataColumn, token);
+            if (measures.Length == 1) {
+                FillMaterializedPivot(plan, sourceSheet, r1, c1, r2, maps, rowField, columnField, measureField,
+                    (measures[0].Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum(), rowTotal, columnTotal, dataRow, dataColumn, token);
+            } else {
+                FillMaterializedPivotMeasures(plan, sourceSheet, r1, c1, r2, maps, rowAxis, columnAxis,
+                    measures, rowTotal, columnTotal, dataRow, dataColumn, token);
+            }
             var cacheFields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             for (int field = 0; field < fieldCount; field++) cacheFields[field].SharedItems = BuildSharedItems(maps[field], null);
             plan.Records = sourceSheet.BuildPivotCacheRecords(fieldCount, r1 + 1, r2, c1, grouping, maps, collect,
@@ -155,11 +180,20 @@ namespace OfficeIMO.Excel {
             return plan;
         }
 
-        private static int ResolveMaterializationAxis(OpenXmlCompositeElement? axis) {
-            if (axis == null || axis.ChildElements.Count == 0) return -1;
-            if (axis.ChildElements.Count != 1 || axis.FirstChild is not Field field || field.Index == null || field.Index.Value < 0)
-                throw new NotSupportedException("Materialization supports at most one real field on each axis.");
-            return field.Index.Value;
+        private sealed class PivotMaterializationAxis {
+            internal int[] Fields = Array.Empty<int>();
+            internal int RealField => Fields.Where(f => f >= 0).DefaultIfEmpty(-1).First();
+            internal bool HasValues => Fields.Contains(-2);
+        }
+
+        private static PivotMaterializationAxis ResolveMaterializationAxis(OpenXmlCompositeElement? axis) {
+            if (axis == null || axis.ChildElements.Count == 0) return new PivotMaterializationAxis();
+            if (axis.ChildElements.Count > 2 || axis.ChildElements.Any(f => f is not Field))
+                throw new NotSupportedException("Materialization supports at most one real field and one Values field on each axis.");
+            var indices = axis.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray();
+            if (indices.Count(f => f >= 0) > 1 || indices.Count(f => f == -2) > 1 || indices.Any(f => f < 0 && f != -2))
+                throw new NotSupportedException("Materialization supports at most one real field and one Values field on each axis.");
+            return new PivotMaterializationAxis { Fields = indices };
         }
     }
 }
