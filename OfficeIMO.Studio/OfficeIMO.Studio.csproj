@@ -8,7 +8,7 @@
     <AssemblyTitle>OfficeIMO Studio</AssemblyTitle>
     <Product>OfficeIMO Studio</Product>
     <ApplicationIcon>Assets\OfficeIMO.Studio.ico</ApplicationIcon>
-    <Version>0.1.9764</Version>
+    <Version>0.1.9765</Version>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
