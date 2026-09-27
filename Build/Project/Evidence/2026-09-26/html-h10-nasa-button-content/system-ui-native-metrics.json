@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "36ebe9646e043a92a8e0023bf72388215d20cb3b",
+  "runUtc": "2026-09-27T15:32:11.796724+00:00",
+  "fontFile": {
+    "path": "/System/Library/Fonts/SFNS.ttf",
+    "sha256": "44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571"
+  },
+  "beforeRegressions": {
+    "drawingFailed": 3,
+    "pdfFailed": 3,
+    "fixturesRetainedOutsideNormalBuild": "Ignore/HtmlUnknownPageQualification/h10-systemui-probe-36ebe9646/product-regressions"
+  },
+  "reference": {
+    "chromiumAnimationWidth16": 72.5625,
+    "coreTextAnimationWidth16": 72.5625,
+    "coreTextFontUrl": "/System/Library/Fonts/SFNS.ttf",
+    "coreTextOpticalSize": 17,
+    "coreTextAdvances": [
+      10.46875,
+      9.0234375,
+      3.640625,
+      13.609375,
+      8.515625,
+      5.5,
+      3.640625,
+      9.140625,
+      9.0234375
+    ],
+    "nativeSizeMatrix": [
+      {
+        "size": 10.0,
+        "width": 48.1640625,
+        "opticalSize": 17.0
+      },
+      {
+        "size": 12.0,
+        "width": 56.53125,
+        "opticalSize": 17.0
+      },
+      {
+        "size": 14.0,
+        "width": 64.599609375,
+        "opticalSize": 17.0
+      },
+      {
+        "size": 16.0,
+        "width": 72.5625,
+        "opticalSize": 17.0
+      },
+      {
+        "size": 20.0,
+        "width": 87.94174194335938,
+        "opticalSize": 20.0
+      },
+      {
+        "size": 24.0,
+        "width": 104.41412544250488,
+        "opticalSize": 24.0
+      },
+      {
+        "size": 32.0,
+        "width": 139.28125,
+        "opticalSize": 32.0
+      },
+      {
+        "size": 48.0,
+        "width": 206.6015625,
+        "opticalSize": 48.0
+      }
+    ]
+  },
+  "managed": {
+    "defaultOpticalSize": 28,
+    "defaultWidth16": 67.8125,
+    "explicitOpticalSize17Width16": 75.375,
+    "eachGlyphDifferenceAtOpticalSize17": 0.3125
+  },
+  "tracking": {
+    "tablePresent": true,
+    "normalTrack": 0,
+    "valueAtSize16FontUnits": -40,
+    "unitsPerEm": 2048,
+    "perGlyphAdjustmentAtSize16": -0.3125,
+    "adjustedAnimationWidth": 72.5625,
+    "specification": "https://developer.apple.com/fonts/TrueType-Reference-Manual/RM06/Chap6trak.html"
+  },
+  "decision": "Qualify optical-size selection and normal AAT tracking through owned measurement and paint before enabling generic UI aliases. A family-only alias worsens the measured width.",
+  "remaining": [
+    "Shared generic UI candidate policy",
+    "Optical-size selection",
+    "Normal trak measurement and paint closure",
+    "NASA all-page replay",
+    "H4 and supported-platform qualification"
+  ],
+  "artifacts": "Ignore/HtmlUnknownPageQualification/h10-systemui-probe-36ebe9646",
+  "scopeNotes": [
+    "Chromium badge canvas used the authored unquoted family stack.",
+    "CoreText native size matrix selects opsz=max(17,size) across the observed 10-48 range.",
+    "No claim for unobserved sizes, platforms, or final PDF/raster paint equivalence."
+  ]
+}
