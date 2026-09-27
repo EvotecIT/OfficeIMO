@@ -9,6 +9,39 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartReaderProjectionTests {
     [Fact]
+    public void MixedSnapshot_RejectsAggregatePaddingExpansionAcrossLayers() {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Long", new[] { 1d }), new OfficeChartSeries("Short", new[] { 2d }) }));
+        var plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var original = plot.GetFirstChild<C.LineChart>()!;
+        original.Elements<C.LineChartSeries>().First().GetFirstChild<C.Values>()!.Descendants<C.PointCount>().Single().Val = 25000;
+        for (uint layerIndex = 1; layerIndex < 3; layerIndex++) {
+            var copy = (C.LineChart)original.CloneNode(true);
+            uint position = layerIndex * 2;
+            foreach (var series in copy.Elements<C.LineChartSeries>()) { series.Index!.Val = position; series.Order!.Val = position++; }
+            plot.InsertBefore(copy, original);
+        }
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MixedSnapshot_RejectsIncompatibleCategoryCachesWithoutDroppingSeries(bool differentLength) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
+            new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartKind.Line) }));
+        var series = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        if (differentLength) {
+            series.GetFirstChild<C.Values>()!.Descendants<C.PointCount>().Single().Val = 3;
+            series.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.PointCount>().Single().Val = 3;
+        } else series.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.StringPoint>().Last().NumericValue!.Text = "Different";
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void Snapshot_UsesLaterCategoryCacheWithoutTruncatingSeries() {
         using var document = PowerPointPresentation.Create();
         var chart = document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
