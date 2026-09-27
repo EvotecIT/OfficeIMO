@@ -75,7 +75,8 @@ internal static partial class WordDocumentImageRenderer {
             MapChartKind(snapshot.ChartKind),
             new OfficeChartData(snapshot.Data.Categories, series),
             width,
-            height);
+            height,
+            style: null, layout: null, radialLayout: snapshot.RadialLayout);
     }
 
     private static OfficeChartKind MapChartKind(WordChartSnapshotKind kind) => kind switch {
