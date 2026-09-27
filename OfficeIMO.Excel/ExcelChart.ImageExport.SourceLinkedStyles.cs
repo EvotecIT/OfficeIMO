@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
@@ -15,12 +16,13 @@ public sealed partial class ExcelChart {
         try {
             foreach (var item in stylesheet.NumberingFormats?.Elements<S.NumberingFormat>() ?? Enumerable.Empty<S.NumberingFormat>()) {
                 if (--remaining < 0) return null;
-                if (item.NumberFormatId?.Value is not uint id || item.FormatCode?.Value is not string code || custom.ContainsKey(id)) return null;
+                if (!uint.TryParse(item.NumberFormatId?.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || item.FormatCode?.Value is not string code || custom.ContainsKey(id)) return null;
                 custom.Add(id, code);
             }
             foreach (var style in stylesheet.CellFormats?.Elements<S.CellFormat>() ?? Enumerable.Empty<S.CellFormat>()) {
                 if (--remaining < 0) return null;
-                uint id = style.NumberFormatId?.Value ?? 0;
+                uint id = 0;
+                if (style.NumberFormatId != null && !uint.TryParse(style.NumberFormatId.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out id)) return null;
                 styles.Add(custom.TryGetValue(id, out string? code) ? code : ExcelBuiltInNumberFormats.GetCode(id) ?? "General");
             }
         } catch (FormatException) { return null; }
