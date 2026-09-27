@@ -82,6 +82,23 @@ public sealed class DrawingRasterOptionalCodecTests {
         Assert.Equal(0, codec.Calls);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PublicDrawingExportRetainsVisiblePlaceholderOutsideSourceDimensionValidation(bool invalidCodecDimensions) {
+        byte[] bytes = Convert.FromBase64String(IndependentVp8);
+        var codec = invalidCodecDimensions ? new Codec { Size = 1 } : null;
+        var drawing = new OfficeDrawing(16, 16).AddImage(bytes, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)));
+        var result = drawing.ExportImage(OfficeImageExportFormat.Png,
+            new OfficeImageExportOptions { ImageCodec = codec, BackgroundColor = OfficeColor.Transparent });
+        Assert.True(OfficePngReader.TryDecode(result.Bytes, out var image));
+        Assert.True(image!.GetPixel(image.Width / 2, image.Height / 2).A > 0);
+        Assert.Contains(result.Diagnostics, x => x.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeFallback
+            && x.LossKind == OfficeConversionLossKind.Omission);
+        if (codec != null) Assert.Equal(1, codec.Calls);
+    }
+
     private sealed class Codec : IOfficeRasterImageCodec {
         internal int Calls;
         internal bool MutateInput;

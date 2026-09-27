@@ -347,7 +347,7 @@ public static partial class OfficeDrawingRasterRenderer {
         long reservedPixels = 0L;
         long remainingPixels = maximumRasterPixels - transformedTextBudget.IntermediatePixels;
         var decodeOptions = new OfficeRasterDecodeOptions {
-            ImageCodec = imageCodec,
+            ImageCodec = imageCodec is OfficeRasterImageFallbackCodec fallbackCodec ? fallbackCodec.SourceCodec : imageCodec,
             MaximumDecodedPixels = Math.Min(maximumRasterPixels, OfficeRasterGuards.MaximumPixels),
             MaximumInspectionWorkPixels = Math.Max(1L, Math.Min(remainingPixels, OfficeRasterGuards.MaximumPixels)),
             CancellationToken = cancellationToken
@@ -395,6 +395,15 @@ public static partial class OfficeDrawingRasterRenderer {
                     transformedTextBudget.ReleaseIntermediateSurfacePixels(reservedPixels - actualPixels);
                 }
             }
+            return true;
+        }
+        // A placeholder is a representation of decode failure, not decoded source
+        // pixels. Generate it only after validating the managed source container.
+        if (identifiedManagedRaster && decodeInfo.Container != null && imageCodec is OfficeRasterImageFallbackCodec fallback) {
+            int width = Math.Min(32, decodeInfo.Container.CanvasWidth);
+            int height = Math.Min(32, decodeInfo.Container.CanvasHeight);
+            transformedTextBudget.ChargeIntermediateSurfacePixels((long)width * height, maximumRasterPixels);
+            image = fallback.CreateFallbackImage(contentType, width, height, decodeInfo.Diagnostic);
             return true;
         }
         // Managed raster providers run inside the shared inspected boundary. Only
