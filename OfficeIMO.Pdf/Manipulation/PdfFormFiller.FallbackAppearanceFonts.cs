@@ -22,6 +22,7 @@ internal static partial class PdfFormFiller {
             exception is ArgumentException ||
             exception is ArithmeticException ||
             exception is FormatException ||
+                exception is System.IO.InvalidDataException ||
             exception is IndexOutOfRangeException ||
             exception is InvalidOperationException) {
             failureMessage = "The configured appearance font fallback set could not be parsed as supported embedded fonts.";
@@ -66,6 +67,7 @@ internal static partial class PdfFormFiller {
                 exception is ArgumentException ||
                 exception is ArithmeticException ||
                 exception is FormatException ||
+                exception is System.IO.InvalidDataException ||
                 exception is IndexOutOfRangeException ||
                 exception is InvalidOperationException) {
                 failureMessage = $"The configured appearance font fallback candidate '{candidate.FontName}' could not be parsed as a supported embedded font.";
@@ -123,7 +125,7 @@ internal static partial class PdfFormFiller {
                 throw new InvalidOperationException("The configured appearance font fallback plan referenced a font that was not materialized.");
             }
 
-            encodedSegments.Add(new PdfTextAppearanceSegment(resourceName, fontProgram.EncodeTextAsGlyphHex(segment.Text)));
+            encodedSegments.Add(new PdfTextAppearanceSegment(resourceName, fontProgram.EncodeTextShowCommand(segment.Text)));
         }
 
         return encodedSegments;
@@ -207,13 +209,13 @@ internal static partial class PdfFormFiller {
                 : new FallbackAppearanceFontProgram(PdfFontProgramCache.GetTrueType(fontData, candidate.FontName));
         }
 
-        public string EncodeTextAsGlyphHex(string text) {
+        public PdfTextShowCommand EncodeTextShowCommand(string text) {
             if (_trueTypeFont != null) {
-                return _trueTypeFont.EncodeTextAsGlyphHex(text);
+                return _trueTypeFont.EncodeTextShowCommand(text);
             }
 
             if (_cffFont != null) {
-                return _cffFont.EncodeTextAsGlyphHex(text);
+                return _cffFont.ShapeText(text, PdfTextShapingOptions.ForRendering(_cffFont.FontName)).ToTextShowCommand();
             }
 
             throw new InvalidOperationException("The configured appearance font fallback candidate was not parsed.");

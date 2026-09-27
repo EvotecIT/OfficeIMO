@@ -10,6 +10,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private readonly Dictionary<int, int> _cmap;
     private readonly Dictionary<string, TableRecord> _tables;
     private readonly SubsetFontFingerprint _subsetFontFingerprint;
+    private readonly OfficeOpenTypeTracking? _tracking;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
@@ -17,6 +18,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
     private PdfTrueTypeFontProgram(byte[] data, Dictionary<string, TableRecord> tables, string fontName, int unitsPerEm, int xMin, int yMin, int xMax, int yMax, int ascent, int descent, int capHeight, double italicAngle, int flags, int stemV, ushort[] advanceWidths, Dictionary<int, int> cmap) {
         _data = data.ToArray();
         _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
+        _tracking = _tables.TryGetValue("trak", out TableRecord tracking)
+            ? OfficeOpenTypeTracking.Parse(_data, tracking.Offset, tracking.Length) : null;
         FontName = fontName;
         UnitsPerEm = unitsPerEm;
         FontBBox = new[] { ScaleMetric(xMin, unitsPerEm), ScaleMetric(yMin, unitsPerEm), ScaleMetric(xMax, unitsPerEm), ScaleMetric(yMax, unitsPerEm) };
@@ -46,6 +49,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         _advanceWidths = source._advanceWidths;
         _cmap = source._cmap;
         _subsetFontFingerprint = source._subsetFontFingerprint;
+        _tracking = source._tracking;
     }
 
     internal PdfTrueTypeFontProgram ForkForDocument() => new(this);
@@ -70,6 +74,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
             width += GetWinAnsiGlyphWidth1000(text[index]) * fontSize / 1000D;
         }
 
+        if (_tracking != null) width += _tracking.GetAdjustment(fontSize)
+            * System.Globalization.StringInfo.ParseCombiningCharacters(text!).Length * fontSize / UnitsPerEm;
         return width;
     }
 
@@ -79,6 +85,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
 
         PdfTextShapingOptions options = PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language, featureSettings: featureSettings);
+        if (_tracking != null) {
+            return MeasureShapedTextWidth(text!, ShapeText(text!, options), fontSize);
+        }
         // Skip the external shaper only where it would not engage (no provider, default features); the
         // width then comes from the scalar path with no glyph-run allocation.
         int advanceWidth1000 = shapingProvider == null && options.FeatureSettings.IsDefault

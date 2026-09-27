@@ -351,7 +351,7 @@ internal static class PdfAcroFormDictionaryBuilder {
                 var sb = new StringBuilder();
                 for (int i = 0; i < segments.Count; i++) {
                     PdfTextAppearanceSegment segment = segments[i];
-                    if (segment.EncodedHex.Length == 0) {
+                    if (segment.Command.GlyphHex.Length == 0) {
                         continue;
                     }
 
@@ -363,9 +363,8 @@ internal static class PdfAcroFormDictionaryBuilder {
                         .Append(PdfSyntaxEscaper.Name(segment.FontResourceName))
                         .Append(' ')
                         .Append(Format(fontSize))
-                        .Append(" Tf <")
-                        .Append(segment.EncodedHex)
-                        .Append("> Tj");
+                        .Append(" Tf ");
+                    new ContentStreamBuilder(sb).ShowText(segment.Command, fontSize, suppressActualText: true);
                 }
 
                 if (sb.Length > 0) {

@@ -732,15 +732,15 @@ public sealed partial class OfficeRasterCanvas {
                 ? _fonts.Resolve(fontFamily, style, out resolvedStyle)
                 : _fonts.ResolveForText(text!, fontFamily, style, out resolvedStyle);
             if (scoped != null) {
-                return scoped;
+                return ResolveMetricScale(scoped);
             }
         }
 
         if (string.IsNullOrWhiteSpace(fontFamily)) {
-            return _font;
+            return ResolveMetricScale(_font);
         }
 
-        return OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle) ?? _font;
+        return ResolveMetricScale(OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle) ?? _font);
     }
 
     private void DrawStrokeText(

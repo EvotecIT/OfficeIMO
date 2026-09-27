@@ -30,6 +30,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     private readonly int _hhea;
     private readonly int _hmtx;
     private readonly OfficeOpenTypeKerning _kerning;
+    private readonly OfficeOpenTypeTracking? _tracking;
     private readonly OfficeOpenTypeColorGlyphs? _colorGlyphs;
     private readonly int _loca;
     private readonly int _maxp;
@@ -101,6 +102,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                 }
             }
         }
+        _tracking = tables.TryGetValue("trak", out int trackingOffset)
+            ? OfficeOpenTypeTracking.Parse(data, trackingOffset, tableLengths["trak"]) : null;
         _unitsPerEm = ReadUInt16(_data, _head + 18);
         _indexToLocFormat = ReadInt16(_data, _head + 50);
         OfficeOpenTypeMvarMetrics? mvar = reader != null && _variationModel.IsVariable
@@ -118,7 +121,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     /// <inheritdoc />
-    public string Fingerprint => _fingerprint;
+    public string Fingerprint => _trackingEvaluationScale == 1D ? _fingerprint
+        : _fingerprint + ":tracking-scale=" + _trackingEvaluationScale.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
     IReadOnlyDictionary<string, float> IOfficeVariableFontProgram.VariationCoordinatesForShaping =>
         _variationModel?.DesignCoordinates ?? OfficeFontVariationModel.None.DesignCoordinates;
 
@@ -277,6 +281,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             if (collectionIndex.HasValue && collectionIndex.Value > 0) return null;
             var standalone = TryLoad(data, 0, null);
             return standalone != null && standalone.MatchesName(faceName) ? standalone : null;
+        } catch (InvalidDataException) {
+            return null;
         } catch (ArgumentOutOfRangeException) {
             return null;
         } catch (IndexOutOfRangeException) {
@@ -344,19 +350,24 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     public double Measure(string text, double fontSize) {
         var scale = ScaleFor(fontSize);
         var width = 0.0;
+        double tracking = HorizontalTracking(fontSize);
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         var glyphs = new List<int>();
         var scalars = new List<int>();
+        var textIndexes = new List<int>();
         for (int index = 0; index < text.Length;) {
+            int textIndex = index;
             int glyph = ReadMappedGlyph(text, ref index, out int scalar);
             if (glyph < 0) continue;
+            textIndexes.Add(textIndex);
             glyphs.Add(glyph);
             scalars.Add(scalar);
         }
+        bool[]? boundaries = TrackingBoundaries(text, textIndexes);
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
         for (int index = 0; index < glyphs.Count; index++) {
             width += checked(AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
-                             positioning[index].XAdvance) * scale;
+                             positioning[index].XAdvance) * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
         return width;
     }
@@ -364,25 +375,32 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     internal IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) {
         var widths = new double[elements.Count];
         double scale = ScaleFor(fontSize);
+        double tracking = HorizontalTracking(fontSize);
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         var glyphs = new List<int>();
         var scalars = new List<int>();
         var elementIndexes = new List<int>();
+        var textIndexes = new List<int>();
+        int sourceOffset = 0;
         for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
             string text = elements[elementIndex];
             for (int textIndex = 0; textIndex < text.Length;) {
+                int sourceIndex = sourceOffset + textIndex;
                 int glyph = ReadMappedGlyph(text, ref textIndex, out int scalar);
                 if (glyph < 0) continue;
+                textIndexes.Add(sourceIndex);
                 glyphs.Add(glyph);
                 scalars.Add(scalar);
                 elementIndexes.Add(elementIndex);
             }
+            sourceOffset += text.Length;
         }
+        bool[]? boundaries = TrackingBoundaries(string.Concat(elements), textIndexes);
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphs, scalars);
         for (int index = 0; index < glyphs.Count; index++) {
             widths[elementIndexes[index]] += checked(
                 AdvanceWidth((ushort)glyphs[index], variationWorkBudget, CancellationToken.None) +
-                positioning[index].XAdvance) * scale;
+                positioning[index].XAdvance) * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
         return widths;
     }
@@ -421,14 +439,18 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
 
         var scale = ScaleFor(fontSize);
         var cursor = x;
+        double tracking = HorizontalTracking(fontSize);
         var baseline = y + _ascender * scale;
         int pointCount = 0;
         OfficeTrueTypeVariations.WorkBudget? variationWorkBudget = _variations?.CreateWorkBudget();
         var glyphs = new List<(ushort Glyph, int Scalar)>();
+        var textIndexes = new List<int>();
         for (int index = 0; index < text.Length;) {
             cancellationToken.ThrowIfCancellationRequested();
+            int textIndex = index;
             int glyph = ReadMappedGlyph(text, ref index, out int scalar);
             if (glyph < 0) continue;
+            textIndexes.Add(textIndex);
             glyphs.Add((checked((ushort)glyph), scalar));
         }
 
@@ -438,6 +460,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             glyphIds.Add(glyph);
             scalars.Add(scalar);
         }
+        bool[]? boundaries = TrackingBoundaries(text, textIndexes);
         OfficeOpenTypeGlyphPositioning[] positioning = _kerning.PositionRun(glyphIds, scalars);
 
         for (int index = 0; index < glyphs.Count; index++) {
@@ -458,7 +481,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
             int positionedAdvance = checked(
                 AdvanceWidth(glyph, variationWorkBudget, cancellationToken) +
                 positioning[index].XAdvance);
-            cursor += positionedAdvance * scale;
+            cursor += positionedAdvance * scale + (boundaries == null || boundaries[index] ? tracking : 0D);
         }
 
         return contours;

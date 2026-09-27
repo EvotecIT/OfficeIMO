@@ -46,7 +46,7 @@ internal static partial class PdfWriter {
             shapingOptions = PdfTextShapingOptions.ForRendering(
                 namedTrueType.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate, options.Language, featureSettings, direction);
-            return namedTrueType.ShapeText(text, shapingOptions).TotalAdvanceWidth1000 * effectiveFontSize / 1000D;
+            return namedTrueType.MeasureShapedTextWidth(text, namedTrueType.ShapeText(text, shapingOptions), effectiveFontSize);
         }
         if (namedFont.HasValue &&
             options.TryGetNamedOpenTypeCffFontProgram(namedFont.Value, out PdfOpenTypeCffFontProgram? namedCff) &&
@@ -61,7 +61,7 @@ internal static partial class PdfWriter {
             shapingOptions = PdfTextShapingOptions.ForRendering(
                 standardTrueType.FontName, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot,
                 options.RecordProviderShapedTextRunDelegate, options.Language, featureSettings, direction);
-            return standardTrueType.ShapeText(text, shapingOptions).TotalAdvanceWidth1000 * effectiveFontSize / 1000D;
+            return standardTrueType.MeasureShapedTextWidth(text, standardTrueType.ShapeText(text, shapingOptions), effectiveFontSize);
         }
         if (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? standardCff) &&
             standardCff != null) {

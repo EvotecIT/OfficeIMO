@@ -7,7 +7,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.TestAssets;
 
-internal static class ManagedTextShapingTestAssets {
+internal static partial class ManagedTextShapingTestAssets {
     internal const string FamilyName = "OfficeIMO Shaping Test";
 
     internal static byte[] CreateFont(params int[] scalars) {
@@ -206,7 +206,8 @@ internal static class ManagedTextShapingTestAssets {
         int baseGlyphHeight = 700,
         int ascender = 800,
         int descender = -200,
-        bool inkedNotdef = false) {
+        bool inkedNotdef = false,
+        byte[]? tracking = null) {
         byte[] glyph = CreateVisibleGlyph(400);
         var glyf = new byte[(glyphCount - (inkedNotdef ? 0 : 1)) * glyph.Length];
         var loca = new byte[(glyphCount + 1) * 2];
@@ -231,6 +232,7 @@ internal static class ManagedTextShapingTestAssets {
             ("maxp", maxp),
             ("name", new byte[6])
         };
+        if (tracking != null) tables.Add(("trak", tracking));
         if (kern != null) tables.Add(("kern", kern));
         if (gsub != null) tables.Add(("GSUB", gsub));
         if (gpos != null) tables.Add(("GPOS", gpos));

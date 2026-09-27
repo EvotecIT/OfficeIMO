@@ -22,6 +22,7 @@ internal static partial class PdfFormFiller {
             exception is ArgumentException ||
             exception is ArithmeticException ||
             exception is FormatException ||
+            exception is System.IO.InvalidDataException ||
             exception is IndexOutOfRangeException ||
             exception is InvalidOperationException) {
             failureMessage = $"The configured appearance font '{family.FamilyName}' could not be parsed as a supported embedded font.";
@@ -55,7 +56,9 @@ internal static partial class PdfFormFiller {
             mappedHex,
             segmentEncoder,
             (text, fontSize) => fontProgram.MeasureTextWidth(text, fontSize),
-            encodeTextSegments: null,
+            encodeTextSegments: text => new[] {
+                new PdfTextAppearanceSegment(DefaultAppearanceFontName, fontProgram.EncodeTextShowCommand(text))
+            },
             (objects, _) => fontProgram.Materialize(
                 objects,
                 fontFileObjectNumber,
@@ -132,6 +135,12 @@ internal static partial class PdfFormFiller {
                 return _cffFont.EncodeTextAsGlyphHex(text);
             }
 
+            throw new InvalidOperationException("The configured appearance font was not parsed.");
+        }
+
+        public PdfTextShowCommand EncodeTextShowCommand(string text) {
+            if (_trueTypeFont != null) return _trueTypeFont.EncodeTextShowCommand(text);
+            if (_cffFont != null) return _cffFont.ShapeText(text, PdfTextShapingOptions.ForRendering(_cffFont.FontName)).ToTextShowCommand();
             throw new InvalidOperationException("The configured appearance font was not parsed.");
         }
 

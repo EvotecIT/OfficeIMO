@@ -1,15 +1,15 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfTextAppearanceSegment {
-    public PdfTextAppearanceSegment(string fontResourceName, string encodedHex) {
+    public PdfTextAppearanceSegment(string fontResourceName, PdfTextShowCommand command) {
         Guard.NotNullOrWhiteSpace(fontResourceName, nameof(fontResourceName));
-        Guard.NotNull(encodedHex, nameof(encodedHex));
+        Guard.NotNull(command, nameof(command));
 
         FontResourceName = fontResourceName;
-        EncodedHex = encodedHex;
+        Command = command;
     }
 
     public string FontResourceName { get; }
 
-    public string EncodedHex { get; }
+    public PdfTextShowCommand Command { get; }
 }

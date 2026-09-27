@@ -91,15 +91,24 @@ internal sealed class PdfGlyphRun {
 }
 
 internal sealed class PdfTextShowCommand {
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null,
+        OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false) {
         GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
+        Tracking = tracking;
+        UnitsPerEm = unitsPerEm;
+        TrackingBoundaries = trackingBoundaries;
+        NegativeTracking = negativeTracking;
     }
 
     internal string GlyphHex { get; }
     internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
     internal string? ActualText { get; }
+    internal OfficeOpenTypeTracking? Tracking { get; }
+    internal int UnitsPerEm { get; }
+    internal bool[]? TrackingBoundaries { get; }
+    internal bool NegativeTracking { get; }
     internal bool HasPositioning => PositionedGlyphs != null && PositionedGlyphs.Count > 0;
 }
 

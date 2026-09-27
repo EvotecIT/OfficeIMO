@@ -26,6 +26,7 @@
     <ProjectReference Include="..\OfficeIMO.Drawing.HarfBuzz\OfficeIMO.Drawing.HarfBuzz.csproj" />
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Tracking.cs" Link="Shared\ManagedTextShapingTestAssets.Tracking.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="Shared\TypographyEvidenceCorpus.cs" />
   </ItemGroup>
 
