@@ -20,11 +20,17 @@ namespace OfficeIMO.Word.Html {
             long maximumBytes = Math.Min(options.MaxEmbeddedImageBytes, Math.Min(remainingImages, outputBytes));
             string limitCode = maximumBytes == outputBytes ? "WordHtmlOutputLimitExceeded" :
                 maximumBytes == remainingImages ? "WordImageTotalSizeLimitExceeded" : "WordImageSizeLimitExceeded";
-            if (maximumBytes < 1)
-                ThrowExportLimitExceeded(options, limitCode, "A rendered chart cannot fit within the configured HTML export limits.", "WordChart", 1, maximumBytes);
+            if (maximumBytes < 1) {
+                long limit = limitCode == "WordHtmlOutputLimitExceeded" ? options.MaxOutputCharacters :
+                    limitCode == "WordImageTotalSizeLimitExceeded" ? options.MaxTotalEmbeddedImageBytes : options.MaxEmbeddedImageBytes;
+                long actual = limitCode == "WordHtmlOutputLimitExceeded"
+                    ? SaturatingAdd(options.MaxOutputCharacters - GetRemainingOutputCharacters(owner), prefix.Length + 4L)
+                    : limitCode == "WordImageTotalSizeLimitExceeded" ? SaturatingAdd(embeddedImageBytes, 1L) : 1L;
+                ThrowExportLimitExceeded(options, limitCode, "A rendered chart cannot fit within the configured HTML export limits.", "WordChart", actual, limit);
+            }
             byte[] bytes;
             try {
-                var rendering = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
+                var rendering = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
                 if (rendering.QualityReport.HasIssues) {
                     AddExportDiagnostic(options, "WordChartRenderingApproximation",
                         "A Word chart was rendered with shared drawing quality warnings.", OfficeConversionLossKind.Approximation);
@@ -62,7 +68,9 @@ namespace OfficeIMO.Word.Html {
             ReserveOutputCharacters(owner, characters, "A rendered chart exceeds the HTML output-character limit.", "WordChart:src");
             var image = CreateOutputElement(owner, "img");
             SetOutputAttributeAfterValueReservation(owner, image, "src", prefix + System.Convert.ToBase64String(bytes), "WordChart:src");
-            SetOutputAttribute(image, "alt", string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!, "WordChart:alt");
+            string alternativeText = !string.IsNullOrWhiteSpace(chart.AltText) ? chart.AltText! :
+                string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!;
+            SetOutputAttribute(image, "alt", alternativeText, "WordChart:alt");
             SetOutputAttribute(image, "width", Math.Round(snapshot.WidthPoints * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:width");
             SetOutputAttribute(image, "height", Math.Round(snapshot.HeightPoints * 96D / 72D).ToString(CultureInfo.InvariantCulture), "WordChart:height");
             embeddedImageBytes += bytes.LongLength;

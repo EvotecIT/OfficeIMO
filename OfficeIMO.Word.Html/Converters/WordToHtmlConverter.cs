@@ -406,7 +406,14 @@ namespace OfficeIMO.Word.Html {
                             continue;
                         }
                         if (segment.IsRunArtifact) {
-                            AppendRunArtifacts(sourceRun, expandedNodes, segment.ArtifactElement);
+                            var artifactNodes = new List<INode>();
+                            AppendRunArtifacts(sourceRun, artifactNodes, segment.ArtifactElement);
+                            IElement? sourceAnchor = hyperlinkNode == null && sourceRun.IsHyperLink && sourceRun.Hyperlink != null
+                                ? CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink) : null;
+                            if (sourceAnchor != null) {
+                                foreach (INode artifactNode in artifactNodes) sourceAnchor.AppendChild(artifactNode);
+                                if (artifactNodes.Count > 0) expandedNodes.Add(sourceAnchor);
+                            } else expandedNodes.AddRange(artifactNodes);
                             continue;
                         }
                         if (string.IsNullOrEmpty(segment.Text)) continue;
