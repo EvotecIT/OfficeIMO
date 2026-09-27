@@ -426,12 +426,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
-        string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style);
-        double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
-        double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(token => MeasureInlineText(token, style))
-            .DefaultIfEmpty(1D)
-            .Max();
+        // Shrink-to-fit uses the same styled in-flow content as flex/grid sizing.
+        // TextContent omits generated content and replaced descendants and loses child font styles.
+        IReadOnlyList<GridIntrinsicTextRun> content = ResolveGridInFlowTextRuns(
+            new FlexItem(element, style, 0), containingWidth);
+        double preferredContentWidth = content.Count == 0 ? 1D : MeasureGridMaxContentRuns(content);
+        double minimumContentWidth = content.Count == 0 ? 1D : MeasureGridMinContentRuns(content);
         double availableContentWidth = Math.Max(1D, containingWidth - style.HorizontalInsets - style.MarginLeft - style.MarginRight);
         double contentWidth = Math.Min(preferredContentWidth, Math.Max(minimumContentWidth, availableContentWidth));
         double resolvedBoxWidth = contentWidth + style.HorizontalInsets;
