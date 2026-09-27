@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ee77d7d1a0e84407af72c4684bec6c59bd237aa3",
+  "worktreeDirty": false,
+  "archiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "chromiumVersion": "151.0.7922.34",
+  "h4": {
+    "cases": 8,
+    "status": "Passed",
+    "failures": 0,
+    "pixelComparison": {
+      "officeimoPngs": 43,
+      "byteIdentical": 43,
+      "differences": []
+    }
+  },
+  "nasa": {
+    "lanes": 13,
+    "pages": 105,
+    "failures": [],
+    "pixelComparison": [
+      {
+        "intent": "chromium-screen",
+        "pages": 4,
+        "changed": []
+      },
+      {
+        "intent": "chromium-print",
+        "pages": 4,
+        "changed": [
+          "page-4.png"
+        ]
+      },
+      {
+        "intent": "officeimo-print",
+        "pages": 12,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pages": 10,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pages": 4,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pages": 4,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pages": 10,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pages": 10,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pages": 10,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pages": 10,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pages": 12,
+        "changed": []
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pages": 12,
+        "changed": []
+      },
+      {
+        "intent": "peachpdf-print",
+        "pages": 3,
+        "changed": []
+      }
+    ],
+    "changedBrowserPageInspection": "Chromium print page 4 and enlarged comparison crops inspected. The 2,399 changed pixels are confined to the rightmost gallery card (bounds x=470..490, y=180..368); page grouping is unchanged. Every OfficeIMO page is pixel-identical.",
+    "changedBrowserPageBounds": [
+      470,
+      180,
+      490,
+      368
+    ]
+  },
+  "artifactDirectories": [
+    "Ignore/HtmlUnknownPageQualification/h10-h4-editable-projection-clean-ee77d7d1a",
+    "Ignore/HtmlUnknownPageQualification/h10-nasa-editable-projection-clean-ee77d7d1a"
+  ],
+  "remaining": "NASA default print remains 12 pages versus Chromium 4. Gallery sizing, card/header/font/footer fidelity, remaining corpus and editable output appearance, and current-source supported-platform budgets remain unqualified."
+}
