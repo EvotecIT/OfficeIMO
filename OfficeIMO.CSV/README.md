@@ -437,7 +437,9 @@ var table = new DataTable();
 table.Load(reader);
 ```
 
-For a large typed import, enable bounded parallel projection on the reader.
+For imports with expensive typed conversions, benchmark bounded parallel
+projection on the reader before enabling it. Input size alone does not make
+worker scheduling worthwhile.
 Parsing remains single-owner, completed batches are returned in source order,
 and the caller still consumes one `DbDataReader`, so the same reader can be
 passed to `SqlBulkCopy` or another provider bulk-copy API:

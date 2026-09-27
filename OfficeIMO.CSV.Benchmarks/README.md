@@ -33,6 +33,48 @@ declaration and records its actual affinity and priority in the log. Repeat
 the complete matrix on each discovered processor domain before interpreting
 relative timings, and retain the raw samples when background load is present.
 
+## Sustained input and sampled memory
+
+`Build/Benchmarks/csv-sustained-read.benchmark.ps1` declares a separate PowerForge
+lane with 100,000 and 1,000,000 rows, six fields, distinct strings, decimal values,
+dates, booleans, and plain or quoted Unicode multiline notes. It compares snapshot
+and incremental initialization for asynchronous first-row consumption and ordered
+sequential or parallel typed projection. Typed projection enumerates synchronously
+after asynchronous initialization. Parallel projection uses four workers and
+1,024-row batches by default, and consumes results without retaining a row array.
+
+Fixture creation and complete field/order validation happen outside timing.
+Every measured operation produces a checksum that the runner validates. Two
+warmups and seven rotated measurements retain all samples. The shared runner
+collects managed garbage before each operation, outside timing; reads use the
+warmed operating-system cache. Timing includes PowerShell dispatch, so use the
+BenchmarkDotNet lane above for precise first-row API latency.
+
+Build the CSV library for `net10.0`, then run in a fresh PowerShell process on
+.NET 10 with a PSPublishModule build containing `PowerForge.BenchmarkMemoryProbe`:
+
+```powershell
+./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 -OutputRoot ./Ignore/Benchmarks/CsvSustainedTime
+./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 -SampleMemory -OutputRoot ./Ignore/Benchmarks/CsvSustainedMemory
+```
+
+`-ModulePath` selects a module build, `-BinaryRoot` selects the CSV library build,
+and `-Plan` expands the 24 cases. Record processor/cache topology and repeat both
+lanes with `-AffinityMask` on every relevant Windows or Linux processor domain.
+Use `-Degree` and `-Batch` to qualify other parallel configurations separately.
+
+The memory lane uses PowerForge's five-millisecond probe. It reports baseline
+and sampled peak managed heap and resident process memory, their increases, and
+the number of observations. Peaks are lower bounds: polling can miss brief
+transients. Managed heap includes uncollected objects, and resident memory
+includes runtime state and previously committed pages. Sampler thread startup
+and polling also consume resources. Use the separate uninstrumented lane for
+throughput; allocation totals remain a separate BenchmarkDotNet measurement.
+
+The runner retains generated CSV files under a named `fixtures-*` folder in the
+output root so failed validation can be investigated. Remove that exact folder
+after retaining the compact reports and provenance needed to reproduce the run.
+
 ## Text export and quote density
 
 `CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
