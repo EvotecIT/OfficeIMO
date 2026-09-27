@@ -27,8 +27,9 @@ internal static partial class PdfWriter {
             }
 
             double? measuredHeight = MeasureFlowBlocks(blocks);
+            double beforeFloatClearanceY = y;
             while (HasFloatingTables && measuredHeight.HasValue && measuredHeight.Value > 0.001D &&
-                (flow.Options.KeepTogether || flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage)) {
+                (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
                 double previousY = y;
                 AvoidFloatingBlock(measuredHeight.Value);
                 if (y >= previousY - 0.001D) break;
@@ -54,7 +55,9 @@ internal static partial class PdfWriter {
                                 fullPageMeasuredHeight.Value <= GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D;
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
-            if ((moveForKeepTogether || moveForOverflow) && y < GetCurrentFramePageStartY() - 0.001D) {
+            bool moveForMinimumHeight = flow.Options.MinimumRemainingHeight > 0D &&
+                available + 0.001D < flow.Options.MinimumRemainingHeight;
+            if ((moveForKeepTogether || moveForOverflow || moveForMinimumHeight) && y < GetCurrentFramePageStartY() - 0.001D) {
                 NewPage();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
@@ -64,6 +67,7 @@ internal static partial class PdfWriter {
                 measuredHeight = MeasureFlowBlocks(blocks);
                 fullPageMeasuredHeight = measuredHeight;
                 available = y - currentOpts.MarginBottom;
+                beforeFloatClearanceY = y;
                 cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
             }
 
@@ -73,6 +77,8 @@ internal static partial class PdfWriter {
             }
 
             if (cannotFitCurrentPage && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Skip) {
+                // A skipped candidate does not reserve its temporary float clearance.
+                y = beforeFloatClearanceY;
                 capture?.MarkSkipped();
                 return;
             }

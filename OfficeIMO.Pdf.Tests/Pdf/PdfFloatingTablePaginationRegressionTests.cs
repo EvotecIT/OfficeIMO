@@ -8,6 +8,44 @@ namespace OfficeIMO.Tests;
 
 public class PdfFloatingTablePaginationRegressionTests {
     [Fact]
+    public void FloatClearanceRechecksFlowMinimumHeight() {
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
+            .Flow(flow => flow.Paragraph(p => p.Text("first")),
+                new PdfFlowOptions { KeepTogether = true, MinimumRemainingHeight = 100 }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
+    }
+    [Fact]
+    public void SkippedFlowDoesNotConsumeFloatClearance() {
+        var options = Options(240);
+        var table = Floating(120, 100);
+        byte[] baseline = PdfDocument.Create(options).Table(new[] { new[] { "floating" } }, style: table)
+            .Paragraph(p => p.Text("following")).ToBytes();
+        byte[] actual = PdfDocument.Create(options).Table(new[] { new[] { "floating" } }, style: table)
+            .Flow(flow => flow.Paragraph(p => p.Text("skipped")).Spacer(70),
+                new PdfFlowOptions { OverflowBehavior = PdfFlowOverflowBehavior.Skip })
+            .Paragraph(p => p.Text("following")).ToBytes();
+        using var expectedPdf = Pig.Open(baseline);
+        using var actualPdf = Pig.Open(actual);
+        Assert.Equal(expectedPdf.GetPage(1).GetWords().Single(w => w.Text == "following").BoundingBox,
+            actualPdf.GetPage(1).GetWords().Single(w => w.Text == "following").BoundingBox);
+        Assert.DoesNotContain(actualPdf.GetPage(1).GetWords(), w => w.Text == "skipped");
+    }
+    [Theory]
+    [InlineData(PdfFlowOverflowBehavior.Skip)]
+    [InlineData(PdfFlowOverflowBehavior.StopDocument)]
+    public void FloatClearancePrecedesNonContinuingOverflowDecision(PdfFlowOverflowBehavior behavior) {
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
+            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(70),
+                new PdfFlowOptions { OverflowBehavior = behavior })
+            .Paragraph(p => p.Text("following")).ToBytes());
+        Assert.DoesNotContain(pdf.GetPages().SelectMany(p => p.GetWords()), w => w.Text == "first");
+        Assert.Equal(behavior == PdfFlowOverflowBehavior.Skip,
+            pdf.GetPages().SelectMany(p => p.GetWords()).Any(w => w.Text == "following"));
+    }
+    [Fact]
     public void StaticConstrainedFlowRemeasuresSpacingAfterFloatClearance() {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 50))
