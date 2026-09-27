@@ -20,6 +20,13 @@ providers and the `LatinLigatures` mode retain their selection behavior.
 
 ## Native chart appearance bounds
 
+The older `WordChart.AddBar` authoring path now writes a horizontal category axis
+on the left and a value axis on the bottom, with clustered bars and a 150% gap.
+`WordChart.AddLine` now writes an explicit no-marker setting instead of leaving
+marker selection to the Office application. Regenerate documents if those older
+implicit defaults matter to your output; use `AddChart(OfficeChartKind, OfficeChartData)`
+with explicit series appearance for a controlled chart style.
+
 Managed chart axes and data labels use consistent rounding across supported .NET
 runtimes. Explicit numeric formats round midpoint values away from zero; for example,
 `0%` formats `0.705` as `71%`. Excel source-linked axes use the referenced cells' number

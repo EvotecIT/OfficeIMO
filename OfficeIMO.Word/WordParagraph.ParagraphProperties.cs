@@ -475,21 +475,21 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordVerticalTextPosition? VerticalTextAlignment {
             get {
-                RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
+                RunProperties? runProperties = ScopedRunProperties;
                 if (runProperties?.VerticalTextAlignment != null) {
                     return runProperties.VerticalTextAlignment.Val?.Value.ToOfficeEnum();
                 }
                 return null;
             }
             set {
-                RunProperties? runProperties = IsHyperLink ? Hyperlink?._runProperties : _runProperties;
+                RunProperties? runProperties = ScopedRunProperties;
                 if (value == null) {
                     if (runProperties?.VerticalTextAlignment == null) {
                         return;
                     }
                     runProperties.VerticalTextAlignment = null;
                 } else {
-                    if (IsHyperLink) {
+                    if (IsHyperLink && _stdRun == null) {
                         WordHyperLink hyperlink = Hyperlink!;
                         runProperties = VerifyRunProperties(
                             hyperlink._hyperlink!,

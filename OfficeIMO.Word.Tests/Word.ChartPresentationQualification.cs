@@ -9,6 +9,48 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartPresentationQualificationTests {
     [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Area)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void Snapshot_RejectsUnclippedPointsOutsideExplicitValueBounds(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+            new OfficeChartSeries("Values", new[] { 0d, 10d, 20d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d, 3d } : null) });
+        var chart = document.AddChart(kind, data);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        plot.Elements<C.ValueAxis>().Last().GetFirstChild<C.Scaling>()!.AddChild(new C.MaxAxisValue { Val = 15d }, true);
+        string native = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
+    [Fact]
+    public void Snapshot_RejectsUnclippedScatterPointsOutsideExplicitHorizontalBounds() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Scatter, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d, 3d }, new[] { 1d, 2d, 3d }) }));
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        plot.Elements<C.ValueAxis>().First().GetFirstChild<C.Scaling>()!.AddChild(new C.MaxAxisValue { Val = 2d }, true);
+        string native = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Snapshot_RejectsAreaBaselineOutsideExplicitVerticalBounds(bool positive) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Area, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", positive ? new[] { 10d, 20d } : new[] { -10d, -20d }) }));
+        var axis = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.Elements<C.ValueAxis>().Single();
+        axis.GetFirstChild<C.Scaling>()!.AddChild(positive ? new C.MinAxisValue { Val = 5d } : new C.MaxAxisValue { Val = -5d }, true);
+        string native = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.ColumnClustered)]
     [InlineData(OfficeChartKind.BarClustered)]
     public void Snapshot_DeletedAxesSuppressTheirLines(OfficeChartKind kind) {
@@ -211,6 +253,24 @@ public sealed class WordChartPresentationQualificationTests {
         OpenXmlCompositeElement axis = valueAxis ? plot.GetFirstChild<C.ValueAxis>()! : plot.GetFirstChild<C.CategoryAxis>()!;
         axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Maximum;
         Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_MapsNativeCrossingToPerpendicularScreenAxis(bool valueAxis) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.ColumnClustered);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        OpenXmlCompositeElement axis = valueAxis ? plot.GetFirstChild<C.ValueAxis>()! : plot.GetFirstChild<C.CategoryAxis>()!;
+        axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Maximum;
+        string native = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(valueAxis ? OfficeChartAxisCrossingPosition.Maximum : OfficeChartAxisCrossingPosition.AutoZero,
+            snapshot.Layout!.HorizontalAxisCrossingPosition);
+        Assert.Equal(valueAxis ? OfficeChartAxisCrossingPosition.AutoZero : OfficeChartAxisCrossingPosition.Maximum,
+            snapshot.Layout.VerticalAxisCrossingPosition);
+        Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 
     private static WordChart Create(WordDocument document, OfficeChartKind kind) => document.AddChart(kind,

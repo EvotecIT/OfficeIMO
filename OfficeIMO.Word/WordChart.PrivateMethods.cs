@@ -171,8 +171,8 @@ namespace OfficeIMO.Word {
             UInt32Value valId = GenerateAxisId();
 
             BarChart barChart1 = CreateBarChart(catId, valId);
-            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Left);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Bottom);
             chart.PlotArea!.Append(barChart1);
             chart.PlotArea!.Append(categoryAxis1);
             chart.PlotArea!.Append(valueAxis1);
@@ -185,9 +185,9 @@ namespace OfficeIMO.Word {
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
-            BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
+            BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Clustered };
             DataLabels dataLabels1 = AddDataLabel();
-            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
+            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)150U };
             Overlap overlap1 = new Overlap() { Val = 0 };
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
@@ -399,6 +399,7 @@ namespace OfficeIMO.Word {
             lineChartSeries1.Append(order1);
             lineChartSeries1.Append(seriesText1);
             lineChartSeries1.Append(chartShapeProperties1);
+            lineChartSeries1.Append(new Marker(new Symbol { Val = MarkerStyleValues.None }));
             lineChartSeries1.Append(categoryAxisData1);
             lineChartSeries1.Append(values1);
 

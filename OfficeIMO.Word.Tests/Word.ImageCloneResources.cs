@@ -6,11 +6,39 @@ using W = DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests;
 
 public sealed class WordImageCloneResourcesTests {
     private static readonly byte[] Gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+
+    [Fact]
+    public void Clone_RemapsDrawingClickAndHoverLinksAcrossStories() {
+        using var source = WordDocument.Create();
+        using var destination = WordDocument.Create();
+        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20).Image!;
+        var click = source.MainDocumentPartRoot.AddHyperlinkRelationship(new Uri("https://example.test/click"), true);
+        var hover = source.MainDocumentPartRoot.AddHyperlinkRelationship(new Uri("https://example.test/hover"), true);
+        image._Image.Descendants<PIC.NonVisualDrawingProperties>().Single().Append(
+            new A.HyperlinkOnClick { Id = click.Id }, new A.HyperlinkOnHover { Id = hover.Id });
+
+        destination.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", 20, 20);
+        var target = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        image.Clone(target);
+        var owner = destination.MainDocumentPartRoot.HeaderParts.Single();
+        var copiedClick = Assert.Single(target._paragraph.Descendants<A.HyperlinkOnClick>());
+        var copiedHover = Assert.Single(target._paragraph.Descendants<A.HyperlinkOnHover>());
+        Assert.Equal("https://example.test/click", owner.HyperlinkRelationships.Single(item => item.Id == copiedClick.Id!.Value).Uri.ToString());
+        Assert.Equal("https://example.test/hover", owner.HyperlinkRelationships.Single(item => item.Id == copiedHover.Id!.Value).Uri.ToString());
+        using var package = destination.ToStream();
+        using var reopened = WordDocument.Load(package);
+        var persisted = reopened.MainDocumentPartRoot.HeaderParts.Single();
+        Assert.Equal("https://example.test/click", persisted.HyperlinkRelationships.Single(item =>
+            item.Id == persisted.Header!.Descendants<A.HyperlinkOnClick>().Single().Id!.Value).Uri.ToString());
+        Assert.Equal("https://example.test/hover", persisted.HyperlinkRelationships.Single(item =>
+            item.Id == persisted.Header!.Descendants<A.HyperlinkOnHover>().Single().Id!.Value).Uri.ToString());
+    }
 
     [Theory]
     [InlineData(false)]
