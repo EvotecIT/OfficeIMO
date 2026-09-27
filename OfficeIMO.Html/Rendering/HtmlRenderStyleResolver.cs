@@ -949,12 +949,13 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlRenderBoxStyle style,
         bool includeAttributes) {
         string cssWidth = computed.GetValue("width");
-        string? attributeWidth = includeAttributes ? element.GetAttribute("width") : null;
+        IElement dimensionSource = includeAttributes ? ResolveDimensionAttributeSource(element) : element;
+        string? attributeWidth = includeAttributes ? dimensionSource.GetAttribute("width") : null;
         style.ExplicitWidth = ReadLength(cssWidth, attributeWidth, reference, fontSize);
         style.ExplicitWidthUsesPercentage = (cssWidth?.IndexOf('%') ?? -1) >= 0
             || (attributeWidth?.IndexOf('%') ?? -1) >= 0;
         double? parentContentHeight = ResolveDefiniteContentHeight(parent);
-        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? element.GetAttribute("height") : null, parentContentHeight, fontSize);
+        style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? dimensionSource.GetAttribute("height") : null, parentContentHeight, fontSize);
         style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
         style.MaxWidth = ReadLength(computed.GetValue("max-width"), null, reference, fontSize);
         style.MinHeight = ReadVerticalLength(computed.GetValue("min-height"), null, parentContentHeight, fontSize);

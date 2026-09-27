@@ -15,7 +15,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : HtmlEditableLayoutProjector.DescribeImageSource(editableImageKey);
         IReadOnlyList<string> candidates = IsInlineSvgElement(element)
             ? Array.Empty<string>()
-            : HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(element, _baseUri, _resourceUrlPolicy, _options);
+            : HtmlImageSourceResolver.SelectImageForRendering(element, _baseUri, _resourceUrlPolicy, _options).Sources;
         string? source = candidates.FirstOrDefault() ?? element.GetAttribute("src");
         byte[]? bytes = null;
         string contentType = string.Empty;

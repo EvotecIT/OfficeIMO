@@ -17,8 +17,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bytes = null;
             imageInfo = null;
             string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);
-            IReadOnlyList<string> candidates = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(
-                element, _baseUri, _resourceUrlPolicy, _options);
+            IReadOnlyList<string> candidates = HtmlImageSourceResolver.SelectImageForRendering(
+                element, _baseUri, _resourceUrlPolicy, _options).Sources;
             foreach (string candidate in candidates) {
                 if (TryResolveImageSource(candidate, sourceDescription, out bytes, out _, out imageInfo, reportDiagnostics: false)) break;
             }

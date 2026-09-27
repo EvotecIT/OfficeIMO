@@ -52,59 +52,6 @@ public static partial class HtmlImageSourceResolver {
         return candidates.Items;
     }
 
-    /// <summary>
-    /// Resolves the candidates selected by the active render media environment.
-    /// </summary>
-    internal static IReadOnlyList<string> ResolveImageSourceCandidatesForRendering(IElement element, Uri? baseUri, HtmlUrlPolicy? policy, HtmlRenderOptions options) {
-        var candidates = new CandidateAccumulator();
-        if (element == null) return candidates.Items;
-
-        HtmlResponsiveImageSelectionOptions selectionOptions = CreateResponsiveSelectionOptions(options);
-
-        bool selectedPictureSource = false;
-        IElement? picture = element.ParentElement;
-        if (picture != null && picture.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
-            double mediaWidth = options.CssMediaWidth;
-            double mediaHeight = options.CssMediaHeight;
-            foreach (IElement child in picture.Children) {
-                if (ReferenceEquals(child, element)) break;
-                if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)
-                    || !HtmlComputedStyleEngine.IsApplicableMedia(
-                        child.GetAttribute("media") ?? string.Empty,
-                        options.MediaContext,
-                        mediaWidth,
-                        mediaHeight,
-                        options.MediaFeatures)
-                    || !HtmlPictureSourceSupport.IsSupportedConversionContentType(child.GetAttribute("type"))) {
-                    continue;
-                }
-
-                int countBeforeSource = candidates.Items.Count;
-                AddSelectedResolvedSrcSet(candidates, child, baseUri, policy, selectionOptions, defaultSource: null, SrcSetAttributes);
-                if (candidates.Items.Count == countBeforeSource) {
-                    int candidateCount = 0;
-                    AddResolvedUrlAttributes(candidates, child, baseUri, policy, options.ResponsiveImageCandidateLimit,
-                        ref candidateCount, PictureSourceAttributes);
-                }
-                if (candidates.Items.Count > countBeforeSource) {
-                    selectedPictureSource = true;
-                    break;
-                }
-            }
-        }
-
-        if (!selectedPictureSource) {
-            AddResolvedUrlAttributes(candidates, element, baseUri, policy, LazySourceAttributes);
-            if (candidates.Items.Count == 0) {
-                string? defaultSource = element.GetAttribute("src");
-                AddSelectedResolvedSrcSet(candidates, element, baseUri, policy, selectionOptions, defaultSource, SrcSetAttributes);
-                if (candidates.Items.Count == 0) AddResolvedUrlAttributes(candidates, element, baseUri, policy, SourceAttributes);
-            }
-        }
-
-        return candidates.Items;
-    }
-
     private static HtmlResponsiveImageSelectionOptions CreateResponsiveSelectionOptions(HtmlRenderOptions options) {
         double width = options.CssMediaWidth;
         double height = options.CssMediaHeight;

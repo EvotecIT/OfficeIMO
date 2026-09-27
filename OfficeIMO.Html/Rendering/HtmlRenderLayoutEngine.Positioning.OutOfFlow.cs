@@ -345,7 +345,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
         double outerWidth = ResolvePositionedOuterWidth(request.Element, style, containingWidth, left, right);
         if (!style.ExplicitWidth.HasValue) SetPositionedExplicitWidth(style, outerWidth);
-        if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue) {
+        if (!style.ExplicitHeight.HasValue && top.HasValue && bottom.HasValue
+            && !IsReplacedImageElement(request.Element)) {
             double targetOuterHeight = Math.Max(0.01D, containingHeight - top.Value - bottom.Value);
             double targetBoxHeight = Math.Max(0.01D, targetOuterHeight - style.MarginTop - style.MarginBottom);
             style.ExplicitHeight = style.BorderBox ? targetBoxHeight : Math.Max(0.01D, targetBoxHeight - style.VerticalInsets);
@@ -413,6 +414,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double ResolvePositionedOuterWidth(IElement element, HtmlRenderBoxStyle style, double containingWidth, double? left, double? right) {
+        // Replaced elements resolve auto dimensions from their intrinsic size/ratio;
+        // opposing insets position the box rather than stretching its content.
+        if (IsReplacedImageElement(element)) return ResolveFloatingImageOuterWidth(element, style);
         if (style.ExplicitWidth.HasValue) {
             double boxWidth = style.ExplicitWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets);
             if (style.MaxWidth.HasValue) boxWidth = Math.Min(boxWidth, style.MaxWidth.Value + (style.BorderBox ? 0D : style.HorizontalInsets));
@@ -422,7 +426,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (left.HasValue && right.HasValue) return Math.Max(1D, containingWidth - left.Value - right.Value);
         string tag = element.TagName.ToLowerInvariant();
         if (tag == "table") return containingWidth;
-        if (IsReplacedImageElementTag(tag)) return 300D + style.HorizontalInsets + style.MarginLeft + style.MarginRight;
         string content = ApplyTextTransform(CollapseFlexText(element.TextContent), style);
         double preferredContentWidth = Math.Max(1D, MeasureInlineText(content, style));
         double minimumContentWidth = content.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
