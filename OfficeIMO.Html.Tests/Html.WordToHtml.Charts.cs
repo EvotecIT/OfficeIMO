@@ -36,6 +36,29 @@ public sealed class HtmlWordChartTests {
         Assert.Contains("After", html.Body.TextContent);
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
     }
+    [Theory]
+    [InlineData("HtmlDeletedText", "del")]
+    [InlineData("HtmlInsertedText", "ins")]
+    public void Export_NestedLinkedChartUsesItsOwnRevisionAndTextFormatting(string style, string tag) {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.Paragraphs.Single();
+        var run = paragraph.GetRuns().Single()._run!;
+        run.Remove();
+        run.RunProperties = new DocumentFormat.OpenXml.Wordprocessing.RunProperties(
+            new DocumentFormat.OpenXml.Wordprocessing.RunStyle { Val = style },
+            new DocumentFormat.OpenXml.Wordprocessing.Bold());
+        run.Append(new DocumentFormat.OpenXml.Wordprocessing.Text("Nested bold"));
+        var hyperlink = new DocumentFormat.OpenXml.Wordprocessing.Hyperlink(
+            new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text("Before ")),
+            new DocumentFormat.OpenXml.Wordprocessing.SdtRun(new DocumentFormat.OpenXml.Wordprocessing.SdtProperties(),
+                new DocumentFormat.OpenXml.Wordprocessing.SdtContentRun(run))) { Anchor = "chart-target" };
+        paragraph._paragraph.Append(hyperlink);
+        var html = new HtmlParser().ParseDocument(document.ToHtml());
+        Assert.Single(html.QuerySelectorAll("a " + tag + " img"));
+        Assert.Contains(html.QuerySelectorAll("strong"), item => item.TextContent == "Nested bold");
+        Assert.DoesNotContain(html.QuerySelectorAll("strong"), item => item.TextContent.Contains("Before"));
+    }
     [Fact]
     public void Export_RendersChartsInsideRichTextContentControls() {
         using var document = WordDocument.Create();
