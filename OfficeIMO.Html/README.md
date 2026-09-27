@@ -278,6 +278,13 @@ claim a complete Chromium stylesheet or cross-platform system-font identity.
 Set `DefaultFontFamily` after calling the helper when the application supplies
 or requires a particular font family.
 
+Unavailable `@font-face` declarations remain in the diagnostic report. They
+count as font approximation when rendered text requests the unavailable face;
+unused declarations and fallback faces that are never reached are informational.
+This attribution uses the original family, weight, style, stretch and Unicode
+coverage request before fallback. Resource-policy failures and execution limits
+retain their own diagnostics.
+
 Use a named render request when CSS media, viewport behavior, pagination, page
 selection, and output format must be independently reviewable. The request takes an
 immutable options snapshot. The retained result records the exact profile, surfaces,
