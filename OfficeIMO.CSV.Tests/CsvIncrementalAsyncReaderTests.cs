@@ -331,6 +331,42 @@ public class CsvIncrementalAsyncReaderTests
         Assert.False(input.Blocked.Task.IsCompleted);
     }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(4096)]
+    public async Task Detection_Completes_With_Enough_Records_After_Unmatched_Quote_Comment(int chunk)
+    {
+        string csv = "# generated \"by tool\nName;Value\n" + string.Concat(Enumerable.Repeat("Alpha;7\n", 100));
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), chunk, blockAtEnd: true);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true }, cancellationToken: timeout.Token);
+        Assert.True(await reader.ReadAsync(timeout.Token));
+        Assert.Equal("Alpha", reader.GetString(0));
+        Assert.Equal("7", reader.GetString(1));
+        Assert.False(input.Blocked.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task Detection_Completes_Last_Sample_After_Many_Quoted_Continuation_Lines()
+    {
+        string multiline = string.Concat(Enumerable.Repeat("line\n", 1000)) + "end";
+        string csv = "Name;Value\n" + string.Concat(Enumerable.Repeat("Alpha;7\n", 62)) + "Beta;\"" + multiline + "\"\n";
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), 1, blockAtEnd: true);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true }, cancellationToken: timeout.Token);
+        for (int row = 0; row < 62; row++)
+        {
+            Assert.True(await reader.ReadAsync(timeout.Token));
+            Assert.Equal("Alpha", reader.GetString(0));
+        }
+        Assert.True(await reader.ReadAsync(timeout.Token));
+        Assert.Equal("Beta", reader.GetString(0));
+        Assert.Equal(multiline, reader.GetString(1));
+        Assert.False(input.Blocked.Task.IsCompleted);
+    }
+
     [Fact]
     public async Task Detection_Cap_Inside_Record_Uses_Fallback_And_Replays_Whole_Field()
     {
