@@ -128,6 +128,45 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_FloatLineUsesWhitespaceBeforeEmergencyWordBreak() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='width:120px;margin:0;font:16px/20px Arial;overflow-wrap:break-word'>"
+            + "<span style='float:left;width:20px;height:80px'></span>A Supercalifragilisticexpialidocious</p>",
+            new HtmlRenderOptions { ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D) });
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(fragment => fragment.Text.Length > 0)
+            .GroupBy(fragment => Math.Round(fragment.Y, 2))
+            .OrderBy(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text)))
+            .ToArray();
+
+        Assert.True(lines.Length > 1);
+        Assert.Equal("A", lines[0]);
+        Assert.StartsWith("Super", lines[1], StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlRendering_PreferredBreakStillUsesPrecedingWhitespace(bool withFloat) {
+        string floating = withFloat ? "<span style='float:left;width:20px;height:80px'></span>" : string.Empty;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<p style='width:120px;margin:0;font:16px/20px Arial;overflow-wrap:break-word'>"
+            + floating + "A Supercalifragilisticexpialidocious-remaining</p>",
+            new HtmlRenderOptions { ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D) });
+        string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(fragment => fragment.Text.Length > 0)
+            .GroupBy(fragment => Math.Round(fragment.Y, 2))
+            .OrderBy(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(fragment => fragment.X).Select(fragment => fragment.Text)))
+            .ToArray();
+
+        Assert.True(lines.Length > 1);
+        Assert.Equal("A", lines[0]);
+        Assert.StartsWith("Super", lines[1], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlRendering_BreakAllSuppressesManualAndAutomaticHyphenation() {
         var options = new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,

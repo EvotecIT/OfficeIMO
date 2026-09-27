@@ -198,6 +198,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 bool whitespace = IsWhitespaceToken(token);
                 string normalizedToken = !preserveWhitespace && whitespace ? " " : token;
+                bool followsCollapsibleSpace = !whitespace && !preserveWhitespace && previousWasCollapsibleSpace;
                 if (!preserveWhitespace && whitespace) {
                     if (!line.HasFlowContent || previousWasCollapsibleSpace) continue;
                     previousWasCollapsibleSpace = true;
@@ -238,7 +239,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         paragraphStyle.LineHeight,
                         run,
                         hyphenation.PaintText,
-                        hyphenation.LogicalText)) {
+                        hyphenation.LogicalText,
+                        followsCollapsibleSpace)) {
                     continue;
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
@@ -248,6 +250,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
                     && (measured > line.AvailableWidth || breakAllIntoRemainingSpace)) {
+                    if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
+                        CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    }
                     AddBrokenFloatToken(lines, ref line, ref y, context, paragraphStyle.LineHeight, run, paintToken);
                     continue;
                 }

@@ -703,6 +703,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool whitespace = IsWhitespaceToken(token);
                 string normalizedToken = !preserveWhitespace && whitespace ? " " : token;
                 string normalizedLogicalToken = !preserveWhitespace && whitespace ? " " : logicalToken;
+                bool followsCollapsibleSpace = !whitespace && !preserveWhitespace && previousWasCollapsibleSpace;
                 bool contributesCanonicalProgress = preserveWhitespace
                     || !whitespace
                     || canonicalHasContent && !canonicalPreviousWasCollapsibleSpace;
@@ -770,7 +771,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         paintToken,
                         logicalPaintToken,
                         width,
-                        visibleTokenStart)) {
+                        visibleTokenStart,
+                        followsCollapsibleSpace)) {
                     continue;
                 }
                 bool breakAllIntoRemainingSpace = run.Style.WordBreak == "break-all"
@@ -780,6 +782,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && !whitespace
                     && AllowsEmergencyTokenBreak(run.Style)
                     && (measured > width + 0.0001D || breakAllIntoRemainingSpace)) {
+                    if (followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
+                        TrimTrailingWhitespace(line);
+                        lines.Add(line);
+                        line = new InlineLine();
+                    }
                     AddBrokenToken(lines, ref line, run, paintToken, logicalPaintToken, width, visibleTokenStart);
                     continue;
                 }
@@ -1074,7 +1081,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string paintToken,
         string logicalToken,
         double width,
-        int logicalStartProgress) {
+        int logicalStartProgress,
+        bool followsCollapsibleSpace) {
         if (paintToken.Length != logicalToken.Length) return false;
         IReadOnlyList<int> breaks = GetHtmlPreferredBreakPositions(
             paintToken,
@@ -1087,6 +1095,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             string logicalChunk = logicalToken.Substring(start, end - start);
             double chunkWidth = MeasureInlineText(paintChunk, run.Style);
             if (chunkWidth > width + 0.0001D && AllowsEmergencyTokenBreak(run.Style)) {
+                if (start == 0 && followsCollapsibleSpace && line.HasFlowContent && run.Style.WordBreak != "break-all") {
+                    TrimTrailingWhitespace(line);
+                    lines.Add(line);
+                    line = new InlineLine();
+                }
                 AddBrokenToken(lines, ref line, run, paintChunk, logicalChunk, width, logicalStartProgress + start);
                 start = end;
                 continue;

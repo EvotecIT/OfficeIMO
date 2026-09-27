@@ -102,6 +102,32 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
+    [InlineData("break-word")]
+    [InlineData("anywhere")]
+    public void HtmlRender_UsesWhitespaceBeforeBreakingLongWordInClampedCard(string overflowWrap) {
+        string html = """
+            <style>
+              body { margin: 0; }
+              .card { width: 300px; font: 16px/23px Arial; overflow-wrap: OVERFLOW_WRAP; }
+              p { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 7; overflow: hidden; margin: 0; }
+            </style>
+            <div class='card'><p>Jupiter's magnetosphere - a basic view. || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_print.jpg (1024x576) [245.3 KB] || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_searchweb.png (320x180) [132.5 KB] || Jupiter_JupiterBasic_Dayside.slate_BaseRig.HD1080i.1000_thm.png</p></div>
+            """.Replace("OVERFLOW_WRAP", overflowWrap, StringComparison.Ordinal);
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
+        string[] lines = EnumerateTextOverflowVisuals(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderText>()
+            .GroupBy(run => Math.Round(run.Y, 2))
+            .OrderBy(line => line.Key)
+            .Select(line => string.Concat(line.OrderBy(run => run.X).Select(run => run.Text)))
+            .ToArray();
+
+        Assert.Equal(7, lines.Length);
+        Assert.DoesNotContain(lines, line => line.Contains("|| Jupiter_", StringComparison.Ordinal));
+        if (overflowWrap == "break-word") Assert.EndsWith("…", lines[6], StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("Exploring Planet Uranus Resource Page")]
     [InlineData("<span>Exploring Planet Uranus Resource Page</span>")]
     public void HtmlRender_ClampsLegacyWebKitBoxInsideHeading(string content) {
