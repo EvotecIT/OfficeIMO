@@ -495,7 +495,8 @@ separator, number format, and position. Mixed body fonts, per-point or series-sp
 outside-label leader lines, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
 Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
-axis crossing are preserved. Nonstandard axis arrangements, title or legend shape fills,
+axis crossing are preserved where the renderer supports them; maximum crossing on horizontal
+bars is rejected. Nonstandard axis arrangements, title or legend shape fills,
 manual title layouts, unsupported numeric formats, exploded slices, and nondefault bar spacing
 require a richer projection and return false. Header and footer charts use relationships owned
 by their containing story, including when the same relationship ID exists in the document body.

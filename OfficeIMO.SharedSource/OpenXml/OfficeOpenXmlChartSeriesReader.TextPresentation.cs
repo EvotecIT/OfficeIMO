@@ -43,7 +43,10 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         if (properties == null) return inherited;
         NativeText? selected = null;
         foreach (var paragraph in properties.Elements<A.Paragraph>()) {
-            NativeText current = ApplyNativeText(inherited, paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>(), scheme);
+            int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
+            var list = properties.GetFirstChild<A.ListStyle>()?.ChildElements.FirstOrDefault(element => element.LocalName == $"lvl{level + 1}pPr");
+            NativeText current = ApplyNativeText(inherited, list?.GetFirstChild<A.DefaultRunProperties>(), scheme);
+            current = ApplyNativeText(current, paragraph.ParagraphProperties?.GetFirstChild<A.DefaultRunProperties>(), scheme);
             var explicitRuns = paragraph.Elements<A.Run>().Where(run => !string.IsNullOrEmpty(run.GetFirstChild<A.Text>()?.Text)).ToArray();
             if (explicitRuns.Length == 0) current = ApplyNativeText(current, paragraph.GetFirstChild<A.EndParagraphRunProperties>(), scheme);
             foreach (var run in explicitRuns) {

@@ -155,6 +155,47 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.Equal(OfficeColor.FromRgb(102, 119, 136), snapshot.Style.MutedTextColor);
     }
 
+    [Theory]
+    [InlineData("legend")]
+    [InlineData("axis")]
+    public void Snapshot_MapsListLevelTextDefaults(string ownerName) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Line);
+        var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        OpenXmlCompositeElement owner = ownerName == "legend" ? native.Legend! : native.PlotArea!.GetFirstChild<C.ValueAxis>()!;
+        // The shared axis role requires uniform category/value label formatting.
+        var owners = ownerName == "legend" ? new[] { owner } : native.PlotArea!.ChildElements.OfType<OpenXmlCompositeElement>().Where(axis => axis is C.CategoryAxis or C.ValueAxis).ToArray();
+        foreach (var area in owners) area.AddChild(new C.TextProperties(new A.BodyProperties(),
+            new A.ListStyle(new A.Level1ParagraphProperties(new A.DefaultRunProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "224466" })) { FontSize = 1600, Bold = true })),
+            new A.Paragraph()), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(16d, ownerName == "legend" ? snapshot.Layout.LegendFontSize : snapshot.Layout.AxisLabelFontSize);
+        Assert.Equal(OfficeFontStyle.Bold, ownerName == "legend" ? snapshot.Layout.LegendFontStyle : snapshot.Layout.AxisTextFontStyle);
+        Assert.Equal(OfficeColor.FromRgb(34, 68, 102), ownerName == "legend" ? snapshot.Style.LegendTextColor : snapshot.Style.MutedTextColor);
+    }
+
+    [Fact]
+    public void Snapshot_RejectsAxisTitleShapeAppearance() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Line);
+        var axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.AddChild(new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Axis"))))),
+            new C.ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }))), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_RejectsUnrepresentedMaximumCrossingForBars(bool valueAxis) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.BarClustered);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        OpenXmlCompositeElement axis = valueAxis ? plot.GetFirstChild<C.ValueAxis>()! : plot.GetFirstChild<C.CategoryAxis>()!;
+        axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Maximum;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     private static WordChart Create(WordDocument document, OfficeChartKind kind) => document.AddChart(kind,
         new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }), title: "Chart");
 }
