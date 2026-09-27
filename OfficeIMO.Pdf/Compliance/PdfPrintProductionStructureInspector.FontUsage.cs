@@ -5,8 +5,9 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfPrintProductionStructureInspector {
     private static ReachableFontInspection InspectReachableFonts(
         PdfReadDocument document,
+        int? selectedPageNumber,
         System.Threading.CancellationToken cancellationToken) {
-        var collector = new ReachableFontCollector(document, cancellationToken);
+        var collector = new ReachableFontCollector(document, selectedPageNumber, cancellationToken);
         return collector.Inspect();
     }
 
@@ -15,6 +16,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         private readonly Dictionary<int, PdfIndirectObject> _objects;
         private readonly PdfReadLimits _limits;
         private readonly System.Threading.CancellationToken _cancellationToken;
+        private readonly int? _selectedPageNumber;
         private readonly HashSet<PdfDictionary> _fonts = new HashSet<PdfDictionary>();
         private readonly Dictionary<PdfDictionary, HashSet<int>> _selectedType3CharacterCodes =
             new Dictionary<PdfDictionary, HashSet<int>>();
@@ -24,16 +26,20 @@ internal static partial class PdfPrintProductionStructureInspector {
 
         internal ReachableFontCollector(
             PdfReadDocument document,
+            int? selectedPageNumber,
             System.Threading.CancellationToken cancellationToken) {
             _document = document;
             _objects = document.Objects;
             _limits = document.ReadOptions.Limits;
             _cancellationToken = cancellationToken;
+            _selectedPageNumber = selectedPageNumber;
         }
 
         internal ReachableFontInspection Inspect() {
-            foreach (PdfReadPage page in _document.Pages) {
+            for (int pageIndex = 0; pageIndex < _document.Pages.Count; pageIndex++) {
                 _cancellationToken.ThrowIfCancellationRequested();
+                if (_selectedPageNumber.HasValue && pageIndex + 1 != _selectedPageNumber.Value) continue;
+                PdfReadPage page = _document.Pages[pageIndex];
                 if (!_objects.TryGetValue(page.ObjectNumber, out PdfIndirectObject? pageObject) ||
                     pageObject == null ||
                     pageObject.Value is not PdfDictionary pageDictionary) {
@@ -336,9 +342,43 @@ internal static partial class PdfPrintProductionStructureInspector {
                 return;
             }
             if (resolved is not PdfDictionary dictionary) return;
-            if (dictionary.Items.TryGetValue("AP", out PdfObject? appearances)) {
-                AddAppearanceObject(appearances, pageResources, resolvedDepth + 1, visited);
+            if (!dictionary.Items.TryGetValue("F", out PdfObject? flagsObject) ||
+                ResolveObject(_objects, flagsObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is not PdfNumber flags) {
+                // An annotation without the Print flag does not contribute to printed output.
+                return;
             }
+            int bits = (int)flags.Value;
+            if ((bits & 4) == 0 || (bits & 2) != 0) return;
+
+            PdfObject? appearances = dictionary.Items.TryGetValue("AP", out PdfObject? apObject)
+                ? ResolveObject(_objects, apObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _)
+                : null;
+            PdfObject? normal = appearances is PdfDictionary ap && ap.Items.TryGetValue("N", out PdfObject? normalObject)
+                ? ResolveObject(_objects, normalObject, resolvedDepth + 2, _limits.MaxObjectNestingDepth, out _)
+                : null;
+            if (normal is PdfDictionary states) {
+                PdfObject? appearanceState = dictionary.Items.TryGetValue("AS", out PdfObject? stateObject)
+                    ? ResolveObject(_objects, stateObject, resolvedDepth + 2, _limits.MaxObjectNestingDepth, out _)
+                    : null;
+                normal = appearanceState is PdfName stateName &&
+                    states.Items.TryGetValue(stateName.Name, out PdfObject? selected)
+                    ? ResolveObject(_objects, selected, resolvedDepth + 3, _limits.MaxObjectNestingDepth, out _)
+                    : null;
+                if (normal is not PdfStream) {
+                    _uninspectableContextCount++;
+                    return;
+                }
+            }
+            bool usableNormal = normal is PdfStream;
+            if (!usableNormal) {
+                if (dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject) &&
+                    ResolveObject(_objects, subtypeObject, resolvedDepth + 1, _limits.MaxObjectNestingDepth, out _) is PdfName subtype &&
+                    subtype.Name is "FreeText" or "Widget" or "Stamp") {
+                    _uninspectableContextCount++;
+                }
+                return;
+            }
+            AddAppearanceObject(normal!, pageResources, resolvedDepth + 2, visited);
         }
 
         private void AddAppearanceObject(
@@ -358,11 +398,6 @@ internal static partial class PdfPrintProductionStructureInspector {
                     AddStream(appearance, ResolveStreamResources(appearance, pageResources), contentDepth: 1);
                 } else {
                     _uninspectableContextCount++;
-                }
-            } else if (resolved is PdfDictionary dictionary) {
-                foreach (PdfObject child in dictionary.Items.Values) {
-                    _cancellationToken.ThrowIfCancellationRequested();
-                    AddAppearanceObject(child, pageResources, resolvedDepth + 1, visited);
                 }
             }
         }

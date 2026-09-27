@@ -47,14 +47,16 @@ internal static partial class PdfPrintProductionColorInspector {
         ContentStreamContexts streams,
         PdfObject? inheritedFontObject = null,
         int? pageSequenceId = null,
-        ContentColorStateSnapshot? initialColorState = null) {
+        ContentColorStateSnapshot? initialColorState = null,
+        bool fromType3Glyph = false) {
         streams.TryAdd(new ContentStreamContext(
             stream,
             aliases,
             resources,
             inheritedFontObject,
             pageSequenceId,
-            initialColorState));
+            initialColorState,
+            fromType3Glyph));
     }
 
     private static bool AddResolvedShadingContext(
@@ -96,6 +98,7 @@ internal static partial class PdfPrintProductionColorInspector {
         for (int index = firstContext; index < streams.Count; index++) contentDepths.Add(0);
 
         int transparencyGroups = 0;
+        bool hasType3Image = false;
         PdfObject? activePageFontObject = null;
         var pageFontStack = new Stack<PdfObject?>();
         var activePageColorState = new ContentColorState();
@@ -139,6 +142,8 @@ internal static partial class PdfPrintProductionColorInspector {
                     operation => {
                         cancellationToken.ThrowIfCancellationRequested();
                         streams.ChargeOperation();
+                        if (context.FromType3Glyph && operation.InlineImage != null && !operation.HasInvalidOperands)
+                            hasType3Image = true;
                         if (!TryTrackResourceColorState(operation, context.Aliases, colorState)) {
                             contextWasUninspectable = true;
                         }
@@ -191,6 +196,7 @@ internal static partial class PdfPrintProductionColorInspector {
                                     contextWasUninspectable = true;
                                 } else if (string.Equals(subtype, "Image", StringComparison.Ordinal)) {
                                     AddImageContext(xObjectStream, context.Aliases, images);
+                                    hasType3Image |= context.FromType3Glyph;
                                 } else if (!string.Equals(subtype, "Form", StringComparison.Ordinal) ||
                                     !IsStructurallyValidFormXObject(
                                         xObjectStream.Dictionary,
@@ -209,7 +215,8 @@ internal static partial class PdfPrintProductionColorInspector {
                                         limits,
                                         ref transparencyGroups,
                                         activeFontObject,
-                                        colorState.Capture())) {
+                                        colorState.Capture(),
+                                        context.FromType3Glyph)) {
                                     contextWasUninspectable = true;
                                 }
                                 break;
@@ -368,7 +375,7 @@ internal static partial class PdfPrintProductionColorInspector {
             localIndex = nextLocalIndex - 1;
         }
 
-        return new ReachableResourceCollection(transparencyGroups);
+        return new ReachableResourceCollection(transparencyGroups, hasType3Image);
     }
 
     private static bool TryTrackResourceColorState(
@@ -444,7 +451,8 @@ internal static partial class PdfPrintProductionColorInspector {
         PdfReadLimits limits,
         ref int transparencyGroups,
         PdfObject? inheritedFontObject = null,
-        ContentColorStateSnapshot? initialColorState = null) {
+        ContentColorStateSnapshot? initialColorState = null,
+        bool fromType3Glyph = false) {
         if (contentDepth > limits.MaxContentNestingDepth) return false;
         if (!TryResolveNestedStreamResources(
                 stream,
@@ -464,7 +472,8 @@ internal static partial class PdfPrintProductionColorInspector {
             resources,
             streams,
             inheritedFontObject,
-            initialColorState: initialColorState);
+            initialColorState: initialColorState,
+            fromType3Glyph: fromType3Glyph);
         if (streams.Count == count) return true;
         contentDepths.Add(contentDepth);
         if (IsTransparencyGroup(stream.Dictionary, objects, limits.MaxObjectNestingDepth)) transparencyGroups++;
@@ -582,7 +591,8 @@ internal static partial class PdfPrintProductionColorInspector {
             objects,
             limits,
             ref transparencyGroups,
-            initialColorState: initialColorState);
+            initialColorState: initialColorState,
+            fromType3Glyph: context.FromType3Glyph);
     }
 
     private static bool HasValidSoftMaskOptions(
@@ -682,7 +692,8 @@ internal static partial class PdfPrintProductionColorInspector {
                 objects,
                 limits,
                 ref transparencyGroups,
-                initialColorState: initialColorState);
+                initialColorState: initialColorState,
+                fromType3Glyph: context.FromType3Glyph);
         }
         if (patternType.Value == 2D && pattern.Items.TryGetValue("Shading", out PdfObject? shadingObject)) {
             if (!HasOptionalExactFiniteNumberArray(pattern, "Matrix", 6, objects, limits.MaxObjectNestingDepth)) return false;
@@ -912,7 +923,8 @@ internal static partial class PdfPrintProductionColorInspector {
                     objects,
                     limits,
                     ref transparencyGroups,
-                    initialColorState: initialColorState)) return false;
+                    initialColorState: initialColorState,
+                    fromType3Glyph: true)) return false;
         }
         return true;
     }

@@ -6,6 +6,11 @@ public sealed class PdfDocumentProof {
 
     internal PdfDocumentProof(PdfDocument document) => _document = document;
 
+    /// <summary>Inspects production-readiness evidence and proposes reviewable page-box metadata fixups.</summary>
+    public PdfProductionPreflightReport PreflightProduction(PdfProductionPreflightOptions? options = null,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        PdfProductionPreflightInspector.Inspect(_document, options, cancellationToken);
+
     /// <summary>Aligns pages with another PDF and reports insertion, deletion, reorder, and visual-change candidates.</summary>
     public PdfPageChangeReport AnalyzePageChanges(PdfDocument actualDocument, PdfPageChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(actualDocument, nameof(actualDocument));
