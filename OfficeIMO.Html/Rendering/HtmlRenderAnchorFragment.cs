@@ -17,11 +17,11 @@ public sealed class HtmlRenderAnchorFragment : HtmlRenderVisual {
     /// <summary>Readable link text retained in the PDF annotation.</summary>
     public string? LinkContents { get; }
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderAnchorFragment(AnchorNodeId, LinkUri!, LinkContents, X + offsetX, Y + offsetY,
             Width, Height, paintOrder, Source, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderAnchorFragment(AnchorNodeId, LinkUri!, LinkContents, X + offsetX, Y + offsetY,
             Width, Height, paintOrder, Source, LayoutY);
 }

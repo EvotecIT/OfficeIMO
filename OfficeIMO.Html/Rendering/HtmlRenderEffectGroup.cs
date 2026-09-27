@@ -41,7 +41,7 @@ public sealed class HtmlRenderEffectGroup : HtmlRenderVisual {
     /// <summary>Ordered child visuals.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) {
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) {
         OfficeTransform transform = RebaseTransform(Transform, offsetX, offsetY);
         return new HtmlRenderEffectGroup(
             X + offsetX,
@@ -56,7 +56,7 @@ public sealed class HtmlRenderEffectGroup : HtmlRenderVisual {
             LayoutY + offsetY);
     }
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) {
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) {
         OfficeTransform transform = RebaseTransform(Transform, offsetX, offsetY);
         return new HtmlRenderEffectGroup(
             X + offsetX,

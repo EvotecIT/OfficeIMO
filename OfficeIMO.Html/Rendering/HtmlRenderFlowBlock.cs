@@ -218,11 +218,12 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges);
 
-    internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) =>
-        new HtmlRenderFlowBlock(
+    internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) {
+        var context = new HtmlRenderStackingContext(zIndex, sourceOrder);
+        return new HtmlRenderFlowBlock(
             Width,
             Height,
-            Visuals,
+            Visuals.Select(visual => visual.WithStackingContext(context)),
             BreakBefore,
             BreakAfter,
             AvoidBreakInside,
@@ -251,6 +252,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges);
+    }
 
     internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
         new HtmlRenderFlowBlock(

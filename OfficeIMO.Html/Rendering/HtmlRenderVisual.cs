@@ -56,9 +56,28 @@ public abstract class HtmlRenderVisual {
     /// <summary>Normal-flow height used for fragmentation, independent of paint overhang.</summary>
     internal double LayoutHeight { get; }
 
-    internal abstract HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder);
+    internal HtmlRenderStackingContext? StackingContext { get; private set; }
 
-    internal abstract HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder);
+    internal HtmlRenderVisual WithStackingContext(HtmlRenderStackingContext context) {
+        HtmlRenderVisual result = Translate(0D, 0D, PaintOrder);
+        result.StackingContext = context;
+        return result;
+    }
+
+    internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
+        result.StackingContext = StackingContext;
+        return result;
+    }
+
+    internal HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+        CopyStackingContextTo(TranslateCore(offsetX, offsetY, paintOrder));
+
+    internal HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+        CopyStackingContextTo(TranslatePaintCore(offsetX, offsetY, paintOrder));
+
+    internal abstract HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder);
+
+    internal abstract HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder);
 
     private static void ValidateFinite(double value, string parameterName) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {

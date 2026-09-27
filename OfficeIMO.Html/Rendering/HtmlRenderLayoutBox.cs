@@ -10,9 +10,9 @@ internal sealed class HtmlRenderLayoutBox : HtmlRenderVisual {
         int paintOrder, string? source, double? layoutY = null)
         : base(HtmlRenderVisualKind.Shape, x, y, width, height, paintOrder, null, source, layoutY) { }
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderLayoutBox(X + offsetX, Y + offsetY, Width, Height, paintOrder, Source, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderLayoutBox(X + offsetX, Y + offsetY, Width, Height, paintOrder, Source, LayoutY);
 }

@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "dc64e32db5aed7d8ab47b56216a5aef1699c8a51",
+  "scope": "Offline Chromium print diagnostics only; this does not qualify OfficeIMO fidelity or budgets.",
+  "archiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "browserVersion": "Not recorded by this diagnostic probe",
+  "driverPackage": "HtmlTinkerX 3.0.1",
+  "cases": [
+    {
+      "case": "card-definite-height",
+      "css": "ul#media_group_379837>li{height:540px!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "b60b6bdd901504dcc22cf153708206e74858f8d30213eb7c81cfbb1e29cee6da",
+      "validControl": true
+    },
+    {
+      "case": "card-no-max-width",
+      "css": "ul#media_group_379837>li{max-width:none!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "3e81d332ca82e8db46cf54ea59d89de5bb20aaf261c03b5b5e0a78fc95e55274",
+      "validControl": true
+    },
+    {
+      "case": "card-overflow-visible",
+      "css": "ul#media_group_379837>li{overflow:visible!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "32a926cabe6655d61d1b7e324ec06cb4b48e7e69453b6451a155f2a9cb5b89f8",
+      "validControl": true
+    },
+    {
+      "case": "card-wrap-text",
+      "css": "ul#media_group_379837 .card-body *{overflow-wrap:anywhere!important;word-break:break-all!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "7f807c4931a2c912398b1cbb3879bba911bc7169ccf24a565658ed36f7fd99a6",
+      "validControl": true
+    },
+    {
+      "case": "default",
+      "css": "",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "fdaaecc417c6bdfb487e5d4f1523170ae69cedb99796b6c7943d14d662fd4e5c",
+      "validControl": true
+    },
+    {
+      "case": "no-card-body",
+      "css": "ul#media_group_379837 .card-body{display:none!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "35bd051b714bca8d5ab9c89c3c200eca4fff7c47abfb82f2141126db4a3537dd",
+      "validControl": true
+    },
+    {
+      "case": "no-card-images",
+      "css": "ul#media_group_379837 img{display:none!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 2944,
+      "pdfSha256": "623b0121a618773100d6c83c451c1e027fd59da165f750fc81be8eda909bde1f",
+      "validControl": true
+    },
+    {
+      "case": "one-card",
+      "css": "ul#media_group_379837>li:not(:first-child){display:none!important}",
+      "pages": 10,
+      "visibleCardsInScreenDom": 0,
+      "galleryScreenScrollWidth": 506,
+      "pdfSha256": "3bd599bd844d09e5a97c6f17eb08c558ea0a71b641c8e3f3ccca02b806095902",
+      "validControl": false
+    },
+    {
+      "case": "card-small-width",
+      "css": "ul#media_group_379837>li{width:40px!important;max-width:40px!important}",
+      "pages": 10,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 506,
+      "pdfSha256": "4ae0c66f9d44c9a2641fee3a829d916808a245d1d5c6ce3ecadfb02b220abb3e",
+      "validControl": true
+    },
+    {
+      "case": "card-wrapped-gallery",
+      "css": "ul#media_group_379837{flex-wrap:wrap!important}",
+      "pages": 14,
+      "visibleCardsInScreenDom": 9,
+      "galleryScreenScrollWidth": 506,
+      "pdfSha256": "4308393bea451944f992c73654f87a7e1e0098d411f5a01eeb031033ece59b6e",
+      "validControl": true
+    },
+    {
+      "case": "four-visible-cards",
+      "css": "ul#media_group_379837>li:nth-of-type(n+5){display:none!important}",
+      "pages": 4,
+      "visibleCardsInScreenDom": 4,
+      "galleryScreenScrollWidth": 1304,
+      "pdfSha256": "9fc41d8e458039bfd7077b3f5bdd56335017731a28f7d50a56e778aa80fd226f",
+      "validControl": true
+    },
+    {
+      "case": "one-visible-card",
+      "css": "ul#media_group_379837>li:nth-of-type(n+2){display:none!important}",
+      "pages": 10,
+      "visibleCardsInScreenDom": 1,
+      "galleryScreenScrollWidth": 506,
+      "pdfSha256": "3507624a2a97dd3037e5c643791e802d494e215c7ea6bde7c9363d3e8a7cbbdb",
+      "validControl": true
+    },
+    {
+      "case": "three-visible-cards",
+      "css": "ul#media_group_379837>li:nth-of-type(n+4){display:none!important}",
+      "pages": 9,
+      "visibleCardsInScreenDom": 3,
+      "galleryScreenScrollWidth": 976,
+      "pdfSha256": "2d5a5962d799d586e3b6be031302859419c27b9cafdd68e44db89bac5a62f74f",
+      "validControl": true
+    },
+    {
+      "case": "two-visible-cards",
+      "css": "ul#media_group_379837>li:nth-of-type(n+3){display:none!important}",
+      "pages": 10,
+      "visibleCardsInScreenDom": 2,
+      "galleryScreenScrollWidth": 648,
+      "pdfSha256": "5868f6a1db33b52720452944e345b209b1be8a4dafba11284ecd8f5311c9e849",
+      "validControl": true
+    }
+  ],
+  "findings": [
+    "Removing card images or card bodies separately retains four native pages.",
+    "Verified one/two/three/four visible card controls yield ten/ten/nine/four native pages respectively.",
+    "Nine narrow cards that do not overflow the gallery yield ten pages; wrapping the gallery yields fourteen.",
+    "The initial one-card selector used first-child and hid every card because other child types preceded the list items; excluded from inference.",
+    "Screen DOM measurements are not measurements of paginated print layout."
+  ],
+  "nextDeliverable": "Reproduce the native shrink threshold with a reduced nested gallery fixture and identify which paginated overflow reaches root fitting."
+}

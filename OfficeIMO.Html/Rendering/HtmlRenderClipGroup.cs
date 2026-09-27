@@ -86,7 +86,7 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
     /// <summary>Ordered child visuals in the same coordinate space as the group.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderClipGroup(
             ClipX + offsetX,
             ClipY + offsetY,
@@ -100,7 +100,7 @@ public sealed class HtmlRenderClipGroup : HtmlRenderVisual {
             LayoutY + offsetY,
             IsViewportOverflow);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderClipGroup(
             ClipX + offsetX,
             ClipY + offsetY,

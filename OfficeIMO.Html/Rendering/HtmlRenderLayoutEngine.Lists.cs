@@ -115,7 +115,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             : visual is HtmlRenderLogicalTextGroup logicalText ? logicalText.Visuals
             : null;
 
-    private static HtmlRenderVisual CloneGroupWithChildren(HtmlRenderVisual visual, IReadOnlyList<HtmlRenderVisual> children) {
+    private static HtmlRenderVisual CloneGroupWithChildren(HtmlRenderVisual visual, IReadOnlyList<HtmlRenderVisual> children) =>
+        visual.CopyStackingContextTo(CloneGroupWithChildrenCore(visual, children));
+
+    private static HtmlRenderVisual CloneGroupWithChildrenCore(HtmlRenderVisual visual, IReadOnlyList<HtmlRenderVisual> children) {
         if (visual is HtmlRenderClipGroup clip) {
             return new HtmlRenderClipGroup(
                 clip.ClipX,
@@ -213,7 +216,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             logicalText.PaintOrder,
             logicalText.Source,
             logicalText.LayoutY,
-            logicalText.LayoutHeight);
+            logicalText.LayoutHeight,
+            logicalText.LogicalScope);
     }
 
     private static (double X, double Y, double Width, double Height) ResolveSemanticBounds(

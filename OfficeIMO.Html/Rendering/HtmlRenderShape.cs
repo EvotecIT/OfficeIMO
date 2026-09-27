@@ -18,9 +18,9 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
 
     internal OfficeShape InnerShape => _shape;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY);
 }

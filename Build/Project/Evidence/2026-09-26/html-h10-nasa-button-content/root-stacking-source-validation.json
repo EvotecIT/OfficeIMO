@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "dc64e32db5aed7d8ab47b56216a5aef1699c8a51",
+  "validatedStagedDiffHash": "681e69674d118f0723934fa902a7f5ad278ea5d5",
+  "scope": "Root stacking context preservation and logical PDF text ownership across split paint layers. Rendered replay and current-source platform budgets remain unqualified.",
+  "validation": {
+    "htmlNet10": {
+      "passed": 3688,
+      "failed": 0,
+      "skipped": 0
+    },
+    "htmlNet8": {
+      "passed": 3688,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focusedFinal": {
+      "passed": 30,
+      "failed": 0
+    },
+    "htmlPdfNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "independentReview": {
+    "fullPass": true,
+    "targetedConfirmation": true,
+    "findings": "Root list context loss and reordered logical text ownership reproduced and fixed. Targeted confirmation exposed unavailable-glyph and off-page ownership cases; final remediation validated by primary focused and full suites. No additional independent confirmation was run."
+  },
+  "remaining": "Final-source H4 and NASA all-page replay; default NASA sizing; remaining H10 corpus, output and platform qualification."
+}

@@ -409,6 +409,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal int ZIndex { get; }
         internal int SourceOrder { get; }
-        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() => _node?.ResolveVisuals() ?? _visuals ?? Array.Empty<HtmlRenderVisual>();
+        internal IReadOnlyList<HtmlRenderVisual> ResolveVisuals() {
+            IReadOnlyList<HtmlRenderVisual> visuals = _node?.ResolveVisuals() ?? _visuals ?? Array.Empty<HtmlRenderVisual>();
+            var context = new HtmlRenderStackingContext(ZIndex, SourceOrder);
+            // The composed inline layer owns its descendants' external ordering.
+            // A nested absolute layer must not escape and compete with root siblings.
+            return visuals.Select(visual => visual.WithStackingContext(context)).ToArray();
+        }
     }
 }

@@ -122,13 +122,19 @@ public sealed class HtmlRenderSemanticGroup : HtmlRenderVisual {
     /// <summary>Resolved table-header scope, or null for non-header groups.</summary>
     public HtmlRenderTableHeaderScope? HeaderScope { get; }
 
+    internal static bool IsTextContentRole(HtmlRenderSemanticGroupRole role) =>
+        role is HtmlRenderSemanticGroupRole.Paragraph
+            or HtmlRenderSemanticGroupRole.Heading1 or HtmlRenderSemanticGroupRole.Heading2
+            or HtmlRenderSemanticGroupRole.Heading3 or HtmlRenderSemanticGroupRole.Heading4
+            or HtmlRenderSemanticGroupRole.Heading5 or HtmlRenderSemanticGroupRole.Heading6;
+
     /// <summary>Ordered child visuals.</summary>
     public IReadOnlyList<HtmlRenderVisual> Visuals => _visuals;
 
-    internal override HtmlRenderVisual Translate(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: false), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY + offsetY, StructureElementKey, LayoutHeight);
 
-    internal override HtmlRenderVisual TranslatePaint(double offsetX, double offsetY, int paintOrder) =>
+    internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderSemanticGroup(Role, X + offsetX, Y + offsetY, Width, Height, TranslateVisuals(offsetX, offsetY, translatePaint: true), paintOrder, Source, ColumnSpan, RowSpan, HeaderScope, LayoutY, StructureElementKey, LayoutHeight);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder) =>
