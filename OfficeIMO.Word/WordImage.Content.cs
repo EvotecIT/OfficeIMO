@@ -376,41 +376,6 @@ namespace OfficeIMO.Word {
             _Image = drawing;
         }
 
-        private OpenXmlPart GetContainingPart() {
-            OpenXmlElement? parent = _Image.Parent;
-            while (parent != null
-                && parent is not Body
-                && parent is not Header
-                && parent is not Footer
-                && parent is not Footnotes
-                && parent is not Endnotes
-                && parent is not Comments) {
-                parent = parent.Parent;
-            }
-
-            if (parent is Header header) {
-                return header.HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
-            }
-
-            if (parent is Footer footer) {
-                return footer.FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
-            }
-
-            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-            if (parent is Footnotes) {
-                return mainPart.FootnotesPart ?? throw new InvalidOperationException("FootnotesPart is missing.");
-            }
-
-            if (parent is Endnotes) {
-                return mainPart.EndnotesPart ?? throw new InvalidOperationException("EndnotesPart is missing.");
-            }
-
-            if (parent is Comments) {
-                return mainPart.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
-            }
-
-            return mainPart;
-        }
+        private OpenXmlPart GetContainingPart() => WordPartOwnership.Resolve(_document, _Image);
     }
 }
