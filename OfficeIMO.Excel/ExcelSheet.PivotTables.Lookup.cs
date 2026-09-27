@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Reads a value from a saved pivot view, without refreshing its source or cache.
-        /// Supports ungrouped views with at most one row and one column field, including multiple measures.
+        /// Supports saved ungrouped hierarchies, default subtotals, collapsed groups and multiple measures.
         /// Unknown fields, items, measures or pivots return a typed #REF! error.
         /// </summary>
         /// <exception cref="NotSupportedException">The view has no materialized items or uses an unsupported layout or exceeds lookup limits.</exception>
@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel {
                 return PivotLookupReferenceError();
             if (cacheFields.ChildElements.Count > 256 || definition.PivotFields?.ChildElements.Count > 256
                 || definition.DataFields?.ChildElements.Count > 256 || criteria.Count > 256
-                || definition.RowFields?.ChildElements.Count > 2 || definition.ColumnFields?.ChildElements.Count > 2
+                || definition.RowFields?.ChildElements.Count > 257 || definition.ColumnFields?.ChildElements.Count > 257
                 || (long)(bottom - top + 1) * (right - left + 1) > 1_000_000)
                 throw new NotSupportedException("The saved pivot exceeds lookup limits.");
             var fields = cacheFields.Elements<CacheField>().ToArray();
@@ -68,9 +68,11 @@ namespace OfficeIMO.Excel {
             int valuesAxisCount = rowFields.Count(f => f == -2) + columnFields.Count(f => f == -2);
             if (valuesAxisCount > 1 || (measures.Length > 1 && valuesAxisCount != 1))
                 throw new NotSupportedException("Multiple pivot measures require exactly one Values axis.");
-            if (rowFields.Length > 2 || columnFields.Length > 2 || rowFields.Count(f => f >= 0) > 1 || columnFields.Count(f => f >= 0) > 1
+            var realFields = rowFields.Concat(columnFields).Where(f => f >= 0).ToArray();
+            if (realFields.Distinct().Count() != realFields.Length
+                || rowFields.Length != (definition.RowFields?.ChildElements.Count ?? 0) || columnFields.Length != (definition.ColumnFields?.ChildElements.Count ?? 0)
                 || definition.PageFields?.ChildElements.Count > 0 || rowFields.Concat(columnFields).Any(f => f < -2 || f == -1 || f >= fields.Length || (f >= 0 && f >= pivotFields.Length)))
-                throw new NotSupportedException("Pivot lookup requires an ungrouped view with at most one row and one column field and no page fields.");
+                throw new NotSupportedException("Pivot lookup requires distinct source axis fields and no page fields.");
             foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0)) {
                 if (fields[field].FieldGroup != null) throw new NotSupportedException("Grouped pivot lookup is not supported.");
             }
@@ -95,59 +97,106 @@ namespace OfficeIMO.Excel {
             if (axis == null || axis.ChildElements.Count == 0) throw new NotSupportedException("The pivot view has no saved axis items. Refresh or materialize the view first.");
             // One additional item accommodates the grand total for 100,000 real keys.
             if (axis.ChildElements.Count > 100_001) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
-            int realField = -1;
-            foreach (int field in axisFields) if (field >= 0) { realField = field; break; }
-            bool hasCriterion = realField >= 0 && criteria.TryGetValue(fields[realField].Name?.Value ?? "", out _);
-            bool needsGrand = realField >= 0 && !hasCriterion;
-            bool hasMeasures = axisFields.Contains(-2);
-            OpenXmlElement[] fieldItems = Array.Empty<OpenXmlElement>();
-            OpenXmlElement[] sharedItems = Array.Empty<OpenXmlElement>();
-            if (hasCriterion) {
-                var savedItems = pivotFields[realField].Items;
-                var shared = fields[realField].SharedItems;
+            if ((long)axis.ChildElements.Count * Math.Max(1, axisFields.Length) > 1_000_000)
+                throw new NotSupportedException("The saved pivot axis exceeds one million lookup field visits.");
+            int realCount = axisFields.Count(f => f >= 0);
+            int criterionDepth = 0;
+            int depth = 0;
+            int indexedItems = 0;
+            var matches = new HashSet<uint>?[axisFields.Length];
+            var collapsedMatches = new HashSet<uint>?[axisFields.Length];
+            for (int axisPosition = 0; axisPosition < axisFields.Length; axisPosition++) {
+                int field = axisFields[axisPosition];
+                if (field < 0) continue;
+                depth++;
+                if (!criteria.TryGetValue(fields[field].Name?.Value ?? "", out object? expected)) continue;
+                criterionDepth = depth;
+                var savedItems = pivotFields[field].Items;
+                var shared = fields[field].SharedItems;
                 if (savedItems == null || shared == null) return -1;
-                // Pivot fields also carry a default subtotal item, even when totals are hidden.
                 if (savedItems.ChildElements.Count > 100_001 || shared.ChildElements.Count > 100_000)
                     throw new NotSupportedException("The saved pivot field exceeds lookup limits.");
-                fieldItems = savedItems.ChildElements.ToArray();
-                sharedItems = shared.ChildElements.ToArray();
+                indexedItems += savedItems.ChildElements.Count + shared.ChildElements.Count;
+                if (indexedItems > 1_000_000) throw new NotSupportedException("The saved pivot criteria exceed one million indexed items.");
+                var sharedItems = shared.ChildElements.ToArray();
+                var accepted = new HashSet<uint>();
+                HashSet<uint>? collapsed = null;
+                uint itemIndex = 0;
+                foreach (var item in savedItems.ChildElements) {
+                    string itemType = PivotLookupAttribute(item, "t");
+                    if ((itemType.Length == 0 || itemType == "data")
+                        && TryPivotLookupUnsigned(item, "x", uint.MaxValue, out uint sharedIndex) && sharedIndex < sharedItems.Length) {
+                        var sharedItem = sharedItems[(int)sharedIndex];
+                        bool equal = sharedItem is MissingItem
+                            ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
+                            : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem), expected);
+                        if (equal) {
+                            accepted.Add(itemIndex);
+                            string showDetails = PivotLookupAttribute(item, "sd");
+                            if (showDetails == "0" || showDetails == "false") (collapsed ??= new HashSet<uint>()).Add(itemIndex);
+                        }
+                    }
+                    itemIndex++;
+                }
+                matches[axisPosition] = accepted;
+                collapsedMatches[axisPosition] = collapsed;
             }
+            bool needsGrand = realCount > 0 && criterionDepth == 0;
+            bool hasMeasures = axisFields.Contains(-2);
             int found = -1;
+            int header = -1;
+            int fallback = -1;
             int position = -1;
             var expanded = new uint[axisFields.Length];
-            bool previousComplete = false;
+            int previousPrefixLength = 0;
             foreach (var item in axis.ChildElements) {
                 position++;
                 string type = PivotLookupAttribute(item, "t");
                 if (!TryPivotLookupUnsigned(item, "r", 0, out uint repeat) || repeat > axisFields.Length
-                    || (repeat > 0 && !previousComplete) || item.ChildElements.Count > axisFields.Length - repeat)
+                    || repeat > previousPrefixLength || item.ChildElements.Count > axisFields.Length - repeat)
                     throw new NotSupportedException("The saved pivot axis has an invalid repeated prefix.");
                 if (repeat == 0) Array.Clear(expanded, 0, expanded.Length);
-                for (int index = 0; index < item.ChildElements.Count; index++) {
-                    if (!TryPivotLookupUnsigned(item.ChildElements[index], "v", 0, out uint axisIndex)) return -1;
-                    expanded[(int)repeat + index] = axisIndex;
+                int length = (int)repeat;
+                foreach (var child in item.ChildElements) {
+                    if (!TryPivotLookupUnsigned(child, "v", 0, out uint axisIndex)) return -1;
+                    expanded[length++] = axisIndex;
                 }
-                previousComplete = repeat + item.ChildElements.Count == axisFields.Length;
-                if ((type.Length == 0 || type == "data") && !previousComplete) return -1;
+                bool data = type.Length == 0 || type == "data";
+                previousPrefixLength = type == "grand" ? 0 : length;
+                bool leaf = data && length == axisFields.Length;
                 if (!TryPivotLookupUnsigned(item, "i", 0, out uint itemMeasure)) return -1;
                 if (hasMeasures && itemMeasure != measure) continue;
-                if (needsGrand ? type != "grand" : type.Length != 0 && type != "data") continue;
-                if (hasCriterion) {
-                    int realPosition = Array.IndexOf(axisFields, realField);
-                    uint key = expanded[realPosition];
-                    if (key >= fieldItems.Length) return -1;
-                    if (!TryPivotLookupUnsigned(fieldItems[(int)key], "x", uint.MaxValue, out uint sharedIndex) || sharedIndex >= sharedItems.Length) return -1;
-                    object? expected = criteria[fields[realField].Name?.Value ?? ""];
-                    var sharedItem = sharedItems[(int)sharedIndex];
-                    bool matches = sharedItem is MissingItem
-                        ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
-                        : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem), expected);
-                    if (!matches) continue;
+                bool primary = true;
+                bool headerTotal = false;
+                if (needsGrand) {
+                    if (type != "grand") continue;
+                } else {
+                    int representedDepth = 0;
+                    for (int index = 0; index < length; index++) if (axisFields[index] >= 0) representedDepth++;
+                    primary = criterionDepth == realCount ? leaf : type == "default" && representedDepth == criterionDepth;
+                    if (data && !leaf && length > 0 && representedDepth == criterionDepth && axisFields[length - 1] >= 0
+                        && (!hasMeasures || Array.IndexOf(axisFields, -2) < length)) {
+                        var field = pivotFields[axisFields[length - 1]];
+                        headerTotal = collapsedMatches[length - 1]?.Contains(expanded[length - 1]) == true
+                            || (field.Outline?.Value != false && field.SubtotalTop?.Value != false && field.DefaultSubtotal?.Value != false);
+                    }
+                    if (!primary && !leaf && !headerTotal) continue;
+                    bool accepted = true;
+                    for (int index = 0; index < matches.Length; index++) {
+                        if (matches[index] != null && (index >= length || !matches[index]!.Contains(expanded[index]))) { accepted = false; break; }
+                    }
+                    if (!accepted) continue;
                 }
-                if (found >= 0) return -1;
-                found = position;
+                // Prefer the explicit subtotal, then a total in an outline/compact
+                // group header. With no subtotal, Excel accepts a
+                // partial criterion only when exactly one displayed leaf matches.
+                if (primary) found = found == -1 ? position : -2;
+                else if (headerTotal) header = header == -1 ? position : -2;
+                else fallback = fallback == -1 ? position : -2;
             }
-            return found;
+            if (found != -1) return found >= 0 ? found : -1;
+            if (header != -1) return header >= 0 ? header : -1;
+            return fallback >= 0 ? fallback : -1;
         }
 
         private static object? ReadPivotLookupSharedItem(OpenXmlElement item) => item switch {

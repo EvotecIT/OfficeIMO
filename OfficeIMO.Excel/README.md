@@ -545,12 +545,17 @@ ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
 ```
 
 The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
-Both paths support saved, ungrouped views with at most one row and one column
-field, multiple measures, and text, numeric, Boolean or blank item keys. They
-return typed errors for unknown items, fields or measures and zero for a blank
-intersection of existing items. Lookup accepts at most 256 fields/measures and
-criteria, 100,000 shared keys per field, 100,001 axis/field items (including a
-total or default item), and one million output cells. Grouped views,
+Both paths support saved, ungrouped hierarchies with multiple row and column
+fields, multiple measures, default subtotals, and text, numeric, Boolean or blank
+item keys. Lookup follows saved tabular, compact and outline views, including
+subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
+leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
+or measures return typed errors; a blank intersection of existing items returns
+zero. Lookup accepts at most 256 source fields, measures and criteria, one Values
+pseudo-field across the axes, 100,000 shared keys per field, 100,001 axis/field
+items (including totals or default items), and one million output cells. Each
+axis also has a one-million budget for field visits and indexed criterion items.
+Grouped views,
 page fields and views without saved axis items remain
 unsupported. The public method throws `NotSupportedException` for those profiles;
 formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
