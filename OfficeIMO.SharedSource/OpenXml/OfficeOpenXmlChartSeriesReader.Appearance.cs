@@ -31,6 +31,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             // Marker-only series retain native line metadata that has no rendered
             // effect. Filled series still use the outline around their geometry.
             if (!filled && !connectLine) continue;
+            if (outline.Width?.Value == 0 && outline.GetFirstChild<A.NoFill>() == null) return false;
             if (outline.CapType != null || outline.Alignment != null || outline.CompoundLineType != null || outline.Width?.Value < 0) return false;
             foreach (var lineChild in outline.ChildElements) {
                 if (lineChild is A.NoFill) continue;

@@ -35,7 +35,7 @@ public sealed partial class ExcelChart {
         long remaining = 100_000;
         int remainingStyleRecords = 100_000;
         var sheetStyles = new Dictionary<ExcelSheet, SourceLinkedSheetStyles>();
-        string[]? numberFormats = ReadBoundedSourceLinkedStyles();
+        string?[]? numberFormats = ReadBoundedSourceLinkedStyles();
         if (numberFormats == null) return null;
         foreach (var layer in plot.ChildElements.OfType<OpenXmlCompositeElement>()) {
             var axisIds = layer.Elements<C.AxisId>().Take(3).Select(item => item.Val?.Value).ToArray();
@@ -65,7 +65,8 @@ public sealed partial class ExcelChart {
                     for (int column = address.Start.Column; column <= address.End.Column; column++) {
                         uint styleIndex = styles.Resolve(row, column, A1.CellReference(row, column));
                         if (styleIndex >= numberFormats.Length) return null;
-                        string cellFormat = numberFormats[styleIndex];
+                        string? cellFormat = numberFormats[styleIndex];
+                        if (cellFormat == null) return null;
                         if (format != null && !string.Equals(format, cellFormat, StringComparison.Ordinal)) return null;
                         format = cellFormat;
                     }

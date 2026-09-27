@@ -7,12 +7,12 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel;
 
 public sealed partial class ExcelChart {
-    private string[]? ReadBoundedSourceLinkedStyles() {
+    private string?[]? ReadBoundedSourceLinkedStyles() {
         var stylesheet = _document.WorkbookPartRoot?.WorkbookStylesPart?.Stylesheet;
         if (stylesheet == null) return new[] { "General" };
         int remaining = 100_000;
         var custom = new Dictionary<uint, string>();
-        var styles = new List<string>();
+        var styles = new List<string?>();
         try {
             foreach (var item in stylesheet.NumberingFormats?.Elements<S.NumberingFormat>() ?? Enumerable.Empty<S.NumberingFormat>()) {
                 if (--remaining < 0) return null;
@@ -23,7 +23,7 @@ public sealed partial class ExcelChart {
                 if (--remaining < 0) return null;
                 uint id = 0;
                 if (style.NumberFormatId != null && !uint.TryParse(style.NumberFormatId.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out id)) return null;
-                styles.Add(custom.TryGetValue(id, out string? code) ? code : ExcelBuiltInNumberFormats.GetCode(id) ?? "General");
+                styles.Add(custom.TryGetValue(id, out string? code) ? code : ExcelBuiltInNumberFormats.GetCode(id));
             }
         } catch (FormatException) { return null; }
         return styles.Count == 0 ? new[] { "General" } : styles.ToArray();
