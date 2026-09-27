@@ -63,6 +63,11 @@ namespace OfficeIMO.Excel {
             }
 
             string normalized = StripLiteralsAndEscapes(code!, includeElapsedBracketTokens: false);
+            // Elapsed bracket tokens describe an unshifted duration. Removing [h]
+            // from [h]:mm would otherwise make its minutes look like months.
+            if (!string.Equals(normalized, StripLiteralsAndEscapes(code!, includeElapsedBracketTokens: true), StringComparison.Ordinal)) {
+                return false;
+            }
             if (string.IsNullOrWhiteSpace(normalized)) {
                 return false;
             }
@@ -177,6 +182,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 int end = index;
+                if (end - start + 1 >= 3) return true;
                 if (!IsMinuteToken(format, start, end)) {
                     return true;
                 }
@@ -191,17 +197,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsAdjacentTimeToken(string format, int index, bool searchForward) {
-            bool sawColon = false;
             while (index >= 0 && index < format.Length) {
                 char ch = format[index];
                 if (ch == ':') {
-                    sawColon = true;
                     index += searchForward ? 1 : -1;
                     continue;
-                }
-
-                if (char.IsWhiteSpace(ch)) {
-                    return false;
                 }
 
                 if (!char.IsLetter(ch)) {
@@ -209,7 +209,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                return sawColon && (ch == 'h' || ch == 's');
+                return searchForward ? ch == 's' : ch == 'h';
             }
 
             return false;

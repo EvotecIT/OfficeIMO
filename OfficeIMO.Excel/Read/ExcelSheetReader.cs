@@ -102,7 +102,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private DateTime FromExcelSerialDate(double serial) => ExcelDateSystemConverter.FromSerial(serial, _dateSystem);
+        private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
+        private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
+        private bool IsCalendarStyleAttribute(string? attribute) => uint.TryParse(attribute, NumberStyles.None, CultureInfo.InvariantCulture, out uint index) && Styles.IsDateSystemShiftStyle(index);
 
         private StylesCache Styles => _stylesCache ??= _styles.Value;
 
@@ -763,7 +765,7 @@ namespace OfficeIMO.Excel {
             if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                 if (TryParseInvariantDoubleFast(rawText, out var oa)
                     || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa)) {
-                    value = FromExcelSerialDate(oa);
+                    value = FromExcelSerialDate(oa, styleIndex);
                 } else {
                     value = rawText;
                 }
@@ -1142,7 +1144,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDoubleFast(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return FromExcelSerialDate(oa);
+                        return FromExcelSerialDate(oa, styleIndex);
                 }
                 if (_opt.NumericAsDecimal) {
                     if (TryParseExcelNumberAsDecimal(rawText, _opt.Culture, out var dec))
@@ -1173,7 +1175,7 @@ namespace OfficeIMO.Excel {
                 if (_opt.TreatDatesUsingNumberFormat && styleIndex is not null && Styles.IsDateLike(styleIndex.Value)) {
                     if (TryParseInvariantDoubleFast(rawText, out var oa)
                         || double.TryParse(rawText, System.Globalization.NumberStyles.Float | System.Globalization.NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out oa))
-                        return FromExcelSerialDate(oa);
+                        return FromExcelSerialDate(oa, styleIndex);
                     return rawText;
                 }
 

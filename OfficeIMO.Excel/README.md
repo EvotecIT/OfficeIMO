@@ -249,6 +249,12 @@ reader schema. Set `ExcelReadOptions.MappingErrorValuePolicy` to
 source values and custom-converter exception details; the default is `Include`
 for compatibility.
 
+With `TreatDatesUsingNumberFormat` enabled, calendar formats use the workbook's
+1900 or 1904 date system. Time-only and elapsed formats use an OLE Automation
+`DateTime` as a carrier for the unshifted serial; changing the workbook date
+system does not add days to a duration. Use a numeric getter or disable date
+format interpretation when the application needs the original serial.
+
 `ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
 decompression with workbook metadata parsing on a spare worker. It is disabled by default,
 retains the existing package-part limits, and can be slower for small or simple workbooks.

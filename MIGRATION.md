@@ -22,6 +22,16 @@ formula caches return `bool`, and text formulas such as `="12"` return `string`
 instead of being inferred as numeric values. Match the returned value type before
 performing numeric casts.
 
+## Excel time-only and elapsed values
+
+Date-format interpretation distinguishes calendar dates from time-only and
+elapsed values. Formats such as `hhmmss` and `[h]:mm` retain an unshifted OLE
+Automation `DateTime` carrier in either workbook date system. Code that treated
+the carrier's date as a calendar date in a 1904 workbook must use its time or
+duration serial instead. Use a numeric getter, or set
+`ExcelReadOptions.TreatDatesUsingNumberFormat = false`, to retrieve the original
+serial directly. Calendar date formats continue to use the workbook date system.
+
 ## Excel dates before March 1900
 
 The 1900 date-system converter now uses Excel serials rather than OLE Automation

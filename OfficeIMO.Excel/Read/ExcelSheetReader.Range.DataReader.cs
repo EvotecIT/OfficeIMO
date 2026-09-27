@@ -399,7 +399,7 @@ namespace OfficeIMO.Excel {
                         NumberStyles.Float | NumberStyles.AllowThousands,
                         CultureInfo.InvariantCulture,
                         out serial))) {
-                value = new ExcelDataReaderDateSerial(serial, _dateSystem);
+                value = new ExcelDataReaderDateSerial(serial, _dateSystem, Styles.IsDateSystemShiftStyle(styleIndex.Value));
                 return true;
             }
 
@@ -407,17 +407,19 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExcelDataReaderDateSerial {
-            internal ExcelDataReaderDateSerial(double serial, ExcelDateSystem dateSystem) {
+            internal ExcelDataReaderDateSerial(double serial, ExcelDateSystem dateSystem, bool calendarStyle) {
                 Serial = serial;
                 DateSystem = dateSystem;
+                CalendarStyle = calendarStyle;
             }
 
             internal double Serial { get; }
 
             private ExcelDateSystem DateSystem { get; }
+            private bool CalendarStyle { get; }
 
             internal DateTime Materialize() =>
-                ExcelDateSystemConverter.FromSerial(Serial, DateSystem);
+                CalendarStyle ? ExcelDateSystemConverter.FromSerial(Serial, DateSystem) : DateTime.FromOADate(Serial);
         }
 
         private sealed class ExcelRangeDataReader : DbDataReader {
