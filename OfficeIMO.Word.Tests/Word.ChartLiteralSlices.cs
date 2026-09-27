@@ -20,7 +20,7 @@ public sealed class WordChartLiteralSliceTests {
         PieChartSeries series = chart.ChartPart!.ChartSpace.Descendants<PieChartSeries>().Single();
         series.RemoveAllChildren<CategoryAxisData>();
         series.RemoveAllChildren<Values>();
-        series.Append(new ExtensionList());
+        series.Append(new PieSerExtensionList());
         Assert.Empty(document.ValidateDocument());
         using var stream = new MemoryStream();
         document.Save(stream);
