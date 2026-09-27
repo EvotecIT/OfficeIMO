@@ -489,10 +489,16 @@ Secondary-axis projections use automatic scales. Independent secondary-axis limi
 titles, and appearance require a richer projection and reject this snapshot.
 
 Snapshots preserve chart and plot surfaces, primary axes and gridlines, radial geometry,
-uniform body fonts, separate chart-title and axis-title fonts, and basic data-label content,
+uniform body fonts, separate chart-title and axis-title fonts, uniform text size, style and
+colour for titles, legends and axes, and basic data-label content,
 separator, number format, and position. Mixed body fonts, per-point or series-specific labels,
 outside-label leader lines, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
+Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
+axis crossing are preserved. Nonstandard axis arrangements, title or legend shape fills,
+manual title layouts, unsupported numeric formats, exploded slices, and nondefault bar spacing
+require a richer projection and return false. Header and footer charts use relationships owned
+by their containing story, including when the same relationship ID exists in the document body.
 
 Category and scatter snapshots retain supported native line and marker appearance.
 Call `snapshot.Data.Series[index].ToOfficeSeries()` to obtain the shared series,
