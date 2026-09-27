@@ -9,6 +9,71 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
     [Theory]
+    [InlineData("\u03B1\u00B5\u03B2", false)]
+    [InlineData("\u00B5", false)]
+    [InlineData("A\u00B5B", true)]
+    public void CommonMicroSignDoesNotEstablishLatinScript(string text, bool substituted) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(false, true), "Test");
+        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(text, string.Concat(shaped.Glyphs.Select(g => g.UnicodeText)));
+        Assert.Equal(text.Length + (substituted ? 1 : 0), shaped.Glyphs.Count);
+    }
+
+    [Theory]
+    [InlineData("\u200E")]
+    [InlineData("\u200F")]
+    [InlineData("\u202A\u202C")]
+    public void RemovedDirectionalControlsRemainLigatureBoundaries(string controls) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', scriptTag: "latn"), "Test");
+        var shaped = font.ShapeText("f" + controls + "i", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(new[] { 1, 2 }, shaped.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal(new[] { 0, controls.Length + 1 }, shaped.Glyphs.Select(g => g.TextIndex));
+    }
+
+    [Theory]
+    [InlineData("\u200E,A")]
+    [InlineData("A,\u200E")]
+    [InlineData("A\u200E,B")]
+    public void RemovedControlsPreserveCommonScriptContextAtRunEdges(string text) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(false), "Test");
+        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(2 + (text.Contains("B") ? 1 : 0), shaped.Glyphs.Count);
+        Assert.Contains(shaped.Glyphs, g => g.GlyphId == 2 && g.UnicodeText == ",");
+    }
+    [Theory]
+    [InlineData("\u03B1,\u03B2", false)]
+    [InlineData("\u0410,\u0411", false)]
+    [InlineData(",\u03B1", false)]
+    [InlineData("\u03B1,", false)]
+    [InlineData("\u03B1,A", false)]
+    [InlineData("A,\u03B1", false)]
+    [InlineData(",", false)]
+    [InlineData("A,B", true)]
+    [InlineData(",A", true)]
+    [InlineData("A,", true)]
+    public void CommonCharactersInheritAdjacentStrongScript(string text, bool substituted) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(false), "Test");
+        var scalar = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar));
+        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(text, string.Concat(shaped.Glyphs.Select(g => g.UnicodeText)));
+        if (substituted) Assert.Equal(scalar.Glyphs.Count + 1, shaped.Glyphs.Count);
+        else Assert.Equal(scalar.Glyphs.Select(g => g.GlyphId), shaped.Glyphs.Select(g => g.GlyphId));
+    }
+
+    [Theory]
+    [InlineData("\u03B1,\u03B2", false)]
+    [InlineData("\u0410,\u0411", false)]
+    [InlineData(",", false)]
+    [InlineData("A,B", true)]
+    [InlineData("\u03B1,A", true)]
+    public void UnsupportedLatinFeaturesWarnOnlyForEligibleInput(string text, bool warningExpected) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithCommonSubstitution(true);
+        var report = new PdfConversionReport();
+        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Paragraph(p => p.Text(text)).ToBytes();
+        Assert.Equal(warningExpected, report.Warnings.Any(w => w.Code == "unsupported-font-ligature-substitution"));
+    }
+    [Theory]
     [InlineData("\u03B1\u0301", false)]
     [InlineData("\u0410\u0301", false)]
     [InlineData("\u0301", false)]

@@ -55,8 +55,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return null; }
     }
 
-    internal bool ApplyLatinDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
-        try { return ApplyLatinDefaultsCore(glyphs, settings, cancellationToken); }
+    internal bool ApplyLatinDefaults(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken, string? sourceText = null) {
+        try { return ApplyLatinDefaultsCore(glyphs, settings, cancellationToken, sourceText); }
         catch (Exception exception) when (exception is InvalidDataException || exception is OverflowException ||
             exception is ArgumentOutOfRangeException || exception is IndexOutOfRangeException) { return false; }
     }
@@ -67,7 +67,20 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         scalar >= 0xA720 && scalar <= 0xA7FF || scalar >= 0xAB30 && scalar <= 0xAB6F ||
         scalar >= 0x10780 && scalar <= 0x107BF || scalar >= 0x1DF00 && scalar <= 0x1DFFF;
 
-    private bool ApplyLatinDefaultsCore(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
+    private bool ApplyLatinDefaultsCore(List<GlyphToken> glyphs, OfficeTextFeatureSettings settings, CancellationToken cancellationToken, string? sourceText) {
+        var scalars = new int[glyphs.Count];
+        var breakBefore = new bool[glyphs.Count];
+        for (int index = 0; index < glyphs.Count; index++) {
+            scalars[index] = glyphs[index].Scalar;
+            // Non-painting controls removed by the provider still delimit source segments.
+            breakBefore[index] = index == 0 ? glyphs[index].TextIndex > 0 : glyphs[index].TextIndex >
+                glyphs[index - 1].TextIndex + glyphs[index - 1].UnicodeText.Length;
+        }
+        bool trailingBoundary = glyphs.Count > 0 && sourceText != null && sourceText.Length >
+            glyphs[glyphs.Count - 1].TextIndex + glyphs[glyphs.Count - 1].UnicodeText.Length;
+        bool[] eligible = GetLatinDefaultEligibility(scalars, breakBefore, trailingBoundary);
+        // Empty input is also used to preflight the font's selected lookups.
+        if (glyphs.Count > 0 && !Array.Exists(eligible, value => value)) return true;
         int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
         if (features == null) return false;
         var lookups = new SortedDictionary<int, int>();
@@ -92,22 +105,11 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int operations = 0;
         // Script-specific lookups must not consume neighboring non-Latin or presentation glyphs.
         var shaped = new List<GlyphToken>(glyphs.Count);
-        var eligible = new bool[glyphs.Count];
-        bool latinBase = false;
-        for (int index = 0; index < glyphs.Count; index++) {
-            string scalarText = char.ConvertFromUtf32(glyphs[index].Scalar);
-            var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(scalarText, 0);
-            bool mark = category == System.Globalization.UnicodeCategory.NonSpacingMark ||
-                category == System.Globalization.UnicodeCategory.SpacingCombiningMark ||
-                category == System.Globalization.UnicodeCategory.EnclosingMark;
-            eligible[index] = mark ? latinBase : IsLatinDefaultScalar(glyphs[index].Scalar);
-            if (!mark) latinBase = eligible[index] && char.IsLetter(scalarText, 0);
-        }
         for (int index = 0; index < glyphs.Count;) {
             if (!eligible[index]) { shaped.Add(glyphs[index++]); continue; }
             var segment = new List<GlyphToken>();
             do { segment.Add(glyphs[index++]); }
-            while (index < glyphs.Count && eligible[index]);
+            while (index < glyphs.Count && eligible[index] && !breakBefore[index]);
             foreach (var lookup in lookups) ApplyLookup(segment, lookup.Key, lookup.Value, cancellationToken, ref operations);
             shaped.AddRange(segment);
         }

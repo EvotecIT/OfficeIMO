@@ -63,7 +63,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
 
         OfficeOpenTypeSubstitution? substitution = latinFont?.Substitution ?? OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
         if (request.ApplyDefaultLatinLigatures) {
-            if (substitution != null && !substitution.ApplyLatinDefaults(tokens, request.FeatureSettings, request.CancellationToken)) return null;
+            if (substitution != null && !substitution.ApplyLatinDefaults(tokens, request.FeatureSettings, request.CancellationToken, request.Text)) return null;
         } else {
             if (substitution != null && !substitution.CanApply(request.FeatureSettings)) return null;
             substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);

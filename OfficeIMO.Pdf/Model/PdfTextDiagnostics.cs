@@ -1182,10 +1182,11 @@ internal static class PdfTextDiagnostics {
     private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
         // Preflight the same selected language-system lookups used by the shared shaper.
         // A rejected required feature or custom ligature need not contain ff/fi/fl.
-        if (text.Length > 0 && info.LatinSubstitution != null &&
+        int latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+        if (latinInputIndex >= 0 && info.LatinSubstitution != null &&
             !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(),
                 featureSettings ?? OfficeTextFeatureSettings.Default, default)) {
-            AddDiagnostic(diagnostics, reportedCodes, source, indexOffset, char.ConvertToUtf32(text, 0),
+            AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
                 "OpenType GSUB", "unsupported-font-ligature-substitution",
                 "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
         }
