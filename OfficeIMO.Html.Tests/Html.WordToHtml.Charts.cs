@@ -13,6 +13,39 @@ public sealed class HtmlWordChartTests {
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
+    public void Export_RendersChartsInNotes(bool footnote) {
+        using var document = WordDocument.Create();
+        var source = document.AddParagraph("Reference");
+        var reference = footnote ? source.AddFootNote("Note text") : source.AddEndNote("Note text");
+        var note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() : reference.EndNote!.Paragraphs!.Skip(1).First();
+        note.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportFootnotes = true, ExportEndnotes = true });
+        var html = new HtmlParser().ParseDocument(result.RequireValue());
+        Assert.Single(html.QuerySelectorAll((footnote ? ".footnotes" : ".endnotes") + " img"));
+        Assert.Contains("Note text", html.Body!.TextContent);
+    }
+    [Fact]
+    public void Export_BorderedChartParagraphRetainsItsImage() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.Paragraphs.Single().Borders.BottomStyle = WordBorderStyle.Single;
+        Assert.Single(new HtmlParser().ParseDocument(document.ToHtml()).QuerySelectorAll("img"));
+    }
+    [Fact]
+    public void Export_ChartRunsRetainCarriageReturnsAndEachBreakType() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var run = document.Paragraphs.Single().GetRuns().Single()._run!;
+        run.Append(new DocumentFormat.OpenXml.Wordprocessing.CarriageReturn(),
+            new DocumentFormat.OpenXml.Wordprocessing.Break(),
+            new DocumentFormat.OpenXml.Wordprocessing.Break { Type = DocumentFormat.OpenXml.Wordprocessing.BreakValues.Page });
+        var html = new HtmlParser().ParseDocument(document.ToHtml());
+        Assert.Equal(2, html.QuerySelectorAll("br:not([style])").Length);
+        Assert.Single(html.QuerySelectorAll("br[style*='page']"));
+    }
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
     public void Export_ReviewProjectionPreservesMixedAliasesOfSharedStoryRoots(bool header) {
         using var document = WordDocument.Create();
         var first = document.Sections[0];

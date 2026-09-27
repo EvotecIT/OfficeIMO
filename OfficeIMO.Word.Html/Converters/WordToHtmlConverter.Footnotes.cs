@@ -142,7 +142,7 @@ namespace OfficeIMO.Word.Html {
             IElement body,
             List<(int Number, WordFootNote Note)> footnotes,
             WordToHtmlOptions options,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken, AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
             if (!options.ExportFootnotes || footnotes.Count == 0) {
                 return;
             }
@@ -156,7 +156,7 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 var li = CreateOutputElement(htmlDoc, "li");
                 SetOutputAttribute(htmlDoc, li, "id", "fn" + number.ToString(System.Globalization.CultureInfo.InvariantCulture), "Footnote:id");
-                AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
+                AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1), appendParagraph, resetParagraphFlow);
                 ol.AppendChild(li);
             }
             footSection.AppendChild(ol);
@@ -168,7 +168,7 @@ namespace OfficeIMO.Word.Html {
             IElement body,
             List<(int Number, WordEndNote Note)> endnotes,
             WordToHtmlOptions options,
-            CancellationToken cancellationToken) {
+            CancellationToken cancellationToken, AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
             if (!options.ExportEndnotes || endnotes.Count == 0) {
                 return;
             }
@@ -182,24 +182,22 @@ namespace OfficeIMO.Word.Html {
                 cancellationToken.ThrowIfCancellationRequested();
                 var li = CreateOutputElement(htmlDoc, "li");
                 SetOutputAttribute(htmlDoc, li, "id", "en" + number.ToString(System.Globalization.CultureInfo.InvariantCulture), "Endnote:id");
-                AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1).Select(r => r.Text));
+                AppendNoteParagraphs(htmlDoc, li, note.Paragraphs?.Skip(1), appendParagraph, resetParagraphFlow);
                 ol.AppendChild(li);
             }
             endSection.AppendChild(ol);
             body.AppendChild(endSection);
         }
 
-        private static void AppendNoteParagraphs(IDocument htmlDoc, IElement li, IEnumerable<string?>? noteParagraphs) {
-            var paragraphs = noteParagraphs?.ToArray() ?? Array.Empty<string?>();
+        private static void AppendNoteParagraphs(IDocument htmlDoc, IElement li, IEnumerable<WordParagraph>? noteParagraphs,
+            AppendWordParagraphHtml appendParagraph, Action resetParagraphFlow) {
+            var paragraphs = noteParagraphs?.GroupBy(paragraph => paragraph._paragraph).Select(group => group.First()).ToArray() ?? Array.Empty<WordParagraph>();
+            resetParagraphFlow();
             if (paragraphs.Length == 0) {
-                paragraphs = new string?[] { string.Empty };
+                li.AppendChild(CreateOutputElement(htmlDoc, "p"));
             }
-
-            foreach (var text in paragraphs) {
-                var p = CreateOutputElement(htmlDoc, "p");
-                SetOutputText(htmlDoc, p, text ?? string.Empty, "NoteParagraph:text");
-                li.AppendChild(p);
-            }
+            foreach (var paragraph in paragraphs) appendParagraph(li, paragraph);
+            resetParagraphFlow();
         }
     }
 }
