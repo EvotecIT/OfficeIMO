@@ -11,6 +11,45 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_RejectsUnrepresentedSecondaryAxisLimits() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Volume", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        secondary.Scaling!.AddChild(new C.MaxAxisValue { Val = 2 }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+    [Fact]
+    public void OfficeSnapshot_PreservesInheritedTextFontsAndRejectsConflictingBodyFonts() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" },
+            new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        var space = chart.ChartPart!.ChartSpace!;
+        var native = space.GetFirstChild<C.Chart>()!;
+        space.AddChild(new C.TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(), new DocumentFormat.OpenXml.Drawing.ListStyle(),
+            new DocumentFormat.OpenXml.Drawing.Paragraph(new DocumentFormat.OpenXml.Drawing.ParagraphProperties(
+                new DocumentFormat.OpenXml.Drawing.DefaultRunProperties(new DocumentFormat.OpenXml.Drawing.LatinFont { Typeface = "Arial" })))), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("Arial", snapshot.Style.FontFamily);
+        native.GetFirstChild<C.Legend>()!.AddChild(new C.TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(), new DocumentFormat.OpenXml.Drawing.ListStyle(),
+            new DocumentFormat.OpenXml.Drawing.Paragraph(new DocumentFormat.OpenXml.Drawing.ParagraphProperties(
+                new DocumentFormat.OpenXml.Drawing.DefaultRunProperties(new DocumentFormat.OpenXml.Drawing.LatinFont { Typeface = "Georgia" })))), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void OfficeSnapshot_RejectsCompoundSurfaceOutlines() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        chart.ChartPart!.ChartSpace!.AddChild(new C.ShapeProperties(new DocumentFormat.OpenXml.Drawing.Outline(
+            new DocumentFormat.OpenXml.Drawing.SolidFill(new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "112233" })) {
+                CompoundLineType = DocumentFormat.OpenXml.Drawing.CompoundLineValues.Double }), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void OfficeSnapshot_PreservesBasicDataLabelsAndRejectsPerPointText() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A", "B" },

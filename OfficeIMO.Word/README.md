@@ -480,8 +480,19 @@ document.Save("status.docx");
 
 Omitting point styles preserves existing native overrides during a data update; supply an
 explicit array containing null entries to clear those points' fill and outline overrides.
-Native authoring is separate from static export support: Word's current snapshot and PDF
-routes do not project bubble or combination charts. Use the native DOCX for those families.
+`chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)` reads supported two-dimensional
+charts into the shared Drawing contract, including numeric X coordinates, bubble sizes,
+category combinations, secondary-axis assignments, native plotting order, and point styles.
+Word page images and Markdown SVG fallbacks use this projection. PDF uses it for bubble and
+combination charts; its existing single-family route retains its separate cached-data limits.
+Secondary-axis projections use automatic scales. Independent secondary-axis limits, formats,
+titles, and appearance require a richer projection and reject this snapshot.
+
+Snapshots preserve chart and plot surfaces, primary axes and gridlines, radial geometry,
+uniform body fonts, separate chart-title and axis-title fonts, and basic data-label content,
+separator, number format, and position. Mixed body fonts, per-point or series-specific labels,
+outside-label leader lines, unsupported effects, and unrepresented outlines return false
+without changing the native document. Native authoring remains available for these charts.
 
 Category and scatter snapshots retain supported native line and marker appearance.
 Call `snapshot.Data.Series[index].ToOfficeSeries()` to obtain the shared series,
