@@ -105,6 +105,13 @@ namespace OfficeIMO.Word.Pdf {
                 string name = GetNativeWordChartName(chart, chartPart, title);
                 OfficeChartStyle? style = CreateNativeWordChartStyle(openXmlChart!, chartElement, plotArea, chartKind, categories.Count, series.Count, themeColors);
                 OfficeChartLayout? layout = CreateNativeWordChartLayout(openXmlChart!, chartElement, plotArea, chartKind, categories.Count);
+                OfficeChartRadialLayout radialLayout;
+                try {
+                    radialLayout = chart.RadialLayout;
+                } catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is FormatException || exception is OverflowException) {
+                    warning = "Word chart contains invalid pie rotation or doughnut hole metadata and cannot be rendered.";
+                    return false;
+                }
                 snapshot = new OfficeChartSnapshot(
                     name,
                     title,
@@ -114,7 +121,7 @@ namespace OfficeIMO.Word.Pdf {
                     height,
                     style: style,
                     layout: layout,
-                    radialLayout: chart.RadialLayout);
+                    radialLayout: radialLayout);
             } catch (NativeWordChartLimitException ex) {
                 warning = ex.Message;
                 return false;
