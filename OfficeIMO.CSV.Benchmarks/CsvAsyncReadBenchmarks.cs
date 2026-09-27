@@ -35,10 +35,13 @@ public class CsvAsyncReadBenchmarks
             string? expectedAffinity = Environment.GetEnvironmentVariable("OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY");
             if (!string.IsNullOrEmpty(expectedAffinity))
             {
-                if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
+                if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+                {
+                    if (process.ProcessorAffinity != BenchmarkProcessorAffinity.ParseList(expectedAffinity)[0])
+                        throw new InvalidOperationException("The benchmark worker did not inherit its declared processor affinity.");
+                }
+                else
                     throw new PlatformNotSupportedException("Processor affinity qualification requires Windows or Linux.");
-                if (process.ProcessorAffinity != BenchmarkProcessorAffinity.ParseList(expectedAffinity)[0])
-                    throw new InvalidOperationException("The benchmark worker did not inherit its declared processor affinity.");
             }
             Console.WriteLine(OperatingSystem.IsWindows()
                 ? $"Worker placement: affinity={BenchmarkProcessorAffinity.Format(process.ProcessorAffinity)}; priority={process.PriorityClass}"
