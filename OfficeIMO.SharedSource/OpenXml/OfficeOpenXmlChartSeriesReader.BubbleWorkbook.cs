@@ -9,6 +9,8 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool HasUnsupportedBubbleSourceVisibility(ChartPart part, C.Chart chart) {
             var visibleOnly = chart.GetFirstChild<C.PlotVisibleOnly>();
             if (visibleOnly == null || visibleOnly.Val?.Value == false) return false;
+            // Literal cached charts have no workbook source whose hidden rows can affect plotting.
+            if (chart.PlotArea?.Descendants<C.Formula>().Any(formula => !string.IsNullOrWhiteSpace(formula.Text)) != true) return false;
             try {
                 var embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part);
                 if (embedded == null) return true;

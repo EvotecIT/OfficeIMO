@@ -498,7 +498,11 @@ Deleted axes suppress their lines, and primary tick-label placement and automati
 axis crossing are preserved where the renderer supports them; maximum crossing on horizontal
 bars is rejected. Nonstandard axis arrangements, title or legend shape fills,
 manual title layouts, unsupported numeric formats, exploded slices, and nondefault bar spacing
-require a richer projection and return false. Header and footer charts use relationships owned
+require a richer projection and return false. Analytical overlays, sparse or nonnumeric value caches,
+time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
+rotated or aligned text layouts, and category-label skipping also reject projection. Visible-only
+charts with hidden workbook source rows or columns reject projection; literal charts remain supported.
+Header and footer charts use relationships owned
 by their containing story, including when the same relationship ID exists in the document body.
 
 Category and scatter snapshots retain supported native line and marker appearance.

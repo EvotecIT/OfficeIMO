@@ -29,6 +29,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value).Where(value => value.HasValue && value.Value <= int.MaxValue)
                 .Select(value => (int)value!.Value).ToArray() : null;
             var plot = chart.PlotArea;
+            if (plot?.Descendants().Any(element => element is C.TickLabelSkip or C.TickMarkSkip) == true)
+                throw new NotSupportedException("Category-axis label and tick skipping cannot be projected.");
             OpenXmlCompositeElement? horizontal = null, vertical = null;
             if (!radial && plot != null) {
                 var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
