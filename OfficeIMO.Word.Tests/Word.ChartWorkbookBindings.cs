@@ -10,6 +10,27 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartWorkbookBindingsTests {
     [Fact]
+    public void ScatterGrowth_PreservesExistingErrorBarsWithoutCopyingMagnitudeDataToNewSeries() {
+        using WordDocument document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Scatter, Data());
+        var source = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
+        source.AddChild(new C.ErrorBars(new C.ErrorDirection { Val = C.ErrorBarDirectionValues.Y },
+            new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
+            new C.Plus(new C.NumberReference(new C.Formula { Text = "Sheet1!$Z$2:$Z$3" },
+                new C.NumberingCache(new C.FormatCode { Text = "General" }, new C.PointCount { Val = 2 },
+                    new C.NumericPoint { Index = 0, NumericValue = new C.NumericValue { Text = "0.5" } },
+                    new C.NumericPoint { Index = 1, NumericValue = new C.NumericValue { Text = "1.5" } })))), true);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(OfficeChartKind.Scatter, new OfficeChartData(Data().Categories, new[] {
+            Data().Series.Single(), new OfficeChartSeries("Added", new[] { 3d, 4d }, new[] { 1d, 2d }) }));
+        var series = chart.ChartPart.ChartSpace.Descendants<C.ScatterChartSeries>().ToArray();
+        Assert.Single(series[0].Elements<C.ErrorBars>());
+        Assert.Empty(series[1].Elements<C.ErrorBars>());
+        Assert.DoesNotContain(series[0].Descendants<C.NumberReference>(), reference => reference.Parent is C.Plus);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Fact]
     public void SharedUpdate_RejectsUnqualifiedWorkbookExtensionBeforeChangingChartOrWorkbook() {
         using WordDocument document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Line, Data());
