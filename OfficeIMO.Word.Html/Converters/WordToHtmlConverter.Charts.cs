@@ -14,6 +14,14 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
+            const string prefix = "data:image/svg+xml;base64,";
+            long remainingImages = options.MaxTotalEmbeddedImageBytes - embeddedImageBytes;
+            long outputBytes = Math.Max(0, (GetRemainingOutputCharacters(owner) - prefix.Length) / 4L) * 3L;
+            long maximumBytes = Math.Min(options.MaxEmbeddedImageBytes, Math.Min(remainingImages, outputBytes));
+            string limitCode = maximumBytes == outputBytes ? "WordHtmlOutputLimitExceeded" :
+                maximumBytes == remainingImages ? "WordImageTotalSizeLimitExceeded" : "WordImageSizeLimitExceeded";
+            if (maximumBytes < 1)
+                ThrowExportLimitExceeded(options, limitCode, "A rendered chart cannot fit within the configured HTML export limits.", "WordChart", 1, maximumBytes);
             byte[] bytes;
             try {
                 var rendering = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
@@ -21,7 +29,12 @@ namespace OfficeIMO.Word.Html {
                     AddExportDiagnostic(options, "WordChartRenderingApproximation",
                         "A Word chart was rendered with shared drawing quality warnings.", OfficeConversionLossKind.Approximation);
                 }
-                bytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing);
+                bytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing, 1D, OfficeSvgSizeUnit.Point,
+                    null, null, maximumBytes, System.Threading.CancellationToken.None);
+            } catch (OfficeImageExportBatchLimitException ex) {
+                ThrowExportLimitExceeded(options, limitCode, "A rendered chart exceeds the configured HTML export limits.",
+                    "WordChart", ex.Actual, ex.Maximum);
+                throw;
             } catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is NotSupportedException) {
                 AddExportDiagnostic(options, "WordChartOmitted", "A Word chart could not be rendered as an HTML image.",
                     OfficeConversionLossKind.Omission);
@@ -35,7 +48,6 @@ namespace OfficeIMO.Word.Html {
                 ThrowExportLimitExceeded(options, "WordImageTotalSizeLimitExceeded", "Rendered charts and embedded images exceed the aggregate HTML export limit.",
                     "WordChart", SaturatingAdd(embeddedImageBytes, bytes.LongLength), options.MaxTotalEmbeddedImageBytes);
 
-            const string prefix = "data:image/svg+xml;base64,";
             long characters = prefix.Length + ((bytes.LongLength + 2L) / 3L) * 4L;
             ReserveOutputCharacters(owner, characters, "A rendered chart exceeds the HTML output-character limit.", "WordChart:src");
             var image = CreateOutputElement(owner, "img");

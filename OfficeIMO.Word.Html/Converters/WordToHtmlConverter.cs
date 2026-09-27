@@ -261,16 +261,19 @@ namespace OfficeIMO.Word.Html {
                         return true;
                     }
 
-                    if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
-                        run.Chart is WordChart chart) {
+                    if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing) &&
+                        (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing chartDrawing &&
+                            chartDrawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any()
+                            ? new WordChart(run._document, run, chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
                         IElement? chartImage = CreateChartImage(htmlDoc, chart, options, ref embeddedImageBytes);
                         if (chartImage != null) target.Add(chartImage);
                         return true;
                     }
 
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
-                        run.IsImage && run.Image != null) {
-                        var imgObj = run.Image;
+                        (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing imageDrawing &&
+                            imageDrawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any()
+                            ? new WordImage(run._document, imageDrawing) : includeAll || artifactElement is DocumentFormat.OpenXml.Vml.ImageData ? run.Image : null) is WordImage imgObj) {
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
                             if (options.EmbedImagesAsBase64) {
@@ -494,6 +497,15 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
                     if (coveringEquations.Count > 0) {
+                        continue;
+                    }
+                    // Imported chart runs may also contain text, pictures or other charts.
+                    // The existing segment projector preserves the actual child order and
+                    // supplies the specific drawing occurrence to artifact conversion.
+                    if (run.IsChart && run._run != null) {
+                        foreach (INode expandedNode in CreateExpandedEquationContainerNodes(run._run, Array.Empty<WordEquationOccurrence>(), run)) {
+                            AppendNode(expandedNode);
+                        }
                         continue;
                     }
                     if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {
