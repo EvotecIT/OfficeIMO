@@ -31,6 +31,8 @@ namespace OfficeIMO.OpenXml.Internal {
             var plot = chart.PlotArea;
             if (plot?.Descendants().Any(element => element is C.TickLabelSkip or C.TickMarkSkip) == true)
                 throw new NotSupportedException("Category-axis label and tick skipping cannot be projected.");
+            if (plot?.Descendants<C.LabelAlignment>().Any(alignment => alignment.Val?.Value is C.LabelAlignmentValues value && value != C.LabelAlignmentValues.Center) == true)
+                throw new NotSupportedException("Non-centered category label alignment cannot be projected.");
             if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true ||
                 plot?.Descendants<C.CrossBetween>().Any(crossing => crossing.Val?.Value is C.CrossBetweenValues value && value != C.CrossBetweenValues.Between) == true)
                 throw new NotSupportedException("Independent category label offsets and cross-between geometry cannot be projected.");
