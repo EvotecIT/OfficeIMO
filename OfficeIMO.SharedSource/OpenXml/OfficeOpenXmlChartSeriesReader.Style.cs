@@ -7,7 +7,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartStyle ReadStyle(C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme) {
+        internal static OfficeChartStyle ReadStyle(C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null) {
             var area = ReadSurface(chart.Parent?.GetFirstChild<C.ShapeProperties>(), scheme);
             var plot = chart.PlotArea;
             var plotStyle = ReadSurface(plot?.GetFirstChild<C.ShapeProperties>(), scheme);
@@ -31,7 +31,8 @@ namespace OfficeIMO.OpenXml.Internal {
             var valueGrid = ReadSurface(valueMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
             var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
             var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
-            return new OfficeChartStyle(showBackground: !area.NoFill, backgroundColor: area.Fill,
+            return new OfficeChartStyle(fontFamily: textStyle?.FontFamily, titleFontFamily: textStyle?.TitleFontFamily,
+                showBackground: !area.NoFill, backgroundColor: area.Fill,
                 showBorder: !area.NoOutline, borderColor: area.Stroke, chartBorderWidth: area.Width, chartBorderDashStyle: area.Dash,
                 plotAreaBackgroundColor: plotStyle.NoFill ? null : plotStyle.Fill,
                 plotAreaBorderColor: plotStyle.NoOutline ? null : plotStyle.Stroke, plotAreaBorderWidth: plotStyle.Width, plotAreaBorderDashStyle: plotStyle.Dash,
@@ -68,6 +69,8 @@ namespace OfficeIMO.OpenXml.Internal {
             if (properties.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.Outline))
                 throw new NotSupportedException("The chart surface has an unsupported fill or effect.");
             var outline = properties.GetFirstChild<A.Outline>();
+            if (outline?.CapType != null || outline?.Alignment != null || outline?.CompoundLineType != null)
+                throw new NotSupportedException("The chart outline attributes cannot be projected.");
             if (outline?.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.PresetDash &&
                 child is not A.Round && child is not A.Bevel && child is not A.Miter) == true)
                 throw new NotSupportedException("The chart surface has an unsupported outline.");

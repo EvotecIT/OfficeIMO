@@ -40,7 +40,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 }
             };
             if (labels?.Elements<C.DataLabel>().Any() == true || LabelFlag<C.ShowLegendKey>(labels) ||
-                LabelFlag<C.ShowBubbleSize>(labels) || LabelFlag<C.ShowLeaderLines>(labels))
+                LabelFlag<C.ShowBubbleSize>(labels) ||
+                (LabelFlag<C.ShowLeaderLines>(labels) && current.Position is not OfficeChartDataLabelPosition.BestFit and
+                    not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
                 foreach (var child in labels.ChildElements) {
