@@ -40,14 +40,8 @@ public partial class WordChart {
     internal WordChart ConfigureSharedData(OfficeChartKind chartKind, OfficeChartData data, byte[] workbook) {
         ChartPart part = _chartPart ?? throw new InvalidOperationException("The chart has no native drawing part.");
         ChartSpace source = part.ChartSpace ?? throw new InvalidOperationException("The chart has no native chart space.");
-        var packages = part.GetPartsOfType<EmbeddedPackagePart>().Take(2).ToList();
-        if (packages.Count > 1)
-            throw new NotSupportedException("Charts with multiple embedded packages require an explicit package selection.");
-        const string workbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-        if (packages.Count == 1 && !string.Equals(packages[0].ContentType, workbookContentType, StringComparison.OrdinalIgnoreCase))
-            throw new NotSupportedException("Shared chart data updates require an XLSX embedded workbook; the existing package format is preserved.");
-        EmbeddedPackagePart embedded = packages.FirstOrDefault() ??
-            part.AddEmbeddedPackagePart(workbookContentType);
+        EmbeddedPackagePart embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part) ??
+            part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
         bool rounded = source.GetFirstChild<RoundedCorners>()?.Val?.Value ?? false;
         if (source.GetFirstChild<Chart>() == null) {
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, part.GetIdOfPart(embedded), data, chartKind);

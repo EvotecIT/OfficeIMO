@@ -40,9 +40,7 @@ public sealed class OfficeChartPointStyle {
             throw new ArgumentException("A hatch and its stroke colour must be specified together.", nameof(hatchColor));
         if (hatch.HasValue && !Enum.IsDefined(typeof(OfficeChartHatchPattern), hatch.Value))
             throw new ArgumentOutOfRangeException(nameof(hatch));
-        if (outlineWidth.HasValue && (double.IsNaN(outlineWidth.Value) ||
-            double.IsInfinity(outlineWidth.Value) || outlineWidth.Value <= 0 || outlineWidth.Value > 1584))
-            throw new ArgumentOutOfRangeException(nameof(outlineWidth), "Outline width must be finite, positive, and at most 1584 points.");
+        OfficeChartStyleBounds.ValidateLineWidth(outlineWidth, nameof(outlineWidth));
         FillColor = fillColor ?? (hatch.HasValue ? OfficeColor.White : (OfficeColor?)null);
         NoFill = noFill;
         Hatch = hatch;

@@ -18,6 +18,17 @@ Applications that require the previous scalar widths should set
 `TextShapingMode = PdfTextShapingMode.UnicodeScalar`. Existing explicit shaping
 providers and the `LatinLigatures` mode retain their selection behavior.
 
+## Native chart appearance bounds
+
+Shared chart series stroke and marker outline widths must be finite, greater
+than zero, and at most 1584 points. Replace invalid widths before constructing
+`OfficeChartSeries`. Excel's explicit styling methods retain zero-width support
+but reject non-finite widths and widths above the same limit.
+
+Native Word, Excel, and PowerPoint writers clamp shared marker sizes to the
+DrawingML range of 2–72 points. Excel's explicit `SetSeriesMarker` methods reject
+sizes outside that range; use 2 instead of 1 for the smallest native marker.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to

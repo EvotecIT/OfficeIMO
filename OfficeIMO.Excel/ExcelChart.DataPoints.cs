@@ -99,6 +99,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateDataPointStyle(string? fillColor, string? lineColor, double? lineWidthPoints) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
             if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
                 throw new ArgumentException("Data point fill color cannot be empty.", nameof(fillColor));
             }

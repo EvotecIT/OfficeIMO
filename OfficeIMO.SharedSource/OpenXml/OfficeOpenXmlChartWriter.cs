@@ -45,7 +45,7 @@ namespace OfficeIMO.OpenXml.Internal {
             C.PlotArea plotArea = new(new C.Layout());
             AppendSharedChartContent(plotArea, data, defaultKind);
             chart.Append(plotArea);
-            chart.Append(CreateSharedLegend(data));
+            chart.Append(CreateSharedLegend(data, defaultKind));
             chart.Append(new C.PlotVisibleOnly { Val = true });
             chart.Append(new C.DisplayBlanksAs { Val = C.DisplayBlanksAsValues.Gap });
             chart.Append(new C.ShowDataLabelsOverMaximum { Val = false });
@@ -92,7 +92,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 chart.ReplaceChild(replacement, plotArea);
             }
 
-            UpdateSharedLegend(chart, data);
+            UpdateSharedLegend(chart, data, defaultKind);
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
                 materializeMissingBubbleColors: false,
                 preservedSeriesIndexes);
@@ -352,20 +352,27 @@ namespace OfficeIMO.OpenXml.Internal {
             return axis;
         }
 
-        private static C.Legend CreateSharedLegend(OfficeChartData data) {
+        private static IEnumerable<uint> GetHiddenSharedLegendIndexes(OfficeChartData data, OfficeChartKind kind) {
+            if (kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut) {
+                if (data.Series.Any(series => !series.ShowInLegend))
+                    for (int point = 0; point < data.Categories.Count; point++) yield return (uint)point;
+            } else {
+                for (int index = 0; index < data.Series.Count; index++)
+                    if (!data.Series[index].ShowInLegend) yield return (uint)index;
+            }
+        }
+
+        private static C.Legend CreateSharedLegend(OfficeChartData data, OfficeChartKind kind) {
             C.Legend legend = new(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });
-            for (int index = 0; index < data.Series.Count; index++) {
-                if (!data.Series[index].ShowInLegend) {
-                    legend.Append(new C.LegendEntry(new C.Index { Val = (uint)index },
-                        new C.Delete { Val = true }));
-                }
+            foreach (uint index in GetHiddenSharedLegendIndexes(data, kind)) {
+                legend.Append(new C.LegendEntry(new C.Index { Val = index }, new C.Delete { Val = true }));
             }
             legend.Append(new C.Layout());
             legend.Append(new C.Overlay { Val = false });
             return legend;
         }
 
-        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data) {
+        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data, OfficeChartKind kind) {
             C.Legend? current = chart.GetFirstChild<C.Legend>();
             if (current == null) {
                 return;
@@ -375,9 +382,8 @@ namespace OfficeIMO.OpenXml.Internal {
             replacement.RemoveAllChildren<C.LegendEntry>();
             OpenXmlElement? insertBefore = replacement.ChildElements.FirstOrDefault(child =>
                 child is not C.LegendPosition && child is not C.LegendEntry);
-            for (int index = 0; index < data.Series.Count; index++) {
-                if (data.Series[index].ShowInLegend) continue;
-                var entry = new C.LegendEntry(new C.Index { Val = (uint)index },
+            foreach (uint index in GetHiddenSharedLegendIndexes(data, kind)) {
+                var entry = new C.LegendEntry(new C.Index { Val = index },
                     new C.Delete { Val = true });
                 if (insertBefore == null) replacement.Append(entry);
                 else replacement.InsertBefore(entry, insertBefore);
@@ -396,180 +402,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 else if (chart is C.PieChart pie) foreach (C.PieChartSeries series in pie.Elements<C.PieChartSeries>()) yield return series;
                 else if (chart is C.DoughnutChart doughnut) foreach (C.PieChartSeries series in doughnut.Elements<C.PieChartSeries>()) yield return series;
             }
-        }
-
-        private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind,
-            OfficeColor? fallbackFillColor) {
-            OfficeColor? fillColor = series.Color ?? fallbackFillColor;
-            OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
-                ? series.MarkerOutlineColor ?? fillColor
-                : fillColor;
-            double? outlineWidth = kind == OfficeChartKind.Bubble
-                ? series.MarkerOutlineWidth ?? series.StrokeWidth
-                : series.StrokeWidth;
-            C.ChartShapeProperties properties =
-                seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
-                new C.ChartShapeProperties();
-            bool reenableBubbleOutline = kind == OfficeChartKind.Bubble &&
-                series.ShowMarkerOutline &&
-                properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
-            if (!fillColor.HasValue && !outlineColor.HasValue && outlineWidth == null &&
-                (kind != OfficeChartKind.Bubble || series.ShowMarkerOutline) &&
-                series.StrokeDashStyle == null &&
-                (series.ConnectLine || IsFilledSharedKind(kind)) &&
-                !reenableBubbleOutline) return;
-            if (fillColor.HasValue && IsFilledSharedKind(kind)) {
-                properties.RemoveAllChildren<A.SolidFill>();
-                properties.RemoveAllChildren<A.NoFill>();
-                properties.RemoveAllChildren<A.GradientFill>();
-                properties.RemoveAllChildren<A.PatternFill>();
-                properties.RemoveAllChildren<A.BlipFill>();
-                properties.RemoveAllChildren<A.GroupFill>();
-                properties.PrependChild(new A.SolidFill(
-                    CreateSharedRgbColor(fillColor.Value)));
-            }
-            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
-            bool replaceOutlineFill = reenableBubbleOutline ||
-                (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) ||
-                (!series.ConnectLine && !IsFilledSharedKind(kind)) ||
-                outlineColor.HasValue;
-            if (replaceOutlineFill) {
-                outline.RemoveAllChildren<A.SolidFill>();
-                outline.RemoveAllChildren<A.NoFill>();
-                outline.RemoveAllChildren<A.GradientFill>();
-                outline.RemoveAllChildren<A.PatternFill>();
-                outline.RemoveAllChildren<A.BlipFill>();
-                outline.RemoveAllChildren<A.GroupFill>();
-                if (kind == OfficeChartKind.Bubble &&
-                    !series.ShowMarkerOutline) {
-                    outline.Append(new A.NoFill());
-                } else if (!series.ConnectLine &&
-                           !IsFilledSharedKind(kind)) {
-                    outline.Append(new A.NoFill());
-                } else if (outlineColor.HasValue) {
-                    outline.Append(new A.SolidFill(
-                        CreateSharedRgbColor(outlineColor.Value)));
-                }
-            }
-            if (outlineWidth.HasValue) {
-                outline.Width = (int)Math.Min(int.MaxValue,
-                    FromPoints(outlineWidth.Value));
-            }
-            if (series.StrokeDashStyle.HasValue) {
-                outline.RemoveAllChildren<A.PresetDash>();
-                outline.Append(new A.PresetDash { Val = MapDash(series.StrokeDashStyle.Value) });
-            }
-            if (outline.Parent == null) properties.Append(outline);
-            if (properties.Parent == null) InsertSharedSeriesProperties(seriesElement, properties);
-        }
-
-        private static void ApplySharedSeriesMarker(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind) {
-            if (!IsMarkerKind(kind)) return;
-            C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-            marker.Symbol = new C.Symbol {
-                Val = series.ShowMarkers ? MapMarker(series.MarkerShape) : C.MarkerStyleValues.None
-            };
-            if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = (byte)Math.Min(72, series.MarkerSize.Value) };
-            if (series.Color.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
-                C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
-                if (series.Color.HasValue) {
-                    properties.RemoveAllChildren<A.SolidFill>();
-                    properties.PrependChild(new A.SolidFill(
-                        CreateSharedRgbColor(series.Color.Value)));
-                }
-                A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
-                OfficeColor? markerColor = series.MarkerOutlineColor ?? series.Color;
-                if (markerColor.HasValue) {
-                    outline.RemoveAllChildren<A.SolidFill>();
-                    outline.Append(new A.SolidFill(
-                        CreateSharedRgbColor(markerColor.Value)));
-                }
-                if (series.MarkerOutlineWidth.HasValue) {
-                    outline.Width = (int)Math.Min(int.MaxValue,
-                        FromPoints(series.MarkerOutlineWidth.Value));
-                }
-                if (outline.Parent == null) properties.Append(outline);
-                if (properties.Parent == null) marker.Append(properties);
-            }
-            if (marker.Parent == null) InsertSharedMarker(seriesElement, marker);
-        }
-
-        private static void ApplySharedPointColors(OpenXmlCompositeElement seriesElement, OfficeChartSeries series) {
-            if (series.PointColors == null) return;
-            OpenXmlElement? insertBefore = seriesElement.GetFirstChild<C.DataLabels>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.Trendline>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.ErrorBars>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.CategoryAxisData>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.Values>() ??
-                (OpenXmlElement?)seriesElement.GetFirstChild<C.XValues>() ?? seriesElement.GetFirstChild<C.YValues>();
-            var pointsByIndex = new Dictionary<uint, C.DataPoint>();
-            foreach (C.DataPoint existingPoint in seriesElement.Elements<C.DataPoint>()) {
-                uint? existingIndex = existingPoint.Index?.Val?.Value;
-                if (existingIndex.HasValue && !pointsByIndex.ContainsKey(existingIndex.Value)) {
-                    pointsByIndex.Add(existingIndex.Value, existingPoint);
-                }
-            }
-            for (int index = 0; index < series.PointColors.Count; index++) {
-                OfficeColor? color = series.PointColors[index];
-                if (!color.HasValue) continue;
-                uint pointIndex = (uint)index;
-                if (!pointsByIndex.TryGetValue(pointIndex, out C.DataPoint? point)) {
-                    point = new C.DataPoint(new C.Index { Val = (uint)index });
-                    if (insertBefore != null) {
-                        seriesElement.InsertBefore(point, insertBefore);
-                    } else {
-                        seriesElement.Append(point);
-                    }
-                    pointsByIndex.Add(pointIndex, point);
-                }
-                C.ChartShapeProperties? properties =
-                    point.GetFirstChild<C.ChartShapeProperties>();
-                if (properties == null) {
-                    properties = new C.ChartShapeProperties();
-                    point.AddChild(properties, true);
-                }
-                properties.RemoveAllChildren<A.SolidFill>();
-                properties.RemoveAllChildren<A.NoFill>();
-                properties.RemoveAllChildren<A.GradientFill>();
-                properties.RemoveAllChildren<A.PatternFill>();
-                properties.RemoveAllChildren<A.BlipFill>();
-                properties.RemoveAllChildren<A.GroupFill>();
-                properties.PrependChild(new A.SolidFill(
-                    CreateSharedRgbColor(color.Value)));
-            }
-        }
-
-        private static A.RgbColorModelHex CreateSharedRgbColor(OfficeColor color) {
-            var rgb = new A.RgbColorModelHex { Val = color.ToRgbHex() };
-            if (color.A < byte.MaxValue) {
-                rgb.Append(new A.Alpha {
-                    Val = checked((int)Math.Round(
-                        color.A / 255D * 100000D,
-                        MidpointRounding.AwayFromZero))
-                });
-            }
-            return rgb;
-        }
-
-        private static void InsertSharedSeriesProperties(OpenXmlCompositeElement series, C.ChartShapeProperties properties) {
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.InvertIfNegative>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.Marker>() ?? series.GetFirstChild<C.DataPoint>() ??
-                series.GetFirstChild<C.DataLabels>() ?? series.GetFirstChild<C.CategoryAxisData>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.Values>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.XValues>() ?? series.GetFirstChild<C.YValues>();
-            if (insertBefore != null) series.InsertBefore(properties, insertBefore);
-            else series.Append(properties);
-        }
-
-        private static void InsertSharedMarker(OpenXmlCompositeElement series, C.Marker marker) {
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.DataPoint>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.DataLabels>() ?? series.GetFirstChild<C.CategoryAxisData>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.Values>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.XValues>() ?? series.GetFirstChild<C.YValues>();
-            if (insertBefore != null) series.InsertBefore(marker, insertBefore);
-            else series.Append(marker);
         }
 
         private static List<SharedSeriesDescriptor> DescribeSharedSeries(OfficeChartData data,

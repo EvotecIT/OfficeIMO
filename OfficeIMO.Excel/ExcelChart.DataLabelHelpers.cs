@@ -84,9 +84,7 @@ namespace OfficeIMO.Excel {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Line color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
-            }
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
             if (noFill && fillColor != null) {
                 throw new ArgumentException("Cannot set both fill color and noFill.", nameof(noFill));
             }
@@ -99,18 +97,14 @@ namespace OfficeIMO.Excel {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Line color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
-            }
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
         }
 
         private static void ValidateAxisGridlinesStyle(string? lineColor, double? lineWidthPoints) {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Gridline color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
-            }
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
         }
 
         private static void ValidateAxisScale(double? minimum, double? maximum, double? majorUnit, double? minorUnit,
@@ -257,9 +251,7 @@ namespace OfficeIMO.Excel {
             if (lineColor != null && string.IsNullOrWhiteSpace(lineColor)) {
                 throw new ArgumentException("Trendline color cannot be empty.", nameof(lineColor));
             }
-            if (lineWidthPoints != null && lineWidthPoints <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(lineWidthPoints));
-            }
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints));
 
             bool isPolynomial = type == OfficeChartTrendlineType.Polynomial;
             bool isMovingAverage = type == OfficeChartTrendlineType.MovingAverage;
