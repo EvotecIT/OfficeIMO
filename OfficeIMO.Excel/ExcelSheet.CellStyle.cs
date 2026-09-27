@@ -36,7 +36,8 @@ namespace OfficeIMO.Excel {
             Font? font = stylesheet.Fonts?.Elements<Font>().ElementAtOrDefault((int)(format.FontId?.Value ?? 0U));
             Fill? fill = stylesheet.Fills?.Elements<Fill>().ElementAtOrDefault((int)(format.FillId?.Value ?? 0U));
             Border? border = stylesheet.Borders?.Elements<Border>().ElementAtOrDefault((int)(format.BorderId?.Value ?? 0U));
-            uint numberFormatId = format.NumberFormatId?.Value ?? 0U;
+            uint.TryParse(format.NumberFormatId?.InnerText, System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture, out uint numberFormatId);
             string? numberFormatCode = GetNumberFormatCode(stylesheet, numberFormatId);
             bool hasSimpleGradient = ExcelGradientFillResolver.TryResolveSimpleLinearGradient(fill, workbookPart, out ExcelGradientFillInfo gradient);
 
@@ -198,7 +199,8 @@ namespace OfficeIMO.Excel {
         private static string? GetNumberFormatCode(Stylesheet stylesheet, uint numberFormatId) {
             if (stylesheet.NumberingFormats != null) {
                 foreach (NumberingFormat numberingFormat in stylesheet.NumberingFormats.Elements<NumberingFormat>()) {
-                    if (numberingFormat.NumberFormatId?.Value == numberFormatId) {
+                    if (uint.TryParse(numberingFormat.NumberFormatId?.InnerText, System.Globalization.NumberStyles.None,
+                            System.Globalization.CultureInfo.InvariantCulture, out uint candidateId) && candidateId == numberFormatId) {
                         return numberingFormat.FormatCode?.Value;
                     }
                 }

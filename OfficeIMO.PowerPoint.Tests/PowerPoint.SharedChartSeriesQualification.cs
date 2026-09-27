@@ -10,13 +10,15 @@ namespace OfficeIMO.Tests;
 
 public class PowerPointSharedChartSeriesQualificationTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void NativeUpdate_PreservesUnprojectablePointAppearance(bool marker) {
+    [InlineData(false, OfficeChartKind.ColumnClustered)]
+    [InlineData(true, OfficeChartKind.ColumnClustered)]
+    [InlineData(false, OfficeChartKind.Bubble)]
+    [InlineData(true, OfficeChartKind.Bubble)]
+    public void NativeUpdate_PreservesUnprojectablePointAppearance(bool marker, OfficeChartKind kind) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
-        var chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
-            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
-        var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        var initial = kind == OfficeChartKind.Bubble ? OfficeChartSeries.CreateBubble("Values", new[] { 1d }, new[] { 1d }, new[] { 5d }) : new OfficeChartSeries("Values", new[] { 1d });
+        var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A" }, new[] { initial }));
+        var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants().OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
         var point = new C.DataPoint(new C.Index { Val = 0 });
         if (marker) point.AddChild(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Diamond }), true);
         else point.AddChild(new C.ChartShapeProperties(new A.GradientFill(new A.GradientStopList(
@@ -25,14 +27,17 @@ public class PowerPointSharedChartSeriesQualificationTests {
         series.AddChild(point, true);
         string appearance = point.OuterXml;
         Assert.False(chart.TryGetOfficeSnapshot(out _));
-        chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 2d }) }));
-        series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        var updated = kind == OfficeChartKind.Bubble ? OfficeChartSeries.CreateBubble("Values", new[] { 1d }, new[] { 2d }, new[] { 10d }) : new OfficeChartSeries("Values", new[] { 2d });
+        chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] { updated }));
+        series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants().OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
         Assert.Equal(appearance, series.GetFirstChild<C.DataPoint>()!.OuterXml);
-        Assert.Equal("2", series.GetFirstChild<C.Values>()!.Descendants<C.NumericValue>().Single().Text);
+        Assert.Equal("2", ((DocumentFormat.OpenXml.OpenXmlElement?)series.GetFirstChild<C.Values>() ?? series.GetFirstChild<C.YValues>())!.Descendants<C.NumericValue>().Single().Text);
     }
 
-    [Fact]
-    public void Snapshot_IgnoresDormantMarkerOnlyLineDash() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_IgnoresDormantMarkerOnlyLineDash(bool cap) {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartKind.Scatter, new OfficeChartData(new[] { "1" }, new[] {
             new OfficeChartSeries("Values", new[] { 2d }, new[] { 1d }, null, null, true, connectLine: false) }));
@@ -40,6 +45,7 @@ public class PowerPointSharedChartSeriesQualificationTests {
         var properties = series.GetFirstChild<C.ChartShapeProperties>()!;
         var outline = properties.GetFirstChild<A.Outline>()!;
         outline.AddChild(new A.PresetDash { Val = A.PresetLineDashValues.SystemDash }, true);
+        if (cap) outline.CapType = A.LineCapValues.Round;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.False(snapshot.Data.Series.Single().ConnectLine);
     }

@@ -94,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
                     ReadSeriesStrokeWidth(element)) {
                     BubbleSizes = normalizedSizes,
                     PointColors = ReadBubblePointColors(element, pointCount, colorScheme),
-                    PointStyles = OfficeOpenXmlChartPointStyles.Read(element, pointCount, colorScheme),
+                    PointStyles = forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(element, pointCount, colorScheme),
                     StrokeColor = ReadSeriesStrokeColor(element, colorScheme),
                     ShowStroke = IsSeriesStrokeVisible(element),
                     SourceIndex = element.GetFirstChild<C.Index>()?.Val?.Value
