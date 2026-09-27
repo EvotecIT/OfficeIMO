@@ -10,6 +10,32 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
+    [Fact]
+    public void Export_PreservesEachVmlImageOccurrenceBesideAChart() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        byte[] first = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+        byte[] second = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABFSURBVEhLY1BNfv2flpgBXYDaeBhaILCzkSKMbt6oBRgY3bxRCzAwunmjFmBgdPNGLcDA6OaNWoCB0c3DsIDaeNQCghgAFxBXzP1LTe4AAAAASUVORK5CYII=");
+        var firstImage = document.AddParagraph().AddImage(new MemoryStream(first), "first.gif", 10, 10);
+        var secondImage = document.AddParagraph().AddImage(new MemoryStream(second), "second.png", 20, 20);
+        var target = document.Paragraphs[0].GetRuns().Single()._run!;
+        foreach (var item in new[] { (firstImage, "First"), (secondImage, "Second") }) {
+            string id = item.Item1.Image!.RelationshipId!;
+            item.Item1.Image!._Image.Remove();
+            target.Append(new DocumentFormat.OpenXml.Wordprocessing.Picture(
+                new DocumentFormat.OpenXml.Vml.Shape(new DocumentFormat.OpenXml.Vml.ImageData { RelationshipId = id }) {
+                    Id = item.Item2, Style = "width:15pt;height:15pt"
+                }));
+        }
+        document.Paragraphs[1].Remove();
+        document.Paragraphs[1].Remove();
+        var result = document.ToHtmlResult();
+        var images = new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img");
+        Assert.Equal(3, images.Length);
+        Assert.Equal("data:image/gif;base64," + Convert.ToBase64String(first), images[1].GetAttribute("src"));
+        Assert.Equal("data:image/png;base64," + Convert.ToBase64String(second), images[2].GetAttribute("src"));
+        Assert.Equal("20", images[2].GetAttribute("width"));
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
