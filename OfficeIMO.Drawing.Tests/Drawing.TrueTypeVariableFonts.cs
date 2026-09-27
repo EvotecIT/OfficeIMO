@@ -128,6 +128,26 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void DescriptorWeightOptInReachesTheFontProgramProvider() {
+        var provider = new CapturingFontProgramProvider();
+        var fonts = new OfficeFontFaceCollection { FontProgramProvider = provider };
+        Assert.True(fonts.TryAddBounded(
+            "Roboto Flex", ReadAsset("RobotoFlex.ttf"),
+            new OfficeFontFaceDescriptor(600, 100, OfficeFontSlant.Normal),
+            OfficeFontUnicodeRangeSet.All, 16 * 1024 * 1024, out _, out _,
+            applyDescriptorWeight: true));
+        Assert.Equal(600F, provider.LastRequest!.VariationCoordinates["wght"]);
+    }
+
+    [Fact]
+    public void DirectDrawingDescriptorRegistrationRetainsTheDefaultVariableInstance() {
+        var fonts = new OfficeFontFaceCollection();
+        Assert.True(fonts.TryAdd("Roboto Flex", ReadAsset("RobotoFlex.ttf"),
+            new OfficeFontFaceDescriptor(700, 100, OfficeFontSlant.Normal)));
+        Assert.Contains("wght=400", Assert.Single(fonts.Faces).Program.Fingerprint, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ProviderReceivesTheResolvedVariableFontCoordinates() {
         byte[] data = ReadAsset("RobotoFlex.ttf");
         var provider = new CapturingFontProgramProvider();

@@ -187,7 +187,8 @@ internal static class HtmlRenderFontFaceLoader {
                 ranges,
                 maximumDecodedBytes,
                 out int acceptedDecodedBytes,
-                out string? fontError)) {
+                out string? fontError,
+                applyDescriptorWeight: true)) {
                 decodedFontBytes += acceptedDecodedBytes;
                 return;
             }
