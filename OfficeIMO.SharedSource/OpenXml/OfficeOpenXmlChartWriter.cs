@@ -385,12 +385,22 @@ namespace OfficeIMO.OpenXml.Internal {
             }
 
             var replacement = (C.Legend)current.CloneNode(true);
+            kind = data.Series.FirstOrDefault()?.RenderKind ?? kind;
+            int entryCount = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut ? data.Categories.Count : data.Series.Count;
+            var retained = replacement.Elements<C.LegendEntry>()
+                .Where(entry => entry.GetFirstChild<C.Index>()?.Val?.Value < entryCount)
+                .Where(entry => entry.ChildElements.Any(child => child is not C.Index && child is not C.Delete))
+                .GroupBy(entry => entry.GetFirstChild<C.Index>()!.Val!.Value)
+                .ToDictionary(group => group.Key, group => (C.LegendEntry)group.First().CloneNode(true));
+            var hidden = new HashSet<uint>(GetHiddenSharedLegendIndexes(data, kind));
             replacement.RemoveAllChildren<C.LegendEntry>();
             OpenXmlElement? insertBefore = replacement.ChildElements.FirstOrDefault(child =>
                 child is not C.LegendPosition && child is not C.LegendEntry);
-            foreach (uint index in GetHiddenSharedLegendIndexes(data, kind)) {
-                var entry = new C.LegendEntry(new C.Index { Val = index },
-                    new C.Delete { Val = true });
+            foreach (uint index in retained.Keys.Concat(hidden).Distinct().OrderBy(value => value)) {
+                C.LegendEntry entry = retained.TryGetValue(index, out C.LegendEntry? existing)
+                    ? existing : new C.LegendEntry(new C.Index { Val = index });
+                entry.GetFirstChild<C.Delete>()?.Remove();
+                if (hidden.Contains(index)) entry.AddChild(new C.Delete { Val = true }, true);
                 if (insertBefore == null) replacement.Append(entry);
                 else replacement.InsertBefore(entry, insertBefore);
             }

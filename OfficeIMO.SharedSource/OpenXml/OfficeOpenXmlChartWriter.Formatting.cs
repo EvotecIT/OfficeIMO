@@ -9,30 +9,45 @@ namespace OfficeIMO.OpenXml.Internal {
         private static void PreserveSharedChartFormatting(
             C.PlotArea source, C.PlotArea replacement,
             ISet<uint> preservedSeriesIndexes) {
+            var axisBindings = new Dictionary<uint, uint>();
             PreserveSharedChartLayers(
-                source, replacement, preservedSeriesIndexes);
-            PreserveSharedAxes(source, replacement);
+                source, replacement, preservedSeriesIndexes, axisBindings);
+            PreserveSharedAxes(source, replacement, axisBindings);
         }
 
         private static void PreserveSharedChartLayers(
             C.PlotArea source, C.PlotArea replacement,
-            ISet<uint> preservedSeriesIndexes) {
+            ISet<uint> preservedSeriesIndexes, IDictionary<uint, uint> axisBindings) {
             List<OpenXmlCompositeElement> sourceLayers = source.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
             foreach (OpenXmlCompositeElement generated in replacement.ChildElements
                          .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList()) {
-                OpenXmlCompositeElement? match = sourceLayers.FirstOrDefault(candidate =>
+                List<OpenXmlCompositeElement> matches = sourceLayers.Where(candidate =>
                     !usedLayers.Contains(candidate) &&
-                    AreCompatibleSharedChartLayers(candidate, generated, source, replacement));
-                if (match == null) continue;
-
-                usedLayers.Add(match);
-                var preserved = (OpenXmlCompositeElement)match.CloneNode(true);
-                ReplaceSharedSeriesData(
-                    preserved, generated, preservedSeriesIndexes);
-                ReplaceSharedAxisReferences(preserved, generated);
-                replacement.ReplaceChild(preserved, generated);
+                    AreCompatibleSharedChartLayers(candidate, generated, source, replacement)).ToList();
+                if (matches.Count == 0) continue;
+                List<OpenXmlCompositeElement> generatedSeries = generated.ChildElements.OfType<OpenXmlCompositeElement>()
+                    .Where(IsSharedSeriesElement).ToList();
+                int offset = 0;
+                for (int layerIndex = 0; layerIndex < matches.Count && offset < generatedSeries.Count; layerIndex++) {
+                    OpenXmlCompositeElement match = matches[layerIndex];
+                    int remaining = generatedSeries.Count - offset;
+                    int reserve = Math.Min(matches.Count - layerIndex - 1, remaining - 1);
+                    int oldCount = Math.Max(1, match.ChildElements.OfType<OpenXmlCompositeElement>().Count(IsSharedSeriesElement));
+                    int count = layerIndex == matches.Count - 1 ? remaining : Math.Min(oldCount, remaining - reserve);
+                    var slice = (OpenXmlCompositeElement)generated.CloneNode(true);
+                    foreach (OpenXmlCompositeElement item in slice.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList()) item.Remove();
+                    foreach (OpenXmlCompositeElement item in generatedSeries.Skip(offset).Take(count)) InsertSeries(slice, item.CloneNode(true));
+                    var preserved = (OpenXmlCompositeElement)match.CloneNode(true);
+                    ReplaceSharedSeriesData(preserved, slice, preservedSeriesIndexes);
+                    BindSharedAxisReferences(match, generated, axisBindings);
+                    ReplaceSharedAxisReferences(preserved, generated);
+                    replacement.InsertBefore(preserved, generated);
+                    usedLayers.Add(match);
+                    offset += count;
+                }
+                generated.Remove();
             }
         }
 
@@ -51,9 +66,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (sourceLine.Grouping?.Val?.Value != replacementLine.Grouping?.Val?.Value) return false;
             } else if (source is C.AreaChart sourceArea && replacement is C.AreaChart replacementArea) {
                 if (sourceArea.Grouping?.Val?.Value != replacementArea.Grouping?.Val?.Value) return false;
-            } else if (source is C.RadarChart sourceRadar && replacement is C.RadarChart replacementRadar &&
-                       sourceRadar.RadarStyle?.Val?.Value != replacementRadar.RadarStyle?.Val?.Value) {
-                return false;
             }
 
             return IsSecondarySharedChartLayer(source, sourcePlotArea) ==
@@ -62,13 +74,9 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool IsSecondarySharedChartLayer(OpenXmlCompositeElement chartLayer,
             C.PlotArea plotArea) {
-            C.AxisId? categoryReference = chartLayer.Elements<C.AxisId>().FirstOrDefault();
-            if (categoryReference?.Val == null) return false;
-            OpenXmlCompositeElement? categoryAxis = plotArea.ChildElements
-                .OfType<OpenXmlCompositeElement>()
-                .FirstOrDefault(axis => IsSharedCategoryAxis(axis) &&
-                    axis.GetFirstChild<C.AxisId>()?.Val?.Value == categoryReference.Val.Value);
-            return categoryAxis?.GetFirstChild<C.Delete>()?.Val?.Value == true;
+            var references = new HashSet<uint>(chartLayer.Elements<C.AxisId>().Where(axis => axis.Val != null).Select(axis => axis.Val!.Value));
+            return plotArea.Elements<C.ValueAxis>().Any(axis => axis.AxisId?.Val != null && references.Contains(axis.AxisId.Val.Value) &&
+                (axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right || axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top));
         }
 
         private static void ReplaceSharedSeriesData(
@@ -151,79 +159,55 @@ namespace OfficeIMO.OpenXml.Internal {
             }
         }
 
-        private static void PreserveSharedAxes(C.PlotArea source, C.PlotArea replacement) {
-            if (UsesHorizontalSharedAxes(source) != UsesHorizontalSharedAxes(replacement)) return;
-            PreserveSharedCategoryAxes(source, replacement);
-            if (!PreserveSharedBubbleAxes(source, replacement)) {
-                PreserveSharedAxes<C.ValueAxis>(source, replacement);
+        private static void BindSharedAxisReferences(OpenXmlCompositeElement source,
+            OpenXmlCompositeElement generated, IDictionary<uint, uint> bindings) {
+            List<C.AxisId> sourceIds = source.Elements<C.AxisId>().ToList();
+            List<C.AxisId> generatedIds = generated.Elements<C.AxisId>().ToList();
+            if (sourceIds.Count != generatedIds.Count) return;
+            for (int index = 0; index < sourceIds.Count; index++) {
+                uint? sourceId = sourceIds[index].Val?.Value;
+                uint? generatedId = generatedIds[index].Val?.Value;
+                if (!sourceId.HasValue || !generatedId.HasValue) continue;
+                if (bindings.TryGetValue(generatedId.Value, out uint previous) && previous != sourceId.Value)
+                    throw new NotSupportedException("Native layers in the same chart family and axis group must share their axis references for a shared data update.");
+                bindings[generatedId.Value] = sourceId.Value;
             }
-        }
-
-        private static bool PreserveSharedBubbleAxes(
-            C.PlotArea source, C.PlotArea replacement) {
-            C.BubbleChart? sourceChart = source.GetFirstChild<C.BubbleChart>();
-            C.BubbleChart? replacementChart =
-                replacement.GetFirstChild<C.BubbleChart>();
-            if (sourceChart == null || replacementChart == null) return false;
-
-            List<C.AxisId> sourceReferences =
-                sourceChart.Elements<C.AxisId>().ToList();
-            List<C.AxisId> replacementReferences =
-                replacementChart.Elements<C.AxisId>().ToList();
-            if (sourceReferences.Count != replacementReferences.Count ||
-                sourceReferences.Count == 0) {
-                return false;
-            }
-
-            var axisPairs =
-                new List<(C.ValueAxis Source, C.ValueAxis Replacement)>();
-            for (int index = 0; index < sourceReferences.Count; index++) {
-                uint? sourceId = sourceReferences[index].Val?.Value;
-                uint? replacementId = replacementReferences[index].Val?.Value;
-                C.ValueAxis? sourceAxis = source.Elements<C.ValueAxis>()
-                    .FirstOrDefault(axis =>
-                        axis.AxisId?.Val?.Value == sourceId);
-                C.ValueAxis? replacementAxis =
-                    replacement.Elements<C.ValueAxis>().FirstOrDefault(axis =>
-                        axis.AxisId?.Val?.Value == replacementId);
-                if (sourceAxis == null || replacementAxis == null) return false;
-                axisPairs.Add((sourceAxis, replacementAxis));
-            }
-            foreach ((C.ValueAxis sourceAxis,
-                      C.ValueAxis replacementAxis) in axisPairs) {
-                ReplaceSharedAxis(replacement, sourceAxis, replacementAxis);
-            }
-            return true;
         }
 
         private static bool IsSharedCategoryAxis(OpenXmlCompositeElement axis) =>
             axis is C.CategoryAxis || axis is C.DateAxis;
 
-        private static void PreserveSharedCategoryAxes(C.PlotArea source, C.PlotArea replacement) {
-            List<OpenXmlCompositeElement> sourceAxes = source.ChildElements
-                .OfType<OpenXmlCompositeElement>().Where(IsSharedCategoryAxis).ToList();
-            List<OpenXmlCompositeElement> replacementAxes = replacement.ChildElements
-                .OfType<OpenXmlCompositeElement>().Where(IsSharedCategoryAxis).ToList();
-            int count = Math.Min(sourceAxes.Count, replacementAxes.Count);
-            for (int index = 0; index < count; index++) {
-                ReplaceSharedAxis(replacement, sourceAxes[index], replacementAxes[index]);
-            }
-        }
-
         private static bool UsesHorizontalSharedAxes(C.PlotArea plotArea) =>
             plotArea.Elements<C.BarChart>().Any(chart =>
                 chart.BarDirection?.Val?.Value == C.BarDirectionValues.Bar);
 
-        private static void PreserveSharedAxes<TAxis>(C.PlotArea source, C.PlotArea replacement)
-            where TAxis : OpenXmlCompositeElement {
-            List<TAxis> sourceAxes = source.Elements<TAxis>().ToList();
-            List<TAxis> replacementAxes = replacement.Elements<TAxis>().ToList();
-            int count = Math.Min(sourceAxes.Count, replacementAxes.Count);
-            for (int index = 0; index < count; index++) {
-                ReplaceSharedAxis(replacement, sourceAxes[index], replacementAxes[index]);
+        private static void PreserveSharedAxes(C.PlotArea source, C.PlotArea replacement,
+            IReadOnlyDictionary<uint, uint> bindings) {
+            if (UsesHorizontalSharedAxes(source) != UsesHorizontalSharedAxes(replacement)) return;
+            List<OpenXmlCompositeElement> sourceAxes = source.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(axis => axis is C.ValueAxis || IsSharedCategoryAxis(axis)).ToList();
+            List<OpenXmlCompositeElement> generatedAxes = replacement.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(axis => axis is C.ValueAxis || IsSharedCategoryAxis(axis)).ToList();
+            var used = new HashSet<OpenXmlCompositeElement>();
+            foreach (OpenXmlCompositeElement generated in generatedAxes) {
+                bool Compatible(OpenXmlCompositeElement axis) => !used.Contains(axis) &&
+                    (axis.GetType() == generated.GetType() || IsSharedCategoryAxis(axis) && IsSharedCategoryAxis(generated));
+                OpenXmlCompositeElement? match = null;
+                uint? generatedId = generated.GetFirstChild<C.AxisId>()?.Val?.Value;
+                if (generatedId.HasValue && bindings.TryGetValue(generatedId.Value, out uint sourceId)) {
+                    match = sourceAxes.FirstOrDefault(axis => Compatible(axis) && axis.GetFirstChild<C.AxisId>()?.Val?.Value == sourceId);
+                } else {
+                    // A family change can still retain an unambiguous axis in the same
+                    // orientation. XML element order never determines axis identity.
+                    var candidates = sourceAxes.Where(axis => Compatible(axis) &&
+                        axis.GetFirstChild<C.AxisPosition>()?.Val?.Value == generated.GetFirstChild<C.AxisPosition>()?.Val?.Value).Take(2).ToList();
+                    if (candidates.Count == 1) match = candidates[0];
+                }
+                if (match == null) continue;
+                used.Add(match);
+                ReplaceSharedAxis(replacement, match, generated);
             }
         }
-
         private static void ReplaceSharedAxis(C.PlotArea replacement, OpenXmlCompositeElement source,
             OpenXmlCompositeElement generated) {
             var preserved = (OpenXmlCompositeElement)source.CloneNode(true);

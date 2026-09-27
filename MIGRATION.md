@@ -31,6 +31,11 @@ For shared scatter and bubble authoring, each series' `RenderKind` must be
 absent or match the chart kind. Use the same numeric family for the chart and
 all of its series. PowerPoint's legacy category-only updates require a single
 native chart layer; use `UpdateData(OfficeChartData)` for supported combinations.
+Externally linked or unresolved workbook references now reject shared and
+legacy data updates; embed an XLSX workbook first. Repeated native layers of the
+same family and axis group retain their separate formatting when they share
+axis references. Layers with different axis pairs require an explicit native
+editing path and reject shared replacement before mutation.
 
 Shared chart series stroke and marker outline widths must be finite, greater
 than zero, and at most 1584 points. Replace invalid widths before constructing

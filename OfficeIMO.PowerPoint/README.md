@@ -359,6 +359,10 @@ Data updates retain cached formula-linked chart and axis titles and custom
 labels as native rich text, and custom error bars as numeric literals when
 replacing the embedded worksheet. Uncached bindings and unqualified workbook-linked
 extensions reject the update before changing chart data or workbook bytes.
+Externally linked or unresolved workbook references reject shared and legacy
+updates. Compatible repeated layers retain separate native formatting when
+they share an axis pair; repeated layers of the same family and axis group
+with different axis pairs reject shared replacement.
 Legacy category-only updates require a single native chart layer; use shared
 `OfficeChartData` for supported combinations. For shared scatter and bubble
 authoring, each series' `RenderKind` must match the chart kind or be omitted.
