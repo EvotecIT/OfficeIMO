@@ -17,6 +17,9 @@ namespace OfficeIMO.OpenXml.Internal {
             var layers = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(plot.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)), maximumPoints);
             if (layers.Count == 0) return null;
+            ValidatePlotBudget(plot, maximumPoints);
+            var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
+            var projectionBudget = new ProjectionBudget();
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
             for (int index = 0; index < layers.Count; index++) {
@@ -32,15 +35,18 @@ namespace OfficeIMO.OpenXml.Internal {
                     bubbleMode = bubble.GetFirstChild<C.SizeRepresents>()?.Val?.Value == C.SizeRepresentsValues.Width
                         ? OfficeChartBubbleSizeMode.Width : OfficeChartBubbleSizeMode.Area;
                     if (bubbleScale > 300) return null;
-                    data = ReadBubbles(bubble.Elements<C.BubbleChartSeries>(), scheme, maximumPoints);
+                    data = ReadBubbles(bubble.Elements<C.BubbleChartSeries>(), scheme, maximumPoints,
+                        validatePlot: false, projectionBudget: projectionBudget);
                 } else if (layer is C.ScatterChart scatter) {
                     if (layers.Count != 1) return null;
-                    data = ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, maximumPoints);
+                    data = ReadScatter(scatter.Elements<C.ScatterChartSeries>(), scheme, maximumPoints,
+                        validatePlot: false, projectionBudget: projectionBudget);
                 } else {
                     if (layers.Count > 1 && (layer is C.PieChart || layer is C.DoughnutChart || layer is C.RadarChart)) return null;
                     if (layer is C.RadarChart radar && radar.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled) return null;
                     data = ReadCategories(layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser"),
-                        layerKind, scheme, ReadAxisGroup(plot, layer), maximumPoints);
+                        layerKind, scheme, axisGroups.Read(layer), maximumPoints,
+                        validatePlot: false, projectionBudget: projectionBudget);
                 }
                 if (data == null || data.Series.Any(item => item.HasUnsupportedAppearance)) return null;
                 if (layer is C.PieChart && data.Series.Count != 1) return null;

@@ -10,10 +10,12 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static Result? ReadBubbles(IEnumerable<C.BubbleChartSeries> elements,
-            ColorScheme? colorScheme, int maximumPoints, bool forDataUpdate = false) {
+            ColorScheme? colorScheme, int maximumPoints, bool forDataUpdate = false,
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null) {
             var source = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(elements, maximumPoints);
             if (source.Count == 0) return null;
-            ValidatePlotBudget(source[0], maximumPoints);
+            if (validatePlot) ValidatePlotBudget(source[0], maximumPoints);
+            projectionBudget ??= new ProjectionBudget();
             if (!forDataUpdate) {
                 var orders = new HashSet<uint>();
                 foreach (var item in source) {
@@ -24,7 +26,6 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
-            long totalPoints = 0;
             for (int index = 0; index < source.Count; index++) {
                 var element = source[index];
                 if (!forDataUpdate && (element.Elements<C.Trendline>().Any() || element.Elements<C.ErrorBars>().Any() ||
@@ -37,7 +38,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     x.Count != y.Count || x.Count != sizes.Count) return null;
                 if (!forDataUpdate && y.Any(value => value < 0) && element.GetFirstChild<C.InvertIfNegative>() is C.InvertIfNegative invert && invert.Val?.Value != false) return null;
                 if (x.Count == 0) continue;
-                totalPoints += x.Count; ValidateTotalPoints(totalPoints);
+                projectionBudget.Reserve(x.Count);
                 categories ??= x.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 var text = element.GetFirstChild<C.SeriesText>();
                 string name = text?.GetFirstChild<C.NumericValue>()?.Text ??
