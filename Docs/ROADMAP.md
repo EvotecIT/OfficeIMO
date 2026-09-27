@@ -264,7 +264,7 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ### Spreadsheet and CSV delivery order
 
-- [ ] Qualify sustained-input memory, first-row latency, and typed parallel projection throughput for incremental asynchronous CSV input on representative workloads. Keep the snapshot, bounded detection, and incremental reader contracts explicit.
+- [ ] Extend the [sustained CSV evidence](benchmarks/officeimo.csv-sustained-read-2026-09-27.md) with complete asynchronous `ReadAsync` traversal and precise first-row API latency at one million rows. Keep the snapshot, bounded detection, and incremental reader contracts explicit; qualify process-isolated resident-memory budgets alongside the portable benchmark matrix below.
 - [ ] Extend [headless pivot materialization](../OfficeIMO.Excel/README.md#pivot-tables-and-pivot-backed-charts) to grouped keys, filtered views, and coordinated shared caches. Qualify generated layouts, subtotal items, cache consistency, and GETPIVOTDATA against independently calculated Excel workbooks before extending slicers and timelines.
 - [ ] Add bounded SEQUENCE, FILTER, SORT, and UNIQUE calculation with spill-shape limits, collision checks, error propagation, saved-and-reopened caches, and independent producer oracles. Define LET/LAMBDA separately after the expression and dependency contracts are qualified.
 - [ ] Refresh the validated spreadsheet and CSV benchmark matrix with equivalent output contracts, fixed processor placement, rotated runs, allocation and peak-memory budgets, async first-row latency, high-cardinality strings, and Windows/Linux/macOS evidence. Replace obsolete generated current-result data while preserving reproducible dated evidence.
