@@ -28,10 +28,11 @@ internal static partial class PdfWriter {
 
             double? measuredHeight = MeasureFlowBlocks(blocks);
             double beforeFloatClearanceY = y;
-            while (HasFloatingTables && measuredHeight.HasValue && measuredHeight.Value > 0.001D &&
-                (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
+            while (HasFloatingTables && (measuredHeight.GetValueOrDefault() > 0.001D || flow.Options.MinimumRemainingHeight > 0D) &&
+                (flow.Options.KeepTogether || flow.Options.MinimumRemainingHeight > 0D ||
+                 flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
                 double previousY = y;
-                AvoidFloatingBlock(measuredHeight.Value);
+                AvoidFloatingBlock(Math.Max(measuredHeight.GetValueOrDefault(), flow.Options.MinimumRemainingHeight));
                 if (y >= previousY - 0.001D) break;
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
