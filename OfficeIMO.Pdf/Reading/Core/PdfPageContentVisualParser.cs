@@ -1052,7 +1052,7 @@ internal static partial class PdfPageContentVisualParser {
                     RejectUnsupportedShadingStroke(ref strokeGradient, ref strokeRadialGradient);
                 }
 
-                IReadOnlyList<OfficePathCommand> pathCommands = fill && _retainPrimitiveData
+                IReadOnlyList<OfficePathCommand> pathCommands = fill && !stroke && _retainPrimitiveData
                     ? CloseFilledSubpaths(_pathCommands)
                     : _pathCommands;
                 if (PdfPageVisualPrimitive.TryCreatePath(
@@ -1384,6 +1384,9 @@ internal static partial class PdfPageContentVisualParser {
                 !CoordinatesEqual(ToTop(_path[0].Y), ToTop(_path[4].Y), requireExactCoordinates)) {
                 return false;
             }
+
+            if (!PdfRectanglePathGeometry.IsRectangle(_pathCommands, allowImplicitClose: false,
+                tolerance: requireExactCoordinates ? 0D : 0.001D)) return false;
 
             double left = _path.Min(point => point.X);
             double right = _path.Max(point => point.X);

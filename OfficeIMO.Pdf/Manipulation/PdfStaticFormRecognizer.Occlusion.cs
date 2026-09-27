@@ -9,19 +9,7 @@ internal static partial class PdfStaticFormRecognizer {
     private static bool HasExactRectangularFill(PdfPageVisualPrimitive primitive) {
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) return true;
         if (primitive.Kind != PdfPageVisualPrimitiveKind.Path) return false;
-        IReadOnlyList<OfficePathCommand> commands = primitive.PathCommands;
-        if (commands.Count < 4 || commands.Count > 6 ||
-            commands[0].Kind != OfficePathCommandKind.MoveTo ||
-            commands[1].Kind != OfficePathCommandKind.LineTo ||
-            commands[2].Kind != OfficePathCommandKind.LineTo ||
-            commands[3].Kind != OfficePathCommandKind.LineTo ||
-            !IsAxisAlignedRectangle(commands)) return false;
-        if (commands.Count == 4) return true;
-        if (commands.Count == 5 && commands[4].Kind == OfficePathCommandKind.Close) return true;
-        return commands[4].Kind == OfficePathCommandKind.LineTo &&
-            Math.Abs(commands[4].Point.X - commands[0].Point.X) <= 0.000001D &&
-            Math.Abs(commands[4].Point.Y - commands[0].Point.Y) <= 0.000001D &&
-            (commands.Count == 5 || commands[5].Kind == OfficePathCommandKind.Close);
+        return PdfRectanglePathGeometry.IsRectangle(primitive.PathCommands, allowImplicitClose: true);
     }
 
     // Full containment alone misses an erased side or a broken writing line.

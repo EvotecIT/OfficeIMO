@@ -216,6 +216,63 @@ public sealed partial class PdfStaticFormRecognizerTests {
         Assert.Equal(PdfStaticFormEvidenceKind.Underline, proposal.EvidenceKind);
     }
 
+    [Theory]
+    [InlineData("80 80 l S", true)]
+    [InlineData("80 80 l h S", true)]
+    [InlineData("80 80 l B", true)]
+    [InlineData("80 80 l b", true)]
+    [InlineData("B", false)]
+    [InlineData("B*", false)]
+    [InlineData("b", true)]
+    [InlineData("b*", true)]
+    [InlineData("S", false)]
+    [InlineData("81 80 l S", false)]
+    public void RectangleCandidatesRequireCompleteClosingEvidence(string ending, bool closed) {
+        byte[] source = StaticPdf("1 g 0 0 0 RG 1 w 80 80 m 200 80 l 200 100 l 80 100 l " + ending);
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Equal(closed ? 1 : 0, report.Proposals.Count);
+        if (closed) Assert.Equal(PdfStaticFormEvidenceKind.OutlinedField, report.Proposals[0].EvidenceKind);
+    }
+
+    [Fact]
+    public void RetracedCornerPathDoesNotCreateARectangleCandidate() {
+        byte[] source = StaticPdf("0 G 1 w 80 80 m 200 80 l 80 80 l 80 100 l h S");
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels).Proposals);
+    }
+
+    [Fact]
+    public void RetracedCornerFillDoesNotCreateEmptyFieldEvidence() {
+        byte[] source = StaticPdf("BT /F1 12 Tf 110 85 Td (Value) Tj ET " +
+            "1 g 100 70 m 200 70 l 100 70 l 100 110 l h f 0 G 1 w 80 80 120 20 re S",
+            "/Resources << /Font << /F1 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> >> >> ");
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        PdfStaticFormRecognitionReport report = PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels);
+        Assert.Empty(report.Proposals);
+    }
+
+    [Fact]
+    public void RetracedCornerClipDoesNotMakeAnUnpaintedFieldEligible() {
+        byte[] source = StaticPdf("q 80 80 m 200 80 l 80 80 l 80 100 l h W n 0 G 1 w 80 80 120 20 re S Q");
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        Assert.Empty(PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels).Proposals);
+    }
+
+    [Theory]
+    [InlineData("80 80 m 200 80 l 80 80 l 80 100 l h", false)]
+    [InlineData("70 70 m 210 70 l 210 110 l 70 110 l h", true)]
+    public void FormFieldRecognitionRespectsTheInvokingPathClip(string clip, bool visible) {
+        const string form = "0 G 1 w 80 80 120 20 re S";
+        byte[] source = StaticPdf("q " + clip + " W n /Fm1 Do Q",
+            "/Resources << /XObject << /Fm1 5 0 R >> >> ",
+            "5 0 obj\n<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Resources << >> /Length " +
+            form.Length + " >>\nstream\n" + form + "\nendstream\nendobj");
+        var labels = new[] { new PdfStaticFormTextEvidence(1, "Name", 10D, 100D, 70D, 120D, 1D) };
+        Assert.Equal(visible ? 1 : 0,
+            PdfDocument.Load(source).Forms.RecognizeStaticLayout(ocrText: labels).Proposals.Count);
+    }
+
     [Fact]
     public void BatchedRectanglesProvideIndependentFieldEvidence() {
         byte[] source = StaticPdf("0 0 0 RG 1 w 80 80 120 20 re 80 40 120 20 re S");
