@@ -125,6 +125,11 @@ var paragraph = document.AddParagraph();
 paragraph.AddImage("logo.png", width: 160, height: 64);
 ```
 
+Use `paragraph.Image.Clone(destinationParagraph)` to copy an image to another paragraph,
+header, footer, or document. The destination owns its image relationships and fresh DrawingML
+identifiers. Cloning preserves VML shapes and their referenced definitions, and remaps
+embedded SVG extension resources along with the primary image.
+
 ### Hyperlinks and bookmarks
 
 ```csharp
