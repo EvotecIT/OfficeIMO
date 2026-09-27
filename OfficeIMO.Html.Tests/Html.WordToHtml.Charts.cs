@@ -137,11 +137,20 @@ public sealed class HtmlWordChartTests {
         Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 
-    [Fact]
-    public void Export_ReportsUnsupportedChartOmission() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Export_ReportsUnsupportedChartOmission(bool unsupportedCategoryFormat) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Line, Data());
-        chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.Smooth { Val = true }, true);
+        if (unsupportedCategoryFormat) {
+            var native = chart.ChartPart!.ChartSpace!;
+            var categories = native.Descendants<C.CategoryAxisData>().Single();
+            categories.RemoveAllChildren();
+            categories.Append(new C.NumberLiteral(new C.FormatCode("General"), new C.PointCount { Val = 2 },
+                new C.NumericPoint(new C.NumericValue("1")) { Index = 0 }, new C.NumericPoint(new C.NumericValue("2")) { Index = 1 }));
+            native.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = "m/d/yyyy";
+        } else chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.Smooth { Val = true }, true);
         var result = document.ToHtmlResult();
         Assert.Contains(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
         Assert.Empty(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
