@@ -11,6 +11,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Export_ReviewProjectionPreservesMixedAliasesOfSharedStoryRoots(bool header) {
+        using var document = WordDocument.Create();
+        var first = document.Sections[0];
+        var region = header ? (WordHeaderFooter)first.GetOrCreateHeader(WordHeaderFooterType.Default)
+            : first.GetOrCreateFooter(WordHeaderFooterType.Default);
+        region.AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.AddParagraph("Revision");
+        var run = paragraph.GetRuns().Single()._run!; run.Remove();
+        paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Review" });
+        var second = document.AddSection();
+        var third = document.AddSection();
+        if (header) {
+            second.Header.Default = new WordHeader(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._header!, second);
+            third.Header.Default = first.Header.Default;
+        } else {
+            second.Footer.Default = new WordFooter(document, DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues.Default, region._footer!, second);
+            third.Footer.Default = first.Footer.Default;
+        }
+        var options = new WordToHtmlOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup };
+        for (var attempt = 0; attempt < 2; attempt++) {
+            var result = document.ToHtmlResult(options);
+            Assert.Equal(3, new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll((header ? "header" : "footer") + " img").Length);
+            Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        }
+    }
+    [Theory]
     [InlineData(true, WordTrackedChangeExportPolicy.Markup)]
     [InlineData(false, WordTrackedChangeExportPolicy.Markup)]
     [InlineData(true, WordTrackedChangeExportPolicy.Final)]
