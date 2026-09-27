@@ -137,7 +137,11 @@ namespace OfficeIMO.OpenXml.Internal {
             var text = axis?.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
             return text?.GetFirstChild<C.RichText>()?.InnerText ?? text?.GetFirstChild<C.StringReference>()?.StringCache?.InnerText;
         }
-        private static string? ReadLayoutFormat(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        private static string? ReadLayoutFormat(OpenXmlCompositeElement? axis) {
+            if (axis != null && HasUnsupportedSharedAxisNumberFormat(axis))
+                throw new NotSupportedException("The native axis format cannot be projected.");
+            return axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        }
         private static double? ReadLayoutMinimum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MinAxisValue>()?.Val?.Value;
         private static double? ReadLayoutMaximum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;
         private static bool IsDeletedAxis(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false;
