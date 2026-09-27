@@ -162,7 +162,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             int ligature = Relative(set, _reader.ReadUInt16(set + 2 + ligatureIndex * 2), 4);
             int replacement = _reader.ReadUInt16(ligature);
             int componentCount = _reader.ReadUInt16(ligature + 2);
-            if (replacement <= 0 || replacement >= _reader.GlyphCount || componentCount < 2 || componentCount > glyphs.Count - index || componentCount <= bestComponentCount) continue;
+            if (replacement <= 0 || replacement >= _reader.GlyphCount || componentCount < 2 || componentCount > glyphs.Count - index) continue;
             Ensure(ligature + 4, checked((componentCount - 1) * 2));
             bool matches = true;
             for (int component = 1; component < componentCount; component++) {
@@ -175,6 +175,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             if (matches) {
                 bestLigature = replacement;
                 bestComponentCount = componentCount;
+                // LigatureSet order is the font's preference order.
+                break;
             }
         }
         if (bestComponentCount == 0) return false;

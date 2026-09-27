@@ -62,9 +62,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     }
 
     private static bool IsLatinDefaultScalar(int scalar) =>
-        scalar <= 0x024F || scalar >= 0x0300 && scalar <= 0x036F ||
-        scalar >= 0x1AB0 && scalar <= 0x1AFF || scalar >= 0x1DC0 && scalar <= 0x1DFF ||
-        scalar >= 0x20D0 && scalar <= 0x20FF || scalar >= 0xFE20 && scalar <= 0xFE2F ||
+        scalar <= 0x024F ||
         scalar >= 0x1E00 && scalar <= 0x1EFF || scalar >= 0x2C60 && scalar <= 0x2C7F ||
         scalar >= 0xA720 && scalar <= 0xA7FF || scalar >= 0xAB30 && scalar <= 0xAB6F ||
         scalar >= 0x10780 && scalar <= 0x107BF || scalar >= 0x1DF00 && scalar <= 0x1DFFF;
@@ -94,11 +92,22 @@ internal sealed partial class OfficeOpenTypeSubstitution {
         int operations = 0;
         // Script-specific lookups must not consume neighboring non-Latin or presentation glyphs.
         var shaped = new List<GlyphToken>(glyphs.Count);
+        var eligible = new bool[glyphs.Count];
+        bool latinBase = false;
+        for (int index = 0; index < glyphs.Count; index++) {
+            string scalarText = char.ConvertFromUtf32(glyphs[index].Scalar);
+            var category = System.Globalization.CharUnicodeInfo.GetUnicodeCategory(scalarText, 0);
+            bool mark = category == System.Globalization.UnicodeCategory.NonSpacingMark ||
+                category == System.Globalization.UnicodeCategory.SpacingCombiningMark ||
+                category == System.Globalization.UnicodeCategory.EnclosingMark;
+            eligible[index] = mark ? latinBase : IsLatinDefaultScalar(glyphs[index].Scalar);
+            if (!mark) latinBase = eligible[index] && char.IsLetter(scalarText, 0);
+        }
         for (int index = 0; index < glyphs.Count;) {
-            if (!IsLatinDefaultScalar(glyphs[index].Scalar)) { shaped.Add(glyphs[index++]); continue; }
+            if (!eligible[index]) { shaped.Add(glyphs[index++]); continue; }
             var segment = new List<GlyphToken>();
             do { segment.Add(glyphs[index++]); }
-            while (index < glyphs.Count && IsLatinDefaultScalar(glyphs[index].Scalar));
+            while (index < glyphs.Count && eligible[index]);
             foreach (var lookup in lookups) ApplyLookup(segment, lookup.Key, lookup.Value, cancellationToken, ref operations);
             shaped.AddRange(segment);
         }

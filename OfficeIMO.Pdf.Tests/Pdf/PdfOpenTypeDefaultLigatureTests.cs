@@ -9,6 +9,32 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
     [Theory]
+    [InlineData("\u03B1\u0301", false)]
+    [InlineData("\u0410\u0301", false)]
+    [InlineData("\u0301", false)]
+    [InlineData("\u03B1,\u0301", false)]
+    [InlineData("1\u0301", false)]
+    [InlineData("\u00AD\u0301", false)]
+    [InlineData("A\u0301", true)]
+    public void CombiningMarkInheritsItsBaseScript(string text, bool substituted) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithInheritedMarkSubstitution(), "Test");
+        var scalar = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar));
+        var shaped = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(text, string.Concat(shaped.Glyphs.Select(g => g.UnicodeText)));
+        if (substituted) Assert.Equal(scalar.Glyphs.Count + 1, shaped.Glyphs.Count);
+        else Assert.Equal(scalar.Glyphs.Select(g => g.GlyphId), shaped.Glyphs.Select(g => g.GlyphId));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LigatureSetUsesFontPreferenceOrder(bool longestFirst) {
+        var font = PdfTrueTypeFontProgram.Parse(ManagedTextShapingTestAssets.CreateFontWithOrderedLigatures(longestFirst), "Test");
+        var shaped = font.ShapeText("fin", PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(longestFirst ? new[] { 5 } : new[] { 4, 3 }, shaped.Glyphs.Select(g => g.GlyphId));
+        Assert.Equal("fin", string.Concat(shaped.Glyphs.Select(g => g.UnicodeText)));
+    }
+    [Theory]
     [InlineData("\u0628\u062A")]
     [InlineData("\u05D0\u05D1")]
     public void AutomaticLatinModePreservesNonLatinScalarSequence(string text) {

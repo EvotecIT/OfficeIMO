@@ -4,6 +4,26 @@ using System.Linq;
 namespace OfficeIMO.TestAssets;
 
 internal static partial class ManagedTextShapingTestAssets {
+    internal static byte[] CreateFontWithInheritedMarkSubstitution() {
+        byte[] gsub = CreateMultipleGsub(scriptTag: "latn");
+        WriteUInt16(gsub, 74, 0);
+        WriteUInt16(gsub, 52, 5);
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { (int)',', (int)'1', (int)'A', 0x00AD, 0x0301, 0x03B1, 0x0410 }), glyphCount: 9, gsub: gsub);
+    }
+
+    internal static byte[] CreateFontWithOrderedLigatures(bool longestFirst) {
+        byte[] original = CreateLigatureGsub("liga", 1, 2, 4, "latn");
+        var gsub = new byte[92];
+        Array.Copy(original, 0, gsub, 0, 46);
+        Array.Copy(original, 56, gsub, 66, 26);
+        WriteUInt16(gsub, 4, 72); WriteUInt16(gsub, 40, 28);
+        WriteUInt16(gsub, 46, 2);
+        WriteUInt16(gsub, 48, (ushort)(longestFirst ? 12 : 6));
+        WriteUInt16(gsub, 50, (ushort)(longestFirst ? 6 : 12));
+        WriteUInt16(gsub, 52, 4); WriteUInt16(gsub, 54, 2); WriteUInt16(gsub, 56, 2);
+        WriteUInt16(gsub, 58, 5); WriteUInt16(gsub, 60, 3); WriteUInt16(gsub, 62, 2); WriteUInt16(gsub, 64, 3);
+        return CreateFontFromCmap(CreateDistinctFormat12Cmap(new[] { (int)'f', (int)'i', (int)'n' }), glyphCount: 7, gsub: gsub);
+    }
     internal static byte[] CreateMixedWhitespaceLigatureFont() => CreateFontFromCmap(
         CreateDistinctFormat12Cmap(new[] { 32, (int)'A', (int)'B' }), glyphCount: 5,
         gsub: CreateLigatureGsub("liga", 2, 1, 4, "latn", 0));
