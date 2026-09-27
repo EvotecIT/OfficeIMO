@@ -1047,7 +1047,9 @@ foreach ($name in $selected) {
         -Platform $platform `
         -RunMode $RunMode `
         -StaticRoot $staticRoot
-    $normalizedPath = Join-Path $artifactsPath 'normalized-result.json'
+    # Keep derived output outside the completed raw-artifact provenance boundary.
+    $normalizedPath = Join-Path $OutputRoot (
+        '{0}-normalized-result.json' -f (Split-Path -Leaf $artifactsPath))
     Write-BenchmarkEvidenceResult -Path $normalizedPath -InputObject $result
 
     $measurements.Add([pscustomobject]@{

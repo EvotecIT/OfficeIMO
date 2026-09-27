@@ -24,6 +24,9 @@ Run the local evidence lane with:
 
 Use `-PlanOnly` to inspect the 16-case matrix without executing it. The lane
 does not update the website evidence catalog or generated comparison tables.
+Raw reports stay in the captured artifact folder. The derived normalized JSON
+is written beside that folder so re-importing the raw reports can still verify
+the complete captured file set and hashes.
 
 ## Text export and quote density
 
