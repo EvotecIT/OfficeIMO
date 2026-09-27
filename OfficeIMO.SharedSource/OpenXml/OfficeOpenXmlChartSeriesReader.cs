@@ -157,8 +157,10 @@ namespace OfficeIMO.OpenXml.Internal {
             bool unsupported = outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
             // The shared model has one series colour and straight connecting lines.
             // Reject appearance that would otherwise be silently flattened in an export.
-            unsupported |= connectLine && (element.GetFirstChild<C.Smooth>()?.Val?.Value == true ||
-                scatterStyle == C.ScatterStyleValues.Smooth || scatterStyle == C.ScatterStyleValues.SmoothMarker);
+            C.Smooth? smoothing = element.GetFirstChild<C.Smooth>() ?? element.Parent?.GetFirstChild<C.Smooth>();
+            bool curved = smoothing != null ? smoothing.Val?.Value != false :
+                scatterStyle == C.ScatterStyleValues.Smooth || scatterStyle == C.ScatterStyleValues.SmoothMarker;
+            unsupported |= connectLine && curved;
             unsupported |= showMarkers && marker?.ChartShapeProperties?.GetFirstChild<A.NoFill>() != null;
             unsupported |= showMarkers && markerOutline?.GetFirstChild<A.NoFill>() != null;
             unsupported |= !filled && showMarkers && stroke.HasValue && markerFill.HasValue && stroke.Value != markerFill.Value;
