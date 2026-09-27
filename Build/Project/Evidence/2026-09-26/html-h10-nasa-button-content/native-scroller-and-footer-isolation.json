@@ -1,0 +1,438 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "dc1d85dee",
+  "classification": "Progress through reproduced native trigger and owned stacking defect; no renderer fix or acceptance claim.",
+  "sourceArchive": {
+    "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-font-capture-clean/source.mhtml",
+    "bytes": 29443783,
+    "sha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735"
+  },
+  "nativeViewportProbe": {
+    "viewports": [
+      795,
+      1200,
+      1600
+    ],
+    "pageCounts": [
+      4,
+      4,
+      4
+    ],
+    "firstPageInspection": "Same two-column layout across all three; PNG bytes differ. Archive image decode found no animated resources; pixel variation is not classified as animated-frame drift.",
+    "printEventMeasurement": "Only pre-print screen samples recorded; no native beforeprint/afterprint sample was observed. Do not use this as paginated-layout geometry proof."
+  },
+  "nativeAblation": [
+    {
+      "id": "default",
+      "css": "",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/ablation-direct/default.pdf",
+        "bytes": 20349909,
+        "sha256": "9bafaf8dbbf354a5bc922b268343fd0f31a9157e5bf5c934fef889baddca44da"
+      }
+    },
+    {
+      "id": "magnetospheres-visible",
+      "css": "#media_group_379837{overflow:visible!important}",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/ablation-direct/magnetospheres-visible.pdf",
+        "bytes": 20350025,
+        "sha256": "7d6ea2e748d210b0ccdb5acdf789608bf726ff6602c3bb655933dd2edf6fcd7f"
+      }
+    },
+    {
+      "id": "no-footer",
+      "css": "#bottom-navbar{display:none!important}",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/ablation-direct/no-footer.pdf",
+        "bytes": 20329483,
+        "sha256": "4a87e0dec9966b4a0232dcd22732848d726f3905b442767db13f52f31c2ad972"
+      }
+    },
+    {
+      "id": "no-header",
+      "css": "#top-navbar,#alerts{display:none!important}",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/ablation-direct/no-header.pdf",
+        "bytes": 20313682,
+        "sha256": "bc0ed98091c673ed4e9192d1c53c44e09cc9a55cc9fcb6349cbd05e8799b9188"
+      }
+    },
+    {
+      "id": "no-magnetospheres",
+      "css": "#media_group_379837{display:none!important}",
+      "pages": 10,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/ablation-direct/no-magnetospheres.pdf",
+        "bytes": 19753404,
+        "sha256": "cf4e80d27a08687fbb2b12a3664242066b8d117c0bbde923cab2d9e84f1c3828"
+      }
+    },
+    {
+      "id": "hidden-scroller",
+      "css": "ul#media_group_379837{overflow:hidden!important}",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/scroller-ablation/hidden-scroller.pdf",
+        "bytes": 20349469,
+        "sha256": "dd159ed400ae0513b93339d083cac56809faa31892a61238f0c826c70afa0fd6"
+      }
+    },
+    {
+      "id": "hide-cards-only",
+      "css": "ul#media_group_379837>li{display:none!important}",
+      "pages": 10,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/scroller-ablation/hide-cards-only.pdf",
+        "bytes": 19754941,
+        "sha256": "295d158f2374b74effbd45178f5750ef28413fa4e0a99e5052f8a6401220ed8c"
+      }
+    },
+    {
+      "id": "no-card-scale",
+      "css": ".card-gallery-card{scale:1!important;transform:none!important}",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/scroller-ablation/no-card-scale.pdf",
+        "bytes": 20344661,
+        "sha256": "177208efdae2e385022358edd33962ba65b139b319a0154685706fd1b35509f1"
+      }
+    },
+    {
+      "id": "no-scroll-buttons",
+      "css": ".gallery-scroll-left,.gallery-scroll-right{display:none!important}",
+      "pages": 4,
+      "artifact": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/scroller-ablation/no-scroll-buttons.pdf",
+        "bytes": 20345541,
+        "sha256": "a85605d8c4798d9cc4bb0145b44e4a1d37e7db10829d0dac1d6027e87c00037f"
+      }
+    }
+  ],
+  "nativeRemovalInspection": {
+    "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-native-print-events-dc1d85dee/ablation-direct/no-magnetospheres-pages/all-pages.png",
+    "bytes": 1082833,
+    "sha256": "a559060b06f847af2d2ec5e73f6798710d897c69ad2ef91a964cd1635c095c58"
+  },
+  "scrollControls": [
+    {
+      "id": "output/block-auto-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 1,
+      "ownedPages": 1,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-auto-0-native.pdf",
+        "bytes": 12216,
+        "sha256": "3f38b70c0635244052a48d5badff010f06af6d742fc8ec0ddcfd056c1576141c"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-auto-0-owned.pdf",
+        "bytes": 2466,
+        "sha256": "493b13f329d4708facb54e946bc672d25d0a8b84e0449c42e219e750f6231cb6"
+      }
+    },
+    {
+      "id": "output/block-auto-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 3,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-auto-650-native.pdf",
+        "bytes": 12935,
+        "sha256": "5032c2e8adc95bb7a2b065c8105c0ed70ea4128382aded495e7e25da86eef4a1"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-auto-650-owned.pdf",
+        "bytes": 3218,
+        "sha256": "5302f7f094efed694aa186dbac6cd43135139795373801381cbe7bd2d0608ec3"
+      }
+    },
+    {
+      "id": "output/block-hidden-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 1,
+      "ownedPages": 1,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-hidden-0-native.pdf",
+        "bytes": 12216,
+        "sha256": "1f361c72bf52c25519df274d84520a5a2dda30a723f0bc2e865d7f456f45c4be"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-hidden-0-owned.pdf",
+        "bytes": 2466,
+        "sha256": "493b13f329d4708facb54e946bc672d25d0a8b84e0449c42e219e750f6231cb6"
+      }
+    },
+    {
+      "id": "output/block-hidden-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 3,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-hidden-650-native.pdf",
+        "bytes": 12934,
+        "sha256": "24381b2465dd7085fc849149cd809e7d88ca2a58bbbba0b45345a40f31737a99"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/block-hidden-650-owned.pdf",
+        "bytes": 3218,
+        "sha256": "5302f7f094efed694aa186dbac6cd43135139795373801381cbe7bd2d0608ec3"
+      }
+    },
+    {
+      "id": "output/flex-auto-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 1,
+      "ownedPages": 1,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-auto-0-native.pdf",
+        "bytes": 12216,
+        "sha256": "3f38b70c0635244052a48d5badff010f06af6d742fc8ec0ddcfd056c1576141c"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-auto-0-owned.pdf",
+        "bytes": 2466,
+        "sha256": "493b13f329d4708facb54e946bc672d25d0a8b84e0449c42e219e750f6231cb6"
+      }
+    },
+    {
+      "id": "output/flex-auto-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 3,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-auto-650-native.pdf",
+        "bytes": 12935,
+        "sha256": "5032c2e8adc95bb7a2b065c8105c0ed70ea4128382aded495e7e25da86eef4a1"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-auto-650-owned.pdf",
+        "bytes": 3218,
+        "sha256": "5302f7f094efed694aa186dbac6cd43135139795373801381cbe7bd2d0608ec3"
+      }
+    },
+    {
+      "id": "output/flex-hidden-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 1,
+      "ownedPages": 1,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-hidden-0-native.pdf",
+        "bytes": 12216,
+        "sha256": "3f38b70c0635244052a48d5badff010f06af6d742fc8ec0ddcfd056c1576141c"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-hidden-0-owned.pdf",
+        "bytes": 2466,
+        "sha256": "493b13f329d4708facb54e946bc672d25d0a8b84e0449c42e219e750f6231cb6"
+      }
+    },
+    {
+      "id": "output/flex-hidden-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;height:100px}#scroll>div{flex:0 0 320px;height:100px;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 3,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-hidden-650-native.pdf",
+        "bytes": 12934,
+        "sha256": "24381b2465dd7085fc849149cd809e7d88ca2a58bbbba0b45345a40f31737a99"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/output/flex-hidden-650-owned.pdf",
+        "bytes": 3218,
+        "sha256": "5302f7f094efed694aa186dbac6cd43135139795373801381cbe7bd2d0608ec3"
+      }
+    },
+    {
+      "id": "tall-auto/block-auto-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 2,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-auto-0-native.pdf",
+        "bytes": 14307,
+        "sha256": "83b24dcb1001efbb8214641cc3a356e3dd13bd6c72566e74c192640d047656b4"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-auto-0-owned.pdf",
+        "bytes": 3197,
+        "sha256": "e2edbd0e6cfbe6c45221472a84397fc8a64b14db77355632bfb47b4661968eaa"
+      }
+    },
+    {
+      "id": "tall-auto/block-auto-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 5,
+      "ownedPages": 5,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-auto-650-native.pdf",
+        "bytes": 15342,
+        "sha256": "1f1437567e78af0c8a588cb5c4f4ba1f3cd1224816b0fb3e6866a47b05d71200"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-auto-650-owned.pdf",
+        "bytes": 4120,
+        "sha256": "4c38859b476576919b6461ca9b0f78fbcb3fa822361dce49acfe09fac0556ca7"
+      }
+    },
+    {
+      "id": "tall-auto/block-hidden-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 2,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-hidden-0-native.pdf",
+        "bytes": 14994,
+        "sha256": "fe7e3485b752491edbabcb29c40c65a4d2b0aad10a0a17caa806e021903b733e"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-hidden-0-owned.pdf",
+        "bytes": 3197,
+        "sha256": "e2edbd0e6cfbe6c45221472a84397fc8a64b14db77355632bfb47b4661968eaa"
+      }
+    },
+    {
+      "id": "tall-auto/block-hidden-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:block;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 5,
+      "ownedPages": 5,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-hidden-650-native.pdf",
+        "bytes": 16047,
+        "sha256": "499158f4be76d495bfe73fdbb6c05abf3f933cf723dea359fe0924e974a40c75"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/block-hidden-650-owned.pdf",
+        "bytes": 4120,
+        "sha256": "4c38859b476576919b6461ca9b0f78fbcb3fa822361dce49acfe09fac0556ca7"
+      }
+    },
+    {
+      "id": "tall-auto/flex-auto-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 2,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-auto-0-native.pdf",
+        "bytes": 14307,
+        "sha256": "83b24dcb1001efbb8214641cc3a356e3dd13bd6c72566e74c192640d047656b4"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-auto-0-owned.pdf",
+        "bytes": 3197,
+        "sha256": "e2edbd0e6cfbe6c45221472a84397fc8a64b14db77355632bfb47b4661968eaa"
+      }
+    },
+    {
+      "id": "tall-auto/flex-auto-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 5,
+      "ownedPages": 5,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-auto-650-native.pdf",
+        "bytes": 15342,
+        "sha256": "1f1437567e78af0c8a588cb5c4f4ba1f3cd1224816b0fb3e6866a47b05d71200"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-auto-650-owned.pdf",
+        "bytes": 4120,
+        "sha256": "4c38859b476576919b6461ca9b0f78fbcb3fa822361dce49acfe09fac0556ca7"
+      }
+    },
+    {
+      "id": "tall-auto/flex-hidden-0",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:0px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 2,
+      "ownedPages": 3,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-hidden-0-native.pdf",
+        "bytes": 14295,
+        "sha256": "3bda84dd8a04a6b43aada3f77ccdf2e264ac1b98f7330664f1a04b033ddac7c6"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-hidden-0-owned.pdf",
+        "bytes": 3197,
+        "sha256": "e2edbd0e6cfbe6c45221472a84397fc8a64b14db77355632bfb47b4661968eaa"
+      }
+    },
+    {
+      "id": "tall-auto/flex-hidden-650",
+      "html": "<style>@page{size:400px 300px;margin:0}html,body{margin:0;font:16px Arial}body{display:flex;flex-direction:column;overflow-x:hidden}#scroll{display:flex;flex-wrap:nowrap;overflow-x:hidden;overflow-y:hidden;width:100%;}#scroll>div{flex:0 0 320px;height:540px;scale:.97;background:#d8eaff}</style><main><div style='height:650px'>FITMARK</div><div id='scroll'><div>ONE</div><div>TWO</div><div>THREE</div><div>FOUR</div></div><footer>FOOTER</footer></main>",
+      "nativePages": 5,
+      "ownedPages": 5,
+      "nativeMarkerAdvancePt": 52.6641,
+      "native": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-hidden-650-native.pdf",
+        "bytes": 15336,
+        "sha256": "a87c4f388b85549256c463300315dc82b3c21db983fe68caafccd1b935d13909"
+      },
+      "owned": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/tall-auto/flex-hidden-650-owned.pdf",
+        "bytes": 4120,
+        "sha256": "4c38859b476576919b6461ca9b0f78fbcb3fa822361dce49acfe09fac0556ca7"
+      }
+    }
+  ],
+  "scrollConclusion": "Sixteen simple hidden/auto horizontal flex scrollers, with block/flex roots, short/tall content and first/later-page placement, retain unscaled native text and400px owned layout. They do not reproduce the NASA shrink trigger; do not globally include ordinary clipped scroll content in fitting.",
+  "validatedOwnedDefect": {
+    "priority": "P2",
+    "classification": "pre-existing",
+    "trigger": "Paged flex-column body containing normal relative footer and fixed header at equal/higher footer z-index.",
+    "observed": "Native footer is above header. Owned flex-root header remains above footer at both z1 andz2. Block-root controls agree with native.",
+    "impact": "NASA final-page footer text is in the PDF but hidden beneath fixed header; matches reproduced layering class.",
+    "sourceOwner": "HtmlRenderLayoutEngine.Positioning.Stacking.cs / BuildRootStackingPaintOrders sees only top-level blocks; AppendFlowPaintLayers loses nested flow context identity and page translation assigns ordinary paint order to the whole root.",
+    "visualEvidence": {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/footer-stacking/comparison.png",
+      "bytes": 29751,
+      "sha256": "1daf52a2963d96f60cffcd6781dc9c3781310800b250c10f6690511ea5fe5c36"
+    },
+    "inputs": [
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/footer-stacking/footer-block-z1.html",
+        "bytes": 352,
+        "sha256": "9e8243fbbf0f05318ed808a4796f434c0e51f8f9c5f2b7e80c77537ce4d142cf"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/footer-stacking/footer-block-z2.html",
+        "bytes": 352,
+        "sha256": "c177d8b4adf1c12c54f531651d166a21e656c54454d934076bea0e9bc09f5c9b"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/footer-stacking/footer-flex-z1.html",
+        "bytes": 351,
+        "sha256": "6fc97c942356aea1218464aaf4abf88182855a2293560d02d98e54117d170242"
+      },
+      {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-print-scroll-fragment-dc1d85dee/footer-stacking/footer-flex-z2.html",
+        "bytes": 351,
+        "sha256": "74a155d81d8fe432561c7272771ace1151fa241eca388dd5f3ef2112cfc4acd3"
+      }
+    ],
+    "nextDeliverable": "Preserve eligible nested normal-flow stacking contexts through root-body pagination and merge them correctly with global fixed/root-positioned painting. Keep ancestor stacking/effects/clips and semantics intact; prove equal/higher/lower/ancestor-boundary cases, then NASA and H4."
+  },
+  "browserReferenceAlgorithm": "https://github.com/chromium/chromium/blob/9ac9e1044de400849af3353f9a9c87a8df8df455/third_party/blink/renderer/core/layout/pagination_utils.cc",
+  "limitations": [
+    "Scroller trigger is narrowed to actual card content, not generic clipping, transforms or scroll buttons; exact card-level cause remains open.",
+    "Footer stacking source diagnosis is provisional until implemented and tested.",
+    "No milestone completion, OfficeIMO PR or release."
+  ]
+}
