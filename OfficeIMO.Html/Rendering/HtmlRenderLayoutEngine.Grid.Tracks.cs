@@ -509,7 +509,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static void AppendNormalizedGridIntrinsicText(List<GridIntrinsicTextRun> runs, string text, HtmlRenderBoxStyle style) {
         if (text.Length == 0) return;
-        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
+        if (runs.Count > 0 && !runs[runs.Count - 1].IsForcedBreak
+            && !runs[runs.Count - 1].IsReplaced && ReferenceEquals(runs[runs.Count - 1].Style, style)) {
             GridIntrinsicTextRun previous = runs[runs.Count - 1];
             runs[runs.Count - 1] = new GridIntrinsicTextRun(previous.Text + text, style);
         } else {
