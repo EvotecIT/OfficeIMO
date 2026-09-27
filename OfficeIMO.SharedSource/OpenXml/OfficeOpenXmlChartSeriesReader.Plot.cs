@@ -135,7 +135,13 @@ namespace OfficeIMO.OpenXml.Internal {
             IReadOnlyList<string>? sharedCategories = null;
             foreach (var series in layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")) {
                 int? seriesLength = null;
-                foreach (var cache in series.ChildElements.Where(element => element is C.Values or C.XValues or C.YValues or C.BubbleSize)) {
+                OpenXmlElement?[] caches = layer is C.BubbleChart
+                    ? new OpenXmlElement?[] { series.GetFirstChild<C.XValues>(), series.GetFirstChild<C.YValues>(), series.GetFirstChild<C.BubbleSize>() }
+                    : layer is C.ScatterChart
+                        ? new OpenXmlElement?[] { series.GetFirstChild<C.XValues>(), series.GetFirstChild<C.YValues>() }
+                        : new OpenXmlElement?[] { series.GetFirstChild<C.Values>() };
+                foreach (var cache in caches) {
+                    if (cache == null) return true;
                     var points = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(cache.Descendants<C.NumericPoint>(), maximumPoints);
                     int length = OfficeOpenXmlChartCacheReader.GetCachedPointLength(cache, points, point => point.Index?.Value, maximumPoints);
                     if (length == 0 || points.Count != length || points.Any(point => point.Index?.Value == null) ||

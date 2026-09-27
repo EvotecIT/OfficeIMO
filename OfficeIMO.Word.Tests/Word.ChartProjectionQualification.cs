@@ -74,7 +74,7 @@ public sealed class WordChartProjectionQualificationTests {
             if (feature == "unequalSeries") {
                 sibling.Descendants<C.NumericPoint>().Last().Remove();
                 sibling.Descendants<C.Values>().Single().Descendants<C.PointCount>().Single().Val = 1;
-            } else sibling.Descendants<C.StringPoint>().Last().NumericValue!.Text = "Different category";
+            } else sibling.GetFirstChild<C.CategoryAxisData>()!.Descendants<C.StringPoint>().Last().NumericValue!.Text = "Different category";
             layer.AddChild(sibling, true);
         }
         else if (feature == "titleParagraphs") native.GetFirstChild<C.Title>()!.Descendants<C.RichText>().Single().Append(new A.Paragraph(new A.Run(new A.Text("2026"))));
