@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
 
         internal Run? _run {
             get {
-                if (_activeRun != null && _activeRun.Parent == _hyperlink) {
+                if (_activeRun != null && _activeRun.Ancestors<Hyperlink>().Any(owner => ReferenceEquals(owner, _hyperlink))) {
                     return _activeRun;
                 }
 
