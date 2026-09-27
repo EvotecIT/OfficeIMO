@@ -21,6 +21,28 @@ public sealed class DrawingExportQualityTests {
     }
 
     [Fact]
+    public void QualityAnalysisIncludesTransformedGroupTextAndOverflow() {
+        var child = new OfficeDrawing(100, 100);
+        child.AddText("Nested", 10, 10, 40, 20);
+        child.AddShapeForClippedRendering(OfficeShape.Rectangle(30, 10), 90, 10);
+        var drawing = new OfficeDrawing(50, 50);
+        drawing.AddEffectDrawing(child, OfficeTransform.Scale(.5, .5));
+        drawing.AddText("Outer", 5, 5, 20, 10);
+        var issues = OfficeDrawingQualityAnalyzer.Analyze(drawing).Issues;
+        Assert.Contains(issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.TextOverlap && issue.ElementIndex == 0 && issue.RelatedElementIndex == 1);
+        Assert.Contains(issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.ElementOutsideBounds && issue.ElementIndex == 0);
+    }
+
+    [Fact]
+    public void SmallChartQualityRenderingStillReportsOverlappingPointLabels() {
+        var snapshot = new OfficeChartSnapshot("Small scatter", null, OfficeChartKind.Scatter,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 2d, 2d }, new[] { 1d, 1d }) }),
+            90, 30, layout: new OfficeChartLayout(showDataLabels: true, showDataLabelValues: true));
+        var result = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
+        Assert.Contains(result.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.TextOverlap);
+    }
+
+    [Fact]
     public void ChartQualityRenderingCanPreserveSmallAuthoredDimensions() {
         var snapshot = new OfficeChartSnapshot("Small chart", null, OfficeChartKind.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }), 90, 30);
