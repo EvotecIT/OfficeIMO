@@ -173,7 +173,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Inspects supported, preserved, and unsupported document features.</summary>
     public OdfFeatureReport InspectFeatures() {
-        return OdfFeatureInspector.Inspect(Package);
+        return OdfFeatureInspector.Inspect(this);
     }
 
     internal XDocument GetXml(string partPath) {

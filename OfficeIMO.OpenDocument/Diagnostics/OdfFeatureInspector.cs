@@ -11,7 +11,8 @@ internal static class OdfFeatureInspector {
         XNamespace.Xml.NamespaceName, XNamespace.Xmlns.NamespaceName, string.Empty
     };
 
-    internal static OdfFeatureReport Inspect(OdfPackage package) {
+    internal static OdfFeatureReport Inspect(OdfDocument source) {
+        OdfPackage package = source.Package;
         var findings = new List<OdfFeatureFinding>();
         var diagnostics = new List<OdfFeatureDiagnostic>();
         foreach (OdfPackageEntry entry in package.Entries.Where(entry => entry.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))) {
@@ -48,6 +49,14 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "database-range", "spreadsheet-database-ranges", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "filter", "spreadsheet-filters", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] dataPilots = document.Descendants(OdfNamespaces.Table + "data-pilot-table").ToArray();
+            int editableDataPilots = dataPilots.Count(pivot =>
+                source is OdsDocument spreadsheet && OdsDataPilotTable.IsEditableElement(spreadsheet, pivot));
+            if (editableDataPilots > 0) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Editable, entry.Name, editableDataPilots));
+            if (dataPilots.Length > editableDataPilots) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Inspected, entry.Name,
+                dataPilots.Length - editableDataPilots));
             AddElementFinding(document, OdfNamespaces.Table + "named-range", "spreadsheet-named-ranges", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
