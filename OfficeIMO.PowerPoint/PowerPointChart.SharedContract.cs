@@ -7,6 +7,7 @@ using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.Core.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -25,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
                     "The current chart kind cannot be updated through the shared OfficeIMO chart contract.");
             }
             OfficeChartKind chartKind = MapKind(current.ChartKind);
-            PowerPointUtils.ValidateSharedChartData(data, chartKind);
+            OfficeOpenXmlChartWriter.ValidateSharedChartData(data, chartKind);
 
             ChartPart chartPart = GetChartPart();
             EmbeddedPackagePart? embedded = chartPart
@@ -34,15 +35,10 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException(
                     "Bubble chart data cannot be updated without an embedded workbook.");
             }
-            PowerPointUtils.UpdateSharedChartData(chartPart, data, chartKind);
+            OfficeOpenXmlChartWriter.UpdateSharedChartData(chartPart, data, chartKind);
 
             if (embedded != null) {
-                byte[] workbookBytes = chartKind switch {
-                    OfficeChartKind.Scatter =>
-                        PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointScatterChartData(data)),
-                    OfficeChartKind.Bubble => PowerPointUtils.BuildBubbleChartWorkbook(data),
-                    _ => PowerPointUtils.BuildChartWorkbook(PowerPointUtils.ToPowerPointChartData(data))
-                };
+                byte[] workbookBytes = OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind);
                 using var stream = new MemoryStream(workbookBytes);
                 embedded.FeedData(stream);
             }
