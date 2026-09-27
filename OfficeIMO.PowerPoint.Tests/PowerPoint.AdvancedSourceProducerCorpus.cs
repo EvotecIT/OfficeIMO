@@ -282,7 +282,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             PowerPointImportedChartReport report =
                 editedChart.InspectImportedContent();
             Assert.True(editedChart.TryGetOfficeSnapshot(
-                out OfficeChartSnapshot snapshot));
+                out OfficeChartSnapshot snapshot), report.Family.ToString());
             OfficeChartSeries[] series = snapshot.Data.Series
                 .Select((item, index) => new OfficeChartSeries(
                     index == 0 ? "OfficeIMO edited " + report.Family

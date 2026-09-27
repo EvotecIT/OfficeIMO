@@ -362,7 +362,10 @@ reject unqualified dashes, curved lines, distinct marker and line colours, and
 unfilled marker treatments. Native data editing remains available. Cached chart
 projections are bounded to 100,000 positions across all native layers.
 Point overrides retain their separate 100,000-record limit, including stale and
-duplicate records. Picture markers reject static projection. Radar series inherit
+duplicate records. Native series retain their plotting order, including combination
+layers. Gradients, custom or compound outlines, and per-point marker overrides reject
+static projection. Supported filled-series outlines are inherited by points, with
+explicit point outlines taking precedence. Picture markers reject static projection. Radar series inherit
 visible markers only from the native marker style unless the series supplies a marker.
 
 Category discovery checks all populated series before generating fallback labels.

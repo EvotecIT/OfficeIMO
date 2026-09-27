@@ -19,8 +19,10 @@ internal static class OfficeOpenXmlChartPointStyles {
         return points;
     }
 
-    internal static bool IsSupported(C.ChartShapeProperties properties, A.ColorScheme? scheme) {
+    internal static bool IsSupported(C.ChartShapeProperties properties, A.ColorScheme? scheme, bool flattenThreeDimensional = false) {
         foreach (OpenXmlElement child in properties.ChildElements) {
+            if (child is A.EffectList && !child.HasChildren && !child.HasAttributes) continue;
+            if (flattenThreeDimensional && child is A.Shape3DType) continue;
             if (child is A.NoFill) continue;
             if (child is A.SolidFill) {
                 if (!OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) return false;
@@ -48,15 +50,19 @@ internal static class OfficeOpenXmlChartPointStyles {
     }
 
     internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) =>
-        Read(GetBoundedPoints(series), count, scheme);
+        Read(GetBoundedPoints(series), count, scheme, series.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);
 
-    internal static IReadOnlyList<OfficeChartPointStyle?>? Read(IReadOnlyList<C.DataPoint> points, int count, A.ColorScheme? scheme) {
+    internal static IReadOnlyList<OfficeChartPointStyle?>? Read(IReadOnlyList<C.DataPoint> points, int count, A.ColorScheme? scheme, bool flattenThreeDimensional = false) {
         OfficeChartPointStyle?[]? styles = null;
         foreach (C.DataPoint point in points) {
             uint? index = point.Index?.Val?.Value;
             if (!index.HasValue || index.Value >= (uint)count) continue;
+            if (point.GetFirstChild<C.Marker>() != null)
+                throw new System.IO.InvalidDataException("Per-point native markers cannot be projected by the shared chart model.");
             C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) continue;
+            if (!IsSupported(properties, scheme, flattenThreeDimensional))
+                throw new System.IO.InvalidDataException("The native point appearance cannot be projected by the shared chart model.");
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
             bool noFill = properties.GetFirstChild<A.NoFill>() != null;
             A.PatternFill? pattern = properties.GetFirstChild<A.PatternFill>();
