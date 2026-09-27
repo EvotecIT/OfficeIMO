@@ -157,6 +157,13 @@ public sealed class OfficeChartSnapshot {
     /// <summary>Pie rotation and doughnut hole geometry.</summary>
     public OfficeChartRadialLayout RadialLayout { get; }
 
+    /// <summary>Creates a snapshot at a different render size while retaining all chart data and presentation metadata.</summary>
+    /// <param name="widthPoints">Finite positive render width in points.</param>
+    /// <param name="heightPoints">Finite positive render height in points.</param>
+    public OfficeChartSnapshot WithSize(double widthPoints, double heightPoints) =>
+        new OfficeChartSnapshot(Name, Title, ChartKind, Data, widthPoints, heightPoints,
+            Style, Layout, BubbleScalePercent, BubbleSizeMode, RadialLayout);
+
     private static void ValidatePositiveFinite(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {
             throw new ArgumentOutOfRangeException(paramName, "Chart snapshot dimensions must be finite positive numbers.");

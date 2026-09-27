@@ -1289,41 +1289,6 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private bool TryCreateChartSvgFallbackBlock(
-            WordChart chart,
-            WordToMarkdownOptions options,
-            out IMarkdownBlock block) {
-            block = null!;
-
-            if (!chart.TryGetSnapshot(out var snapshot)) {
-                options.OnWarning?.Invoke("Word chart could not be rendered as an SVG Markdown image because its cached chart data could not be read.");
-                return false;
-            }
-
-            try {
-                OfficeChartSnapshot officeSnapshot = CreateOfficeChartSnapshot(snapshot);
-                OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot);
-                if (rendering.QualityReport.HasIssues) {
-                    options.OnWarning?.Invoke("Rendered Word chart '" + GetChartDisplayName(snapshot) + "' with shared drawing quality warnings: " + FormatQualityIssues(rendering.QualityReport));
-                }
-
-                byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing);
-                string displayName = GetChartDisplayName(snapshot);
-                string source = options.VisualFallbackMode == MarkdownVisualFallbackMode.SvgFile
-                    ? WriteVisualFallbackSvgResource(svgBytes, displayName, options)
-                    : "data:image/svg+xml;base64," + System.Convert.ToBase64String(svgBytes);
-                string alt = string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!;
-                var sequence = new InlineSequence { AutoSpacing = false };
-                sequence.AddRaw(new ImageInline(alt, source, title: null, plainAlt: alt));
-                block = new ParagraphBlock(sequence);
-                options.OnWarning?.Invoke("Rendered Word chart '" + displayName + "' as an SVG Markdown image fallback.");
-                return true;
-            } catch (Exception ex) {
-                options.OnWarning?.Invoke("Word chart could not be rendered as an SVG Markdown image fallback. " + ex.Message);
-                return false;
-            }
-        }
-
         private string WriteVisualFallbackSvgResource(byte[] svgBytes, string displayName, WordToMarkdownOptions options) {
             string directory = string.IsNullOrWhiteSpace(options.VisualFallbackDirectory)
                 ? Directory.GetCurrentDirectory()
@@ -1372,78 +1337,11 @@ namespace OfficeIMO.Word.Markdown {
             return path!.Trim().TrimEnd('/', '\\').Replace('\\', '/');
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshot(WordChartSnapshot snapshot) {
-            var series = snapshot.Data.Series
-                .Select(item => item.ToOfficeSeries())
-                .ToList();
-            var data = new OfficeChartData(snapshot.Data.Categories, series);
-            var style = CreateOfficeChartStyle(snapshot);
-            return new OfficeChartSnapshot(
-                snapshot.Name,
-                snapshot.Title,
-                MapChartKind(snapshot.ChartKind),
-                data,
-                snapshot.WidthPoints,
-                snapshot.HeightPoints,
-                style, layout: null, radialLayout: snapshot.RadialLayout);
-        }
-
-        private static OfficeChartStyle? CreateOfficeChartStyle(WordChartSnapshot snapshot) {
-            bool hasExplicitColor = snapshot.Data.Series.Any(item => item.Color.HasValue);
-            if (!hasExplicitColor) {
-                return null;
-            }
-
-            var palette = snapshot.Data.Series
-                .Select((item, index) => item.Color ?? OfficeChartDrawingRenderer.GetSeriesColor(index))
-                .ToList();
-            return new OfficeChartStyle(palette: palette);
-        }
-
-        private static OfficeChartKind MapChartKind(WordChartSnapshotKind kind) {
-            switch (kind) {
-                case WordChartSnapshotKind.ClusteredColumn:
-                    return OfficeChartKind.ColumnClustered;
-                case WordChartSnapshotKind.StackedColumn:
-                    return OfficeChartKind.ColumnStacked;
-                case WordChartSnapshotKind.StackedColumn100:
-                    return OfficeChartKind.ColumnStacked100;
-                case WordChartSnapshotKind.ClusteredBar:
-                    return OfficeChartKind.BarClustered;
-                case WordChartSnapshotKind.StackedBar:
-                    return OfficeChartKind.BarStacked;
-                case WordChartSnapshotKind.StackedBar100:
-                    return OfficeChartKind.BarStacked100;
-                case WordChartSnapshotKind.Line:
-                    return OfficeChartKind.Line;
-                case WordChartSnapshotKind.StackedLine:
-                    return OfficeChartKind.LineStacked;
-                case WordChartSnapshotKind.StackedLine100:
-                    return OfficeChartKind.LineStacked100;
-                case WordChartSnapshotKind.Area:
-                    return OfficeChartKind.Area;
-                case WordChartSnapshotKind.StackedArea:
-                    return OfficeChartKind.AreaStacked;
-                case WordChartSnapshotKind.StackedArea100:
-                    return OfficeChartKind.AreaStacked100;
-                case WordChartSnapshotKind.Radar:
-                    return OfficeChartKind.Radar;
-                case WordChartSnapshotKind.Scatter:
-                    return OfficeChartKind.Scatter;
-                case WordChartSnapshotKind.Pie:
-                    return OfficeChartKind.Pie;
-                case WordChartSnapshotKind.Doughnut:
-                    return OfficeChartKind.Doughnut;
-                default:
-                    throw new NotSupportedException("Word chart kind '" + kind + "' is not supported by the shared OfficeIMO chart renderer.");
-            }
-        }
-
         private static string FormatQualityIssues(OfficeDrawingQualityReport qualityReport) {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
-        private static string GetChartDisplayName(WordChartSnapshot snapshot) {
+        private static string GetChartDisplayName(OfficeChartSnapshot snapshot) {
             if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
                 return snapshot.Title!;
             }
