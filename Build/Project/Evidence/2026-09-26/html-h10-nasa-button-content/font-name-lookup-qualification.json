@@ -1,0 +1,196 @@
+{
+  "sourceCommit": "26038f0333bcd54d4749d627e3c28df88b2a3742",
+  "installedFont": {
+    "path": "/System/Library/Fonts/SFNS.ttf",
+    "bytes": 7872432,
+    "sha256": "44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571"
+  },
+  "after": [
+    {
+      "name": "system-ui",
+      "loaded": false,
+      "decoded": false,
+      "measured": false,
+      "width": 0,
+      "bytes": null
+    },
+    {
+      "name": "-apple-system",
+      "loaded": false,
+      "decoded": false,
+      "measured": false,
+      "width": 0,
+      "bytes": null
+    },
+    {
+      "name": ".SF NS",
+      "loaded": true,
+      "decoded": true,
+      "measured": true,
+      "width": 67.8125,
+      "bytes": 7872432
+    },
+    {
+      "name": "System Font",
+      "loaded": true,
+      "decoded": true,
+      "measured": true,
+      "width": 67.8125,
+      "bytes": 7872432
+    },
+    {
+      "name": "Helvetica Neue",
+      "loaded": true,
+      "decoded": true,
+      "measured": true,
+      "width": 71.728,
+      "bytes": 712304
+    },
+    {
+      "name": "Arial",
+      "loaded": true,
+      "decoded": true,
+      "measured": true,
+      "width": 71.1484375,
+      "bytes": 773236
+    },
+    {
+      "css": "'Helvetica Neue'",
+      "Text": "Animation",
+      "Width": 71.728,
+      "Font": {
+        "FamilyName": "'Helvetica Neue'",
+        "Size": 16,
+        "Style": 0,
+        "IsBold": false,
+        "IsItalic": false,
+        "IsUnderline": false,
+        "IsStrikethrough": false
+      }
+    },
+    {
+      "css": "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue','Noto Sans','Liberation Sans',Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol','Noto Color Emoji'",
+      "Text": "Animation",
+      "Width": 71.728,
+      "Font": {
+        "FamilyName": "system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue','Noto Sans','Liberation Sans',Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji','Segoe UI Symbol','Noto Color Emoji'",
+        "Size": 16,
+        "Style": 0,
+        "IsBold": false,
+        "IsItalic": false,
+        "IsUnderline": false,
+        "IsStrikethrough": false
+      }
+    }
+  ],
+  "before": [
+    {
+      "name": "system-ui",
+      "loaded": false,
+      "decoded": false,
+      "measured": false,
+      "width": 0,
+      "bytes": null
+    },
+    {
+      "name": "-apple-system",
+      "loaded": false,
+      "decoded": false,
+      "measured": false,
+      "width": 0,
+      "bytes": null
+    },
+    {
+      "name": ".SF NS",
+      "loaded": false,
+      "decoded": false,
+      "measured": false,
+      "width": 0,
+      "bytes": null
+    },
+    {
+      "name": "System Font",
+      "loaded": false,
+      "decoded": false,
+      "measured": false,
+      "width": 0,
+      "bytes": null
+    },
+    {
+      "name": "Helvetica Neue",
+      "loaded": true,
+      "decoded": true,
+      "measured": true,
+      "width": 71.728,
+      "bytes": 712304
+    },
+    {
+      "name": "Arial",
+      "loaded": true,
+      "decoded": true,
+      "measured": true,
+      "width": 71.1484375,
+      "bytes": 773236
+    }
+  ],
+  "renderedPdf": "System_Font.pdf",
+  "visualEvidence": "system-font-render.png",
+  "pdfFontInventory": {
+    "fontName": "SystemFont-Regular",
+    "embedded": true,
+    "type": "CID TrueType",
+    "encoding": "Identity-H"
+  },
+  "genericMappingChanged": false,
+  "tests": {
+    "beforeNet10": {
+      "failed": 3,
+      "passed": 2
+    },
+    "focusedNet8": 135,
+    "focusedNet10": 135,
+    "fullPdfNet10": 7947,
+    "netstandard20": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "review": {
+    "findings": 0,
+    "scope": "System name lookup and retained metadata; CSS generic mappings excluded.",
+    "gaps": [
+      "Localized multi-style fixture not added; existing OS/2 style tests retained.",
+      "Character-budget boundary not separately exercised."
+    ]
+  },
+  "h4": {
+    "cases": 8,
+    "acceptance": "Passed",
+    "sourceClean": true,
+    "managedPngsUnchanged": 85,
+    "baseline": "ff51de367",
+    "artifactRoot": "Ignore/HtmlUnknownPageQualification/h10-h4-fontnames-clean-26038f033"
+  },
+  "nasa": {
+    "operations": 13,
+    "failures": [],
+    "allTenOfficeimoPdfsByteIdenticalTo": "ff51de367",
+    "currentBrowserPrintPages": 4,
+    "browserRasterIdenticalPages": [
+      1,
+      2,
+      3
+    ],
+    "browserRasterChangedPage": 4,
+    "changedBoundsPixels": [
+      754,
+      289,
+      786,
+      591
+    ],
+    "changedPixels": 6496,
+    "inspection": "Difference localized to right gallery scroll-control region; cause not established.",
+    "artifactRoot": "Ignore/HtmlUnknownPageQualification/h10-nasa-fontnames-clean-26038f033",
+    "selectedManagedPdfAndInspectedPagePairs": "Ignore/HtmlUnknownPageQualification/h10-nasa-intrinsic-clean-ff51de367"
+  }
+}
