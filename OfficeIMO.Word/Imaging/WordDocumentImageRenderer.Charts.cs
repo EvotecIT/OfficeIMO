@@ -59,14 +59,7 @@ internal static partial class WordDocumentImageRenderer {
         double height) {
         var series = new List<OfficeChartSeries>(snapshot.Data.Series.Count);
         foreach (WordChartSeries item in snapshot.Data.Series) {
-            series.Add(new OfficeChartSeries(
-                item.Name,
-                item.Values,
-                item.XValues,
-                color: item.Color,
-                pointColors: item.PointColors,
-                showMarkers: true,
-                renderKind: MapChartKind(snapshot.ChartKind)).WithPointStyles(item.PointStyles));
+            series.Add(item.ToOfficeSeries());
         }
 
         return new OfficeChartSnapshot(

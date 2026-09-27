@@ -32,6 +32,7 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
             OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints) {
             List<OpenXmlCompositeElement> elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
+            ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             IReadOnlyList<string> categories = Array.Empty<string>();
             foreach (OpenXmlCompositeElement element in elements) {
                 var values = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.Values>(), maximumPoints);
@@ -42,12 +43,17 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             if (categories.Count == 0) return null;
             var series = new List<Series>();
+            int sourcePosition = -1;
+            long totalPoints = 0;
             foreach (OpenXmlCompositeElement element in elements) {
+                sourcePosition++;
                 var values = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.Values>(), maximumPoints);
                 if (values.Count == 0) continue;
+                totalPoints += Math.Max(values.Count, categories.Count);
+                ValidateTotalPoints(totalPoints);
                 double[] normalized = new double[categories.Count];
                 for (int index = 0; index < Math.Min(values.Count, normalized.Length); index++) normalized[index] = values[index];
-                series.Add(ReadSeries(element, normalized, null, kind, scheme, axisGroup, series.Count, maximumPoints));
+                series.Add(ReadSeries(element, normalized, null, kind, scheme, axisGroup, sourcePosition, maximumPoints));
             }
             return series.Count == 0 ? null : new Result(categories, series);
         }
@@ -55,17 +61,47 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static Result? ReadScatter(IEnumerable<C.ScatterChartSeries> source, A.ColorScheme? scheme, int maximumPoints) {
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
-            foreach (C.ScatterChartSeries element in OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints)) {
+            int sourcePosition = -1;
+            long totalPoints = 0;
+            var elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
+            ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
+            foreach (C.ScatterChartSeries element in elements) {
+                sourcePosition++;
                 var x = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.XValues>(), maximumPoints);
                 var y = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.YValues>(), maximumPoints);
                 int count = Math.Min(x.Count, y.Count);
                 if (count == 0) continue;
+                totalPoints += Math.Max(x.Count, y.Count);
+                ValidateTotalPoints(totalPoints);
                 double[] alignedX = x.Take(count).ToArray();
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartKind.Scatter,
-                    scheme, OfficeChartAxisGroup.Primary, series.Count, maximumPoints));
+                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
+        }
+
+        private static void ValidateTotalPoints(long total) {
+            if (total > OfficeOpenXmlChartWriter.MaximumSharedChartPoints)
+                throw new InvalidDataException("The chart series exceed the supported aggregate point limit.");
+        }
+
+        private static void ValidatePlotBudget(OpenXmlElement? series, int maximumPoints) {
+            if (series?.Parent?.Parent is not C.PlotArea plot) return;
+            long total = 0;
+            foreach (OpenXmlCompositeElement layer in plot.ChildElements.OfType<OpenXmlCompositeElement>()) {
+                foreach (OpenXmlCompositeElement item in layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(child => child.LocalName == "ser")) {
+                    int length = 0;
+                    foreach (OpenXmlElement cache in item.ChildElements.Where(child => child is C.Values || child is C.XValues || child is C.YValues || child is C.BubbleSize || child is C.CategoryAxisData)) {
+                        var points = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(cache.Descendants<C.NumericPoint>(), maximumPoints);
+                        length = Math.Max(length, OfficeOpenXmlChartCacheReader.GetCachedPointLength(cache, points, point => point.Index?.Value, maximumPoints));
+                        var strings = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(cache.Descendants<C.StringPoint>(), maximumPoints);
+                        length = Math.Max(length, OfficeOpenXmlChartCacheReader.GetCachedPointLength(cache, strings, point => point.Index?.Value, maximumPoints));
+                    }
+                    total += length;
+                    ValidateTotalPoints(total);
+                }
+            }
         }
 
         private static Series ReadSeries(OpenXmlCompositeElement element, IReadOnlyList<double> values,
@@ -83,6 +119,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (width > OfficeChartStyleBounds.MaximumLineWidthPoints)
                 throw new InvalidDataException("The native chart line width exceeds the supported DrawingML bound.");
             C.Marker? marker = element.GetFirstChild<C.Marker>();
+            OfficeColor? markerFill = OfficeOpenXmlThemeColorResolver.ResolveColor(marker?.ChartShapeProperties?.GetFirstChild<A.SolidFill>(), scheme);
             int? markerSize = marker?.Size?.Val?.Value;
             if (markerSize.HasValue && (markerSize < 2 || markerSize > 72))
                 throw new InvalidDataException("The native chart marker size is outside the supported DrawingML bound.");
@@ -112,15 +149,27 @@ namespace OfficeIMO.OpenXml.Internal {
                 pointColors ??= new OfficeColor?[values.Count];
                 pointColors[(int)index.Value] = color;
             }
-            var data = new OfficeChartSeries(name, values, xValues, filled ? fill : stroke ?? fill,
-                pointColors, showMarkers: markerShape != OfficeChartMarkerShape.None,
-                connectLine: outline?.GetFirstChild<A.NoFill>() == null,
+            C.ScatterStyleValues? scatterStyle = (element.Parent as C.ScatterChart)?.ScatterStyle?.Val?.Value;
+            bool inheritedMarkers = (element.Parent?.GetFirstChild<C.ShowMarker>()?.Val?.Value ?? true) &&
+                scatterStyle != C.ScatterStyleValues.Line && scatterStyle != C.ScatterStyleValues.Smooth;
+            bool showMarkers = markerShape.HasValue ? markerShape != OfficeChartMarkerShape.None : inheritedMarkers;
+            bool connectLine = outline?.GetFirstChild<A.NoFill>() == null && scatterStyle != C.ScatterStyleValues.Marker;
+            bool unsupported = outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
+            // The shared model has one series colour and straight connecting lines.
+            // Reject appearance that would otherwise be silently flattened in an export.
+            unsupported |= connectLine && (element.GetFirstChild<C.Smooth>()?.Val?.Value == true ||
+                scatterStyle == C.ScatterStyleValues.Smooth || scatterStyle == C.ScatterStyleValues.SmoothMarker);
+            unsupported |= showMarkers && marker?.ChartShapeProperties?.GetFirstChild<A.NoFill>() != null;
+            unsupported |= showMarkers && markerOutline?.GetFirstChild<A.NoFill>() != null;
+            unsupported |= !filled && showMarkers && stroke.HasValue && markerFill.HasValue && stroke.Value != markerFill.Value;
+            var data = new OfficeChartSeries(name, values, xValues, filled ? fill : stroke ?? fill ?? markerFill,
+                pointColors, showMarkers: showMarkers,
+                connectLine: connectLine,
                 markerSize: markerSize, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
                 .WithPointStyles(OfficeOpenXmlChartPointStyles.Read(element, values.Count, scheme));
-            return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data,
-                outline?.GetFirstChild<A.PresetDash>() != null && data.StrokeDashStyle == null);
+            return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data, unsupported);
         }
 
         private static IReadOnlyList<string> FallbackCategories(int count) => Enumerable.Range(1, count)
