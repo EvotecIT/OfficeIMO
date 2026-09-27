@@ -206,47 +206,16 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void UpdateScatterSeriesText(C.ScatterChartSeries series, int seriesIndex, string seriesName) {
-            string seriesNameRef = GetScatterSeriesNameReference(seriesIndex);
-            C.SeriesText seriesText = series.GetFirstChild<C.SeriesText>() ?? new C.SeriesText();
-            seriesText.RemoveAllChildren<C.StringReference>();
-            seriesText.RemoveAllChildren<C.StringLiteral>();
-            seriesText.Append(CreateStringReference(seriesNameRef, new[] { seriesName }));
-
-            if (seriesText.Parent == null) {
-                OpenXmlElement? insertAfter = series.GetFirstChild<C.Order>();
-                insertAfter ??= series.GetFirstChild<C.Index>();
-                if (insertAfter != null) {
-                    series.InsertAfter(seriesText, insertAfter);
-                } else {
-                    series.PrependChild(seriesText);
-                }
-            }
+            series.AddChild(new C.SeriesText(CreateStringReference(GetScatterSeriesNameReference(seriesIndex), new[] { seriesName })), true);
         }
 
         private static void UpdateXValues(C.ScatterChartSeries series, int seriesIndex, IReadOnlyList<double> values) {
-            string valuesRef = GetScatterXValuesReference(seriesIndex, values.Count);
-            C.XValues xValueElement = series.GetFirstChild<C.XValues>() ?? new C.XValues();
-            xValueElement.RemoveAllChildren<C.NumberReference>();
-            xValueElement.RemoveAllChildren<C.NumberLiteral>();
-            xValueElement.Append(CreateNumberReference(valuesRef, values));
-
-            if (xValueElement.Parent == null) {
-                series.Append(xValueElement);
-            }
+            series.AddChild(new C.XValues(CreateNumberReference(GetScatterXValuesReference(seriesIndex, values.Count), values)), true);
         }
 
         private static void UpdateYValues(C.ScatterChartSeries series, int seriesIndex, IReadOnlyList<double> values) {
-            string valuesRef = GetScatterYValuesReference(seriesIndex, values.Count);
-            C.YValues yValueElement = series.GetFirstChild<C.YValues>() ?? new C.YValues();
-            yValueElement.RemoveAllChildren<C.NumberReference>();
-            yValueElement.RemoveAllChildren<C.NumberLiteral>();
-            yValueElement.Append(CreateNumberReference(valuesRef, values));
-
-            if (yValueElement.Parent == null) {
-                series.Append(yValueElement);
-            }
+            series.AddChild(new C.YValues(CreateNumberReference(GetScatterYValuesReference(seriesIndex, values.Count), values)), true);
         }
-
         private static void InsertSeries(OpenXmlCompositeElement chart, OpenXmlElement series) {
             OpenXmlElement? insertBefore = chart.ChildElements.FirstOrDefault(child =>
                 child is C.DataLabels ||

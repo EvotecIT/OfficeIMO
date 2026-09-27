@@ -224,29 +224,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void UpdateChartData(ChartPart chartPart, PowerPointScatterChartData data) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
-
-            C.ChartSpace? chartSpace = chartPart.ChartSpace;
-            C.Chart? chart = chartSpace?.GetFirstChild<C.Chart>();
-            C.PlotArea? plotArea = chart?.GetFirstChild<C.PlotArea>();
-            if (plotArea == null) {
-                throw new InvalidOperationException("Chart plot area not found.");
-            }
-
-            List<C.ScatterChart> scatterCharts = plotArea.Elements<C.ScatterChart>().ToList();
-            if (scatterCharts.Count > 0) {
-                UpdateScatterChartLayers(plotArea, scatterCharts, data);
-                return;
-            }
-
-            throw new NotSupportedException("Chart type is not supported for scatter data updates.");
+            if (data == null) throw new ArgumentNullException(nameof(data));
+            var shared = new OfficeIMO.Drawing.OfficeChartData(
+                data.Series[0].XValues.Select(value => value.ToString(CultureInfo.InvariantCulture)),
+                data.Series.Select(series => new OfficeIMO.Drawing.OfficeChartSeries(series.Name, series.YValues, series.XValues)));
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateScatterData(chartPart, shared);
         }
-
         private static C.BarChart CreateBarChart(PowerPointChartData data, out uint categoryAxisId, out uint valueAxisId) {
             categoryAxisId = PowerPointChartAxisIdGenerator.GetNextId();
             valueAxisId = PowerPointChartAxisIdGenerator.GetNextId();
@@ -438,10 +421,7 @@ namespace OfficeIMO.PowerPoint {
                     existingSeries.Add(seriesElement);
                 }
 
-                UpdateSeriesIndexOrder(seriesElement, i);
-                UpdateSeriesText(seriesElement, i, data.Series[i].Name);
-                UpdateCategoryAxisData(seriesElement, data.Categories);
-                UpdateValues(seriesElement, i, data.Series[i].Values);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateCategorySeriesData(seriesElement, i, data.Series[i].Name, data.Categories, data.Series[i].Values);
             }
 
             for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
@@ -465,10 +445,7 @@ namespace OfficeIMO.PowerPoint {
                     existingSeries.Add(seriesElement);
                 }
 
-                UpdateSeriesIndexOrder(seriesElement, i);
-                UpdateSeriesText(seriesElement, i, data.Series[i].Name);
-                UpdateCategoryAxisData(seriesElement, data.Categories);
-                UpdateValues(seriesElement, i, data.Series[i].Values);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateCategorySeriesData(seriesElement, i, data.Series[i].Name, data.Categories, data.Series[i].Values);
             }
 
             for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
@@ -492,10 +469,7 @@ namespace OfficeIMO.PowerPoint {
                     existingSeries.Add(seriesElement);
                 }
 
-                UpdateSeriesIndexOrder(seriesElement, i);
-                UpdateSeriesText(seriesElement, i, data.Series[i].Name);
-                UpdateCategoryAxisData(seriesElement, data.Categories);
-                UpdateValues(seriesElement, i, data.Series[i].Values);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateCategorySeriesData(seriesElement, i, data.Series[i].Name, data.Categories, data.Series[i].Values);
             }
 
             for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
@@ -518,116 +492,11 @@ namespace OfficeIMO.PowerPoint {
                     existingSeries.Add(seriesElement);
                 }
 
-                UpdateSeriesIndexOrder(seriesElement, i);
-                UpdateSeriesText(seriesElement, i, data.Series[i].Name);
-                UpdateCategoryAxisData(seriesElement, data.Categories);
-                UpdateValues(seriesElement, i, data.Series[i].Values);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.UpdateCategorySeriesData(seriesElement, i, data.Series[i].Name, data.Categories, data.Series[i].Values);
             }
 
             for (int i = existingSeries.Count - 1; i >= seriesCount; i--) {
                 existingSeries[i].Remove();
-            }
-        }
-
-        private static void UpdateSeriesIndexOrder(OpenXmlCompositeElement series, int index) {
-            C.Index idx = series.GetFirstChild<C.Index>() ?? new C.Index();
-            idx.Val = (uint)index;
-            if (idx.Parent == null) {
-                series.PrependChild(idx);
-            }
-
-            C.Order order = series.GetFirstChild<C.Order>() ?? new C.Order();
-            order.Val = (uint)index;
-            if (order.Parent == null) {
-                series.InsertAfter(order, idx);
-            }
-        }
-
-        private static void UpdateSeriesText(OpenXmlCompositeElement series, int seriesIndex, string seriesName) {
-            string seriesColumn = ColumnLetter(seriesIndex + 2);
-            string seriesNameRef = $"Sheet1!${seriesColumn}$1";
-            C.SeriesText seriesText = series.GetFirstChild<C.SeriesText>() ?? new C.SeriesText();
-            seriesText.RemoveAllChildren<C.StringReference>();
-            seriesText.RemoveAllChildren<C.StringLiteral>();
-            seriesText.Append(CreateStringReference(seriesNameRef, new[] { seriesName }));
-
-            if (seriesText.Parent == null) {
-                OpenXmlElement? insertAfter = series.GetFirstChild<C.Order>();
-                insertAfter ??= series.GetFirstChild<C.Index>();
-                if (insertAfter != null) {
-                    series.InsertAfter(seriesText, insertAfter);
-                } else {
-                    series.PrependChild(seriesText);
-                }
-            }
-        }
-
-        private static void UpdateCategoryAxisData(OpenXmlCompositeElement series, IReadOnlyList<string> categories) {
-            int lastRow = categories.Count + 1;
-            string categoriesRef = $"Sheet1!$A$2:$A${lastRow}";
-            C.CategoryAxisData categoryAxisData = series.GetFirstChild<C.CategoryAxisData>() ?? new C.CategoryAxisData();
-            categoryAxisData.RemoveAllChildren<C.StringReference>();
-            categoryAxisData.RemoveAllChildren<C.StringLiteral>();
-            categoryAxisData.Append(CreateStringReference(categoriesRef, categories));
-
-            if (categoryAxisData.Parent == null) {
-                series.Append(categoryAxisData);
-            }
-        }
-
-        private static void UpdateScatterSeriesText(C.ScatterChartSeries series, int seriesIndex, string seriesName) {
-            string seriesNameRef = GetScatterSeriesNameReference(seriesIndex);
-            C.SeriesText seriesText = series.GetFirstChild<C.SeriesText>() ?? new C.SeriesText();
-            seriesText.RemoveAllChildren<C.StringReference>();
-            seriesText.RemoveAllChildren<C.StringLiteral>();
-            seriesText.Append(CreateStringReference(seriesNameRef, new[] { seriesName }));
-
-            if (seriesText.Parent == null) {
-                OpenXmlElement? insertAfter = series.GetFirstChild<C.Order>();
-                insertAfter ??= series.GetFirstChild<C.Index>();
-                if (insertAfter != null) {
-                    series.InsertAfter(seriesText, insertAfter);
-                } else {
-                    series.PrependChild(seriesText);
-                }
-            }
-        }
-
-        private static void UpdateValues(OpenXmlCompositeElement series, int seriesIndex, IReadOnlyList<double> values) {
-            int lastRow = values.Count + 1;
-            string seriesColumn = ColumnLetter(seriesIndex + 2);
-            string valuesRef = $"Sheet1!${seriesColumn}$2:${seriesColumn}${lastRow}";
-            C.Values valueElement = series.GetFirstChild<C.Values>() ?? new C.Values();
-            valueElement.RemoveAllChildren<C.NumberReference>();
-            valueElement.RemoveAllChildren<C.NumberLiteral>();
-            valueElement.Append(CreateNumberReference(valuesRef, values));
-
-            if (valueElement.Parent == null) {
-                series.Append(valueElement);
-            }
-        }
-
-        private static void UpdateXValues(C.ScatterChartSeries series, int seriesIndex, IReadOnlyList<double> values) {
-            string valuesRef = GetScatterXValuesReference(seriesIndex, values.Count);
-            C.XValues xValueElement = series.GetFirstChild<C.XValues>() ?? new C.XValues();
-            xValueElement.RemoveAllChildren<C.NumberReference>();
-            xValueElement.RemoveAllChildren<C.NumberLiteral>();
-            xValueElement.Append(CreateNumberReference(valuesRef, values));
-
-            if (xValueElement.Parent == null) {
-                series.Append(xValueElement);
-            }
-        }
-
-        private static void UpdateYValues(C.ScatterChartSeries series, int seriesIndex, IReadOnlyList<double> values) {
-            string valuesRef = GetScatterYValuesReference(seriesIndex, values.Count);
-            C.YValues yValueElement = series.GetFirstChild<C.YValues>() ?? new C.YValues();
-            yValueElement.RemoveAllChildren<C.NumberReference>();
-            yValueElement.RemoveAllChildren<C.NumberLiteral>();
-            yValueElement.Append(CreateNumberReference(valuesRef, values));
-
-            if (yValueElement.Parent == null) {
-                series.Append(yValueElement);
             }
         }
 
