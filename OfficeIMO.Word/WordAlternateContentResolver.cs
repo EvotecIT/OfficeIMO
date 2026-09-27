@@ -47,6 +47,18 @@ internal static class WordAlternateContentResolver {
         return alternateContent.GetFirstChild<AlternateContentFallback>();
     }
 
+    /// <summary>Enumerates immediate content, flattening only selected compatibility wrappers.</summary>
+    internal static IEnumerable<OpenXmlElement> EnumerateEffectiveChildren(OpenXmlElement parent) {
+        foreach (OpenXmlElement child in parent.ChildElements) {
+            if (child is AlternateContent alternateContent) {
+                OpenXmlCompositeElement? branch = SelectBranch(alternateContent);
+                if (branch != null) {
+                    foreach (OpenXmlElement selectedChild in EnumerateEffectiveChildren(branch)) yield return selectedChild;
+                }
+            } else yield return child;
+        }
+    }
+
     private static bool AreRequiredNamespacesSupported(AlternateContentChoice choice) {
         string? requires = choice.Requires?.Value;
         if (string.IsNullOrWhiteSpace(requires)) return false;
