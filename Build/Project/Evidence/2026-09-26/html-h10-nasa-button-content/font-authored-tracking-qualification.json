@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "36b78002cf7834ea12891ae2049bc24c94d4fb23",
+  "validatedCandidateFingerprint": "10071c24c881f7afca272b1539bc67c4865b2e0a",
+  "fingerprintMethod": "git diff --cached | git hash-object --stdin",
+  "runUtc": "2026-09-27T17:31:14.784011+00:00",
+  "scope": "Embedded positioned HTML-to-PDF text. Authored CSS size selects normal tracking; painting geometry uses PDF points. Native positioned PDF text retains point-size tracking.",
+  "contracts": [
+    "Metric scale is carried by each internal positioned canvas item and immutable rich-text/show-command metadata.",
+    "Named and standard TrueType measurement and painting evaluate tracking at physical size divided by metric scale.",
+    "Native point-text defaults, signed cluster advances, attached glyph offsets and ActualText metadata copies retain their contracts.",
+    "No shared font cache or PdfOptions mutation; untracked auto-direction fonts retain their existing fast path."
+  ],
+  "validation": {
+    "html-net10": {
+      "passed": 3642,
+      "failed": 0
+    },
+    "html-net8": {
+      "passed": 3642,
+      "failed": 0
+    },
+    "pdf-net10": {
+      "passed": 7970,
+      "failed": 0
+    },
+    "pdf-net8-initial": {
+      "passed": 7969,
+      "failed": 1,
+      "failure": "Unchanged LargeHexStringDecodeHonorsCancellation test. Its focused cancellation class passed 16/16, and one full confirmation passed 7970/7970. The initial quiet run does not retain assertion details; no product cause is established."
+    },
+    "pdf-focused-net10": {
+      "passed": 21,
+      "failed": 0
+    },
+    "html-focused-net10": {
+      "passed": 6,
+      "failed": 0
+    },
+    "html-pdf-netstandard2.0": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "pdf-net8-confirmation": {
+      "passed": 7970,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "negativeControl": {
+    "unitTestsFailedWithPointSizeBasis": 3,
+    "nativeRenderComparison": {
+      "changedPixels": 989,
+      "dimensions": [
+        1391,
+        1800
+      ],
+      "meaning": "Wrong point-size tracking differs from authored-size tracking despite identical declared advance width."
+    }
+  },
+  "renderedReferencePairs": [
+    {
+      "stem": "size-10-fit-False",
+      "changedPixels": 0,
+      "dimensions": [
+        637,
+        900
+      ],
+      "matrices": [
+        [
+          "0.75",
+          "0",
+          "0",
+          "0.75",
+          "0",
+          "210.472441"
+        ],
+        [
+          "0.998371",
+          "0",
+          "0",
+          "1",
+          "0.068419",
+          "0"
+        ]
+      ]
+    },
+    {
+      "stem": "size-10-fit-True",
+      "changedPixels": 0,
+      "dimensions": [
+        637,
+        900
+      ],
+      "matrices": [
+        [
+          "0.581417",
+          "0",
+          "0",
+          "0.581417",
+          "0",
+          "352.400471"
+        ],
+        [
+          "0.75",
+          "0",
+          "0",
+          "0.75",
+          "0",
+          "210.472441"
+        ],
+        [
+          "0.998371",
+          "0",
+          "0",
+          "1",
+          "0.110639",
+          "0"
+        ]
+      ]
+    },
+    {
+      "stem": "size-16-fit-False",
+      "changedPixels": 0,
+      "dimensions": [
+        637,
+        900
+      ],
+      "matrices": [
+        [
+          "0.75",
+          "0",
+          "0",
+          "0.75",
+          "0",
+          "210.472441"
+        ],
+        [
+          "0.998478",
+          "0",
+          "0",
+          "1",
+          "0.063916",
+          "0"
+        ]
+      ]
+    },
+    {
+      "stem": "size-16-fit-True",
+      "changedPixels": 0,
+      "dimensions": [
+        637,
+        900
+      ],
+      "matrices": [
+        [
+          "0.581417",
+          "0",
+          "0",
+          "0.581417",
+          "0",
+          "352.400471"
+        ],
+        [
+          "0.75",
+          "0",
+          "0",
+          "0.75",
+          "0",
+          "210.472441"
+        ],
+        [
+          "0.998478",
+          "0",
+          "0",
+          "1",
+          "0.103357",
+          "0"
+        ]
+      ]
+    },
+    {
+      "stem": "size-20-fit-False",
+      "changedPixels": 0,
+      "dimensions": [
+        637,
+        900
+      ],
+      "matrices": [
+        [
+          "0.75",
+          "0",
+          "0",
+          "0.75",
+          "0",
+          "210.472441"
+        ],
+        [
+          "0.998542",
+          "0",
+          "0",
+          "1",
+          "0.061229",
+          "0"
+        ]
+      ]
+    },
+    {
+      "stem": "size-20-fit-True",
+      "changedPixels": 0,
+      "dimensions": [
+        637,
+        900
+      ],
+      "matrices": [
+        [
+          "0.581417",
+          "0",
+          "0",
+          "0.581417",
+          "0",
+          "352.400471"
+        ],
+        [
+          "0.75",
+          "0",
+          "0",
+          "0.75",
+          "0",
+          "210.472441"
+        ],
+        [
+          "0.998542",
+          "0",
+          "0",
+          "1",
+          "0.099013",
+          "0"
+        ]
+      ]
+    }
+  ],
+  "fontProof": [
+    {
+      "size": 10,
+      "fit": false,
+      "adjustment": -100,
+      "stem": "size-10-fit-False",
+      "sourceFontSha256": "F6418F708BAEDE9789DAEF5D458C0F53D2A888AF9820E8062934E504FEDC6595",
+      "actualPdfBytes": 17039,
+      "referencePdfBytes": 17039
+    },
+    {
+      "size": 10,
+      "fit": true,
+      "adjustment": -100,
+      "stem": "size-10-fit-True",
+      "sourceFontSha256": "F6418F708BAEDE9789DAEF5D458C0F53D2A888AF9820E8062934E504FEDC6595",
+      "actualPdfBytes": 17095,
+      "referencePdfBytes": 17095
+    },
+    {
+      "size": 16,
+      "fit": false,
+      "adjustment": -40,
+      "stem": "size-16-fit-False",
+      "sourceFontSha256": "F6418F708BAEDE9789DAEF5D458C0F53D2A888AF9820E8062934E504FEDC6595",
+      "actualPdfBytes": 17044,
+      "referencePdfBytes": 17044
+    },
+    {
+      "size": 16,
+      "fit": true,
+      "adjustment": -40,
+      "stem": "size-16-fit-True",
+      "sourceFontSha256": "F6418F708BAEDE9789DAEF5D458C0F53D2A888AF9820E8062934E504FEDC6595",
+      "actualPdfBytes": 17100,
+      "referencePdfBytes": 17100
+    },
+    {
+      "size": 20,
+      "fit": false,
+      "adjustment": 0,
+      "stem": "size-20-fit-False",
+      "sourceFontSha256": "F6418F708BAEDE9789DAEF5D458C0F53D2A888AF9820E8062934E504FEDC6595",
+      "actualPdfBytes": 16956,
+      "referencePdfBytes": 16956
+    },
+    {
+      "size": 20,
+      "fit": true,
+      "adjustment": 0,
+      "stem": "size-20-fit-True",
+      "sourceFontSha256": "F6418F708BAEDE9789DAEF5D458C0F53D2A888AF9820E8062934E504FEDC6595",
+      "actualPdfBytes": 17012,
+      "referencePdfBytes": 17012
+    }
+  ],
+  "review": {
+    "agent": "h10_authored_tracking_review",
+    "readOnly": true,
+    "actionableP0ToP2Findings": 0,
+    "candidateFingerprint": "10071c24c881f7afca272b1539bc67c4865b2e0a",
+    "scope": "Per-item metadata propagation, measurement/painting, named/standard fonts, native defaults, copies, signed and attached glyphs. Form appearances excluded."
+  },
+  "cleanup": {
+    "probeBinAndObjRemoved": true,
+    "buildBytesRemoved": 23143056
+  },
+  "remainingQualification": [
+    "HTML form font selection and authored metrics under interactive-PDF intent.",
+    "Shared installed system-font aliases with size-aware variable-face resolution.",
+    "NASA all-page replay, H4 regression and supported-platform budgets.",
+    "Other frozen pages and predeclared replacement corpus, PDF intents and applicable editable formats."
+  ],
+  "goalComplete": false,
+  "sourceCommit": "360e7097f413d3b377352c366a7e3cc092fee5a6",
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/h10-authored-tracking-36b78002c",
+  "retainedBytes": 333694,
+  "observedSamples": [
+    "size-16-fit-False-actual.png",
+    "size-16-fit-True-actual.png",
+    "authored-size-control.png",
+    "point-size-negative-control.png"
+  ],
+  "limitations": [
+    "Constant-tracking reference fonts qualify the authored-size contract, not Chromium or NASA visual equivalence.",
+    "Existing nominal PDF metric rounding and run fitting remain in both rendered reference lanes.",
+    "Initial net8 broad cancellation failure is retained; subsequent focused and full passes do not establish its cause."
+  ],
+  "evidenceCommands": [
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --no-restore -f net10.0",
+    "dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --no-restore -f net8.0",
+    "dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --no-restore --no-build -f net10.0",
+    "dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --no-restore --no-build -f net8.0 --logger console;verbosity=minimal",
+    "dotnet build OfficeIMO.Html.Pdf/OfficeIMO.Html.Pdf.csproj --no-restore -f netstandard2.0",
+    "dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --no-restore --no-build -f net8.0 --filter FullyQualifiedName~PdfPageExtractionCancellationTests",
+    "pdftoppm -singlefile -png -scale-to 900 <reference-pair.pdf> <output>"
+  ]
+}
