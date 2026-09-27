@@ -1,0 +1,285 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "041243ee96bbfa2ae6fd517f6ddc4c73851d9f98",
+  "cleanSource": true,
+  "nasa": {
+    "runUtc": "2026-09-27T18:27:25.091414+00:00",
+    "archive": {
+      "path": "source.mhtml",
+      "bytes": 29443783,
+      "sha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735"
+    },
+    "failures": [],
+    "operations": [
+      {
+        "intent": "chromium-screen",
+        "pageCount": 4,
+        "bytes": 20356623,
+        "sha256": "a33dfdc45996246e57fcba38d6922ab91650e26b5199be3f8c92800bfd828785"
+      },
+      {
+        "intent": "chromium-print",
+        "pageCount": 4,
+        "bytes": 20348658,
+        "sha256": "00f866ec9ba6327621eb7dac35a336ff98771d1e9bf4b658a74ec86a351457bb"
+      },
+      {
+        "intent": "officeimo-print",
+        "pageCount": 12,
+        "bytes": 23194853,
+        "sha256": "e4103cbe8cfacfd255a69c3c422b2fc6e1b4e39e5c9e3038a74eafbf0bdeee9e"
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pageCount": 10,
+        "bytes": 23109757,
+        "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730"
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pageCount": 4,
+        "bytes": 23051656,
+        "sha256": "7400106e406ba07643125f586c1a84b45b62d39fe279d44c7ea188b4b72a8760"
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pageCount": 4,
+        "bytes": 24485426,
+        "sha256": "133cc79469a1fcbba0949a4507e35acd9c5970413be8c9f392ffa65cda1dce0c"
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pageCount": 10,
+        "bytes": 23109757,
+        "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730"
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pageCount": 10,
+        "bytes": 24833341,
+        "sha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6"
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pageCount": 10,
+        "bytes": 23109757,
+        "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730"
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pageCount": 10,
+        "bytes": 24833341,
+        "sha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6"
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pageCount": 12,
+        "bytes": 23032372,
+        "sha256": "a5c8cd8fb8bd59337e13daa048c1f626c1734506aceea2330c6a55997615214d"
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pageCount": 12,
+        "bytes": 24447371,
+        "sha256": "7e78e3a7f9c035799f213acdf5c822a23814c7dbcf20a83ef4fa27ad3e2b7314"
+      },
+      {
+        "intent": "peachpdf-print",
+        "pageCount": 3,
+        "bytes": 310574,
+        "sha256": "91ff33d59e056142577fbdcadf70cb67699fe8b9002647c74aa61f4ccff372da"
+      }
+    ],
+    "inspection": {
+      "sourceCommit": "041243ee96bbfa2ae6fd517f6ddc4c73851d9f98",
+      "dpi": 96,
+      "comparisons": [
+        {
+          "lane": "officeimo-print-fit-1200",
+          "page": 1,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 276894,
+          "meanAbsoluteChannelDifference": 14.21275655229526
+        },
+        {
+          "lane": "officeimo-print-fit-1200",
+          "page": 2,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 368022,
+          "meanAbsoluteChannelDifference": 17.945100606548937
+        },
+        {
+          "lane": "officeimo-print-fit-1200",
+          "page": 3,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 374557,
+          "meanAbsoluteChannelDifference": 18.9418503845953
+        },
+        {
+          "lane": "officeimo-print-fit-1200",
+          "page": 4,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 197948,
+          "meanAbsoluteChannelDifference": 10.86962256690317
+        },
+        {
+          "lane": "officeimo-print-fit-1200-local-fonts",
+          "page": 1,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 273616,
+          "meanAbsoluteChannelDifference": 13.837496362944558
+        },
+        {
+          "lane": "officeimo-print-fit-1200-local-fonts",
+          "page": 2,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 367696,
+          "meanAbsoluteChannelDifference": 18.06629288927684
+        },
+        {
+          "lane": "officeimo-print-fit-1200-local-fonts",
+          "page": 3,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 374340,
+          "meanAbsoluteChannelDifference": 19.02620955407835
+        },
+        {
+          "lane": "officeimo-print-fit-1200-local-fonts",
+          "page": 4,
+          "referenceDimensions": [
+            795,
+            1124
+          ],
+          "managedDimensions": [
+            794,
+            1123
+          ],
+          "comparisonDimensions": [
+            795,
+            1124
+          ],
+          "changedPixels": 197602,
+          "meanAbsoluteChannelDifference": 10.819467012839738
+        }
+      ],
+      "inspection": "All four pages viewed in a three-lane montage. Same page count and broad gallery order; header controls, overview wrapping, gallery/card labels, lower gallery spacing and footer content still differ. No visual parity claim.",
+      "metricBoundary": "Top-left comparison with white padding for PDF page-size rounding, no rescaling. Whole-page differences localize no cause and are not an acceptance score."
+    },
+    "resourceObservation": "The fit-width local-font lane reports system-ui weight400 decodedBytes=15744864 and weight700 decodedBytes=0. This diagnostic is not a complete retained-memory budget.",
+    "priorPageCountBoundary": "All ten OfficeIMO lane page counts match the prior font-name checkpoint 26038f033; default/screen count divergence remains open."
+  },
+  "h4": {
+    "caseCount": 8,
+    "acceptancePassed": true,
+    "failures": [],
+    "source": {
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "relativeRoot": "OfficeIMO.TestAssets/Documents/Html/Qualification/H4/advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "commit": "041243ee96bbfa2ae6fd517f6ddc4c73851d9f98",
+      "worktreeDirty": false,
+      "caseCount": 8
+    },
+    "configurationSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+    "managedImageComparison": {
+      "prior": "Ignore/HtmlUnknownPageQualification/h10-h4-fontnames-clean-26038f033",
+      "compared": 43,
+      "changed": []
+    }
+  },
+  "remaining": [
+    "NASA header controls, overview wrapping, card labels, gallery spacing and footer content",
+    "Default/other PDF intent fidelity",
+    "Platform static timing, allocation and retained-memory budgets",
+    "Remaining WAI/MDN/TodoMVC gaps and replacement held-out/output qualification"
+  ],
+  "artifacts": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-systemui-clean-041243ee9",
+      "bytes": 318154324,
+      "purpose": "Frozen inputs, operation outputs and all-page comparison evidence"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-systemui-clean-041243ee9",
+      "bytes": 7496218,
+      "purpose": "Eight-case H4 acceptance and rendered regression evidence"
+    }
+  ]
+}
