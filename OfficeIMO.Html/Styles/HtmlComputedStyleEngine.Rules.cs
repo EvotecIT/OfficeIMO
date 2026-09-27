@@ -206,6 +206,7 @@ public static partial class HtmlComputedStyleEngine {
         }
 
         var declarations = ownedDeclarations ?? new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
+        string? providerCssText = null;
         for (int i = 0; ownedDeclarations == null && i < styleRule.Style.Length; i++) {
             string parsedPropertyName = styleRule.Style[i];
             string propertyName = RestoreFontShorthandName(parsedPropertyName);
@@ -225,12 +226,13 @@ public static partial class HtmlComputedStyleEngine {
         // expanded longhands. Query supported properties directly so the cascade keeps
         // the authored shorthand for custom-property resolution.
         if (ownedDeclarations == null) {
+            ProviderDeclarationQuery providerQueries = budget.ProviderDeclarationQueries.For(styleRule.Style);
             foreach (string propertyName in SupportedProperties) {
-                if (declarations.ContainsKey(propertyName)) continue;
+                if (declarations.ContainsKey(propertyName) || !providerQueries.CanHaveValue(propertyName)) continue;
                 // AngleSharp can synthesize `flex` from a longhand and `border` from
                 // `border-color`. Those shorthands must not compete with authored values.
                 if ((propertyName == "flex" || propertyName == "border")
-                    && !HasAuthoredDeclaration(ownedRule, styleRule.CssText, propertyName)) continue;
+                    && !HasAuthoredDeclaration(ownedRule, providerCssText ??= styleRule.CssText, propertyName)) continue;
                 string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
                 if (string.IsNullOrWhiteSpace(propertyValue)) continue;
                 declarations[propertyName] = new StyleDeclaration(
@@ -240,8 +242,8 @@ public static partial class HtmlComputedStyleEngine {
             }
         }
         if (ownedDeclarations == null) {
-            RemoveSyntheticAnimationName(styleRule.CssText, declarations);
-            AddRetainedUnknownDeclarations(styleRule.CssText, declarations);
+            RemoveSyntheticAnimationName(providerCssText ??= styleRule.CssText, declarations);
+            AddRetainedUnknownDeclarations(providerCssText, declarations);
         }
 
         int declarationOrder = 0;
