@@ -31,7 +31,8 @@ public partial class WordChart {
                 out var kind, out var bubbleScale, out var bubbleMode);
             if (data == null) return false;
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, data.ToData(), GetWidthPoints(), GetHeightPoints(),
-                style: null, OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind), bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
+                OfficeOpenXmlChartSeriesReader.ReadStyle(chart, kind, scheme), OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind),
+                bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
             return true;
         } catch {
             snapshot = null!;
