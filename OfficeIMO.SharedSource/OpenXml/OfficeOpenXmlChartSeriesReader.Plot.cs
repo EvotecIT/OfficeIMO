@@ -81,6 +81,13 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
+            if (layer.Descendants<C.Symbol>().Any(symbol => symbol.Val?.Value == C.MarkerStyleValues.Auto)) return true;
+            bool inheritedMarkers = layer is C.LineChart && layer.GetFirstChild<C.ShowMarker>()?.Val?.Value != false ||
+                layer is C.RadarChart radarMarkers && radarMarkers.RadarStyle?.Val?.Value == C.RadarStyleValues.Marker ||
+                layer is C.ScatterChart scatterMarkers && scatterMarkers.ScatterStyle?.Val?.Value != C.ScatterStyleValues.Line &&
+                    scatterMarkers.ScatterStyle?.Val?.Value != C.ScatterStyleValues.Smooth;
+            if (inheritedMarkers && layer.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(element => element.LocalName == "ser").Any(series => series.GetFirstChild<C.Marker>()?.Symbol?.Val == null)) return true;
             if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.HighLowLines or C.UpDownBars)) return true;
             if (layer is C.BarChart && layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")
                 .Any(series => series.Descendants<C.InvertIfNegative>().Any(invert => invert.Val?.Value != false) &&

@@ -11,6 +11,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_PreservesFormulaBasedAxisTitleTypeface() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        chart.SetXAxisTitle("Units");
+        var title = chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.Title>()!;
+        title.RemoveAllChildren<C.ChartText>();
+        title.AddChild(new C.ChartText(new C.StringReference(new C.Formula("Sheet1!$A$1"),
+            new C.StringCache(new C.PointCount { Val = 1 }, new C.StringPoint(new C.NumericValue("Units")) { Index = 0 }))), true);
+        title.AddChild(new C.TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(),
+            new DocumentFormat.OpenXml.Drawing.ListStyle(), new DocumentFormat.OpenXml.Drawing.Paragraph(
+                new DocumentFormat.OpenXml.Drawing.ParagraphProperties(new DocumentFormat.OpenXml.Drawing.DefaultRunProperties(
+                    new DocumentFormat.OpenXml.Drawing.LatinFont { Typeface = "Georgia" })))), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("Units", snapshot.Layout.CategoryAxisTitle);
+        Assert.Equal("Georgia", snapshot.Layout.AxisTitleFontFamily);
+    }
+    [Fact]
     public void OfficeSnapshot_RejectsUnrepresentedSecondaryAxisLimits() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
