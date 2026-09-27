@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+  "worktreeClean": true,
+  "ownerVersions": {
+    "Core": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "Email": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "HTML Core": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "HTML AngleSharp": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "HTML": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "HTML PDF": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "MHTML": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "MHTML PDF": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "PDF": "3.4.3+6e12692974c4b38bc3cedaad1f8bfd703c77ea83",
+    "evidence runner": "1.0.0+6e12692974c4b38bc3cedaad1f8bfd703c77ea83"
+  },
+  "chromiumVersion": "151.0.7922.34",
+  "reports": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-root-projection-clean-6e1269297/html-corpus-evidence.json",
+      "sha256": "c8a57b378bd6936088822a7cabbf1ed3e3952dd735f93244e5339ec47202c4fa"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-root-projection-clean-6e1269297/html-mhtml-evidence.json",
+      "sha256": "d076104fc8a55e647f0a21fbe21c1b1e7eb4f75f1b49fd582a92bfee05d2e06a"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-root-projection-clean-6e1269297/projection-pixel-comparison.json",
+      "sha256": "dde070eb9135474cbb74a0e81e6099a583788d608481db05cdcafe52749c2a78"
+    }
+  ],
+  "sourceValidation": {
+    "fullHtmlNet8AndNet10": "3688/3688 on the preceding stacking source candidate; projection-identity metadata subsequently passed 30/30 focused tests. Full suites were not repeated for the metadata/observer correction.",
+    "focusedFinalNet10": {
+      "passed": 30,
+      "failed": 0
+    },
+    "comparisonBuild": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "netstandard20HtmlPdfBuild": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "h4": {
+    "passed": true,
+    "cases": 8,
+    "failures": [],
+    "matchingOfficeImoBaselinePngs": 43,
+    "changedOfficeImoPngs": 0,
+    "legacyPortalGeometry": {
+      "officeImoElementCount": 16,
+      "browserElementCount": 7,
+      "matchedElementCount": 6,
+      "meanAbsoluteX": 55.398615491211864,
+      "meanAbsoluteY": 8.31114583333334,
+      "meanAbsoluteWidth": 105.85588274560592,
+      "meanAbsoluteHeight": 9.959999999999999
+    },
+    "observationContract": "Shared paint-projection identity counts each layout box once per distinct bounds and page; equal coordinates on distinct source elements remain distinct. Acceptance thresholds unchanged."
+  },
+  "nasa": {
+    "runnerFailures": [],
+    "operations": [
+      {
+        "intent": "chromium-screen",
+        "pages": 4,
+        "sha256": "7b4ce39a224f235641028b4d2fd6f36fc140fdb48798ff7ced784ebbd09aaf55"
+      },
+      {
+        "intent": "chromium-print",
+        "pages": 4,
+        "sha256": "1b0d1d4e8c536dec8400afe7039d79f0c6a490e59550c30bcb06a0b1c94fbb93"
+      },
+      {
+        "intent": "officeimo-print",
+        "pages": 12,
+        "sha256": "8317f5b3a1122ee6b4c81b3552829cd8e69808d792998fda24ada9b241b59af4"
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "pages": 10,
+        "sha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1"
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "pages": 4,
+        "sha256": "64c827702ce647c9995de6a9b96008a09099faa6a6b817195d95d7b1a6cbba91"
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "pages": 4,
+        "sha256": "ec09ebd2cf1713ee5665af0377669c5537d10f7e86535085041232b3342ca3df"
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "pages": 10,
+        "sha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1"
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "pages": 10,
+        "sha256": "9630831ad7b1dd568d141a6798167562831283d5ec346753cc8213411894fccc"
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "pages": 10,
+        "sha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1"
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "pages": 10,
+        "sha256": "9630831ad7b1dd568d141a6798167562831283d5ec346753cc8213411894fccc"
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "pages": 12,
+        "sha256": "dba4dc94de0428456a2bfc8dec5f09ff34133d89c45706e845fc0409adfafd03"
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "pages": 12,
+        "sha256": "127a952d96d009af32fc97ee6f5148cef8eab431c80841aae31b23ab410401f4"
+      },
+      {
+        "intent": "peachpdf-print",
+        "pages": 3,
+        "sha256": "fae61daa6f470032e30c61b0450782f6dcaf4f7adfe2b306c2ef4b80c8714752"
+      }
+    ],
+    "visualInspection": {
+      "pages": 105,
+      "identicalToInspectedStackingReplay": 104,
+      "changedPages": [
+        {
+          "intent": "chromium-print",
+          "pages": [
+            "page-4.png"
+          ]
+        }
+      ],
+      "changedPageInspected": true,
+      "officeImoPagesAllPixelIdentical": true,
+      "defaultFooterVisible": true,
+      "remaining": "Default print 12 pages versus browser four; gallery width, card text, header and intent-specific flow differences remain."
+    }
+  },
+  "editableProjectionProbe": {
+    "artifact": "Ignore/HtmlUnknownPageQualification/h10-editable-paint-projection-6e1269297",
+    "observed": "Flex region with two positioned inline children stays in semantic flow with RegionFragmented occurrences=2; surfaces=1. The non-positioned two-child control instead takes the existing multipleLayoutChildren fallback.",
+    "classification": "Needs baseline and supported-region regression proof before remediation; no broad editable-target qualification claimed."
+  },
+  "budget": "Current-source budget unqualified; unrelated Swift and simulator CPU load active.",
+  "cleanup": {
+    "removedBytes": 699500877,
+    "scope": "Superseded emitted PDFs and duplicate archives for the 7a873c002 and 3180f09cb NASA replays, plus the disposable editable probe bin/obj. Reports and all-page images retained; current 6e1269297 replay retained."
+  },
+  "nextDeliverable": "Reproduce supported editable region behavior across split paint projections, then reduce the NASA gallery width/card-count shrink trigger. Continue remaining named corpus, target and platform acceptance."
+}
