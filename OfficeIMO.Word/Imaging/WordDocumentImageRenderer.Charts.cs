@@ -33,7 +33,7 @@ internal static partial class WordDocumentImageRenderer {
                 OfficeChartSnapshot drawingSnapshot = CreateOfficeChartSnapshot(snapshot, width, height);
                 OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(
                     drawingSnapshot,
-                    useMinimumCanvas: false);
+                    useMinimumCanvas: false, diagnostics);
                 context.Drawing.AddDrawing(chartDrawing, context.Left, context.Y);
             } catch (Exception exception) when (
                 exception is ArgumentException
@@ -66,7 +66,7 @@ internal static partial class WordDocumentImageRenderer {
                 color: item.Color,
                 pointColors: item.PointColors,
                 showMarkers: true,
-                renderKind: MapChartKind(snapshot.ChartKind)));
+                renderKind: MapChartKind(snapshot.ChartKind)).WithPointStyles(item.PointStyles));
         }
 
         return new OfficeChartSnapshot(

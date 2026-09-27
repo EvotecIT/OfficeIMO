@@ -317,7 +317,8 @@ namespace OfficeIMO.Word {
                     name,
                     values,
                     color: ReadSeriesColor(seriesElement, colorScheme),
-                    pointColors: ReadPointColors(seriesElement, values.Count, colorScheme)));
+                    pointColors: ReadPointColors(seriesElement, values.Count, colorScheme),
+                    pointStyles: OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, colorScheme)));
             }
 
             return series.Count == 0 ? null : new WordChartData(categories, series);
@@ -356,7 +357,8 @@ namespace OfficeIMO.Word {
                     values,
                     xValues.Take(pointCount).ToList(),
                     ReadSeriesColor(seriesElement, colorScheme),
-                    ReadPointColors(seriesElement, values.Count, colorScheme)));
+                    ReadPointColors(seriesElement, values.Count, colorScheme),
+                    OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, colorScheme)));
             }
 
             if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {

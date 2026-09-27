@@ -35,9 +35,9 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor? outlineColor = series.ShowMarkerOutline
             ? series.MarkerOutlineColor ?? color
             : null;
-        AddShape(drawing, OfficeShape.Ellipse(diameter, diameter),
+        AddStyledPointShape(drawing, OfficeShape.Ellipse(diameter, diameter),
             center.X - diameter / 2D, center.Y - diameter / 2D,
-            color, outlineColor, outlineWidth);
+            color, GetPointStyle(series, pointIndex), outlineColor, outlineWidth);
     }
 
     private static double GetMaximumBubbleDiameter(double plotWidth,
@@ -79,6 +79,10 @@ public static partial class OfficeChartDrawingRenderer {
         double maximum = 0D;
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             OfficeChartSeries item = series[seriesIndex];
+            if (item.BubbleSizes != null && item.PointStyles != null)
+                foreach (OfficeChartPointStyle? pointStyle in item.PointStyles)
+                    if (pointStyle?.ShowOutline != false)
+                        maximum = Math.Max(maximum, pointStyle?.OutlineWidth ?? 0);
             if (!item.ShowMarkerOutline || item.BubbleSizes == null ||
                 !item.BubbleSizes.Any(size => size > 0D)) {
                 continue;

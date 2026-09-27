@@ -180,6 +180,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal IReadOnlyList<OfficeColor?>? PointColors { get; set; }
 
+        internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; set; }
+
         /// <summary>
         /// Optional chart kind for mixed/combo chart rendering.
         /// </summary>

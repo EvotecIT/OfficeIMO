@@ -57,6 +57,15 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public string Name { get; }
 
+        internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
+
+        internal ExcelChartSeries WithPointStyles(IReadOnlyList<OfficeChartPointStyle?>? styles) =>
+            new ExcelChartSeries(Name, Values, XValues, ChartType, AxisGroup, SeriesColorArgb,
+                SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine,
+                MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false) {
+                PointStyles = styles
+            };
+
         /// <summary>
         /// Gets the series values.
         /// </summary>

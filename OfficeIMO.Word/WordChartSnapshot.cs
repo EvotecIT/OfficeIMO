@@ -45,12 +45,13 @@ namespace OfficeIMO.Word {
     /// Series values extracted from cached Word chart data.
     /// </summary>
     public sealed class WordChartSeries {
-        internal WordChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues = null, OfficeIMO.Drawing.OfficeColor? color = null, IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? pointColors = null) {
+        internal WordChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues = null, OfficeIMO.Drawing.OfficeColor? color = null, IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? pointColors = null, IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? pointStyles = null) {
             Name = name ?? string.Empty;
             Values = new ReadOnlyCollection<double>(new List<double>(values ?? Array.Empty<double>()));
             XValues = xValues == null ? null : new ReadOnlyCollection<double>(new List<double>(xValues));
             Color = color;
             PointColors = pointColors == null ? null : new ReadOnlyCollection<OfficeIMO.Drawing.OfficeColor?>(new List<OfficeIMO.Drawing.OfficeColor?>(pointColors));
+            PointStyles = pointStyles == null ? null : new ReadOnlyCollection<OfficeIMO.Drawing.OfficeChartPointStyle?>(new List<OfficeIMO.Drawing.OfficeChartPointStyle?>(pointStyles));
         }
 
         /// <summary>Series display name.</summary>
@@ -67,6 +68,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Optional explicit point colors extracted from Word chart data point shape properties.</summary>
         public IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? PointColors { get; }
+
+        /// <summary>Point fill, hatch, and outline overrides read from native chart properties.</summary>
+        public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
     }
 
     /// <summary>

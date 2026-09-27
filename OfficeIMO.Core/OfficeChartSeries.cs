@@ -220,6 +220,25 @@ public sealed class OfficeChartSeries {
     /// <summary>Optional source-defined colors aligned with individual series values.</summary>
     public IReadOnlyList<OfficeColor?>? PointColors { get; }
 
+    /// <summary>Optional point styles aligned with the values; explicit fills override PointColors.</summary>
+    public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
+
+    /// <summary>
+    /// Returns a copy with aligned immutable point styles. Null removes shared style metadata;
+    /// null entries inherit the series/theme appearance and any legacy PointColors entry.
+    /// </summary>
+    public OfficeChartSeries WithPointStyles(IEnumerable<OfficeChartPointStyle?>? pointStyles) {
+        IReadOnlyList<OfficeChartPointStyle?>? styles = pointStyles == null ? null :
+            new ReadOnlyCollection<OfficeChartPointStyle?>(new List<OfficeChartPointStyle?>(pointStyles));
+        if (styles != null && styles.Count != Values.Count)
+            throw new ArgumentException("Point styles must match the number of series values.", nameof(pointStyles));
+        return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
+            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            PointStyles = styles
+        };
+    }
+
     /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
     public bool ShowMarkers { get; }
 

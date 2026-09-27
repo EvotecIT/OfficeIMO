@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint {
 
             try {
                 OfficeChartSnapshot drawingSnapshot = CreateOfficeChartSnapshot(snapshot, width, height);
-                OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(drawingSnapshot, useMinimumCanvas: false);
+                OfficeDrawing chartDrawing = OfficeChartDrawingRenderer.Render(drawingSnapshot, useMinimumCanvas: false, diagnostics);
                 if (chartDrawing.Width > width || chartDrawing.Height > height) {
                     AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because the shared chart renderer requires a larger drawing area than the chart frame.");
                     return;
