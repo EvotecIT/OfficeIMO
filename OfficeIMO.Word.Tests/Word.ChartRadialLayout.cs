@@ -24,8 +24,9 @@ public sealed class WordChartRadialLayoutTests {
         native.GetFirstChild<C.FirstSliceAngle>()!.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "val", "", angle));
         native.GetFirstChild<C.HoleSize>()!.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "val", "", hole));
         var options = new WordToPdfOptions();
-        byte[] pdf = document.ToPdfBytes(options);
-        Assert.Contains(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported" && warning.Message.Contains("invalid pie rotation"));
+        var result = document.ToPdfDocumentResult(options);
+        byte[] pdf = result.Value.ToBytes();
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "NativeBodyChartUnsupported" && warning.Message.Contains("invalid pie rotation"));
         using var rendered = UglyToad.PdfPig.PdfDocument.Open(pdf);
         Assert.Contains("Surrounding document content", rendered.GetPage(1).Text);
     }
