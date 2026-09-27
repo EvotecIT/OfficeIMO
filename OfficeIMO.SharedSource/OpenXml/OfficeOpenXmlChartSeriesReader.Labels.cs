@@ -45,6 +45,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
+                if (HasUnsupportedSharedAxisNumberFormat(labels))
+                    throw new NotSupportedException("The native data label format cannot be projected.");
                 foreach (var child in labels.ChildElements) {
                     if (child is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or
                         C.ShowBubbleSize or C.ShowLeaderLines or C.Separator or C.NumberingFormat or C.DataLabelPosition) continue;

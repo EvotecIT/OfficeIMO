@@ -22,6 +22,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         inherited = ReadTextPropertyDefaults(inherited, owner.GetFirstChild<C.TextProperties>(), scheme);
         var rich = owner.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
         if (rich == null) return inherited;
+        QualifyTextLayout(rich);
         NativeText? selected = null;
         foreach (var paragraph in rich.Elements<A.Paragraph>()) {
             int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
@@ -41,6 +42,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
 
     private static NativeText ReadTextPropertyDefaults(NativeText inherited, C.TextProperties? properties, A.ColorScheme? scheme) {
         if (properties == null) return inherited;
+        QualifyTextLayout(properties);
         NativeText? selected = null;
         foreach (var paragraph in properties.Elements<A.Paragraph>()) {
             int level = paragraph.ParagraphProperties?.Level?.Value ?? 0;
@@ -71,6 +73,20 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             selected = current;
         }
         return selected ?? default;
+    }
+
+    private static void QualifyTextLayout(OpenXmlCompositeElement text) {
+        var body = text.GetFirstChild<A.BodyProperties>();
+        if (body != null && (body.GetAttributes().Any(attribute =>
+                attribute.LocalName != "rot" || attribute.Value != "0") ||
+                body.ChildElements.Any(child => child is not A.NoAutoFit)))
+            throw new NotSupportedException("The native chart text body layout cannot be projected.");
+        foreach (var paragraphProperties in text.Descendants().Where(element => element is A.ParagraphProperties ||
+            element.Parent is A.ListStyle)) {
+            if (paragraphProperties.GetAttributes().Any(attribute => attribute.LocalName != "lvl") ||
+                paragraphProperties.ChildElements.Any(child => child is not A.DefaultRunProperties))
+                throw new NotSupportedException("The native chart paragraph layout cannot be projected.");
+        }
     }
 
     private static NativeText ApplyNativeText(NativeText inherited, OpenXmlElement? properties, A.ColorScheme? scheme) {
