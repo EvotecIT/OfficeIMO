@@ -20,7 +20,7 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 if (options.ExportHeadersAndFooters) {
-                    var projectedRegions = new List<WordHeaderFooter>();
+                    var projectedRegions = new Dictionary<OpenXmlPartRootElement, OpenXmlPartRootElement>();
                     foreach (WordSection section in document.Sections) {
                         ProjectHeaderFooter(section.Header.Default, projectedRegions, options.TrackedChangePolicy, restore);
                         ProjectHeaderFooter(section.Header.First, projectedRegions, options.TrackedChangePolicy, restore);
@@ -62,18 +62,33 @@ namespace OfficeIMO.Word.Html {
             for (int index = restore.Count - 1; index >= 0; index--) restore[index]();
         }
 
-        private static void ProjectHeaderFooter(WordHeaderFooter? region, List<WordHeaderFooter> projectedRegions,
+        private static void ProjectHeaderFooter(WordHeaderFooter? region, Dictionary<OpenXmlPartRootElement, OpenXmlPartRootElement> projectedRegions,
             WordTrackedChangeExportPolicy policy, List<Action> restore) {
-            if (region == null || projectedRegions.Any(existing => ReferenceEquals(existing, region))) return;
-            projectedRegions.Add(region);
+            if (region == null) return;
             if (region._header is Header header) {
-                Header projected = (Header)header.CloneNode(true);
-                ApplyTrackedChangePolicy(projected, policy);
+                if (!projectedRegions.TryGetValue(header, out var existing)) {
+                    Header projectedRoot = (Header)header.CloneNode(true);
+                    ApplyTrackedChangePolicy(projectedRoot, policy);
+                    var part = header.HeaderPart ?? throw new InvalidOperationException("The header projection has no owning part.");
+                    part.Header = projectedRoot;
+                    restore.Add(() => part.Header = header);
+                    projectedRegions.Add(header, projectedRoot);
+                    existing = projectedRoot;
+                }
+                Header projected = (Header)existing;
                 region._header = projected;
                 restore.Add(() => region._header = header);
             } else if (region._footer is Footer footer) {
-                Footer projected = (Footer)footer.CloneNode(true);
-                ApplyTrackedChangePolicy(projected, policy);
+                if (!projectedRegions.TryGetValue(footer, out var existing)) {
+                    Footer projectedRoot = (Footer)footer.CloneNode(true);
+                    ApplyTrackedChangePolicy(projectedRoot, policy);
+                    var part = footer.FooterPart ?? throw new InvalidOperationException("The footer projection has no owning part.");
+                    part.Footer = projectedRoot;
+                    restore.Add(() => part.Footer = footer);
+                    projectedRegions.Add(footer, projectedRoot);
+                    existing = projectedRoot;
+                }
+                Footer projected = (Footer)existing;
                 region._footer = projected;
                 restore.Add(() => region._footer = footer);
             }
