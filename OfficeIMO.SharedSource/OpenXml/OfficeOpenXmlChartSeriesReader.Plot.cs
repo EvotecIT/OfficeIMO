@@ -19,6 +19,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (layers.Count == 0) return null;
             ValidatePlotBudget(plot, maximumPoints);
             var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
+            if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
             var projectionBudget = new ProjectionBudget();
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
@@ -27,6 +28,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (layer is not C.BarChart && layer is not C.LineChart && layer is not C.AreaChart && layer is not C.RadarChart &&
                     layer is not C.ScatterChart && layer is not C.BubbleChart && layer is not C.PieChart && layer is not C.DoughnutChart) return null;
                 if (!TryReadKind(layer, out var layerKind)) return null;
+                if (HasUnsupportedLayerPresentation(layer)) return null;
                 if (index == 0) kind = layerKind;
                 Result? data;
                 if (layer is C.BubbleChart bubble) {
@@ -71,6 +73,52 @@ namespace OfficeIMO.OpenXml.Internal {
             // The same authoring contract declares supported family/axis combinations.
             OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);
             return result;
+        }
+
+        private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
+            bool radial = layer is C.PieChart or C.DoughnutChart;
+            if (radial) {
+                // Radial default colouring is per category in the shared renderer.
+                if (layer.GetFirstChild<C.VaryColors>()?.Val?.Value == false &&
+                    layer.Elements<C.PieChartSeries>().Any(series => series.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.SolidFill>() == null)) return true;
+                if (layer.Descendants<C.Explosion>().Any(explosion => explosion.Val?.Value != 0)) return true;
+            } else if (layer is not C.BubbleChart && IsVaryColorsEnabled(layer.GetFirstChild<C.VaryColors>())) return true;
+            if (layer is C.BarChart bars) {
+                if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap != 150) return true;
+                int expectedOverlap = bars.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered ? 0 : 100;
+                if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && overlap != expectedOverlap) return true;
+            }
+            return false;
+        }
+
+        private static bool HasSupportedProjectionAxisGroups(System.Collections.Generic.IReadOnlyList<OpenXmlCompositeElement> layers,
+            OfficeOpenXmlChartAxisGroups.Groups groups) {
+            var categoryLayers = layers.Where(layer => layer is C.BarChart or C.LineChart or C.AreaChart or C.RadarChart).ToArray();
+            if (categoryLayers.Length == 0) return true;
+            // The projection contract supports the conventional primary pair followed by
+            // a right/top secondary pair. Other native arrangements need independent
+            // axis identity and placement metadata instead of guessing from a side.
+            if (groups.Read(categoryLayers[0]) != OfficeChartAxisGroup.Primary) return false;
+            uint? primaryValueId = null;
+            foreach (var layer in categoryLayers) {
+                var axes = layer.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
+                if (axes.Length != 2 || axes.Any(axis => axis == null)) return false;
+                var category = axes.SingleOrDefault(axis => axis is C.CategoryAxis or C.DateAxis);
+                var value = axes.SingleOrDefault(axis => axis is C.ValueAxis);
+                if (category == null || value == null) return false;
+                bool secondary = groups.Read(layer) == OfficeChartAxisGroup.Secondary;
+                bool horizontal = layer is C.BarChart bars && bars.BarDirection?.Val?.Value == C.BarDirectionValues.Bar;
+                if (secondary && horizontal) return false;
+                var expectedCategory = secondary ? C.AxisPositionValues.Top : horizontal ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom;
+                var expectedValue = secondary ? C.AxisPositionValues.Right : horizontal ? C.AxisPositionValues.Bottom : C.AxisPositionValues.Left;
+                if (category.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedCategory || value.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedValue) return false;
+                if (!secondary) {
+                    uint? valueId = value.GetFirstChild<C.AxisId>()?.Val?.Value;
+                    if (primaryValueId.HasValue && valueId != primaryValueId) return false;
+                    primaryValueId = valueId;
+                }
+            }
+            return true;
         }
     }
 }

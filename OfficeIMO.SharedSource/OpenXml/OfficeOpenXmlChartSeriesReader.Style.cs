@@ -8,6 +8,14 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartStyle ReadStyle(C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null) {
+            if (new OpenXmlElement?[] { chart.GetFirstChild<C.Title>(), chart.GetFirstChild<C.Legend>() }
+                .Any(owner => owner?.GetFirstChild<C.ChartShapeProperties>()?.ChildElements.Count > 0))
+                throw new NotSupportedException("Title and legend shape appearance cannot be projected.");
+            var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme);
+            var defaultText = ReadNativeText(chart, chart, scheme);
+            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
+            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
+            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
             var area = ReadSurface(chart.Parent?.GetFirstChild<C.ShapeProperties>(), scheme);
             var plot = chart.PlotArea;
             var plotStyle = ReadSurface(plot?.GetFirstChild<C.ShapeProperties>(), scheme);
@@ -32,6 +40,9 @@ namespace OfficeIMO.OpenXml.Internal {
             var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
             var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
             return new OfficeChartStyle(fontFamily: textStyle?.FontFamily, titleFontFamily: textStyle?.TitleFontFamily,
+                titleFontSize: titleText.Size, titleFontStyle: titleText.Style, titleColor: titleText.Color,
+                legendTextColor: legendText.Color, mutedTextColor: axisText.Color, axisTitleColor: axisTitleText.Color,
+                textColor: defaultText.Color, dataLabelTextColor: defaultText.Color,
                 showBackground: !area.NoFill, backgroundColor: area.Fill,
                 showBorder: !area.NoOutline, borderColor: area.Stroke, chartBorderWidth: area.Width, chartBorderDashStyle: area.Dash,
                 plotAreaBackgroundColor: plotStyle.NoFill ? null : plotStyle.Fill,
