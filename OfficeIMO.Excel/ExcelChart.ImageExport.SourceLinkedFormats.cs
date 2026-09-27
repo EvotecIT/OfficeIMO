@@ -18,7 +18,8 @@ public sealed partial class ExcelChart {
         long remaining = 100_000;
         int remainingStyleRecords = 100_000;
         var sheetStyles = new Dictionary<ExcelSheet, Dictionary<string, uint>>();
-        var formats = new Dictionary<(ExcelSheet Sheet, uint Style), string>();
+        string[]? numberFormats = ReadBoundedSourceLinkedStyles();
+        if (numberFormats == null) return null;
         foreach (var layer in plot.ChildElements.OfType<OpenXmlCompositeElement>()) {
             var axisIds = layer.Elements<C.AxisId>().Take(3).Select(item => item.Val?.Value).ToArray();
             if (!axisIds.Contains(axisId)) continue;
@@ -59,12 +60,8 @@ public sealed partial class ExcelChart {
                 for (int row = address.Start.Row; row <= address.End.Row; row++) {
                     for (int column = address.Start.Column; column <= address.End.Column; column++) {
                         styles.TryGetValue(A1.CellReference(row, column), out uint styleIndex);
-                        if (!formats.TryGetValue((sheet, styleIndex), out string? cellFormat)) {
-                            try { cellFormat = sheet.GetCellStyleByIndex(styleIndex).NumberFormatCode ?? "General"; }
-                            catch (FormatException) { return null; }
-                            catch (ArgumentException) { return null; }
-                            formats.Add((sheet, styleIndex), cellFormat);
-                        }
+                        if (styleIndex >= numberFormats.Length) return null;
+                        string cellFormat = numberFormats[styleIndex];
                         if (format != null && !string.Equals(format, cellFormat, StringComparison.Ordinal)) return null;
                         format = cellFormat;
                     }

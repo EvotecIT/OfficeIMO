@@ -691,7 +691,14 @@ public static partial class OfficeChartDrawingRenderer {
         double displayValue = (percent ? value * 100D : value) / Math.Pow(1000D, scalingCommas);
         bool useAbsoluteNegative = displayValue < 0D && numberFormat.IndexOf(';') >= 0;
         string numericFormat = (grouped ? "N" : "F") + decimals.ToString(CultureInfo.InvariantCulture);
-        formatted = (useAbsoluteNegative ? Math.Abs(displayValue) : displayValue).ToString(numericFormat, CultureInfo.InvariantCulture);
+        double signedDisplay = useAbsoluteNegative ? Math.Abs(displayValue) : displayValue;
+        // Decimal conversion retains the spreadsheet's 15 significant digits and
+        // avoids runtime-specific floating-point midpoint formatting.
+        if (decimal.TryParse(signedDisplay.ToString("G15", CultureInfo.InvariantCulture), NumberStyles.Float,
+            CultureInfo.InvariantCulture, out decimal decimalDisplay))
+            formatted = Math.Round(decimalDisplay, decimals, MidpointRounding.AwayFromZero).ToString(numericFormat, CultureInfo.InvariantCulture);
+        else
+            formatted = signedDisplay.ToString(numericFormat, CultureInfo.InvariantCulture);
         formatted = TrimOptionalDataLabelDecimals(formatted, requiredDecimals);
         if (TryGetDataLabelFormatAffixes(format, out string prefix, out string suffix)) {
             if (percent && suffix.IndexOf('%') < 0) {
