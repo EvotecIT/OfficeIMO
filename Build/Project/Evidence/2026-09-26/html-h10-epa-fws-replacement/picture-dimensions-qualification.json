@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b1935f951dba03b16bb12ca8ef5ec3ba50ae665c",
+  "sourceCleanH4": true,
+  "contractReference": "https://html.spec.whatwg.org/multipage/embedded-content.html#the-picture-element",
+  "change": "Select picture source dimension hints with its responsive URL; preserve CSS overrides and shared intrinsic sizing for absolute/fixed replaced content including opposing insets.",
+  "regressions": {
+    "initialSelectedHints": {
+      "failed": 3,
+      "passed": 6,
+      "wrongWidth": 80,
+      "expectedWidth": 320
+    },
+    "positionedPartialHint": {
+      "before": [
+        300,
+        160
+      ],
+      "after": [
+        320,
+        160
+      ]
+    },
+    "focusedPictureAndPositionTests": 159
+  },
+  "tests": {
+    "htmlNet8": {
+      "passed": 3572,
+      "failed": 0
+    },
+    "htmlNet10": {
+      "passed": 3572,
+      "failed": 0
+    },
+    "htmlNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "localReview": {
+    "passes": 1,
+    "targetedConfirmations": 1,
+    "finding": "P2 positioned intrinsic-width fallback inherited but exposed by partial source hints; reproduced and fixed across shared consumers.",
+    "unresolvedActionableFindings": 0,
+    "finalPatchSha1": "8e00017a5c6d39858a4ffd71f29c161a1f5fdf16"
+  },
+  "h4": {
+    "passed": true,
+    "caseCount": 8,
+    "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+    "configurationSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+    "environment": {
+      "osDescription": "macOS 27.0.0",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "officeImoVersion": "3.4.3+b1935f951dba03b16bb12ca8ef5ec3ba50ae665c",
+      "peachPdfVersion": "0.9.19",
+      "htmlTinkerXVersion": "3.0.1",
+      "chromiumVersion": "151.0.7922.34",
+      "externalPdfRasterizer": "pdftoppm version 26.09.0"
+    },
+    "printRastersByteIdenticalToInspectedBaseline": 13
+  },
+  "archiveReplay": {
+    "sourceSha256": "644CCACFE10DDE7484549E46642BE88727C34F9BA98FB36407CB6FCA9F1F2FD4",
+    "cssRuleLimit": 40000,
+    "measurementBoundary": "Final code checkpoint rebuilt through the public MHTML/PDF consumer. Conversion allocations exclude loading and readback validation. Wall-clock results under concurrent validation are not acceptance timings; peak working set unsupported on this Mac.",
+    "canonicalLocalOutput": "Ignore/HtmlUnknownPageQualification/h10-fws-picture-dimensions-clean-b1935f951",
+    "intents": [
+      {
+        "intent": "PrintPaged",
+        "pages": 7,
+        "pdfBytes": 7712274,
+        "margins": {
+          "Top": 0,
+          "Right": 0,
+          "Bottom": 0,
+          "Left": 0
+        },
+        "imageOmissions": 0,
+        "conversionAllocatedBytes": 3268272992,
+        "pdfSha256": "6567c8ce8013cd4ff268fc6796d94bfca4e90f563fb4705bccb865e4ac3297ef",
+        "byteIdenticalToInspectedCandidate": true
+      },
+      {
+        "intent": "ScreenMediaPaged",
+        "pages": 8,
+        "pdfBytes": 7993701,
+        "margins": {
+          "Top": 0,
+          "Right": 0,
+          "Bottom": 0,
+          "Left": 0
+        },
+        "imageOmissions": 0,
+        "conversionAllocatedBytes": 3506139656,
+        "pdfSha256": "cea3868703e7f7df61dd7a251a3b48e5c2cc3faeda4ac41f57d0741a1676be48",
+        "byteIdenticalToInspectedCandidate": true
+      },
+      {
+        "intent": "ScreenSnapshotPaged",
+        "pages": 7,
+        "pdfBytes": 8045043,
+        "margins": {
+          "Top": 0,
+          "Right": 0,
+          "Bottom": 0,
+          "Left": 0
+        },
+        "imageOmissions": 0,
+        "conversionAllocatedBytes": 3171594112,
+        "pdfSha256": "949424fa9e80cf4f298970baa23415c79fa813869341e176a3ae9e6cd52d9d7b",
+        "byteIdenticalToInspectedCandidate": true
+      }
+    ],
+    "allPageBrowserInspection": {
+      "zeroMarginPrintPairs": 7,
+      "defaultMarginPrintPairs": 7,
+      "screenMediaPairs": 8,
+      "snapshotPairs": 7
+    },
+    "remainingVisibleDifferences": [
+      "Print/header vertical spacing and font/text wrapping",
+      "Screen title-band background and header spacing",
+      "Footer font and social icons",
+      "Screen-media footer fragmentation and fixed-control repetition",
+      "Snapshot text and image slice boundaries"
+    ]
+  },
+  "resourceAcceptance": false,
+  "unfamiliarPageFidelityAcceptance": false,
+  "macOSStaticBudget": {
+    "source": {
+      "commit": "b1935f951dba03b16bb12ca8ef5ec3ba50ae665c",
+      "worktreeClean": true,
+      "corpusId": "officeimo-html-h4-advanced-held-out",
+      "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+      "caseCount": 8,
+      "outputsPerIteration": 76
+    },
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 6469.023,
+      "peakWorkingSetBytes": 379666432,
+      "memorySampleCount": 120,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 6351.4715,
+          "managedAllocatedBytes": 1070934232,
+          "outputBytes": 2154399,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "3c2e47831f94ccb07f8ed4647264710152780ee9a4b56ba7efb0eb6760e40c21"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 17201.6791,
+      "peakWorkingSetBytes": 689717248,
+      "memorySampleCount": 258,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4203.8144,
+          "managedAllocatedBytes": 884573344,
+          "outputBytes": 2154399,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "3c2e47831f94ccb07f8ed4647264710152780ee9a4b56ba7efb0eb6760e40c21"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 2876.743,
+          "managedAllocatedBytes": 885974984,
+          "outputBytes": 2154399,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "3c2e47831f94ccb07f8ed4647264710152780ee9a4b56ba7efb0eb6760e40c21"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 2906.2427,
+          "managedAllocatedBytes": 885948800,
+          "outputBytes": 2154399,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "3c2e47831f94ccb07f8ed4647264710152780ee9a4b56ba7efb0eb6760e40c21"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 2.5845,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": [
+      "warm iteration 1 elapsed milliseconds 4203.8 exceeded ceiling 3000.0."
+    ],
+    "accepted": false,
+    "observation": "Concurrent Xcode/simulator activity was observed, but no exclusive cause is established. Keep the ceiling unchanged and timing qualification open."
+  }
+}
