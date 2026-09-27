@@ -33,14 +33,22 @@ declaration and records its actual affinity and priority in the log. Repeat
 the complete matrix on each discovered processor domain before interpreting
 relative timings, and retain the raw samples when background load is present.
 
+`CsvLargeFirstRowBenchmarks` repeats the same validated three-field FirstRow
+contract against one million rows. Run its four-case lane with
+`-Workload csvlargefirstrow`; full mode retains six warmups and twelve measured
+iterations and fixes worker priority at Normal. Fixture generation and validation remain outside timing. This lane
+measures API initialization and first-row consumption without PowerShell dispatch.
+
 ## Sustained input and sampled memory
 
 `Build/Benchmarks/csv-sustained-read.benchmark.ps1` declares a separate PowerForge
 lane with 100,000 and 1,000,000 rows, six fields, distinct strings, decimal values,
 dates, booleans, and plain or quoted Unicode multiline notes. It compares snapshot
-and incremental initialization for asynchronous first-row consumption and ordered
+and incremental initialization for asynchronous first-row or complete string-field consumption and ordered
 sequential or parallel typed projection. Typed projection enumerates synchronously
-after asynchronous initialization. Parallel projection uses four workers and
+after asynchronous initialization. `AllRowsAsync` awaits every `ReadAsync` call,
+consumes every string field, and checks the complete ordered result; it is a
+different consumer contract from typed projection. Parallel projection uses four workers and
 1,024-row batches by default, and consumes results without retaining a row array.
 
 Fixture creation and complete field/order validation happen outside timing.
@@ -59,7 +67,8 @@ Build the CSV library for `net10.0`, then run in a fresh PowerShell process on
 ```
 
 `-ModulePath` selects a module build, `-BinaryRoot` selects the CSV library build,
-and `-Plan` expands the 24 cases. Record processor/cache topology and repeat both
+and `-Plan` expands the 32 cases. Use `-Operation AllRowsAsync` for the eight-case
+full asynchronous traversal slice. Record processor/cache topology and repeat both
 lanes with `-AffinityMask` on every relevant Windows or Linux processor domain.
 Use `-Degree` and `-Batch` to qualify other parallel configurations separately.
 

@@ -20,7 +20,7 @@ $workloads = @{}
 
 New-BenchmarkSuite 'officeimo-csv-sustained-read' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 7 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
-    Add-BenchmarkMetadata Contract 'FirstRow: async initialization/read. Typed: async initialization, synchronous ordered projection, full checksum, no retained row array.'
+    Add-BenchmarkMetadata Contract 'FirstRow/AllRowsAsync: async initialization/read, every string field consumed. Typed: async initialization, synchronous ordered projection, full checksum, no retained row array.'
     Add-BenchmarkMetadata SampleMemory ([string] $sampleMemory)
     Add-BenchmarkMetadata Degree ([string] $degree[0])
     Add-BenchmarkMetadata Batch ([string] $batch[0])
@@ -54,7 +54,7 @@ New-BenchmarkSuite 'officeimo-csv-sustained-read' {
     }
     foreach ($engine in 'Snapshot', 'Incremental') {
         Add-BenchmarkEngine $engine {
-            foreach ($operation in 'FirstRow', 'TypedSequential', 'TypedParallel') {
+            foreach ($operation in 'FirstRow', 'AllRowsAsync', 'TypedSequential', 'TypedParallel') {
                 Add-BenchmarkOperation $operation {
                     param($case, $run)
                     $run.Workload.Execute(($case.Engine -eq 'Incremental'), $case.Operation, $sampleMemory)

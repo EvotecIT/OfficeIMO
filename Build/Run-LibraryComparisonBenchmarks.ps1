@@ -8,6 +8,7 @@ param(
         'csv',
         'csvwrite',
         'csvasyncread',
+        'csvlargefirstrow',
         'xls',
         'xlsx',
         'xlsxwrite',
@@ -136,6 +137,22 @@ $platform = if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatfor
 }
 
 $definitions = [ordered]@{
+    csvlargefirstrow = [pscustomobject]@{
+        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
+        Filter = '*CsvLargeFirstRowBenchmarks*'
+        ComparisonId = "csv-million-first-row-$Framework"
+        Suite = 'OfficeIMO.CSV.LargeFirstRow'
+        CatalogEligible = $false
+        FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
+        IdentityVariables = @('shape')
+        ExpectedCases = @(
+            foreach ($shape in @('Plain', 'Multiline')) {
+                foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
+                    "$scenario|Shape=$shape"
+                }
+            }
+        )
+    }
     csvasyncread = [pscustomobject]@{
         Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
         Filter = '*CsvAsyncReadBenchmarks*'

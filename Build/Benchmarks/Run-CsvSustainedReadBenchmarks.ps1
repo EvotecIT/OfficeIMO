@@ -7,6 +7,8 @@ param(
     [ValidateRange(1, 65536)] [int] $Batch = 1024,
     [int] $WarmupCount = 2,
     [int] $IterationCount = 7,
+    [ValidateSet('FirstRow', 'AllRowsAsync', 'TypedSequential', 'TypedParallel')]
+    [string[]] $Operation = @('FirstRow', 'AllRowsAsync', 'TypedSequential', 'TypedParallel'),
     [string] $AffinityMask,
     [switch] $SampleMemory,
     [switch] $Plan
@@ -41,7 +43,7 @@ try {
     if (-not $Plan) { [void] (New-Item -ItemType Directory -Path $fixtureRoot) }
     $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'csv-sustained-read.benchmark.ps1') `
         -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; FixtureRoot = $fixtureRoot; Rows = $Rows; Degree = $Degree; Batch = $Batch; SampleMemory = [bool] $SampleMemory } `
-        -WarmupCount $WarmupCount -IterationCount $IterationCount -Plan:$Plan
+        -WarmupCount $WarmupCount -IterationCount $IterationCount -Operation $Operation -Plan:$Plan
     $result
     if (-not $Plan -and @($result.Samples | Where-Object Status -ne 'Succeeded').Count -gt 0) {
         throw 'CSV sustained-read qualification failed. Inspect the retained result artifacts.'

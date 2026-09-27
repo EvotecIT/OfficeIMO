@@ -88,6 +88,25 @@ public sealed class CsvSustainedReadWorkload
                 }
                 return hash;
             }
+            if (operation == "AllRowsAsync")
+            {
+                int rows = 0;
+                long hash = 17;
+                while (await reader.ReadAsync().ConfigureAwait(false))
+                {
+                    rows++;
+                    string[] expected = validate ? Fields(Expected(rows)) : null;
+                    for (int column = 0; column < 6; column++)
+                    {
+                        string value = reader.GetString(column);
+                        if (validate && value != expected[column])
+                            throw new InvalidDataException("Async CSV field/order mismatch at row " + rows);
+                        hash = Hash(hash, value);
+                    }
+                }
+                if (rows != _rows) throw new InvalidDataException("Async CSV row-count mismatch.");
+                return hash;
+            }
             IEnumerable<Row> projected = operation == "TypedParallel"
                 ? reader.RowsAsParallel<Row>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = _degree, BatchSize = _batch })
                 : operation == "TypedSequential" ? reader.RowsAs<Row>()
@@ -117,6 +136,12 @@ public sealed class CsvSustainedReadWorkload
         if (operation == "FirstRow")
         {
             foreach (string value in Fields(Expected(1))) hash = Hash(hash, value);
+            return hash;
+        }
+        if (operation == "AllRowsAsync")
+        {
+            for (int id = 1; id <= _rows; id++)
+                foreach (string value in Fields(Expected(id))) hash = Hash(hash, value);
             return hash;
         }
         for (int id = 1; id <= _rows; id++) hash = HashRow(hash, Expected(id));
