@@ -9,6 +9,25 @@ namespace OfficeIMO.Tests;
 
 public class ExcelSourceLinkedChartFormatTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChartAxis_ReportsOverflowingSourceNumberFormatIds(bool custom) {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        var sheet = document.AddWorksheet("Overflow");
+        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
+        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
+        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        var stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
+        var id = new DocumentFormat.OpenXml.UInt32Value { InnerText = "4294967296" };
+        if (custom) {
+            var formats = stylesheet.NumberingFormats ?? new DocumentFormat.OpenXml.Spreadsheet.NumberingFormats();
+            if (formats.Parent == null) stylesheet.AddChild(formats, true);
+            formats.Append(new DocumentFormat.OpenXml.Spreadsheet.NumberingFormat { NumberFormatId = id, FormatCode = "0%" });
+        } else stylesheet.CellFormats!.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>().Last().NumberFormatId = id;
+        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
+    }
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
