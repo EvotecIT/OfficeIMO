@@ -2,6 +2,9 @@ namespace OfficeIMO.Html.Pdf;
 
 /// <summary>Stable diagnostics emitted by the direct rendered HTML-to-PDF adapter.</summary>
 public static class HtmlPdfDiagnosticCodes {
+    /// <summary>A static image discarded source animation or additional frames/pages.</summary>
+    public const string ImageStaticFrameSelected = "HtmlPdfImageStaticFrameSelected";
+
     /// <summary>A shaped font program was painted as vector outlines while retaining logical text for extraction and accessibility.</summary>
     public const string FontProgramOutlined = "HtmlPdfFontProgramOutlined";
 

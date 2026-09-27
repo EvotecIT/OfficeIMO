@@ -376,6 +376,15 @@ public static class OfficeRasterContainerInspector {
         return true;
     }
 
+    private static bool HasCompleteVp8ControlPartition(byte[] bytes, int offset, int length) {
+        if (length < 12) return false;
+        int frameTag = bytes[offset] | bytes[offset + 1] << 8 | bytes[offset + 2] << 16;
+        int controlLength = frameTag >> 5;
+        // The three-byte tag and seven-byte keyframe header precede the declared
+        // boolean control partition. Header-only metadata is not a decodable container.
+        return controlLength >= 2 && controlLength <= length - 10;
+    }
+
     private static bool TryInspectWebp(
         byte[] bytes,
         OfficeImageInfo imageInfo,
@@ -386,6 +395,7 @@ public static class OfficeRasterContainerInspector {
         int loopCount = 1;
         OfficeColor background = OfficeColor.Transparent;
         bool hasLosslessImage = false;
+        bool hasLossyImage = false;
         long validatedFramePixels = 0L;
         int cursor = 12;
         while (cursor <= bytes.Length - 8) {
@@ -396,6 +406,9 @@ public static class OfficeRasterContainerInspector {
             string type = ReadAscii(bytes, cursor);
             if (type == "VP8L") {
                 hasLosslessImage = true;
+            } else if (type == "VP8 ") {
+                if (!HasCompleteVp8ControlPartition(bytes, data, length)) return false;
+                hasLossyImage = true;
             } else if (type == "ANIM") {
                 if (length != 6) return false;
                 background = new OfficeColor(bytes[data + 2], bytes[data + 1], bytes[data], bytes[data + 3]);
@@ -434,6 +447,12 @@ public static class OfficeRasterContainerInspector {
         }
         if (cursor != bytes.Length) return false;
         if (frames.Count == 0) {
+            // OfficeImageReader has validated the VP8 header and RIFF container. Pixel
+            // decoding belongs to the optional codec, not lossless container inspection.
+            if (hasLossyImage) {
+                container = CreateStatic(imageInfo);
+                return true;
+            }
             if (!hasLosslessImage ||
                 !OfficeWebpCodec.TryDecode(
                     bytes, options.CancellationToken, options.RetainedManagedBytes,
@@ -487,6 +506,7 @@ public static class OfficeRasterContainerInspector {
                         source, payloadOffset, payloadLength, type,
                         out int width, out int height, out _) ||
                     width != expectedWidth || height != expectedHeight) return false;
+                if (type == "VP8 " && !HasCompleteVp8ControlPartition(source, payloadOffset, payloadLength)) return false;
                 if (type == "VP8L" && !TryDecodeWebpAnimationFrame(
                         source, cursor, (int)paddedEnd - cursor,
                         expectedWidth, expectedHeight, retainedFrameInventoryBytes,

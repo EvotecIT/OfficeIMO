@@ -11,6 +11,7 @@ internal static partial class HtmlPdfRenderedConverter {
         PdfCore.PdfPageCanvas canvas,
         HtmlRenderShape visual,
         OfficeDrawing drawing,
+        PdfImageResourceCache imageResources,
         PdfCore.PdfConversionReport conversionReport,
         CancellationToken cancellationToken,
         bool suppressLink) {
@@ -22,7 +23,7 @@ internal static partial class HtmlPdfRenderedConverter {
             Background = OfficeColor.Transparent,
             CancellationToken = cancellationToken
         });
-        PdfCore.PdfCanvasImageResource? image = GetSharedPdfImageResource(png, "image/png");
+        PdfCore.PdfCanvasImageResource? image = imageResources.GetOrCreate(png, "image/png");
         if (image != null) {
             canvas.ImageShared(
                 image,

@@ -2,7 +2,7 @@
 
 `OfficeIMO.Drawing.CodeGlyphX` is an optional convenience package for turning CodeGlyphX QR codes, matrix symbols, and linear barcodes into reusable `OfficeDrawing` scenes.
 
-Both core libraries remain independent. CodeGlyphX produces standard SVG without referencing OfficeIMO, and `OfficeIMO.Drawing` can read that SVG without referencing CodeGlyphX. Install this bridge only when typed extension methods make the handoff more convenient.
+Both core libraries remain independent. CodeGlyphX produces standard SVG without referencing OfficeIMO, and `OfficeIMO.Drawing` can read that SVG without referencing CodeGlyphX. Use this bridge for typed symbol extensions or its optional raster decoder.
 
 ## Install
 
@@ -57,3 +57,19 @@ if (unsupportedFeatures != 0) {
 ```
 
 The extension methods use the same neutral route available without this package: render SVG with CodeGlyphX, then pass its UTF-8 bytes to `OfficeSvgDrawingReader.TryRead`.
+
+## Optional raster decoding
+
+`CodeGlyphRasterImageCodec` implements Drawing's image-codec boundary. The managed Drawing decoder handles its built-in formats first; the optional codec can decode inspected payloads outside that subset, including lossy WebP.
+
+```csharp
+var options = new OfficeRasterDecodeOptions {
+    ImageCodec = new CodeGlyphRasterImageCodec(),
+    MaximumDecodedPixels = 8_000_000
+};
+if (OfficeRasterImageDecoder.TryDecode(imageBytes, options, out var image, out var report)) {
+    // report describes any animation or additional frames discarded by the static result.
+}
+```
+
+The same codec can be supplied through `ImageCodec` on HTML render or PDF options. Decoding preserves the configured resource limits; the synchronous codec call observes export cancellation before and after it runs. Pixel fidelity remains the codec provider's responsibility.

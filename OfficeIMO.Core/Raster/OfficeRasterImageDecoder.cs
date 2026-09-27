@@ -12,7 +12,7 @@ namespace OfficeIMO.Drawing;
 /// to pixels. Normalize color-managed source images before decoding when matching a managed
 /// display or print pipeline is required.
 /// </remarks>
-public static class OfficeRasterImageDecoder {
+public static partial class OfficeRasterImageDecoder {
     /// <summary>
     /// Human-readable summary of raster formats currently decoded by the managed renderer.
     /// </summary>
@@ -157,9 +157,12 @@ public static class OfficeRasterImageDecoder {
         }
 
         if (format == OfficeImageFormat.Webp && container.IsAnimated) {
-            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, false,
-                "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container);
-            return false;
+            bool decoded = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
+            info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, decoded,
+                decoded
+                    ? "The caller codec decoded the first WebP frame; animation playback was not retained."
+                    : "Animated WebP pixel decoding remains an explicit caller-codec boundary.", container);
+            return decoded;
         }
 
         effective.CancellationToken.ThrowIfCancellationRequested();
@@ -175,6 +178,7 @@ public static class OfficeRasterImageDecoder {
             _ => false
         };
         success = success && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);
+        if (!success) success = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
         if (!success) image = null;
         info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, success,
             success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container);

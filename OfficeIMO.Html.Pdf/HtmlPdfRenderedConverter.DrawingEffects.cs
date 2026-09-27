@@ -11,6 +11,7 @@ internal static partial class HtmlPdfRenderedConverter {
         HtmlRenderDrawing visual,
         OfficeDrawing source,
         double rasterScale,
+        PdfImageResourceCache imageResources,
         PdfCore.PdfConversionReport conversionReport,
         CancellationToken cancellationToken,
         bool suppressLink) {
@@ -18,10 +19,12 @@ internal static partial class HtmlPdfRenderedConverter {
 
         byte[] png = OfficeDrawingRasterRenderer.ToPng(source, new OfficeDrawingRasterRenderOptions {
             Scale = rasterScale,
+            ImageCodec = imageResources.ImageCodec,
+            MaximumRasterPixels = imageResources.MaximumPixels,
             Background = OfficeColor.Transparent,
             CancellationToken = cancellationToken
         });
-        PdfCore.PdfCanvasImageResource? effectImage = GetSharedPdfImageResource(png, "image/png");
+        PdfCore.PdfCanvasImageResource? effectImage = imageResources.GetOrCreate(png, "image/png");
         if (effectImage != null) {
             bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);
             canvas.ImageShared(

@@ -82,6 +82,11 @@ public sealed class OfficeRasterDecodeOptions {
         }
     }
 
+    /// <summary>Optional trusted decoder for inspected raster payloads not decoded by the managed core.</summary>
+    /// <remarks>The codec is used for frame zero only, after container and resource-policy checks.
+    /// Cancellation is checked before and after the synchronous codec call.</remarks>
+    public IOfficeRasterImageCodec? ImageCodec { get; set; }
+
     /// <summary>Cancellation observed while reading, parsing, or decoding the request.</summary>
     public System.Threading.CancellationToken CancellationToken { get; set; }
 
@@ -91,6 +96,7 @@ public sealed class OfficeRasterDecodeOptions {
     internal OfficeRasterDecodeOptions WithAdditionalRetainedManagedBytes(long bytes) {
         if (bytes < 0L) throw new System.ArgumentOutOfRangeException(nameof(bytes));
         return new OfficeRasterDecodeOptions {
+            ImageCodec = ImageCodec,
             FrameIndex = FrameIndex,
             FrameLossPolicy = FrameLossPolicy,
             MaximumEncodedBytes = MaximumEncodedBytes,
