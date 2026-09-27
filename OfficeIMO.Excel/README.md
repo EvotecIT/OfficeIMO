@@ -704,15 +704,25 @@ blank, text, and mixed-type key collation remains deferred. `UNIQUE` preserves t
 occurrence of distinct rows or columns and supports `exactly_once`. These
 functions can be nested within this array subset. Each input and output is
 limited to 100,000 cells, with at most 32 array-expression levels.
+`SetArrayFormula` writes the Excel compatibility prefixes for these four
+functions, including nested calls, while preserving literals and reference text.
 
 Calculation updates an array only when its result exactly matches the authored
 range and the range contains neither another formula nor a merged cell. Array
 children participate in dependency calculation before caches are written, and
 a reference to the anchor is scalar. Shape changes, larger arrays, unsupported
-expressions, and empty results requiring Excel's extended error metadata remain
-deferred with existing caches preserved. Calculation does not resize dynamic
+expressions remain deferred with existing caches preserved. Empty results use
+Excel's rich-value `#CALC!` metadata. Zero-sized `SEQUENCE` dimensions produce
+`#CALC!`; negative dimensions produce `#VALUE!`. Calculation does not resize dynamic
 spills or author dynamic-array metadata. The checked-in Excel-produced array
 corpus verifies typed caches through save and reopen.
+
+Cached reads resolve native rich-value `#CALC!` and `#SPILL!` errors across the
+object model, range reads, and forward-only data readers. Unknown or unresolved
+rich values retain their ordinary cell fallback. Rich error metadata is limited
+to 16 MiB per part and 100,000 entries per collection; readers also honor a
+smaller configured metadata limit. Repeated calculation reuses error records,
+and images and other rich values keep their existing metadata and relationships.
 
 `CellAt(...).GetValue().Value` preserves the native cached result type, including
 Boolean values and text that looks numeric, such as the result of `="12"`.

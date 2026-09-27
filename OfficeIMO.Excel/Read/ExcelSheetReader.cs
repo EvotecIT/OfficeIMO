@@ -26,6 +26,7 @@ namespace OfficeIMO.Excel {
         private readonly ExcelDateSystem _dateSystem;
         private readonly bool _canStreamWorksheetPart;
         private readonly OpenXmlPackagePartBufferReader? _partBufferReader;
+        private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private StylesCache? _stylesCache;
         private List<string>? _sharedStringItems;
         private bool? _hasWorksheetPartStreamContent;
@@ -56,6 +57,8 @@ namespace OfficeIMO.Excel {
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = canStreamWorksheetPart;
             _partBufferReader = partBufferReader;
+            _richValueErrors = new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.FromWorkbook(
+                (wsPart.OpenXmlPackage as SpreadsheetDocument)?.WorkbookPart, Math.Min(_opt.MaxMetadataPartBytes, RichValueErrorLookup.MaximumPartBytes)));
         }
 
         internal ExcelSheetReader(
@@ -65,7 +68,8 @@ namespace OfficeIMO.Excel {
             StylesCacheProvider styles,
             ExcelReadOptions opt,
             ExcelDateSystem dateSystem,
-            OpenXmlPackagePartBufferReader partBufferReader) {
+            OpenXmlPackagePartBufferReader partBufferReader,
+            Lazy<RichValueErrorLookup>? richValueErrors = null) {
             _sheetName = sheetName;
             _wsPart = null!;
             _worksheetPartName = worksheetPartName;
@@ -76,6 +80,7 @@ namespace OfficeIMO.Excel {
             _dateSystem = dateSystem;
             _canStreamWorksheetPart = true;
             _partBufferReader = partBufferReader;
+            _richValueErrors = richValueErrors ?? new Lazy<RichValueErrorLookup>(() => RichValueErrorLookup.Empty);
             _hasWorksheetPartStreamContent = true;
         }
 
@@ -650,6 +655,7 @@ namespace OfficeIMO.Excel {
                     return text[0] switch {
                         'b' => XmlCellKind.Boolean,
                         'd' => XmlCellKind.Date,
+                        'e' => XmlCellKind.Error,
                         'n' => XmlCellKind.Number,
                         's' => XmlCellKind.SharedString,
                         _ => XmlCellKind.Unknown
@@ -673,6 +679,7 @@ namespace OfficeIMO.Excel {
             return kind switch {
                 XmlCellKind.Boolean => CellValues.Boolean,
                 XmlCellKind.Date => CellValues.Date,
+                XmlCellKind.Error => CellValues.Error,
                 XmlCellKind.InlineString => CellValues.InlineString,
                 XmlCellKind.Number => CellValues.Number,
                 XmlCellKind.SharedString => CellValues.SharedString,
@@ -694,7 +701,8 @@ namespace OfficeIMO.Excel {
                 StyleIndex = cell.StyleIndex?.Value,
                 HasFormula = hasFormula,
                 FormulaText = formulaText,
-                RawText = preferFormulaText ? null : ExtractRawText(cell),
+                RawText = preferFormulaText ? null : typeHint == CellValues.Error && cell.ValueMetaIndex != null
+                    ? _richValueErrors.Value.Resolve(cell.ValueMetaIndex.Value, ExtractRawText(cell)) : ExtractRawText(cell),
                 InlineText = preferFormulaText ? null : ExtractInlineString(cell, typeHint)
             };
         }
@@ -1220,7 +1228,8 @@ namespace OfficeIMO.Excel {
             Number,
             SharedString,
             String,
-            Unknown
+            Unknown,
+            Error
         }
     }
 }

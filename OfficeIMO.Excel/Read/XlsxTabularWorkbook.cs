@@ -54,6 +54,7 @@ namespace OfficeIMO.Excel {
         private readonly SharedStringCache _sharedStrings;
         private readonly StylesCacheProvider _styles;
         private readonly ExcelReadOptions _options;
+        private readonly Lazy<RichValueErrorLookup> _richValueErrors;
         private readonly Dictionary<string, string> _contentTypeOverrides;
         private readonly Dictionary<string, string> _contentTypeDefaults;
         private readonly XlsxTabularSheet[] _sheets;
@@ -80,6 +81,7 @@ namespace OfficeIMO.Excel {
                 "workbook");
             IReadOnlyDictionary<string, PackageRelationship> workbookRelationships =
                 ReadRelationships(workbookPartName);
+            _richValueErrors = new Lazy<RichValueErrorLookup>(() => ReadRichValueErrors(workbookPartName, workbookRelationships));
             (_sheets, ExcelDateSystem dateSystem) = ReadWorkbook(
                 workbookPartName,
                 workbookRelationships,
@@ -245,7 +247,8 @@ namespace OfficeIMO.Excel {
                 DateSystem,
                 string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
                     ? _prefetchedParts ?? _parts
-                    : _parts);
+                    : _parts,
+                _richValueErrors);
             DbDataReader dataReader = string.IsNullOrWhiteSpace(_options.A1Range)
                 ? (DbDataReader)reader.ReadUsedRangeAsDataReader(
                     hasHeaderRow,
@@ -549,6 +552,25 @@ namespace OfficeIMO.Excel {
             ValidatePartContentType(partName, expectedContentType, relationshipName);
 
             return partName;
+        }
+
+        private RichValueErrorLookup ReadRichValueErrors(string workbookPartName, IReadOnlyDictionary<string, PackageRelationship> relationships) {
+            string? metadata = ResolveOptionalPart(workbookPartName, relationships, "/sheetMetadata", "cell metadata", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheetMetadata+xml");
+            if (metadata == null) return RichValueErrorLookup.Empty;
+            string? values = ResolveOptionalPart(workbookPartName, relationships, "/rdRichValue", "rich values", "application/vnd.ms-excel.rdrichvalue+xml");
+            string? structures = ResolveOptionalPart(workbookPartName, relationships, "/rdRichValueStructure", "rich value structures", "application/vnd.ms-excel.rdrichvaluestructure+xml");
+            if (values == null || structures == null) return RichValueErrorLookup.Empty;
+            int maximumBytes = (int)Math.Min(_options.MaxInputBytes, Math.Min(_options.MaxMetadataPartBytes, RichValueErrorLookup.MaximumPartBytes));
+            string Read(string name) {
+                using Stream stream = _parts.OpenPart(name, maximumBytes, _options.CancellationToken);
+                string xml = RichValueErrorLookup.ReadXml(stream);
+                _options.CancellationToken.ThrowIfCancellationRequested();
+                return xml;
+            }
+            return RichValueErrorLookup.FromRoots(
+                new DocumentFormat.OpenXml.Spreadsheet.Metadata(Read(metadata)),
+                new DocumentFormat.OpenXml.Office2019.Excel.RichData.RichValueData(Read(values)),
+                new DocumentFormat.OpenXml.Office2019.Excel.RichData.RichValueStructures(Read(structures)));
         }
 
         private XDocument ReadXmlPart(string partName, int maximumBytes) {

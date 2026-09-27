@@ -210,7 +210,7 @@ namespace OfficeIMO.Excel {
             rows = Math.Truncate(rows);
             columns = Math.Truncate(columns);
             if (rows < 1 || columns < 1) {
-                array = ArrayError("#VALUE!");
+                array = ArrayError(rows < 0 || columns < 0 ? "#VALUE!" : "#CALC!");
                 return true;
             }
             if (rows > A1.MaxRows || columns > A1.MaxColumns || rows * columns > MaxResolvedFormulaRangeCells) return false;
@@ -247,9 +247,7 @@ namespace OfficeIMO.Excel {
                 if (value.Number.Value != 0) selected.Add(i);
             }
             if (selected.Count == 0) {
-                // Excel stores this extended error through cell metadata, not
-                // a plain #CALC! value. Preserve it until that codec is qualified.
-                if (args.Count == 2) return false;
+                if (args.Count == 2) { array = ArrayError("#CALC!"); return true; }
                 if (!TryResolveFormulaArgument(args[2], out FormulaArgumentValue empty) || empty.IsUnresolvedFormula) return false;
                 array = new FormulaArrayValue(1, 1, new[] { empty.HasValue ? empty : new FormulaArgumentValue(0, null) });
                 return true;
@@ -308,7 +306,7 @@ namespace OfficeIMO.Excel {
             var seen = new HashSet<int>(comparer);
             for (int i = 0; i < vectors; i++)
                 if (seen.Add(i) && (!exactlyOnce || counts[i] == 1)) selected.Add(i);
-            if (selected.Count == 0) return false;
+            if (selected.Count == 0) { array = ArrayError("#CALC!"); return true; }
             array = SelectArrayVectors(input, selected, byColumns);
             return true;
         }

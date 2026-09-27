@@ -14,9 +14,9 @@ namespace OfficeIMO.Tests {
                     expected["Case" + i] = reader.GetSheet("Case" + i).ReadRange("G1:J4");
             }
             using (var document = ExcelDocument.Load(path)) {
-                Assert.Equal(105, document.Calculate());
+                Assert.Equal(106, document.Calculate());
                 var deferred = document.InspectFormulas().Formulas.Where(formula => !formula.IsSupportedByOfficeIMO).ToArray();
-                Assert.Equal(new[] { "Case19!I1", "Case6!G1" }, deferred.Select(f => f.SheetName + "!" + f.CellReference).OrderBy(value => value).ToArray());
+                Assert.Equal(new[] { "Case19!I1" }, deferred.Select(f => f.SheetName + "!" + f.CellReference).OrderBy(value => value).ToArray());
                 document.Save();
                 Assert.Empty(document.ValidateOpenXml());
             }

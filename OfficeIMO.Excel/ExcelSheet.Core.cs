@@ -568,7 +568,7 @@ namespace OfficeIMO.Excel {
             }
 
             // Default: take cell value as-is (numbers, booleans, etc.)
-            return cell.CellValue?.InnerText ?? string.Empty;
+            return ResolveRichValueError(cell, cell.CellValue?.InnerText) ?? string.Empty;
         }
 
         private SharedStringCache BuildCellTextSharedStringSnapshot() {

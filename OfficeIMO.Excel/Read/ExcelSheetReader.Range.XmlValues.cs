@@ -32,6 +32,10 @@ namespace OfficeIMO.Excel {
         }
 
         private object? ReadXmlCellValue(XmlReader cellReader, string? cellType, bool preserveDateSerial = false) {
+            if (cellType == "e" && cellReader.GetAttribute("vm") != null) {
+                var raw = ReadXmlCellRaw(cellReader, 0, 0, ParseXmlCellKind(cellType), readStyleIndex: true);
+                return ConvertRaw(raw).TypedValue;
+            }
             if (cellReader.IsEmptyElement) {
                 return null;
             }

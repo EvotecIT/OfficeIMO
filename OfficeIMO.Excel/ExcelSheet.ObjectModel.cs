@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            string? cached = cell.CellValue?.Text;
+            string? cached = ResolveRichValueError(cell, cell.CellValue?.Text);
             var type = cell.DataType?.Value;
             if (cell.CellFormula != null) {
                 object? formulaValue = cached;

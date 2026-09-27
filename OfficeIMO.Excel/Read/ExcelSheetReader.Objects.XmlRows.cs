@@ -446,6 +446,7 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw ReadXmlCellRaw(XmlReader cellReader, int rowIndex, int columnIndex, XmlCellKind cellKind, bool readStyleIndex) {
+            string? metadataIndex = cellReader.GetAttribute("t") == "e" ? cellReader.GetAttribute("vm") : null;
             var raw = new CellRaw {
                 Row = rowIndex,
                 Col = columnIndex,
@@ -505,7 +506,7 @@ namespace OfficeIMO.Excel {
             bool preferFormulaText = hasFormula && !_opt.UseCachedFormulaResult && formulaText != null;
             raw.HasFormula = hasFormula;
             raw.FormulaText = formulaText;
-            raw.RawText = preferFormulaText ? null : rawText;
+            raw.RawText = preferFormulaText ? null : metadataIndex == null ? rawText : _richValueErrors.Value.Resolve(metadataIndex, rawText);
             raw.InlineText = preferFormulaText ? null : inlineText;
             return raw;
         }

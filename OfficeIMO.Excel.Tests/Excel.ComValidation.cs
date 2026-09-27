@@ -29,25 +29,28 @@ namespace OfficeIMO.Tests {
         private static bool IsExcelComAvailable() =>
             IsWindowsPlatform() && Type.GetTypeFromProgID("Excel.Application") != null;
 
-        private static void AssertWorkbookOpensViaExcelComWhenAvailable(string path, string failureMessage) =>
-            AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { path }, failureMessage);
+        private static void AssertWorkbookOpensViaExcelComWhenAvailable(string path, string failureMessage,
+            IReadOnlyDictionary<string, string>? expectedValues = null) =>
+            AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { path }, failureMessage, expectedValues);
 
-        private static void AssertWorkbooksOpenViaExcelComWhenAvailable(IEnumerable<string> paths, string failureMessage) {
+        private static void AssertWorkbooksOpenViaExcelComWhenAvailable(IEnumerable<string> paths, string failureMessage,
+            IReadOnlyDictionary<string, string>? expectedValues = null) {
             if (!IsWindowsPlatform() || !IsExcelComAvailable()) {
                 return;
             }
 
-            AssertWorkbooksOpenViaExcelComOnWindows(paths, failureMessage);
+            AssertWorkbooksOpenViaExcelComOnWindows(paths, failureMessage, expectedValues);
         }
 
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
 #endif
-        private static void AssertWorkbooksOpenViaExcelComOnWindows(IEnumerable<string> paths, string failureMessage) {
+        private static void AssertWorkbooksOpenViaExcelComOnWindows(IEnumerable<string> paths, string failureMessage,
+            IReadOnlyDictionary<string, string>? expectedValues) {
             var failures = new ConcurrentQueue<string>();
             var thread = new Thread(() => {
                 try {
-                    RunWithExcelComLock(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures));
+                    RunWithExcelComLock(() => OpenWorkbooksViaExcelCom(paths.ToList(), failures, expectedValues));
                 } catch (Exception ex) {
                     failures.Enqueue(DescribeExcelComFailure(ex));
                 }
@@ -85,7 +88,8 @@ namespace OfficeIMO.Tests {
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
 #endif
-        private static void OpenWorkbooksViaExcelCom(IReadOnlyList<string> paths, ConcurrentQueue<string> failures) {
+        private static void OpenWorkbooksViaExcelCom(IReadOnlyList<string> paths, ConcurrentQueue<string> failures,
+            IReadOnlyDictionary<string, string>? expectedValues) {
             object? excel = null;
             object? workbooks = null;
 
@@ -104,6 +108,10 @@ namespace OfficeIMO.Tests {
                     try {
                         workbook = workbooks!.GetType().InvokeMember("Open", BindingFlags.InvokeMethod, null, workbooks,
                             new object[] { path, 0, true });
+                        if (expectedValues != null) {
+                            excelType.InvokeMember("CalculateFull", BindingFlags.InvokeMethod, null, excel, null);
+                            CheckExcelComValues(workbook!, expectedValues, failures);
+                        }
                     } catch (Exception ex) when (ex is COMException or InvalidOperationException or MissingMethodException or TargetInvocationException) {
                         failures.Enqueue($"{Path.GetFileName(path)}: {DescribeExcelComFailure(ex)}");
                     } finally {
@@ -133,6 +141,31 @@ namespace OfficeIMO.Tests {
                 if (excel != null && Marshal.IsComObject(excel)) {
                     Marshal.FinalReleaseComObject(excel);
                 }
+            }
+        }
+
+#if NET5_0_OR_GREATER
+        [SupportedOSPlatform("windows")]
+#endif
+        private static void CheckExcelComValues(object workbook, IReadOnlyDictionary<string, string> expectedValues,
+            ConcurrentQueue<string> failures) {
+            object? sheets = null, sheet = null;
+            try {
+                sheets = workbook.GetType().InvokeMember("Worksheets", BindingFlags.GetProperty, null, workbook, null);
+                sheet = sheets!.GetType().InvokeMember("Item", BindingFlags.GetProperty, null, sheets, new object[] { 1 });
+                foreach (var expected in expectedValues) {
+                    object? range = null;
+                    try {
+                        range = sheet!.GetType().InvokeMember("Range", BindingFlags.GetProperty, null, sheet, new object[] { expected.Key });
+                        string? actual = range!.GetType().InvokeMember("Text", BindingFlags.GetProperty, null, range, null)?.ToString();
+                        if (actual != expected.Value) failures.Enqueue($"Excel calculated {expected.Key} as '{actual}', expected '{expected.Value}'.");
+                    } finally {
+                        if (range != null && Marshal.IsComObject(range)) Marshal.FinalReleaseComObject(range);
+                    }
+                }
+            } finally {
+                if (sheet != null && Marshal.IsComObject(sheet)) Marshal.FinalReleaseComObject(sheet);
+                if (sheets != null && Marshal.IsComObject(sheets)) Marshal.FinalReleaseComObject(sheets);
             }
         }
 

@@ -1084,6 +1084,10 @@ namespace OfficeIMO.Excel {
                 case "#N/A":
                     errorCode = "#N/A";
                     return true;
+                case "#CALC!":
+                case "#SPILL!":
+                    errorCode = value.ToUpperInvariant();
+                    return true;
                 default:
                     errorCode = string.Empty;
                     return false;

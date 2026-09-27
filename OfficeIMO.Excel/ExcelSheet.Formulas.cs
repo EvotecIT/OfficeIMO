@@ -55,8 +55,9 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 bool changed = false;
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null)) {
-                    if (cell.CellValue != null) {
+                    if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                         cell.CellValue = null;
+                        ClearCellValueMetadataAttribute(cell);
                         changed = true;
                     }
                 }
@@ -108,8 +109,9 @@ namespace OfficeIMO.Excel {
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
                             allFormulasEvaluated = false;
                             if (_formulaEvaluationGuardState.DependencyGuardBlocked) {
-                                if (cell.CellValue != null) {
+                                if (cell.CellValue != null || cell.ValueMetaIndex != null) {
                                     cell.CellValue = null;
+                                    ClearCellValueMetadataAttribute(cell);
                                     changed = true;
                                 }
 
@@ -269,7 +271,9 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
+        private void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
+            cell.ValueMetaIndex = null;
+            if (result.IsError && TryWriteRichFormulaError(cell, result.ErrorCode)) return;
             if (result.IsBoolean) {
                 cell.CellValue = new CellValue(result.Number == 0 ? "0" : "1");
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
@@ -483,7 +487,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public bool TryGetCachedFormulaValue(int row, int column, out string? value) {
             var cell = TryGetExistingCell(row, column);
-            value = cell?.CellFormula == null ? null : cell.CellValue?.Text;
+            value = cell?.CellFormula == null ? null : ResolveRichValueError(cell, cell.CellValue?.Text);
             return value != null;
         }
 
@@ -506,7 +510,7 @@ namespace OfficeIMO.Excel {
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
                 ClearCellValueMetadata(topLeft);
-                topLeft.CellFormula = new CellFormula(Utilities.ExcelSanitizer.SanitizeFormula(formula)) {
+                topLeft.CellFormula = new CellFormula(QualifyAuthoredArrayFunctions(Utilities.ExcelSanitizer.SanitizeFormula(formula))) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
                 };
@@ -590,6 +594,8 @@ namespace OfficeIMO.Excel {
 
                                 spillCell.CellFormula = null;
                                 spillCell.CellValue = null;
+                                ClearCellValueMetadataAttribute(spillCell);
+                                spillCell.DataType = null;
                             }
                         }
                     }
