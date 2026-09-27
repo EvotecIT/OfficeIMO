@@ -10,6 +10,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartSeriesAppearanceReadbackTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void Snapshot_QualifiesEffectiveGroupSmoothingWithSeriesOverride(bool overrideWithStraightLine, bool explicitGroupValue) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Line", new[] { 1d, 2d }) }));
+        var layer = chart.ChartPart!.ChartSpace!.Descendants<C.LineChart>().Single();
+        layer.AddChild(explicitGroupValue ? new C.Smooth { Val = true } : new C.Smooth(), true);
+        var series = layer.Elements<C.LineChartSeries>().Single();
+        series.GetFirstChild<C.Smooth>()?.Remove();
+        if (overrideWithStraightLine) series.AddChild(new C.Smooth { Val = false }, true);
+        Assert.Equal(overrideWithStraightLine, chart.TryGetSnapshot(out _));
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Snapshot_InheritsNativeGroupMarkerAndConnectionVisibility(bool scatter) {

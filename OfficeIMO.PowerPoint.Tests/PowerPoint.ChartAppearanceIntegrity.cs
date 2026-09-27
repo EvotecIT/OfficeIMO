@@ -8,6 +8,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartAppearanceIntegrityTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedReader_QualifiesEffectiveGroupSmoothingBeforeProjection(bool overrideWithStraightLine) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Line", new[] { 1d, 2d }) }));
+        var layer = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.LineChart>().Single();
+        layer.AddChild(new C.Smooth { Val = true }, true);
+        var series = layer.Elements<C.LineChartSeries>().Single();
+        series.GetFirstChild<C.Smooth>()?.Remove();
+        if (overrideWithStraightLine) series.AddChild(new C.Smooth { Val = false }, true);
+        using var bytes = new MemoryStream(document.ToBytes());
+        using var reopened = PowerPointPresentation.Load(bytes);
+        Assert.Equal(overrideWithStraightLine, reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out _));
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]

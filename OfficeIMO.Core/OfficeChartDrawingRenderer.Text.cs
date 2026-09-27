@@ -594,11 +594,7 @@ public static partial class OfficeChartDrawingRenderer {
             return (displayValue / 1000D).ToString("0.#", CultureInfo.InvariantCulture) + "k";
         }
 
-        if (abs > 0D && abs < 0.01D) {
-            return displayValue.ToString("G6", CultureInfo.InvariantCulture);
-        }
-
-        return displayValue.ToString("0.##", CultureInfo.InvariantCulture);
+        return displayValue.ToString("G6", CultureInfo.InvariantCulture);
     }
 
     private static string FormatCategoryAxisLabel(string label, OfficeChartLayout layout) {
