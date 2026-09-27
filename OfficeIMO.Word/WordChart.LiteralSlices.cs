@@ -6,6 +6,13 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
+    private static void AppendLiteralSlicePoint(OpenXmlCompositeElement literal, OpenXmlElement point) {
+        OpenXmlElement? extensions = literal.ChildElements.FirstOrDefault(element =>
+            element is ExtensionList || element is StrDataExtensionList);
+        if (extensions == null) literal.Append(point);
+        else literal.InsertBefore(point, extensions);
+    }
+
     // Literal slice appends must use logical cache positions, not the number of stored points.
     // A missing point is a gap, and category/value caches must describe the same positions.
     private void PrepareLiteralSliceAppend(string category, bool doughnut) {

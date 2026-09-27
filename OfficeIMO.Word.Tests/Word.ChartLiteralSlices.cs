@@ -47,6 +47,8 @@ public sealed class WordChartLiteralSliceTests {
             categories.GetFirstChild<PointCount>()!.Val = next;
             values.GetFirstChild<PointCount>()!.Val = next;
         }
+        categories.Append(numeric ? (OpenXmlElement)new ExtensionList() : new StrDataExtensionList());
+        values.Append(new ExtensionList());
         using var stream = new MemoryStream();
         document.Save(stream);
         stream.Position = 0;
@@ -68,8 +70,24 @@ public sealed class WordChartLiteralSliceTests {
         Assert.Equal(new uint[] { 0, 2, next }, categoryIndexes);
         Assert.Equal(new uint[] { 0, 2, next }, values.Elements<NumericPoint>().Select(point => point.Index!.Value));
         Assert.Equal("4", values.Elements<NumericPoint>().Last().NumericValue!.Text);
+        Assert.Equal("extLst", categories.LastChild!.LocalName);
+        Assert.Equal("extLst", values.LastChild!.LocalName);
         Assert.Null(layer.GetFirstChild<DataLabels>());
         Assert.Empty(imported.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SliceCreation_PreservesDefaultValueAndPercentLabels(int family) {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        Append(chart, family, "A", 8);
+        DataLabels labels = chart.ChartPart!.ChartSpace.Descendants<DataLabels>().Single();
+        Assert.True(labels.GetFirstChild<ShowValue>()!.Val!.Value);
+        Assert.True(labels.GetFirstChild<ShowPercent>()!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
     }
 
     [Theory]

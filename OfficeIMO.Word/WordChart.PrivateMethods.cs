@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
             CategoryAxisData categoryAxis = InitializeCategoryAxisData();
 
             if (categoryAxis.GetFirstChild<NumberLiteral>() is NumberLiteral numericCategories) {
-                numericCategories.Append(new NumericPoint {
+                AppendLiteralSlicePoint(numericCategories, new NumericPoint {
                     Index = _currentIndexCategory,
                     NumericValue = new NumericValue { Text = category }
                 });
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word {
                 stringLiteral = new StringLiteral();
                 categoryAxis.Append(stringLiteral);
             }
-            stringLiteral.Append(new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } });
+            AppendLiteralSlicePoint(stringLiteral, new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } });
             // Update the PointCount
             PointCount? pointCount = stringLiteral.GetFirstChild<PointCount>();
             if (pointCount != null) {
@@ -134,7 +134,7 @@ namespace OfficeIMO.Word {
                               data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
                               data?.ToString() ?? "0";
 
-            literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
+            AppendLiteralSlicePoint(literal, new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
             // Update the PointCount
             PointCount? pointCount = literal.GetFirstChild<PointCount>();
             if (pointCount != null) {
@@ -154,7 +154,7 @@ namespace OfficeIMO.Word {
         }
 
         private Chart CreatePieChart(Chart chart) {
-            PieChart pieChart1 = new PieChart();
+            PieChart pieChart1 = new PieChart(AddDataLabel());
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             chart.PlotArea!.Append(pieChart1);
             return chart;
