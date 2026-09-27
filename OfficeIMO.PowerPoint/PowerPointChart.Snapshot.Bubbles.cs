@@ -38,7 +38,7 @@ namespace OfficeIMO.PowerPoint {
                          element.GetFirstChild<C.ChartShapeProperties>()) ||
                      HasUnresolvedSeriesColor(
                          element.GetFirstChild<C.ChartShapeProperties>(), colorScheme) ||
-                     element.Elements<C.DataPoint>().Any(point =>
+                     GetBoundedCachedPoints(element.Elements<C.DataPoint>()).Any(point =>
                          HasUnsupportedPointStyle(
                              point.GetFirstChild<C.ChartShapeProperties>()) ||
                          HasUnresolvedPointColor(
@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme) {
             var colors = new OfficeColor?[pointCount];
             bool found = false;
-            foreach (C.DataPoint point in series.Elements<C.DataPoint>()) {
+            foreach (C.DataPoint point in GetBoundedCachedPoints(series.Elements<C.DataPoint>())) {
                 uint? sourceIndex = point.GetFirstChild<C.Index>()?.Val?.Value;
                 if (!sourceIndex.HasValue || sourceIndex.Value >= (uint)pointCount) continue;
                 C.ChartShapeProperties? properties =

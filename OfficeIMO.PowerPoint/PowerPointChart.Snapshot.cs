@@ -181,7 +181,7 @@ namespace OfficeIMO.PowerPoint {
                          bubbleChart.Elements<C.BubbleChartSeries>().Any(series =>
                              IsBubble3DEnabled(
                                  series.GetFirstChild<C.Bubble3D>()) ||
-                             series.Elements<C.DataPoint>().Any(point =>
+                             GetBoundedCachedPoints(series.Elements<C.DataPoint>()).Any(point =>
                                  IsBubble3DEnabled(
                                      point.GetFirstChild<C.Bubble3D>()))))) {
                         snapshot = null!;

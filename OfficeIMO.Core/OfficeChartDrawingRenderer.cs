@@ -956,7 +956,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static IReadOnlyList<OfficeColor?>? GetLegendPointColors(OfficeChartStyle style, IReadOnlyList<OfficeChartSeries> series, int categoryCount) {
         for (int i = 0; i < series.Count; i++) {
             if (series[i].PointColors != null) {
-                return series[i].PointColors;
+                return GetCategoryPointColors(style, series[i], categoryCount);
             }
         }
 

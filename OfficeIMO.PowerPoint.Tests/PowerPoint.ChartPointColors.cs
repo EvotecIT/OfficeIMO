@@ -61,6 +61,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PointColors_RejectExcessDuplicateAndOutOfRangeOverrides() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddChartCm(OfficeChartKind.Pie, CreateData(OfficeChartKind.Pie, null), 1, 1, 20, 10);
+            using var bytes = new MemoryStream();
+            byte[] package = presentation.ToBytes();
+            bytes.Write(package, 0, package.Length);
+            bytes.Position = 0;
+            using (PresentationDocument native = PresentationDocument.Open(bytes, true)) {
+                var part = native.PresentationPart!.SlideParts.Single().ChartParts.Single();
+                C.PieChartSeries series = part.ChartSpace.Descendants<C.PieChartSeries>().Single();
+                for (int i = 0; i <= PowerPointUtils.MaximumSharedChartPoints; i++)
+                    series.Append(new C.DataPoint(new C.Index { Val = i % 2 == 0 ? 0U : uint.MaxValue }));
+                part.ChartSpace.Save();
+            }
+            bytes.Position = 0;
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            Assert.False(Assert.Single(reopened.Slides.Single().Charts).TryGetOfficeSnapshot(out _));
+        }
+
+        [Fact]
+        public void PointColors_DoughnutLegendUsesTheSameSparseFallbackAsSlices() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartKind.Doughnut,
+                CreateData(OfficeChartKind.Doughnut, Colors), 1, 1, 20, 10);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+            OfficeColor[] swatches = drawing.Shapes.Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                shape.Shape.FillColor.HasValue && shape.Shape.Width < 20 && shape.Shape.Height < 20)
+                .Select(shape => shape.Shape.FillColor!.Value).ToArray();
+            Assert.Equal(new[] { Colors[0]!.Value, OfficeColor.FromRgb(90, 100, 110), Colors[2]!.Value }, swatches);
+        }
+
+        [Fact]
         public void PointColors_ResolveSparseThemeFillWithoutAllocatingForUnboundedIndex() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             presentation.AddSlide().AddChartCm(OfficeChartKind.Pie, CreateData(OfficeChartKind.Pie, null), 1, 1, 20, 10);
