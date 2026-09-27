@@ -1,0 +1,1314 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+  "sourceClean": true,
+  "qualification": "H4 regression and macOS Release static budget pass; NASA fidelity remains open",
+  "ownerVersions": {
+    "Core": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "Email": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "HTML Core": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "HTML AngleSharp": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "HTML": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "HTML PDF": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "MHTML": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "MHTML PDF": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "PDF": "3.4.3+84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+    "evidence runner": "1.0.0+84b1943be43eb769f85ae5fc9a1acddc58d193a1"
+  },
+  "h4": {
+    "report": {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-layoutfit-clean-84b1943be/html-corpus-evidence.json",
+      "sha256": "453074b7c555376ce1aaf08e45bcfcbb4ffb22d9b6efe19b8668eb8848f761ac",
+      "bytes": 236760
+    },
+    "caseCount": 8,
+    "acceptancePassed": true,
+    "failures": [],
+    "pixelRegression": {
+      "reference": "Ignore/HtmlUnknownPageQualification/h10-h4-systemui-clean-041243ee9",
+      "candidate": "Ignore/HtmlUnknownPageQualification/h10-h4-layoutfit-clean-84b1943be",
+      "comparisons": [
+        {
+          "path": "columns-footnotes-brief/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "columns-footnotes-brief/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "columns-footnotes-brief/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "columns-footnotes-brief/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "legacy-portal/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "legacy-portal/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "legacy-portal/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "legacy-portal/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-print-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-print-page-3.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-print-scene-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-print-scene-page-3.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "named-pages-brochure/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-print-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-print-page-3.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-print-scene-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-print-scene-page-3.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "nested-fragmentation-report/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-print-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-print-scene-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-screen-to-pdf-page-2.png",
+          "unchanged": true
+        },
+        {
+          "path": "professional-print-catalog/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "stacking-clipping-board/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "stacking-clipping-board/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "stacking-clipping-board/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "stacking-clipping-board/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "subgrid-operations/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "subgrid-operations/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "subgrid-operations/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "subgrid-operations/officeimo-screen.png",
+          "unchanged": true
+        },
+        {
+          "path": "typography-specimen/officeimo-print-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "typography-specimen/officeimo-print-scene-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "typography-specimen/officeimo-screen-to-pdf-page-1.png",
+          "unchanged": true
+        },
+        {
+          "path": "typography-specimen/officeimo-screen.png",
+          "unchanged": true
+        }
+      ]
+    }
+  },
+  "nasa": {
+    "report": {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-layoutfit-clean-84b1943be/html-mhtml-evidence.json",
+      "sha256": "e694b3a8b3982deb976388404729610f80a3c56fa4f46d6eeb985ae0bb2f1d87",
+      "bytes": 106163
+    },
+    "archive": {
+      "path": "source.mhtml",
+      "bytes": 29443783,
+      "sha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735"
+    },
+    "operationCount": 13,
+    "operations": [
+      {
+        "intent": "chromium-screen",
+        "file": "chromium-screen.pdf",
+        "bytes": 20356623,
+        "sha256": "5d80ef0e4a58d5c7ed11560c03e97208838353242d762bbc1c9ddd3f79f5eca4",
+        "pageCount": 4,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.91998,
+            "height": 842.88
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.91998,
+            "height": 842.88
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.91998,
+            "height": 842.88
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.91998,
+            "height": 842.88
+          }
+        ],
+        "elapsedMilliseconds": 1340.0476,
+        "conversionReport": null
+      },
+      {
+        "intent": "chromium-print",
+        "file": "chromium-print.pdf",
+        "bytes": 20348658,
+        "sha256": "384743de08adb0bfc6dab80661bb2e2e521a919ac602566ae489756a55fb3497",
+        "pageCount": 4,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.91998,
+            "height": 842.88
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.91998,
+            "height": 842.88
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.91998,
+            "height": 842.88
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.91998,
+            "height": 842.88
+          }
+        ],
+        "elapsedMilliseconds": 1446.753,
+        "conversionReport": null
+      },
+      {
+        "intent": "officeimo-print",
+        "file": "officeimo-print.pdf",
+        "bytes": 23154279,
+        "sha256": "38661375c8efbe2db3272220ded2658c4624bed30eb02da63dc5599af19a2190",
+        "pageCount": 10,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 5,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 6,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 7,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 8,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 9,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 10,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 16651.5706,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 21,
+          "warningCodes": {
+            "HtmlPdfTranslucentGradientRasterized": 2,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 6,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderPrintFitOverflowUnresolved": 1,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "unsupported-font-ligature-substitution": 5
+          },
+          "printFitWarnings": [
+            {
+              "converter": "OfficeIMO.Html.Renderer",
+              "code": "HtmlRenderPrintFitOverflowUnresolved",
+              "source": "document",
+              "message": "Visible layout overflow remains after bounded print fitting or exceeds the configured surface limits.",
+              "severity": "Warning",
+              "lossKind": "Approximation",
+              "details": {
+                "Detail": "content-width=797.0030625911738;overflow-width=851.8348009167855"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "file": "officeimo-print-zero-margin.pdf",
+        "bytes": 23109757,
+        "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+        "pageCount": 10,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 5,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 6,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 7,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 8,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 9,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 10,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 9909.9174,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 14,
+          "warningCodes": {
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "unsupported-font-ligature-substitution": 4
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "file": "officeimo-print-fit-1200.pdf",
+        "bytes": 23051656,
+        "sha256": "7400106e406ba07643125f586c1a84b45b62d39fe279d44c7ea188b4b72a8760",
+        "pageCount": 4,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 7397.6289,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 13,
+          "warningCodes": {
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "unsupported-font-ligature-substitution": 3
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "file": "officeimo-print-fit-1200-local-fonts.pdf",
+        "bytes": 24485426,
+        "sha256": "133cc79469a1fcbba0949a4507e35acd9c5970413be8c9f392ffa65cda1dce0c",
+        "pageCount": 4,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 10784.7825,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 15,
+          "warningCodes": {
+            "HtmlPdfFontProgramOutlined": 2,
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "InstalledFontResolved": 2,
+            "unsupported-font-ligature-substitution": 1
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "file": "officeimo-print-browser-ua.pdf",
+        "bytes": 23109757,
+        "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+        "pageCount": 10,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 5,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 6,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 7,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 8,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 9,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 10,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 10334.8325,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 14,
+          "warningCodes": {
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "unsupported-font-ligature-substitution": 4
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "file": "officeimo-print-zero-margin-local-fonts.pdf",
+        "bytes": 24833341,
+        "sha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6",
+        "pageCount": 10,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 5,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 6,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 7,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 8,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 9,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 10,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 24382.7117,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 15,
+          "warningCodes": {
+            "HtmlPdfFontProgramOutlined": 2,
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "InstalledFontResolved": 2,
+            "unsupported-font-ligature-substitution": 1
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "file": "officeimo-screen-media.pdf",
+        "bytes": 23109757,
+        "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+        "pageCount": 10,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 5,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 6,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 7,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 8,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 9,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 10,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 17565.0335,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 14,
+          "warningCodes": {
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "unsupported-font-ligature-substitution": 4
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "file": "officeimo-screen-media-local-fonts.pdf",
+        "bytes": 24833341,
+        "sha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6",
+        "pageCount": 10,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 2,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 3,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 4,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 5,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 6,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 7,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 8,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 9,
+            "width": 595.276,
+            "height": 841.89
+          },
+          {
+            "pageNumber": 10,
+            "width": 595.276,
+            "height": 841.89
+          }
+        ],
+        "elapsedMilliseconds": 40962.4548,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 15,
+          "warningCodes": {
+            "HtmlPdfFontProgramOutlined": 2,
+            "HtmlPdfTranslucentGradientRasterized": 1,
+            "HtmlRenderFormFieldRepeatedNameStaticFallback": 1,
+            "HtmlRenderOverflowScrollSnapshot": 2,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "InstalledFontResolved": 2,
+            "unsupported-font-ligature-substitution": 1
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "file": "officeimo-screen-snapshot.pdf",
+        "bytes": 23032372,
+        "sha256": "a5c8cd8fb8bd59337e13daa048c1f626c1734506aceea2330c6a55997615214d",
+        "pageCount": 12,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 2,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 3,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 4,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 5,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 6,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 7,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 8,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 9,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 10,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 11,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 12,
+            "width": 612,
+            "height": 675
+          }
+        ],
+        "elapsedMilliseconds": 10061.4886,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 21,
+          "warningCodes": {
+            "HtmlPdfTranslucentGradientRasterized": 2,
+            "HtmlRenderFormFieldBorderStyleStaticFallback": 8,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "unsupported-font-ligature-substitution": 4
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "file": "officeimo-screen-snapshot-local-fonts.pdf",
+        "bytes": 24447371,
+        "sha256": "7e78e3a7f9c035799f213acdf5c822a23814c7dbcf20a83ef4fa27ad3e2b7314",
+        "pageCount": 12,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 2,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 3,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 4,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 5,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 6,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 7,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 8,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 9,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 10,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 11,
+            "width": 612,
+            "height": 675
+          },
+          {
+            "pageNumber": 12,
+            "width": 612,
+            "height": 675
+          }
+        ],
+        "elapsedMilliseconds": 45496.2616,
+        "conversionReport": {
+          "hasLoss": true,
+          "fidelityStatus": "Degraded",
+          "warningCount": 22,
+          "warningCodes": {
+            "HtmlPdfFontProgramOutlined": 2,
+            "HtmlPdfTranslucentGradientRasterized": 2,
+            "HtmlRenderFormFieldBorderStyleStaticFallback": 8,
+            "HtmlRenderOverflowScrollSnapshot": 1,
+            "HtmlRenderPositionStaticAnchorFallback": 2,
+            "HtmlRenderPositionStickyStatic": 2,
+            "HtmlRenderResourceUnavailable": 1,
+            "HtmlRenderStylesheetUrlResourcesPending": 1,
+            "InstalledFontResolved": 2,
+            "unsupported-font-ligature-substitution": 1
+          },
+          "printFitWarnings": []
+        }
+      },
+      {
+        "intent": "peachpdf-print",
+        "file": "peachpdf-print.pdf",
+        "bytes": 310574,
+        "sha256": "b579bdf2b30e25f567bb0c0df10505ff6f43696c8948c0231f1f631aaf31e5ca",
+        "pageCount": 3,
+        "pageSizesPoints": [
+          {
+            "pageNumber": 1,
+            "width": 595,
+            "height": 842
+          },
+          {
+            "pageNumber": 2,
+            "width": 595,
+            "height": 842
+          },
+          {
+            "pageNumber": 3,
+            "width": 595,
+            "height": 842
+          }
+        ],
+        "elapsedMilliseconds": 4260.5676,
+        "conversionReport": null
+      }
+    ],
+    "failures": [],
+    "pdfRegression": {
+      "reference": "Ignore/HtmlUnknownPageQualification/h10-nasa-systemui-clean-041243ee9",
+      "comparisons": [
+        {
+          "path": "officeimo-print-browser-ua.pdf",
+          "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+          "referenceSha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-print-fit-1200-local-fonts.pdf",
+          "sha256": "133cc79469a1fcbba0949a4507e35acd9c5970413be8c9f392ffa65cda1dce0c",
+          "referenceSha256": "133cc79469a1fcbba0949a4507e35acd9c5970413be8c9f392ffa65cda1dce0c",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-print-fit-1200.pdf",
+          "sha256": "7400106e406ba07643125f586c1a84b45b62d39fe279d44c7ea188b4b72a8760",
+          "referenceSha256": "7400106e406ba07643125f586c1a84b45b62d39fe279d44c7ea188b4b72a8760",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-print-zero-margin-local-fonts.pdf",
+          "sha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6",
+          "referenceSha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-print-zero-margin.pdf",
+          "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+          "referenceSha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-print.pdf",
+          "sha256": "38661375c8efbe2db3272220ded2658c4624bed30eb02da63dc5599af19a2190",
+          "referenceSha256": "e4103cbe8cfacfd255a69c3c422b2fc6e1b4e39e5c9e3038a74eafbf0bdeee9e",
+          "unchanged": false
+        },
+        {
+          "path": "officeimo-screen-media-local-fonts.pdf",
+          "sha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6",
+          "referenceSha256": "e0715e5428ef7a0f74e129df020e5716e6640580558be1beb51145cbd8805bf6",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-screen-media.pdf",
+          "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+          "referenceSha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-screen-snapshot-local-fonts.pdf",
+          "sha256": "7e78e3a7f9c035799f213acdf5c822a23814c7dbcf20a83ef4fa27ad3e2b7314",
+          "referenceSha256": "7e78e3a7f9c035799f213acdf5c822a23814c7dbcf20a83ef4fa27ad3e2b7314",
+          "unchanged": true
+        },
+        {
+          "path": "officeimo-screen-snapshot.pdf",
+          "sha256": "a5c8cd8fb8bd59337e13daa048c1f626c1734506aceea2330c6a55997615214d",
+          "referenceSha256": "a5c8cd8fb8bd59337e13daa048c1f626c1734506aceea2330c6a55997615214d",
+          "unchanged": true
+        }
+      ]
+    },
+    "allPageInspection": {
+      "changedDefaultPrint": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-layoutfit-clean-84b1943be/print-96dpi/default-all-pages.png",
+        "sha256": "0b179b8d1787bd2b69deb36ea6a9314efaf0b0f65ca575f44a8a58d8ed405e44",
+        "bytes": 756959
+      },
+      "defaultPagesInspected": 10,
+      "referenceAndExplicitFit": {
+        "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-layoutfit-clean-84b1943be/print-96dpi/reference-fit-all-pages.png",
+        "sha256": "04af36c4af94db25a6012215af3b110c2e8f58d07ba48090876512b11d903e61",
+        "bytes": 919926
+      },
+      "referencePagesInspected": 4,
+      "explicitFitLocalFontPagesInspected": 4,
+      "previousRunPixelComparison": [
+        {
+          "path": "chromium-print-1.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "chromium-print-2.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "chromium-print-3.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "chromium-print-4.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "officeimo-print-fit-1200-local-fonts-1.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "officeimo-print-fit-1200-local-fonts-2.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "officeimo-print-fit-1200-local-fonts-3.png",
+          "unchangedPixelsAgainstPrevious": true
+        },
+        {
+          "path": "officeimo-print-fit-1200-local-fonts-4.png",
+          "unchangedPixelsAgainstPrevious": true
+        }
+      ],
+      "finding": "Default print retains a narrow single-column gallery; the explicit fit preserves its prior four-page appearance. Header, card paint/spacing and footer positions differ from the native print reference. The intentional horizontal Magnetospheres scroll clip remains visible.",
+      "acceptanceClaim": false
+    }
+  },
+  "macOSStaticBudget": {
+    "configuration": "Release",
+    "targetFramework": "net10.0",
+    "buildWarnings": 0,
+    "buildErrors": 0,
+    "report": {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-budget-layoutfit-release-clean-84b1943be/html-static-budget.json",
+      "sha256": "fce355bbf7c33f2dd1d7fc9f81168d0f192f852c9a9747f0005efd877d6e207a",
+      "bytes": 2777
+    },
+    "result": {
+      "schemaVersion": 1,
+      "generatedUtc": "2026-09-27T19:37:28.48336+00:00",
+      "environment": {
+        "osFamily": "macOS",
+        "osDescription": "macOS 27.0.0",
+        "osArchitecture": "Arm64",
+        "processArchitecture": "Arm64",
+        "frameworkDescription": ".NET 10.0.12",
+        "machineName": "evomini",
+        "processorCount": 10
+      },
+      "source": {
+        "commit": "84b1943be43eb769f85ae5fc9a1acddc58d193a1",
+        "worktreeClean": true,
+        "corpusId": "officeimo-html-h4-advanced-held-out",
+        "manifestSha256": "496f78d459bfd7836987541925f3d6f4b26c87512cd03f319ca99bc4057f67a8",
+        "caseCount": 8,
+        "outputsPerIteration": 76
+      },
+      "ceiling": {
+        "osFamily": "macOS",
+        "coldProcessElapsedMilliseconds": 8000,
+        "warmIterationElapsedMilliseconds": 3000,
+        "coldManagedAllocatedBytes": 1250000000,
+        "warmManagedAllocatedBytes": 1100000000,
+        "peakWorkingSetBytes": 700000000,
+        "outputBytesPerIteration": 3000000,
+        "cancellationElapsedMilliseconds": 250
+      },
+      "cold": {
+        "mode": "cold",
+        "processElapsedMilliseconds": 5612.3259,
+        "peakWorkingSetBytes": 382795776,
+        "memorySampleCount": 131,
+        "iterations": [
+          {
+            "number": 1,
+            "elapsedMilliseconds": 5527.8902,
+            "managedAllocatedBytes": 1075841592,
+            "outputBytes": 2154523,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+          }
+        ],
+        "deterministic": true
+      },
+      "warm": {
+        "mode": "warm",
+        "processElapsedMilliseconds": 12149.8519,
+        "peakWorkingSetBytes": 514473984,
+        "memorySampleCount": 266,
+        "iterations": [
+          {
+            "number": 1,
+            "elapsedMilliseconds": 2186.7008,
+            "managedAllocatedBytes": 888252504,
+            "outputBytes": 2154523,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+          },
+          {
+            "number": 2,
+            "elapsedMilliseconds": 2251.5095,
+            "managedAllocatedBytes": 889646592,
+            "outputBytes": 2154523,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+          },
+          {
+            "number": 3,
+            "elapsedMilliseconds": 2155.205,
+            "managedAllocatedBytes": 889632824,
+            "outputBytes": 2154523,
+            "caseCount": 8,
+            "outputCount": 76,
+            "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+          }
+        ],
+        "deterministic": true
+      },
+      "cancellation": {
+        "status": "Passed",
+        "elapsedMilliseconds": 1.8932,
+        "detail": "Cancellation propagated through the asynchronous resource boundary."
+      },
+      "failures": []
+    }
+  },
+  "excludedDebugBudget": {
+    "configuration": "Debug",
+    "report": {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-budget-layoutfit-clean-84b1943be/html-static-budget.json",
+      "sha256": "8b85061675b88275fd335b206fe75a84400c5fdf02a64230204acf5137157eed",
+      "bytes": 3094
+    },
+    "status": "Failed",
+    "qualificationUse": "Diagnostic only; the documented budget command uses Release."
+  },
+  "commands": {
+    "h4": "dotnet run --no-build --no-restore -f net10.0 --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -- html-corpus-evidence --corpus advanced-held-out --output <new-directory> --verify-acceptance --require-clean-source",
+    "nasa": "dotnet run --no-build --no-restore -f net10.0 --project OfficeIMO.Pdf.Benchmarks.Comparisons/OfficeIMO.Pdf.Benchmarks.Comparisons.csproj -- html-mhtml-evidence --mhtml <frozen-source.mhtml> --output <new-directory> --replay-browser --require-clean-source",
+    "budget": "dotnet run -c Release --no-build --no-restore -f net10.0 --project Build/HtmlStaticBudget/OfficeIMO.Html.StaticBudget.csproj -- --output <new-directory> --iterations 3 --require-clean-source"
+  },
+  "retainedArtifactDirectories": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-layoutfit-clean-84b1943be",
+      "bytes": 7500900,
+      "purpose": "Current-head H4 acceptance and image regression"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-layoutfit-clean-84b1943be",
+      "bytes": 319433988,
+      "purpose": "Frozen NASA all-intent PDFs and all-page default/native/fit inspection"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-budget-layoutfit-release-clean-84b1943be",
+      "bytes": 2777,
+      "purpose": "macOS Release budget qualification"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-budget-layoutfit-clean-84b1943be",
+      "bytes": 3094,
+      "purpose": "Build-configuration diagnostic; not acceptance evidence"
+    }
+  ],
+  "remainingRequirements": [
+    "NASA default/native print geometry and unresolved bounded overflow",
+    "NASA header/card/footer fidelity",
+    "WAI and MDN resource/appearance qualification",
+    "TodoMVC supported-platform font and editable-output qualification",
+    "CDC/EPA/FWS held-out PDF and editable-target acceptance",
+    "Windows/Linux current-source budgets and page-specific supported-platform budgets"
+  ]
+}
