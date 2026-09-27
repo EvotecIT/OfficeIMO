@@ -361,6 +361,9 @@ scatter styles apply when a series does not override them. Static projections
 reject unqualified dashes, curved lines, distinct marker and line colours, and
 unfilled marker treatments. Native data editing remains available. Cached chart
 projections are bounded to 100,000 positions across all native layers.
+Point overrides retain their separate 100,000-record limit, including stale and
+duplicate records. Picture markers reject static projection. Radar series inherit
+visible markers only from the native marker style unless the series supplies a marker.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain

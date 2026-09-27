@@ -854,13 +854,15 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ProjectionBudget? projectionBudget = null) =>
             ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadCategories(seriesElements,
                 PowerPointChartSnapshotMapper.MapKind(chartKind ?? PowerPointChartSnapshotKind.ClusteredColumn),
-                colorScheme, axisGroup, PowerPointUtils.MaximumSharedChartPoints, validatePlot, projectionBudget), chartKind);
+                colorScheme, axisGroup, PowerPointUtils.MaximumSharedChartPoints, validatePlot, projectionBudget,
+                maximumPointOverrides: PowerPointUtils.MaximumSharedChartPoints), chartKind);
 
         private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements,
             A.ColorScheme? colorScheme = null, bool validatePlot = true,
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ProjectionBudget? projectionBudget = null) =>
             ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadScatter(seriesElements,
-                colorScheme, PowerPointUtils.MaximumSharedChartPoints, validatePlot, projectionBudget), PowerPointChartSnapshotKind.Scatter);
+                colorScheme, PowerPointUtils.MaximumSharedChartPoints, validatePlot, projectionBudget,
+                maximumPointOverrides: PowerPointUtils.MaximumSharedChartPoints), PowerPointChartSnapshotKind.Scatter);
 
         private static PowerPointChartData? ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.Result? source,
             PowerPointChartSnapshotKind? kind) => source == null ? null : new PowerPointChartData(source.Categories,

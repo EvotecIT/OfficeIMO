@@ -10,6 +10,44 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartSeriesAppearanceReadbackTests {
     [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Radar)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void Snapshot_RejectsPictureMarkersInsteadOfDrawingCircles(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) }));
+        var marker = chart.ChartPart!.ChartSpace!.Descendants<C.Marker>().Single();
+        marker.Symbol!.Val = C.MarkerStyleValues.Picture;
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_UsesThePointOverrideBoundForStaleAndDuplicateRecords() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        var series = chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Single();
+        for (int index = 0; index < 10001; index++) series.InsertBefore(new C.DataPoint(new C.Index { Val = 99 }), series.GetFirstChild<C.Values>());
+        series.InsertBefore(new C.DataPoint(new C.Index { Val = 0 }, new C.ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }))), series.GetFirstChild<C.Values>());
+        Assert.Equal(10002, series.Elements<C.DataPoint>().Count());
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Equal(OfficeColor.Parse("#FF0000"), snapshot.Data.Series.Single().ToOfficeSeries().PointColors!.Single());
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(2, false)]
+    public void Snapshot_InheritsRadarMarkerVisibilityFromItsNativeStyle(int style, bool visible) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Radar, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) }));
+        var layer = chart.ChartPart!.ChartSpace!.Descendants<C.RadarChart>().Single();
+        layer.RadarStyle!.Val = style == 0 ? C.RadarStyleValues.Standard : style == 1 ? C.RadarStyleValues.Marker : C.RadarStyleValues.Filled;
+        layer.Elements<C.RadarChartSeries>().Single().GetFirstChild<C.Marker>()!.Remove();
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Equal(visible, snapshot.Data.Series.Single().ToOfficeSeries().ShowMarkers);
+    }
+    [Theory]
     [InlineData(OfficeChartKind.Line, 0)]
     [InlineData(OfficeChartKind.Line, 1)]
     [InlineData(OfficeChartKind.Line, 2)]

@@ -10,13 +10,12 @@ namespace OfficeIMO.OpenXml.Internal;
 
 /// <summary>Shared native chart point-style codec; Core remains free of OpenXML dependencies.</summary>
 internal static class OfficeOpenXmlChartPointStyles {
-    // Match the largest supported native chart cache budget. Count every record,
-    // including duplicates and invalid indices, before interpreting appearances.
-    internal static IReadOnlyList<C.DataPoint> GetBoundedPoints(OpenXmlElement series) {
-        const int maximum = 1_000_000;
+    // Preserve each format's point-override budget independently of its cache limit.
+    // Count duplicate and invalid records before interpreting appearances.
+    internal static IReadOnlyList<C.DataPoint> GetBoundedPoints(OpenXmlElement series, int maximum = 1_000_000) {
         List<C.DataPoint> points = series.Elements<C.DataPoint>().Take(maximum + 1).ToList();
         if (points.Count > maximum)
-            throw new System.IO.InvalidDataException("The chart exceeds the supported limit of 1000000 point overrides.");
+            throw new System.IO.InvalidDataException($"The chart exceeds the supported limit of {maximum} point overrides.");
         return points;
     }
 
@@ -48,9 +47,12 @@ internal static class OfficeOpenXmlChartPointStyles {
         return true;
     }
 
-    internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) {
+    internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) =>
+        Read(GetBoundedPoints(series), count, scheme);
+
+    internal static IReadOnlyList<OfficeChartPointStyle?>? Read(IReadOnlyList<C.DataPoint> points, int count, A.ColorScheme? scheme) {
         OfficeChartPointStyle?[]? styles = null;
-        foreach (C.DataPoint point in GetBoundedPoints(series)) {
+        foreach (C.DataPoint point in points) {
             uint? index = point.Index?.Val?.Value;
             if (!index.HasValue || index.Value >= (uint)count) continue;
             C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
