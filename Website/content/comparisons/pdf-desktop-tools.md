@@ -12,7 +12,7 @@ OfficeIMO Studio brings the OfficeIMO engines into a visual workspace. [Windows 
 
 This comparison was checked on **7 September 2026**. OfficeIMO entries describe the current source and linked workflow evidence. Other entries describe vendors' published features, not a hands-on test or a performance ranking. Edition and provider requirements are stated where they affect the task; an unverified feature is not treated as unsupported.
 
-Studio download availability was updated on **27 September 2026** for version 0.1.9765. Windows and Linux x64 installation and launch were verified; Arm64 installation and runtime testing is pending.
+Studio download availability was updated on **27 September 2026** for version 0.1.9765. Windows and Linux x64 installation and launch were verified; Arm64 installation and runtime testing for version 0.1.9765 is pending.
 
 ## Compare the editions and workflows
 
