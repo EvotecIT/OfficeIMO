@@ -574,7 +574,9 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            snapshot = CreateSnapshot(chart, parts[0].Kind, new PowerPointChartData(categories, series));
+            if (series.Where(item => item.SourceOrder.HasValue).GroupBy(item => item.SourceOrder).Any(group => group.Count() > 1)) return false;
+            snapshot = CreateSnapshot(chart, parts[0].Kind, new PowerPointChartData(categories,
+                series.OrderBy(item => item.SourceOrder ?? uint.MaxValue)));
             return true;
         }
 
@@ -871,6 +873,7 @@ namespace OfficeIMO.PowerPoint {
                     PointColors = item.Data.PointColors,
                     PointStyles = item.Data.PointStyles,
                     SourceIndex = item.SourceIndex,
+                    SourceOrder = item.SourceOrder,
                     SharedAppearance = item.Data,
                     HasUnsupportedSharedAppearance = item.HasUnsupportedAppearance
                 }));

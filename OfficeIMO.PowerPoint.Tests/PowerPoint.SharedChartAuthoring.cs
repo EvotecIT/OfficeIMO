@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                                 AlternativeText = kind + " performance chart"
                             });
                         Assert.Contains("Data summary:", chart.AltText);
-                        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+                        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot), kind.ToString());
                         Assert.Equal(kind, snapshot.ChartKind);
                         Assert.Equal(data.Categories, snapshot.Data.Categories);
                         if (kind == OfficeChartKind.ColumnClustered) {
@@ -595,7 +595,10 @@ namespace OfficeIMO.Tests {
                     markerSize: 7, strokeWidth: 1.8),
                 new OfficeChartSeries("Target", new[] { 35D, 50D, 65D, 80D }, null,
                     OfficeColor.Parse("#4CAF50"), null, showMarkers: true,
-                    markerSize: 7, strokeWidth: 1.8, strokeDashStyle: OfficeStrokeDashStyle.Dash)
+                    markerSize: 7, strokeWidth: 1.8, strokeDashStyle:
+                        kind == OfficeChartKind.Line || kind == OfficeChartKind.LineStacked || kind == OfficeChartKind.LineStacked100 ||
+                        kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100 ||
+                        kind == OfficeChartKind.Radar ? OfficeStrokeDashStyle.Dash : null)
             });
         }
 
