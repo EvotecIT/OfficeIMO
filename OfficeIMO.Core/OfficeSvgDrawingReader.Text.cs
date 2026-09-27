@@ -126,6 +126,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 string text = NormalizeText(textNode.Value, preserve, ref cursor);
                 if (text.Length == 0) continue;
+                references.FontTextUsageObserver?.Invoke(text, style.FontFamily, OfficeFontFaceDescriptor.FromStyle(style.FontStyle));
                 if (RequiresPaintedTextOutline(style) && text.Length > 4096) {
                     ReportTextRunLimit(ref cursor, ref unsupported);
                     return;

@@ -12,14 +12,17 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlResourceSession resources,
         HtmlRenderOptions options,
         HtmlConversionLimits limits,
-        HtmlDiagnosticReport diagnostics) {
+        HtmlDiagnosticReport diagnostics,
+        out HtmlRenderFontFaceUsage usage) {
         var fonts = new OfficeFontFaceCollection {
             FontProgramProvider = options.Fonts?.FontProgramProvider,
             FontVariationResolver = options.Fonts?.FontVariationResolver
         };
         Uri? baseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, options.BaseUri);
         HtmlUrlPolicy resourcePolicy = HtmlResourceUrlPolicy.Create(options.GetResourceUrlPolicy());
-        var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var reported = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        usage = new HtmlRenderFontFaceUsage(fonts, diagnostics);
+        int definitionOrder = 0;
         long decodedFontBytes = 0L;
         var pipelineOptions = new HtmlResourcePipelineOptions {
             Limits = limits.Clone(),
@@ -54,6 +57,8 @@ internal static class HtmlRenderFontFaceLoader {
                     diagnostics,
                     fonts,
                     reported,
+                    usage,
+                    definitionOrder++,
                     ref decodedFontBytes);
             }
         }
@@ -69,19 +74,22 @@ internal static class HtmlRenderFontFaceLoader {
         HtmlRenderOptions options,
         HtmlDiagnosticReport diagnostics,
         OfficeFontFaceCollection fonts,
-        HashSet<string> reported,
+        Dictionary<string, int> reported,
+        HtmlRenderFontFaceUsage usage,
+        int definitionOrder,
         ref long decodedFontBytes) {
+        var definitionDiagnostics = new HashSet<int>();
+        void Report(string code, string message, string? source, string? detail = null) =>
+            definitionDiagnostics.Add(ReportOnce(diagnostics, reported, code, message, source, detail));
+
         if (definition.FamilyName.Length == 0) {
-            ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontFaceInvalid, "An @font-face rule has no usable font-family descriptor.", definition.Source);
+            Report(HtmlRenderDiagnosticCodes.FontFaceInvalid, "An @font-face rule has no usable font-family descriptor.", definition.Source);
             return;
         }
 
         IReadOnlyList<string> sources = HtmlResourcePipeline.ExtractFontFaceUrls(definition.Source);
         if (!TryResolveDescriptor(definition, out OfficeFontFaceDescriptor descriptor)) {
-            ReportOnce(
-                diagnostics,
-                reported,
-                HtmlRenderDiagnosticCodes.FontFaceInvalid,
+            Report(HtmlRenderDiagnosticCodes.FontFaceInvalid,
                 "An @font-face rule has an unsupported weight, stretch, or style descriptor.",
                 definition.FamilyName,
                 "weight=" + definition.Weight + ";stretch=" + definition.Stretch + ";style=" + definition.Style);
@@ -91,10 +99,7 @@ internal static class HtmlRenderFontFaceLoader {
         if (!string.IsNullOrWhiteSpace(definition.UnicodeRange)) {
             if (!OfficeFontUnicodeRangeSet.TryParseCss(definition.UnicodeRange, out OfficeFontUnicodeRangeSet? parsedRanges)
                 || parsedRanges == null) {
-                ReportOnce(
-                    diagnostics,
-                    reported,
-                    HtmlRenderDiagnosticCodes.FontFaceInvalid,
+                Report(HtmlRenderDiagnosticCodes.FontFaceInvalid,
                     "An @font-face rule has an invalid or excessive unicode-range descriptor.",
                     definition.FamilyName,
                     definition.UnicodeRange);
@@ -108,7 +113,7 @@ internal static class HtmlRenderFontFaceLoader {
                 baseUri,
                 resourcePolicy);
             if (resolved.Length == 0) {
-                ReportOnce(diagnostics, reported, "FontResourceRejectedByPolicy", "A font face source was rejected by the configured URL policy.", source);
+                Report("FontResourceRejectedByPolicy", "A font face source was rejected by the configured URL policy.", source);
                 continue;
             }
 
@@ -119,7 +124,7 @@ internal static class HtmlRenderFontFaceLoader {
                 contentType = cached.ContentType;
             } else if (resolved.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) {
                 if (!HtmlDataUri.TryParse(resolved, out HtmlDataUri dataUri)) {
-                    ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
+                    Report(HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
                     continue;
                 }
 
@@ -127,26 +132,26 @@ internal static class HtmlRenderFontFaceLoader {
                 try {
                     estimatedBytes = dataUri.EstimateDecodedByteCount();
                 } catch (FormatException) {
-                    ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
+                    Report(HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
                     continue;
                 }
 
                 contentType = dataUri.MediaType;
 
                 if (!resources.CanAcceptInlineResource(estimatedBytes, out string diagnosticCode, out string diagnosticDetail)) {
-                    ReportOnce(diagnostics, reported, diagnosticCode, "A font data URI exceeded the configured operation-wide resource budget.", source, diagnosticDetail);
+                    Report(diagnosticCode, "A font data URI exceeded the configured operation-wide resource budget.", source, diagnosticDetail);
                     continue;
                 }
 
                 if (!dataUri.TryDecodeBytes(out bytes)) {
-                    ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
+                    Report(HtmlRenderDiagnosticCodes.FontDataUriInvalid, "A font data URI could not be decoded.", source);
                     continue;
                 }
 
                 var inlineResource = new HtmlResolvedResource(bytes, contentType);
                 if (!resources.TryAcceptInline(HtmlResourceKind.Font, resolved, inlineResource,
                         out diagnosticCode, out diagnosticDetail)) {
-                    ReportOnce(diagnostics, reported, diagnosticCode,
+                    Report(diagnosticCode,
                         diagnosticCode == HtmlRenderDiagnosticCodes.ResourceContentTypeRejected
                             ? "A font face source declared an incompatible media type."
                             : "A font data URI exceeded the configured operation-wide resource budget.",
@@ -161,7 +166,7 @@ internal static class HtmlRenderFontFaceLoader {
             }
 
             if (!IsFontContentType(contentType)) {
-                ReportOnce(diagnostics, reported, HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "A font face source declared an incompatible media type.", source, contentType);
+                Report(HtmlRenderDiagnosticCodes.ResourceContentTypeRejected, "A font face source declared an incompatible media type.", source, contentType);
                 continue;
             }
 
@@ -169,10 +174,7 @@ internal static class HtmlRenderFontFaceLoader {
                 - resources.AcceptedResourceBytes
                 - decodedFontBytes;
             if (remainingDecodedBytes <= 0L) {
-                ReportOnce(
-                    diagnostics,
-                    reported,
-                    HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
+                Report(HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
                     "Decoded font data exceeded the configured operation-wide resource budget.",
                     source,
                     "decodedFontBytes=" + decodedFontBytes);
@@ -190,14 +192,12 @@ internal static class HtmlRenderFontFaceLoader {
                 out string? fontError,
                 applyDescriptorWeight: true)) {
                 decodedFontBytes += acceptedDecodedBytes;
+                usage.RegisterAvailable(definition.FamilyName, descriptor, ranges, definitionOrder, definitionDiagnostics);
                 return;
             }
 
             bool decodedLimitExceeded = fontError?.IndexOf("limit", StringComparison.OrdinalIgnoreCase) >= 0;
-            ReportOnce(
-                diagnostics,
-                reported,
-                decodedLimitExceeded
+            Report(decodedLimitExceeded
                     ? HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
                     : HtmlRenderDiagnosticCodes.FontFormatUnsupported,
                 decodedLimitExceeded
@@ -209,13 +209,11 @@ internal static class HtmlRenderFontFaceLoader {
                     : contentType);
         }
 
-        ReportOnce(
-            diagnostics,
-            reported,
-            HtmlRenderDiagnosticCodes.FontFaceUnavailable,
+        Report(HtmlRenderDiagnosticCodes.FontFaceUnavailable,
             "No usable source from an @font-face rule was available to the renderer.",
             definition.FamilyName,
             definition.Source);
+        usage.RegisterUnavailable(definition.FamilyName, descriptor, ranges, definitionOrder, definitionDiagnostics);
     }
 
     private static bool TryResolveDescriptor(
@@ -316,9 +314,9 @@ internal static class HtmlRenderFontFaceLoader {
         return HtmlResourcePipeline.IsCssStyleElement(styleElement);
     }
 
-    private static void ReportOnce(
+    private static int ReportOnce(
         HtmlDiagnosticReport diagnostics,
-        HashSet<string> reported,
+        Dictionary<string, int> reported,
         string code,
         string message,
         string? source,
@@ -326,9 +324,11 @@ internal static class HtmlRenderFontFaceLoader {
         source = NormalizeDiagnosticValue(source);
         detail = NormalizeDiagnosticValue(detail);
         string key = code + "|" + (source ?? string.Empty) + "|" + (detail ?? string.Empty);
-        if (reported.Add(key)) {
-            diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, source, detail);
-        }
+        if (reported.TryGetValue(key, out int existingIndex)) return existingIndex;
+        int index = diagnostics.Count;
+        diagnostics.Add(ComponentName, code, message, HtmlDiagnosticSeverity.Warning, source, detail);
+        reported.Add(key, index);
+        return index;
     }
 
     private static string? NormalizeDiagnosticValue(string? value) {

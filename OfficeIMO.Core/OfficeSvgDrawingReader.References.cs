@@ -100,12 +100,15 @@ public static partial class OfficeSvgDrawingReader {
 
         internal SvgElementReferenceRegistry(
             SvgDefinitionRegistry definitions,
-            OfficeSvgForeignObjectRenderer? foreignObjectRenderer = null) {
+            OfficeSvgForeignObjectRenderer? foreignObjectRenderer = null,
+            Action<string, string?, OfficeFontFaceDescriptor>? fontTextUsageObserver = null) {
             _definitions = definitions;
             ForeignObjectRenderer = foreignObjectRenderer;
+            FontTextUsageObserver = fontTextUsageObserver;
         }
 
         internal OfficeSvgForeignObjectRenderer? ForeignObjectRenderer { get; }
+        internal Action<string, string?, OfficeFontFaceDescriptor>? FontTextUsageObserver { get; }
 
         internal XNamespace NativeNamespace => _definitions.NativeNamespace;
 

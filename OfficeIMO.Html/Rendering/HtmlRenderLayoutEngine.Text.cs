@@ -151,6 +151,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            _fontUsage?.Observe(run.Text, run.Style.Font.FamilyName, run.Style.FontDescriptor);
             IReadOnlyList<OfficeFontFallbackRun> fallbacks = _fonts.PlanFallbackRuns(
                 run.Text,
                 run.Style.Font.FamilyName,
@@ -1348,6 +1349,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private double MeasureText(string value, OfficeFontInfo font, OfficeFontFaceDescriptor descriptor) {
+        _fontUsage?.Observe(value, font.FamilyName, descriptor);
         if (_fonts.TryMeasureText(value, font.Size, font.FamilyName, font.Style, out double scopedWidth)) {
             return scopedWidth;
         }
@@ -1363,6 +1365,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private double MeasureInlineText(string value, HtmlRenderBoxStyle style) {
         if (style.Font.Size <= 0D) return 0D;
+        _fontUsage?.Observe(value, style.Font.FamilyName, style.FontDescriptor);
         double measured = TryMeasureWithConfiguredProvider(value, style, out double shapedWidth)
             ? shapedWidth
             : MeasureText(value, GetEffectiveTextFont(style), style.FontDescriptor);

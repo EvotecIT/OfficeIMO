@@ -81,7 +81,7 @@ public static partial class OfficeSvgDrawingReader {
             bool pathCommandLimitExceeded = false;
             SvgDefinitionRegistry definitions = SvgDefinitionRegistry.Create(root);
             var paintServers = new SvgPaintServerRegistry(definitions, defaultFontFamily);
-            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer);
+            var references = new SvgElementReferenceRegistry(definitions, options?.ForeignObjectRenderer, options?.FontTextUsageObserver);
             bool fitsRootViewport = Math.Abs(viewportWidth - viewWidth) < 0.000001D &&
                 Math.Abs(viewportHeight - viewHeight) < 0.000001D;
             // Fitting a viewBox retains its full scene as an effect surface alongside

@@ -16,6 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HtmlResourceSession _resources;
     private readonly HtmlCssPageRuleSet _pageRules;
     private readonly OfficeFontFaceCollection _fonts;
+    private readonly HtmlRenderFontFaceUsage? _fontUsage;
     private readonly HtmlRenderMetadata _metadata;
     private readonly Uri? _baseUri;
     private readonly HtmlUrlPolicy _resourceUrlPolicy;
@@ -103,7 +104,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private double _activeSubgridRowGap;
     private bool _pagedFloatDeferredInRelayout;
 
-    internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, HtmlConversionLimits? limits = null, int logicalTextOrderStart = 0, int semanticNodeIdStart = 0, HtmlRenderOperationBudget? operationBudget = null, CancellationToken cancellationToken = default) {
+    internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlResourceSession? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null, HtmlConversionLimits? limits = null, int logicalTextOrderStart = 0, int semanticNodeIdStart = 0, HtmlRenderOperationBudget? operationBudget = null, CancellationToken cancellationToken = default, HtmlRenderFontFaceUsage? fontUsage = null) {
+        _fontUsage = fontUsage;
         _cancellationToken = cancellationToken;
         _cancellationToken.ThrowIfCancellationRequested();
         _document = document;

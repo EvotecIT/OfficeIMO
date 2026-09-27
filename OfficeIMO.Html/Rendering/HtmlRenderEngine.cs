@@ -178,7 +178,7 @@ public static class HtmlRenderEngine {
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
-        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();
@@ -197,7 +197,7 @@ public static class HtmlRenderEngine {
             pageRules,
             fonts,
             limits: limits,
-            cancellationToken: cancellationToken).Render();
+            cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
         return CompleteRender(rendered, resolved);
     }
 
@@ -326,7 +326,7 @@ public static class HtmlRenderEngine {
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
-        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics);
+        OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, limits, diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(resolved.Fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         cancellationToken.ThrowIfCancellationRequested();
@@ -338,7 +338,7 @@ public static class HtmlRenderEngine {
         }
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
-            limits: limits, cancellationToken: cancellationToken).Render();
+            limits: limits, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
         return CompleteRender(rendered, resolved);
     }
 

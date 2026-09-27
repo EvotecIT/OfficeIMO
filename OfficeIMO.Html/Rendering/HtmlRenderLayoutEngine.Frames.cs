@@ -122,7 +122,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderStylesheetApplier.Apply(document, _resources, options, _limits, cssBudget, _diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, _limits);
         OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(
-            document, _resources, options, _limits, _diagnostics);
+            document, _resources, options, _limits, _diagnostics, out HtmlRenderFontFaceUsage fontUsage);
         fonts.AddRange(options.Fonts);
         _fonts.AddRange(fonts);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, options, _diagnostics);
@@ -139,7 +139,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             _nextLogicalTextOrder,
             _nextSemanticNodeId,
             _operationBudget,
-            _cancellationToken);
+            _cancellationToken,
+            fontUsage);
         HtmlRenderDocument rendered = engine.Render();
         _nextLogicalTextOrder = engine._nextLogicalTextOrder;
         _nextSemanticNodeId = engine._nextSemanticNodeId;

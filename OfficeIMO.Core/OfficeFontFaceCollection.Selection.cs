@@ -43,12 +43,18 @@ public sealed partial class OfficeFontFaceCollection {
     private static int CompareFaceSelection(
         OfficeFontFace left,
         OfficeFontFace right,
+        OfficeFontFaceDescriptor requested) => CompareFaceDescriptors(left.Descriptor, right.Descriptor, requested);
+
+    /// <summary>Ranks descriptors without requiring decoded programs, so consumers can attribute unavailable preferred faces.</summary>
+    internal static int CompareFaceDescriptors(
+        OfficeFontFaceDescriptor left,
+        OfficeFontFaceDescriptor right,
         OfficeFontFaceDescriptor requested) {
-        int comparison = CompareStretch(left.Descriptor.StretchPercent, right.Descriptor.StretchPercent, requested.StretchPercent);
+        int comparison = CompareStretch(left.StretchPercent, right.StretchPercent, requested.StretchPercent);
         if (comparison != 0) return comparison;
-        comparison = CompareSlant(left.Descriptor, right.Descriptor, requested);
+        comparison = CompareSlant(left, right, requested);
         if (comparison != 0) return comparison;
-        return CompareWeight(left.Descriptor.Weight, right.Descriptor.Weight, requested.Weight);
+        return CompareWeight(left.Weight, right.Weight, requested.Weight);
     }
 
     private static int CompareStretch(double left, double right, double requested) {

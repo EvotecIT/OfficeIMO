@@ -17,6 +17,9 @@ public sealed class OfficeSvgDrawingReaderOptions {
     /// </summary>
     public OfficeFontFaceCollection Fonts { get; } = new OfficeFontFaceCollection();
 
+    /// <summary>Operation-scoped attribution callback for displayed SVG text before font fallback. It is not retained by output scenes.</summary>
+    internal System.Action<string, string?, OfficeFontFaceDescriptor>? FontTextUsageObserver { get; set; }
+
     /// <summary>
     /// Optional caller-owned renderer for bounded inline XHTML inside SVG <c>foreignObject</c> elements.
     /// The returned drawing must use the exact viewport dimensions supplied by the context.

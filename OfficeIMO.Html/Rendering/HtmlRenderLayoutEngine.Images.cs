@@ -216,7 +216,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var readerOptions = new OfficeSvgDrawingReaderOptions {
             ViewportWidth = viewportWidth,
             ViewportHeight = viewportHeight,
-            DefaultFontFamily = _options.DefaultFontFamily
+            DefaultFontFamily = _options.DefaultFontFamily,
+            FontTextUsageObserver = _fontUsage == null ? null : _fontUsage.Observe
         };
         bool canRasterizeSvg = _options.ImageCodec != null
             && (!viewportWidth.HasValue || OfficeSvgDrawingReader.IsWithinSafetyLimits(bytes, readerOptions));
