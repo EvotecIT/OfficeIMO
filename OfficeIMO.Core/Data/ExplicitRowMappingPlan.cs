@@ -17,6 +17,14 @@ internal sealed class ExplicitRowMappingPlan<T> where T : new() {
 
     internal bool IsEmpty => _bindings.Length == 0;
 
+    internal void CaptureReaderValues(DbDataReader reader, object?[] values) {
+        foreach (MappingBinding binding in _bindings) {
+            if (values[binding.ColumnIndex] is not DataReaderMappingValue) {
+                values[binding.ColumnIndex] = DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Entry.ValueType);
+            }
+        }
+    }
+
     internal static ExplicitRowMappingPlan<T> Create(
         IReadOnlyList<string> headers,
         Action<RowMapper<T>> configure) {

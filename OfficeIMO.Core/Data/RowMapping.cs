@@ -268,6 +268,7 @@ public static class DataReaderMappingExtensions {
 
 internal interface IRowMappingEntry<T> {
     IReadOnlyList<string> ColumnNames { get; }
+    Type ValueType { get; }
     T Apply(
         T instance,
         object? rawValue,
@@ -295,6 +296,7 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
     }
 
     public IReadOnlyList<string> ColumnNames { get; }
+    public Type ValueType => typeof(TValue);
 
     public T Apply(
         T instance,
@@ -322,7 +324,7 @@ internal sealed class RowMappingEntry<T, TValue> : IRowMappingEntry<T> {
             return _assign(instance, value!);
         }
 
-        object? rawValue = reader.GetValue(ordinal);
+        object? rawValue = DataReaderMappingValue.Read(reader, ordinal, typeof(TValue));
         return Apply(
             instance,
             ReferenceEquals(rawValue, DBNull.Value) ? null : rawValue,
@@ -433,6 +435,8 @@ internal static class DataValueConverter {
         result = null;
         Type? underlyingType = Nullable.GetUnderlyingType(targetType);
         Type effectiveType = underlyingType ?? targetType;
+        DataReaderMappingValue? providerValue = value as DataReaderMappingValue;
+        if (providerValue is not null) value = providerValue.Original;
 
         if (value is null) {
             if (underlyingType is null && targetType.IsValueType) {
@@ -455,6 +459,7 @@ internal static class DataValueConverter {
                 return false;
             }
         }
+        if (providerValue is not null && DataReaderMappingValue.IsNumeric(effectiveType)) value = providerValue.Numeric;
         if (effectiveType.IsInstanceOfType(value)) {
             result = value;
             return true;

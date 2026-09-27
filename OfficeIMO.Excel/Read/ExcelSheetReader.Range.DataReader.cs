@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel {
 
             if (CanUseRangeStreamXmlReader()
                 && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
-                foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
+                foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct, preserveDateSerial: true)) {
                     yield return chunk;
                 }
 
@@ -381,8 +381,7 @@ namespace OfficeIMO.Excel {
             string? rawText = ExtractRawText(cell);
             uint? styleIndex = cell.StyleIndex?.Value;
             bool canPreserveDateSerial =
-                _opt.CellValueConverter == null
-                && _opt.TreatDatesUsingNumberFormat
+                _opt.TreatDatesUsingNumberFormat
                 && styleIndex is not null
                 && rawText != null
                 && typeHint != CellValues.SharedString
@@ -399,11 +398,26 @@ namespace OfficeIMO.Excel {
                         NumberStyles.Float | NumberStyles.AllowThousands,
                         CultureInfo.InvariantCulture,
                         out serial))) {
+                if (_opt.CellValueConverter != null) {
+                    var converted = ConvertRaw(SnapshotCell(cell));
+                    if (converted.CustomValueHandled) { value = converted.TypedValue; return true; }
+                }
                 value = new ExcelDataReaderDateSerial(serial, _dateSystem, Styles.IsDateSystemShiftStyle(styleIndex.Value));
                 return true;
             }
 
             return TryConvertCell(cell, out value);
+        }
+
+        private object? ConvertRawForDataReader(CellRaw raw) {
+            raw = ConvertRaw(raw);
+            if (!raw.CustomValueHandled && raw.TypedValue is DateTime
+                && raw.TypeHint != CellValues.Date && raw.StyleIndex is uint style
+                && raw.RawText != null && Styles.IsDateLike(style)
+                && double.TryParse(raw.RawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double serial)) {
+                return new ExcelDataReaderDateSerial(serial, _dateSystem, Styles.IsDateSystemShiftStyle(style));
+            }
+            return raw.TypedValue;
         }
 
         private sealed class ExcelDataReaderDateSerial {
@@ -785,7 +799,8 @@ namespace OfficeIMO.Excel {
             }
 
             private static string? GetHeaderText(object?[]? headerValues, int ordinal) =>
-                headerValues != null && ordinal < headerValues.Length ? headerValues[ordinal]?.ToString() : null;
+                headerValues != null && ordinal < headerValues.Length
+                    ? MaterializeDataReaderValue(headerValues[ordinal])?.ToString() : null;
 
             private static string[] CreateGeneratedColumnNames(int fieldCount) {
                 var names = new string[fieldCount];
@@ -837,7 +852,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static object ToDataReaderValue(object? value)
-            => value == null || ReferenceEquals(value, DBNull.Value) ? DBNull.Value : value;
+            => value == null || ReferenceEquals(value, DBNull.Value) ? DBNull.Value
+                : value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
 
         private static int CopyDataReaderValues(object?[] row, int fieldCount, object[] values) {
             int count = Math.Min(values.Length, fieldCount);

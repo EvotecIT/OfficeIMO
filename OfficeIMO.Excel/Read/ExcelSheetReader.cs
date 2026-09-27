@@ -700,11 +700,12 @@ namespace OfficeIMO.Excel {
         }
 
         private CellRaw ConvertRaw(CellRaw raw) {
+            raw.CustomValueHandled = false;
             if (raw.HasFormula) {
                 if (_opt.UseCachedFormulaResult && raw.RawText != null) {
                     raw.TypedValue = TryConvertWithoutCustomHook(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out var cachedValue)
                         ? cachedValue
-                        : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText);
+                        : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out raw.CustomValueHandled);
                 } else {
                     raw.TypedValue = raw.FormulaText ?? raw.RawText ?? raw.InlineText;
                 }
@@ -713,7 +714,7 @@ namespace OfficeIMO.Excel {
 
             raw.TypedValue = TryConvertWithoutCustomHook(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out var value)
                 ? value
-                : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText);
+                : ConvertByHints(raw.TypeHint, raw.StyleIndex, raw.RawText, raw.InlineText, out raw.CustomValueHandled);
             return raw;
         }
 
@@ -1124,13 +1125,17 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText) {
+        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText) =>
+            ConvertByHints(type, styleIndex, rawText, inlineText, out _);
+
+        private object? ConvertByHints(CellValues? type, uint? styleIndex, string? rawText, string? inlineText, out bool customHandled) {
+            customHandled = false;
             // Custom converter hook (cell-level). If provided and handled, honor it.
             var hook = _opt.CellValueConverter;
             if (hook != null) {
                 var ctx = new ExcelCellContext(type.ToOfficeEnum(), styleIndex, rawText, inlineText, _opt.Culture);
                 var res = hook(ctx);
-                if (res.Handled) return res.Value;
+                if (res.Handled) { customHandled = true; return res.Value; }
             }
             if (!string.IsNullOrEmpty(inlineText)) return inlineText;
 
@@ -1200,6 +1205,7 @@ namespace OfficeIMO.Excel {
             public CellValues? TypeHint;
             public uint? StyleIndex;
             public bool HasFormula;
+            public bool CustomValueHandled;
             public string? FormulaText;
             public string? RawText;
             public string? InlineText;

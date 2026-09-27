@@ -31,9 +31,14 @@ namespace OfficeIMO.Excel {
             return ReadXmlCellValue(cellReader, cellReader.GetAttribute("t"));
         }
 
-        private object? ReadXmlCellValue(XmlReader cellReader, string? cellType) {
+        private object? ReadXmlCellValue(XmlReader cellReader, string? cellType, bool preserveDateSerial = false) {
             if (cellReader.IsEmptyElement) {
                 return null;
+            }
+            if (preserveDateSerial && _opt.TreatDatesUsingNumberFormat
+                && CellKindCanUseDateStyle(ParseXmlCellKind(cellType))
+                && IsDateStyleAttribute(cellReader.GetAttribute("s"))) {
+                return ConvertRawForDataReader(ReadXmlCellRaw(cellReader, 0, 0, ParseXmlCellKind(cellType), readStyleIndex: true));
             }
 
             if (_opt.CellValueConverter == null && cellType == "s") {
@@ -368,8 +373,7 @@ namespace OfficeIMO.Excel {
                         if (useCachedFormulaResult) {
                             if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
                                 if (asDate) {
-                                    primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
-                                    dateTimeValue = FromExcelSerialDate(simpleNumber, calendarStyle);
+                                    objectValue = new ExcelDataReaderDateSerial(simpleNumber, _dateSystem, calendarStyle);
                                 } else {
                                     primitiveKind = XmlDataReaderPrimitiveKind.Double;
                                     doubleValue = simpleNumber;
@@ -425,8 +429,7 @@ namespace OfficeIMO.Excel {
             if (TryParseInvariantDoubleFast(rawText, out double number)
                 || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)) {
                 if (asDate) {
-                    primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
-                    dateTimeValue = FromExcelSerialDate(number, calendarStyle);
+                    objectValue = new ExcelDataReaderDateSerial(number, _dateSystem, calendarStyle);
                 } else {
                     primitiveKind = XmlDataReaderPrimitiveKind.Double;
                     doubleValue = number;

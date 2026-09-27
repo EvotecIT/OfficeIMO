@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Data;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
@@ -67,14 +68,19 @@ namespace OfficeIMO.Tests {
                 var rows = sheet.ReadObjectsStream<CalendarAndTimeRow>("A1:E3").ToArray();
                 Assert.Equal(first, rows[0].Calendar); Assert.Equal(second, rows[1].Calendar);
                 Assert.Equal(duration, rows[0].Duration); Assert.Equal(time, rows[0].Time);
-                if (!converterFallback) Assert.Equal(1.5d, rows[0].Numeric);
+                Assert.Equal(1.5d, rows[0].Numeric);
                 Assert.Equal(duration.ToString(CultureInfo.InvariantCulture), rows[0].Text);
             }
             using var dataReader = ExcelDocument.OpenDataReader(path, options);
             Assert.True(dataReader.Read());
+            Assert.Equal(1.5d, dataReader.GetDouble(dataReader.GetOrdinal("Numeric")));
             Assert.Equal(first, dataReader["Calendar"]); Assert.Equal(duration, dataReader["Duration"]); Assert.Equal(time, dataReader["Time"]);
             Assert.True(dataReader.Read()); Assert.Equal(second, dataReader["Calendar"]);
             Assert.False(dataReader.Read());
+            using var mappedReader = ExcelDocument.OpenDataReader(path, options);
+            Assert.All(mappedReader.RowsAs<CalendarAndTimeRow>(), row => Assert.Equal(1.5d, row.Numeric));
+            using var parallelReader = ExcelDocument.OpenDataReader(path, options);
+            Assert.All(parallelReader.RowsAsParallel<CalendarAndTimeRow>(new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2, BatchSize = 2 }), row => Assert.Equal(1.5d, row.Numeric));
         }
 
         [Theory]

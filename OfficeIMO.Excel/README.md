@@ -254,6 +254,12 @@ With `TreatDatesUsingNumberFormat` enabled, calendar formats use the workbook's
 `DateTime` as a carrier for the unshifted serial; changing the workbook date
 system does not add days to a duration. Use a numeric getter or disable date
 format interpretation when the application needs the original serial.
+Numeric properties mapped through `RowsAs<T>` or `RowsAsParallel<T>` also receive
+the original serial, including cached formula values. A cell converter returning
+`ExcelCellValue.NotHandled`, or a type converter returning `(false, null)`,
+retains default conversion. Explicit converter results, including handled nulls,
+take precedence. Type converters see the reader's original value before numeric
+mapping uses the serial.
 
 `ExcelReadOptions.EnableWorksheetPrefetch` can overlap selected XLSX worksheet
 decompression with workbook metadata parsing on a spare worker. It is disabled by default,

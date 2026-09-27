@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
     /// Object-mapping readers for <see cref="ExcelSheetReader"/>.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
-        private object? TryChangeType<TTarget>(object value, TypedPropertyBinding<TTarget> binding, CultureInfo culture) {
+        private object? TryChangeType<TTarget>(object value, TypedPropertyBinding<TTarget> binding, CultureInfo culture, CellRaw? rawFallback = null) {
             if (value == null) return null;
 
             var hook = _opt.TypeConverter;
@@ -29,6 +29,10 @@ namespace OfficeIMO.Excel {
             var srcType = value.GetType();
             if (binding.PropertyType.IsAssignableFrom(srcType)) return value;
 
+            if (value is DateTime && rawFallback is CellRaw raw && !raw.CustomValueHandled
+                && ShouldRetryRawDateStyledNumericBinding(raw, binding)
+                && TryConvertNumericTextForBinding(raw.RawText!, binding, true, out object? number)) return number;
+
             return binding.ConvertValue(value, culture);
         }
 
@@ -39,12 +43,13 @@ namespace OfficeIMO.Excel {
             converted = null;
 
             if (_opt.CellValueConverter != null || _opt.TypeConverter != null) {
-                object? value = ConvertCell(cell);
+                var raw = ConvertRaw(SnapshotCell(cell));
+                object? value = raw.TypedValue;
                 if (value is null) {
                     return binding.IsNullable;
                 }
 
-                converted = TryChangeType(value, binding, _opt.Culture);
+                converted = TryChangeType(value, binding, _opt.Culture, raw);
                 return converted is not null || binding.IsNullable;
             }
 
@@ -158,12 +163,13 @@ namespace OfficeIMO.Excel {
                 return converted is not null || binding.IsNullable;
             }
 
-            object? typedValue = ConvertRaw(raw).TypedValue;
+            raw = ConvertRaw(raw);
+            object? typedValue = raw.TypedValue;
             if (typedValue is null) {
                 return binding.IsNullable;
             }
 
-            converted = TryChangeType(typedValue, binding, _opt.Culture);
+            converted = TryChangeType(typedValue, binding, _opt.Culture, raw);
             return converted is not null || binding.IsNullable;
         }
 
@@ -251,12 +257,13 @@ namespace OfficeIMO.Excel {
                 return converted is not null || binding.IsNullable;
             }
 
-            object? typedValue = ConvertRaw(raw).TypedValue;
+            raw = ConvertRaw(raw);
+            object? typedValue = raw.TypedValue;
             if (typedValue is null) {
                 return binding.IsNullable;
             }
 
-            converted = TryChangeType(typedValue, binding, _opt.Culture);
+            converted = TryChangeType(typedValue, binding, _opt.Culture, raw);
             return converted is not null || binding.IsNullable;
         }
 
@@ -265,7 +272,8 @@ namespace OfficeIMO.Excel {
             TypedPropertyBinding<TTarget> binding,
             TTarget target) {
             if (_opt.CellValueConverter != null || _opt.TypeConverter != null) {
-                object? typedValue = ConvertRaw(raw).TypedValue;
+                raw = ConvertRaw(raw);
+                object? typedValue = raw.TypedValue;
                 if (typedValue is null) {
                     if (binding.IsNullable) {
                         binding.SetValue(target, null);
@@ -275,7 +283,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                object? converted = TryChangeType(typedValue, binding, _opt.Culture);
+                object? converted = TryChangeType(typedValue, binding, _opt.Culture, raw);
                 if (converted is not null || binding.IsNullable) {
                     binding.SetValue(target, converted);
                     return true;
