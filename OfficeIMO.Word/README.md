@@ -492,7 +492,7 @@ Snapshots preserve chart and plot surfaces, primary axes and gridlines, radial g
 uniform body fonts, separate chart-title and axis-title fonts, uniform text size, style and
 colour for titles, legends and axes, and basic data-label content,
 separator, number format, and position. Mixed body fonts, per-point or series-specific labels,
-outside-label leader lines, unsupported effects, and unrepresented outlines return false
+outside or best-fit radial leader lines, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
 Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
 axis crossing are preserved where the renderer supports them; maximum crossing on horizontal
@@ -501,7 +501,8 @@ manual title layouts, unsupported numeric formats, exploded slices, and nondefau
 require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
 multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
-category-label skipping or offsets, rounded chart frames, and nondefault cross-between geometry also reject projection. Visible-only
+category-label skipping, offsets or non-centered alignment, rounded chart frames, non-box bar shapes,
+bar connector lines, chart drawing overlays, and nondefault cross-between geometry also reject projection. Visible-only
 charts with hidden workbook source rows or columns reject projection; literal charts remain supported.
 Header and footer charts use relationships owned
 by their containing story, including when the same relationship ID exists in the document body.
@@ -511,15 +512,15 @@ Call `snapshot.Data.Series[index].ToOfficeSeries()` to obtain the shared series,
 including connecting-line visibility, stroke width and dash, marker shape and
 size, marker outlines, and point overrides. Word page images and Markdown chart
 drawings use that same series. Unqualified native dashes, curved lines, distinct
-marker and connecting-line colours, or unfilled marker treatments reject the
+marker and connecting-line colours, unresolved automatic marker symbols, or unfilled marker treatments reject the
 managed snapshot rather than changing their appearance. Cached projections are
 bounded to 10,000 positions per Word cache and 100,000 positions across a chart.
 Point overrides use a separate 1,000,000-record limit that counts stale and duplicate
 records. Native series retain their plotting order. Gradients, custom or compound
 outlines, and per-point marker overrides reject static projection. Supported filled
 series outlines are inherited by points; explicit point outlines take precedence.
-Picture markers reject static projection. Radar series inherit visible
-markers only from the native marker style unless the series supplies a marker.
+Picture markers reject static projection. Visible inherited markers require an explicit supported series symbol.
+Small authored chart canvases retain explicit font, stroke and marker sizes; quality reports identify cramped or overflowing content.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain
