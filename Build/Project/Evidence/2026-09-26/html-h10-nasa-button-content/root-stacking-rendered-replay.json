@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+  "worktreeClean": true,
+  "ownerVersions": {
+    "Core": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "Email": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "HTML Core": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "HTML AngleSharp": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "HTML": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "HTML PDF": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "MHTML": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "MHTML PDF": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "PDF": "3.4.3+7a873c002587cfd4fb4b3f04616c0620dab00fcc",
+    "evidence runner": "1.0.0+7a873c002587cfd4fb4b3f04616c0620dab00fcc"
+  },
+  "chromiumVersion": "151.0.7922.34",
+  "reports": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-root-stacking-clean-7a873c002/html-mhtml-evidence.json",
+      "sha256": "00bad026edb1263e65e752a63c66c0d14dbd45a613964323395a7f02b6cd4a66"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-root-stacking-clean-7a873c002/html-corpus-evidence.json",
+      "sha256": "b079a5d11157a0ea4ff325edc14fd36bb4f8db49971051ace2d397a3daf68f5b"
+    }
+  ],
+  "nasa": {
+    "failures": [],
+    "operations": [
+      {
+        "intent": "chromium-screen",
+        "file": "chromium-screen.pdf",
+        "sha256": "becb451d647c586e65bebb19b37bad58f6e2c5adb4d033283f00d31c0069d889",
+        "pageCount": 4
+      },
+      {
+        "intent": "chromium-print",
+        "file": "chromium-print.pdf",
+        "sha256": "9a12c66e44f8572bee21fa2c790a03e279c50e77241d0845062a4c46a8571d18",
+        "pageCount": 4
+      },
+      {
+        "intent": "officeimo-print",
+        "file": "officeimo-print.pdf",
+        "sha256": "8317f5b3a1122ee6b4c81b3552829cd8e69808d792998fda24ada9b241b59af4",
+        "pageCount": 12
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "file": "officeimo-print-zero-margin.pdf",
+        "sha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "file": "officeimo-print-fit-1200.pdf",
+        "sha256": "64c827702ce647c9995de6a9b96008a09099faa6a6b817195d95d7b1a6cbba91",
+        "pageCount": 4
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "file": "officeimo-print-fit-1200-local-fonts.pdf",
+        "sha256": "ec09ebd2cf1713ee5665af0377669c5537d10f7e86535085041232b3342ca3df",
+        "pageCount": 4
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "file": "officeimo-print-browser-ua.pdf",
+        "sha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "file": "officeimo-print-zero-margin-local-fonts.pdf",
+        "sha256": "9630831ad7b1dd568d141a6798167562831283d5ec346753cc8213411894fccc",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "file": "officeimo-screen-media.pdf",
+        "sha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "file": "officeimo-screen-media-local-fonts.pdf",
+        "sha256": "9630831ad7b1dd568d141a6798167562831283d5ec346753cc8213411894fccc",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "file": "officeimo-screen-snapshot.pdf",
+        "sha256": "dba4dc94de0428456a2bfc8dec5f09ff34133d89c45706e845fc0409adfafd03",
+        "pageCount": 12
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "file": "officeimo-screen-snapshot-local-fonts.pdf",
+        "sha256": "127a952d96d009af32fc97ee6f5148cef8eab431c80841aae31b23ab410401f4",
+        "pageCount": 12
+      },
+      {
+        "intent": "peachpdf-print",
+        "file": "peachpdf-print.pdf",
+        "sha256": "94d73686ca45eeffe35f518370bc27dc713783d8bf81fbd45f302fc3df1e92fa",
+        "pageCount": 3
+      }
+    ],
+    "visualInspection": {
+      "pageCount": 105,
+      "allLaneMontagesInspected": true,
+      "defaultFooter": "Privacy, reproduction and curator text is visible above the fixed header on page 12.",
+      "remaining": "Default print is still 12 pages against four browser pages. Narrow gallery, header, typography, card-body wrapping and intent-specific flow differences remain."
+    }
+  },
+  "h4": {
+    "passed": false,
+    "failures": [
+      "acceptance: legacy-portal screen-full-page-v1 failed geometry-match-ratio: observed 0.125 greater-than-or-equal 0.35.",
+      "acceptance: static-screen-v1/html-source-decoding failed selected cases: legacy-portal.",
+      "acceptance: static-screen-v1/layout-tables failed selected cases: legacy-portal."
+    ],
+    "officeImoMatchingBaselineImages": 43,
+    "officeImoChangedImages": 0,
+    "legacyPortalGeometry": "Matched geometry is unchanged. Splitting paint envelopes repeats the same table shell, increasing observed element count from 16 to 48 and lowering the match ratio. Identity-based observation remediation is being validated; no acceptance threshold changed."
+  },
+  "platformBudget": "Not rerun because unrelated Swift/simulator work remains active. Current-source budgets are unqualified."
+}

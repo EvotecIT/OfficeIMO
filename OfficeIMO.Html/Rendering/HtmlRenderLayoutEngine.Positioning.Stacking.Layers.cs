@@ -29,6 +29,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .ThenBy(layer => layer.StackingContext?.SourceOrder ?? -1)
                 .Select((layer, index) => layer.Translate(0D, 0D, index)), out reorderedText);
         HtmlRenderLogicalTextScope? logicalScope = hasReorderedText ? new HtmlRenderLogicalTextScope() : null;
+        object projectionIdentity = visual.PaintProjectionIdentity ?? new object();
         bool ownsLogicalText = true;
         bool reorderedTextAssigned = false;
         foreach (HtmlRenderVisual layer in layers) {
@@ -52,7 +53,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             };
             // Keep each ancestor's clip and semantic identity around its promoted
             // layer; only the external paint ordering changes.
-            yield return layer.CopyStackingContextTo(envelope);
+            yield return layer.CopyStackingContextTo(envelope).IdentifyPaintProjection(projectionIdentity);
             ownsLogicalText = false;
         }
     }

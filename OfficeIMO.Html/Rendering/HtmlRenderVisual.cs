@@ -58,6 +58,16 @@ public abstract class HtmlRenderVisual {
 
     internal HtmlRenderStackingContext? StackingContext { get; private set; }
 
+    // Split paint envelopes still describe the same layout box. Identity, rather
+    // than equal coordinates, keeps distinct overlapping source elements apart.
+    internal object? PaintProjectionIdentity { get; private set; }
+
+    // Called only for a freshly reconstructed paint envelope.
+    internal HtmlRenderVisual IdentifyPaintProjection(object identity) {
+        PaintProjectionIdentity = identity;
+        return this;
+    }
+
     internal HtmlRenderVisual WithStackingContext(HtmlRenderStackingContext context) {
         HtmlRenderVisual result = Translate(0D, 0D, PaintOrder);
         result.StackingContext = context;
@@ -66,6 +76,7 @@ public abstract class HtmlRenderVisual {
 
     internal T CopyStackingContextTo<T>(T result) where T : HtmlRenderVisual {
         result.StackingContext = StackingContext;
+        result.PaintProjectionIdentity = PaintProjectionIdentity;
         return result;
     }
 

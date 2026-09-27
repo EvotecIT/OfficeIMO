@@ -299,8 +299,9 @@ internal static partial class HtmlCorpusEvidenceRunner {
         var observations = new List<HtmlCorpusElementGeometry>();
         var counts = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (HtmlRenderPage page in document.Pages) {
+            var projectedBoxes = new HashSet<(object Identity, double X, double Y, double Width, double Height)>();
             foreach (HtmlRenderVisual visual in page.Scene) {
-                ObserveGeometry(visual, new HashSet<string>(StringComparer.Ordinal), observations, counts);
+                ObserveGeometry(visual, new HashSet<string>(StringComparer.Ordinal), observations, counts, projectedBoxes);
             }
         }
         return observations;
@@ -310,11 +311,14 @@ internal static partial class HtmlCorpusEvidenceRunner {
         HtmlRenderVisual visual,
         ISet<string> ancestorSources,
         ICollection<HtmlCorpusElementGeometry> observations,
-        IDictionary<string, int> counts) {
+        IDictionary<string, int> counts,
+        ISet<(object Identity, double X, double Y, double Width, double Height)> projectedBoxes) {
         string source = visual.Source ?? string.Empty;
         bool observed = IsObservedElement(source);
         bool suppressNestedDuplicate = observed && ancestorSources.Contains(source);
-        if (observed && !suppressNestedDuplicate) {
+        bool duplicateProjection = visual.PaintProjectionIdentity is { } projectionIdentity
+            && !projectedBoxes.Add((projectionIdentity, visual.X, visual.Y, visual.Width, visual.Height));
+        if (observed && !suppressNestedDuplicate && !duplicateProjection) {
             counts.TryGetValue(source, out int index);
             counts[source] = index + 1;
             observations.Add(new HtmlCorpusElementGeometry(
@@ -335,7 +339,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         };
         if (children != null) {
             foreach (HtmlRenderVisual child in children) {
-                ObserveGeometry(child, ancestorSources, observations, counts);
+                ObserveGeometry(child, ancestorSources, observations, counts, projectedBoxes);
             }
         }
         if (addedSource) ancestorSources.Remove(source);
