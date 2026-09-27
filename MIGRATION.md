@@ -9,13 +9,18 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
-## Excel Boolean formula caches
+## Excel typed formula caches
 
 OfficeIMO calculation now saves Boolean formulas as Boolean cached values.
 Comparisons, logical functions, information functions, and `EXACT` read back as
 `bool` through cached-value readers instead of numeric `1` or `0`. Applications
 that previously cast these results to `double` should accept `bool`, or convert
 explicitly with `Convert.ToDouble` when a numeric representation is required.
+
+`CellAt(...).GetValue().Value` also retains native cached result types. Boolean
+formula caches return `bool`, and text formulas such as `="12"` return `string`
+instead of being inferred as numeric values. Match the returned value type before
+performing numeric casts.
 
 ## Excel dates before March 1900
 

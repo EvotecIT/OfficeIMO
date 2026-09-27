@@ -581,6 +581,9 @@ support typed guards and error fallbacks. `SEARCH` and text criteria recognize
 `TEXT` uses invariant English formatting and accepts an explicit `[$-409]`
 locale prefix; other locale qualifiers remain unsupported.
 
+`CellAt(...).GetValue().Value` preserves the native cached result type, including
+Boolean values and text that looks numeric, such as the result of `="12"`.
+
 Calculation honors the workbook's 1900 or 1904 date system. In the 1900 system,
 `DATE` and date-part functions retain Excel's fictitious February 29, 1900.
 When converting serial 60 to `DateTime`, `ExcelDateSystemConverter.FromSerial`

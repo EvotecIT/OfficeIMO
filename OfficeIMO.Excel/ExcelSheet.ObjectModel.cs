@@ -33,10 +33,21 @@ namespace OfficeIMO.Excel {
             }
 
             string? cached = cell.CellValue?.Text;
+            var type = cell.DataType?.Value;
             if (cell.CellFormula != null) {
-                object? formulaValue = double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)
-                    ? cachedNumber
-                    : cached;
+                object? formulaValue = cached;
+                if (cached != null) {
+                    if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
+                        formulaValue = cached == "1" || string.Equals(cached, "true", StringComparison.OrdinalIgnoreCase);
+                    } else if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                        || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                        || type == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                        formulaValue = GetCellText(cell);
+                    } else if (type != DocumentFormat.OpenXml.Spreadsheet.CellValues.Error
+                        && double.TryParse(cached, NumberStyles.Float, CultureInfo.InvariantCulture, out double cachedNumber)) {
+                        formulaValue = cachedNumber;
+                    }
+                }
                 return new ExcelCellData(ExcelCellDataKind.Formula, formulaValue, cell.CellFormula.Text, cached);
             }
 
@@ -44,7 +55,6 @@ namespace OfficeIMO.Excel {
                 return new ExcelCellData(ExcelCellDataKind.Blank, null);
             }
 
-            var type = cell.DataType?.Value;
             if (type == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean) {
                 return new ExcelCellData(ExcelCellDataKind.Boolean, cached == "1" || string.Equals(cached, "true", StringComparison.OrdinalIgnoreCase), cachedText: cached);
             }
