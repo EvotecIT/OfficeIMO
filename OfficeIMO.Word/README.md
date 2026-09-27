@@ -435,6 +435,21 @@ string markdown = document.ToMarkdown(new WordToMarkdownOptions());
 document.SaveAsPdf("report.pdf");
 ```
 
+## Native doughnut charts
+
+`WordChart.AddDoughnut(category, value)` creates an editable native doughnut chart with a
+50-percent hole. It accepts finite, nonnegative `int`, `double`, or `float` values and can
+append slices after reopening a chart authored with literal data. Linked worksheet caches
+and multi-ring imported doughnuts use the existing cached-data mutation APIs instead.
+
+```csharp
+WordChart chart = document.AddChart("Status", roundedCorners: false, width: 360, height: 180);
+chart.AddDoughnut("Pass", 8).AddDoughnut("Could not evaluate", 2).AddDoughnut("Fail", 1);
+chart.SetDataPointStyle(0, 1,
+    new OfficeIMO.Drawing.OfficeChartPointStyle(noFill: true,
+        outlineColor: OfficeIMO.Drawing.OfficeColor.Black, outlineWidth: 2));
+```
+
 ## Individual chart point styles
 
 Use `chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to apply an
