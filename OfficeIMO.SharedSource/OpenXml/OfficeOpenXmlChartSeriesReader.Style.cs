@@ -12,9 +12,16 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("Rounded native chart frames cannot be projected.");
             if (chart.GetFirstChild<C.Legend>()?.Elements<C.LegendEntry>().Any(entry => entry.GetFirstChild<C.TextProperties>() != null) == true)
                 throw new NotSupportedException("Per-entry legend text formatting cannot be projected.");
-            if (chart.Descendants<C.Title>().Cast<OpenXmlElement>().Concat(chart.Elements<C.Legend>())
-                .Any(owner => owner?.GetFirstChild<C.ChartShapeProperties>()?.ChildElements.Count > 0))
-                throw new NotSupportedException("Title and legend shape appearance cannot be projected.");
+            foreach (C.Title title in chart.Descendants<C.Title>()) {
+                if (title.GetFirstChild<C.ChartShapeProperties>() is not C.ChartShapeProperties titleShape) continue;
+                Surface titleSurface = ReadSurface(titleShape, scheme);
+                if (!titleSurface.NoFill || !titleSurface.NoOutline || titleSurface.Fill.HasValue || titleSurface.Stroke.HasValue)
+                    throw new NotSupportedException("The title shape appearance cannot be projected.");
+            }
+            var legendShape = chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.ChartShapeProperties>();
+            var legendSurface = ReadSurface(legendShape, scheme);
+            if (legendSurface.Dash is OfficeStrokeDashStyle legendDash && legendDash != OfficeStrokeDashStyle.Solid)
+                throw new NotSupportedException("The legend border dash cannot be projected.");
             var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme);
             var defaultText = ReadNativeText(chart, chart, scheme);
             var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
@@ -46,6 +53,9 @@ namespace OfficeIMO.OpenXml.Internal {
             return new OfficeChartStyle(fontFamily: textStyle?.FontFamily, titleFontFamily: textStyle?.TitleFontFamily,
                 titleFontSize: titleText.Size, titleFontStyle: titleText.Style, titleColor: titleText.Color,
                 legendTextColor: legendText.Color, mutedTextColor: axisText.Color, axisTitleColor: axisTitleText.Color,
+                legendBackgroundColor: legendSurface.NoFill ? null : legendSurface.Fill,
+                legendBorderColor: legendSurface.NoOutline ? null : legendSurface.Stroke,
+                legendBorderWidth: legendSurface.Width,
                 textColor: defaultText.Color, dataLabelTextColor: defaultText.Color,
                 showBackground: !area.NoFill, backgroundColor: area.Fill,
                 showBorder: !area.NoOutline, borderColor: area.Stroke, chartBorderWidth: area.Width, chartBorderDashStyle: area.Dash,
@@ -96,8 +106,9 @@ namespace OfficeIMO.OpenXml.Internal {
             if (properties.GetFirstChild<A.SolidFill>() != null && !fill.HasValue || outline?.GetFirstChild<A.SolidFill>() != null && !stroke.HasValue)
                 throw new NotSupportedException("The chart surface colour cannot be resolved.");
             double? width = outline?.Width?.Value is int emus ? emus / 12700d : null;
-            if (width.HasValue && (width <= 0 || width > OfficeChartStyleBounds.MaximumLineWidthPoints))
+            if (width.HasValue && (width < 0 || width > OfficeChartStyleBounds.MaximumLineWidthPoints))
                 throw new NotSupportedException("The chart outline width is outside the supported range.");
+            if (width == 0) width = null;
             var dash = ReadDash(outline);
             if (outline?.GetFirstChild<A.PresetDash>() != null && !dash.HasValue)
                 throw new NotSupportedException("The chart outline dash pattern cannot be projected.");

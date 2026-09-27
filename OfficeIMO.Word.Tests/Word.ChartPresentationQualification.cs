@@ -107,10 +107,44 @@ public sealed class WordChartPresentationQualificationTests {
             var title = new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text("Axis"))))),
                 new C.Layout(new C.ManualLayout(new C.Left { Val = .3 })));
             native.PlotArea.GetFirstChild<C.ValueAxis>()!.AddChild(title, true);
+        } else if (feature == "legendShape") {
+            native.GetFirstChild<C.Legend>()!.AddChild(new C.ChartShapeProperties(new A.GradientFill()), true);
         } else {
-            OpenXmlCompositeElement owner = feature == "titleShape" ? native.GetFirstChild<C.Title>()! : native.GetFirstChild<C.Legend>()!;
-            owner.AddChild(new C.ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })), true);
+            native.GetFirstChild<C.Title>()!.AddChild(new C.ChartShapeProperties(
+                new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })), true);
         }
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData("point")]
+    [InlineData("legendKey")]
+    [InlineData("bubbleSize")]
+    public void Snapshot_RejectsVisibleLabelsWithoutGlobalValueFlags(string label) {
+        using var document = WordDocument.Create();
+        var chart = label == "bubbleSize"
+            ? document.AddChart(OfficeChartKind.Bubble, new OfficeChartData(new[] { "A", "B" }, new[] {
+                OfficeChartSeries.CreateBubble("Values", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d }) }))
+            : Create(document, OfficeChartKind.Pie);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.DataLabels labels = label switch {
+            "point" => new C.DataLabels(new C.DataLabel(new C.Index { Val = 0 }, new C.ShowValue { Val = true })),
+            "legendKey" => new C.DataLabels(new C.ShowLegendKey { Val = true }),
+            _ => new C.DataLabels(new C.ShowBubbleSize { Val = true })
+        };
+        if (label == "bubbleSize") plot.GetFirstChild<C.BubbleChart>()!.AddChild(labels, true);
+        else plot.GetFirstChild<C.PieChart>()!.AddChild(labels, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsSeriesLabelSuppressionBelowVisibleChartLabels() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.ColumnClustered);
+        var bars = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.GetFirstChild<C.BarChart>()!;
+        bars.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        bars.GetFirstChild<C.BarChartSeries>()!.AddChild(
+            new C.DataLabels(new C.ShowValue { Val = false }), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 

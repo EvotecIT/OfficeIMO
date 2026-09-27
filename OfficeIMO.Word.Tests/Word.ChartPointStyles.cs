@@ -18,8 +18,9 @@ public sealed class WordChartPointStylesTests {
                 WordChart authoredChart = authored.AddChart("Status", false, 360, 180);
                 authoredChart.AddPie("Pass", 3).AddPie("Unknown", 2).AddPie("Fail", 1);
                 authoredChart.SetDataPointStyle(0, 0, new(showOutline: true));
-                authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2));
-                authoredChart.SetDataPointStyle(0, 2, new(OfficeColor.White, hatch: OfficeChartHatchPattern.DiagonalCross,
+                authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+                    outlineJoin: OfficeStrokeLineJoin.Round));
+                authoredChart.SetDataPointStyle(0, 2, new(OfficeColor.White, hatch: OfficeChartHatchPattern.WideForwardDiagonal,
                     hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black));
                 authored.Save();
             }
@@ -28,7 +29,8 @@ public sealed class WordChartPointStylesTests {
             Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
             Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
             Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
-            Assert.Equal(OfficeChartHatchPattern.DiagonalCross, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
+            Assert.Equal(OfficeStrokeLineJoin.Round, snapshot.Data.Series[0].PointStyles![1]!.OutlineJoin);
+            Assert.Equal(OfficeChartHatchPattern.WideForwardDiagonal, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
             Assert.Empty(reopened.ValidateDocument());
             var options = new WordToPdfOptions { IncludePageNumbers = false };
             byte[] pdf = reopened.ToPdfBytes(options);

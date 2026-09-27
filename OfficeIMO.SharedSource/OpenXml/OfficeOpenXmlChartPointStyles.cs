@@ -46,6 +46,7 @@ internal static class OfficeOpenXmlChartPointStyles {
                     if (lineChild is A.NoFill) continue;
                     if (lineChild is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(lineChild) &&
                         OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
+                    if (lineChild is A.Round or A.LineJoinBevel or A.Miter) continue;
                     return false;
                 }
                 continue;
@@ -91,9 +92,12 @@ internal static class OfficeOpenXmlChartPointStyles {
             OfficeColor? line = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
             bool? showOutline = outline == null ? null : outline.GetFirstChild<A.NoFill>() != null ? false : true;
             double? width = outline?.Width?.Value is int emu && emu > 0 ? emu / 12700D : null;
-            if (!fill.HasValue && !noFill && !hatch.HasValue && !line.HasValue && !width.HasValue && !showOutline.HasValue) continue;
+            OfficeStrokeLineJoin? join = outline?.GetFirstChild<A.Round>() != null ? OfficeStrokeLineJoin.Round :
+                outline?.GetFirstChild<A.LineJoinBevel>() != null ? OfficeStrokeLineJoin.Bevel :
+                outline?.GetFirstChild<A.Miter>() != null ? OfficeStrokeLineJoin.Miter : null;
+            if (!fill.HasValue && !noFill && !hatch.HasValue && !line.HasValue && !width.HasValue && !showOutline.HasValue && !join.HasValue) continue;
             styles ??= new OfficeChartPointStyle?[count];
-            styles[(int)index.Value] = new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, line, width, showOutline);
+            styles[(int)index.Value] = new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, line, width, showOutline, join);
         }
         return styles;
     }
@@ -167,10 +171,15 @@ internal static class OfficeOpenXmlChartPointStyles {
         } else if ((style?.FillColor ?? legacyColor) is OfficeColor fill)
             properties.AddChild(new A.SolidFill(CreateColor(fill)), true);
         if (style?.ShowOutline == false) properties.AddChild(new A.Outline(new A.NoFill()), true);
-        else if (style?.OutlineColor != null || style?.OutlineWidth != null || style?.ShowOutline == true) {
+        else if (style?.OutlineColor != null || style?.OutlineWidth != null || style?.ShowOutline == true || style?.OutlineJoin != null) {
             var outline = new A.Outline();
             if (style.OutlineWidth.HasValue) outline.Width = (int)Math.Round(style.OutlineWidth.Value * 12700);
             if (style.OutlineColor is OfficeColor line) outline.Append(new A.SolidFill(CreateColor(line)));
+            if (style.OutlineJoin is OfficeStrokeLineJoin join) outline.Append(join switch {
+                OfficeStrokeLineJoin.Round => new A.Round(),
+                OfficeStrokeLineJoin.Bevel => new A.LineJoinBevel(),
+                _ => new A.Miter()
+            });
             properties.AddChild(outline, true);
         }
         if (properties.Parent == null && properties.HasChildren) styleOwner.AddChild(properties, true);
@@ -186,12 +195,14 @@ internal static class OfficeOpenXmlChartPointStyles {
     internal static OfficeChartHatchPattern? ReadHatch(string? token) => token switch {
         "horz" => OfficeChartHatchPattern.Horizontal, "vert" => OfficeChartHatchPattern.Vertical,
         "upDiag" => OfficeChartHatchPattern.ForwardDiagonal, "dnDiag" => OfficeChartHatchPattern.BackwardDiagonal,
-        "cross" => OfficeChartHatchPattern.Cross, "diagCross" => OfficeChartHatchPattern.DiagonalCross, _ => null
+        "cross" => OfficeChartHatchPattern.Cross, "diagCross" => OfficeChartHatchPattern.DiagonalCross,
+        "wdUpDiag" => OfficeChartHatchPattern.WideForwardDiagonal, _ => null
     };
     private static string HatchToken(OfficeChartHatchPattern hatch) => hatch switch {
         OfficeChartHatchPattern.Horizontal => "horz", OfficeChartHatchPattern.Vertical => "vert",
         OfficeChartHatchPattern.ForwardDiagonal => "upDiag", OfficeChartHatchPattern.BackwardDiagonal => "dnDiag",
         OfficeChartHatchPattern.Cross => "cross", OfficeChartHatchPattern.DiagonalCross => "diagCross",
+        OfficeChartHatchPattern.WideForwardDiagonal => "wdUpDiag",
         _ => throw new ArgumentOutOfRangeException(nameof(hatch))
     };
 }

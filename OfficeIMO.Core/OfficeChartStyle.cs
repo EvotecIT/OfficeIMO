@@ -75,6 +75,9 @@ public sealed class OfficeChartStyle {
     /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
     /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
     /// <param name="showBorder">Whether the chart border should be rendered.</param>
+    /// <param name="legendBackgroundColor">Optional legend frame fill.</param>
+    /// <param name="legendBorderColor">Optional legend frame border colour.</param>
+    /// <param name="legendBorderWidth">Optional positive legend frame border width.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -128,7 +131,10 @@ public sealed class OfficeChartStyle {
         OfficeColor? dataLabelBorderColor = null,
         double? dataLabelBorderWidth = null,
         OfficeStrokeDashStyle? dataLabelBorderDashStyle = null,
-        bool showBorder = true)
+        bool showBorder = true,
+        OfficeColor? legendBackgroundColor = null,
+        OfficeColor? legendBorderColor = null,
+        double? legendBorderWidth = null)
         : this(
             showBackground: true,
             palette: palette,
@@ -183,7 +189,10 @@ public sealed class OfficeChartStyle {
             dataLabelBorderColor: dataLabelBorderColor,
             dataLabelBorderWidth: dataLabelBorderWidth,
             dataLabelBorderDashStyle: dataLabelBorderDashStyle,
-            showBorder: showBorder) {
+            showBorder: showBorder,
+            legendBackgroundColor: legendBackgroundColor,
+            legendBorderColor: legendBorderColor,
+            legendBorderWidth: legendBorderWidth) {
     }
 
     /// <summary>
@@ -243,6 +252,9 @@ public sealed class OfficeChartStyle {
     /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
     /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
     /// <param name="showBorder">Whether the chart border should be rendered.</param>
+    /// <param name="legendBackgroundColor">Optional legend frame fill.</param>
+    /// <param name="legendBorderColor">Optional legend frame border colour.</param>
+    /// <param name="legendBorderWidth">Optional positive legend frame border width.</param>
     public OfficeChartStyle(
         bool showBackground,
         IEnumerable<OfficeColor>? palette = null,
@@ -297,7 +309,10 @@ public sealed class OfficeChartStyle {
         OfficeColor? dataLabelBorderColor = null,
         double? dataLabelBorderWidth = null,
         OfficeStrokeDashStyle? dataLabelBorderDashStyle = null,
-        bool showBorder = true) {
+        bool showBorder = true,
+        OfficeColor? legendBackgroundColor = null,
+        OfficeColor? legendBorderColor = null,
+        double? legendBorderWidth = null) {
         if (chartBorderWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(chartBorderWidth), "Chart border width must be greater than zero.");
         }
@@ -333,6 +348,9 @@ public sealed class OfficeChartStyle {
         }
         if (dataLabelBorderWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(dataLabelBorderWidth), "Data label border width must be greater than zero.");
+        }
+        if (legendBorderWidth is <= 0D || legendBorderWidth is double width && (double.IsNaN(width) || double.IsInfinity(width))) {
+            throw new ArgumentOutOfRangeException(nameof(legendBorderWidth), "Legend border width must be finite and greater than zero.");
         }
 
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
@@ -389,6 +407,9 @@ public sealed class OfficeChartStyle {
         ShowBackground = showBackground;
         ShowBorder = showBorder;
         LegendTextColor = legendTextColor;
+        LegendBackgroundColor = legendBackgroundColor;
+        LegendBorderColor = legendBorderColor;
+        LegendBorderWidth = legendBorderWidth;
         DataLabelTextColor = dataLabelTextColor;
         DataLabelFillColor = dataLabelFillColor;
         DataLabelBorderColor = dataLabelBorderColor;
@@ -440,6 +461,15 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Optional legend text color.</summary>
     public OfficeColor? LegendTextColor { get; }
+
+    /// <summary>Optional legend frame fill.</summary>
+    public OfficeColor? LegendBackgroundColor { get; }
+
+    /// <summary>Optional legend frame border colour.</summary>
+    public OfficeColor? LegendBorderColor { get; }
+
+    /// <summary>Optional legend frame border width.</summary>
+    public double? LegendBorderWidth { get; }
 
     /// <summary>Optional data label text color.</summary>
     public OfficeColor? DataLabelTextColor { get; }

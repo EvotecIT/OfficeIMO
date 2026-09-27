@@ -593,15 +593,17 @@ colour; an explicit no-fill style leaves an outlined slice visible without chang
 var status = new OfficeChartSeries("Status", new[] { 8d, 2d, 1d })
     .WithPointStyles(new OfficeChartPointStyle?[] {
         new(fillColor: OfficeColor.Parse("#168A56")),
-        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
-        new(hatch: OfficeChartHatchPattern.DiagonalCross,
+        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+            outlineJoin: OfficeStrokeLineJoin.Round),
+        new(hatch: OfficeChartHatchPattern.WideForwardDiagonal,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black)
     });
 ```
 
-Hatches support horizontal, vertical, forward diagonal, backward diagonal, cross, and
-diagonal cross strokes. Their default background is white; set `fillColor` to choose another
-background. Outline widths use points. `showOutline: false` hides the outline explicitly.
+Hatches support horizontal, vertical, forward diagonal, backward diagonal, cross,
+diagonal cross, and wide forward diagonal strokes. Their default background is white;
+set `fillColor` to choose another background. Outline widths use points; joins can be
+round, bevel, or miter. `showOutline: false` hides the outline explicitly.
 The renderer clips hatches to slice, bar, and marker geometry and styles category legend
 swatches with the same appearance. Per-point area styling is not applied by static rendering;
 `RenderWithQuality` reports `UnsupportedAppearance` and retains the series fill.

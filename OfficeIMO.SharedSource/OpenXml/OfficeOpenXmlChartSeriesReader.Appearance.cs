@@ -55,7 +55,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             var point = styles?[index];
             result[index] = new OfficeChartPointStyle(point?.FillColor, point?.NoFill ?? false,
                 point?.Hatch, point?.HatchColor, point?.OutlineColor ?? color,
-                point?.OutlineWidth ?? width, point?.ShowOutline ?? visible);
+                point?.OutlineWidth ?? width, point?.ShowOutline ?? visible, point?.OutlineJoin);
         }
         return result;
     }
