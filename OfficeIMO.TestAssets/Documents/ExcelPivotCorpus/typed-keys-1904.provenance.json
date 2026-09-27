@@ -1,0 +1,1000 @@
+﻿{
+    "producer":  "Microsoft Excel",
+    "version":  "16.0",
+    "build":  20326,
+    "generatedUtc":  "2026-09-27T16:45:31.3296331Z",
+    "dateSystem":  1904,
+    "regeneration":  "Build/Verification/New-ExcelPivotTypedKeyOracle.ps1",
+    "file":  "typed-keys-1904.xlsx",
+    "sha256":  "95e167cde7354adc0428aa6be60afe984d513d8e7ef125a2fa765c9e6a43cd61",
+    "sourceRange":  "Source!A1:E15",
+    "lookupFormulaCells":  116,
+    "profiles":  [
+                     {
+                         "name":  "PivotDatesRow",
+                         "sheet":  "DatesRow",
+                         "rows":  [
+                                      "DateKey"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "outputRange":  "A1:B10",
+                         "firstLookup":  1,
+                         "lookupCount":  9,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotDatesCol",
+                         "sheet":  "DatesCol",
+                         "rows":  [
+
+                                  ],
+                         "columns":  [
+                                         "DateKey"
+                                     ],
+                         "outputRange":  "A1:J3",
+                         "firstLookup":  10,
+                         "lookupCount":  9,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotDatesNested",
+                         "sheet":  "DatesNested",
+                         "rows":  [
+                                      "Group",
+                                      "DateKey"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "outputRange":  "A1:C15",
+                         "firstLookup":  19,
+                         "lookupCount":  11,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "subtotal",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "nested",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotDatesOuterRows",
+                         "sheet":  "DatesOuterRows",
+                         "rows":  [
+                                      "DateKey",
+                                      "Group"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "outputRange":  "A1:C20",
+                         "firstLookup":  30,
+                         "lookupCount":  11,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "subtotal",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "nested",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotDatesOuterCols",
+                         "sheet":  "DatesOuterCols",
+                         "rows":  [
+
+                                  ],
+                         "columns":  [
+                                         "DateKey",
+                                         "Group"
+                                     ],
+                         "outputRange":  "A1:T4",
+                         "firstLookup":  41,
+                         "lookupCount":  11,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "subtotal",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "nested",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotDatesDeepRows",
+                         "sheet":  "DatesDeepRows",
+                         "rows":  [
+                                      "DateKey",
+                                      "Group",
+                                      "Child"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "outputRange":  "A1:D31",
+                         "firstLookup":  52,
+                         "lookupCount":  11,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "subtotal",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "nested",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotDatesDeepCols",
+                         "sheet":  "DatesDeepCols",
+                         "rows":  [
+
+                                  ],
+                         "columns":  [
+                                         "DateKey",
+                                         "Group",
+                                         "Child"
+                                     ],
+                         "outputRange":  "A1:AE5",
+                         "firstLookup":  63,
+                         "lookupCount":  11,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "DateKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "subtotal",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "nested",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "DateKey",
+                                                              43830
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  null
+                     },
+                     {
+                         "name":  "PivotMixedRow",
+                         "sheet":  "MixedRow",
+                         "rows":  [
+                                      "MixedKey"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "outputRange":  "A1:B16",
+                         "firstLookup":  74,
+                         "lookupCount":  13,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "number",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              42
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "text",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "text"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "boolean",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              true
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "errorLabel",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "#DIV/0!"
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  100
+                     },
+                     {
+                         "name":  "PivotMixedCol",
+                         "sheet":  "MixedCol",
+                         "rows":  [
+
+                                  ],
+                         "columns":  [
+                                         "MixedKey"
+                                     ],
+                         "outputRange":  "A1:P3",
+                         "firstLookup":  87,
+                         "lookupCount":  13,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "number",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              42
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "text",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "text"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "boolean",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              true
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "errorLabel",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "#DIV/0!"
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  100
+                     },
+                     {
+                         "name":  "PivotMixedNested",
+                         "sheet":  "MixedNested",
+                         "rows":  [
+                                      "Group",
+                                      "MixedKey"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "outputRange":  "A1:C19",
+                         "firstLookup":  100,
+                         "lookupCount":  17,
+                         "selections":  [
+                                            {
+                                                "Kind":  "total",
+                                                "Pairs":  [
+
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              0
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              1
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              59
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              60
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              60.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "serial",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              43830.5
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "blank",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "(blank)"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "number",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              42
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "text",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "text"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "boolean",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              true
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "errorLabel",
+                                                "Pairs":  [
+                                                              "MixedKey",
+                                                              "#DIV/0!"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "subtotal",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "nested",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "MixedKey",
+                                                              43830
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "errorOnly",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "South",
+                                                              "MixedKey",
+                                                              "#DIV/0!"
+                                                          ]
+                                            },
+                                            {
+                                                "Kind":  "errorText",
+                                                "Pairs":  [
+                                                              "Group",
+                                                              "West",
+                                                              "MixedKey",
+                                                              "#DIV/0!"
+                                                          ]
+                                            }
+                                        ],
+                         "errorLookupValue":  100
+                     }
+                 ]
+}

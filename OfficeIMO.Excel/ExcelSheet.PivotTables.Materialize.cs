@@ -32,6 +32,8 @@ namespace OfficeIMO.Excel {
                     plan.Part.PivotTableDefinition = plan.Definition;
                     ClearExistingCellFieldsInRange((plan.Top, plan.Left, plan.AffectedBottom, plan.AffectedRight), ExcelClearOptions.Values);
                     ClearHeaderCache();
+                    var dateStyles = new Dictionary<uint, uint>();
+                    var existingDateStyles = plan.DateCells.Count == 0 ? null : StylesCache.Build(_spreadSheetDocument);
                     for (int row = plan.Top; row <= plan.AffectedBottom; row++) {
                         token.ThrowIfCancellationRequested();
                         for (int column = plan.Left; column <= plan.AffectedRight; column++) {
@@ -41,6 +43,15 @@ namespace OfficeIMO.Excel {
                             var value = plan.Values[row - plan.Top, column - plan.Left];
                             if (value?.Kind == ExcelCellDataKind.Error) CellError(row, column, (string)value.Value!);
                             else if (value != null) CellValue(row, column, value.Value);
+                            if (plan.DateCells.Contains((row - plan.Top, column - plan.Left))) {
+                                var cell = GetCell(row, column);
+                                uint style = cell.StyleIndex?.Value ?? 0U;
+                                if (existingDateStyles?.IsDateLike(style) != true) {
+                                    if (!dateStyles.TryGetValue(style, out uint dateStyle))
+                                        dateStyles.Add(style, dateStyle = GetOrCreateBuiltInNumberFormatStyleIndex(style, 22));
+                                    cell.StyleIndex = dateStyle;
+                                }
+                            }
                         }
                     }
                     var validator = new OpenXmlValidator(FileFormatVersions.Microsoft365) { MaxNumberOfErrors = 1 };
@@ -63,6 +74,8 @@ namespace OfficeIMO.Excel {
             internal PivotCacheDefinition Cache = null!;
             internal PivotCacheRecords Records = null!;
             internal ExcelCellData?[,] Values = null!;
+            internal ExcelDateSystem SourceDateSystem;
+            internal HashSet<(int Row, int Column)> DateCells = new();
             internal int Top, Left, Bottom, Right, OldBottom, OldRight, AffectedBottom, AffectedRight, SourceRecords;
         }
 
@@ -78,6 +91,7 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("Materialization requires a local worksheet source range.");
             var sourceSheet = _excelDocument.GetSheetForLockedOperation(source.Sheet!.Value!);
             sourceSheet.MaterializePendingDirectCellValues();
+            sourceSheet._pivotStylesCache = null;
             int fieldCount = c2 - c1 + 1;
             int limit = Math.Min(1_000_000, options.MaximumAffectedCells);
             if (r2 <= r1 || fieldCount > 256 || (long)(r2 - r1) * fieldCount > limit)
@@ -133,10 +147,6 @@ namespace OfficeIMO.Excel {
             var collect = Enumerable.Repeat(true, fieldCount).ToArray();
             var maps = sourceSheet.BuildPivotFieldValueMap(fieldCount, r1 + 1, r2, c1, grouping, collect);
             if (maps.Any(m => m.Items.Count > 100_000)) throw new InvalidOperationException("A pivot cache field exceeds 100,000 distinct items.");
-            // Date and error item keys need independent axis-layout qualification before generation.
-            foreach (int field in realFields)
-                if (maps[field].Items.Any(v => v.Kind == PivotFieldValueKind.Date || v.Kind == PivotFieldValueKind.Error))
-                    throw new NotSupportedException("Date and error pivot keys are not yet supported by this materializer.");
             // Lookup indexes both the saved field items and their shared keys. Keep every
             // possible criterion combination usable, rather than accepting an unreadable view.
             foreach (var axis in new[] { rowAxis, columnAxis }) {
@@ -161,7 +171,8 @@ namespace OfficeIMO.Excel {
             ValidatePivotMaterializationDestination(part, sourceSheet, r1, c1, r2, c2, top, left, (int)affectedBottom, (int)affectedRight, oldBottom, oldRight, token);
             var plan = new PivotMaterializationPlan { Part = part, CachePart = cachePart, Definition = (PivotTableDefinition)definition.CloneNode(true),
                 Cache = (PivotCacheDefinition)cache.CloneNode(true), Top = top, Left = left, Bottom = (int)bottom, Right = (int)right,
-                OldBottom = oldBottom, OldRight = oldRight, AffectedBottom = (int)affectedBottom, AffectedRight = (int)affectedRight, SourceRecords = r2 - r1 };
+                OldBottom = oldBottom, OldRight = oldRight, AffectedBottom = (int)affectedBottom, AffectedRight = (int)affectedRight, SourceRecords = r2 - r1,
+                SourceDateSystem = _excelDocument.DateSystem };
             var aggregates = AggregateMaterializedHierarchy(sourceSheet, r1, c1, r2, rows, columns, measures, limit, token);
             FillMaterializedHierarchy(plan, maps, rows, columns, measures, dataRow, dataColumn, aggregates, token);
             var cacheFields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();

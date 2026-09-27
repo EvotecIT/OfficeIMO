@@ -29,7 +29,8 @@ namespace OfficeIMO.Excel {
 
             if (snapshot.Value is double number) {
                 if (TryGetPivotDateValueFromStyle(row, column, number, out var styledDate)) {
-                    return PivotFieldValue.FromDate(styledDate);
+                    return PivotFieldValue.FromDate(grouping == null
+                        ? ExcelPivotCacheDateCodec.FromSerial(number, _excelDocument.DateSystem) : styledDate);
                 }
 
                 return PivotFieldValue.FromNumber(number);
@@ -88,10 +89,10 @@ namespace OfficeIMO.Excel {
                 float number => PivotFieldValue.FromNumber(number),
                 double number => PivotFieldValue.FromNumber(number),
                 decimal number => PivotFieldValue.FromNumber((double)number),
-                DateTime dateTime => PivotFieldValue.FromDate(dateTime),
-                DateTimeOffset dateTimeOffset => PivotFieldValue.FromDate(_excelDocument.DateTimeOffsetWriteStrategy(dateTimeOffset)),
+                DateTime dateTime => CreatePivotFieldDateValue(dateTime),
+                DateTimeOffset dateTimeOffset => CreatePivotFieldDateValue(_excelDocument.DateTimeOffsetWriteStrategy(dateTimeOffset)),
 #if NET6_0_OR_GREATER
-                DateOnly dateOnly => PivotFieldValue.FromDate(dateOnly.ToDateTime(TimeOnly.MinValue)),
+                DateOnly dateOnly => CreatePivotFieldDateValue(dateOnly.ToDateTime(TimeOnly.MinValue)),
 #endif
                 string text => CreatePivotFieldTextValue(text),
                 _ => PivotFieldValue.FromText(FormatPivotFieldText(value, _excelDocument.DateTimeOffsetWriteStrategy, _excelDocument.DateSystem))
@@ -108,6 +109,9 @@ namespace OfficeIMO.Excel {
 
         private static PivotFieldValue CreatePivotFieldTextValue(string text)
             => text.Length == 0 ? PivotFieldValue.Blank() : PivotFieldValue.FromText(text);
+
+        private PivotFieldValue CreatePivotFieldDateValue(DateTime date) => PivotFieldValue.FromDate(
+            ExcelPivotCacheDateCodec.FromSerial(ExcelDateSystemConverter.ToSerial(date, _excelDocument.DateSystem), _excelDocument.DateSystem));
 
         private static string FormatPivotFieldText(object value, Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy, ExcelDateSystem dateSystem) {
             return value switch {
@@ -254,11 +258,14 @@ namespace OfficeIMO.Excel {
 
             var sharedItems = new SharedItems {
                 ContainsString = hasString,
-                ContainsSemiMixedTypes = hasString,
+                ContainsSemiMixedTypes = hasString || hasBlank,
                 ContainsMixedTypes = (hasNumber && hasString) || (hasDate && (hasNumber || hasString)),
                 ContainsBlank = hasBlank,
                 ContainsDate = hasDate,
-                ContainsNumber = hasNumber
+                ContainsNonDate = !hasDate || hasNumber || hasString,
+                // Excel classifies fields containing date items as date fields even
+                // when numeric items coexist. Numeric flags make those caches unreadable.
+                ContainsNumber = hasNumber && !hasDate
             };
 
             if (appendItems) {
@@ -266,12 +273,14 @@ namespace OfficeIMO.Excel {
             }
 
             if (numberCount > 0) {
-                sharedItems.MinValue = minNumber;
-                sharedItems.MaxValue = maxNumber;
-                sharedItems.ContainsInteger = containsInteger;
+                if (dateCount == 0 && appendItems) {
+                    sharedItems.MinValue = minNumber;
+                    sharedItems.MaxValue = maxNumber;
+                }
+                if (!hasDate) sharedItems.ContainsInteger = containsInteger;
             }
 
-            if (dateCount > 0) {
+            if (dateCount > 0 && appendItems) {
                 sharedItems.MinDate = minDate;
                 sharedItems.MaxDate = maxDate;
             }

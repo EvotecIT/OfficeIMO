@@ -546,7 +546,7 @@ ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
 
 The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
 Both paths support saved, ungrouped hierarchies with multiple row and column
-fields, multiple measures, default subtotals, and text, numeric, Boolean or blank
+fields, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
 item keys. Lookup follows saved tabular, compact and outline views, including
 subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
 leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
@@ -560,6 +560,17 @@ page fields and views without saved axis items remain
 unsupported. The public method throws `NotSupportedException` for those profiles;
 formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
 and refresh-on-open settings; it does not populate an output view for lookup.
+
+For date items, use a `DateTime` or a numeric serial in the workbook's date system.
+Use serial `60` (or its time fraction) to select Excel's fictitious February 29,
+1900; a .NET `DateTime` cannot represent that date. Pivot-cache date items retain
+Excel's separate OLE Automation encoding, including early-1900 values.
+When a mixed field contains both a date and a number with the same serial,
+lookup selects the date item, as Excel does.
+To select an error item through the public API, pass
+`new ExcelCellData(ExcelCellDataKind.Error, "#DIV/0!")` as the criterion value.
+The string `"#DIV/0!"` selects a text item with that spelling. An error-valued
+formula argument propagates its error through formula calculation.
 
 Call `MaterializePivotTable` to generate an output view without an Office refresh:
 
@@ -581,6 +592,9 @@ fields. `AddPivotTable` creates this field on columns by default, or on rows whe
 Regeneration expands collapsed groups and normalizes compact and outline layouts to
 tabular output with subtotals below their children. Hidden subtotals stay hidden;
 custom subtotal functions become automatic subtotals using each measure's aggregation.
+Date labels receive date/time formatting when the destination has no date format.
+Date subtotal captions use `yyyy-MM-dd HH:mm:ss`, including Excel's fictitious
+February 29, 1900. Existing destination date formats are retained.
 
 The operation rejects destination collisions with unrelated values, formulas,
 source cells, other pivots, tables and merged ranges. It replaces a previous
@@ -599,7 +613,7 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Grouping, date/error item keys,
+Grouping,
 filters, page fields, calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

@@ -23,36 +23,44 @@ namespace OfficeIMO.Excel {
                     else values[dataRow, 0] = PivotMaterializedText(caption);
                 }
             } else if (columns.Layout.Fields.Length == 0) values[dataRow - 1, dataColumn] = PivotMaterializedText(caption);
-            void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, Action<int, ExcelCellData> put) {
+            void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, Action<int, ExcelCellData, bool> put) {
                 int[] keys = MaterializedHierarchyKeys(entry.Node);
                 int depth = 0;
                 bool grandLabel = false;
                 for (int level = 0; level < axis.Layout.Fields.Length; level++) {
                     int field = axis.Layout.Fields[level];
-                    if (field == -2) { put(level, PivotMaterializedText(measures[entry.Measure].Name?.Value ?? "")); continue; }
+                    if (field == -2) { put(level, PivotMaterializedText(measures[entry.Measure].Name?.Value ?? ""), false); continue; }
                     if (entry.Type == ItemValues.Grand) {
-                        if (!grandLabel) { put(level, PivotMaterializedText(totalCaption)); grandLabel = true; }
+                        if (!grandLabel) { put(level, PivotMaterializedText(totalCaption), false); grandLabel = true; }
                     } else if (depth < keys.Length) {
                         var key = maps[field].Items[keys[depth++]];
-                        var label = PivotMaterializedKey(key);
-                        if (entry.Type == ItemValues.Default && depth == keys.Length) {
+                        var label = PivotMaterializedKey(key, plan.SourceDateSystem);
+                        bool subtotalLabel = entry.Type == ItemValues.Default && depth == keys.Length;
+                        if (subtotalLabel) {
                             string text = key.Kind == PivotFieldValueKind.Blank ? "(blank)"
-                                : key.Kind == PivotFieldValueKind.Boolean ? key.Boolean == true ? "TRUE" : "FALSE" : key.Text;
+                                : key.Kind == PivotFieldValueKind.Boolean ? key.Boolean == true ? "TRUE" : "FALSE"
+                                : key.Kind == PivotFieldValueKind.Date ? PivotMaterializedDateCaption(key, plan.SourceDateSystem) : key.Text;
                             label = PivotMaterializedText(text + " Total");
                         }
-                        put(level, label);
+                        put(level, label, key.Kind == PivotFieldValueKind.Date && !subtotalLabel);
                     }
                 }
             }
             for (int row = 0; row < rows.Entries.Count; row++) {
                 token.ThrowIfCancellationRequested();
                 int position = dataRow + row;
-                Labels(rows, rows.Entries[row], (level, value) => values[position, level] = value);
+                Labels(rows, rows.Entries[row], (level, value, date) => {
+                    values[position, level] = value;
+                    if (date) plan.DateCells.Add((position, level));
+                });
             }
             for (int column = 0; column < columns.Entries.Count; column++) {
                 int position = dataColumn + column;
                 int offset = columns.Layout.RealFields.Length > 0 ? 1 : 0;
-                Labels(columns, columns.Entries[column], (level, value) => values[level + offset, position] = value);
+                Labels(columns, columns.Entries[column], (level, value, date) => {
+                    values[level + offset, position] = value;
+                    if (date) plan.DateCells.Add((level + offset, position));
+                });
             }
             var functions = measures.Select(measure => (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum()).ToArray();
             for (int row = 0; row < rows.Entries.Count; row++) {
@@ -116,10 +124,16 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelCellData PivotMaterializedText(string text) => new(ExcelCellDataKind.Text, text);
-        private static ExcelCellData PivotMaterializedKey(PivotFieldValue key) => key.Kind switch {
+        private static string PivotMaterializedDateCaption(PivotFieldValue key, ExcelDateSystem dateSystem) {
+            double serial = ExcelPivotCacheDateCodec.ToSerial(key.Date!.Value, dateSystem);
+            return FormatWorksheetDateText(serial, ExcelDateSystemConverter.FromSerial(serial, dateSystem), "yyyy-MM-dd HH:mm:ss", dateSystem);
+        }
+        private static ExcelCellData PivotMaterializedKey(PivotFieldValue key, ExcelDateSystem dateSystem) => key.Kind switch {
             PivotFieldValueKind.Blank => PivotMaterializedText("(blank)"),
             PivotFieldValueKind.Boolean => new(ExcelCellDataKind.Boolean, key.Boolean),
             PivotFieldValueKind.Number => new(ExcelCellDataKind.Number, key.Number),
+            PivotFieldValueKind.Date => new(ExcelCellDataKind.Number, ExcelPivotCacheDateCodec.ToSerial(key.Date!.Value, dateSystem)),
+            PivotFieldValueKind.Error => new(ExcelCellDataKind.Error, key.Text, cachedText: key.Text),
             _ => PivotMaterializedText(key.Text)
         };
 

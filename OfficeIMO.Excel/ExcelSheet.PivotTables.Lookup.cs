@@ -10,6 +10,9 @@ namespace OfficeIMO.Excel {
         /// Supports saved ungrouped hierarchies, default subtotals, collapsed groups and multiple measures.
         /// Unknown fields, items, measures or pivots return a typed #REF! error.
         /// </summary>
+        /// <param name="pivotTableName">Saved pivot definition on this worksheet.</param>
+        /// <param name="dataField">Measure caption or unique source field name.</param>
+        /// <param name="items">Field criteria. Dates accept DateTime or workbook serials; error items use an ExcelCellData error, distinct from text with the same spelling.</param>
         /// <exception cref="NotSupportedException">The view has no materialized items or uses an unsupported layout or exceeds lookup limits.</exception>
         public ExcelCellData GetPivotData(string pivotTableName, string dataField, IReadOnlyDictionary<string, object?>? items = null) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot table name is required.", nameof(pivotTableName));
@@ -78,8 +81,8 @@ namespace OfficeIMO.Excel {
             }
             var visibleFields = new HashSet<string>(rowFields.Concat(columnFields).Where(f => f >= 0).Select(f => fields[f].Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase);
             if (criteria.Keys.Any(key => !visibleFields.Contains(key))) return PivotLookupReferenceError();
-            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, measure, criteria);
-            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, measure, criteria);
+            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, measure, criteria, _excelDocument.DateSystem);
+            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, measure, criteria, _excelDocument.DateSystem);
             if (row < 0 || column < 0) return PivotLookupReferenceError();
             long outputRow = (long)top + location.FirstDataRow.Value + row;
             long outputColumn = (long)left + location.FirstDataColumn.Value + column;
@@ -93,7 +96,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int FindSavedPivotAxisItem(OpenXmlCompositeElement? axis, int[] axisFields, CacheField[] fields, PivotField[] pivotFields,
-            int measure, Dictionary<string, object?> criteria) {
+            int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
             if (axis == null || axis.ChildElements.Count == 0) throw new NotSupportedException("The pivot view has no saved axis items. Refresh or materialize the view first.");
             // One additional item accommodates the grand total for 100,000 real keys.
             if (axis.ChildElements.Count > 100_001) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
@@ -120,6 +123,7 @@ namespace OfficeIMO.Excel {
                 if (indexedItems > 1_000_000) throw new NotSupportedException("The saved pivot criteria exceed one million indexed items.");
                 var sharedItems = shared.ChildElements.ToArray();
                 var accepted = new HashSet<uint>();
+                HashSet<uint>? acceptedDates = null;
                 HashSet<uint>? collapsed = null;
                 uint itemIndex = 0;
                 foreach (var item in savedItems.ChildElements) {
@@ -129,14 +133,22 @@ namespace OfficeIMO.Excel {
                         var sharedItem = sharedItems[(int)sharedIndex];
                         bool equal = sharedItem is MissingItem
                             ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
-                            : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem), expected);
+                            : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem, dateSystem),
+                                sharedItem is DateTimeItem && expected is DateTime date ? ExcelDateSystemConverter.ToSerial(date, dateSystem) : expected);
                         if (equal) {
                             accepted.Add(itemIndex);
+                            if (sharedItem is DateTimeItem) (acceptedDates ??= new HashSet<uint>()).Add(itemIndex);
                             string showDetails = PivotLookupAttribute(item, "sd");
                             if (showDetails == "0" || showDetails == "false") (collapsed ??= new HashSet<uint>()).Add(itemIndex);
                         }
                     }
                     itemIndex++;
+                }
+                // Native Excel resolves a serial to the displayed date key before an
+                // equal numeric key in a mixed field. The two cache items stay distinct.
+                if (acceptedDates != null) {
+                    accepted = acceptedDates;
+                    collapsed?.IntersectWith(acceptedDates);
                 }
                 matches[axisPosition] = accepted;
                 collapsedMatches[axisPosition] = collapsed;
@@ -199,15 +211,20 @@ namespace OfficeIMO.Excel {
             return fallback >= 0 ? fallback : -1;
         }
 
-        private static object? ReadPivotLookupSharedItem(OpenXmlElement item) => item switch {
+        private static object? ReadPivotLookupSharedItem(OpenXmlElement item, ExcelDateSystem dateSystem) => item switch {
             StringItem text => text.Val?.Value,
             NumberItem number => number.Val?.Value,
             BooleanItem boolean => boolean.Val?.Value,
+            DateTimeItem date => date.Val == null ? null : ExcelPivotCacheDateCodec.ToSerial(date.Val.Value, dateSystem),
+            ErrorItem error => new ExcelCellData(ExcelCellDataKind.Error, error.Val?.Value, cachedText: error.Val?.Value),
             MissingItem => null,
-            _ => throw new NotSupportedException("Pivot lookup supports text, numeric, Boolean and blank item keys.")
+            _ => throw new NotSupportedException("The pivot key type is not supported.")
         };
 
         private static bool PivotLookupValuesEqual(object? left, object? right) {
+            if (left is ExcelCellData { Kind: ExcelCellDataKind.Error } leftError
+                && right is ExcelCellData { Kind: ExcelCellDataKind.Error } rightError)
+                return Equals(leftError.Value, rightError.Value);
             if (left is string leftText && right is string rightText) return string.Equals(leftText, rightText, StringComparison.OrdinalIgnoreCase);
             if (left is double number && right is IConvertible && right is not bool && right is not string && right is not DateTime) {
                 try { return number == Convert.ToDouble(right, CultureInfo.InvariantCulture); }

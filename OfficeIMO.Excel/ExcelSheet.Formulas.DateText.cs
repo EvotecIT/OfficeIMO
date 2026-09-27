@@ -4,13 +4,18 @@ using System.Text;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private string FormatFormulaDateText(double serial, DateTime date, string format) {
-            if (_excelDocument.DateSystem != ExcelDateSystem.NineteenHundred || serial < 0d || serial >= 61d)
+            return FormatWorksheetDateText(serial, date, format, _excelDocument.DateSystem);
+        }
+
+        private static string FormatWorksheetDateText(double serial, DateTime date, string format, ExcelDateSystem dateSystem) {
+            if (dateSystem != ExcelDateSystem.NineteenHundred || serial < 0d || serial >= 61d)
                 return date.ToString(format.Length == 1 ? "%" + format : format, CultureInfo.InvariantCulture);
 
             // Render the early Excel calendar without forcing its fictitious date into DateTime.
             int year = Math.Floor(serial) == 0d ? 1900 : date.Year;
             int month = Math.Floor(serial) == 0d ? 1 : date.Month;
-            int day = Math.Floor(serial) == 0d ? 0 : GetFormulaCalendarDay(serial, date);
+            int day = Math.Floor(serial) == 0d ? 0 : Math.Floor(serial) == 60d ? 29 : date.Day;
+            var weekday = (DayOfWeek)((Math.Floor(serial) + 6d) % 7d);
             var outputFormat = new StringBuilder(format.Length);
             char quote = '\0';
             for (int index = 0; index < format.Length; index++) {
@@ -37,8 +42,8 @@ namespace OfficeIMO.Excel {
                     : count == 3 ? CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedMonthName(month)
                     : CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month);
                 else literal = count <= 2 ? day.ToString(new string('0', count), CultureInfo.InvariantCulture)
-                    : count == 3 ? CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedDayName(GetFormulaWeekday(serial))
-                    : CultureInfo.InvariantCulture.DateTimeFormat.GetDayName(GetFormulaWeekday(serial));
+                    : count == 3 ? CultureInfo.InvariantCulture.DateTimeFormat.GetAbbreviatedDayName(weekday)
+                    : CultureInfo.InvariantCulture.DateTimeFormat.GetDayName(weekday);
                 if (outputFormat.Length > 0 && outputFormat[outputFormat.Length - 1] == '%') outputFormat.Length--;
                 outputFormat.Append('\'').Append(literal).Append('\'');
             }
