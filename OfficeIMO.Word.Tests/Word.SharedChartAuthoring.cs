@@ -57,6 +57,21 @@ public sealed class WordSharedChartAuthoringTests {
     }
 
     [Fact]
+    public void SharedChart_ClearingNamePreservesRequiredDrawingAttribute() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Pie, Data(OfficeChartKind.Pie, 0));
+        chart.Name = null;
+        Assert.Equal(string.Empty, chart.Name);
+        Assert.Empty(document.ValidateDocument());
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        stream.Position = 0;
+        using WordDocument reopened = WordDocument.Load(stream);
+        Assert.Equal(string.Empty, reopened.Charts.Single().Name);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Fact]
     public void SharedChart_ParagraphEntryPointPreflightsBeforeInsertingAndPreservesText() {
         using WordDocument document = WordDocument.Create();
         WordParagraph paragraph = document.AddParagraph("Introduction");
