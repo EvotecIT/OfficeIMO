@@ -24,7 +24,7 @@ public enum OfficeChartHatchPattern {
 /// </summary>
 public sealed class OfficeChartPointStyle {
     /// <summary>Creates a point style with optional solid fill, hatch, or outline overrides.</summary>
-    /// <param name="fillColor">Solid fill, or the hatch background. Null inherits the point colour.</param>
+    /// <param name="fillColor">Solid fill, or the hatch background. Null inherits the point colour for solid fills and uses white for hatches.</param>
     /// <param name="noFill">Suppress the fill instead of inheriting a colour.</param>
     /// <param name="hatch">Optional hatch; its strokes are clipped to the point geometry.</param>
     /// <param name="hatchColor">Hatch stroke colour; required when a hatch is specified.</param>
@@ -43,7 +43,7 @@ public sealed class OfficeChartPointStyle {
         if (outlineWidth.HasValue && (double.IsNaN(outlineWidth.Value) ||
             double.IsInfinity(outlineWidth.Value) || outlineWidth.Value <= 0 || outlineWidth.Value > 1584))
             throw new ArgumentOutOfRangeException(nameof(outlineWidth), "Outline width must be finite, positive, and at most 1584 points.");
-        FillColor = fillColor;
+        FillColor = fillColor ?? (hatch.HasValue ? OfficeColor.White : (OfficeColor?)null);
         NoFill = noFill;
         Hatch = hatch;
         HatchColor = hatchColor;

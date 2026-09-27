@@ -37,11 +37,14 @@ public sealed class WordChartPointStylesTests {
             int pixels = 0;
             for (int y = 0; y < raster!.Height; y++)
                 for (int x = 0; x < raster.Width; x++)
-                    if (raster.GetPixel(x, y).Equals(OfficeColor.Parse("#7300A3"))) pixels++;
+                    if (IsPurpleStroke(raster.GetPixel(x, y))) pixels++;
             Assert.True(pixels > 25, "Expected hatch strokes in the PDF; actual pixels " + pixels);
             chart.SetDataPointStyle(0, 1, null).SetDataPointStyle(0, 2, null);
             Assert.True(chart.TryGetSnapshot(out snapshot));
             Assert.Null(snapshot.Data.Series[0].PointStyles);
         } finally { if (File.Exists(path)) File.Delete(path); }
     }
+    // Thin hatch strokes blend with their background during antialiasing.
+    private static bool IsPurpleStroke(OfficeColor pixel) =>
+        pixel.R < 200 && pixel.G < 150 && pixel.B > pixel.G + 40 && pixel.R > pixel.G + 20;
 }

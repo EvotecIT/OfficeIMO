@@ -414,7 +414,7 @@ namespace OfficeIMO.Word {
 
             var colors = new OfficeIMO.Drawing.OfficeColor?[pointCount];
             bool hasColor = false;
-            foreach (C.DataPoint dataPoint in seriesElement.Elements<C.DataPoint>()) {
+            foreach (C.DataPoint dataPoint in OfficeOpenXmlChartPointStyles.GetBoundedPoints(seriesElement)) {
                 int index = (int)(dataPoint.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue);
                 if (index < 0 || index >= pointCount) {
                     continue;

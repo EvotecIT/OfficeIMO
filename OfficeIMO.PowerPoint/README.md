@@ -366,6 +366,21 @@ slide.AddChartCm(OfficeChartKind.Doughnut, mix,
     .SetLegend(OfficeChartLegendPosition.Right);
 ```
 
+### Individual chart point styles
+
+Attach `OfficeChartSeries.WithPointStyles` when authoring shared chart data, or call
+`chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to edit an existing native chart.
+Styles support solid fill, explicit no-fill, outlines, and six hatch patterns from
+`OfficeIMO.Drawing.OfficeChartHatchPattern`. A null style clears the point's fill and outline
+overrides. Values remain unchanged and the chart remains editable in PowerPoint.
+
+Supported point appearances survive save/reopen, shared data updates, snapshots, image and
+PDF export, and PowerPoint semantic HTML round trips. Static pie and doughnut legends use
+the same colours and styles as the slices. Per-point area styling is retained in native
+files but static export reports an approximation and uses the series fill.
+See the [shared point-style example](../OfficeIMO.Core/README.md#style-individual-chart-points)
+for an outlined unknown-status slice and a hatched slice.
+
 ### Table and chart together
 
 ```csharp
