@@ -41,14 +41,15 @@ public partial class WordChart {
         ChartPart part = _chartPart ?? throw new InvalidOperationException("The chart has no native drawing part.");
         ChartSpace source = part.ChartSpace ?? throw new InvalidOperationException("The chart has no native chart space.");
         var preserveBindings = OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(part);
-        EmbeddedPackagePart embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part) ??
-            part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
+        EmbeddedPackagePart? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part);
         bool rounded = source.GetFirstChild<RoundedCorners>()?.Val?.Value ?? false;
         if (source.GetFirstChild<Chart>() == null) {
+            embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, part.GetIdOfPart(embedded), data, chartKind);
             part.ChartSpace!.GetFirstChild<RoundedCorners>()!.Val = rounded;
         } else {
             OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, chartKind);
+            embedded ??= part.AddEmbeddedPackagePart(OfficeOpenXmlChartWriter.SharedWorkbookContentType);
             ExternalData? external = part.ChartSpace.GetFirstChild<ExternalData>();
             if (external == null) {
                 external = new ExternalData();

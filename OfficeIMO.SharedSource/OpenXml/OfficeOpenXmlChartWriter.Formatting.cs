@@ -33,9 +33,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 for (int layerIndex = 0; layerIndex < matches.Count && offset < generatedSeries.Count; layerIndex++) {
                     OpenXmlCompositeElement match = matches[layerIndex];
                     int remaining = generatedSeries.Count - offset;
-                    int reserve = Math.Min(matches.Count - layerIndex - 1, remaining - 1);
                     int oldCount = Math.Max(1, match.ChildElements.OfType<OpenXmlCompositeElement>().Count(IsSharedSeriesElement));
-                    int count = layerIndex == matches.Count - 1 ? remaining : Math.Min(oldCount, remaining - reserve);
+                    int count = layerIndex == matches.Count - 1 ? remaining : Math.Min(oldCount, remaining);
                     var slice = (OpenXmlCompositeElement)generated.CloneNode(true);
                     foreach (OpenXmlCompositeElement item in slice.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList()) item.Remove();
                     foreach (OpenXmlCompositeElement item in generatedSeries.Skip(offset).Take(count)) InsertSeries(slice, item.CloneNode(true));
@@ -74,6 +73,9 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool IsSecondarySharedChartLayer(OpenXmlCompositeElement chartLayer,
             C.PlotArea plotArea) {
+            // Numeric chart axes can use top/right positions on their primary
+            // pair. Those positions do not declare a secondary category group.
+            if (chartLayer is C.BubbleChart || chartLayer is C.ScatterChart) return false;
             var references = new HashSet<uint>(chartLayer.Elements<C.AxisId>().Where(axis => axis.Val != null).Select(axis => axis.Val!.Value));
             return plotArea.Elements<C.ValueAxis>().Any(axis => axis.AxisId?.Val != null && references.Contains(axis.AxisId.Val.Value) &&
                 (axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right || axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top));

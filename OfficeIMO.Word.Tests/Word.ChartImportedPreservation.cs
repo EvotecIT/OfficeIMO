@@ -10,8 +10,10 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartImportedPreservationTests {
-    [Fact]
-    public void SharedUpdate_RejectsRepeatedLayersWithDifferentAxisPairsBeforeMutation() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SharedUpdate_RejectsRepeatedLayersWithDifferentAxisPairsBeforeMutation(bool cacheOnly) {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("First", new[] { 1d, 2d }), new OfficeChartSeries("Second", new[] { 3d, 4d }) });
@@ -27,9 +29,14 @@ public sealed class WordChartImportedPreservationTests {
         value.AxisId!.Val = 400002; value.CrossingAxis!.Val = 400001;
         second.Elements<C.AxisId>().First().Val = 400001; second.Elements<C.AxisId>().Last().Val = 400002;
         plot.InsertAfter(second, first); plot.Append(category, value);
+        if (cacheOnly) {
+            part.ChartSpace.GetFirstChild<C.ExternalData>()!.Remove();
+            part.DeletePart(part.GetPartsOfType<EmbeddedPackagePart>().Single());
+        }
         Assert.Empty(document.ValidateDocument());
         string before = part.ChartSpace.OuterXml;
         byte[] Workbook() {
+            if (cacheOnly) return Array.Empty<byte>();
             using var output = new System.IO.MemoryStream();
             using (var stream = part.GetPartsOfType<EmbeddedPackagePart>().Single().GetStream()) stream.CopyTo(output);
             return output.ToArray();
@@ -38,6 +45,54 @@ public sealed class WordChartImportedPreservationTests {
         Assert.Throws<NotSupportedException>(() => chart.SetData(OfficeChartKind.Line, data));
         Assert.Equal(before, part.ChartSpace.OuterXml);
         Assert.Equal(workbookBefore, Workbook());
+        if (cacheOnly) Assert.Empty(part.GetPartsOfType<EmbeddedPackagePart>());
+    }
+
+    [Fact]
+    public void SharedUpdate_PreservesBubbleLayerAndReferencedTopRightAxes() {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { OfficeChartSeries.CreateBubble("Bubbles", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d }) });
+        var chart = document.AddChart(OfficeChartKind.Bubble, data);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var bubble = plot.GetFirstChild<C.BubbleChart>()!;
+        bubble.GetFirstChild<C.BubbleScale>()!.Val = 150;
+        foreach (var axis in plot.Elements<C.ValueAxis>()) axis.AxisPosition!.Val = axis.AxisPosition.Val!.Value == C.AxisPositionValues.Bottom ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(OfficeChartKind.Bubble, data);
+        plot = chart.ChartPart.ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!;
+        Assert.Equal(150, (int)plot.GetFirstChild<C.BubbleChart>()!.GetFirstChild<C.BubbleScale>()!.Val!.Value);
+        Assert.Contains(plot.Elements<C.ValueAxis>(), axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Top);
+        Assert.Contains(plot.Elements<C.ValueAxis>(), axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void SharedUpdate_ShrinkingUnevenLayersRetainsSeriesInTheirOriginalLayer(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, Enumerable.Range(0, 4).Select(index =>
+            new OfficeChartSeries("Series " + index, new[] { index + 1d, index + 2d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null)));
+        var chart = document.AddChart(kind, data);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var first = (DocumentFormat.OpenXml.OpenXmlCompositeElement)plot.ChildElements.Single(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal));
+        var second = (DocumentFormat.OpenXml.OpenXmlCompositeElement)first.CloneNode(true);
+        var firstSeries = first.ChildElements.Where(element => element.LocalName == "ser").ToArray();
+        firstSeries.Last().Remove();
+        foreach (var item in second.ChildElements.Where(element => element.LocalName == "ser").Take(3).ToList()) item.Remove();
+        ((DocumentFormat.OpenXml.OpenXmlCompositeElement)firstSeries[1]).AddChild(new C.DataLabels(new C.ShowSeriesName { Val = true }), true);
+        first.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        second.AddChild(new C.DataLabels(new C.ShowValue { Val = false }), true);
+        plot.InsertAfter(second, first);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(kind, new OfficeChartData(data.Categories, data.Series.Take(2)));
+        var layers = chart.ChartPart.ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
+        var retained = Assert.Single(layers);
+        var retainedSeries = retained.ChildElements.Where(element => element.LocalName == "ser").ToArray();
+        Assert.Equal(2, retainedSeries.Length);
+        Assert.True(retained.GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
+        Assert.True(retainedSeries[1].GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowSeriesName>()!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
     }
 
     [Fact]

@@ -17,12 +17,10 @@ namespace OfficeIMO.OpenXml.Internal {
                     continue;
                 }
 
-                int futureLayers = scatterCharts.Count - layerIndex - 1;
-                int seriesReservedForFutureLayers = Math.Min(futureLayers, remainingSeries - 1);
                 int currentLayerSize = Math.Max(1, scatterChart.Elements<C.ScatterChartSeries>().Count());
                 int seriesCount = layerIndex == scatterCharts.Count - 1
                     ? remainingSeries
-                    : Math.Min(currentLayerSize, remainingSeries - seriesReservedForFutureLayers);
+                    : Math.Min(currentLayerSize, remainingSeries);
                 UpdateScatterChartSeries(scatterChart, data, seriesOffset, seriesCount);
                 seriesOffset += seriesCount;
             }
@@ -44,6 +42,8 @@ namespace OfficeIMO.OpenXml.Internal {
                         ? (C.ScatterChartSeries)template.CloneNode(true)
                         : new C.ScatterChartSeries();
                     seriesElement.RemoveAllChildren<C.Trendline>();
+                    // A new series has no source magnitudes for per-point error bars.
+                    seriesElement.RemoveAllChildren<C.ErrorBars>();
                     InsertSeries(scatterChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
