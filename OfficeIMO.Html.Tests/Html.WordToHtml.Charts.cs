@@ -11,6 +11,55 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
     [Fact]
+    public void Export_PreservesChartAlternativeTextAndAuthoredSmallCanvas() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "Visible title", width: 120, height: 40);
+        chart.AltText = "Accessible chart description";
+        var image = Assert.Single(new HtmlParser().ParseDocument(document.ToHtml()).QuerySelectorAll("img"));
+        Assert.Equal("Accessible chart description", image.GetAttribute("alt"));
+        string svg = Encoding.UTF8.GetString(Convert.FromBase64String(image.GetAttribute("src")!.Substring("data:image/svg+xml;base64,".Length)));
+        Assert.Contains("viewBox=\"0 0 90 30\"", svg);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Export_SelectsOnlyTheEffectiveAlternateContentChart(bool supportedChoice) {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "Selected chart");
+        var run = document.Paragraphs.Single().GetRuns().Single()._run!;
+        var drawing = run.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
+        drawing.Remove();
+        var choice = new DocumentFormat.OpenXml.AlternateContentChoice { Requires = supportedChoice ? "wps" : "unsupported" };
+        var fallback = new DocumentFormat.OpenXml.AlternateContentFallback();
+        if (supportedChoice) { choice.Append(drawing); fallback.Append(drawing.CloneNode(true)); }
+        else { choice.Append(new DocumentFormat.OpenXml.Wordprocessing.Text("Unselected")); fallback.Append(drawing); }
+        run.Append(new DocumentFormat.OpenXml.AlternateContent(choice, fallback));
+        var result = document.ToHtmlResult();
+        Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
+        Assert.DoesNotContain("Unselected", result.RequireValue());
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Export_PreservesChartHyperlinkWithOrWithoutAdjacentText(bool adjacentText) {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.Paragraphs.Single();
+        var run = paragraph.GetRuns().Single()._run!;
+        paragraph.AddHyperLink("Link", new Uri("https://example.test/chart"));
+        var hyperlink = paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Single();
+        hyperlink.RemoveAllChildren(); run.Remove(); hyperlink.Append(run);
+        if (adjacentText) { run.PrependChild(new DocumentFormat.OpenXml.Wordprocessing.Text("Before ")); run.Append(new DocumentFormat.OpenXml.Wordprocessing.Text(" after")); }
+        var dom = new HtmlParser().ParseDocument(document.ToHtml());
+        var image = Assert.Single(dom.QuerySelectorAll("img"));
+        Assert.Equal("https://example.test/chart", image.ParentElement!.GetAttribute("href"));
+        if (adjacentText) Assert.Equal("Before  after", dom.Body!.TextContent.Trim());
+    }
+
+    [Fact]
     public void Export_PreservesPictureAndDistinctChartsInsideTheSameRun() {
         using var document = WordDocument.Create();
         document.AddChart(OfficeChartKind.ColumnClustered, Data(), title: "First chart");
