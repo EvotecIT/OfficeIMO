@@ -4,7 +4,7 @@ using System.Text;
 
 namespace OfficeIMO.Pdf;
 
-internal static class TextContentParser {
+internal static partial class TextContentParser {
     [Flags]
     private enum PersistentGraphicsStateFlags {
         None = 0,
@@ -62,6 +62,7 @@ internal static class TextContentParser {
         public bool HasSoftMask { get; }
         public bool HasUnsupportedEffect { get; }
         public bool FillColorResolved { get; }
+        public bool StrokeColorResolved { get; }
         public OfficeIccRenderingIntent RenderingIntent { get; }
         public PdfPaintColorSelection? FillColorSelection { get; }
         public PdfPaintColorSelection? StrokeColorSelection { get; }
@@ -71,7 +72,7 @@ internal static class TextContentParser {
         public double MiterLimit { get; }
         public string StrokeDashIdentity { get; }
 
-        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath, OfficeBlendMode blendMode = OfficeBlendMode.Normal, bool hasSoftMask = false, bool hasUnsupportedEffect = false, bool fillColorResolved = true, OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric, PdfPaintColorSelection? fillColorSelection = null, PdfPaintColorSelection? strokeColorSelection = null, double strokeWidth = 1D, int strokeLineCap = 0, int strokeLineJoin = 0, double miterLimit = 10D, string strokeDashIdentity = "[]:0") {
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath, OfficeBlendMode blendMode = OfficeBlendMode.Normal, bool hasSoftMask = false, bool hasUnsupportedEffect = false, bool fillColorResolved = true, OfficeIccRenderingIntent renderingIntent = OfficeIccRenderingIntent.RelativeColorimetric, PdfPaintColorSelection? fillColorSelection = null, PdfPaintColorSelection? strokeColorSelection = null, double strokeWidth = 1D, int strokeLineCap = 0, int strokeLineJoin = 0, double miterLimit = 10D, string strokeDashIdentity = "[]:0", bool strokeColorResolved = true) {
             Ctm = ctm;
             Font = font;
             Size = size;
@@ -92,6 +93,7 @@ internal static class TextContentParser {
             HasSoftMask = hasSoftMask;
             HasUnsupportedEffect = hasUnsupportedEffect;
             FillColorResolved = fillColorResolved;
+            StrokeColorResolved = strokeColorResolved;
             RenderingIntent = renderingIntent;
             FillColorSelection = fillColorSelection;
             StrokeColorSelection = strokeColorSelection;
@@ -234,11 +236,16 @@ internal static class TextContentParser {
         public int SourceOperatorIndex { get; }
         public bool HasUnsupportedEffect { get; }
         public bool FillColorResolved { get; }
+        public bool StrokeColorResolved { get; }
+        public string StrokeDashIdentity { get; }
         public OfficeIccRenderingIntent RenderingIntent { get; }
         public PdfPaintColorSelection? FillColorSelection { get; }
         public PdfPaintColorSelection? StrokeColorSelection { get; }
         public PdfTextStateSnapshot TextState { get; }
         public bool IsArtifactContent { get; }
+        public double StrokeWidth { get; }
+        public int StrokeLineJoin { get; }
+        public double MiterLimit { get; }
 
         public FormInvocation(
             string name,
@@ -259,7 +266,7 @@ internal static class TextContentParser {
             PdfPaintColorSelection? fillColorSelection = null,
             PdfPaintColorSelection? strokeColorSelection = null,
             PdfTextStateSnapshot? textState = null,
-            bool isArtifactContent = false) {
+            bool isArtifactContent = false, double strokeWidth = 1D, int strokeLineJoin = 0, double miterLimit = 10D, bool strokeColorResolved = true, string strokeDashIdentity = "[]:0") {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
@@ -274,11 +281,16 @@ internal static class TextContentParser {
             SourceOperatorIndex = sourceOperatorIndex;
             HasUnsupportedEffect = hasUnsupportedEffect;
             FillColorResolved = fillColorResolved;
+            StrokeColorResolved = strokeColorResolved;
+            StrokeDashIdentity = strokeDashIdentity;
             RenderingIntent = renderingIntent;
             FillColorSelection = fillColorSelection;
             StrokeColorSelection = strokeColorSelection;
             TextState = textState ?? PdfTextStateSnapshot.Default.WithTextRenderingMode(textRenderingMode);
             IsArtifactContent = isArtifactContent;
+            StrokeWidth = strokeWidth;
+            StrokeLineJoin = strokeLineJoin;
+            MiterLimit = miterLimit;
         }
     }
 
@@ -335,7 +347,9 @@ internal static class TextContentParser {
         PdfTextStateSnapshot? initialTextState = null,
         Action<int>? onTextSpan = null,
         Func<string, byte[], bool>? isEmptyPaintedGlyphForResource = null,
-        Func<string, byte[], string?>? visualEncodingForResource = null) {
+        Func<string, byte[], string?>? visualEncodingForResource = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
 #if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
@@ -375,30 +389,38 @@ internal static class TextContentParser {
         OfficeBlendMode blendMode = OfficeBlendMode.Normal;
         bool hasSoftMask = false;
         bool hasUnsupportedEffect = initialUnsupportedEffect;
-        bool fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+        bool fillColorResolved = initialFillColorResolved && initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+        bool strokeColorResolved = initialStrokeColorResolved && initialStrokeColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
         OfficeIccRenderingIntent renderingIntent = initialRenderingIntent;
         PdfPaintColorSelection? fillColorSelection = initialFillColorSelection;
         PdfPaintColorSelection? strokeColorSelection = initialStrokeColorSelection;
-        double strokeWidth = 1D;
+        double strokeWidth = initialStrokeWidth;
         int strokeLineCap = 0;
-        int strokeLineJoin = 0;
-        double miterLimit = 10D;
-        string strokeDashIdentity = "[]:0";
-        if (fillColorSelection != null && fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor)) {
-            fillColor = selectedFillColor;
-            fillColorSpace = fillColorSelection.ColorSpace;
+        int strokeLineJoin = initialStrokeLineJoin;
+        double miterLimit = initialMiterLimit;
+        string strokeDashIdentity = initialStrokeDashIdentity;
+        if (fillColorSelection != null) {
+            fillColorResolved = fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor);
+            if (fillColorResolved) {
+                fillColor = selectedFillColor;
+                fillColorSpace = fillColorSelection.ColorSpace;
+            }
         } else if (!initialFillColor.HasValue && outputIntentColorTransform != null &&
             PdfPaintColorSelection.TryCreateDefaultBlack(renderingIntent, outputIntentColorTransform, out fillColorSelection, out OfficeColor defaultFillColor)) {
             fillColor = defaultFillColor;
             fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
         }
-        if (strokeColorSelection != null && strokeColorSelection.TryConvert(renderingIntent, out OfficeColor selectedStrokeColor)) {
-            strokeColor = selectedStrokeColor;
-            strokeColorSpace = strokeColorSelection.ColorSpace;
+        if (strokeColorSelection != null) {
+            strokeColorResolved = strokeColorSelection.TryConvert(renderingIntent, out OfficeColor selectedStrokeColor);
+            if (strokeColorResolved) {
+                strokeColor = selectedStrokeColor;
+                strokeColorSpace = strokeColorSelection.ColorSpace;
+            }
         } else if (!initialStrokeColor.HasValue && outputIntentColorTransform != null &&
             PdfPaintColorSelection.TryCreateDefaultBlack(renderingIntent, outputIntentColorTransform, out strokeColorSelection, out OfficeColor defaultStrokeColor)) {
             strokeColor = defaultStrokeColor;
             strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+            strokeColorResolved = true;
         }
         OfficeColor effectiveInitialFillColor = fillColor;
         PdfPageColorSpace effectiveInitialFillColorSpace = fillColorSpace;
@@ -465,7 +487,7 @@ internal static class TextContentParser {
                 case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1])); args.Clear(); } break;
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved, renderingIntent, fillColorSelection, strokeColorSelection, strokeWidth, strokeLineCap, strokeLineJoin, miterLimit, strokeDashIdentity));
+                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, blendMode, hasSoftMask, hasUnsupportedEffect, fillColorResolved, renderingIntent, fillColorSelection, strokeColorSelection, strokeWidth, strokeLineCap, strokeLineJoin, miterLimit, strokeDashIdentity, strokeColorResolved));
                     args.Clear();
                     break;
                 case "Q":
@@ -491,6 +513,7 @@ internal static class TextContentParser {
                         hasSoftMask = state.HasSoftMask;
                         hasUnsupportedEffect = state.HasUnsupportedEffect;
                         fillColorResolved = state.FillColorResolved;
+                        strokeColorResolved = state.StrokeColorResolved;
                         renderingIntent = state.RenderingIntent;
                         fillColorSelection = state.FillColorSelection;
                         strokeColorSelection = state.StrokeColorSelection;
@@ -512,15 +535,16 @@ internal static class TextContentParser {
                         blendMode = OfficeBlendMode.Normal;
                         hasSoftMask = false;
                         hasUnsupportedEffect = initialUnsupportedEffect;
-                        fillColorResolved = effectiveInitialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = initialFillColorResolved && effectiveInitialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                        strokeColorResolved = initialStrokeColorResolved && effectiveInitialStrokeColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
                         renderingIntent = initialRenderingIntent;
                         fillColorSelection = effectiveInitialFillColorSelection;
                         strokeColorSelection = effectiveInitialStrokeColorSelection;
-                        strokeWidth = 1D;
+                        strokeWidth = initialStrokeWidth;
                         strokeLineCap = 0;
-                        strokeLineJoin = 0;
-                        miterLimit = 10D;
-                        strokeDashIdentity = "[]:0";
+                        strokeLineJoin = initialStrokeLineJoin;
+                        miterLimit = initialMiterLimit;
+                        strokeDashIdentity = initialStrokeDashIdentity;
                     }
                     args.Clear();
                     break;
@@ -634,10 +658,13 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "cs":
+                    fillColorSelection = null;
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSelection = null;
                         fillColorSpace = parsedColorSpace;
-                        fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = TryCreateInitialTextPaint(parsedColorSpace, renderingIntent,
+                            outputIntentColorTransform, out fillColorSelection, out OfficeColor initialSpaceFill);
+                        if (fillColorResolved) fillColor = initialSpaceFill;
                     } else {
                         fillColorSpace = PdfPageColorSpaceKind.Pattern;
                         fillColorResolved = false;
@@ -646,9 +673,16 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "CS":
+                    strokeColorSelection = null;
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
                         strokeColorSelection = null;
                         strokeColorSpace = parsedStrokeColorSpace;
+                        strokeColorResolved = TryCreateInitialTextPaint(parsedStrokeColorSpace, renderingIntent,
+                            outputIntentColorTransform, out strokeColorSelection, out OfficeColor initialSpaceStroke);
+                        if (strokeColorResolved) strokeColor = initialSpaceStroke;
+                    } else {
+                        strokeColorSpace = PdfPageColorSpaceKind.Pattern;
+                        strokeColorResolved = false;
                     }
 
                     args.Clear();
@@ -666,6 +700,7 @@ internal static class TextContentParser {
                     if (args.Count >= 3 && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceRgb, out OfficeColor rgbStroke)) {
                         strokeColor = rgbStroke;
                         strokeColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                        strokeColorResolved = true;
                     }
 
                     args.Clear();
@@ -683,6 +718,7 @@ internal static class TextContentParser {
                     if (args.Count >= 1 && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceGray, out OfficeColor grayStroke)) {
                         strokeColor = grayStroke;
                         strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        strokeColorResolved = true;
                     }
 
                     args.Clear();
@@ -700,6 +736,7 @@ internal static class TextContentParser {
                     if (args.Count >= 4 && TryApplyStrokeColor(PdfPageColorSpaceKind.DeviceCmyk, out OfficeColor cmykStroke)) {
                         strokeColor = cmykStroke;
                         strokeColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                        strokeColorResolved = true;
                     }
 
                     args.Clear();
@@ -715,7 +752,8 @@ internal static class TextContentParser {
                     break;
                 case "SC":
                 case "SCN":
-                    if (TryApplyStrokeColor(strokeColorSpace, out OfficeColor parsedStrokeColor)) {
+                    strokeColorResolved = TryApplyStrokeColor(strokeColorSpace, out OfficeColor parsedStrokeColor);
+                    if (strokeColorResolved) {
                         strokeColor = parsedStrokeColor;
                     }
 
@@ -1199,6 +1237,18 @@ internal static class TextContentParser {
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
                     embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                if (usesVisibleFill && !fillColorResolved || usesVisibleStroke &&
+                    (!strokeColorResolved || !IsSolidTextDash(strokeDashIdentity))) {
+                    span.MarkUnresolvedPaint();
+                }
+                if (usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
+                    double scaleEnvelope = Math.Max(Math.Abs(ctm.A) + Math.Abs(ctm.C), Math.Abs(ctm.B) + Math.Abs(ctm.D));
+                    double joinEnvelope = strokeLineJoin == 0 ? Math.Max(1D, miterLimit) : 1D;
+                    span.SetVisibleStrokePadding(Math.Max(0.5D, Math.Abs(strokeWidth)) * scaleEnvelope * joinEnvelope / 2D);
+                }
+                if (usesVisibleFill && usesVisibleStroke && ApplyTextOpacity(strokeColor, true).A > 3) {
+                    span.MarkAdditionalVisiblePaint();
+                }
                 if (usedVisualEncoding && actualTextState is null) {
                     string logicalText = NormalizeShatteredSpan(wholeDecoded);
                     if (logicalText.Length > 0 && !string.Equals(logicalText, span.Text, StringComparison.Ordinal)) {
@@ -1375,28 +1425,21 @@ internal static class TextContentParser {
                 if (resource.RenderingIntent.HasValue) ApplyRenderingIntent(resource.RenderingIntent.Value);
             }
         }
-        static string BuildStrokeDashIdentity(IReadOnlyList<object> operands) {
-            if (operands.Count < 2) return "invalid";
-            string values;
-            if (operands[operands.Count - 2] is double[] numericValues) {
-                values = string.Join(",", numericValues.Select(static number => number.ToString("R", CultureInfo.InvariantCulture)));
-            } else if (operands[operands.Count - 2] is List<object> dashValues) {
-                values = string.Join(",", dashValues.Select(static value => value is double number ? number.ToString("R", CultureInfo.InvariantCulture) : "invalid"));
-            } else {
-                return "invalid";
-            }
-            return values + ":" + (operands[operands.Count - 1] is double phase ? phase.ToString("R", CultureInfo.InvariantCulture) : "invalid");
-        }
         void ApplyRenderingIntent(OfficeIccRenderingIntent intent) {
             renderingIntent = intent;
-            if (fillColorSelection != null && fillColorSelection.TryConvert(intent, out OfficeColor selectedFill)) {
-                fillColor = selectedFill;
-                fillColorSpace = fillColorSelection.ColorSpace;
-                fillColorResolved = true;
+            if (fillColorSelection != null) {
+                fillColorResolved = fillColorSelection.TryConvert(intent, out OfficeColor selectedFill);
+                if (fillColorResolved) {
+                    fillColor = selectedFill;
+                    fillColorSpace = fillColorSelection.ColorSpace;
+                }
             }
-            if (strokeColorSelection != null && strokeColorSelection.TryConvert(intent, out OfficeColor selectedStroke)) {
-                strokeColor = selectedStroke;
-                strokeColorSpace = strokeColorSelection.ColorSpace;
+            if (strokeColorSelection != null) {
+                strokeColorResolved = strokeColorSelection.TryConvert(intent, out OfficeColor selectedStroke);
+                if (strokeColorResolved) {
+                    strokeColor = selectedStroke;
+                    strokeColorSpace = strokeColorSelection.ColorSpace;
+                }
             }
         }
         OfficeColor ApplyTextOpacity(OfficeColor color, bool useStrokePaint) {
@@ -1629,7 +1672,9 @@ internal static class TextContentParser {
         Func<string, int>? inlineImageComponentCount = null,
         Func<PdfArray, int>? inlineImageArrayComponentCount = null,
         Action? cancellationCheck = null,
-        PdfTextStateSnapshot? initialTextState = null) {
+        PdfTextStateSnapshot? initialTextState = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
         textClippingBudget ??= new PdfTextClippingBudget();
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
@@ -1639,27 +1684,38 @@ internal static class TextContentParser {
         PdfPageColorSpace strokeColorSpace = initialStrokeColorSpace;
         double? fillOpacity = initialFillOpacity;
         double? strokeOpacity = initialStrokeOpacity;
+        double strokeWidth = initialStrokeWidth;
+        int strokeLineJoin = initialStrokeLineJoin;
+        double miterLimit = initialMiterLimit;
         PdfTextStateSnapshot startingTextState = initialTextState ??
             PdfTextStateSnapshot.Default.WithTextRenderingMode(initialTextRenderingMode);
         PdfTextStateSnapshot textState = startingTextState;
         int textRenderingMode = ReadTextRenderingMode(startingTextState.TextRenderingMode);
         PdfPageClipPath? clipPath = initialClipPath;
         bool hasUnsupportedEffect = initialUnsupportedEffect;
-        bool fillColorResolved = initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+        bool strokeColorResolved = initialStrokeColorResolved && initialStrokeColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+        string strokeDashIdentity = initialStrokeDashIdentity;
+        bool fillColorResolved = initialFillColorResolved && initialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
         OfficeIccRenderingIntent renderingIntent = initialRenderingIntent;
         PdfPaintColorSelection? fillColorSelection = initialFillColorSelection;
         PdfPaintColorSelection? strokeColorSelection = initialStrokeColorSelection;
-        if (fillColorSelection != null && fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor)) {
-            fillColor = selectedFillColor;
-            fillColorSpace = fillColorSelection.ColorSpace;
+        if (fillColorSelection != null) {
+            fillColorResolved = fillColorSelection.TryConvert(renderingIntent, out OfficeColor selectedFillColor);
+            if (fillColorResolved) {
+                fillColor = selectedFillColor;
+                fillColorSpace = fillColorSelection.ColorSpace;
+            }
         } else if (!initialFillColor.HasValue && outputIntentColorTransform != null &&
             PdfPaintColorSelection.TryCreateDefaultBlack(renderingIntent, outputIntentColorTransform, out fillColorSelection, out OfficeColor defaultFillColor)) {
             fillColor = defaultFillColor;
             fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
         }
-        if (strokeColorSelection != null && strokeColorSelection.TryConvert(renderingIntent, out OfficeColor selectedStrokeColor)) {
-            strokeColor = selectedStrokeColor;
-            strokeColorSpace = strokeColorSelection.ColorSpace;
+        if (strokeColorSelection != null) {
+            strokeColorResolved = strokeColorSelection.TryConvert(renderingIntent, out OfficeColor selectedStrokeColor);
+            if (strokeColorResolved) {
+                strokeColor = selectedStrokeColor;
+                strokeColorSpace = strokeColorSelection.ColorSpace;
+            }
         } else if (!initialStrokeColor.HasValue && outputIntentColorTransform != null &&
             PdfPaintColorSelection.TryCreateDefaultBlack(renderingIntent, outputIntentColorTransform, out strokeColorSelection, out OfficeColor defaultStrokeColor)) {
             strokeColor = defaultStrokeColor;
@@ -1685,7 +1741,7 @@ internal static class TextContentParser {
             string op = operation.Name;
             switch (op) {
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection));
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath, hasUnsupportedEffect: hasUnsupportedEffect, fillColorResolved: fillColorResolved, renderingIntent: renderingIntent, fillColorSelection: fillColorSelection, strokeColorSelection: strokeColorSelection, strokeWidth: strokeWidth, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit, strokeColorResolved: strokeColorResolved, strokeDashIdentity: strokeDashIdentity));
                     textStateStack.Push(textState);
                     args.Clear();
                     break;
@@ -1699,10 +1755,15 @@ internal static class TextContentParser {
                         strokeColorSpace = state.StrokeColorSpace;
                         fillOpacity = state.FillOpacity;
                         strokeOpacity = state.StrokeOpacity;
+                        strokeWidth = state.StrokeWidth;
+                        strokeLineJoin = state.StrokeLineJoin;
+                        miterLimit = state.MiterLimit;
                         textRenderingMode = state.TextRenderingMode;
                         clipPath = state.ClipPath;
                         hasUnsupportedEffect = state.HasUnsupportedEffect;
                         fillColorResolved = state.FillColorResolved;
+                        strokeColorResolved = state.StrokeColorResolved;
+                        strokeDashIdentity = state.StrokeDashIdentity;
                         renderingIntent = state.RenderingIntent;
                         fillColorSelection = state.FillColorSelection;
                         strokeColorSelection = state.StrokeColorSelection;
@@ -1715,11 +1776,16 @@ internal static class TextContentParser {
                         strokeColorSpace = effectiveInitialStrokeColorSpace;
                         fillOpacity = initialFillOpacity;
                         strokeOpacity = initialStrokeOpacity;
+                        strokeWidth = initialStrokeWidth;
+                        strokeLineJoin = initialStrokeLineJoin;
+                        miterLimit = initialMiterLimit;
                         textState = startingTextState;
                         textRenderingMode = ReadTextRenderingMode(startingTextState.TextRenderingMode);
                         clipPath = initialClipPath;
                         hasUnsupportedEffect = initialUnsupportedEffect;
-                        fillColorResolved = effectiveInitialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                        fillColorResolved = initialFillColorResolved && effectiveInitialFillColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                        strokeColorResolved = initialStrokeColorResolved && effectiveInitialStrokeColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
+                        strokeDashIdentity = initialStrokeDashIdentity;
                         renderingIntent = initialRenderingIntent;
                         fillColorSelection = effectiveInitialFillColorSelection;
                         strokeColorSelection = effectiveInitialStrokeColorSelection;
@@ -1872,6 +1938,10 @@ internal static class TextContentParser {
                     clipPathBuilder.Clear();
                     args.Clear();
                     break;
+                case "d": strokeDashIdentity = BuildStrokeDashIdentity(args); args.Clear(); break;
+                case "w": if (args.Count >= 1) strokeWidth = ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "j": if (args.Count >= 1) strokeLineJoin = (int)ToDouble(args[args.Count - 1]); args.Clear(); break;
+                case "M": if (args.Count >= 1) miterLimit = ToDouble(args[args.Count - 1]); args.Clear(); break;
                 case "gs":
                     if (args.Count >= 1) {
                         ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
@@ -1888,10 +1958,12 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "cs":
+                    fillColorSelection = null;
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
-                        fillColorResolved = parsedColorSpace.Kind != PdfPageColorSpaceKind.Pattern;
-                        fillColorSelection = null;
+                        fillColorResolved = TryCreateInitialTextPaint(parsedColorSpace, renderingIntent,
+                            outputIntentColorTransform, out fillColorSelection, out OfficeColor initialSpaceFill);
+                        if (fillColorResolved) fillColor = initialSpaceFill;
                     } else {
                         fillColorSpace = PdfPageColorSpaceKind.Pattern;
                         fillColorResolved = false;
@@ -1900,9 +1972,15 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "CS":
+                    strokeColorSelection = null;
                     if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
                         strokeColorSpace = parsedStrokeColorSpace;
-                        strokeColorSelection = null;
+                        strokeColorResolved = TryCreateInitialTextPaint(parsedStrokeColorSpace, renderingIntent,
+                            outputIntentColorTransform, out strokeColorSelection, out OfficeColor initialSpaceStroke);
+                        if (strokeColorResolved) strokeColor = initialSpaceStroke;
+                    } else {
+                        strokeColorSpace = PdfPageColorSpaceKind.Pattern;
+                        strokeColorResolved = false;
                     }
 
                     args.Clear();
@@ -1961,7 +2039,8 @@ internal static class TextContentParser {
                     break;
                 case "SC":
                 case "SCN":
-                    if (PdfPaintColorSelection.TryCreate(args, strokeColorSpace, renderingIntent, out strokeColorSelection, out OfficeColor parsedStrokeColor, outputIntentColorTransform)) strokeColor = parsedStrokeColor;
+                    strokeColorResolved = PdfPaintColorSelection.TryCreate(args, strokeColorSpace, renderingIntent, out strokeColorSelection, out OfficeColor parsedStrokeColor, outputIntentColorTransform);
+                    if (strokeColorResolved) strokeColor = parsedStrokeColor;
 
                     args.Clear();
                     break;
@@ -1996,7 +2075,7 @@ internal static class TextContentParser {
                                 fillColorSelection,
                                 strokeColorSelection,
                                 textState: textState,
-                                isArtifactContent: HasArtifactContent()));
+                                isArtifactContent: HasArtifactContent(), strokeWidth: strokeWidth, strokeLineJoin: strokeLineJoin, miterLimit: miterLimit, strokeColorResolved: strokeColorResolved, strokeDashIdentity: strokeDashIdentity));
                         }
                     }
                     args.Clear();
@@ -2096,6 +2175,10 @@ internal static class TextContentParser {
             }
             fillOpacity = resource.FillOpacity ?? fillOpacity;
             strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+            if (resource.StrokeDashPattern is PdfStrokeDashPattern dash)
+                strokeDashIdentity = string.Join(",", dash.Array.Select(static value => value.ToString("R", CultureInfo.InvariantCulture))) + ":" + dash.Phase.ToString("R", CultureInfo.InvariantCulture);
+            strokeWidth = resource.StrokeWidth ?? strokeWidth;
+            strokeLineJoin = resource.StrokeLineJoin.HasValue ? (int)resource.StrokeLineJoin.Value : strokeLineJoin;
             hasUnsupportedEffect = hasUnsupportedEffect ||
                 resource.HasUnsupportedBlendMode ||
                 resource.HasUnsupportedSoftMask ||
@@ -2107,8 +2190,14 @@ internal static class TextContentParser {
 
         void ApplyRenderingIntent(OfficeIccRenderingIntent intent) {
             renderingIntent = intent;
-            if (fillColorSelection != null && fillColorSelection.TryConvert(intent, out OfficeColor convertedFill)) fillColor = convertedFill;
-            if (strokeColorSelection != null && strokeColorSelection.TryConvert(intent, out OfficeColor convertedStroke)) strokeColor = convertedStroke;
+            if (fillColorSelection != null) {
+                fillColorResolved = fillColorSelection.TryConvert(intent, out OfficeColor convertedFill);
+                if (fillColorResolved) fillColor = convertedFill;
+            }
+            if (strokeColorSelection != null) {
+                strokeColorResolved = strokeColorSelection.TryConvert(intent, out OfficeColor convertedStroke);
+                if (strokeColorResolved) strokeColor = convertedStroke;
+            }
         }
 
         void SetDirectFillColor(PdfPageColorSpace colorSpace) {
@@ -2122,8 +2211,10 @@ internal static class TextContentParser {
 
         void SetDirectStrokeColor(PdfPageColorSpace colorSpace) {
             strokeColorSelection = null;
+            strokeColorResolved = false;
             if (PdfPaintColorSelection.TryCreate(args, colorSpace, renderingIntent, out PdfPaintColorSelection? selection, out OfficeColor color, outputIntentColorTransform)) {
                 strokeColorSelection = selection;
+                strokeColorResolved = true;
                 strokeColor = color;
                 strokeColorSpace = colorSpace;
             }
@@ -2183,4 +2274,5 @@ internal static class TextContentParser {
                 return null;
         }
     }
+
 }

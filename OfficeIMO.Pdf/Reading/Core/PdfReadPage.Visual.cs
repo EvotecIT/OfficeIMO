@@ -435,7 +435,7 @@ public sealed partial class PdfReadPage {
             (primitive, effect) => elements.Add(PdfPageDrawingElement.FromPrimitive(primitive, elements.Count).WithEffect(effect)),
             (group, transform, paintOrder, contentOrderKey, effect) => elements.Add(
                 PdfPageDrawingElement.FromGroup(group, transform, paintOrder, contentOrderKey, elements.Count).WithEffect(effect)),
-            cancellationToken);
+            cancellationToken: cancellationToken);
         for (int i = 0; i < primitives.Count; i++) {
             elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[i], elements.Count));
         }
@@ -861,9 +861,10 @@ public sealed partial class PdfReadPage {
         Action<PdfImagePlacement, PdfExtractedImage, PdfPageDrawingEffect>? type3ImageVisitor = null,
         Action<PdfPageVisualPrimitive, PdfPageDrawingEffect>? type3PrimitiveVisitor = null,
         Action<OfficeDrawing, OfficeTransform, double, PdfContentOrderKey?, PdfPageDrawingEffect>? type3GroupVisitor = null,
+        bool scaleStrokeWidthWithTransform = false,
         CancellationToken cancellationToken = default) {
         textOutputBudget ??= CreateTextOutputBudget();
-        pageContentBudget ??= new PageContentBudget(this);
+        pageContentBudget ??= new PageContentBudget(this, cancellationToken);
         var primitives = new List<PdfPageVisualPrimitive>();
         PdfDictionary? pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
@@ -892,15 +893,21 @@ public sealed partial class PdfReadPage {
                 invocationTextClippingBudget: invocationTextClippingBudget,
                 patternTextClippingBudget: patternTextClippingBudget,
                 pageContentBudget: pageContentBudget,
-                contentOrderPrefix: PdfContentOrderKey.Root);
+                contentOrderPrefix: PdfContentOrderKey.Root,
+                scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
         }
 
         return primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : primitives.AsReadOnly();
     }
 
-    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives() {
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(CancellationToken cancellationToken = default) =>
+        GetIdentityVisualPrimitives(scaleStrokeWidthWithTransform: false, cancellationToken: cancellationToken);
+
+    internal IReadOnlyList<PdfPageVisualPrimitive> GetIdentityVisualPrimitives(bool scaleStrokeWidthWithTransform,
+        CancellationToken cancellationToken = default) {
         (double width, double height) = GetVisualPageSize();
-        return GetVisualPrimitives(width, height, GetVisualPageTransform());
+        return GetVisualPrimitives(width, height, GetVisualPageTransform(), cancellationToken: cancellationToken,
+            scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
     }
 
     private void CollectVisualPrimitivesAndForms(
@@ -954,7 +961,8 @@ public sealed partial class PdfReadPage {
         PdfPaintColorSelection? initialFillColorSelection = null,
         PdfPaintColorSelection? initialStrokeColorSelection = null,
         PdfStrokeDashPattern? initialStrokeDashPattern = null,
-        PdfPageInvokedResourceNames? invokedResourceNames = null) {
+        PdfPageInvokedResourceNames? invokedResourceNames = null,
+        bool scaleStrokeWidthWithTransform = false) {
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
         invocationTextClippingBudget ??= new PdfTextClippingBudget();
@@ -962,7 +970,8 @@ public sealed partial class PdfReadPage {
         activeType3Glyphs ??= new HashSet<PdfStream>();
         renderedType3PaintOrders ??= new RenderedType3TextTracker();
         type3GlyphBudget ??= new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
+            content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = resources == null
             ? new Dictionary<string, Func<byte[], double>>(StringComparer.Ordinal)
@@ -1031,7 +1040,8 @@ public sealed partial class PdfReadPage {
                 initialRenderingIntent: initialRenderingIntent,
                 initialFillColorSelection: initialFillColorSelection,
                 initialStrokeColorSelection: initialStrokeColorSelection,
-                outputIntentColorTransform: EffectiveOutputIntentColorTransform);
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageShadingPatternResource> shadingPatternResources = GetShadingPatternResources(
             resources,
             invokedPatternNames,
@@ -1091,7 +1101,7 @@ public sealed partial class PdfReadPage {
             maxOperands: _limits.MaxContentOperands,
             primitiveVisitor: currentPrimitiveVisitor,
             retainPrimitiveData: retainPrimitiveData,
-            scaleStrokeWidthWithTransform: requireSupportedType3Content,
+            scaleStrokeWidthWithTransform: requireSupportedType3Content || scaleStrokeWidthWithTransform,
             unsupportedShadingTransformVisitor: requireSupportedType3Content
                 ? type3GlyphBudget.RecordFailure
                 : null,
@@ -1119,7 +1129,8 @@ public sealed partial class PdfReadPage {
             initialStrokeColorSelection: initialStrokeColorSelection,
             outputIntentColorTransform: EffectiveOutputIntentColorTransform,
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
-            initialStrokeDashPattern: initialStrokeDashPattern);
+            initialStrokeDashPattern: initialStrokeDashPattern,
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -1263,7 +1274,8 @@ public sealed partial class PdfReadPage {
                       pageWidth: pageWidth,
                       contentOrderPrefix: contentOrderPrefix,
                       textClippingBudget: invocationTextClippingBudget,
-                      initialStrokeDashPattern: initialStrokeDashPattern)) {
+                      initialStrokeDashPattern: initialStrokeDashPattern,
+                      operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 if (requireSupportedType3Content && invocation.InlineImage == null && !TryGetImageXObject(resources, invocation.Name, out _, out _)) {
                     type3GlyphBudget.RecordFailure();
@@ -1446,7 +1458,8 @@ public sealed partial class PdfReadPage {
                     contentOrderPrefix: formOrderPrefix,
                     initialRenderingIntent: invocation.RenderingIntent,
                     initialFillColorSelection: invocation.FillColorSelection,
-                    initialStrokeColorSelection: invocation.StrokeColorSelection);
+                    initialStrokeColorSelection: invocation.StrokeColorSelection,
+                    scaleStrokeWidthWithTransform: scaleStrokeWidthWithTransform);
             } finally {
                 activeForms.Remove(formStream);
             }

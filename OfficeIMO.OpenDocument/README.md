@@ -26,6 +26,32 @@ table.Cell(1, 1).Text = "42";
 document.Save("summary.odt");
 ```
 
+Add a native ODT field in paragraph order with the value currently shown in the document:
+
+```csharp
+OdtParagraph pageLine = document.AddParagraph("Page ");
+pageLine.AddField(OdtFieldKind.PageNumber, "3");
+pageLine.AddText(" of ");
+pageLine.AddField(OdtFieldKind.PageCount, "12");
+document.Save("summary.odt");
+```
+
+`OdtParagraph.Fields` reads page number, page count, date, and time fields in order. `OdtField.DisplayText` edits the cached text; an office application can refresh a dynamic field later. `OdtField.IsFixed` retains a date, time, or page number value instead of refreshing it. Page count cannot be fixed.
+
+Add native ODT footnotes or endnotes at the current paragraph position:
+
+```csharp
+using OfficeIMO.OpenDocument;
+
+using OdtDocument document = OdtDocument.Create();
+OdtParagraph paragraph = document.AddParagraph("The result is documented");
+paragraph.AddFootnote("Source and calculation details.");
+paragraph.AddText(" in the appendix.");
+paragraph.AddEndnote("Additional context.");
+```
+
+`OdtParagraph.Notes` and `InlineNodes` expose note bodies and reference order after reopening the file. Note-body paragraphs are separate from document-body paragraphs, and their spans, links, and images stay on the note-body paragraph. Native note citations follow document order when notes are added to earlier paragraphs later; an imported custom citation label remains the displayed `OdtNote.Citation`. Adding a note to a document with `text:notes-configuration` for that note kind throws `NotSupportedException`, preserving its configured numbering and existing citations.
+
 Create a sparse ODS workbook:
 
 ```csharp
@@ -59,12 +85,21 @@ For a formula-based validation, use `OdsValidationConditionSyntax.CreateFormula(
 
 ODS conditional cell styles can be authored and edited through `OdfStyle.AddConditionalMap`. Create a common named table-cell style for the desired appearance, add a mapping to a base style, and assign the base style to cells. For example, `baseStyle.AddConditionalMap("cell-content()>0", highlightStyle.Name, "$'Metrics'.$B$2")` applies the highlight style when the condition is true. The applied style must be a common named style in the same family as the base style; `Validate()` reports a missing, automatic, or different-family target. The map and its relative-reference base survive save and reopen. OfficeIMO preserves these native rules; its renderer does not evaluate them.
 
+ODS data pilot tables can be inspected through `OdsDocument.DataPilotTables`. Use `AddDataPilotTable("SalesPivot", "Metrics.A1:Metrics.B20", "Metrics.D1:Metrics.E22")` to author a local-range pivot, then add row, column, page, or data fields with `AddField`; a data field names its aggregation, such as `AddField("Value", "data", "sum")`. The target range describes the output area; the API does not calculate cached pivot results. Imported grouping, member selection, and other advanced settings remain in the package XML but are outside the typed authoring subset.
+
 Create an ODP presentation:
 
 ```csharp
 using OdpPresentation presentation = OdpPresentation.Create();
+OdpMasterPage master = presentation.AddMasterPage("Brand");
+master.BackgroundColor = OdfColor.Parse("#F8FBFF");
+OdpPresentationLayout layout = presentation.AddLayout("Title");
+layout.AddPlaceholder("title", OdfRect.FromCentimeters(2, 1, 28, 3));
 OdpSlide slide = presentation.AddSlide("Summary");
-slide.AddTextBox(OdfRect.FromCentimeters(2, 1, 28, 3), "Native ODP");
+slide.MasterPageName = master.Name;
+slide.LayoutName = layout.Name;
+OdpTextBox title = slide.AddTextBox(OdfRect.FromCentimeters(2, 1, 28, 3), "Native ODP");
+title.PresentationClass = "title";
 slide.AddRectangle(OdfRect.FromCentimeters(2, 5, 8, 3)).FillColor = OdfColor.Parse("#D1E9FF");
 slide.GetOrCreateSpeakerNotes().AddParagraph("Explain the result.");
 presentation.Save("summary.odp");
@@ -116,6 +151,7 @@ IReadOnlyList<string> lossy = result.Report.LossyEntries;
 ```
 
 New documents use ODF 1.4. Set `OdfCompatibilityProfile.Odf13` when the output needs the ODF 1.3 schema and compatibility profile.
+Distinct first-page master-page headers and footers require ODF 1.4. Saving those stories with the ODF 1.3 profile, or preserving an older source version, fails before writing an invalid package.
 
 ## Encrypt and decrypt ODF packages
 
@@ -143,9 +179,9 @@ Encrypted input fails with a classified `OdfEncryptedPackageException` when a pa
 | Area | Current support |
 | --- | --- |
 | Package | Bounded ZIP/XML loading, direct reading of seekable package streams, manifest updates, deterministic output, metadata, atomic path saves, flat XML projection with loss reporting, unknown-entry preservation |
-| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, headers/footers, page breaks, images, paragraph insertion/deletion tracking |
+| ODT | Paragraphs, headings, ordered inline text/span/link/image/bookmark syntax, page number/count and date/time fields with cached display text, whitespace controls, common text and paragraph styles, lists, tables, sections, page layout, default/first/left master-page headers and footers, page breaks, images, paragraph insertion/deletion tracking |
 | ODS | Sparse repeated rows/cells, typed values, OpenFormula text and cached values, bounded formula evaluation/recalculation, styles and data formats, merges, row/column sizing and visibility, sheet order, typed named ranges, annotations, typed scalar/list validations and messages, links, print ranges |
-| ODP | Slide order and visibility, page size, masters/layouts, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
+| ODP | Slide order and visibility, page size, masters/layouts and presentation classes, ordered inline text/run/link syntax, common run styles, lists, rectangles, ellipses, lines, groups, transforms, images and crop, tables, speaker notes, backgrounds, transitions, basic shape animations |
 | Inspection | Annotations, tracked changes, extension namespaces, scripts, event listeners, external links, embedded objects, formulas, validations, transitions, animations, encryption, and signatures |
 
 Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawing features are preserved when their owning part is not replaced. The library never executes scripts, macros, event listeners, embedded objects, or external links. Formula evaluation is a bounded, side-effect-free parser for the documented local subset; it does not execute active content or fetch data.
@@ -170,7 +206,7 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Password-encrypted packages using the documented AES-256-CBC profile can be opened and written. Legacy Blowfish and other unsupported profiles fail before content is exposed.
 - Changed signed packages fail by default because saving would invalidate signatures. An explicit save option can remove invalidated signature entries.
 - The bounded OfficeIMO XML package-manifest signature profile can be created and validated through an explicit `IOfficeSecurityProvider`. Arbitrary producer-specific signature profiles remain inspection or preservation oriented.
-- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. `OdsSheet.AddChart` creates column, bar, or line charts with one to sixteen series linked to existing one-dimensional ODS cell ranges of up to 4,096 points. Chart styling is preserved in package XML; editing imported charts and pivot tables is outside the current surface.
+- ODS exposes embedded chart names, types, titles, source ranges, and frame positions through `OdsSheet.Charts`. `OdsSheet.AddChart` creates column, bar, or line charts with one to sixteen series linked to existing one-dimensional ODS cell ranges of up to 4,096 points. Chart styling is preserved in package XML; editing imported charts remains outside the current surface. Data pilot tables expose their source and target ranges and field orientations; advanced imported pivot settings remain preservation-oriented.
 - Flat XML variants (`.fodt`, `.fods`, `.fodp`) can be opened and written, including embedded raster images. Exotic embedded objects and package-only features may not project losslessly.
 - `OdsSheet.Merge` rejects merges above its default 100,000-cell materialization limit. Use the overload with an explicit lower limit when processing untrusted dimensions.
 - Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.

@@ -8,9 +8,12 @@ namespace OfficeIMO.Studio.Features.Workflows;
 public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable {
     private readonly Func<string, CancellationToken, Task> _openOutput;
     private readonly Func<string, bool> _usesProvider;
-    internal StudioJobsViewModel(StudioJobHistory history, Func<string, CancellationToken, Task> openOutput, Func<string, bool>? usesProvider = null) {
+    private readonly Func<string, Task>? _revealFolder;
+    internal StudioJobsViewModel(StudioJobHistory history, Func<string, CancellationToken, Task> openOutput, Func<string, bool>? usesProvider = null,
+        Func<string, Task>? revealFolder = null) {
         History = history;
         _openOutput = openOutput;
+        _revealFolder = revealFolder;
         _usesProvider = usesProvider ?? (_ => false);
         History.PropertyChanged += OnHistoryChanged;
     }
@@ -19,7 +22,19 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private StudioJobRecord? _selectedJob;
     [ObservableProperty]
     private string? _actionError;
-    private bool CanOpen(StudioJobRecord? job) => job?.HasOutput == true;
+    private bool CanOpen(StudioJobRecord? job) => job?.CanOpenOutput == true;
+
+    private bool CanReveal(StudioJobRecord? job) => _revealFolder is not null && job?.HasOutput == true &&
+        OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(job.OutputPath!) is not null;
+
+    /// <summary>Opens the folder that holds a finished job's output.</summary>
+    [RelayCommand(CanExecute = nameof(CanReveal))]
+    private async Task RevealOutputAsync(StudioJobRecord? job) {
+        if (!CanReveal(job) || OfficeIMO.Internal.OfficeStorageIdentity.GetLocalPath(job!.OutputPath!) is not { } local) return;
+        string folder = Directory.Exists(local) ? local : Path.GetDirectoryName(local) ?? local;
+        try { await _revealFolder!(folder).ConfigureAwait(true); ActionError = null; }
+        catch (Exception error) { ActionError = error.Message; }
+    }
     public bool CanClear => History.CanClear;
 
     partial void OnSelectedJobChanged(StudioJobRecord? oldValue, StudioJobRecord? newValue) {
@@ -27,6 +42,7 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
         if (newValue is not null) newValue.PropertyChanged += OnSelectedChanged;
         ActionError = null;
         OpenOutputCommand.NotifyCanExecuteChanged();
+        RevealOutputCommand.NotifyCanExecuteChanged();
     }
     [RelayCommand(CanExecute = nameof(CanOpen))]
     private async Task OpenOutputAsync(StudioJobRecord? job, CancellationToken cancellationToken) {
@@ -77,9 +93,13 @@ public sealed partial class StudioJobsViewModel : ObservableObject, IDisposable 
     private void OnHistoryChanged(object? sender, PropertyChangedEventArgs args) {
         ClearFinishedCommand.NotifyCanExecuteChanged();
         OpenOutputCommand.NotifyCanExecuteChanged();
+        RevealOutputCommand.NotifyCanExecuteChanged();
         if (SelectedJob is not null && !History.Entries.Contains(SelectedJob)) SelectedJob = null;
     }
-    private void OnSelectedChanged(object? sender, PropertyChangedEventArgs args) => OpenOutputCommand.NotifyCanExecuteChanged();
+    private void OnSelectedChanged(object? sender, PropertyChangedEventArgs args) {
+        OpenOutputCommand.NotifyCanExecuteChanged();
+        RevealOutputCommand.NotifyCanExecuteChanged();
+    }
     public void Dispose() {
         History.PropertyChanged -= OnHistoryChanged;
         if (SelectedJob is not null) SelectedJob.PropertyChanged -= OnSelectedChanged;

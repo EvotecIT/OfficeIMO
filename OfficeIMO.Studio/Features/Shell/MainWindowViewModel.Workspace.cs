@@ -15,7 +15,20 @@ public sealed partial class MainWindowViewModel {
 
     private readonly HashSet<int> _organizerSelection = new();
     private CancellationTokenSource? _operationCancellation;
+    private bool _operationAcceptsProgress;
     private bool _disposeWhenIdle;
+    private PdfWorkspaceOperation? _undoOperationForStatus;
+
+    public bool CanUndoOperationStatus => _workspace is { CanUndo: true } workspace &&
+        _undoOperationForStatus is not null && workspace.Journal.Count > 0 &&
+        ReferenceEquals(workspace.Journal[^1], _undoOperationForStatus);
+
+    private void SetMutationStatus(string status) {
+        PdfWorkspaceOperation? operation = CanUndoOperationStatus ? _undoOperationForStatus : null;
+        OperationStatus = status;
+        _undoOperationForStatus = operation;
+        OnPropertyChanged(nameof(CanUndoOperationStatus));
+    }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanStartDocumentTransition))]
@@ -47,6 +60,8 @@ public sealed partial class MainWindowViewModel {
 
     public ObservableCollection<PdfBookmarkViewModel> Bookmarks { get; } = new();
 
+    private bool _restoringBookmarkSelection;
+
     public bool HasOperationStatus => !string.IsNullOrWhiteSpace(OperationStatus);
 
     public bool HasOrganizerSelection => _organizerSelection.Count > 0;
@@ -62,7 +77,9 @@ public sealed partial class MainWindowViewModel {
         : UiFormat("Workspace.SelectedPageCount", _organizerSelection.Count, OrganizerPages.Count);
 
     partial void OnSelectedBookmarkChanged(PdfBookmarkViewModel? value) {
-        if (value?.PageNumber is int pageNumber) NavigateToPage(pageNumber);
+        if (!_restoringBookmarkSelection && value?.PageNumber is int pageNumber) NavigateToPage(pageNumber);
+        BookmarkTitleDraft = value?.Title ?? string.Empty;
+        NotifyBookmarkActions();
     }
 
     internal void SetOrganizerSelection(IEnumerable<PdfOrganizerPageViewModel> pages) {
@@ -284,7 +301,18 @@ public sealed partial class MainWindowViewModel {
             RefreshWorkspacePresentation();
         }
         if (succeeded) NotifyWorkspaceStateChanged();
+        // A failed in-place save keeps the edits; the error banner then offers to save them as a copy instead.
+        CanRecoverWithSaveAs = !succeeded && path is null && HasError && ReferenceEquals(workspace, _workspace);
         return succeeded;
+    }
+
+    [ObservableProperty]
+    private bool _canRecoverWithSaveAs;
+
+    private string? DescribeLatestOperation(int journalCountBefore) {
+        if (_workspace is not { } workspace || workspace.Journal.Count <= journalCountBefore) return null;
+        PdfWorkspaceOperation operation = workspace.Journal[^1];
+        return _localizer.GetOrDefault("Operation." + operation.Kind, operation.Description);
     }
 
     private async Task<bool> RunMutationAsync(
@@ -302,18 +330,27 @@ public sealed partial class MainWindowViewModel {
     }
 
     private async Task<bool> RunStandaloneAsync(Func<CancellationToken, Task> operation, CancellationToken cancellationToken,
-        string? successStatus = null) {
+        string? successStatus = null, Func<string?>? describeSuccess = null) {
         using var notifications = BeginNotificationScope();
         if (IsWorkspaceBusy) return false;
         var currentCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         _operationCancellation = currentCancellation;
+        _operationAcceptsProgress = true;
         IsWorkspaceBusy = true;
         OperationProgressFraction = 0D;
         ErrorMessage = null;
+        PdfWorkspace? originalWorkspace = _workspace;
+        int journalCount = originalWorkspace?.Journal.Count ?? 0;
         try {
             await operation(currentCancellation.Token).ConfigureAwait(true);
+            _operationAcceptsProgress = false;
             OperationProgressFraction = 1D;
-            OperationStatus = successStatus ?? UiText("Workspace.OperationCompleted");
+            OperationStatus = successStatus ?? describeSuccess?.Invoke() ?? DescribeLatestOperation(journalCount) ?? UiText("Workspace.OperationCompleted");
+            _undoOperationForStatus = ReferenceEquals(originalWorkspace, _workspace) &&
+                originalWorkspace?.Journal.Count > journalCount && originalWorkspace.Journal[^1].Kind is not
+                    (PdfWorkspaceOperationKind.Undo or PdfWorkspaceOperationKind.Redo)
+                ? originalWorkspace.Journal[^1] : null;
+            OnPropertyChanged(nameof(CanUndoOperationStatus));
             return true;
         } catch (OperationCanceledException) when (currentCancellation.IsCancellationRequested) {
             OperationStatus = UiText("Workspace.OperationCancelled");
@@ -323,6 +360,7 @@ public sealed partial class MainWindowViewModel {
             OperationStatus = UiText("Workspace.OperationFailed");
             return false;
         } finally {
+            _operationAcceptsProgress = false;
             if (ReferenceEquals(_operationCancellation, currentCancellation)) _operationCancellation = null;
             currentCancellation.Dispose();
             IsWorkspaceBusy = false;
@@ -337,7 +375,7 @@ public sealed partial class MainWindowViewModel {
     private IProgress<PdfWorkspaceProgress> CreateProgress() {
         CancellationTokenSource? attempt = _operationCancellation;
         return new Progress<PdfWorkspaceProgress>(progress => {
-            if (!IsWorkspaceBusy || !ReferenceEquals(attempt, _operationCancellation)) return;
+            if (!IsWorkspaceBusy || !_operationAcceptsProgress || !ReferenceEquals(attempt, _operationCancellation)) return;
             OperationStatus = progress.Stage;
             OperationProgressFraction = Math.Clamp(progress.Fraction, 0D, 1D);
         });
@@ -429,17 +467,34 @@ public sealed partial class MainWindowViewModel {
         }
         RebuildBookmarks();
         RebuildFormFields();
+        RefreshDocumentStructure();
     }
 
     private void RebuildBookmarks() {
+        string? selectedId = SelectedBookmark?.Id;
         Bookmarks.Clear();
         if (_workspace is null) return;
-        foreach (PdfOutlineItem item in (_workspace.DocumentInfo?.Outlines ?? [])) AddBookmark(item);
+        int nextId = 0;
+        IReadOnlyList<PdfOutlineItem> roots = _workspace.DocumentInfo?.Outlines ?? [];
+        AddBookmarks(roots, parentId: null, editable: true, ref nextId);
+        // Keep the selection across edits without jumping the reader to its page.
+        _restoringBookmarkSelection = true;
+        try { SelectedBookmark = selectedId is null ? null : Bookmarks.FirstOrDefault(bookmark => bookmark.Id == selectedId); }
+        finally { _restoringBookmarkSelection = false; }
+        BookmarkTitleDraft = SelectedBookmark?.Title ?? string.Empty;
+        NotifyBookmarkActions();
     }
 
-    private void AddBookmark(PdfOutlineItem item) {
-        Bookmarks.Add(new PdfBookmarkViewModel(item.Title, item.Level, item.PageNumber));
-        foreach (PdfOutlineItem child in item.Children) AddBookmark(child);
+    // Mirrors the engine edit session, which numbers resolvable entries depth-first and drops unresolved subtrees.
+    private void AddBookmarks(IReadOnlyList<PdfOutlineItem> items, string? parentId, bool editable, ref int nextId) {
+        int editableIndex = 0;
+        foreach (PdfOutlineItem item in items) {
+            bool resolved = editable && item.PageNumber.HasValue;
+            string? id = resolved ? "bookmark-" + (++nextId).ToString(System.Globalization.CultureInfo.InvariantCulture) : null;
+            Bookmarks.Add(new PdfBookmarkViewModel(item.Title, item.Level, item.PageNumber, id, parentId,
+                resolved ? editableIndex++ : -1));
+            AddBookmarks(item.Children, id, resolved, ref nextId);
+        }
     }
 
     private void NavigateToPage(int pageNumber) {

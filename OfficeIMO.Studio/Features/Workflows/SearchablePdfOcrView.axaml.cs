@@ -27,6 +27,11 @@ public sealed partial class SearchablePdfOcrView : UserControl {
             OcrColumns.ColumnDefinitions[1].Width = compact ? new GridLength(0D) : GridLength.Star;
             Grid.SetColumn(InformationPanel, compact ? 0 : 1);
             Grid.SetRow(InformationPanel, compact ? 1 : 0);
+            // Stacked panels keep a readable width instead of stretching inputs across the window.
+            SourcePanel.MaxWidth = compact ? 680D : double.PositiveInfinity;
+            InformationPanel.MaxWidth = compact ? 680D : double.PositiveInfinity;
+            SourcePanel.HorizontalAlignment = compact ? Avalonia.Layout.HorizontalAlignment.Left : Avalonia.Layout.HorizontalAlignment.Stretch;
+            InformationPanel.HorizontalAlignment = SourcePanel.HorizontalAlignment;
         };
     }
 }

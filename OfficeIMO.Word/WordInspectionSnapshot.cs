@@ -65,6 +65,20 @@ namespace OfficeIMO.Word {
         public bool DifferentFirstPage { get; internal set; }
         /// <summary>Gets whether the section uses an explicit or inherited even-page header or footer while the document-wide odd/even setting is enabled.</summary>
         public bool DifferentOddAndEvenPages { get; internal set; }
+        /// <summary>Whether the document-wide odd/even header setting is enabled, even when this section has no even-page part.</summary>
+        public bool DocumentOddEvenSettingEnabled { get; internal set; }
+        /// <summary>Whether this section explicitly references a default header.</summary>
+        public bool HasExplicitDefaultHeader { get; internal set; }
+        /// <summary>Whether this section explicitly references a default footer.</summary>
+        public bool HasExplicitDefaultFooter { get; internal set; }
+        /// <summary>Whether this section explicitly references a first-page header.</summary>
+        public bool HasExplicitFirstHeader { get; internal set; }
+        /// <summary>Whether this section explicitly references a first-page footer.</summary>
+        public bool HasExplicitFirstFooter { get; internal set; }
+        /// <summary>Whether this section explicitly references an even-page header.</summary>
+        public bool HasExplicitEvenHeader { get; internal set; }
+        /// <summary>Whether this section explicitly references an even-page footer.</summary>
+        public bool HasExplicitEvenFooter { get; internal set; }
         /// <summary>Gets the default header snapshot.</summary>
         public WordHeaderFooterSnapshot? DefaultHeader { get; internal set; }
         /// <summary>Gets the default footer snapshot.</summary>
@@ -102,6 +116,7 @@ namespace OfficeIMO.Word {
     /// <summary>Text, formatting, list, border, bookmark, and pagination state for one paragraph.</summary>
     public sealed class WordParagraphSnapshot : WordBlockSnapshot {
         private readonly List<WordRunSnapshot> _runs = new List<WordRunSnapshot>();
+        private readonly List<WordInlineFieldSnapshot> _fields = new List<WordInlineFieldSnapshot>();
         private readonly List<WordTabStopSnapshot> _tabStops = new List<WordTabStopSnapshot>();
 
         /// <summary>Creates an empty paragraph snapshot.</summary>
@@ -166,6 +181,8 @@ namespace OfficeIMO.Word {
         public int? BookmarkId { get; internal set; }
         /// <summary>Gets text runs in source order.</summary>
         public IReadOnlyList<WordRunSnapshot> Runs => _runs;
+        /// <summary>Simple fields and their positions among the paragraph's ordinary runs.</summary>
+        public IReadOnlyList<WordInlineFieldSnapshot> InlineFields => _fields;
         /// <summary>Gets explicit paragraph tab stops.</summary>
         public IReadOnlyList<WordTabStopSnapshot> TabStops => _tabStops;
 
@@ -174,10 +191,41 @@ namespace OfficeIMO.Word {
             _runs.Add(run);
         }
 
+        internal void AddInlineField(WordInlineFieldSnapshot field) {
+            if (field == null) throw new ArgumentNullException(nameof(field));
+            _fields.Add(field);
+        }
+
         internal void AddTabStop(WordTabStopSnapshot tabStop) {
             if (tabStop == null) throw new ArgumentNullException(nameof(tabStop));
             _tabStops.Add(tabStop);
         }
+    }
+
+    /// <summary>A simple Word field in a paragraph's inline order.</summary>
+    public sealed class WordInlineFieldSnapshot {
+        /// <summary>Number of ordinary runs before this field.</summary>
+        public int RunIndex { get; internal set; }
+        /// <summary>Raw field instruction.</summary>
+        public string Instruction { get; internal set; } = string.Empty;
+        /// <summary>Cached displayed result.</summary>
+        public string ResultText { get; internal set; } = string.Empty;
+        /// <summary>Whether the field is locked.</summary>
+        public bool IsLocked { get; internal set; }
+        /// <summary>Whether the cached value is marked for refresh.</summary>
+        public bool IsDirty { get; internal set; }
+        /// <summary>Whether the result contains content beyond plain text runs.</summary>
+        public bool HasUnsupportedResultContent { get; internal set; }
+        /// <summary>Whether the cached result has direct run formatting that may be lost when flattened.</summary>
+        public bool HasFormattedResult { get; internal set; }
+        /// <summary>Whether the field is nested in markup that cannot be represented as a native ODT field.</summary>
+        public bool HasUnsupportedContainer { get; internal set; }
+        /// <summary>External hyperlink containing this field, when present.</summary>
+        public string? HyperlinkUri { get; internal set; }
+        /// <summary>Bookmark target of the hyperlink containing this field, when present.</summary>
+        public string? HyperlinkAnchor { get; internal set; }
+        /// <summary>Whether the field belongs to a complex field instruction rather than its displayed result.</summary>
+        public bool IsHiddenInstructionContent { get; internal set; }
     }
 
     /// <summary>Extracted text, character formatting, links, notes, and images for one Word run.</summary>

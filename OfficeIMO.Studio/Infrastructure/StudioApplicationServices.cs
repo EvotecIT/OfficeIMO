@@ -26,6 +26,7 @@ internal sealed class StudioApplicationServices {
         Recovery = new PdfWorkspaceRecoveryStore(paths.RecoveryRoot, preferences.Current.CreateRecoverySnapshots);
         WorkflowRecovery = new OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore(paths.WorkflowRecoveryRoot);
         Jobs = new StudioJobHistory(localizer, WorkflowRecovery);
+        Signatures = new StudioSignatureStore(paths.SignaturesRoot);
     }
 
     internal StudioDataPaths Paths { get; }
@@ -50,6 +51,8 @@ internal sealed class StudioApplicationServices {
     internal OfficeIMO.Workflows.OfficeWorkflowOutputRecoveryStore WorkflowRecovery { get; }
 
     internal StudioStorageAccess Storage { get; }
+
+    internal StudioSignatureStore Signatures { get; }
 
     internal static StudioApplicationServices CreateDefault() => Create(StudioDataPaths.CreateDefault());
 

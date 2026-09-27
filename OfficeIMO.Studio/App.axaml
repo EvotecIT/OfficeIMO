@@ -6,21 +6,87 @@
     <ResourceDictionary>
       <ResourceDictionary.ThemeDictionaries>
         <ResourceDictionary x:Key="Light">
-          <SolidColorBrush x:Key="StudioWindowBrush" Color="#F4F6F8" />
+          <SolidColorBrush x:Key="StudioAccentButtonBrush" Color="#2F63E9" />
+          <SolidColorBrush x:Key="StudioAccentButtonHoverBrush" Color="#2455D2" />
+          <Color x:Key="SystemAccentColor">#2F63E9</Color>
+          <Color x:Key="SystemAccentColorDark1">#2F63E9</Color>
+          <Color x:Key="SystemAccentColorDark2">#2F63E9</Color>
+          <Color x:Key="SystemAccentColorDark3">#2F63E9</Color>
+          <Color x:Key="SystemAccentColorLight1">#2F63E9</Color>
+          <Color x:Key="SystemAccentColorLight2">#2F63E9</Color>
+          <Color x:Key="SystemAccentColorLight3">#2F63E9</Color>
+          <StaticResource x:Key="ButtonBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="StudioSubtleBorderBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="RepeatButtonBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="RepeatButtonBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="RepeatButtonBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="RepeatButtonBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="TextControlBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelectedPressed" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelectedPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelectedPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="FlyoutPresenterBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="FlyoutBorderThemeBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ToolTipBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ToolTipForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="StudioBorderBrush" />
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#E9EDF2" />
+          <SolidColorBrush x:Key="StudioChromeBrush" Color="#E9EDF2" />
           <SolidColorBrush x:Key="StudioPanelBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#F7F8FA" />
-          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#E7EAEE" />
-          <SolidColorBrush x:Key="StudioNavBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#5E6878" />
-          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#EAF0FF" />
-          <SolidColorBrush x:Key="StudioBorderBrush" Color="#D9DEE6" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#F3F5F8" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#DFE3E9" />
+          <SolidColorBrush x:Key="StudioFloatingBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#E9EDF2" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#4F5A6B" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#D5DBE4" />
+          <SolidColorBrush x:Key="StudioSubtleBorderBrush" Color="#E4E8EE" />
           <SolidColorBrush x:Key="StudioTextBrush" Color="#172033" />
           <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#5E6878" />
           <SolidColorBrush x:Key="StudioAccentBrush" Color="#2F63E9" />
           <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#2455D2" />
           <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#EAF0FF" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#E6EDFF" />
+          <SolidColorBrush x:Key="StudioSpineBrush" Color="#0F9DB8" />
+          <SolidColorBrush x:Key="StudioSpineSoftBrush" Color="#E0F4F8" />
           <SolidColorBrush x:Key="StudioSuccessBrush" Color="#07866F" />
           <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#E6F6F2" />
           <SolidColorBrush x:Key="StudioWarningBrush" Color="#B76800" />
@@ -28,23 +94,106 @@
           <SolidColorBrush x:Key="StudioErrorBrush" Color="#C7353A" />
           <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#FDEBEC" />
           <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioScrimBrush" Color="#5C0F1520" />
+          <BoxShadows x:Key="StudioFloatingShadow">0 6 20 0 #2A1A2433, 0 1 3 0 #1A1A2433</BoxShadows>
+          <BoxShadows x:Key="StudioCardShadow">0 1 2 0 #0F1A2433</BoxShadows>
+          <BoxShadows x:Key="StudioPageShadow">0 2 6 0 #221A2433, 0 10 28 0 #1C1A2433</BoxShadows>
+          <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="Transparent" />
+          <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundDisabled" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrushPointerOver" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrushPressed" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderHeaderForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderHeaderForegroundPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderContentBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ExpanderContentBorderBrush" ResourceKey="StudioBorderBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
-          <SolidColorBrush x:Key="StudioWindowBrush" Color="#14171C" />
-          <SolidColorBrush x:Key="StudioPanelBrush" Color="#1D2229" />
-          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#222831" />
-          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#282E37" />
-          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#282D34" />
-          <SolidColorBrush x:Key="StudioNavBrush" Color="#1D2229" />
-          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#AEB7C4" />
-          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#27375C" />
-          <SolidColorBrush x:Key="StudioBorderBrush" Color="#343B45" />
-          <SolidColorBrush x:Key="StudioTextBrush" Color="#F3F6FA" />
-          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#AEB7C4" />
-          <SolidColorBrush x:Key="StudioAccentBrush" Color="#5C82F2" />
-          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#7899F7" />
+          <SolidColorBrush x:Key="StudioAccentButtonBrush" Color="#4467DC" />
+          <SolidColorBrush x:Key="StudioAccentButtonHoverBrush" Color="#5577E6" />
+          <Color x:Key="SystemAccentColor">#4467DC</Color>
+          <Color x:Key="SystemAccentColorDark1">#4467DC</Color>
+          <Color x:Key="SystemAccentColorDark2">#4467DC</Color>
+          <Color x:Key="SystemAccentColorDark3">#4467DC</Color>
+          <Color x:Key="SystemAccentColorLight1">#6A8FF6</Color>
+          <Color x:Key="SystemAccentColorLight2">#6A8FF6</Color>
+          <Color x:Key="SystemAccentColorLight3">#6A8FF6</Color>
+          <StaticResource x:Key="ButtonBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="StudioSubtleBorderBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="RepeatButtonBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="RepeatButtonBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="RepeatButtonBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="RepeatButtonBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="TextControlBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelectedPressed" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelectedPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelectedPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="FlyoutPresenterBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="FlyoutBorderThemeBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ToolTipBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ToolTipForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="StudioBorderBrush" />
+          <SolidColorBrush x:Key="StudioWindowBrush" Color="#101318" />
+          <SolidColorBrush x:Key="StudioChromeBrush" Color="#101318" />
+          <SolidColorBrush x:Key="StudioPanelBrush" Color="#191E26" />
+          <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#212833" />
+          <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#262D38" />
+          <SolidColorBrush x:Key="StudioCanvasBrush" Color="#252B34" />
+          <SolidColorBrush x:Key="StudioFloatingBrush" Color="#242B36" />
+          <SolidColorBrush x:Key="StudioNavBrush" Color="#101318" />
+          <SolidColorBrush x:Key="StudioNavTextBrush" Color="#A3AEBD" />
+          <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#223257" />
+          <SolidColorBrush x:Key="StudioBorderBrush" Color="#323A47" />
+          <SolidColorBrush x:Key="StudioSubtleBorderBrush" Color="#282F3A" />
+          <SolidColorBrush x:Key="StudioTextBrush" Color="#EEF2F7" />
+          <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#A3AEBD" />
+          <SolidColorBrush x:Key="StudioAccentBrush" Color="#6A8FF6" />
+          <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#86A4F8" />
           <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#FFFFFF" />
-          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#27375C" />
+          <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#223257" />
+          <SolidColorBrush x:Key="StudioSpineBrush" Color="#2BC4DD" />
+          <SolidColorBrush x:Key="StudioSpineSoftBrush" Color="#14343B" />
           <SolidColorBrush x:Key="StudioSuccessBrush" Color="#42BFA5" />
           <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#173B34" />
           <SolidColorBrush x:Key="StudioWarningBrush" Color="#E6A23C" />
@@ -52,23 +201,106 @@
           <SolidColorBrush x:Key="StudioErrorBrush" Color="#EF6267" />
           <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#472326" />
           <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioScrimBrush" Color="#8C05080C" />
+          <BoxShadows x:Key="StudioFloatingShadow">0 8 26 0 #73000000, 0 1 3 0 #59000000</BoxShadows>
+          <BoxShadows x:Key="StudioCardShadow">0 1 2 0 #40000000</BoxShadows>
+          <BoxShadows x:Key="StudioPageShadow">0 2 6 0 #59000000, 0 12 36 0 #59000000</BoxShadows>
+          <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="Transparent" />
+          <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundDisabled" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrushPointerOver" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrushPressed" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderHeaderForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderHeaderForegroundPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderContentBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ExpanderContentBorderBrush" ResourceKey="StudioBorderBrush" />
         </ResourceDictionary>
         <ResourceDictionary x:Key="{x:Static preferences:StudioThemeVariants.HighContrast}">
+          <SolidColorBrush x:Key="StudioAccentButtonBrush" Color="#78A8FF" />
+          <SolidColorBrush x:Key="StudioAccentButtonHoverBrush" Color="#A8C6FF" />
+          <Color x:Key="SystemAccentColor">#78A8FF</Color>
+          <Color x:Key="SystemAccentColorDark1">#78A8FF</Color>
+          <Color x:Key="SystemAccentColorDark2">#78A8FF</Color>
+          <Color x:Key="SystemAccentColorDark3">#78A8FF</Color>
+          <Color x:Key="SystemAccentColorLight1">#78A8FF</Color>
+          <Color x:Key="SystemAccentColorLight2">#78A8FF</Color>
+          <Color x:Key="SystemAccentColorLight3">#78A8FF</Color>
+          <StaticResource x:Key="ButtonBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="StudioSubtleBorderBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="RepeatButtonBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="RepeatButtonBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="RepeatButtonBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="RepeatButtonBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="TextControlBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="StudioMutedTextBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemBackgroundSelectedPressed" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelectedPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundSelectedPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ListBoxItemForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="StudioAccentSoftBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="FlyoutPresenterBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="FlyoutBorderThemeBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ToolTipBackground" ResourceKey="StudioPanelRaisedBrush" />
+          <StaticResource x:Key="ToolTipForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="StudioBorderBrush" />
           <SolidColorBrush x:Key="StudioWindowBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioChromeBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioPanelBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioPanelRaisedBrush" Color="#080808" />
           <SolidColorBrush x:Key="StudioPanelMutedBrush" Color="#171717" />
           <SolidColorBrush x:Key="StudioCanvasBrush" Color="#000000" />
+          <SolidColorBrush x:Key="StudioFloatingBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioNavBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioNavTextBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="StudioNavActiveBrush" Color="#17254A" />
           <SolidColorBrush x:Key="StudioBorderBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioSubtleBorderBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="StudioTextBrush" Color="#FFFFFF" />
           <SolidColorBrush x:Key="StudioMutedTextBrush" Color="#E6E6E6" />
           <SolidColorBrush x:Key="StudioAccentBrush" Color="#78A8FF" />
           <SolidColorBrush x:Key="StudioAccentHoverBrush" Color="#A8C6FF" />
           <SolidColorBrush x:Key="StudioAccentForegroundBrush" Color="#000000" />
           <SolidColorBrush x:Key="StudioAccentSoftBrush" Color="#17254A" />
+          <SolidColorBrush x:Key="StudioSpineBrush" Color="#66FFFF" />
+          <SolidColorBrush x:Key="StudioSpineSoftBrush" Color="#003333" />
           <SolidColorBrush x:Key="StudioSuccessBrush" Color="#66FFCC" />
           <SolidColorBrush x:Key="StudioSuccessSoftBrush" Color="#073326" />
           <SolidColorBrush x:Key="StudioWarningBrush" Color="#FFD166" />
@@ -76,8 +308,31 @@
           <SolidColorBrush x:Key="StudioErrorBrush" Color="#FF8A8F" />
           <SolidColorBrush x:Key="StudioErrorSoftBrush" Color="#3D090C" />
           <SolidColorBrush x:Key="StudioPaperBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="StudioScrimBrush" Color="#CC000000" />
+          <BoxShadows x:Key="StudioFloatingShadow">0 0 0 0 #00000000</BoxShadows>
+          <BoxShadows x:Key="StudioCardShadow">0 0 0 0 #00000000</BoxShadows>
+          <BoxShadows x:Key="StudioPageShadow">0 0 0 0 #00000000</BoxShadows>
+          <SolidColorBrush x:Key="TitleBarBackgroundBrush" Color="Transparent" />
+          <StaticResource x:Key="ExpanderHeaderBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundPointerOver" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundPressed" ResourceKey="StudioPanelMutedBrush" />
+          <StaticResource x:Key="ExpanderHeaderBackgroundDisabled" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrush" ResourceKey="StudioBorderBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrushPointerOver" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="ExpanderHeaderBorderBrushPressed" ResourceKey="StudioAccentBrush" />
+          <StaticResource x:Key="ExpanderHeaderForeground" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderHeaderForegroundPointerOver" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderHeaderForegroundPressed" ResourceKey="StudioTextBrush" />
+          <StaticResource x:Key="ExpanderContentBackground" ResourceKey="StudioPanelBrush" />
+          <StaticResource x:Key="ExpanderContentBorderBrush" ResourceKey="StudioBorderBrush" />
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
+
+      <FontFamily x:Key="StudioMonoFont">Cascadia Mono, Consolas, Menlo, DejaVu Sans Mono, monospace</FontFamily>
+      <x:Double x:Key="StudioCaptionFontSize">11.5</x:Double>
+      <x:Double x:Key="StudioLabelFontSize">11</x:Double>
+      <x:Double x:Key="StudioTitleFontSize">18</x:Double>
+      <x:Double x:Key="StudioDisplayFontSize">28</x:Double>
 
       <StreamGeometry x:Key="IconHome">M3,10.5 12,3 21,10.5 21,21 15,21 15,15 9,15 9,21 3,21Z</StreamGeometry>
       <StreamGeometry x:Key="IconTools">M4,4 10,4 10,10 4,10ZM14,4 20,4 20,10 14,10ZM4,14 10,14 10,20 4,20ZM14,14 20,14 20,20 14,20Z</StreamGeometry>
@@ -85,7 +340,8 @@
       <StreamGeometry x:Key="IconDocument">M5,2 15,2 20,7 20,22 5,22ZM15,4 15,8 19,8ZM8,12 17,12 17,14 8,14ZM8,16 17,16 17,18 8,18Z</StreamGeometry>
       <StreamGeometry x:Key="IconOcr">M4,3 9,3 9,5 6,5 6,8 4,8ZM15,3 20,3 20,8 18,8 18,5 15,5ZM4,16 6,16 6,19 9,19 9,21 4,21ZM18,16 20,16 20,21 15,21 15,19 18,19ZM8,9 16,9 16,11 8,11ZM8,13 16,13 16,15 8,15Z</StreamGeometry>
       <StreamGeometry x:Key="IconSettings">M12,8.2A3.8,3.8 0 1 0 12,15.8A3.8,3.8 0 1 0 12,8.2M19.4,13.5 21,14.7 19,18.2 17.1,17.4A8.2,8.2 0 0 1 14.2,19.1L14,21.2 10,21.2 9.8,19.1A8.2,8.2 0 0 1 6.9,17.4L5,18.2 3,14.7 4.6,13.5A8.4,8.4 0 0 1 4.6,10.5L3,9.3 5,5.8 6.9,6.6A8.2,8.2 0 0 1 9.8,4.9L10,2.8 14,2.8 14.2,4.9A8.2,8.2 0 0 1 17.1,6.6L19,5.8 21,9.3 19.4,10.5A8.4,8.4 0 0 1 19.4,13.5Z</StreamGeometry>
-      <StreamGeometry x:Key="IconTheme">M12,2A10,10 0 1 0 22,12C22,11.2 21.9,10.4 21.7,9.7A7.8,7.8 0 0 1 12,19.5A7.8,7.8 0 0 1 4.3,12A7.8,7.8 0 0 1 12,4.2Z</StreamGeometry>
+      <StreamGeometry x:Key="IconMoon">M14.5,2.5A9.5,9.5 0 1 0 21.5,15.5A7.5,7.5 0 0 1 14.5,2.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSun">M12,7A5,5 0 1 0 12,17A5,5 0 1 0 12,7M11,1 13,1 13,4 11,4ZM11,20 13,20 13,23 11,23ZM1,11 4,11 4,13 1,13ZM20,11 23,11 23,13 20,13ZM4.2,5.6 5.6,4.2 7.7,6.3 6.3,7.7ZM16.3,17.7 17.7,16.3 19.8,18.4 18.4,19.8ZM18.4,4.2 19.8,5.6 17.7,7.7 16.3,6.3ZM6.3,16.3 7.7,17.7 5.6,19.8 4.2,18.4Z</StreamGeometry>
       <StreamGeometry x:Key="IconOpen">M3,6 10,6 12,8 21,8 19,19 3,19ZM3,6 3,4 10,4 12,6Z</StreamGeometry>
       <StreamGeometry x:Key="IconMerge">M4,4 12,4 12,10 18,10 18,4 21,4 21,13 12,13 12,20 4,20ZM7,9 10,12 7,15 5.5,13.5 7,12 5.5,10.5Z</StreamGeometry>
       <StreamGeometry x:Key="IconSplit">M5,3 11,3 11,21 5,21ZM13,3 19,3 19,21 13,21ZM2,12 5,9 5,15ZM22,12 19,9 19,15Z</StreamGeometry>
@@ -93,50 +349,228 @@
       <StreamGeometry x:Key="IconCompress">M5,3 11,3 11,5 7,5 7,9 5,9ZM19,3 13,3 13,5 17,5 17,9 19,9ZM5,21 11,21 11,19 7,19 7,15 5,15ZM19,21 13,21 13,19 17,19 17,15 19,15Z</StreamGeometry>
       <StreamGeometry x:Key="IconCompare">M4,4 11,4 11,20 4,20ZM13,4 20,4 20,20 13,20ZM6,8 9,8 9,10 6,10ZM15,14 18,14 18,16 15,16Z</StreamGeometry>
       <StreamGeometry x:Key="IconProtect">M6,10 7,10 7,7A5,5 0 0 1 17,7L17,10 18,10 18,21 6,21ZM9,10 15,10 15,7A3,3 0 0 0 9,7Z</StreamGeometry>
-      <StreamGeometry x:Key="IconSearch">M10,3A7,7 0 1 0 10,17A7,7 0 1 0 10,3M15.5,14 21,19.5 19.5,21 14,15.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSearch">M10,3A7,7 0 1 0 10,17A7,7 0 1 0 10,3M10,5.2A4.8,4.8 0 1 1 10,14.8A4.8,4.8 0 1 1 10,5.2M15.5,14 21,19.5 19.5,21 14,15.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconCursor">M5,2 19,13 12.5,13.8 16,20.5 13.5,21.8 10,15 5,19.5Z</StreamGeometry>
       <StreamGeometry x:Key="IconNote">M4,3 20,3 20,17 14,17 10,21 10,17 4,17ZM8,8 16,8 16,10 8,10ZM8,12 14,12 14,14 8,14Z</StreamGeometry>
       <StreamGeometry x:Key="IconText">M4,4 20,4 20,7 14,7 14,20 10,20 10,7 4,7Z</StreamGeometry>
       <StreamGeometry x:Key="IconHighlight">M5,17 15.5,6.5 19.5,10.5 9,21 4,21ZM13.5,5 16,2.5 20,6.5 17.5,9Z</StreamGeometry>
       <StreamGeometry x:Key="IconUnderline">M6,3 6,12A6,6 0 0 0 18,12L18,3 15,3 15,12A3,3 0 0 1 9,12L9,3ZM4,20 20,20 20,22 4,22Z</StreamGeometry>
       <StreamGeometry x:Key="IconStrike">M4,11 20,11 20,13 4,13ZM8,4 18,4 18,7 13,7 13,9 10,9 10,7 8,7ZM10,15 13,15 13,17 18,17 18,20 8,20 8,17 10,17Z</StreamGeometry>
       <StreamGeometry x:Key="IconRectangle">M4,5 20,5 20,19 4,19ZM6,7 6,17 18,17 18,7Z</StreamGeometry>
+      <StreamGeometry x:Key="IconEllipse">M12,4A9,8 0 1 0 12,20A9,8 0 1 0 12,4M12,6A7,6 0 1 1 12,18A7,6 0 1 1 12,6Z</StreamGeometry>
       <StreamGeometry x:Key="IconLine">M4,19 18,5 20,7 6,21Z</StreamGeometry>
+      <StreamGeometry x:Key="IconInk">M3,17C6,9 9,20 12,12S18,4 21,9L19.3,10C17.5,7 15.5,9.5 13.8,13.2 11.5,18.4 7.4,19.5 4.8,17.9Z</StreamGeometry>
+      <StreamGeometry x:Key="IconStamp">M9,3 15,3 14,11 18,11 20,15 4,15 6,11 10,11ZM4,17 20,17 20,20 4,20Z</StreamGeometry>
       <StreamGeometry x:Key="IconMore">M5,10A2,2 0 1 0 5,14A2,2 0 1 0 5,10M12,10A2,2 0 1 0 12,14A2,2 0 1 0 12,10M19,10A2,2 0 1 0 19,14A2,2 0 1 0 19,10</StreamGeometry>
       <StreamGeometry x:Key="IconPrint">M6,3 18,3 18,8 20,8A2,2 0 0 1 22,10L22,17 18,17 18,21 6,21 6,17 2,17 2,10A2,2 0 0 1 4,8L6,8ZM8,5 8,9 16,9 16,5ZM8,15 8,19 16,19 16,15ZM18,11A1,1 0 1 0 18,13A1,1 0 1 0 18,11</StreamGeometry>
       <StreamGeometry x:Key="IconExport">M5,3 14,3 19,8 19,12 17,12 17,9 13,9 13,5 7,5 7,19 13,19 13,21 5,21ZM15,4.5 17.5,7 15,7ZM14,14 18,14 18,11 22,15 18,19 18,16 14,16Z</StreamGeometry>
+      <StreamGeometry x:Key="IconUndo">M9,4 2.5,10 9,16 9,12C13.5,12 17,13.5 20,18 19.5,12 16,8 9,8Z</StreamGeometry>
+      <StreamGeometry x:Key="IconRedo">M15,4 21.5,10 15,16 15,12C10.5,12 7,13.5 4,18 4.5,12 8,8 15,8Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSave">M4,3 17,3 21,7 21,21 3,21 3,3ZM7,5 7,9 15,9 15,5ZM12,12A3,3 0 1 0 12,18A3,3 0 1 0 12,12Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSaveCopy">M7,2 17,2 21,6 21,17 7,17ZM10,4 10,7 16,7 16,4ZM14,9.5A2.5,2.5 0 1 0 14,14.5A2.5,2.5 0 1 0 14,9.5M3,7 5,7 5,20 17,20 17,22 3,22Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSparkle">M12,2 14,9.5 21.5,12 14,14.5 12,22 10,14.5 2.5,12 10,9.5ZM19,2 19.8,4.2 22,5 19.8,5.8 19,8 18.2,5.8 16,5 18.2,4.2Z</StreamGeometry>
+      <StreamGeometry x:Key="IconChevronLeft">M15,4 17,6 11,12 17,18 15,20 7,12Z</StreamGeometry>
+      <StreamGeometry x:Key="IconChevronRight">M9,4 7,6 13,12 7,18 9,20 17,12Z</StreamGeometry>
+      <StreamGeometry x:Key="IconMinus">M5,11 19,11 19,13 5,13Z</StreamGeometry>
+      <StreamGeometry x:Key="IconPlus">M11,5 13,5 13,11 19,11 19,13 13,13 13,19 11,19 11,13 5,13 5,11 11,11Z</StreamGeometry>
+      <StreamGeometry x:Key="IconFitWidth">M3,4 5,4 5,20 3,20ZM19,4 21,4 21,20 19,20ZM7,12 10,9 10,11 14,11 14,9 17,12 14,15 14,13 10,13 10,15Z</StreamGeometry>
+      <StreamGeometry x:Key="IconFitPage">M6,2 18,2 18,22 6,22ZM8,4 8,20 16,20 16,4ZM12,6 14.5,9 13,9 13,15 14.5,15 12,18 9.5,15 11,15 11,9 9.5,9Z</StreamGeometry>
+      <StreamGeometry x:Key="IconPanelLeft">M3,4 21,4 21,20 3,20ZM5,6 5,18 9,18 9,6ZM11,6 11,18 19,18 19,6Z</StreamGeometry>
+      <StreamGeometry x:Key="IconPanelRight">M3,4 21,4 21,20 3,20ZM5,6 5,18 13,18 13,6ZM15,6 15,18 19,18 19,6Z</StreamGeometry>
+      <StreamGeometry x:Key="IconFocus">M3,3 9,3 9,5 5,5 5,9 3,9ZM15,3 21,3 21,9 19,9 19,5 15,5ZM3,15 5,15 5,19 9,19 9,21 3,21ZM19,15 21,15 21,21 15,21 15,19 19,19Z</StreamGeometry>
+      <StreamGeometry x:Key="IconAttachment">M14.2,6H15.8V16H14.2ZM15.8,16A3.8,3.8 0 0 1 8.2,16H9.8A2.2,2.2 0 0 0 14.2,16ZM8.2,5H9.8V16H8.2ZM8.2,5A2.8,2.8 0 0 1 13.8,5H12.2A1.2,1.2 0 0 0 9.8,5ZM12.2,5H13.8V14H12.2Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSignature">M3,14C6,6 9,17 12,9S18,1 21,6L19.3,7C17.5,4 15.5,6.5 13.8,10.2 11.5,15.4 7.4,16.5 4.8,14.9ZM3,19.5H21V21H3Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSquiggly">M6,3H8V11A4,4 0 0 0 16,11V3H18V11A6,6 0 0 1 6,11ZM3,19.5 5.5,17 8,19.5 10.5,17 13,19.5 15.5,17 18,19.5 20.5,17 21.5,18 18,21.5 15.5,19 13,21.5 10.5,19 8,21.5 5.5,19 3,21.5 2,20.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconPolygon">M12,2.5 21.5,9.4 17.9,20.5H6.1L2.5,9.4ZM12,5 4.9,10.2 7.6,18.5H16.4L19.1,10.2Z</StreamGeometry>
+      <StreamGeometry x:Key="IconChevronDown">M4.4,8.3 12,15.9 19.6,8.3 21,9.7 12,18.7 3,9.7Z</StreamGeometry>
+      <StreamGeometry x:Key="IconBookmark">M6,2 18,2 18,22 12,17 6,22Z</StreamGeometry>
+      <StreamGeometry x:Key="IconPages">M3,3 10,3 10,10 3,10ZM14,3 21,3 21,10 14,10ZM3,14 10,14 10,21 3,21ZM14,14 21,14 21,21 14,21Z</StreamGeometry>
+      <StreamGeometry x:Key="IconRotateLeft">M12,4A8,8 0 1 1 4.5,14.5L6.8,13.6A5.5,5.5 0 1 0 12,6.5L12,9.5 7.5,5.25 12,1Z</StreamGeometry>
+      <StreamGeometry x:Key="IconRotateRight">M12,4A8,8 0 1 0 19.5,14.5L17.2,13.6A5.5,5.5 0 1 1 12,6.5L12,9.5 16.5,5.25 12,1Z</StreamGeometry>
+      <StreamGeometry x:Key="IconDuplicate">M8,2 20,2 20,16 8,16ZM10,4 10,14 18,14 18,4ZM4,6 6,6 6,20 16,20 16,22 4,22Z</StreamGeometry>
+      <StreamGeometry x:Key="IconTrash">M9,2 15,2 16,4 21,4 21,6 3,6 3,4 8,4ZM5,8 19,8 18,22 6,22ZM9,10 9,20 11,20 11,10ZM13,10 13,20 15,20 15,10Z</StreamGeometry>
+      <StreamGeometry x:Key="IconArrowUp">M12,3 19,10 17.6,11.4 13,6.8 13,21 11,21 11,6.8 6.4,11.4 5,10Z</StreamGeometry>
+      <StreamGeometry x:Key="IconArrowDown">M12,21 5,14 6.4,12.6 11,17.2 11,3 13,3 13,17.2 17.6,12.6 19,14Z</StreamGeometry>
+      <StreamGeometry x:Key="IconMoveTo">M3,5 13,5 13,7 3,7ZM3,11 11,11 11,13 3,13ZM3,17 13,17 13,19 3,19ZM16,8 21,12 16,16 16,13 13,13 13,11 16,11Z</StreamGeometry>
+      <StreamGeometry x:Key="IconBlankPage">M6,2 14,2 19,7 19,22 6,22ZM8,4 8,20 17,20 17,8 13,8 13,4ZM11.5,10 13.5,10 13.5,13 16.5,13 16.5,15 13.5,15 13.5,18 11.5,18 11.5,15 8.5,15 8.5,13 11.5,13Z</StreamGeometry>
+      <StreamGeometry x:Key="IconAddPdf">M5,2 13,2 18,7 18,12 16,12 16,8 12,8 12,4 7,4 7,20 12,20 12,22 5,22ZM17,14 19,14 19,17 22,17 22,19 19,19 19,22 17,22 17,19 14,19 14,17 17,17Z</StreamGeometry>
+      <StreamGeometry x:Key="IconImage">M3,4 21,4 21,20 3,20ZM5,6 5,15 9,11 13,15 15,13 19,17 19,6ZM15.5,7.5A1.5,1.5 0 1 0 15.5,10.5A1.5,1.5 0 1 0 15.5,7.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconLink">M10.6,13.4 9.2,12A4,4 0 0 1 9.2,6.3L12.3,3.2A4,4 0 0 1 18,8.9L16.6,10.3 15.2,8.9 16.6,7.5A2,2 0 0 0 13.7,4.6L10.6,7.7A2,2 0 0 0 10.6,10.6L12,12ZM13.4,10.6 14.8,12A4,4 0 0 1 14.8,17.7L11.7,20.8A4,4 0 0 1 6,15.1L7.4,13.7 8.8,15.1 7.4,16.5A2,2 0 0 0 10.3,19.4L13.4,16.3A2,2 0 0 0 13.4,13.4L12,12Z</StreamGeometry>
+      <StreamGeometry x:Key="IconWatermark">M12,2C12,2 5,10 5,14.5A7,7 0 0 0 19,14.5C19,10 12,2 12,2ZM12,5.3C13.9,7.7 17,12 17,14.5A5,5 0 0 1 7,14.5C7,12 10.1,7.7 12,5.3Z</StreamGeometry>
+      <StreamGeometry x:Key="IconNumbers">M4,4 8,4 8,14 6,14 6,6 4,6ZM11,4 18,4 18,9.5 13,12 13,14 18,14 18,16 11,16 11,10.8 16,8.3 16,6 11,6ZM3,19 21,19 21,21 3,21Z</StreamGeometry>
+      <StreamGeometry x:Key="IconRedact">M3,5 21,5 21,11 3,11ZM3,14 13,14 13,16 3,16ZM3,18 17,18 17,20 3,20Z</StreamGeometry>
+      <StreamGeometry x:Key="IconShieldCheck">M12,2 20,5 20,11C20,16 16.6,20.3 12,22 7.4,20.3 4,16 4,11L4,5ZM10.6,15.6 16.4,9.8 15,8.4 10.6,12.8 8.9,11.1 7.5,12.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconHash">M9,3 11,3 10.4,8 14.4,8 15,3 17,3 16.4,8 20,8 20,10 16.2,10 15.7,14 19,14 19,16 15.5,16 14.9,21 12.9,21 13.5,16 9.5,16 8.9,21 6.9,21 7.5,16 4,16 4,14 7.7,14 8.2,10 5,10 5,8 8.4,8ZM10.2,10 9.7,14 13.7,14 14.2,10Z</StreamGeometry>
+      <StreamGeometry x:Key="IconClose">M6,4.5 12,10.5 18,4.5 19.5,6 13.5,12 19.5,18 18,19.5 12,13.5 6,19.5 4.5,18 10.5,12 4.5,6Z</StreamGeometry>
+      <StreamGeometry x:Key="IconRestore">M13,3A9,9 0 1 1 4.2,14L6.2,13.4A7,7 0 1 0 13,5 7,7 0 0 0 7.4,7.8L10,10 3,11 4,4 6,6.2A9,9 0 0 1 13,3ZM12,7 14,7 14,12 17.5,14 16.5,15.8 12,13.2Z</StreamGeometry>
+      <StreamGeometry x:Key="IconNight">M20,15.5A8.5,8.5 0 1 1 8.5,4 6.5,6.5 0 0 0 20,15.5ZM3,20 21,20 21,22 3,22Z</StreamGeometry>
+      <StreamGeometry x:Key="IconFolder">M3,5 10,5 12,7 21,7 21,19 3,19ZM5,9 5,17 19,17 19,9Z</StreamGeometry>
+      <StreamGeometry x:Key="IconCheck">M9,16.2 4.8,12 3.4,13.4 9,19 21,7 19.6,5.6Z</StreamGeometry>
+      <StreamGeometry x:Key="IconInfo">M12,2A10,10 0 1 0 12,22A10,10 0 1 0 12,2M11,10 13,10 13,17 11,17ZM11,6.5 13,6.5 13,8.5 11,8.5Z</StreamGeometry>
+      <StreamGeometry x:Key="IconWarning">M12,2 23,21 1,21ZM11,9 13,9 13,14 11,14ZM11,16 13,16 13,18 11,18Z</StreamGeometry>
+      <StreamGeometry x:Key="IconSelectAll">M3,3 9,3 9,5 5,5 5,9 3,9ZM15,3 21,3 21,9 19,9 19,5 15,5ZM3,15 5,15 5,19 9,19 9,21 3,21ZM19,15 21,15 21,21 15,21 15,19 19,19ZM8,8 16,8 16,16 8,16Z</StreamGeometry>
+      <StreamGeometry x:Key="IconCrop">M6,2 8,2 8,16 22,16 22,18 18,18 18,22 16,22 16,18 6,18 6,8 2,8 2,6 6,6ZM10,6 18,6 18,14 16,14 16,8 10,8Z</StreamGeometry>
     </ResourceDictionary>
   </Application.Resources>
 
   <Application.Styles>
     <FluentTheme DensityStyle="Compact" />
     <Style Selector="Window"><Setter Property="FontSize" Value="{DynamicResource StudioBodyFontSize}" /></Style>
-    <Style Selector="Button, ToggleButton"><Setter Property="CornerRadius" Value="8" /></Style>
-    <Style Selector="Button.cardAction:disabled /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
-    <Style Selector="ToggleButton.nav:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="Opacity" Value="0.6" /></Style>
+    <Style Selector="Button, ToggleButton"><Setter Property="CornerRadius" Value="7" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <!-- Icon + label content: keep glyphs and text on one optical center line. -->
+    <Style Selector=":is(Button) StackPanel[Orientation=Horizontal] > TextBlock, :is(Button) StackPanel[Orientation=Horizontal] > PathIcon"><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="Button.primary, Button.danger, Button.tool, ToggleButton.tool"><Setter Property="HorizontalContentAlignment" Value="Center" /></Style>
+    <!-- Studio draws its own tabs in the extended title bar; hide the platform-drawn caption title. -->
+    <Style Selector=":is(Control)#PART_TitleTextPanel, :is(Control)#PART_TitlePresenter, :is(Control)#PART_BottomTitlePresenter">
+      <Setter Property="Opacity" Value="0" />
+      <Setter Property="MaxWidth" Value="0" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <!-- Motion: short, quiet transitions for interactive surfaces. -->
+    <Style Selector="Button.tool, ToggleButton.tool, Button.ghost, Button.primary, Button.danger, Button.cardAction, ToggleButton.nav, ToggleButton.segment, Button.icon, ToggleButton.icon">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.12" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Button.cardAction:pressed, Button.primary:pressed, Button.tool:pressed, ToggleButton.tool:pressed, Button.icon:pressed, ToggleButton.icon:pressed">
+      <Setter Property="RenderTransform" Value="scale(0.97)" />
+    </Style>
+
+    <Style Selector="Button.tool, ToggleButton.tool"><Setter Property="MinWidth" Value="32" /><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Padding" Value="{DynamicResource StudioControlPadding}" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
+    <Style Selector="Button.tool:pointerover /template/ ContentPresenter, ToggleButton.tool:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
+    <Style Selector="Button.tool:disabled, ToggleButton.tool:disabled, Button.icon:disabled, ToggleButton.icon:disabled, Button.danger:disabled, Button.ghost:disabled"><Setter Property="Opacity" Value="0.42" /></Style>
+    <Style Selector="Button.tool:disabled /template/ ContentPresenter, ToggleButton.tool:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
+    <Style Selector="ToggleButton.tool:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
+
+    <!-- Borderless square icon buttons for command rows and floating bars. -->
+    <Style Selector="Button.icon, ToggleButton.icon"><Setter Property="Width" Value="32" /><Setter Property="Height" Value="32" /><Setter Property="Padding" Value="0" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <Style Selector="Button.icon PathIcon, ToggleButton.icon PathIcon"><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /></Style>
+    <Style Selector="Button.icon:pointerover /template/ ContentPresenter, ToggleButton.icon:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="Button.icon:disabled /template/ ContentPresenter, ToggleButton.icon:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="ToggleButton.icon:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="ToggleButton.icon:checked:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentHoverBrush}" /></Style>
+
+    <!-- Labelled tool buttons inside the command row: icon plus a label that hides in compact layouts. -->
+    <Style Selector="Button.cmd, ToggleButton.cmd"><Setter Property="Height" Value="32" /><Setter Property="MinWidth" Value="32" /><Setter Property="Padding" Value="8,0" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <Style Selector="Button.cmd PathIcon, ToggleButton.cmd PathIcon"><Setter Property="Width" Value="16" /><Setter Property="Height" Value="16" /></Style>
+    <Style Selector="Button.cmd:pointerover /template/ ContentPresenter, ToggleButton.cmd:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="Button.cmd:disabled, ToggleButton.cmd:disabled"><Setter Property="Opacity" Value="0.42" /></Style>
+    <Style Selector="Button.cmd:disabled /template/ ContentPresenter, ToggleButton.cmd:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="ToggleButton.cmd:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    <!-- A menu button that stands for a group of tools shows the group's active state like a checked tool. -->
+    <Style Selector="Button.cmd.active /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="1" /></Style>
+    <Style Selector="Button.cmd TextBlock.cmdLabel, ToggleButton.cmd TextBlock.cmdLabel"><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Margin" Value="6,0,0,0" /></Style>
+    <Style Selector=":is(Control).compactCommands TextBlock.cmdLabel"><Setter Property="IsVisible" Value="False" /></Style>
+
+    <!-- Segmented control used for document modes. -->
+    <Style Selector="Border.segmented"><Setter Property="Background" Value="{DynamicResource StudioWindowBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="9" /><Setter Property="Padding" Value="2" /></Style>
+    <Style Selector="ToggleButton.segment"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="{DynamicResource StudioModePadding}" /><Setter Property="CornerRadius" Value="7" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="MinHeight" Value="28" /></Style>
+    <Style Selector="ToggleButton.segment:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="ToggleButton.segment:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="BoxShadow" Value="{DynamicResource StudioCardShadow}" /></Style>
+    <Style Selector="ToggleButton.segment:checked"><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="ToggleButton.segment:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="ToggleButton.segment:disabled"><Setter Property="Opacity" Value="0.5" /></Style>
+
+    <Style Selector="Button.primary"><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Background" Value="{DynamicResource StudioAccentButtonBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /><Setter Property="Padding" Value="16,7" /><Setter Property="CornerRadius" Value="7" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="BorderThickness" Value="0" /></Style>
+    <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentButtonHoverBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /></Style>
+    <Style Selector="Button.primary:disabled /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="Button.primary:disabled PathIcon"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="Button.primary:disabled"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button.primary PathIcon"><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /></Style>
+    <Style Selector="Button.danger"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="Padding" Value="{DynamicResource StudioControlPadding}" /><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /></Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioErrorSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /></Style>
+    <Style Selector="Button.danger:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /></Style>
+    <Style Selector="Button.ghost"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="10,7" /><Setter Property="CornerRadius" Value="7" /></Style>
+    <Style Selector="Button.ghost:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
+    <Style Selector="Button.link"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Padding" Value="4,2" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentHoverBrush}" /></Style>
+
+    <Style Selector="Button.cardAction"><Setter Property="VerticalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="12" /></Style>
     <Style Selector="Button.cardAction:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
-    <Style Selector="Expander"><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="CornerRadius" Value="8" /></Style>
+    <Style Selector="Button.cardAction:disabled /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" /></Style>
+    <Style Selector="Button.cardAction:disabled"><Setter Property="Opacity" Value="0.72" /></Style>
+
+    <Style Selector="Expander"><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="ListBox.providers ListBoxItem"><Setter Property="Padding" Value="12,4" /><Setter Property="Margin" Value="0,0,4,6" /><Setter Property="CornerRadius" Value="8" /></Style>
     <Style Selector="ListBox.providers ListBoxItem:selected /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
-    <Style Selector="Button.tool, ToggleButton.tool"><Setter Property="MinWidth" Value="34" /><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Padding" Value="{DynamicResource StudioControlPadding}" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /></Style>
-    <Style Selector="Button.tool:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
-    <Style Selector="Button.tool:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
-    <Style Selector="ToggleButton.tool:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /></Style>
-    <Style Selector="Button.primary"><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentForegroundBrush}" /><Setter Property="Padding" Value="16,8" /><Setter Property="CornerRadius" Value="6" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
-    <Style Selector="Button.primary:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioAccentHoverBrush}" /></Style>
-    <Style Selector="Button.ghost"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="10,7" /><Setter Property="CornerRadius" Value="6" /></Style>
-    <Style Selector="Button.cardAction"><Setter Property="VerticalAlignment" Value="Stretch" /><Setter Property="HorizontalContentAlignment" Value="Stretch" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="12" /></Style>
-    <Style Selector="ToggleButton.nav"><Setter Property="Foreground" Value="{DynamicResource StudioNavTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Padding" Value="6,9" /><Setter Property="CornerRadius" Value="6" /></Style>
+
+    <!-- Left rail: icon-first navigation with an accent indicator. -->
+    <Style Selector="ToggleButton.nav"><Setter Property="Foreground" Value="{DynamicResource StudioNavTextBrush}" /><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="HorizontalContentAlignment" Value="Center" /><Setter Property="HorizontalAlignment" Value="Stretch" /><Setter Property="Padding" Value="4,7" /><Setter Property="CornerRadius" Value="8" /></Style>
+    <Style Selector="ToggleButton.nav:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" /></Style>
     <Style Selector="ToggleButton.nav:checked"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /></Style>
     <Style Selector="ToggleButton.nav:checked /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioNavActiveBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="ToggleButton.nav:disabled /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="ToggleButton.nav:disabled"><Setter Property="Opacity" Value="0.45" /></Style>
+    <Style Selector="ToggleButton.nav TextBlock"><Setter Property="FontSize" Value="10.5" /><Setter Property="MaxWidth" Value="60" /><Setter Property="TextTrimming" Value="CharacterEllipsis" /><Setter Property="TextAlignment" Value="Center" /></Style>
+
     <Style Selector="ToggleButton.mode"><Setter Property="Background" Value="Transparent" /><Setter Property="Padding" Value="{DynamicResource StudioModePadding}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="CornerRadius" Value="0" /></Style>
     <Style Selector="ToggleButton.mode:checked"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
     <Style Selector="ToggleButton.mode:checked /template/ ContentPresenter"><Setter Property="Background" Value="Transparent" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="0,0,0,2" /></Style>
-    <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="8" /><Setter Property="Padding" Value="16" /></Style>
-    <Style Selector="TextBlock.pageTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="23" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+
+    <Style Selector="Border.card"><Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="16" /><Setter Property="BoxShadow" Value="{DynamicResource StudioCardShadow}" /></Style>
+    <!-- Floating surfaces over the canvas: page pill, selection bar, toasts. -->
+    <Style Selector="Border.floating"><Setter Property="Background" Value="{DynamicResource StudioFloatingBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1" /><Setter Property="CornerRadius" Value="12" /><Setter Property="Padding" Value="4" /><Setter Property="BoxShadow" Value="{DynamicResource StudioFloatingShadow}" /></Style>
+    <Style Selector="Border.floating">
+      <Setter Property="Transitions">
+        <Transitions>
+          <DoubleTransition Property="Opacity" Duration="0:0:0.18" Easing="CubicEaseOut" />
+          <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.22" Easing="CubicEaseOut" />
+        </Transitions>
+      </Setter>
+    </Style>
+    <Style Selector="Border.separator"><Setter Property="Width" Value="1" /><Setter Property="Height" Value="20" /><Setter Property="Margin" Value="4,0" /><Setter Property="VerticalAlignment" Value="Center" /><Setter Property="Background" Value="{DynamicResource StudioBorderBrush}" /></Style>
+    <Style Selector="Border.kbd"><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="BorderThickness" Value="1,1,1,2" /><Setter Property="CornerRadius" Value="4" /><Setter Property="Padding" Value="5,0" /><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="Border.kbd TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="FontFamily" Value="{StaticResource StudioMonoFont}" /></Style>
+
+    <Style Selector="TextBlock.pageTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="{StaticResource StudioDisplayFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
     <Style Selector="TextBlock.sectionTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="16" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
-    <Style Selector="TextBlock.eyebrow"><Setter Property="FontSize" Value="11" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <Style Selector="TextBlock.paneTitle"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="15" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="TextBlock.eyebrow"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="LetterSpacing" Value="0.6" /></Style>
+    <Style Selector="TextBlock.groupLabel"><Setter Property="FontSize" Value="{StaticResource StudioLabelFontSize}" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /><Setter Property="LetterSpacing" Value="0.6" /></Style>
+    <Style Selector="TextBlock.caption"><Setter Property="FontSize" Value="{StaticResource StudioCaptionFontSize}" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
     <Style Selector="TextBlock.muted"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
-    <Style Selector="TextBox, ComboBox, NumericUpDown"><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="CornerRadius" Value="6" /></Style>
+    <Style Selector="TextBox, ComboBox, NumericUpDown"><Setter Property="MinHeight" Value="{DynamicResource StudioControlHeight}" /><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" /><Setter Property="CornerRadius" Value="7" /></Style>
+    <!-- Single-line inputs center their text like combo boxes; multi-line editors keep top alignment. -->
+    <Style Selector="TextBox[AcceptsReturn=False]"><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <Style Selector="NumericUpDown"><Setter Property="VerticalContentAlignment" Value="Center" /></Style>
+    <Style Selector="TextBox.error"><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /></Style>
+    <Style Selector="TextBlock.error"><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /><Setter Property="FontSize" Value="{StaticResource StudioCaptionFontSize}" /><Setter Property="TextWrapping" Value="Wrap" /></Style>
+    <Style Selector="ListBox"><Setter Property="Background" Value="Transparent" /></Style>
+    <Style Selector="ListBoxItem"><Setter Property="CornerRadius" Value="7" /></Style>
+    <Style Selector="ProgressBar"><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="CornerRadius" Value="3" /><Setter Property="MinHeight" Value="4" /></Style>
+    <Style Selector="ProgressBar.success"><Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" /></Style>
+    <Style Selector="ProgressBar.failed"><Setter Property="Foreground" Value="{DynamicResource StudioErrorBrush}" /></Style>
+    <Style Selector="ProgressBar.cancelled"><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <!-- Informational callouts: neutral surface with an accent edge, for summaries that are not errors. -->
+    <!-- On-page form editors sit on white paper in every theme, so they carry their own ink and focus ring. -->
+    <Style Selector="Border.inlineFormField"><Setter Property="Background" Value="#F2F7FF" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="2" /><Setter Property="CornerRadius" Value="3" /><Setter Property="BoxShadow" Value="0 0 0 3 #332F63E9" /></Style>
+    <Style Selector="Border.inlineFormField TextBox.inlineForm"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="#111827" /><Setter Property="CaretBrush" Value="#111827" /><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="4,0" /><Setter Property="CornerRadius" Value="0" /></Style>
+    <Style Selector="Border.inlineFormField TextBox.inlineForm:focus /template/ Border#PART_BorderElement, Border.inlineFormField TextBox.inlineForm:pointerover /template/ Border#PART_BorderElement"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /></Style>
+    <Style Selector="Border.inlineFormField TextBox.inlineForm:focus, Border.inlineFormField TextBox.inlineForm:pointerover"><Setter Property="Foreground" Value="#111827" /></Style>
+    <Style Selector="Border.inlineFormField ComboBox"><Setter Property="Background" Value="Transparent" /><Setter Property="BorderThickness" Value="0" /><Setter Property="Foreground" Value="#111827" /></Style>
+    <Style Selector="Border.compareHeader"><Setter Property="Height" Value="48" /><Setter Property="Padding" Value="12,0,8,0" /><Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSubtleBorderBrush}" /><Setter Property="BorderThickness" Value="0,0,0,1" /></Style>
+    <Style Selector="MenuFlyoutPresenter"><Setter Property="CornerRadius" Value="10" /><Setter Property="Padding" Value="4" /><Setter Property="BorderThickness" Value="1" /></Style>
+    <Style Selector="MenuFlyoutPresenter MenuItem"><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="10,6" /></Style>
+    <Style Selector="FlyoutPresenter"><Setter Property="CornerRadius" Value="10" /></Style>
+    <Style Selector="Border.placementHint"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="CornerRadius" Value="7" /><Setter Property="Padding" Value="10,3,4,3" /><Setter Property="VerticalAlignment" Value="Center" /></Style>
+    <Style Selector="Border.callout"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" /><Setter Property="BorderThickness" Value="3,0,0,0" /><Setter Property="CornerRadius" Value="6" /><Setter Property="Padding" Value="12,9" /></Style>
+    <Style Selector="Border.callout.warning"><Setter Property="Background" Value="{DynamicResource StudioWarningSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioWarningBrush}" /></Style>
+    <Style Selector="Border.callout.error"><Setter Property="Background" Value="{DynamicResource StudioErrorSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioErrorBrush}" /></Style>
+    <Style Selector="Border.callout.success"><Setter Property="Background" Value="{DynamicResource StudioSuccessSoftBrush}" /><Setter Property="BorderBrush" Value="{DynamicResource StudioSuccessBrush}" /></Style>
     <Style Selector="TabItem"><Setter Property="Padding" Value="12,8" /><Setter Property="FontWeight" Value="SemiBold" /><Setter Property="FontSize" Value="12" /></Style>
+    <!-- Pane tabs: compact pill tabs for navigation and inspector panes. -->
+    <Style Selector="TabControl.paneTabs"><Setter Property="Padding" Value="0" /></Style>
+    <Style Selector="TabControl.paneTabs TabItem"><Setter Property="MinHeight" Value="30" /><Setter Property="Padding" Value="10,4" /><Setter Property="Margin" Value="0,0,2,0" /><Setter Property="FontSize" Value="12" /><Setter Property="FontWeight" Value="Medium" /><Setter Property="CornerRadius" Value="7" /></Style>
+    <Style Selector="TabControl.paneTabs TabItem:selected /template/ Border#PART_SelectedPipe"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector="TabControl.paneTabs TabItem:selected"><Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" /><Setter Property="Foreground" Value="{DynamicResource StudioAccentBrush}" /></Style>
+    <!-- Page-level tabs (OCR, etc.) read as a segmented header instead of links. -->
+    <Style Selector="TabControl.pageTabs"><Setter Property="Padding" Value="0" /></Style>
+    <Style Selector="TabControl.pageTabs /template/ ItemsPresenter#PART_ItemsPresenter"><Setter Property="Margin" Value="20,10,20,0" /></Style>
+    <Style Selector="TabControl.pageTabs TabItem"><Setter Property="MinHeight" Value="34" /><Setter Property="Padding" Value="14,6" /><Setter Property="FontSize" Value="13" /><Setter Property="FontWeight" Value="SemiBold" /></Style>
+    <Style Selector="ToolTip"><Setter Property="MaxWidth" Value="360" /></Style>
   </Application.Styles>
 </Application>

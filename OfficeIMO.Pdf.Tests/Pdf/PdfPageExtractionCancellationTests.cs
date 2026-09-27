@@ -44,10 +44,10 @@ public class PdfPageExtractionCancellationTests {
         };
         using var cancellation = new CancellationTokenSource();
         using var entered = new ManualResetEventSlim();
-        Task parse = Task.Run(() => {
+        Task parse = Task.Factory.StartNew(() => {
             entered.Set();
             PdfSyntax.ParseObjects(pdf, options, out _, out _, source, cancellation.Token);
-        });
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
         cancellation.Cancel();
@@ -59,10 +59,10 @@ public class PdfPageExtractionCancellationTests {
         string hex = new string('A', 40_000_000);
         using var cancellation = new CancellationTokenSource();
         using var entered = new ManualResetEventSlim();
-        Task decode = Task.Run(() => {
+        Task decode = Task.Factory.StartNew(() => {
             entered.Set();
             PdfTextString.DecodeHexBytes(hex, 0, hex.Length, cancellation.Token);
-        });
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         Assert.True(entered.Wait(TimeSpan.FromSeconds(5)));
         cancellation.Cancel();

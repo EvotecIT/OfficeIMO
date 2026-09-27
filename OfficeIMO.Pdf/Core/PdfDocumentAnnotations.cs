@@ -6,6 +6,8 @@ public sealed class PdfDocumentAnnotations {
     internal PdfDocumentAnnotations(PdfDocument document) { _document = document; }
     /// <summary>Adds an annotation to an existing page.</summary>
     public PdfAnnotationEditResult Add(PdfAnnotationCreateOptions options) => PdfAnnotationEditor.AddAnnotation(_document.GetBytesForOperation(), options, _document.ReadOptions);
+    /// <summary>Adds a text or image-backed Stamp annotation without changing page content.</summary>
+    public PdfAnnotationEditResult AddStamp(PdfStampAnnotationOptions options) => PdfAnnotationEditor.AddStampAnnotation(_document.GetBytesForOperation(), options, _document.ReadOptions);
     /// <summary>Updates one indirect annotation.</summary>
     public PdfAnnotationEditResult Update(int objectNumber, PdfAnnotationUpdateOptions options) => PdfAnnotationEditor.UpdateAnnotation(_document.GetBytesForOperation(), objectNumber, options, _document.ReadOptions);
     /// <summary>Moves one annotation and all supported subtype geometry by a user-space offset.</summary>

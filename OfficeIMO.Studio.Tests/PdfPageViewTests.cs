@@ -1,12 +1,56 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using OfficeIMO.Studio.Features.Reader;
+using OfficeIMO.Studio.Features.Shell;
+using PdfDocument = OfficeIMO.Pdf.PdfDocument;
 
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class PdfPageViewTests {
     private static readonly byte[] TinyPng = Convert.FromBase64String(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+
+    [Fact]
+    public async Task PendingFormFocusIsAppliedWhenVirtualizedPageViewAttaches() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            string root = Path.Combine(Path.GetTempPath(), "officeimo-form-late-page-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            try {
+                string source = Path.Combine(root, "form.pdf");
+                PdfDocument.Create(compose => compose.Page(page => page.Content(content =>
+                    content.Item(item => item.TextField("Name", value: "Initial"))))).Save(source);
+                using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+                await model.OpenDocumentAsync(source);
+                model.ShowFormsModeCommand.Execute(null);
+                PdfPageViewModel page = Assert.Single(model.Pages);
+                page.AttachToViewport();
+                await WaitUntilAsync(() => page.Scene is not null);
+                page.ShowInlineFormField(Assert.Single(model.FormFields), focus: true);
+                Assert.True(page.FocusInlineFormEditorRequested);
+
+                var view = new PdfPageView { DataContext = page };
+                var window = new Window { Width = 800, Height = 900, Content = view };
+                try {
+                    window.Show();
+                    window.UpdateLayout();
+                    TextBox editor = view.FindControl<TextBox>("InlineFormText")!;
+                    await WaitUntilAsync(() => editor.IsFocused);
+                    Assert.False(page.FocusInlineFormEditorRequested);
+                    Assert.Equal("Initial", editor.Text);
+                    string? folder = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
+                    if (!string.IsNullOrWhiteSpace(folder)) {
+                        Directory.CreateDirectory(folder);
+                        using var frame = window.CaptureRenderedFrame();
+                        Assert.NotNull(frame);
+                        frame.Save(Path.Combine(folder, "late-form-page-focus.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
+                    }
+                } finally { window.Close(); }
+            } finally { Directory.Delete(root, recursive: true); }
+            return true;
+        }, CancellationToken.None);
+    }
 
     [Fact]
     public async Task AttachingAfterDataContextStartsPageRendering() {

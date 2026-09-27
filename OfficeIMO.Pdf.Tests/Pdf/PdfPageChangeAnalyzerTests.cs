@@ -1,0 +1,100 @@
+using System.Threading;
+using OfficeIMO.Pdf;
+using Xunit;
+
+namespace OfficeIMO.Tests.Pdf;
+
+public sealed class PdfPageChangeAnalyzerTests {
+    [Fact]
+    public void AlignsInsertedModifiedAndMovedPagesWithoutTreatingInsertionAsMovement() {
+        PdfDocument expected = BuildPages("Alpha", "Bravo", "Charlie");
+        PdfDocument inserted = BuildPages("Intro", "Alpha", "Bravo", "Charlie");
+        PdfPageChangeReport insertion = expected.Proof.AnalyzePageChanges(inserted);
+
+        Assert.Equal(new[] { PdfPageChangeKind.Unchanged, PdfPageChangeKind.Unchanged, PdfPageChangeKind.Unchanged, PdfPageChangeKind.Inserted },
+            insertion.Changes.Select(static change => change.Kind));
+        Assert.Equal(4, insertion.Changes[2].ActualPageNumber);
+        Assert.Equal(1, insertion.Changes[3].ActualPageNumber);
+
+        PdfPageChangeReport modified = expected.Proof.AnalyzePageChanges(BuildPages("Alpha", "Changed", "Charlie"));
+        Assert.Equal(PdfPageChangeKind.ModifiedCandidate, modified.Changes[1].Kind);
+        Assert.Equal(2, modified.Changes[1].ActualPageNumber);
+
+        PdfPageChangeReport moved = expected.Proof.AnalyzePageChanges(BuildPages("Bravo", "Charlie", "Alpha"));
+        Assert.Single(moved.Changes, static change => change.Kind == PdfPageChangeKind.Moved);
+        Assert.All(moved.Changes, static change => Assert.True(change.IsExactRenderedMatch));
+
+        PdfVisualPageComparison aligned = expected.Proof.CompareVisualPages(1, inserted, 2);
+        Assert.True(aligned.IsMatch);
+        Assert.Equal(1, aligned.PageNumber);
+        Assert.Equal(2, aligned.ActualPageNumber);
+        PdfVisualPageComparison changed = expected.Proof.CompareVisualPages(2, BuildPages("Alpha", "Changed", "Charlie"), 2);
+        Assert.False(changed.IsMatch);
+        Assert.NotNull(changed.ChangedBounds);
+    }
+
+    [Fact]
+    public void PageAlignmentHonorsPixelBudgetAndCancellation() {
+        PdfDocument source = BuildPages("One");
+        Assert.Throws<PdfReadLimitException>(() => source.Proof.AnalyzePageChanges(source,
+            new PdfPageChangeOptions { MaxPixelsPerPage = 1 }));
+        using var canceled = new CancellationTokenSource();
+        canceled.Cancel();
+        Assert.Throws<OperationCanceledException>(() => source.Proof.AnalyzePageChanges(source, cancellationToken: canceled.Token));
+    }
+
+    [Fact]
+    public void InsertionBesideModificationDoesNotPairTheWrongPage() {
+        PdfDocument expected = BuildPages("Alpha", "Bravo", "Charlie");
+        PdfDocument actual = BuildPages("Alpha", "Inserted", "Bravo revised", "Charlie");
+
+        PdfPageChangeReport report = expected.Proof.AnalyzePageChanges(actual);
+
+        Assert.Equal(PdfPageChangeKind.Deleted, report.Changes[1].Kind);
+        Assert.DoesNotContain(report.Changes, static change => change.Kind == PdfPageChangeKind.ModifiedCandidate);
+        Assert.Equal(new[] { 2, 3 }, report.Changes.Where(static change => change.Kind == PdfPageChangeKind.Inserted)
+            .Select(static change => change.ActualPageNumber.GetValueOrDefault()));
+    }
+
+    [Fact]
+    public void DuplicatePageInsertionKeepsOrderedExactMatches() {
+        PdfDocument expected = BuildPages("Duplicate", "Content", "Duplicate");
+        PdfDocument actual = BuildPages("Duplicate", "Duplicate", "Content", "Duplicate");
+
+        PdfPageChangeReport report = expected.Proof.AnalyzePageChanges(actual);
+
+        Assert.Equal(new[] { 1, 3, 4 }, report.Changes.Take(3)
+            .Select(static change => change.ActualPageNumber.GetValueOrDefault()));
+        Assert.All(report.Changes.Take(3), static change => Assert.Equal(PdfPageChangeKind.Unchanged, change.Kind));
+        PdfPageChange inserted = Assert.Single(report.Changes, static change => change.Kind == PdfPageChangeKind.Inserted);
+        Assert.Equal(2, inserted.ActualPageNumber);
+    }
+
+    [Fact]
+    public void SkippedRendererOperationsDoNotProvePagesUnchanged() {
+        PdfDocument expected = PdfDocument.Load(UnsupportedOperatorPdf("UnknownPaintA"));
+        PdfDocument actual = PdfDocument.Load(UnsupportedOperatorPdf("UnknownPaintB"));
+        Assert.NotEmpty(PdfReadDocument.Open(expected.ToBytes()).Pages[0].GetRenderCapabilityDiagnostics());
+
+        PdfPageChangeReport report = expected.Proof.AnalyzePageChanges(actual);
+
+        Assert.Equal(PdfPageChangeKind.ModifiedCandidate, Assert.Single(report.Changes).Kind);
+    }
+
+    private static byte[] UnsupportedOperatorPdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
+        "%PDF-1.4", "1 0 obj", "<< /Type /Catalog /Pages 2 0 R >>", "endobj",
+        "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+        "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>", "endobj",
+        "4 0 obj", "<< /Length " + operation.Length + " >>", "stream", operation, "endstream", "endobj",
+        "trailer", "<< /Root 1 0 R /Size 5 >>", "%%EOF", ""
+    }));
+
+    private static PdfDocument BuildPages(params string[] texts) {
+        PdfDocument document = PdfDocument.Create(new PdfOptions { PageSize = new PageSize(240, 180) });
+        for (int index = 0; index < texts.Length; index++) {
+            if (index != 0) document.PageBreak();
+            document.Paragraph(paragraph => paragraph.Text(texts[index]));
+        }
+        return PdfDocument.Load(document.ToBytes());
+    }
+}

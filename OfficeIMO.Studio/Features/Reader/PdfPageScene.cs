@@ -14,6 +14,16 @@ public sealed record PdfPageScene(
     bool RequiresRasterFallback) {
     internal int ElementCount { get; } = CountElements(Drawing);
 
+    /// <summary>True for a scanned page: it paints an image but has no extractable text to search or select.</summary>
+    internal bool IsImageOnly { get; } = Interactions is { TextRegions.Count: 0 } && ContainsImage(Drawing);
+
+    private static bool ContainsImage(OfficeDrawing drawing) => drawing.Elements.Any(element => element switch {
+        OfficeDrawingImage or OfficeDrawingImagePattern => true,
+        OfficeDrawingGroup group => ContainsImage(group.Drawing),
+        OfficeDrawingEffectGroup effectGroup => ContainsImage(effectGroup.Drawing),
+        _ => false
+    });
+
     internal long EstimatedBytes { get; } = EstimateDrawingBytes(Drawing) +
         (long)(Interactions?.Regions.Count ?? 0) * 192L +
         Diagnostics.Sum(static diagnostic => (long)diagnostic.Length * sizeof(char));

@@ -3,37 +3,76 @@
              xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
              x:Class="OfficeIMO.Studio.Features.Shell.StudioSessionView" x:DataType="shell:StudioSessionController"
              IsVisible="{Binding HasPending}">
-  <Border Classes="card">
+  <UserControl.Styles>
+    <Style Selector="Border.statusChip">
+      <Setter Property="CornerRadius" Value="99" />
+      <Setter Property="Padding" Value="8,1" />
+      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.statusChip TextBlock"><Setter Property="FontSize" Value="11" /><Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" /></Style>
+    <Style Selector="Border.statusChip.ready"><Setter Property="Background" Value="{DynamicResource StudioSuccessSoftBrush}" /></Style>
+    <Style Selector="Border.statusChip.ready TextBlock"><Setter Property="Foreground" Value="{DynamicResource StudioSuccessBrush}" /></Style>
+    <Style Selector="Border.statusChip.missing"><Setter Property="Background" Value="{DynamicResource StudioWarningSoftBrush}" /></Style>
+    <Style Selector="Border.statusChip.missing TextBlock"><Setter Property="Foreground" Value="{DynamicResource StudioWarningBrush}" /></Style>
+  </UserControl.Styles>
+  <Border x:Name="Banner" Classes="card" Padding="14,12">
     <StackPanel Spacing="10" IsEnabled="{Binding !IsBusy}">
-      <TextBlock Text="{loc:Loc Session.Title}" Classes="sectionTitle" />
-      <TextBlock Text="{loc:Loc Session.Description}" TextWrapping="Wrap" />
-      <Button Classes="primary" Content="{loc:Loc Session.Restore}" Command="{Binding RestoreCommand}" />
+      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+        <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource StudioAccentSoftBrush}" VerticalAlignment="Center">
+          <PathIcon Data="{StaticResource IconRestore}" Width="18" Height="18" Foreground="{DynamicResource StudioAccentBrush}" />
+        </Border>
+        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+          <TextBlock Text="{loc:Loc Session.Title}" FontWeight="SemiBold" TextWrapping="Wrap" />
+          <TextBlock Text="{Binding PendingSummary}" Classes="caption" TextWrapping="Wrap" />
+        </StackPanel>
+        <WrapPanel Grid.Column="2" ItemSpacing="6" LineSpacing="6" VerticalAlignment="Center" HorizontalAlignment="Right">
+          <Button Classes="primary" MinHeight="32" Padding="14,0" Content="{loc:Loc Session.Restore}" Command="{Binding RestoreCommand}"
+                  ToolTip.Tip="{loc:Loc Session.Description}" />
+          <ToggleButton x:Name="ReviewToggle" Classes="tool" MinHeight="32" Content="{loc:Loc Session.Review}" />
+          <Button Classes="icon" Click="OnDismissClick" AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" ToolTip.Tip="{loc:Loc Session.DismissTip}">
+            <PathIcon Data="{StaticResource IconClose}" Width="11" Height="11" />
+          </Button>
+        </WrapPanel>
+      </Grid>
       <TextBlock Text="{Binding Error}" IsVisible="{Binding HasError}" TextWrapping="Wrap"
                  Foreground="{DynamicResource StudioErrorBrush}" />
-      <ItemsControl ItemsSource="{Binding Pending}">
-        <ItemsControl.ItemTemplate>
-          <DataTemplate x:DataType="shell:StudioSessionItem">
-            <Border BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,1,0,0" Padding="0,10" Margin="0,4,0,0">
-              <StackPanel Spacing="5">
-                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding SourcePath}" Classes="muted" TextWrapping="Wrap" />
-                <TextBlock Text="{Binding Status}" TextWrapping="Wrap" />
-                <WrapPanel>
-                  <Button Classes="tool" Content="{loc:Loc Session.OpenCurrent}" Margin="0,4,8,0"
-                          IsEnabled="{Binding SourceExists}" CommandParameter="{Binding}"
-                          Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).OpenCurrentCommand}" />
-                  <Button Classes="tool" Content="{loc:Loc Session.RecoverCopy}" Margin="0,4,8,0"
-                          IsEnabled="{Binding HasRecovery}" CommandParameter="{Binding}"
-                          Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).RecoverCopyCommand}" />
-                  <Button Classes="ghost" Content="{loc:Loc Session.Forget}" Margin="0,4,8,0" CommandParameter="{Binding}"
-                          Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).ForgetCommand}" />
-                </WrapPanel>
-              </StackPanel>
-            </Border>
-          </DataTemplate>
-        </ItemsControl.ItemTemplate>
-      </ItemsControl>
-      <TextBlock Text="{loc:Loc Session.Retention}" Classes="muted" TextWrapping="Wrap" />
+      <StackPanel IsVisible="{Binding #ReviewToggle.IsChecked}" Spacing="2">
+        <TextBlock Text="{loc:Loc Session.Description}" Classes="caption" TextWrapping="Wrap" Margin="0,0,0,6" />
+        <ItemsControl ItemsSource="{Binding Pending}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="shell:StudioSessionItem">
+              <Border BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="0,1,0,0" Padding="0,8">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                  <PathIcon Data="{StaticResource IconDocument}" Width="15" Height="15" Foreground="{DynamicResource StudioErrorBrush}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Folder}" Classes="caption" TextTrimming="PathSegmentEllipsis" ToolTip.Tip="{Binding SourcePath}" />
+                  </StackPanel>
+                  <Border Grid.Column="2" Classes="statusChip" Classes.ready="{Binding SourceUnchanged}" Classes.missing="{Binding !SourceExists}">
+                    <Panel>
+                      <TextBlock Text="{loc:Loc Session.Checking}" IsVisible="{Binding IsChecking}" />
+                      <TextBlock Text="{Binding Status}" IsVisible="{Binding !IsChecking}" />
+                    </Panel>
+                  </Border>
+                  <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center">
+                    <Button Classes="link" Content="{loc:Loc Session.OpenCurrent}" IsVisible="{Binding SourceExists}" CommandParameter="{Binding}"
+                            Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).OpenCurrentCommand}" />
+                    <Button Classes="link" Content="{loc:Loc Session.RecoverCopy}" IsVisible="{Binding HasRecovery}" CommandParameter="{Binding}"
+                            Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).RecoverCopyCommand}" />
+                    <Button Classes="icon" Width="28" Height="28" CommandParameter="{Binding}"
+                            AutomationProperties.Name="{loc:Loc Session.Forget}" ToolTip.Tip="{loc:Loc Session.Forget}"
+                            Command="{Binding $parent[ItemsControl].((shell:StudioSessionController)DataContext).ForgetCommand}">
+                      <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <TextBlock Text="{loc:Loc Session.Retention}" Classes="caption" TextWrapping="Wrap" Margin="0,6,0,0" />
+      </StackPanel>
     </StackPanel>
   </Border>
 </UserControl>

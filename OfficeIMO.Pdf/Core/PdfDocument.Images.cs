@@ -196,7 +196,7 @@ public sealed partial class PdfDocument {
         return document;
     }
 
-    private static PreparedImage PrepareImageDocumentSource(
+    internal static PreparedImage PrepareImageDocumentSource(
         byte[] sourceBytes,
         CancellationToken cancellationToken) {
         if (!OfficeImageOrientationNormalizer.TryRead(sourceBytes, cancellationToken, out OfficeImageOrientation orientation) ||

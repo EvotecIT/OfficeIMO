@@ -90,6 +90,24 @@ public sealed class StudioJobHistoryTests {
         } finally { Directory.Delete(root, recursive: true); }
     }
 
+    [Fact]
+    public void RevealOutputRechecksAvailabilityWhenSelectedJobFinishes() {
+        var history = new StudioJobHistory(StudioLocalization.Current);
+        using var model = new StudioJobsViewModel(history, (_, _) => Task.CompletedTask,
+            revealFolder: _ => Task.CompletedTask);
+        string output = Path.Combine(Path.GetTempPath(), "officeimo-finished.pdf");
+        var record = history.Start("Conversion", "source.html", output, () => { });
+        model.SelectedJob = record;
+        Assert.False(model.RevealOutputCommand.CanExecute(record));
+        int changed = 0;
+        model.RevealOutputCommand.CanExecuteChanged += (_, _) => changed++;
+
+        record.Complete(OfficeWorkflowStatus.Completed, output, "Ready");
+
+        Assert.True(changed > 0);
+        Assert.True(model.RevealOutputCommand.CanExecute(record));
+    }
+
     private sealed class BlockingRunner : IOfficeWorkflowRunner {
         private readonly OfficeWorkflowRunner _owner = new();
         private int _active;

@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "id": "studio",
+      "name": "Studio",
+      "description": "Edit PDF text, comments, forms and pages in one desktop window.",
+      "action": "Explore Studio",
+      "url": "/studio/",
+      "enabled": true
+    },
+    {
+      "id": "browser",
+      "name": "Browser",
+      "description": "Convert and organize files in your tab. Files never leave your device.",
+      "action": "Open a tool",
+      "url": "/convert/",
+      "enabled": true
+    },
+    {
+      "id": "cli",
+      "name": "CLI",
+      "description": "The same conversions in scripts, CI jobs and AI agents over MCP.",
+      "action": "Install the CLI",
+      "url": "/tool/",
+      "enabled": true
+    },
+    {
+      "id": "dotnet",
+      "name": ".NET",
+      "description": "Focused NuGet packages for Word, Excel, PowerPoint, PDF and more.",
+      "action": "Find a package",
+      "url": "/libraries/",
+      "enabled": true
+    },
+    {
+      "id": "powershell",
+      "name": "PowerShell",
+      "description": "PSWriteOffice brings document automation to PowerShell 5.1 and 7.",
+      "action": "Start with PowerShell",
+      "url": "/products/pswriteoffice/",
+      "enabled": true
+    },
+    {
+      "id": "extension",
+      "name": "Extension",
+      "description": "Convert and inspect documents from any page you visit.",
+      "action": "Learn more",
+      "url": "/extension/",
+      "enabled": false
+    }
+  ]
+}

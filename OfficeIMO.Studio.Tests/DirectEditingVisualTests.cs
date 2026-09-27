@@ -12,6 +12,33 @@ using PdfPageCanvas = OfficeIMO.Studio.Features.Reader.PdfPageCanvas;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class DirectEditingVisualTests {
+    [Fact]
+    public async Task ViewModeSelectAllKeepsTextSelectionWithoutOpeningEditor() {
+        using var files = new TextEditingReviewTests.Files();
+        TextEditingReviewTests.CreateDocument().Save(files.Source);
+        using var app = TestAppBuilder.StartSession();
+        await app.Dispatch(async () => {
+            var window = new MainWindow(((App)Application.Current!).Services) { Width = 960, Height = 620 };
+            try {
+                window.Show();
+                await window.TabHost.OpenDocumentAsync(files.Source);
+                var model = window.ViewModel;
+                await TextEditingReviewTests.WaitUntilAsync(() => model.Pages[0].Scene is not null);
+                window.UpdateLayout();
+                var canvas = window.GetVisualDescendants().OfType<PdfPageCanvas>()
+                    .First(control => control.Scene?.PageNumber == 1);
+                Assert.NotEqual(PdfEditorSelectionMode.PageContent, canvas.SelectionMode);
+
+                canvas.SelectAllPageText();
+
+                Assert.True(canvas.HasTextSelection);
+                Assert.Null(model.SelectedObject);
+                Assert.Null(model.TextEditDraft);
+            } finally { Close(window); }
+            return true;
+        }, default);
+    }
+
     [Theory]
     [InlineData(960, 620, false)]
     [InlineData(1280, 900, true)]

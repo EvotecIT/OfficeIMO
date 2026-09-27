@@ -49,7 +49,7 @@
     private string FileInputId => $"pdf-file-input-{Tool.Id}";
     private string DropzoneTitle => Tool.InputMode switch {
         PdfToolInputMode.Pair => Files.Count == 0 ? "Choose the expected and actual PDFs" : $"{Files.Count} of 2 PDFs selected",
-        PdfToolInputMode.Multiple => Files.Count == 0 ? "Choose two or more PDFs" : $"{Files.Count} PDFs selected",
+        PdfToolInputMode.Multiple => Files.Count == 0 ? "Choose two or more PDFs" : Files.Count == 1 ? "1 PDF selected · add at least one more" : $"{Files.Count} PDFs selected",
         _ => Files.Count == 0 ? "Drop a PDF here" : Files[0].Name
     };
 }

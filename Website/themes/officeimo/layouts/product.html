@@ -9,7 +9,7 @@
   <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
   <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
   {{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-init" }}
   {{ include "theme-tokens" }}
   {{ assets.critical_css_html }}
   {{ assets.preloads_html }}
@@ -24,7 +24,7 @@
   {{ include "header" }}
   {{ browser_workflow = data.browser_workflows[page.title] }}
 
-  <main id="content" class="imo-main imo-main--product">
+  <main id="content" class="imo-main imo-main--product"{{ if page.meta.product_color }} style="--product-color: {{ page.meta.product_color }}"{{ end }}>
     {{ include "sections/product-hero" }}
     {{ include "sections/compatibility-family" }}
 

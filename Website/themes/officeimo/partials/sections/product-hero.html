@@ -4,8 +4,9 @@
 {{ api_link = page.api_url ?? page.meta.api_url ?? "" }}
 {{ product_label = page.product_label ?? page.meta.product_label ?? "Document library" }}
 {{ runtime_label = page.runtime_label ?? page.meta.runtime_label ?? "Cross-platform .NET" }}
+{{ product_color = page.product_color ?? page.meta.product_color }}
 <section class="imo-product-hero" aria-labelledby="imo-product-hero-title"
-  {{ if page.product_color }}style="--product-color: {{ page.product_color }}"{{ end }}>
+  {{ if product_color }}style="--product-color: {{ product_color }}"{{ end }}>
   <div class="imo-container imo-product-hero__inner">
     <div class="imo-product-hero__copy">
       <p class="imo-product-hero__eyebrow">{{ product_label }}</p>
@@ -42,7 +43,7 @@
       {{ end }}
       {{ if preview }}
       <figure class="imo-product-example">
-        <a href="{{ preview.image }}" data-pf-media data-pf-media-caption="{{ preview.title | html.escape }}" aria-label="Open full-size preview: {{ preview.title }}"><img src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
+        <a href="{{ preview.image }}" data-pf-media data-pf-media-caption="{{ preview.title | html.escape }}" aria-label="Open full-size preview: {{ preview.title }}"><img sizes="(max-width: 1023px) 92vw, 440px" src="{{ preview.image }}" width="{{ preview.image_width }}" height="{{ preview.image_height }}" alt="{{ preview.image_alt }}" decoding="async" fetchpriority="high" /></a>
         <figcaption><strong>{{ preview.title }}</strong><p>{{ preview.proof }}</p><a href="{{ preview.artifact_url }}">{{ preview.artifact_label }}</a> · <a href="{{ preview.source_url }}">View source</a> · <a href="/showcase/#{{ preview.id }}">Explore the example</a></figcaption>
       </figure>
       {{ else }}

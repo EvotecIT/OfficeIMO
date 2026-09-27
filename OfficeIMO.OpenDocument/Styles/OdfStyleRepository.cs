@@ -3,6 +3,8 @@ namespace OfficeIMO.OpenDocument;
 /// <summary>Indexes and creates named and automatic ODF styles without detaching them from package XML.</summary>
 public sealed class OdfStyleRepository {
     private readonly OdfDocument _document;
+    private readonly object _indexLock = new object();
+    private LookupIndex? _lookupIndex;
 
     internal OdfStyleRepository(OdfDocument document) {
         _document = document;
@@ -24,7 +26,17 @@ public sealed class OdfStyleRepository {
     /// <summary>Finds a style by family and name, preferring content automatic styles.</summary>
     public OdfStyle? Find(OdfStyleFamily family, string name) {
         if (string.IsNullOrWhiteSpace(name)) return null;
-        return Automatic.Concat(Named).FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
+        return GetLookupIndex().All.TryGetValue((family, name), out OdfStyle? style) ? style : null;
+    }
+
+    internal OdfStyle? FindDefault(OdfStyleFamily family) {
+        if (!_document.Package.ContainsEntry("styles.xml")) return null;
+        XElement? element = _document.GetXml("styles.xml").Root?
+            .Element(OdfNamespaces.Office + "styles")?
+            .Elements(OdfNamespaces.Style + "default-style")
+            .FirstOrDefault(candidate => TryParseFamily((string?)candidate.Attribute(OdfNamespaces.Style + "family"),
+                out OdfStyleFamily candidateFamily) && candidateFamily == family);
+        return element == null ? null : new OdfStyle(_document, element, "styles.xml", false);
     }
 
     /// <summary>Finds an automatic style within its owning package part before falling back to common styles.</summary>
@@ -32,6 +44,10 @@ public sealed class OdfStyleRepository {
         if (string.IsNullOrWhiteSpace(name)) return null;
         return FindAutomaticInPart(family, name, partPath) ?? FindNamed(family, name);
     }
+
+    internal XElement? FindDefaultProperties(OdfStyleFamily family, XName propertiesName) =>
+        GetLookupIndex().Defaults.TryGetValue(family, out XElement? style)
+            ? style.Element(propertiesName) : null;
 
     /// <summary>Creates a common named style in <c>styles.xml</c>.</summary>
     public OdfStyle CreateNamed(string name, OdfStyleFamily family, string? parentStyleName = null) {
@@ -99,6 +115,17 @@ public sealed class OdfStyleRepository {
             ? (true, color)
             : (false, null));
 
+    internal OdfColor? ResolveCellBackgroundColor(OdfStyle? style) {
+        if (style != null) {
+            foreach (OdfStyle candidate in Resolve(style)) {
+                if (candidate.TryGetBackgroundColor(out OdfColor? color)) return color;
+            }
+        }
+        OdfStyle? defaultStyle = FindDefault(OdfStyleFamily.TableCell);
+        return defaultStyle != null && defaultStyle.TryGetBackgroundColor(out OdfColor? inherited)
+            ? inherited : null;
+    }
+
     internal string? ResolveFontFaceFamily(string? fontName, string preferredPartPath) {
         if (string.IsNullOrWhiteSpace(fontName)) return null;
         foreach (string partPath in new[] { preferredPartPath, "styles.xml", "content.xml" }.Distinct(StringComparer.Ordinal)) {
@@ -131,7 +158,7 @@ public sealed class OdfStyleRepository {
         string? existingName = (string?)owner.Attribute(styleAttribute);
         OdfStyle? existing = existingName == null ? null : FindInPart(family, existingName, partPath);
         if (existing != null && existing.IsAutomatic && existing.PartPath == partPath &&
-            IsUniquelyReferenced(owner, styleAttribute, existingName!, partPath)) return existing;
+            IsUniquelyReferenced(owner, styleAttribute, existingName!, partPath, family)) return existing;
 
         OdfStyle created = existing != null && existing.IsAutomatic
             ? CloneAutomaticIn(partPath, family, prefix, existing)
@@ -151,20 +178,78 @@ public sealed class OdfStyleRepository {
         return clone;
     }
 
-    private bool IsUniquelyReferenced(XElement owner, XName styleAttribute, string styleName, string partPath) {
+    private bool IsUniquelyReferenced(XElement owner, XName styleAttribute, string styleName,
+        string partPath, OdfStyleFamily family) {
         XDocument document = _document.GetXml(partPath);
         if (!ReferenceEquals(owner.Document, document)) return false;
         int references = document.Descendants()
             .Count(element => string.Equals((string?)element.Attribute(styleAttribute), styleName, StringComparison.Ordinal));
+        if (family == OdfStyleFamily.TableCell) {
+            references += document.Descendants()
+                .Count(element => (element.Name == OdfNamespaces.Table + "table-row" ||
+                                   element.Name == OdfNamespaces.Table + "table-column") &&
+                    string.Equals((string?)element.Attribute(OdfNamespaces.Table + "default-cell-style-name"),
+                        styleName, StringComparison.Ordinal));
+        }
         return references == 1;
     }
 
     private OdfStyle? FindAutomaticInPart(OdfStyleFamily family, string name, string partPath) =>
-        EnumerateContainer(partPath, OdfNamespaces.Office + "automatic-styles", true)
-            .FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
+        GetLookupIndex().Automatic.TryGetValue((partPath, family, name), out OdfStyle? style) ? style : null;
 
-    private OdfStyle? FindNamed(OdfStyleFamily family, string name) => Named
-        .FirstOrDefault(style => style.Family == family && string.Equals(style.Name, name, StringComparison.Ordinal));
+    private OdfStyle? FindNamed(OdfStyleFamily family, string name) =>
+        GetLookupIndex().Named.TryGetValue((family, name), out OdfStyle? style) ? style : null;
+
+    private LookupIndex GetLookupIndex() {
+        lock (_indexLock) {
+            int version = _document.Package.StyleLookupVersion;
+            if (_lookupIndex != null && _lookupIndex.Version == version) return _lookupIndex;
+            var automatic = new Dictionary<(string Part, OdfStyleFamily Family, string Name), OdfStyle>();
+            var named = new Dictionary<(OdfStyleFamily Family, string Name), OdfStyle>();
+            var all = new Dictionary<(OdfStyleFamily Family, string Name), OdfStyle>();
+            foreach (string part in new[] { "content.xml", "styles.xml" }) {
+                foreach (OdfStyle style in EnumerateContainer(part, OdfNamespaces.Office + "automatic-styles", true)) {
+                    var key = (style.Family, style.Name);
+                    if (!automatic.ContainsKey((part, style.Family, style.Name)))
+                        automatic.Add((part, style.Family, style.Name), style);
+                    if (!all.ContainsKey(key)) all.Add(key, style);
+                }
+            }
+            foreach (OdfStyle style in EnumerateContainer("styles.xml", OdfNamespaces.Office + "styles", false)) {
+                var key = (style.Family, style.Name);
+                if (!named.ContainsKey(key)) named.Add(key, style);
+                if (!all.ContainsKey(key)) all.Add(key, style);
+            }
+            var defaults = new Dictionary<OdfStyleFamily, XElement>();
+            if (_document.Package.ContainsEntry("styles.xml")) {
+                XElement? container = _document.GetXml("styles.xml").Root?
+                    .Element(OdfNamespaces.Office + "styles");
+                if (container != null) {
+                    foreach (XElement style in container.Elements(OdfNamespaces.Style + "default-style")) {
+                        if (TryParseFamily((string?)style.Attribute(OdfNamespaces.Style + "family"), out OdfStyleFamily family)
+                            && !defaults.ContainsKey(family)) defaults.Add(family, style);
+                    }
+                }
+            }
+            _lookupIndex = new LookupIndex(version, automatic, named, all, defaults);
+            return _lookupIndex;
+        }
+    }
+
+    private sealed class LookupIndex {
+        internal LookupIndex(int version,
+            Dictionary<(string Part, OdfStyleFamily Family, string Name), OdfStyle> automatic,
+            Dictionary<(OdfStyleFamily Family, string Name), OdfStyle> named,
+            Dictionary<(OdfStyleFamily Family, string Name), OdfStyle> all,
+            Dictionary<OdfStyleFamily, XElement> defaults) {
+            Version = version; Automatic = automatic; Named = named; All = all; Defaults = defaults;
+        }
+        internal int Version { get; }
+        internal Dictionary<(string Part, OdfStyleFamily Family, string Name), OdfStyle> Automatic { get; }
+        internal Dictionary<(OdfStyleFamily Family, string Name), OdfStyle> Named { get; }
+        internal Dictionary<(OdfStyleFamily Family, string Name), OdfStyle> All { get; }
+        internal Dictionary<OdfStyleFamily, XElement> Defaults { get; }
+    }
 
     private static XNode CloneNode(XNode node) {
         if (node is XElement element) return new XElement(element);

@@ -1,0 +1,78 @@
+{
+  "repositories": [
+    {
+      "name": "OfficeIMO",
+      "slug": "EvotecIT/OfficeIMO",
+      "url": "https://github.com/EvotecIT/OfficeIMO",
+      "description": ".NET libraries, CLI, Studio and browser tools",
+      "stars": 557,
+      "forks": 75
+    },
+    {
+      "name": "PSWriteOffice",
+      "slug": "EvotecIT/PSWriteOffice",
+      "url": "https://github.com/EvotecIT/PSWriteOffice",
+      "description": "PowerShell module",
+      "stars": 162,
+      "forks": 15
+    }
+  ],
+  "links": [
+    {
+      "id": "discord",
+      "title": "Discord",
+      "description": "Questions, ideas and show and tell",
+      "url": "https://evo.yt/discord"
+    },
+    {
+      "id": "issue",
+      "title": "Report an issue",
+      "description": "Bugs and feature requests",
+      "url": "https://github.com/EvotecIT/OfficeIMO/issues"
+    },
+    {
+      "id": "sponsor",
+      "title": "Sponsor",
+      "description": "Fund ongoing development",
+      "url": "https://github.com/sponsors/PrzemyslawKlys"
+    }
+  ],
+  "ways": [
+    {
+      "id": "discord",
+      "title": "Join the Discord",
+      "description": "Ask questions, share what you built and talk directly with the maintainers.",
+      "action": "Open Discord",
+      "url": "https://evo.yt/discord",
+      "wide": true
+    },
+    {
+      "id": "issue",
+      "title": "Report an issue",
+      "description": "Found a file that converts badly? Attach it to an issue so it can become a test.",
+      "action": "Open an issue",
+      "url": "https://github.com/EvotecIT/OfficeIMO/issues"
+    },
+    {
+      "id": "pull-request",
+      "title": "Send a pull request",
+      "description": "Code, tests and examples are welcome. The website and docs live in the same repository under Website.",
+      "action": "Contribute",
+      "url": "https://github.com/EvotecIT/OfficeIMO/pulls"
+    },
+    {
+      "id": "example",
+      "title": "Share an example",
+      "description": "Built a report or a script others could reuse? Post it on Discord so it can be considered for the showcase.",
+      "action": "Share it",
+      "url": "https://evo.yt/discord"
+    },
+    {
+      "id": "sponsor",
+      "title": "Sponsor the work",
+      "description": "Sponsorship funds maintenance, new formats and faster releases.",
+      "action": "Become a sponsor",
+      "url": "https://github.com/sponsors/PrzemyslawKlys"
+    }
+  ]
+}

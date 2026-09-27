@@ -617,6 +617,8 @@ internal sealed partial class PdfWorkspace : IDisposable {
         PdfEditorTool.Ellipse => "ellipse",
         PdfEditorTool.Line => "line",
         PdfEditorTool.Ink => "ink",
+        PdfEditorTool.Squiggly => "squiggly underline",
+        PdfEditorTool.Polygon => "polygon",
         PdfEditorTool.Stamp => "stamp",
         PdfEditorTool.AddText => "text",
         PdfEditorTool.AddImage => "image",

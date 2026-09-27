@@ -149,7 +149,7 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
-            if (IsExcludedFromCaseTransform(element)) continue;
+            if (IsNonVisibleTextElement(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 segments.Add(new string(' ', ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"))));
                 targets.Add(null);
@@ -174,7 +174,7 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
-            if (IsExcludedFromCaseTransform(element)) continue;
+            if (IsNonVisibleTextElement(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 offset += ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
             } else if (element.Name == OdfNamespaces.Text + "tab" ||
@@ -198,7 +198,7 @@ internal static class OdfTextCodec {
                 AppendBounded(builder, text.Value, maximumCharacters);
                 continue;
             }
-            if (!(node is XElement element) || IsExcludedFromCaseTransform(element)) continue;
+            if (!(node is XElement element) || IsNonVisibleTextElement(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 int count = ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
                 EnsureCapacity(builder, count, maximumCharacters);
@@ -215,7 +215,7 @@ internal static class OdfTextCodec {
         }
     }
 
-    private static bool IsExcludedFromCaseTransform(XElement element) =>
+    private static bool IsNonVisibleTextElement(XElement element) =>
         element.Name == OdfNamespaces.Office + "annotation" ||
         element.Name == OdfNamespaces.Presentation + "notes" ||
         element.Name == OdfNamespaces.Text + "note" ||
@@ -236,6 +236,7 @@ internal static class OdfTextCodec {
                 continue;
             }
             if (!(node is XElement element)) continue;
+            if (IsNonVisibleTextElement(element)) continue;
             if (element.Name == OdfNamespaces.Text + "s") {
                 int count = ParsePositiveCount((string?)element.Attribute(OdfNamespaces.Text + "c"));
                 EnsureCapacity(builder, count, maximumCharacters);

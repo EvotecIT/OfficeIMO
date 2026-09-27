@@ -66,7 +66,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordFootNote? FootNote {
             get {
-                if (_run is not null && _runProperties is not null) {
+                if (_run is not null) {
                     var footReference = _run.ChildElements.OfType<FootnoteReference>().FirstOrDefault();
                     if (footReference is not null) {
                         return new WordFootNote(_document, _paragraph, _run);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordEndNote? EndNote {
             get {
-                if (_run is not null && _runProperties is not null) {
+                if (_run is not null) {
                     var endNoteReference = _run.ChildElements.OfType<EndnoteReference>().FirstOrDefault();
                     if (endNoteReference is not null) {
                         return new WordEndNote(_document, _paragraph, _run);

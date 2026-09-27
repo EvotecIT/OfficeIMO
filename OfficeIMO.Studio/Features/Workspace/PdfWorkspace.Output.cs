@@ -14,7 +14,8 @@ internal sealed partial class PdfWorkspace {
     }
 
     private async Task WriteWorkspaceOutputAsync(string destination, Func<Stream, CancellationToken, Task> writer,
-        CancellationToken cancellationToken, Func<CancellationToken, Task>? verifyRelatedArtifacts = null) {
+        CancellationToken cancellationToken, Func<CancellationToken, Task>? verifyRelatedArtifacts = null,
+        OfficeFileCommit.ConflictPolicy conflictPolicy = OfficeFileCommit.ConflictPolicy.Replace) {
         async Task VerifyAsync(CancellationToken token) {
             await VerifyOutputDestinationAsync(destination, token).ConfigureAwait(false);
             if (verifyRelatedArtifacts is not null) await verifyRelatedArtifacts(token).ConfigureAwait(false);
@@ -30,6 +31,6 @@ internal sealed partial class PdfWorkspace {
         await OfficeFileCommit.WriteAsync(destination, async (stream, token) => {
             await writer(stream, token).ConfigureAwait(false);
             await VerifyAsync(token).ConfigureAwait(false);
-        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }, conflictPolicy: conflictPolicy, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 }

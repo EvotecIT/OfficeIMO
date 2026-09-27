@@ -2,6 +2,7 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Placement, appearance, and mutation policy for a stamp annotation added to an existing PDF page.</summary>
 public sealed class PdfStampAnnotationOptions {
+    private byte[]? _imageBytes;
     /// <summary>One-based target page number.</summary>
     public int PageNumber { get; set; } = 1;
 
@@ -40,6 +41,17 @@ public sealed class PdfStampAnnotationOptions {
 
     /// <summary>Border width in PDF points.</summary>
     public double BorderWidth { get; set; } = 2D;
+
+    /// <summary>Optional PNG or JPEG appearance. When set, the stamp displays this image instead of its text label. This is a visual annotation, not a cryptographic signature.</summary>
+    public byte[]? ImageBytes {
+        get => _imageBytes is null ? null : (byte[])_imageBytes.Clone();
+        set => _imageBytes = value is null ? null : (byte[])value.Clone();
+    }
+
+    /// <summary>Maximum encoded image bytes accepted for an image-backed stamp. Defaults to 128 MiB.</summary>
+    public long MaximumEncodedImageBytes { get; set; } = PdfImageInput.DefaultMaximumEncodedBytes;
+
+    internal byte[]? GetImageBytes() => _imageBytes;
 
     /// <summary>Preferred mutation mode. Automatic uses append-only when signature policy requires it.</summary>
     public PdfMutationExecutionPreference ExecutionPreference { get; set; } = PdfMutationExecutionPreference.Automatic;

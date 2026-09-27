@@ -360,6 +360,7 @@ namespace OfficeIMO.Word {
                 }
 
                 texts[0].Text = value;
+                texts[0].Space = SpaceProcessingModeValues.Preserve;
                 for (int i = 1; i < texts.Count; i++) {
                     texts[i].Text = string.Empty;
                 }

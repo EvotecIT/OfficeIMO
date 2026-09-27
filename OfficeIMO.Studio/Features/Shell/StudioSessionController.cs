@@ -19,7 +19,12 @@ internal sealed partial class StudioSessionItem(StudioSessionDocument document) 
     internal StudioSessionDocument Document { get; } = document;
     public string Name => Document.Storage?.Name ?? OfficeStorageIdentity.GetFileName(Document.Path);
     public string SourcePath => Document.Path;
-    [ObservableProperty] private string _status = string.Empty;
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsChecking))]
+    private string _status = string.Empty;
+    /// <summary>True until the source has been inspected; the banner shows a checking state instead of dead actions.</summary>
+    public bool IsChecking => string.IsNullOrEmpty(Status);
+    public string? Folder => OfficeStorageIdentity.GetLocalPath(Document.Path) is { } local ? System.IO.Path.GetDirectoryName(local) : null;
     [ObservableProperty] private bool _sourceUnchanged;
     [ObservableProperty] private bool _sourceExists;
     [ObservableProperty] private bool _hasRecovery;
@@ -53,6 +58,7 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
         _recovery.MaintenanceCompleted += OnRecoveryMaintenanceCompleted;
         StudioSessionSnapshot previous = services.Preferences.Current.RememberSession ? _store.Load() : new(1, DateTimeOffset.UtcNow, null, []);
         _previousActivePath = previous.ActivePath;
+        Pending.CollectionChanged += (_, _) => OnPropertyChanged(nameof(PendingSummary));
         foreach (var document in previous.Documents) {
             if (document.Storage is { } reference) services.Storage.Remember(reference);
             Pending.Add(new(document));
@@ -69,6 +75,9 @@ internal sealed partial class StudioSessionController : ObservableObject, IDispo
 
     public ObservableCollection<StudioSessionItem> Pending { get; } = [];
     public bool HasPending => Pending.Count > 0;
+    public string PendingSummary => Pending.Count == 1
+        ? _services.Localizer.GetOrDefault("Session.SummaryOne", "1 document from your last session")
+        : _services.Localizer.FormatOrDefault("Session.Summary", "{0:N0} documents from your last session", Pending.Count);
     private void OnDocumentHistoryCleared(object? sender, StudioHistoryCleanupResult result) {
         if (!result.RestartSession) return;
         _previousActivePath = null;

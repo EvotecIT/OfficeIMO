@@ -29,6 +29,11 @@ public class OpenDocumentSchemaArtifactTests {
                 richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
                 richText.AddText(" and ");
                 richText.AddHyperlink("a link", "https://example.com").Italic = true;
+                text.AddParagraph("Date: ").AddField(OdtFieldKind.Date, "September 25, 2026");
+                OdtParagraph cited = text.AddParagraph("A cited result");
+                cited.AddFootnote("Footnote schema proof.");
+                cited.AddText(" and a closing note");
+                cited.AddEndnote("Endnote schema proof.");
                 text.AddList().AddItem("One");
                 text.AddTable(2, 2, "Proof").Cell(0, 0).Text = "Value";
                 text.PageLayout.Header.AddParagraph("OfficeIMO");
@@ -59,6 +64,8 @@ public class OpenDocumentSchemaArtifactTests {
                 conditional.AddConditionalMap("cell-content()>0", highlight.Name, "$'Data'.$A$2");
                 conditional.Bold = true;
                 conditional.TextAlign = "center";
+                conditional.CellVerticalAlign = "middle";
+                conditional.CellWrapOption = "wrap";
                 conditional.BackgroundColor = OdfColor.Parse("#FFFFFF");
                 formula.StyleName = conditional.Name;
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.4.ods"));
@@ -84,10 +91,30 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.True(chartDocument.Validate().IsValid);
             }
             {
+                OdsDocument pivotDocument = OdsDocument.Create();
+                OdsSheet data = pivotDocument.AddSheet("PivotData");
+                data.Cell(0, 0).SetString("Region");
+                data.Cell(0, 1).SetString("Sales");
+                data.Cell(1, 0).SetString("North");
+                data.Cell(1, 1).SetNumber(10);
+                OdsDataPilotTable pivot = pivotDocument.AddDataPilotTable(
+                    "SalesPivot", "PivotData.A1:PivotData.B2", "PivotData.D1:PivotData.E3");
+                pivot.AddField("Region", "row");
+                pivot.AddField("Sales", "data", "sum");
+                pivotDocument.AddNamedRange("SalesValues", "PivotData.$B$2:.$B$2");
+                pivotDocument.Save(Path.Combine(output, "schema-pivot-1.4.ods"));
+                pivotDocument.Save(Path.Combine(output, "schema-pivot-1.3.ods"),
+                    new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
+                Assert.True(pivotDocument.Validate().IsValid);
+            }
+            {
                 OdpPresentation presentation = OdpPresentation.Create();
                 OdpSlide slide = presentation.AddSlide("Schema proof");
-                OdpParagraph presentationText = slide.AddTextBox(
-                    OdfRect.FromCentimeters(1, 1, 12, 2), null).AddParagraph();
+                presentation.MasterPages[0].BackgroundColor = OdfColor.Parse("#F8FBFF");
+                presentation.Layouts[0].AddPlaceholder("title", OdfRect.FromCentimeters(1, 1, 12, 2));
+                OdpTextBox title = slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 2));
+                title.PresentationClass = "title";
+                OdpParagraph presentationText = title.AddParagraph();
                 presentationText.AddText("Native ODP ");
                 OdpRun presentationRun = presentationText.AddRun("with formatting");
                 presentationRun.Bold = true;
@@ -122,7 +149,7 @@ public class OpenDocumentSchemaArtifactTests {
             .Where(path => path.EndsWith(".odt", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".ods", StringComparison.OrdinalIgnoreCase) ||
                 path.EndsWith(".odp", StringComparison.OrdinalIgnoreCase)).ToArray();
-        Assert.Equal(8, files.Length);
+        Assert.Equal(10, files.Length);
 
         foreach (string path in files) {
             OdfDocument document = OdfDocument.Load(path);
@@ -135,6 +162,11 @@ public class OpenDocumentSchemaArtifactTests {
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdtInlineNodeKind.Hyperlink &&
                     Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
                         UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
+                OdtParagraph cited = text.Paragraphs.Single(paragraph => paragraph.Text.StartsWith("A cited result", StringComparison.Ordinal));
+                Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Footnote &&
+                    note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Footnote schema proof", StringComparison.Ordinal) >= 0));
+                Assert.Contains(cited.Notes, note => note.Kind == OdtNoteKind.Endnote &&
+                    note.Paragraphs.Any(paragraph => paragraph.Text.IndexOf("Endnote schema proof", StringComparison.Ordinal) >= 0));
             } else if (document is OdsDocument spreadsheet) {
                 if (Path.GetFileName(path).StartsWith("schema-chart", StringComparison.Ordinal)) {
                     OdsChart chart = Assert.Single(spreadsheet.GetSheet("ChartData")!.Charts);
@@ -142,11 +174,20 @@ public class OpenDocumentSchemaArtifactTests {
                     Assert.Equal("Sales", chart.Title);
                     continue;
                 }
+                if (Path.GetFileName(path).StartsWith("schema-pivot", StringComparison.Ordinal)) {
+                    OdsDataPilotTable pivot = Assert.Single(spreadsheet.DataPilotTables);
+                    Assert.Equal("SalesPivot", pivot.Name);
+                    Assert.Contains(pivot.Fields, item => item.SourceFieldName == "Sales" && item.Function == "sum");
+                    continue;
+                }
                 OdsSheet sheet = spreadsheet.GetSheet("Data")!;
                 Assert.Equal("Value", sheet.GetValue(0, 0).DisplayText);
                 OdsCell formula = sheet.Cell(1, 0);
                 Assert.Contains(formula.Annotations, annotation => annotation.Text == "Calculated value" && annotation.Creator == "OfficeIMO");
                 Assert.False(string.IsNullOrWhiteSpace(formula.ValidationName));
+                Assert.Equal("center", formula.TextAlign);
+                Assert.Equal("middle", formula.VerticalAlign);
+                Assert.Equal("wrap", formula.WrapOption);
                 Assert.Contains(spreadsheet.Validations, item => item.ParsedCondition?.ValueKind == OdsValidationValueKind.WholeNumber);
                 OdfStyle? conditional = spreadsheet.Styles.Find(OdfStyleFamily.TableCell, formula.StyleName!);
                 Assert.Contains(conditional!.ConditionalMaps, map =>

@@ -21,7 +21,7 @@ public sealed class PdfVisualComparisonReport {
     public IReadOnlyList<PdfVisualPageComparison> Pages { get; }
     /// <summary>Document/page structural differences.</summary>
     public IReadOnlyList<string> StructuralDifferences { get; }
-    /// <summary>True when all compared pages satisfy thresholds and no structural differences remain.</summary>
+    /// <summary>True when all compared pages have complete managed renderings that satisfy thresholds and no structural differences remain.</summary>
     public bool IsMatch => StructuralDifferences.Count == 0 && Pages.All(static page => page.IsMatch);
 
     /// <summary>Builds a self-contained HTML human-review gallery with expected, actual, and highlighted diff images.</summary>
@@ -46,8 +46,15 @@ public sealed class PdfVisualComparisonReport {
         }
         foreach (PdfVisualPageComparison page in Pages) {
             cancellationToken.ThrowIfCancellationRequested();
-            html.Append("<section><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture)).Append(page.IsMatch ? " - match" : " - differs").Append("</h2><p>")
-                .Append(page.DifferentPixels.ToString(CultureInfo.InvariantCulture)).Append(" changed pixels; ratio ").Append(page.DifferenceRatio.ToString("0.######", CultureInfo.InvariantCulture)).Append("</p><div class=\"grid\">");
+            html.Append("<section><h2>Page ").Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
+            if (page.ActualPageNumber != page.PageNumber) html.Append(" vs. ").Append(page.ActualPageNumber.ToString(CultureInfo.InvariantCulture));
+            html.Append(page.IsMatch ? " - match" : " - differs").Append("</h2><p>")
+                .Append(page.DifferentPixels.ToString(CultureInfo.InvariantCulture)).Append(" changed pixels; ratio ").Append(page.DifferenceRatio.ToString("0.######", CultureInfo.InvariantCulture)).Append("</p>");
+            if (PdfRenderCapabilities.HasIncompleteVisualProjection(page.ExpectedCapabilityDiagnostics) ||
+                PdfRenderCapabilities.HasIncompleteVisualProjection(page.ActualCapabilityDiagnostics)) {
+                html.Append("<p class=\"fail\">Managed rendering is incomplete; these pixel images alone cannot prove a match.</p>");
+            }
+            html.Append("<div class=\"grid\">");
             AppendImage(html, "Expected", page.ExpectedPng, cancellationToken);
             AppendImage(html, "Actual", page.ActualPng, cancellationToken);
             AppendImage(html, "Diff", page.DiffPng, cancellationToken);
@@ -153,16 +160,24 @@ public sealed class PdfVisualPageComparison {
     private readonly byte[] _actualPng;
     private readonly byte[] _diffPng;
 
-    internal PdfVisualPageComparison(int pageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng, bool hasSizeDifference, PdfPixelRegion? changedBounds) {
-        PageNumber = pageNumber; IsMatch = isMatch; Width = width; Height = height; ComparedPixels = comparedPixels; DifferentPixels = differentPixels;
+    internal PdfVisualPageComparison(int pageNumber, int actualPageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng, bool hasSizeDifference, PdfPixelRegion? changedBounds, IReadOnlyList<PdfRenderCapabilityDiagnostic> expectedDiagnostics, IReadOnlyList<PdfRenderCapabilityDiagnostic> actualDiagnostics) {
+        PageNumber = pageNumber; ActualPageNumber = actualPageNumber; IsMatch = isMatch; Width = width; Height = height; ComparedPixels = comparedPixels; DifferentPixels = differentPixels;
         MaximumChannelDifference = maximumChannelDifference; MeanChannelDifference = meanChannelDifference;
         HasSizeDifference = hasSizeDifference; ChangedBounds = changedBounds;
+        ExpectedCapabilityDiagnostics = Array.AsReadOnly(expectedDiagnostics.ToArray());
+        ActualCapabilityDiagnostics = Array.AsReadOnly(actualDiagnostics.ToArray());
         _expectedPng = (byte[])expectedPng.Clone(); _actualPng = (byte[])actualPng.Clone(); _diffPng = (byte[])diffPng.Clone();
     }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
-    /// <summary>Whether this page satisfies the configured threshold.</summary>
+    /// <summary>One-based page in the actual document.</summary>
+    public int ActualPageNumber { get; }
+    /// <summary>Whether this page has complete managed renderings that satisfy the configured threshold.</summary>
     public bool IsMatch { get; }
+    /// <summary>Known simplifications or omissions in the expected page's managed rendering.</summary>
+    public IReadOnlyList<PdfRenderCapabilityDiagnostic> ExpectedCapabilityDiagnostics { get; }
+    /// <summary>Known simplifications or omissions in the actual page's managed rendering.</summary>
+    public IReadOnlyList<PdfRenderCapabilityDiagnostic> ActualCapabilityDiagnostics { get; }
     /// <summary>Whether the rendered source dimensions differ, independently of pixel tolerances.</summary>
     public bool HasSizeDifference { get; }
     /// <summary>Smallest comparison-canvas rectangle containing pixels above channel tolerance, or null when none differ.</summary>

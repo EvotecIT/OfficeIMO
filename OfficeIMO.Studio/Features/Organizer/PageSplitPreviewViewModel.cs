@@ -19,9 +19,12 @@ public sealed partial class PageSplitPreviewViewModel : ObservableObject {
     [ObservableProperty] private PageSplitOutputRow? _selectedOutput;
     [ObservableProperty] private bool _hasResult;
     [ObservableProperty] private string? _summary;
+    [ObservableProperty] private bool _splitAtBookmarks;
+    private readonly IReadOnlyList<PdfSplitStart> _bookmarkStarts;
     internal PageSplitPreviewViewModel(int pageCount, int pagesPerPart, string destination, bool provider,
-        IStudioLocalizer localizer, Func<string, Task> open) {
+        IStudioLocalizer localizer, Func<string, Task> open, IReadOnlyList<PdfSplitStart>? bookmarkStarts = null) {
         PageCount = pageCount; _destination = destination; _provider = provider; _localizer = localizer; _open = open;
+        _bookmarkStarts = bookmarkStarts ?? [];
         DestinationHint = localizer.Get(provider ? "Organizer.SplitProviderHint" : "Organizer.SplitLocalHint");
         _pagesPerPart = pagesPerPart.ToString(CultureInfo.InvariantCulture);
         UpdatePlan();
@@ -31,11 +34,23 @@ public sealed partial class PageSplitPreviewViewModel : ObservableObject {
     public bool IsPreview => !HasResult;
     public bool CanApply => IsPreview && Parts.Count > 0 && ErrorMessage is null;
     internal int PartSize { get; private set; }
+    /// <summary>The explicit plan when splitting at bookmarks; null for fixed-size parts.</summary>
+    internal PdfSplitPlan? Plan { get; private set; }
+    public bool CanSplitAtBookmarks => _bookmarkStarts.Count > 0;
+    public bool IsFixedSize => !SplitAtBookmarks;
+    partial void OnSplitAtBookmarksChanged(bool value) { OnPropertyChanged(nameof(IsFixedSize)); UpdatePlan(); }
     partial void OnPagesPerPartChanged(string value) => UpdatePlan();
     partial void OnHasResultChanged(bool value) { OnPropertyChanged(nameof(IsPreview)); OnPropertyChanged(nameof(CanApply)); }
     private void UpdatePlan() {
-        Parts = []; PartSize = 0;
+        Parts = []; PartSize = 0; Plan = null;
         try {
+            if (SplitAtBookmarks && CanSplitAtBookmarks) {
+                Plan = PdfSplitPlan.FromStarts(PageCount, _bookmarkStarts);
+                Parts = Plan.Parts; PartSize = int.TryParse(PagesPerPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out int size) && size > 0 ? size : 1;
+                ErrorMessage = null;
+                OnPropertyChanged(nameof(CanApply));
+                return;
+            }
             if (!int.TryParse(PagesPerPart, NumberStyles.Integer, CultureInfo.InvariantCulture, out int count) || count < 1)
                 throw new ArgumentException(_localizer.Get("Organizer.SplitWholeCount"));
             Parts = PdfSplitPlan.Create(PageCount, count).Parts;

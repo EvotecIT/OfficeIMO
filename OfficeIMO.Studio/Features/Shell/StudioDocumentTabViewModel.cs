@@ -23,7 +23,15 @@ public sealed partial class StudioDocumentTabViewModel : ObservableObject, IDisp
     public override string ToString() => Title;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(DisplayTitle))]
     private string _title;
+
+    /// <summary>The document name without the unsaved-changes marker; the tab shows a dot instead.</summary>
+    public string DisplayTitle => Title.TrimEnd(' ', '*');
+
+    public bool IsDirty => Document.IsDirty;
+
+    public string? SourcePath => Document.DocumentPath;
 
     [RelayCommand]
     private Task CloseAsync() => _close(this);
@@ -37,5 +45,7 @@ public sealed partial class StudioDocumentTabViewModel : ObservableObject, IDisp
 
     private void OnDocumentPropertyChanged(object? sender, PropertyChangedEventArgs e) {
         if (e.PropertyName == nameof(MainWindowViewModel.DocumentName)) Title = Document.DocumentName;
+        else if (e.PropertyName == nameof(MainWindowViewModel.IsDirty)) OnPropertyChanged(nameof(IsDirty));
+        else if (e.PropertyName == nameof(MainWindowViewModel.DocumentPath)) OnPropertyChanged(nameof(SourcePath));
     }
 }

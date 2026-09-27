@@ -14,6 +14,19 @@ public sealed partial class MainWindowViewModel {
     private readonly Func<string, X509Certificate2> _loadSigningCertificate;
     private bool _reviewingSigning;
 
+    /// <summary>Certify instead of approve: only possible while the document has no other signatures.</summary>
+    [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
+    private bool _signatureCertify;
+
+    [CommunityToolkit.Mvvm.ComponentModel.ObservableProperty]
+    private CertificationLevelChoice? _selectedCertificationLevel;
+
+    public IReadOnlyList<CertificationLevelChoice> CertificationLevels => [
+        new(OfficeIMO.Pdf.PdfCertificationPermissionLevel.NoChanges, UiText("Signing.Certify.NoChanges")),
+        new(OfficeIMO.Pdf.PdfCertificationPermissionLevel.FormFillingAndSignatures, UiText("Signing.Certify.Forms")),
+        new(OfficeIMO.Pdf.PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures, UiText("Signing.Certify.FormsAndComments"))
+    ];
+
     [RelayCommand]
     private async Task ApplyCertificateSignatureAsync(CancellationToken cancellationToken) {
         using var notifications = BeginNotificationScope();
@@ -22,7 +35,8 @@ public sealed partial class MainWindowViewModel {
         if (!IsReviewedCopyCurrent(workspace, revision)) return;
         if (!workspace.CanSign) { ErrorMessage = UiText("Signing.Unavailable"); return; }
         var settings = new PdfSigningSettings(SelectedSigningCertificate, SignatureFieldName, SignatureReason, SignatureLocation,
-            SignatureIsVisible, SignaturePageNumber, SignatureX, SignatureY, SignatureWidth, SignatureHeight);
+            SignatureIsVisible, SignaturePageNumber, SignatureX, SignatureY, SignatureWidth, SignatureHeight,
+            SignatureCertify && !HasDocumentSignatures ? (SelectedCertificationLevel ?? CertificationLevels[0]).Level : null);
         _reviewingSigning = true;
         try {
             string? destination = await _pickSavePdf(cancellationToken).ConfigureAwait(true);
@@ -73,3 +87,5 @@ public sealed partial class MainWindowViewModel {
         finally { _reviewingSigning = false; }
     }
 }
+
+public sealed record CertificationLevelChoice(OfficeIMO.Pdf.PdfCertificationPermissionLevel Level, string Label);

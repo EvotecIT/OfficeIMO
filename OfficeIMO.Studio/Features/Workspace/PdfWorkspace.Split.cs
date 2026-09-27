@@ -6,7 +6,8 @@ namespace OfficeIMO.Studio.Features.Workspace;
 internal sealed partial class PdfWorkspace {
     internal async Task<PdfSplitWorkflowResult> SplitAsync(string destination, int pagesPerDocument,
         CancellationToken token, IProgress<PdfWorkspaceProgress>? progress = null,
-        OfficeWorkflowDirectoryOutput? directoryOutput = null, IOfficeWorkflowPublicationGuard? publicationGuard = null) {
+        OfficeWorkflowDirectoryOutput? directoryOutput = null, IOfficeWorkflowPublicationGuard? publicationGuard = null,
+        PdfSplitPlan? plan = null) {
         ThrowIfDisposed();
         if (!CanExtractPages) throw new InvalidOperationException("This document cannot safely split pages.");
         byte[] snapshot = CopyBytes();
@@ -17,7 +18,7 @@ internal sealed partial class PdfWorkspace {
             InputPath = "urn:officeimo:workspace:" + Guid.NewGuid().ToString("N"),
             InputStream = new("workspace.pdf", _ => Task.FromResult<Stream>(new MemoryStream(snapshot, writable: false))),
             PdfPassword = _readOptions.Password, OutputDirectory = destination, DirectoryOutput = directoryOutput,
-            PagesPerDocument = pagesPerDocument,
+            PagesPerDocument = pagesPerDocument, Plan = plan,
             ConflictPolicy = directoryOutput is null ? OfficeWorkflowConflictPolicy.Rename : OfficeWorkflowConflictPolicy.Replace,
             PublicationGuard = new WorkspaceOutputPublicationGuard(this, source, revision, publicationGuard)
         };
