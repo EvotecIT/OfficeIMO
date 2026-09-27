@@ -1,6 +1,8 @@
 name: Deploy Website
 
 on:
+  release:
+    types: [published]
   schedule:
     - cron: "17 4 * * 1"
   push:
@@ -32,7 +34,7 @@ jobs:
         run: echo "GitHub resolved the pinned PowerForge deployment workflow."
 
   resolve-post-deploy:
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'release' || (startsWith(github.event.release.tag_name, 'Studio-v') && !github.event.release.prerelease)) }}
     runs-on: ubuntu-latest
     outputs:
       post_deploy_pipeline_config: ${{ steps.cloudflare.outputs.post_deploy_pipeline_config }}
@@ -51,7 +53,7 @@ jobs:
           fi
 
   website-deploy:
-    if: ${{ github.event_name != 'pull_request' }}
+    if: ${{ github.event_name != 'pull_request' && (github.event_name != 'release' || (startsWith(github.event.release.tag_name, 'Studio-v') && !github.event.release.prerelease)) }}
     needs: resolve-post-deploy
     permissions:
       actions: write
@@ -63,6 +65,8 @@ jobs:
     uses: EvotecIT/PSPublishModule/.github/workflows/powerforge-website-deploy.yml@1b9c00bee685c326975cb1292d002cc8acfdee47
     with:
       website_root: Website
+      # Release tags identify package sources; publish the current website from the default branch.
+      source_ref: ${{ github.event_name == 'release' && github.event.repository.default_branch || github.sha }}
       pipeline_config: Website/pipeline.json
       site_output_path: Website/_site
       post_deploy_pipeline_config: ${{ needs.resolve-post-deploy.outputs.post_deploy_pipeline_config }}
