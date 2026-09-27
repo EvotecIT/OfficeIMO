@@ -54,9 +54,15 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("automaticMarker")]
     [InlineData("inheritedMarker")]
     [InlineData("labelAlignment")]
+    [InlineData("barShape")]
+    [InlineData("barSeriesShape")]
+    [InlineData("seriesLines")]
+    [InlineData("userShapes")]
+    [InlineData("radialLeaderLines")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
-        var kind = feature == "negative" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
+        var kind = feature == "radialLeaderLines" ? OfficeChartKind.Pie :
+            feature == "negative" || feature.StartsWith("bar", StringComparison.Ordinal) || feature == "seriesLines" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
         var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, -4d }) }), title: "Revenue");
         if (feature == "secondaryCategory") chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Values", new[] { 3d, -4d }),
@@ -99,6 +105,19 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "automaticMarker") series.AddChild(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Auto }), true);
         else if (feature == "inheritedMarker") series.RemoveAllChildren<C.Marker>();
         else if (feature == "labelAlignment") plot.GetFirstChild<C.CategoryAxis>()!.AddChild(new C.LabelAlignment { Val = C.LabelAlignmentValues.Left }, true);
+        else if (feature == "barShape" || feature == "barSeriesShape") {
+            var shape = new OpenXmlUnknownElement("c", "shape", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            shape.SetAttribute(new OpenXmlAttribute("val", "", "cylinder"));
+            (feature == "barShape" ? layer : series).Append(shape);
+        }
+        else if (feature == "seriesLines") layer.Append(new C.SeriesLines());
+        else if (feature == "userShapes") {
+            var drawingPart = chart.ChartPart.AddNewPart<DocumentFormat.OpenXml.Packaging.ChartDrawingPart>();
+            var shapes = new OpenXmlUnknownElement("c", "userShapes", "http://schemas.openxmlformats.org/drawingml/2006/chart");
+            shapes.SetAttribute(new OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", chart.ChartPart.GetIdOfPart(drawingPart)));
+            space.Append(shapes);
+        }
+        else if (feature == "radialLeaderLines") layer.AddChild(new C.DataLabels(new C.DataLabelPosition { Val = C.DataLabelPositionValues.BestFit }, new C.ShowValue { Val = true }, new C.ShowLeaderLines { Val = true }), true);
         else if (feature == "dateAxis") {
             var category = plot.GetFirstChild<C.CategoryAxis>()!;
             var replacement = new C.DateAxis();

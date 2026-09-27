@@ -21,6 +21,18 @@ public sealed class DrawingExportQualityTests {
     }
 
     [Fact]
+    public void SmallAuthoredChartPreservesAbsoluteTitleFontSize() {
+        var snapshot = new OfficeChartSnapshot("Small chart", "Title", OfficeChartKind.Line,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }, null, null, null,
+                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: 2) }), 90, 30,
+            style: new OfficeChartStyle(titleFontSize: 12), layout: new OfficeChartLayout(showLegend: false));
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot, useMinimumCanvas: false);
+        var title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Title");
+        Assert.Equal(12, title.Font.Size);
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 10);
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeWidth == 2);
+    }
+    [Fact]
     public void QualityAnalysisIncludesTransformedGroupTextAndOverflow() {
         var child = new OfficeDrawing(100, 100);
         child.AddText("Nested", 10, 10, 40, 20);

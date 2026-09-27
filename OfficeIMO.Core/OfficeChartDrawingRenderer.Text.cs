@@ -1251,13 +1251,10 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        double safeX = Math.Max(0D, x);
-        double safeY = Math.Max(0D, y);
-        double safeWidth = Math.Min(width - (safeX - x), drawing.Width - safeX);
-        double safeHeight = Math.Min(height - (safeY - y), drawing.Height - safeY);
-        if (safeWidth <= 1D || safeHeight <= 1D) {
-            return;
-        }
+        double safeX = Math.Min(Math.Max(0D, x), Math.Max(0D, drawing.Width - 1D));
+        double safeY = Math.Min(Math.Max(0D, y), Math.Max(0D, drawing.Height - 1D));
+        double safeWidth = Math.Max(0.01D, Math.Min(width, drawing.Width - safeX));
+        double safeHeight = Math.Max(0.01D, Math.Min(height, drawing.Height - safeY));
 
         drawing.AddText(
             text,
