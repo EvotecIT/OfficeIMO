@@ -1,0 +1,74 @@
+{
+  "sourceCommit": "bbea3ec169ab579413ca32a729b68cd197b22602",
+  "archiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "browserHelper": {
+    "package": "HtmlTinkerX",
+    "version": "3.0.1",
+    "sourceCommit": "211dc6f17dcfc2499a253bcc16496dfb333d60ba",
+    "method": "HtmlBrowser.GetPagePdfAsync",
+    "callerPageRetained": true,
+    "maskSensitiveElementsDefault": false,
+    "scaleDefault": null
+  },
+  "chromiumPrintCalibration": {
+    "paperWidthPoints": 595.92,
+    "paperHeightPoints": 842.88,
+    "pageCount": 4,
+    "mediaWidthPixels": "less than 800, established by CSS-generated marker",
+    "markersFirstPage": {
+      "WIDTH-LT800": {
+        "xMin": 0.0,
+        "yMin": 32.473633,
+        "xMax": 31.85547,
+        "yMax": 38.05957
+      },
+      "MARK100": {
+        "xMin": 50.000002,
+        "yMin": 32.473633,
+        "xMax": 72.788089,
+        "yMax": 38.05957
+      },
+      "MARK300": {
+        "xMin": 150.000006,
+        "yMin": 32.473633,
+        "xMax": 172.788093,
+        "yMax": 38.05957
+      }
+    },
+    "pointsPerCssPixel": 0.5000000200000001,
+    "ratioToNormalCssScale": 0.6666666933333335,
+    "beforeprintListenerObserved": false
+  },
+  "managedBadgeProbe": {
+    "intent": "PrintPaged; PrintLayoutWidthCssPixels=1200; zero margins; HonorCssPageRules=false; document font embedding enabled",
+    "resourceBoundary": "MHTML embedded-only resolver; HTTPS resource addresses admitted through the PDF adapter, no remote fallback resolver",
+    "typeBadgeCount": 48,
+    "uniqueWidthsCssPixels": [
+      92.52799999999999,
+      109.664,
+      135.776,
+      138.4
+    ],
+    "cardInnerWidthCssPixels": 318,
+    "anyFullWidthTypeBadge": false,
+    "scope": "scene geometry; not an exact PDF byte-equivalence assertion"
+  },
+  "temporaryHypothesisTests": {
+    "passed": 5,
+    "includesGeneratedIcon": true,
+    "reproducedNasaDefect": false,
+    "retainedInProductTests": false
+  },
+  "fontEvidence": {
+    "chromiumSystemUiPdfFace": ".SFNS-Regular",
+    "officeImoSystemUiPdfFace": "HelveticaNeue-Regular",
+    "implication": "Font selection differs; numeric text and badge widths are not yet equivalent-font comparisons."
+  },
+  "remaining": [
+    "reproduce or reclassify card overlay appearance using actual painted groups",
+    "font and title-clamp fidelity",
+    "repeated fixed header content",
+    "footer flow",
+    "other frozen pages and replacement/editable/platform qualification"
+  ]
+}
