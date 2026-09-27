@@ -52,4 +52,29 @@ public sealed class HtmlSvgFontSizeProjectionTests {
         var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
         Assert.Equal(24D, text.Font.Size, 3);
     }
+
+    [Theory]
+    [InlineData("body{font-size:20px}g{font-size:initial}text{font-size:50%}", "font-size='24'", "", 8D)]
+    [InlineData("body{font-size:20px}text{font-size:initial}", "font-size='24'", "font-size='10'", 16D)]
+    [InlineData("text{font-size:inherit}", "font-size='24'", "font-size='10'", 24D)]
+    [InlineData("text{font-size:unset}", "font-size='24'", "font-size='10'", 24D)]
+    public void CssWideSvgFontSizesOverrideAttributes(string css, string groupAttributes, string textAttributes, double expectedSize) {
+        var source = HtmlConversionDocument.Parse("<style>" + css + "</style><svg width='400' height='100'><g "
+            + groupAttributes + "><text x='10' y='70' " + textAttributes + ">Visible SVG</text></g></svg>");
+        var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
+        Assert.DoesNotContain(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(expectedSize, text.Font.Size, 3);
+    }
+
+    [Fact]
+    public void SvgRootInitialFontSizeUsesTheInitialSizeInsteadOfTheHtmlParentSize() {
+        var source = HtmlConversionDocument.Parse("<style>body{font-size:20px}svg{font-size:initial}</style>"
+            + "<svg width='400' height='100'><text x='10' y='70'>Visible SVG</text></svg>");
+        var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
+        var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
+        var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal(16D, text.Font.Size, 3);
+    }
 }

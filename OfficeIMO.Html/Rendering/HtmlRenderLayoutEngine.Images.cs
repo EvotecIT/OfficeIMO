@@ -181,6 +181,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 string fontSizeValue = computed.GetValue("font-size");
                 bool hasSpecifiedFontSize = computed.IsSpecifiedValue("font-size")
+                    || computed.IsResetValue("font-size")
                     || !computed.IsImplicitlyInheritedValue("font-size")
                         && (computed.IsInheritedValue("font-size") || !string.IsNullOrWhiteSpace(fontSizeValue));
                 string? presentationFontSize = hasSpecifiedFontSize ? null : current.GetAttribute("font-size");
@@ -188,6 +189,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 // in SVG for its tolerant reader; their value also establishes descendant em/% context.
                 double usedFontSize = index == 0 && string.IsNullOrWhiteSpace(presentationFontSize)
                     ? resolvedRootFontSize
+                    : computed.IsResetValue("font-size")
+                    ? _options.DefaultFontSize
                     : hasSpecifiedFontSize && computed.IsInheritedValue("font-size")
                     ? inheritedFontSize
                     : !hasSpecifiedFontSize && double.TryParse(presentationFontSize,

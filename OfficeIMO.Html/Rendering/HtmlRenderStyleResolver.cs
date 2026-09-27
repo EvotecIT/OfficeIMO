@@ -146,7 +146,9 @@ internal sealed partial class HtmlRenderStyleResolver {
             : parent?.ContainerUnitHeight ?? viewportHeight;
         double parentFontSize = parent?.Font.Size ?? _options.DefaultFontSize;
         string fontSizeValue = computed.GetValue("font-size");
-        double fontSize = computed.IsImplicitlyInheritedValue("font-size")
+        double fontSize = computed.IsResetValue("font-size")
+            ? _options.DefaultFontSize
+            : computed.IsImplicitlyInheritedValue("font-size")
             ? (pseudoElement ? parentFontSize : ResolveDefaultTagFontSize(tag, parentFontSize))
             : computed.IsInheritedValue("font-size")
             ? parentFontSize

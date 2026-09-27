@@ -191,17 +191,15 @@ public static partial class HtmlComputedStyleEngine {
         IReadOnlyDictionary<string, CustomPropertyRegistration>? customPropertyRegistrations = null) {
         string trimmed = value.Trim();
         if (string.Equals(trimmed, "inherit", StringComparison.OrdinalIgnoreCase)
-            || (string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase) && IsInheritedProperty(name, customPropertyRegistrations))) {
+            || ((string.Equals(trimmed, "unset", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase)) && IsInheritedProperty(name, customPropertyRegistrations))) {
             string? inheritedValue;
             return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
                 ? CssKeywordResolution.ForInheritedValue(inheritedValue)
-                : CssKeywordResolution.Clear;
-        }
-
-        if (string.Equals(trimmed, "revert", StringComparison.OrdinalIgnoreCase) && IsInheritedProperty(name, customPropertyRegistrations)) {
-            string? inheritedValue;
-            return parentProperties != null && parentProperties.TryGetValue(name, out inheritedValue) && !string.IsNullOrWhiteSpace(inheritedValue)
-                ? CssKeywordResolution.ForInheritedValue(inheritedValue)
+                // SVG presentation attributes and caller defaults establish font context later.
+                // Keep explicit inheritance distinct from an initial-value reset even without a CSS parent value.
+                : string.Equals(name, "font-size", StringComparison.OrdinalIgnoreCase)
+                ? CssKeywordResolution.ForInheritedValue("inherit")
                 : CssKeywordResolution.Clear;
         }
 
