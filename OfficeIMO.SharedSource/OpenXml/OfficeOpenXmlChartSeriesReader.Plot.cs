@@ -153,6 +153,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
                 if (!seriesLength.HasValue) return true;
                 if (layer is C.ScatterChart or C.BubbleChart) continue;
+                if (series.GetFirstChild<C.CategoryAxisData>()?.GetFirstChild<C.MultiLevelStringReference>() != null) return true;
                 var categories = OfficeOpenXmlChartCacheReader.ReadCachedStrings(series.GetFirstChild<C.CategoryAxisData>(), maximumPoints);
                 if (categories.Count != seriesLength.Value ||
                     sharedCategories != null && !sharedCategories.SequenceEqual(categories, StringComparer.Ordinal)) return true;
