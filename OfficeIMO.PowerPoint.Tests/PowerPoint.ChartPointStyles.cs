@@ -11,6 +11,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartPointStylesTests {
+    [Fact]
+    public void PointStyles_WidthOnlyColumnOutlineMatchesDirectAndReopenedRendering() {
+        var data = Data(OfficeChartKind.ColumnClustered, new OfficeChartPointStyle?[] {
+            new(outlineWidth: 2), null, null });
+        using PowerPointPresentation authored = PowerPointPresentation.Create();
+        authored.AddSlide().AddChartPoints(OfficeChartKind.ColumnClustered, data, 20, 20, 600, 320);
+        using var bytes = new MemoryStream(authored.ToBytes());
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        foreach (OfficeChartData source in new[] { data, snapshot.Data }) {
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
+                OfficeChartKind.ColumnClustered, source, 600, 320, layout: new OfficeChartLayout(showLegend: false)));
+            Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                shape.Shape.StrokeColor == OfficeColor.Black && shape.Shape.StrokeWidth == 2 && shape.Shape.Height > 50);
+        }
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
     public static IEnumerable<object[]> StyledKinds() {
         foreach (OfficeChartKind kind in new[] { OfficeChartKind.Pie, OfficeChartKind.Doughnut,
             OfficeChartKind.ColumnClustered, OfficeChartKind.Scatter, OfficeChartKind.Bubble })
