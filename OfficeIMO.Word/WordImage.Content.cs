@@ -212,21 +212,24 @@ namespace OfficeIMO.Word {
         /// Remove image from a Word Document
         /// </summary>
         public void Remove() {
+            OpenXmlElement occurrence = _vmlShape ?? (OpenXmlElement)_Image;
+            if (occurrence.Parent == null) throw new InvalidOperationException("The image occurrence is no longer attached to the document.");
+            OpenXmlPart owner = GetContainingPart();
+            string? relationshipId = _externalRelationshipId ?? RelationshipId;
+            occurrence.Remove();
+            bool referenced = relationshipId != null && owner.RootElement?.Descendants().Any(element =>
+                element is Blip blip && (blip.Embed?.Value == relationshipId || blip.Link?.Value == relationshipId) ||
+                element is V.ImageData data && data.RelationshipId?.Value == relationshipId) == true;
+            if (referenced) return;
             if (_imagePart != null) {
-                OpenXmlPart part = GetContainingPart();
-                part.DeletePart(_imagePart);
+                owner.DeletePart(_imagePart);
                 _imagePart = null;
             } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
-                OpenXmlPart part = GetContainingPart();
-                var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
+                var rel = owner.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
                 if (rel != null) {
-                    part.DeleteExternalRelationship(rel);
+                    owner.DeleteExternalRelationship(rel);
                 }
                 _externalRelationshipId = null;
-            }
-
-            if (this._Image != null) {
-                this._Image.Remove();
             }
         }
 
