@@ -10,6 +10,31 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public async Task HtmlRenderAsync_DoesNotReportUnusedExternalStylesheetUrlAsPaintLoss() {
+        var requested = new List<string>();
+        var options = new HtmlRenderOptions {
+            ResourceResolver = (request, cancellationToken) => {
+                cancellationToken.ThrowIfCancellationRequested();
+                requested.Add(request.Uri.AbsoluteUri);
+                Assert.Equal(HtmlResourceKind.Stylesheet, request.Kind);
+                const string css = ":root{--unused-icon:url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22/%3E')} .hero{color:#123456}";
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(Encoding.UTF8.GetBytes(css), "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><p class='hero'>VisibleMarker</p>",
+            options);
+
+        Assert.Equal(new[] { "https://assets.example.test/css/site.css" }, requested);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("VisibleMarker", StringComparison.Ordinal)
+                && text.Color == OfficeColor.FromRgb(0x12, 0x34, 0x56));
+        Assert.DoesNotContain(rendered.Diagnostics,
+            diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+    }
+
+    [Fact]
     public async Task HtmlRenderAsync_ResolvesExternalStylesheetBackgroundImageRelativeToTheStylesheet() {
         byte[] imageBytes = PdfPngTestImages.CreateRgbPng(12, 8);
         var requested = new List<string>();

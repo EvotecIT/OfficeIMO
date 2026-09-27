@@ -101,16 +101,6 @@ internal static class HtmlRenderStylesheetApplier {
                     cssBudget);
             }
 
-            if (HtmlResourcePipeline.HasStylesheetUrlResources(css)) {
-                diagnostics.Add(
-                    ComponentName,
-                    HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending,
-                    "The external stylesheet was applied, but its URL resources are not active in the current paint model.",
-                    HtmlDiagnosticSeverity.Warning,
-                    source,
-                    resource.ContentType);
-            }
-
             IElement style = document.CreateElement("style");
             style.TextContent = css;
             style.SetAttribute("data-officeimo-source", source);
