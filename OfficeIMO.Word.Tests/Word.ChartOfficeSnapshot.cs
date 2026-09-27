@@ -10,6 +10,45 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
+    [Fact]
+    public void OfficeSnapshot_PreservesReferencedAxisFormatsAndLimitsAfterResize() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var axis = plot.GetFirstChild<C.ValueAxis>()!;
+        axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
+        axis.Scaling.AddChild(new C.MaxAxisValue { Val = 10 }, true);
+        axis.NumberingFormat!.FormatCode = "0.00";
+        axis.AddChild(new C.MajorUnit { Val = 2 }, true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        var resized = snapshot.WithSize(200, 150);
+        Assert.Same(snapshot.Data, resized.Data);
+        Assert.Same(snapshot.Style, resized.Style);
+        Assert.Same(snapshot.Layout, resized.Layout);
+        Assert.Same(snapshot.RadialLayout, resized.RadialLayout);
+        Assert.Equal("0.00", resized.Layout.VerticalAxisNumberFormat);
+        Assert.Equal(0, resized.Layout.VerticalAxisMinimum);
+        Assert.Equal(10, resized.Layout.VerticalAxisMaximum);
+        Assert.Equal(2, resized.Layout.VerticalAxisMajorUnit);
+        Assert.Equal(200, resized.WidthPoints);
+        Assert.Equal(150, resized.HeightPoints);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImageExport_UsesSharedBubbleAndCombinationData(bool bubble) {
+        using var document = WordDocument.Create();
+        var data = bubble ? new OfficeChartData(new[] { "1", "2" }, new[] {
+            OfficeChartSeries.CreateBubble("Measured", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 20d }, OfficeColor.Parse("#224466")) }) :
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Columns", new[] { 100d, 200d }),
+                new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, OfficeColor.Parse("#224466"), null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        document.AddChart(bubble ? OfficeChartKind.Bubble : OfficeChartKind.ColumnClustered, data, "Shared projection");
+        var page = document.CreateVisualSnapshot();
+        Assert.DoesNotContain(page.Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedChart);
+        Assert.Contains(page.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Shared projection");
+        Assert.Contains(page.Drawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Parse("#224466") || shape.Shape.StrokeColor == OfficeColor.Parse("#224466"));
+    }
     public static IEnumerable<object[]> SupportedKinds() => Enum.GetValues(typeof(OfficeChartKind)).Cast<OfficeChartKind>().Select(kind => new object[] { kind });
 
     [Theory]
