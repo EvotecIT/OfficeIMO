@@ -18,6 +18,8 @@ internal sealed class HtmlCssProcessingBudget {
 
     internal OfficeIMO.Html.Css.HtmlCssSelectorMatchContext SelectorMatchContext { get; }
 
+    internal HtmlComputedStyleEngine.AngleSharpSelectorElementCache SelectorElements { get; } = new();
+
     internal OfficeIMO.Html.Css.HtmlCssSyntaxOptions CreateInlineSyntaxOptions() =>
         new OfficeIMO.Html.Css.HtmlCssSyntaxOptions {
             MaxInputCharacters = null,

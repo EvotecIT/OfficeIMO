@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Small allocation-free byte-array view used by the managed JPEG codec on all target frameworks.</summary>
+/// <summary>Small allocation-free byte-array view shared by managed image codecs on all target frameworks.</summary>
 internal readonly struct OfficeByteView {
     private readonly byte[] _data;
     private readonly int _offset;

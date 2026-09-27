@@ -6,11 +6,11 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingRasterOptionalCodecTests {
-    private const string IndependentVp8 = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
+    private const string IndependentLossyAlphaWebp = "UklGRlgBAABXRUJQVlA4WAoAAAAQAAAADwAADwAAQUxQSAEBAAAAAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wBWUDggMAAAANABAJ0BKhAAEAABQCYloAJ0ugH4AAOwAP7y63/82BXNc+/3/9Lg/S4P0uD/0pAAAA==";
 
     [Fact]
     public void OptionalCodecNormalizesInspectedPayloadWithoutMutatingInput() {
-        byte[] bytes = Convert.FromBase64String(IndependentVp8);
+        byte[] bytes = Convert.FromBase64String(IndependentLossyAlphaWebp);
         byte[] original = (byte[])bytes.Clone();
         var codec = new Codec { MutateInput = true };
         Assert.True(OfficeImagePngConverter.TryConvertToPng(bytes,
@@ -28,7 +28,7 @@ public sealed class DrawingRasterOptionalCodecTests {
     [InlineData(256, 1)]
     public void ResourceLimitsRefuseBeforeInvokingOptionalCodec(long pixels, int encodedBytes) {
         var codec = new Codec();
-        Assert.False(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(IndependentVp8),
+        Assert.False(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(IndependentLossyAlphaWebp),
             new OfficeRasterDecodeOptions { ImageCodec = codec, MaximumDecodedPixels = pixels, MaximumEncodedBytes = encodedBytes },
             out _, out _));
         Assert.Equal(0, codec.Calls);
@@ -39,7 +39,7 @@ public sealed class DrawingRasterOptionalCodecTests {
         using var cts = new CancellationTokenSource();
         var codec = new Codec { AfterDecode = cts.Cancel };
         Assert.Throws<OperationCanceledException>(() => OfficeRasterImageDecoder.TryDecode(
-            Convert.FromBase64String(IndependentVp8),
+            Convert.FromBase64String(IndependentLossyAlphaWebp),
             new OfficeRasterDecodeOptions { ImageCodec = codec, CancellationToken = cts.Token }, out _, out _));
         Assert.Equal(1, codec.Calls);
     }
@@ -47,7 +47,7 @@ public sealed class DrawingRasterOptionalCodecTests {
     [Fact]
     public void OptionalCodecCannotReturnDimensionsDifferentFromInspectedContainer() {
         var codec = new Codec { Size = 1 };
-        Assert.False(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(IndependentVp8),
+        Assert.False(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(IndependentLossyAlphaWebp),
             new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out _));
         Assert.Null(image);
         Assert.Equal(1, codec.Calls);
@@ -56,7 +56,7 @@ public sealed class DrawingRasterOptionalCodecTests {
     [Fact]
     public void MalformedContainerIsRejectedBeforeOptionalCodec() {
         var codec = new Codec();
-        byte[] bytes = Convert.FromBase64String(IndependentVp8);
+        byte[] bytes = Convert.FromBase64String(IndependentLossyAlphaWebp);
         Array.Resize(ref bytes, bytes.Length - 1);
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes,
             new OfficeRasterDecodeOptions { ImageCodec = codec }, out _, out _));
@@ -66,7 +66,7 @@ public sealed class DrawingRasterOptionalCodecTests {
     [Fact]
     public void OptionalCodecFormatFailureReturnsFailedDecode() {
         var codec = new Codec { AfterDecode = () => throw new FormatException("Unsupported coding feature") };
-        Assert.False(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(IndependentVp8),
+        Assert.False(OfficeRasterImageDecoder.TryDecode(Convert.FromBase64String(IndependentLossyAlphaWebp),
             new OfficeRasterDecodeOptions { ImageCodec = codec }, out var image, out _));
         Assert.Null(image);
         Assert.Equal(1, codec.Calls);
@@ -86,7 +86,7 @@ public sealed class DrawingRasterOptionalCodecTests {
     [InlineData(false)]
     [InlineData(true)]
     public void PublicDrawingExportRetainsVisiblePlaceholderOutsideSourceDimensionValidation(bool invalidCodecDimensions) {
-        byte[] bytes = Convert.FromBase64String(IndependentVp8);
+        byte[] bytes = Convert.FromBase64String(IndependentLossyAlphaWebp);
         var codec = invalidCodecDimensions ? new Codec { Size = 1 } : null;
         var drawing = new OfficeDrawing(16, 16).AddImage(bytes, "image/webp",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 16, 16)));

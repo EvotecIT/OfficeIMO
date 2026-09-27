@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
-    private const string CodecVp8Image = "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoQABAAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=";
+    private const string CodecLossyAlphaImage = "UklGRlgBAABXRUJQVlA4WAoAAAAQAAAADwAADwAAQUxQSAEBAAAAAP///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////wBWUDggMAAAANABAJ0BKhAAEAABQCYloAJ0ugH4AAOwAP7y63/82BXNc+/3/9Lg/S4P0uD/0pAAAA==";
 
     [Theory]
     [InlineData("")]
@@ -16,7 +16,7 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("clip-path:inset(0)")]
     public void HtmlPdf_ConfiguredRasterCodecPreservesNestedImages(string style) {
         var codec = new PdfRasterCodec(OfficeColor.Red);
-        var document = HtmlConversionDocument.Parse("<img style='" + style + "' src='data:image/webp;base64," + CodecVp8Image + "'>");
+        var document = HtmlConversionDocument.Parse("<img style='" + style + "' src='data:image/webp;base64," + CodecLossyAlphaImage + "'>");
         var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
             HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { ImageCodec = codec }));
         Assert.True(codec.Calls > 0);
@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdf_ImagePreparationDoesNotReuseAnotherExportsCodecDecision() {
-        var document = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + CodecVp8Image + "'>");
+        var document = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + CodecLossyAlphaImage + "'>");
         byte[] Render(IOfficeRasterImageCodec? codec) => document.RenderToPdfResult(HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { ImageCodec = codec })).ToBytes();
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(Render(null)));
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPdf_ImageCodecCannotBypassRasterPixelLimit() {
         var codec = new PdfRasterCodec(OfficeColor.Red);
-        var document = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + CodecVp8Image + "'>");
+        var document = HtmlConversionDocument.Parse("<img src='data:image/webp;base64," + CodecLossyAlphaImage + "'>");
         var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
             HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { ImageCodec = codec, MaximumRasterPixels = 255 }));
         Assert.Equal(0, codec.Calls);
@@ -73,15 +73,18 @@ public sealed partial class HtmlRenderingTests {
     [InlineData(1, false, false)]
     [InlineData(16, true, false)]
     public void HtmlPdf_RasterizedDrawingEffectUsesInspectedCodecBoundary(int size, bool malformed, bool visible) {
-        byte[] bytes = Convert.FromBase64String(CodecVp8Image);
+        byte[] bytes = Convert.FromBase64String(CodecLossyAlphaImage);
         if (malformed) { bytes[20] = 0; bytes[21] = 0; bytes[22] = 0; }
         var codec = new PdfRasterCodec(OfficeColor.Red, size);
         var document = HtmlConversionDocument.Parse(ImageHtml("image/webp", Convert.ToBase64String(bytes), true));
         var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
             HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { ImageCodec = codec }));
-        Assert.Contains(result.Output.Warnings, x => x.Code == "HtmlPdfDrawingEffectRasterized");
         Assert.Equal(malformed ? 0 : 1, codec.Calls);
-        if (!visible) Assert.Contains(result.Output.Warnings, x => x.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+        Assert.Contains(result.Output.Warnings, x => x.Code == "HtmlPdfDrawingEffectRasterized");
+        // Malformed metadata is rejected during SVG import; an invalid caller
+        // result is rejected later during raster preparation. Both report loss.
+        if (!visible) Assert.Contains(result.Output.Warnings, x => x.Code ==
+            (malformed ? HtmlRenderDiagnosticCodes.SvgContentUnsupported : HtmlPdfDiagnosticCodes.ImagePayloadOmitted)
             && x.LossKind == OfficeConversionLossKind.Omission);
         var embedded = Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()));
         Assert.True(OfficePngReader.TryDecode(embedded.Bytes, out var image));
@@ -109,6 +112,9 @@ public sealed partial class HtmlRenderingTests {
         private readonly int _size;
         internal PdfRasterCodec(OfficeColor color, int size = 16) { _color = color; _size = size; }
         public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
+            image = null;
+            // This fixture codec supports WebP, not the containing SVG.
+            if (bytes.Length < 12 || bytes[0] != (byte)'R' || bytes[8] != (byte)'W') return false;
             Calls++;
             image = new OfficeRasterImage(_size, _size, _color);
             return true;

@@ -447,8 +447,8 @@ public static class OfficeRasterContainerInspector {
         }
         if (cursor != bytes.Length) return false;
         if (frames.Count == 0) {
-            // OfficeImageReader has validated the VP8 header and RIFF container. Pixel
-            // decoding belongs to the optional codec, not lossless container inspection.
+            // OfficeImageReader has validated the VP8 header and RIFF container.
+            // Pixel decoding is deferred to the bounded decoder, avoiding a second VP8 decode.
             if (hasLossyImage) {
                 container = CreateStatic(imageInfo);
                 return true;

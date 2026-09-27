@@ -99,48 +99,11 @@ public static partial class HtmlComputedStyleEngine {
 
     private static bool MatchesSelector(IElement element, StyleRule rule, HtmlCssProcessingBudget budget) =>
         rule.OwnedSelector != null
-            ? rule.OwnedSelector.Matches(new AngleSharpSelectorElement(element), budget.SelectorMatchContext)
+            ? rule.OwnedSelector.Matches(budget.SelectorElements.Get(element), budget.SelectorMatchContext)
             : rule.ProviderSelector != null
                 ? rule.ProviderSelector.Match(element, element)
                 : MatchesSelector(element, TryParsePseudoElementSelector(rule.Selector, out string host, out _) ? host : rule.Selector);
 
-    private sealed class AngleSharpSelectorElement : OfficeIMO.Html.Css.IHtmlCssSelectorElement {
-        private readonly IElement _element;
-        private IReadOnlyList<OfficeIMO.Html.Css.HtmlCssSelectorAttributeValue>? _attributes;
-        internal AngleSharpSelectorElement(IElement element) { _element = element; }
-        public object Identity => _element;
-        public string LocalName => _element.LocalName ?? _element.TagName ?? string.Empty;
-        public string NamespaceUri => _element.NamespaceUri ?? string.Empty;
-        public string Id => _element.Id ?? string.Empty;
-        public OfficeIMO.Html.Css.IHtmlCssSelectorElement? ParentElement =>
-            _element.ParentElement == null ? null : new AngleSharpSelectorElement(_element.ParentElement);
-        public IReadOnlyList<OfficeIMO.Html.Css.IHtmlCssSelectorElement> GetElementChildren(
-            Action? recordEvaluation,
-            CancellationToken cancellationToken) {
-            var children = new List<OfficeIMO.Html.Css.IHtmlCssSelectorElement>();
-            foreach (INode child in _element.ChildNodes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                recordEvaluation?.Invoke();
-                if (child is IElement element) children.Add(new AngleSharpSelectorElement(element));
-            }
-            return children;
-        }
-        public bool IsDocumentElement => ReferenceEquals(_element.Owner?.DocumentElement, _element);
-        public bool HasElementOrTextChild(Action? recordEvaluation, CancellationToken cancellationToken) {
-            foreach (INode child in _element.ChildNodes) {
-                cancellationToken.ThrowIfCancellationRequested();
-                recordEvaluation?.Invoke();
-                if (child is IElement) return true;
-                if (child.NodeType == NodeType.Text && (child.TextContent ?? string.Empty).Length != 0) return true;
-            }
-            return false;
-        }
-        public bool HasClass(string name) => _element.ClassList.Contains(name);
-        public IReadOnlyList<OfficeIMO.Html.Css.HtmlCssSelectorAttributeValue> Attributes => _attributes ??= _element.Attributes
-            .Select(attribute => new OfficeIMO.Html.Css.HtmlCssSelectorAttributeValue(
-                attribute.LocalName ?? attribute.Name, attribute.NamespaceUri ?? string.Empty, attribute.Value))
-            .ToArray();
-    }
 
     private static bool MatchesSimpleSelector(IElement element, string selector) {
         if (selector.StartsWith(".", StringComparison.Ordinal)) {

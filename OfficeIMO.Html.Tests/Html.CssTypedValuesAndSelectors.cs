@@ -9,6 +9,27 @@ namespace OfficeIMO.Tests;
 [Collection(HtmlCssPropertyGrammarCollection.Name)]
 public sealed class HtmlCssTypedValuesAndSelectorsTests {
     [Fact]
+    public void SelectorProjectionsObserveAttributeAndSiblingChangesBetweenComputations() {
+        var document = new AngleSharp.Html.Parser.HtmlParser().ParseDocument("""
+            <style>
+              li[data-selected='yes']:first-child { color: red; }
+              li + li[data-selected='yes'] { color: blue; }
+            </style>
+            <ul><li id="first" data-selected="yes">First</li><li id="second">Second</li></ul>
+            """);
+        var first = document.QuerySelector("#first")!;
+        var second = document.QuerySelector("#second")!;
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(document)[first].GetValue("color"));
+
+        first.RemoveAttribute("data-selected");
+        second.SetAttribute("data-selected", "yes");
+        Assert.Equal("rgba(0, 0, 255, 1)", HtmlComputedStyleEngine.Compute(document)[second].GetValue("color"));
+
+        second.ParentElement!.AppendChild(first);
+        Assert.Equal("rgba(255, 0, 0, 1)", HtmlComputedStyleEngine.Compute(document)[second].GetValue("color"));
+    }
+
+    [Fact]
     public void IndependentTypedValueCorpusMatchesTheDeclaredSlice() {
         TypedValueCase[] corpus = Read<TypedValueCase>("css-typed-values-corpus.json");
         Assert.Equal(22, corpus.Length);
