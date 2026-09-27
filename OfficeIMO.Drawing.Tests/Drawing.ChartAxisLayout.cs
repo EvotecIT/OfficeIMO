@@ -5,6 +5,19 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
+    [Theory]
+    [InlineData(0.005)]
+    [InlineData(0.002)]
+    public void NumericAxes_KeepAdjacentFractionalTicksDistinct(double majorUnit) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Fractional ticks", null, OfficeChartKind.Line,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.005, 0.02 }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.02, verticalAxisMajorUnit: majorUnit)));
+        string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToArray();
+        Assert.Contains(majorUnit == 0.005 ? "0.015" : "0.012", labels);
+        Assert.Equal(1, labels.Count(label => label == "0.01"));
+        Assert.Equal(1, labels.Count(label => label == "0.02"));
+    }
+
     [Fact]
     public void NumericAxes_KeepSmallNonzeroTicksDistinctFromZero() {
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Small ticks", null, OfficeChartKind.Line,
