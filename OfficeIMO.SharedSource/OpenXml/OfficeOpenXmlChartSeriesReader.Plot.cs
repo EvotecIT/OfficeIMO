@@ -18,6 +18,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)), maximumPoints);
             if (layers.Count == 0) return null;
             ValidatePlotBudget(plot, maximumPoints);
+            if (HasUnsupportedBubbleSourceVisibility(part, chart) ||
+                chart.Parent?.ChildElements.Any(element => element.LocalName == "style") == true ||
+                part.Parts.Any(relationship => relationship.OpenXmlPart.ContentType.IndexOf("chartstyle", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    relationship.OpenXmlPart.ContentType.IndexOf("chartcolorstyle", StringComparison.OrdinalIgnoreCase) >= 0)) return null;
             var axisGroups = OfficeOpenXmlChartAxisGroups.Create(plot);
             if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
             var projectionBudget = new ProjectionBudget();
@@ -29,6 +33,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     layer is not C.ScatterChart && layer is not C.BubbleChart && layer is not C.PieChart && layer is not C.DoughnutChart) return null;
                 if (!TryReadKind(layer, out var layerKind)) return null;
                 if (HasUnsupportedLayerPresentation(layer)) return null;
+                if (HasIncompleteNumericProjectionCaches(layer, maximumPoints)) return null;
                 if (index == 0) kind = layerKind;
                 Result? data;
                 if (layer is C.BubbleChart bubble) {
@@ -76,6 +81,11 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
+            if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.HighLowLines or C.UpDownBars)) return true;
+            if (layer is C.BarChart && layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")
+                .Any(series => series.Descendants<C.InvertIfNegative>().Any(invert => invert.Val?.Value != false) &&
+                    series.GetFirstChild<C.Values>()?.Descendants<C.NumericValue>().Any(value =>
+                        double.TryParse(value.Text, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double number) && number < 0D) == true)) return true;
             bool radial = layer is C.PieChart or C.DoughnutChart;
             if (radial) {
                 // Radial default colouring is per category in the shared renderer.
@@ -103,7 +113,7 @@ namespace OfficeIMO.OpenXml.Internal {
             foreach (var layer in categoryLayers) {
                 var axes = layer.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
                 if (axes.Length != 2 || axes.Any(axis => axis == null)) return false;
-                var category = axes.SingleOrDefault(axis => axis is C.CategoryAxis or C.DateAxis);
+                var category = axes.SingleOrDefault(axis => axis is C.CategoryAxis);
                 var value = axes.SingleOrDefault(axis => axis is C.ValueAxis);
                 if (category == null || value == null) return false;
                 bool secondary = groups.Read(layer) == OfficeChartAxisGroup.Secondary;
@@ -119,6 +129,20 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
             }
             return true;
+        }
+
+        private static bool HasIncompleteNumericProjectionCaches(OpenXmlCompositeElement layer, int maximumPoints) {
+            foreach (var series in layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")) {
+                foreach (var cache in series.ChildElements.Where(element => element is C.Values or C.XValues or C.YValues or C.BubbleSize)) {
+                    var points = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(cache.Descendants<C.NumericPoint>(), maximumPoints);
+                    int length = OfficeOpenXmlChartCacheReader.GetCachedPointLength(cache, points, point => point.Index?.Value, maximumPoints);
+                    if (points.Count != length || points.Any(point => point.Index?.Value == null) ||
+                        points.Select(point => point.Index!.Value).Distinct().Count() != length ||
+                        points.Any(point => !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))) return true;
+                }
+            }
+            return false;
         }
     }
 }
