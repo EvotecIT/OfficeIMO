@@ -7,6 +7,53 @@ using V = DocumentFormat.OpenXml.Vml;
 namespace OfficeIMO.Tests;
 
 public sealed class WordImageVmlOwnershipTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DrawingMlClone_ResolvesBytesInAnotherStoryOrDocument(bool otherDocument) {
+        using var sourceDocument = WordDocument.Create();
+        using var destination = WordDocument.Create();
+        byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+        var source = sourceDocument.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", 20, 20).Image!;
+        var targetDocument = otherDocument ? destination : sourceDocument;
+        var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var clone = source.Clone(target);
+        source.Remove();
+        Assert.Equal(expected, clone.ToBytes());
+        using var bytes = targetDocument.ToStream();
+        using var reopened = WordDocument.Load(bytes);
+        Assert.Equal(expected, reopened.Sections[0].Header.Default!.Paragraphs.Single(item => item.IsImage).Image!.ToBytes());
+    }
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void VmlClone_PreservesItsShapeAndRelationshipInDestinationStory(bool external, bool otherDocument) {
+        using var document = WordDocument.Create();
+        using var destination = WordDocument.Create();
+        byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+        var paragraph = document.AddParagraph("Image");
+        var owner = document.MainDocumentPartRoot;
+        string id;
+        if (external) id = owner.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/image", new Uri("https://example.test/shared.gif")).Id;
+        else { var part = owner.AddImagePart(ImagePartType.Gif); part.FeedData(new MemoryStream(expected)); id = owner.GetIdOfPart(part); }
+        paragraph._run!.Append(new W.Picture(new V.Shape(new V.ImageData { RelationshipId = id }) { Id = "Original", Style = "width:15pt;height:15pt" }));
+        var targetDocument = otherDocument ? destination : document;
+        var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var clone = paragraph.Image!.Clone(target);
+        Assert.Equal(20, clone.Width);
+        Assert.Single(target._paragraph.Descendants<V.Shape>());
+        Assert.Empty(target._paragraph.Descendants<W.Drawing>());
+        if (external) Assert.Equal("https://example.test/shared.gif", clone.ExternalUri!.AbsoluteUri);
+        else Assert.Equal(expected, clone.ToBytes());
+        paragraph.Image!.Remove();
+        if (external) Assert.NotNull(clone.ExternalUri); else Assert.Equal(expected, clone.ToBytes());
+        using var bytes = targetDocument.ToStream();
+        using var reopened = WordDocument.Load(bytes);
+        var persisted = reopened.Sections[0].Header.Default!.Paragraphs.Single(item => item.IsImage).Image!;
+        if (external) Assert.NotNull(persisted.ExternalUri); else Assert.Equal(expected, persisted.ToBytes());
+    }
     [Fact]
     public void ImageRemoval_PreservesClonedDrawingMlOccurrence() {
         using var document = WordDocument.Create();

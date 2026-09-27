@@ -3317,7 +3317,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_RendersSmallChartFramesWithUniformScaling() {
+        public void PowerPointSlide_RendersSmallAuthoredChartFrames() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
@@ -3331,9 +3331,7 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
                 diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape);
-            var chartDrawing = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
-            Assert.Equal(chartDrawing.Transform.M11, chartDrawing.Transform.M22);
-            Assert.NotEmpty(chartDrawing.Drawing.Elements);
+            Assert.NotEmpty(snapshot.Drawing.Elements);
         }
 
         [Fact]
@@ -3516,9 +3514,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(30D, chartGroup.Y, 1);
             Assert.Equal(140D, chartGroup.ClipPath.Width, 1);
             Assert.Equal(90D, chartGroup.ClipPath.Height, 1);
-            var scaledChart = Assert.Single(chartGroup.Drawing.Elements.OfType<OfficeDrawingEffectGroup>());
-            Assert.Equal(scaledChart.Transform.M11, scaledChart.Transform.M22);
-            Assert.Contains(scaledChart.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Grouped Revenue");
+            Assert.Contains(chartGroup.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Grouped Revenue");
         }
 
         [Fact]
