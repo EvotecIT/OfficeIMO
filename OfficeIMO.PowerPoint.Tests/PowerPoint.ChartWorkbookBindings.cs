@@ -10,6 +10,30 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartWorkbookBindingsTests {
     [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Area)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void LegacyGrowth_DoesNotCopyPointMetadataToAddedCategorySeries(OfficeChartKind kind) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Original", new[] { 1d, 2d }) }));
+        var part = document.Slides.Single().SlidePart.ChartParts.Single();
+        var original = (DocumentFormat.OpenXml.OpenXmlCompositeElement)part.ChartSpace!.Descendants().Single(element => element.LocalName == "ser");
+        original.AddChild(new C.DataPoint(new C.Index { Val = 0 }), true);
+        original.AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        if (kind != OfficeChartKind.Doughnut) original.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
+            new C.ErrorBarValueType { Val = C.ErrorValues.FixedValue }, new C.ErrorBarValue { Val = 0.5 }), true);
+        chart.UpdateData(new PowerPointChartData(new[] { "A", "B" }, new[] {
+            new PowerPointChartSeries("Original", new[] { 3d, 4d }), new PowerPointChartSeries("Added", new[] { 5d, 6d }) }));
+        var series = part.ChartSpace.Descendants().Where(element => element.LocalName == "ser").ToArray();
+        Assert.Single(series[0].Elements<C.DataPoint>());
+        Assert.Single(series[0].Elements<C.DataLabels>());
+        Assert.Empty(series[1].Elements<C.DataPoint>());
+        Assert.Empty(series[1].Elements<C.DataLabels>());
+        Assert.Empty(series[1].Elements<C.ErrorBars>());
+        Assert.Empty(document.ValidateDocument());
+    }
+    [Theory]
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]

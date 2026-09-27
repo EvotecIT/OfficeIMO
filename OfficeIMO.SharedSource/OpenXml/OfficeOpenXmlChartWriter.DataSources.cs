@@ -5,6 +5,13 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal;
 
 internal static partial class OfficeOpenXmlChartWriter {
+    /// <summary>A newly added series has no source point overrides, custom labels or measured error magnitudes.</summary>
+    internal static void ClearAddedSeriesMetadata(OpenXmlCompositeElement series) {
+        series.RemoveAllChildren<C.Trendline>();
+        series.RemoveAllChildren<C.ErrorBars>();
+        series.RemoveAllChildren<C.DataPoint>();
+        series.RemoveAllChildren<C.DataLabels>();
+    }
     // Each data-source container has an exclusive choice. Replacing the complete
     // container also handles direct titles, numeric categories, and missing sources.
     internal static void UpdateCategorySeriesData(OpenXmlCompositeElement series, int index,

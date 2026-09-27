@@ -419,7 +419,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.BarChartSeries)template.CloneNode(true) : new C.BarChartSeries();
-                    seriesElement.RemoveAllChildren<C.Trendline>();
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.ClearAddedSeriesMetadata(seriesElement);
                     InsertSeries(barChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -443,7 +443,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.LineChartSeries)template.CloneNode(true) : new C.LineChartSeries();
-                    seriesElement.RemoveAllChildren<C.Trendline>();
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.ClearAddedSeriesMetadata(seriesElement);
                     InsertSeries(lineChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -467,7 +467,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.AreaChartSeries)template.CloneNode(true) : new C.AreaChartSeries();
-                    seriesElement.RemoveAllChildren<C.Trendline>();
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.ClearAddedSeriesMetadata(seriesElement);
                     InsertSeries(areaChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -491,6 +491,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = existingSeries[i];
                 } else {
                     seriesElement = template != null ? (C.PieChartSeries)template.CloneNode(true) : new C.PieChartSeries();
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.ClearAddedSeriesMetadata(seriesElement);
                     InsertSeries(chart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }

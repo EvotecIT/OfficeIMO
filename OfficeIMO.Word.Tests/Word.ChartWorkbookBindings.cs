@@ -9,6 +9,36 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartWorkbookBindingsTests {
+    [Fact]
+    public void ScatterWorkbook_StoresOnlyActualPointsInUnequalLengthSeries() {
+        var data = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
+            new OfficeChartSeries("Long", new[] { 4d, 5d, 6d }, new[] { 1d, 2d, 3d }),
+            new OfficeChartSeries("Short", new[] { 7d }, new[] { 8d }) });
+        byte[] bytes = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.BuildScatterWorkbook(data);
+        using var stream = new MemoryStream(bytes);
+        using var workbook = SpreadsheetDocument.Open(stream, false);
+        var rows = workbook.WorkbookPart!.WorksheetParts.Single().Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()!
+            .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().ToArray();
+        Assert.Equal(new[] { 4, 4, 2, 2 }, rows.Select(row => row.Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Count()));
+        Assert.Equal(new[] { "A2", "B2", "C2", "D2" }, rows[1].Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Select(cell => cell.CellReference!.Value));
+        Assert.Equal(new[] { "A4", "B4" }, rows[3].Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Select(cell => cell.CellReference!.Value));
+        Assert.Equal("6", rows[3].Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Last().CellValue!.Text);
+    }
+    [Fact]
+    public void SharedUpdate_PreservesNativeCombinationLayerOrder() {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Columns", new[] { 3d, 4d }),
+            new OfficeChartSeries("Line", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.Line) });
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, data);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var line = plot.GetFirstChild<C.LineChart>()!;
+        line.Remove(); plot.InsertBefore(line, plot.GetFirstChild<C.BarChart>());
+        chart.SetData(OfficeChartKind.ColumnClustered, data);
+        Assert.Equal(new[] { "lineChart", "barChart" }, chart.ChartPart.ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!.ChildElements
+            .Where(element => element.LocalName.EndsWith("Chart", System.StringComparison.Ordinal)).Select(element => element.LocalName));
+        Assert.Empty(document.ValidateDocument());
+    }
     [Theory]
     [InlineData(0)]
     [InlineData(1)]
