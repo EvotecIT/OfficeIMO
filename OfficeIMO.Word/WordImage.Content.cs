@@ -113,7 +113,10 @@ namespace OfficeIMO.Word {
             string? relationshipId = _vmlImageData?.RelationshipId?.Value;
             if (!string.IsNullOrEmpty(relationshipId)) {
                 var owner = WordPartOwnership.Resolve(document, shape);
-                _imagePart = owner.GetPartById(relationshipId!) as ImagePart;
+                if (owner.TryGetPartById(relationshipId!, out OpenXmlPart? imagePart))
+                    _imagePart = imagePart as ImagePart;
+                else if (owner.ExternalRelationships.Any(relationship => relationship.Id == relationshipId))
+                    _externalRelationshipId = relationshipId;
             }
         }
 
