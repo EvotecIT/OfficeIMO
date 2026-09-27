@@ -53,13 +53,23 @@
     "officeimoScreenMediaPages": 10,
     "officeimoScreenSnapshotPages": 12,
     "peachPdfPrintPages": 3,
+    "printMarginReference": {
+      "chromiumMargins": "No explicit PDF margins in the browser capture; compare with the OfficeIMO zero-margin lane.",
+      "officeimoDefaultMarginsCssPixels": 48,
+      "cardIdsInFrozenHtml": 48,
+      "cardIdsExtractedFromEachPrintPdf": 48,
+      "cardIdsOnSamePageAsChromiumZeroMargin": 48,
+      "cardIdsOnSamePageAsChromiumDefaultMargin": 41,
+      "finalPagePrivacyTextYPoints": { "chromium": 519.380105, "officeimoZeroMargin": 518.148724, "officeimoDefaultMargin": 735.023499 },
+      "interpretation": "The previously reported card-page grouping and large footer displacement compare unequal margin settings. Matching zero-margin prints align card-page placement and final-footer text position, but do not establish typography, paint or overall visual equivalence."
+    },
     "ownedPdfBytesMatchPreCommitCandidate": "10 of 10",
     "inspected": "All pages in every operation were rasterized into 13 retained contact sheets; full-size default-print pages were also compared side by side with Chromium.",
     "visualParity": false,
     "remainingDifferences": [
       "First-page title, header, card-label and body-text geometry differ.",
-      "The card groups cross sheet boundaries at different positions despite matching print page counts.",
-      "The final Magnetospheres cards and footer have different widths, clipping and vertical positions.",
+      "With equal zero margins, all 48 card IDs occupy the same pages as Chromium, but card typography and paint still differ.",
+      "The final Magnetospheres cards still differ in width or clipping; the large default-margin footer displacement is a comparison-profile difference.",
       "Screen-media and fixed screen-snapshot intents retain distinct ten-page and twelve-slice layouts."
     ]
   },
