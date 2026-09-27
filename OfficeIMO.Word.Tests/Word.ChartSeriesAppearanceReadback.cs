@@ -10,6 +10,32 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartSeriesAppearanceReadbackTests {
     [Theory]
+    [InlineData(OfficeChartKind.Line, 0)]
+    [InlineData(OfficeChartKind.Line, 1)]
+    [InlineData(OfficeChartKind.Line, 2)]
+    [InlineData(OfficeChartKind.Radar, 0)]
+    [InlineData(OfficeChartKind.Radar, 1)]
+    [InlineData(OfficeChartKind.Radar, 2)]
+    [InlineData(OfficeChartKind.Scatter, 0)]
+    [InlineData(OfficeChartKind.Scatter, 1)]
+    [InlineData(OfficeChartKind.Scatter, 2)]
+    [InlineData(OfficeChartKind.Scatter, 3)]
+    public void Snapshot_SeparatesMarkerFillFromInheritedLineColour(OfficeChartKind kind, int appearance) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null,
+                OfficeColor.Parse("#224466"), null, true, connectLine: appearance != 2) }));
+        var native = chart.ChartPart!.ChartSpace!.Descendants<C.Marker>().Single();
+        var properties = native.Parent!.GetFirstChild<C.ChartShapeProperties>()!;
+        if (appearance != 3) properties.GetFirstChild<A.Outline>()!.GetFirstChild<A.SolidFill>()?.Remove();
+        native.ChartShapeProperties!.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "00FF00";
+        if (appearance == 1) native.Symbol!.Val = C.MarkerStyleValues.None;
+        if (appearance == 3) ((C.ScatterChart)native.Parent!.Parent!).ScatterStyle!.Val = C.ScatterStyleValues.Marker;
+        Assert.Equal(appearance >= 2, chart.TryGetSnapshot(out var snapshot));
+        if (appearance >= 2) Assert.Equal(OfficeColor.Parse("#00FF00"), snapshot.Data.Series.Single().ToOfficeSeries().Color);
+    }
+
+    [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
     [InlineData(true, false)]

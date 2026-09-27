@@ -362,6 +362,12 @@ reject unqualified dashes, curved lines, distinct marker and line colours, and
 unfilled marker treatments. Native data editing remains available. Cached chart
 projections are bounded to 100,000 positions across all native layers.
 
+Category discovery checks all populated series before generating fallback labels.
+The longest available category cache supplies labels, and shorter series retain
+their positions with zero padding. Mixed snapshots validate the whole plot once.
+Marker-only plots use the marker fill; a marker fill cannot replace an unresolved
+connecting-line colour in a static export.
+
 Data updates retain cached formula-linked chart and axis titles and custom
 labels as native rich text, and custom error bars as numeric literals when
 replacing the embedded worksheet. Uncached bindings and unqualified workbook-linked
