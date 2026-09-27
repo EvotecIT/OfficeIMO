@@ -176,7 +176,7 @@ namespace OfficeIMO.Word {
             // For pie charts, percent labels are helpful; harmless on others
             ShowPercent showPercent1 = new ShowPercent() { Val = true };
             ShowBubbleSize showBubbleSize1 = new ShowBubbleSize() { Val = false };
-            ShowLeaderLines showLeaderLines1 = new ShowLeaderLines() { Val = true };
+            ShowLeaderLines showLeaderLines1 = new ShowLeaderLines() { Val = false };
 
             dataLabels1.Append(showLegendKey1);
             dataLabels1.Append(showValue1);
