@@ -55,6 +55,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 series.AddRange(data.Series);
             }
             if (categories == null || series.Count == 0) return null;
+            if (series.Where(item => item.SourceOrder.HasValue).GroupBy(item => item.SourceOrder).Any(group => group.Count() > 1)) return null;
+            series = series.OrderBy(item => item.SourceOrder ?? uint.MaxValue).ToList();
             var legend = chart.GetFirstChild<C.Legend>();
             var hidden = new HashSet<uint>(legend?.Elements<C.LegendEntry>()
                 .Where(entry => entry.GetFirstChild<C.Delete>() is C.Delete delete && delete.Val?.Value != false)
@@ -64,7 +66,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool bubbleLegend = kind == OfficeChartKind.Bubble;
             series = series.Select((item, index) => new Series(item.SourceIndex,
                 item.Data.WithLegendVisibility(legend != null && (categoryLegend ||
-                    !hidden.Contains(bubbleLegend ? (uint)index : item.SourceIndex))), item.HasUnsupportedAppearance)).ToList();
+                    !hidden.Contains(bubbleLegend ? (uint)index : item.SourceIndex))), item.HasUnsupportedAppearance, item.SourceOrder)).ToList();
             var result = new Result(categories, series);
             // The same authoring contract declares supported family/axis combinations.
             OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);

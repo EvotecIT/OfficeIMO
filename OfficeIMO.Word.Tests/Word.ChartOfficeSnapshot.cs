@@ -11,6 +11,27 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_PreservesCombinationPlottingOrder() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Volume", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true, renderKind: OfficeChartKind.Line) }));
+        var orders = chart.ChartPart!.ChartSpace!.Descendants<C.Order>().ToArray();
+        orders[0].Val = 1; orders[1].Val = 0;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(new[] { "Ratio", "Volume" }, snapshot.Data.Series.Select(item => item.Name));
+    }
+
+    [Fact]
+    public void OfficeSnapshot_DoesNotFillStandardRadarSeries() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Radar, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) }));
+        chart.ChartPart!.ChartSpace!.Descendants<C.RadarStyle>().Single().Val = C.RadarStyleValues.Standard;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.False(snapshot.Layout!.FillRadarSeries);
+    }
+    [Fact]
     public void OfficeSnapshot_PreservesSurfaceAndGridAppearance() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
