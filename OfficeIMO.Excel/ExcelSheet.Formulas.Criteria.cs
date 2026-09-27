@@ -392,12 +392,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool MatchesTextCriteria(string text, string criteria) {
-            if (criteria.IndexOf('*') < 0 && criteria.IndexOf('?') < 0) {
+            if (criteria.IndexOf('*') < 0 && criteria.IndexOf('?') < 0 && criteria.IndexOf('~') < 0) {
                 return string.Equals(text, criteria, StringComparison.OrdinalIgnoreCase);
             }
 
-            string pattern = "^" + Regex.Escape(criteria).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
-            return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase, FormulaRegexTimeout);
+            string pattern = "\\A" + CreateFormulaWildcardPattern(criteria) + "\\z";
+            return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
         }
 
         private static bool IsFormulaBlankValue(FormulaArgumentValue value) {
@@ -410,6 +410,18 @@ namespace OfficeIMO.Excel {
         }
 
         private static double RoundAtDigits(double value, int digits, MidpointRounding mode) {
+            // Excel rounds decimal midpoints despite the binary representation of values
+            // such as 1.255. Decimal conversion normalizes the input's 15 significant digits.
+            if (Math.Abs(value) < (double)decimal.MaxValue) {
+                try {
+                    decimal number = (decimal)value;
+                    if (digits >= 0) return (double)decimal.Round(number, digits, mode);
+                    decimal scale = (decimal)Math.Pow(10, -digits);
+                    return (double)(decimal.Round(number / scale, 0, mode) * scale);
+                } catch (OverflowException) {
+                    // Rounding can cross decimal's upper bound; doubles still represent it.
+                }
+            }
             if (digits >= 0) {
                 return Math.Round(value, digits, mode);
             }

@@ -17,6 +17,17 @@ Comparisons, logical functions, information functions, and `EXACT` read back as
 that previously cast these results to `double` should accept `bool`, or convert
 explicitly with `Convert.ToDouble` when a numeric representation is required.
 
+## Excel dates before March 1900
+
+The 1900 date-system converter now uses Excel serials rather than OLE Automation
+serials for dates before March 1, 1900. January 1 is serial 1 and February 28 is
+serial 59. Applications that persisted the previous early-date numbers should
+recreate them from their original dates. Serial 60 remains Excel's fictitious
+February 29 and maps to February 28 when read as `DateTime`. Modern dates and
+the 1904 date system keep their existing serials. Negative serials in the 1900
+system extend the December 31, 1899 epoch backwards, including fractional days;
+they no longer use OLE Automation's negative-fraction convention.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to

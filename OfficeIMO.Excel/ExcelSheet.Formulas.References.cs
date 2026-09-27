@@ -88,8 +88,8 @@ namespace OfficeIMO.Excel {
         private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value, bool allowScalarExpression = true) {
             string trimmed = token.Trim();
             if (allowScalarExpression) return TryEvaluateFormulaValue(trimmed, out value);
-            if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"') {
-                value = new FormulaArgumentValue(null, trimmed.Substring(1, trimmed.Length - 2).Replace("\"\"", "\""));
+            if (ExcelFormulaExpressionParser.TryParseTextLiteral(trimmed, out string literalText)) {
+                value = new FormulaArgumentValue(null, literalText);
                 return true;
             }
 
@@ -124,6 +124,8 @@ namespace OfficeIMO.Excel {
                 value = new FormulaArgumentValue(numeric, trimmed);
                 return true;
             }
+
+            if (TryResolveDefinedNameConstant(trimmed, out value)) return true;
 
             if (TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false)) {
                 return true;

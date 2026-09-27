@@ -572,6 +572,23 @@ supported function arguments. For example, `SUM(A1,2)*3` and
 and nested function evaluation are bounded to 128 levels; unsupported formulas
 continue to be reported explicitly rather than calculated from stale caches.
 
+Named references can resolve to A1 ranges or numeric, text, Boolean, and error
+constants, including bounded aliases and worksheet-local scope. Arbitrary
+formulas stored in defined names remain outside this calculation subset.
+`ISNUMBER` distinguishes numbers from Boolean values; `ISLOGICAL` and `NA`
+support typed guards and error fallbacks. `SEARCH` and text criteria recognize
+`*`, `?`, and tilde escapes. `ROUND` handles decimal midpoints away from zero.
+`TEXT` uses invariant English formatting and accepts an explicit `[$-409]`
+locale prefix; other locale qualifiers remain unsupported.
+
+Calculation honors the workbook's 1900 or 1904 date system. In the 1900 system,
+`DATE` and date-part functions retain Excel's fictitious February 29, 1900.
+When converting serial 60 to `DateTime`, `ExcelDateSystemConverter.FromSerial`
+uses February 28 because .NET cannot represent that fictitious date. The
+checked-in Excel-produced corpus verifies function composition, named and
+cross-sheet references, typed errors, rounding, and both date systems through
+calculation, save, and reopen.
+
 For bounded row-memory XLSX exports, set `RequireStreaming = true` in
 `ExcelTabularWriteOptions`. With `WriteDataReader`, also set
 `UseSharedStrings = false` and `AutoFit = false`; tables require headers.

@@ -183,10 +183,13 @@ namespace OfficeIMO.Excel {
                     matches = !value.HasValue;
                     break;
                 case "ISNUMBER":
-                    matches = value.Number.HasValue;
+                    matches = value.Number.HasValue && !value.IsBoolean;
+                    break;
+                case "ISLOGICAL":
+                    matches = value.IsBoolean;
                     break;
                 case "ISTEXT":
-                    matches = value.Text != null && !value.Number.HasValue;
+                    matches = value.Text != null && !value.Number.HasValue && !value.IsError;
                     break;
                 case "ISERROR":
                     matches = value.IsError;

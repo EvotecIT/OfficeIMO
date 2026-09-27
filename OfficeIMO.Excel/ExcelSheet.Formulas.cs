@@ -614,6 +614,12 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function == "NA" && string.IsNullOrWhiteSpace(args)) {
+                        result = FormulaArgumentValue.Error("#N/A");
+                        return true;
+                    }
+                    if (function == "DATE" && TryEvaluateDateValue(args, out result)) return true;
+                    if (function == "DATEDIF" && TryEvaluateDateDifValue(args, out result)) return true;
                     if (function == "IFERROR" && TryEvaluateIfErrorValue(args, out result)) {
                         return true;
                     }
@@ -638,7 +644,7 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if ((function == "ISBLANK" || function == "ISNUMBER" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
+                    if ((function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA")
                         && TryEvaluateInfoFunction(function, args, out result)) {
                         return true;
                     }
@@ -736,7 +742,7 @@ namespace OfficeIMO.Excel {
                         return true;
                     }
 
-                    if (function == "ISBLANK" || function == "ISNUMBER" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA") {
+                    if (function == "ISBLANK" || function == "ISNUMBER" || function == "ISLOGICAL" || function == "ISTEXT" || function == "ISERROR" || function == "ISERR" || function == "ISNA" || function == "ISFORMULA") {
                         if (!TryEvaluateInfoFunction(function, args, out FormulaArgumentValue infoResult) || !infoResult.Number.HasValue) {
                             return false;
                         }
