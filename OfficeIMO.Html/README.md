@@ -373,6 +373,11 @@ OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, 
 
 The static contract includes normal-flow, flex, grid with column and row subgrid, deterministic stacking, basic-shape `clip-path`, paged fragmentation, named pages, running strings and elements, SVG, tagged-PDF semantics, and CSS-controlled PDF bookmarks. Browser-only execution such as JavaScript, animation timelines, live scroll state, and interactive layout is not attempted. Unsupported values that reach the declared feature handlers produce stable diagnostics; selectors outside the bounded selector subset simply do not match. Inspect `HtmlRenderCapabilityCatalog.All`, `HtmlRenderProfileContracts.All`, or the generated support matrix for the exact declared subset.
 
+Inline SVG CSS font sizes use the surrounding HTML font context and the SVG
+parent's presentation size when resolving relative units. CSS declarations,
+including `inherit`, `unset`, and `initial`, take precedence over presentation
+attributes. Unsupported SVG syntax remains visible in the conversion diagnostics.
+
 Inline SVG without intrinsic dimensions uses its resolved painted object size as the
 vector viewport, including `object-fit` sizing and cropping. The element's CSS
 background and the SVG's supported strokes remain in the same retained scene

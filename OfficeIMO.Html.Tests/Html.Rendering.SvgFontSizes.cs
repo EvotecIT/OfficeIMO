@@ -13,19 +13,19 @@ public sealed class HtmlSvgFontSizeProjectionTests {
     public void RelativeSvgTextSizesUseComputedCssContext(string svgSize, string textSize, double expectedSize) {
         var source = HtmlConversionDocument.Parse("<style>html{font-size:16px}body{font-size:20px}svg{font-size:" + svgSize + "}text{font-size:" + textSize + "}</style>"
             + "<svg width='400' height='100'><text x='10' y='70'>Visible SVG</text></svg>");
-        var rendered = HtmlRenderEngine.Render(source,new HtmlRenderOptions());
-        Assert.DoesNotContain(rendered.Diagnostics,x=>x.Code==HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
+        Assert.DoesNotContain(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
         var drawing = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
-        Assert.Equal(expectedSize,text.Font.Size,3);
+        Assert.Equal(expectedSize, text.Font.Size, 3);
     }
 
     [Fact]
     public void InheritedRelativeSizeDoesNotDegradeTextlessVectorContent() {
         var source = HtmlConversionDocument.Parse("<style>body{font-size:100%}</style><svg width='30' height='30'><rect width='30' height='30' fill='red'/></svg>");
-        var rendered = HtmlRenderEngine.Render(source,new HtmlRenderOptions());
+        var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
         Assert.False(rendered.HasLoss);
-        Assert.DoesNotContain(rendered.Diagnostics,x=>x.Code==HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
     }
 
     [Theory]
@@ -88,7 +88,7 @@ public sealed class HtmlSvgFontSizeProjectionTests {
         Assert.Equal(24D, styles[source.Document.QuerySelector("#probe")!].ResolvedFontSizePoints);
         Assert.Equal("rgba(0, 0, 255, 1)", styles[source.Document.QuerySelector("#probe")!].GetValue("color"));
         var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
-        var text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()).Where(item => item.Text == "Child"));
+        var text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()), item => item.Text == "Child");
         Assert.Equal(32D, text.Font.Size, 3);
     }
 }
