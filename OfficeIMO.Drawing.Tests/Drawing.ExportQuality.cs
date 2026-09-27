@@ -22,7 +22,7 @@ public sealed class DrawingExportQualityTests {
 
     [Fact]
     public void ChartQualityRenderingCanPreserveSmallAuthoredDimensions() {
-        var snapshot = new OfficeChartSnapshot(null, null, OfficeChartKind.ColumnClustered,
+        var snapshot = new OfficeChartSnapshot("Small chart", null, OfficeChartKind.ColumnClustered,
             new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }), 90, 30);
         var authored = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
         Assert.Equal(90d, authored.Drawing.Width);
