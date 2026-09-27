@@ -71,6 +71,9 @@ namespace OfficeIMO.Word.Pdf {
             List<OpenXmlElement> allChartElements = plotArea.ChildElements
                 .Where(IsNativeWordChartElement)
                 .ToList();
+            if (allChartElements.Count > 1 || allChartElements.Any(element => element is BubbleChart)) {
+                return TryCreateSharedNativeWordChartSnapshot(chart, out snapshot, out warning);
+            }
             if (allChartElements.Count > 1) {
                 warning = "Word combo charts are not partially exported because omitting a plot can misrepresent the source data.";
                 return false;
