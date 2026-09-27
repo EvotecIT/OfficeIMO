@@ -89,7 +89,7 @@ namespace OfficeIMO.PowerPoint {
             stream.Position = 0;
             using (SpreadsheetDocument workbook = SpreadsheetDocument.Open(
                        stream, true,
-                       PowerPointChartWorkbookSecurity.CreateOpenSettings())) {
+                       OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.CreateOpenSettings())) {
                 if (!IsSafelyEditable(workbook)) {
                     throw new NotSupportedException(
                         "The imported workbook contains sheets, formulas, macros, relationships, or range-dependent content that cannot be updated without changing its meaning.");

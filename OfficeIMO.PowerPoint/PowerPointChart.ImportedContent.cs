@@ -167,7 +167,7 @@ namespace OfficeIMO.PowerPoint {
             byte[] original;
             using (Stream stream = embedded.GetStream(FileMode.Open,
                        FileAccess.Read)) {
-                original = PowerPointChartWorkbookSecurity.ReadAndValidate(
+                original = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
                     stream);
             }
             byte[] workbook = PowerPointChartWorkbookEditor.Update(original,
@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             Action preserveBindings = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart);
             using (var validation = new MemoryStream(workbook,
                        writable: false)) {
-                _ = PowerPointChartWorkbookSecurity.ReadAndValidate(
+                _ = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
                     validation);
             }
             C.ChartSpace originalChartSpace = (C.ChartSpace)chartPart
