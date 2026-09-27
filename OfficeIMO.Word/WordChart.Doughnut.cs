@@ -4,6 +4,11 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
+    private void RejectPieAppendToDoughnut() {
+        if (ResolveChart()?.PlotArea?.GetFirstChild<DoughnutChart>() != null)
+            throw new NotSupportedException("Use AddDoughnut to append slices to a doughnut chart.");
+    }
+
     /// <summary>Adds a category and value to an editable native doughnut chart with a 50-percent hole.</summary>
     /// <typeparam name="T">An int, double, or float value.</typeparam>
     /// <param name="category">The slice's category label.</param>

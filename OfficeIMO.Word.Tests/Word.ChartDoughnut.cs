@@ -22,6 +22,8 @@ public sealed class WordChartDoughnutTests {
             }
             using (WordDocument document = WordDocument.Load(path)) {
                 WordChart chart = Assert.Single(document.Charts);
+                Assert.Throws<NotSupportedException>(() => chart.AddPie("Invalid", 1));
+                Assert.Throws<NotSupportedException>(() => chart.AddPie3D("Invalid", 1));
                 chart.AddDoughnut("Fail", 1);
                 Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
                 Assert.Equal(WordChartSnapshotKind.Doughnut, snapshot.ChartKind);
