@@ -76,6 +76,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     }
 
     private static void QualifyTextLayout(OpenXmlCompositeElement text) {
+        if (text is C.RichText && (text.Elements<A.Paragraph>().Skip(1).Any() || text.Descendants<A.Break>().Any()))
+            throw new NotSupportedException("Multiline native chart text cannot be projected.");
         var body = text.GetFirstChild<A.BodyProperties>();
         if (body != null && (body.GetAttributes().Any(attribute =>
                 attribute.LocalName != "rot" || attribute.Value != "0") ||

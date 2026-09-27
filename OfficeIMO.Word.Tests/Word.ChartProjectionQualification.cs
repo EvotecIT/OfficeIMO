@@ -39,10 +39,17 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("legendEntry")]
     [InlineData("rotation")]
     [InlineData("labelSkip")]
+    [InlineData("unequal")]
+    [InlineData("emptyValues")]
+    [InlineData("unequalSeries")]
+    [InlineData("differentCategories")]
+    [InlineData("titleParagraphs")]
+    [InlineData("titleBreak")]
+    [InlineData("dataTable")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
         var kind = feature == "negative" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, -4d }) }));
+        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, -4d }) }), title: "Revenue");
         var space = chart.ChartPart!.ChartSpace!;
         var native = space.GetFirstChild<C.Chart>()!;
         var plot = native.PlotArea!;
@@ -58,6 +65,21 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "legendEntry") native.GetFirstChild<C.Legend>()!.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.TextProperties(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 2400 })))), true);
         else if (feature == "rotation") space.AddChild(new C.TextProperties(new A.BodyProperties { Rotation = 5400000 }, new A.ListStyle(), new A.Paragraph()), true);
         else if (feature == "labelSkip") plot.GetFirstChild<C.CategoryAxis>()!.AddChild(new C.TickLabelSkip { Val = 2 }, true);
+        else if (feature == "unequal") { var cache = series.Descendants<C.Values>().Single(); cache.Descendants<C.NumericPoint>().Last().Remove(); cache.Descendants<C.PointCount>().Single().Val = 1; }
+        else if (feature == "emptyValues") series.GetFirstChild<C.Values>()!.Remove();
+        else if (feature == "unequalSeries" || feature == "differentCategories") {
+            var sibling = (OpenXmlCompositeElement)series.CloneNode(true);
+            sibling.GetFirstChild<C.Index>()!.Val = 1;
+            sibling.GetFirstChild<C.Order>()!.Val = 1;
+            if (feature == "unequalSeries") {
+                sibling.Descendants<C.NumericPoint>().Last().Remove();
+                sibling.Descendants<C.Values>().Single().Descendants<C.PointCount>().Single().Val = 1;
+            } else sibling.Descendants<C.StringPoint>().Last().NumericValue!.Text = "Different category";
+            layer.AddChild(sibling, true);
+        }
+        else if (feature == "titleParagraphs") native.GetFirstChild<C.Title>()!.Descendants<C.RichText>().Single().Append(new A.Paragraph(new A.Run(new A.Text("2026"))));
+        else if (feature == "titleBreak") native.GetFirstChild<C.Title>()!.Descendants<A.Paragraph>().Single().Append(new A.Break(), new A.Run(new A.Text("2026")));
+        else if (feature == "dataTable") plot.AddChild(new C.DataTable(new C.ShowHorizontalBorder { Val = true }), true);
         else if (feature == "dateAxis") {
             var category = plot.GetFirstChild<C.CategoryAxis>()!;
             var replacement = new C.DateAxis();
