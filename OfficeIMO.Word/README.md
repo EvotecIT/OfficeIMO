@@ -490,10 +490,10 @@ charts into the shared Drawing contract, including numeric X coordinates, bubble
 category combinations, secondary-axis assignments, native plotting order, and point styles.
 Word page images and Markdown SVG fallbacks use this projection. PDF uses it for bubble and
 combination charts; its existing single-family route retains its separate cached-data limits.
-Secondary value axes retain their own linear bounds, tick units, and numeric label format.
+Secondary value axes retain their own linear bounds, major/minor tick units and appearance, and numeric label format.
 Use `chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
 majorUnit: 0.2, numberFormat: "0%"))` on a chart with a secondary series. Secondary titles,
-independent appearance, logarithmic or reversed scales still reject this snapshot.
+independent colours, line styles and gridlines, and logarithmic or reversed scales still reject this snapshot.
 
 Snapshots preserve chart and plot surfaces, primary axes and gridlines, radial geometry,
 uniform body fonts, separate chart-title and axis-title fonts, uniform text size, style and

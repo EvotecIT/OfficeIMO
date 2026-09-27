@@ -6,13 +6,16 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeChartValueAxisLayout {
     /// <summary>Creates a linear axis scale with optional explicit bounds, tick units, and numeric formatting.</summary>
     public OfficeChartValueAxisLayout(double? minimum = null, double? maximum = null,
-        double? majorUnit = null, double? minorUnit = null, string? numberFormat = null) {
+        double? majorUnit = null, double? minorUnit = null, string? numberFormat = null,
+        OfficeChartAxisTickMark? majorTickMark = null, OfficeChartAxisTickMark? minorTickMark = null) {
         Minimum = ValidateFinite(minimum, nameof(minimum));
         Maximum = ValidateFinite(maximum, nameof(maximum));
         if (minimum.HasValue && maximum.HasValue && minimum.Value >= maximum.Value)
             throw new ArgumentException("The axis maximum must exceed its minimum.", nameof(maximum));
         MajorUnit = ValidatePositive(majorUnit, nameof(majorUnit));
         MinorUnit = ValidatePositive(minorUnit, nameof(minorUnit));
+        MajorTickMark = ValidateTickMark(majorTickMark, nameof(majorTickMark));
+        MinorTickMark = ValidateTickMark(minorTickMark, nameof(minorTickMark));
         NumberFormat = string.IsNullOrWhiteSpace(numberFormat) ? null : numberFormat!.Trim();
         if (NumberFormat?.Length > OfficeChartLayout.MaxNumberFormatLength)
             throw new ArgumentOutOfRangeException(nameof(numberFormat), "The axis number format exceeds the supported length.");
@@ -28,6 +31,16 @@ public sealed class OfficeChartValueAxisLayout {
     public double? MinorUnit { get; }
     /// <summary>Numeric label format, or the axis default when absent.</summary>
     public string? NumberFormat { get; }
+    /// <summary>Major tick appearance, or the shared layout setting when absent.</summary>
+    public OfficeChartAxisTickMark? MajorTickMark { get; }
+    /// <summary>Minor tick appearance, or the shared layout setting when absent.</summary>
+    public OfficeChartAxisTickMark? MinorTickMark { get; }
+
+    private static OfficeChartAxisTickMark? ValidateTickMark(OfficeChartAxisTickMark? value, string name) {
+        if (value.HasValue && !Enum.IsDefined(typeof(OfficeChartAxisTickMark), value.Value))
+            throw new ArgumentOutOfRangeException(name);
+        return value;
+    }
 
     private static double? ValidateFinite(double? value, string name) {
         if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)))

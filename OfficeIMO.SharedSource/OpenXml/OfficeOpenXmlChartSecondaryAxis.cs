@@ -29,7 +29,9 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             maximum: scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
             majorUnit: axis.GetFirstChild<C.MajorUnit>()?.Val?.Value,
             minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
-            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
+            majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
+            minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
@@ -50,5 +52,17 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if (layout.MinorUnit.HasValue) axis.AddChild(new C.MinorUnit { Val = layout.MinorUnit.Value }, true);
         axis.RemoveAllChildren<C.NumberingFormat>();
         if (layout.NumberFormat != null) axis.AddChild(new C.NumberingFormat { FormatCode = layout.NumberFormat, SourceLinked = false }, true);
+        if (layout.MajorTickMark.HasValue) axis.AddChild(new C.MajorTickMark { Val = WriteTick(layout.MajorTickMark.Value) }, true);
+        if (layout.MinorTickMark.HasValue) axis.AddChild(new C.MinorTickMark { Val = WriteTick(layout.MinorTickMark.Value) }, true);
     }
+
+    private static OfficeChartAxisTickMark ReadTick(C.TickMarkValues? value) =>
+        value == C.TickMarkValues.Inside ? OfficeChartAxisTickMark.Inside :
+        value == C.TickMarkValues.Outside ? OfficeChartAxisTickMark.Outside :
+        value == C.TickMarkValues.Cross ? OfficeChartAxisTickMark.Cross : OfficeChartAxisTickMark.None;
+
+    private static C.TickMarkValues WriteTick(OfficeChartAxisTickMark value) =>
+        value == OfficeChartAxisTickMark.Inside ? C.TickMarkValues.Inside :
+        value == OfficeChartAxisTickMark.Outside ? C.TickMarkValues.Outside :
+        value == OfficeChartAxisTickMark.Cross ? C.TickMarkValues.Cross : C.TickMarkValues.None;
 }

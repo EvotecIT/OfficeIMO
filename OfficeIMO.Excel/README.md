@@ -424,6 +424,8 @@ Combination-chart snapshots retain secondary value-axis bounds, tick units and n
 independently of the primary axis. Configure them with `SetValueAxisScale(...,
 axisGroup: OfficeChartAxisGroup.Secondary)` and `SetValueAxisNumberFormat("0%", false,
 OfficeChartAxisGroup.Secondary)`; managed chart images use the same independent scale.
+`SetSecondaryValueAxis(new OfficeChartValueAxisLayout(...))` configures these settings together,
+including optional `majorTickMark` and `minorTickMark` appearance.
 
 Managed chart images resolve source-linked axis formats from the referenced worksheet
 cells when those cells share one number format. For example, percentage cells formatted

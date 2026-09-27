@@ -19,6 +19,8 @@ public static partial class OfficeChartDrawingRenderer {
         internal bool HasSeries { get; }
         internal ValueRange Range { get; }
         internal IReadOnlyList<double> MajorTicks { get; }
+        internal IReadOnlyList<double> MinorTicks => GetValueAxisMinorTicks(Range,
+            Layout.VerticalAxisMinorUnit, MajorTicks);
         internal bool UsesPercentDefaults { get; }
         internal double LabelBandWidth { get; }
         internal OfficeChartLayout Layout { get; }
@@ -40,7 +42,11 @@ public static partial class OfficeChartDrawingRenderer {
             horizontalAxisMajorUnit: axis?.MajorUnit, verticalAxisMajorUnit: axis?.MajorUnit,
             horizontalAxisMinorUnit: axis?.MinorUnit, verticalAxisMinorUnit: axis?.MinorUnit,
             axisLabelFontSize: layout.AxisLabelFontSize, axisTextFontFamily: layout.AxisTextFontFamily,
-            axisTextFontStyle: layout.AxisTextFontStyle);
+            axisTextFontStyle: layout.AxisTextFontStyle,
+            horizontalAxisMajorTickMark: axis?.MajorTickMark ?? layout.HorizontalAxisMajorTickMark,
+            verticalAxisMajorTickMark: axis?.MajorTickMark ?? layout.VerticalAxisMajorTickMark,
+            horizontalAxisMinorTickMark: axis?.MinorTickMark ?? layout.HorizontalAxisMinorTickMark,
+            verticalAxisMinorTickMark: axis?.MinorTickMark ?? layout.VerticalAxisMinorTickMark);
         ValueRange range = ApplyValueAxisScale(
             GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary), axisLayout,
             horizontal: barChart);
@@ -70,8 +76,11 @@ public static partial class OfficeChartDrawingRenderer {
         AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, plotHeight), axisX, plotTop,
             null, GetValueAxisColor(style), GetValueAxisLineWidth(style), GetValueAxisLineDashStyle(style));
         AddVerticalValueAxisMajorTickMarks(drawing, axisX, plotTop, plotHeight, axis.Range,
-            axis.MajorTicks, layout.VerticalAxisMajorTickMark, GetValueAxisColor(style),
-            GetValueAxisLineWidth(style));
+            axis.MajorTicks, axis.Layout.VerticalAxisMajorTickMark, GetValueAxisColor(style),
+            GetValueAxisLineWidth(style), positiveOutside: true);
+        AddVerticalValueAxisMinorTickMarks(drawing, axisX, plotTop, plotHeight, axis.Range,
+            axis.MinorTicks, axis.Layout.VerticalAxisMinorTickMark, GetValueAxisColor(style),
+            GetValueAxisLineWidth(style), positiveOutside: true);
     }
 
     private static void AddSecondaryValueAxisLabels(OfficeDrawing drawing, SecondaryAxisRenderContext axis,
@@ -87,7 +96,10 @@ public static partial class OfficeChartDrawingRenderer {
         AddShape(drawing, OfficeShape.Line(0D, 0D, plotWidth, 0D), plotLeft, axisY,
             null, GetValueAxisColor(style), GetValueAxisLineWidth(style), GetValueAxisLineDashStyle(style));
         AddHorizontalValueAxisMajorTickMarks(drawing, plotLeft, axisY, plotWidth, axis.Range,
-            axis.MajorTicks, layout.HorizontalAxisMajorTickMark, GetValueAxisColor(style),
+            axis.MajorTicks, axis.Layout.HorizontalAxisMajorTickMark, GetValueAxisColor(style),
+            GetValueAxisLineWidth(style), positiveOutside: false);
+        AddHorizontalValueAxisMinorTickMarks(drawing, plotLeft, axisY, plotWidth, axis.Range,
+            axis.MinorTicks, axis.Layout.HorizontalAxisMinorTickMark, GetValueAxisColor(style),
             GetValueAxisLineWidth(style), positiveOutside: false);
     }
 
