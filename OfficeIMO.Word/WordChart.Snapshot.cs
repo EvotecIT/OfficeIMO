@@ -203,7 +203,8 @@ namespace OfficeIMO.Word {
                 kind,
                 data,
                 GetWidthPoints(),
-                GetHeightPoints());
+                GetHeightPoints(),
+                OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 
         private static WordChartSnapshotKind GetBarChartSnapshotKind(C.BarChart chart) {

@@ -20,7 +20,8 @@ namespace OfficeIMO.Excel {
             int heightPixels,
             OfficeChartStyle? style = null,
             OfficeChartLayout? layout = null,
-            IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null) {
+            IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null,
+            OfficeChartRadialLayout? radialLayout = null) {
             Name = name ?? string.Empty;
             Title = title;
             ChartType = chartType;
@@ -34,6 +35,7 @@ namespace OfficeIMO.Excel {
             Style = style;
             Layout = layout;
             Diagnostics = diagnostics ?? Array.Empty<OfficeImageExportDiagnostic>();
+            RadialLayout = radialLayout ?? OfficeChartRadialLayout.Default;
         }
 
         /// <summary>Chart drawing name.</summary>
@@ -74,5 +76,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Diagnostics for authored chart features that the shared image renderer approximates or cannot render yet.</summary>
         public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
+
+        /// <summary>Native pie rotation and doughnut hole geometry.</summary>
+        public OfficeChartRadialLayout RadialLayout { get; }
     }
 }

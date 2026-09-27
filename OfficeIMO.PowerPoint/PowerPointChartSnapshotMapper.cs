@@ -25,7 +25,8 @@ namespace OfficeIMO.PowerPoint {
             return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, MapKind(snapshot.ChartKind),
                 new OfficeChartData(snapshot.Data.Categories, series), width, height,
                 style ?? snapshot.Style, layout ?? snapshot.Layout,
-                bubbleScalePercent: snapshot.BubbleScalePercent, bubbleSizeMode: snapshot.BubbleSizeMode);
+                bubbleScalePercent: snapshot.BubbleScalePercent, bubbleSizeMode: snapshot.BubbleSizeMode,
+                radialLayout: snapshot.RadialLayout);
         }
 
         internal static OfficeChartKind MapKind(PowerPointChartSnapshotKind kind) => kind switch {

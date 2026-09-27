@@ -93,13 +93,15 @@ namespace OfficeIMO.Word {
     /// Dependency-free Word chart snapshot suitable for export and visual fallback renderers.
     /// </summary>
     public sealed class WordChartSnapshot {
-        internal WordChartSnapshot(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints) {
+        internal WordChartSnapshot(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
+            OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
             Name = name ?? string.Empty;
             Title = title;
             ChartKind = chartKind;
             Data = data ?? throw new ArgumentNullException(nameof(data));
             WidthPoints = widthPoints;
             HeightPoints = heightPoints;
+            RadialLayout = radialLayout ?? OfficeIMO.Drawing.OfficeChartRadialLayout.Default;
         }
 
         /// <summary>Chart drawing name when available.</summary>
@@ -119,5 +121,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>Chart frame height in points.</summary>
         public double HeightPoints { get; }
+
+        /// <summary>Native pie rotation and doughnut hole geometry.</summary>
+        public OfficeIMO.Drawing.OfficeChartRadialLayout RadialLayout { get; }
     }
 }
