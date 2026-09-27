@@ -189,9 +189,10 @@ namespace OfficeIMO.Word {
         }
 
         private WordParagraph InsertChart(WordDocument wordDocument, WordParagraph paragraph, bool roundedCorners, int width = 600, int height = 600) {
-            ChartPart part = CreateChartPart(wordDocument, roundedCorners);
+            OpenXmlPart owner = WordPartOwnership.Resolve(wordDocument, paragraph._paragraph);
+            ChartPart part = CreateChartPart(owner, roundedCorners);
             // _chartPart = part;
-            var id = _document._wordprocessingDocument.MainDocumentPart!.GetIdOfPart(part);
+            var id = owner.GetIdOfPart(part);
 
             WordDrawing chartDrawing = CreateChartDrawing(id, width, height);
             _drawing = chartDrawing;
@@ -202,8 +203,8 @@ namespace OfficeIMO.Word {
             return paragraph;
         }
 
-        private ChartPart CreateChartPart(WordDocument document, bool roundedCorners) {
-            ChartPart part = document._wordprocessingDocument.MainDocumentPart!.AddNewPart<ChartPart>(); //("rId1");
+        private ChartPart CreateChartPart(OpenXmlPart owner, bool roundedCorners) {
+            ChartPart part = owner.AddNewPart<ChartPart>();
 
             ChartSpace chartSpace1 = new ChartSpace();
             chartSpace1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
