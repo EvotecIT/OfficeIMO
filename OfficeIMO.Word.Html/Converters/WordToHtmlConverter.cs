@@ -29,7 +29,8 @@ namespace OfficeIMO.Word.Html {
                     IReadOnlyList<WordFieldInfo>? fieldInfo = options.FieldPolicy == WordFieldExportPolicy.VisibleResultWithReviewMetadata && exportInspection.HasFields
                         ? document.InspectFields().Where(field => IsSelectedFieldLocation(field.LocationKind, options)).ToArray()
                         : null;
-                    return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
+                    using (WordComplexFieldRunVisibility.BeginConversionScope())
+                        return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
                 } finally {
                     restoreReviewProjection();
                 }
@@ -715,6 +716,9 @@ namespace OfficeIMO.Word.Html {
                 }
 
                 Paragraph paragraph = para._paragraph;
+                if (!WordComplexFieldRunVisibility.ForParagraph(paragraph).IsVisible) {
+                    return false;
+                }
                 if (paragraph.ParagraphProperties?.HasChildren == true) {
                     return false;
                 }
@@ -915,8 +919,7 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(tableCellSpacing)) {
                     tableStyles.Add($"border-spacing:{tableCellSpacing}");
                 }
-                if (TableHasBorder(table)) {
-                    tableStyles.Add("border:1px solid black");
+                if (!string.IsNullOrEmpty(tableCellSpacing) || TableHasBorder(table)) {
                     tableStyles.Add(!string.IsNullOrEmpty(tableCellSpacing) ? "border-collapse:separate" : "border-collapse:collapse");
                 }
                 if (tableStyles.Count > 0) {

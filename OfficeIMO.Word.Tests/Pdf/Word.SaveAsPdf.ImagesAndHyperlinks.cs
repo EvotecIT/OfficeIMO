@@ -169,6 +169,67 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_ComplexFieldInstructionDoesNotEmitPictureControl() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfHiddenFieldPictureControl.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using (WordDocument document = WordDocument.Create()) {
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph.AddPictureControl(imagePath, 48, 48);
+            SdtRun control = paragraph._paragraph.Elements<SdtRun>().Single();
+            control.Remove();
+            paragraph._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                control,
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("Visible")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        string pdfContent = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+        Assert.DoesNotContain("/Subtype /Image", pdfContent);
+        Assert.Contains("Visible", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath));
+    }
+
+    [Fact]
+    public void SaveAsPdf_TableCellIncludesImageInsideVisibleTextBox() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfTableTextBoxImage.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using (WordDocument document = WordDocument.Create()) {
+            WordParagraph cellParagraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+            WordTextBox textBox = cellParagraph.AddTextBox("Image box", WordImageTextWrapping.Square);
+            Paragraph inner = textBox.Content!.Descendants<Paragraph>().First();
+            new WordParagraph(document, inner).AddImage(imagePath, 24, 24);
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        Assert.Contains("/Subtype /Image", PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)));
+    }
+
+    [Fact]
+    public void SaveAsPdf_PictureControlDoesNotEmitImageFromItsFieldInstruction() {
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfPictureControlFieldInstruction.pdf");
+        string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+        using (WordDocument document = WordDocument.Create()) {
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph.AddPictureControl(imagePath, 48, 48);
+            SdtRun control = paragraph._paragraph.Elements<SdtRun>().Single();
+            SdtContentRun content = control.SdtContentRun!;
+            Run imageRun = content.Elements<Run>().Single();
+            imageRun.Remove();
+            content.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                imageRun,
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("Visible")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
+        }
+
+        Assert.DoesNotContain("/Subtype /Image", PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath)));
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Maps_Table_Cell_PictureControl_To_Image() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellPictureControl.pdf");

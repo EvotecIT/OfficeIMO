@@ -922,8 +922,8 @@ public partial class Word {
 
         Assert.Equal(11D, style.FontSize);
         Assert.Equal(1.15D, style.LineHeight);
-        Assert.Equal(3D, style.CellPaddingTop);
-        Assert.Equal(3D, style.CellPaddingBottom);
+        Assert.Equal(0D, style.CellPaddingTop);
+        Assert.Equal(0D, style.CellPaddingBottom);
     }
 
     [Fact]

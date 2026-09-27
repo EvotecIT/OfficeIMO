@@ -242,6 +242,7 @@ internal static partial class PdfWriter {
                             var sliceHeights = new System.Collections.Generic.List<double>();
                             for (int k = 0; k < take; k++) { sliceLines.Add(lines[start + k]); sliceHeights.Add(heights[start + k]); }
                             if (start == 0 && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderCanvasBlock(paragraphCanvas);
+                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
                             int? markedContentId = RegisterTextStructureElement("P");
@@ -302,6 +303,7 @@ internal static partial class PdfWriter {
                             }
 
                             AddHeadingLinkAnnotations(hb2, lines, headingFont, size, leading, xCol, wCol, firstBaseline, linkStructElementIndex);
+                            RecordFlowPlacement(yCol);
                             WriteRichParagraph(sb, new RichParagraphBlock(ch.Runs, hb2.Align, ch.Color), lines, heights, currentOpts, firstBaseline, size, leading, currentPage!.Annotations, xCol, wCol, structureType: markedStructureType, markedContentId: markedContentId, structurePage: currentPage);
                             MarkRichFonts(ch.Runs);
                             if (ch.Bold) {
@@ -369,6 +371,7 @@ internal static partial class PdfWriter {
                                 sliceHeights.Add(GetRichLineHeight(listItem.Heights, start + k, leading));
                             }
 
+                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             var listFont = ChooseNormal(currentOpts.DefaultFont);
                             double baselineY = FirstTextBaselineFromTop(listFont, listItem.Size, yCol);
@@ -460,6 +463,7 @@ internal static partial class PdfWriter {
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double x1 = xCol, x2 = xCol + wCol, yLine = yCol - hr2.Thickness * 0.5;
+                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             DrawHLine(sb, hr2.Color, hr2.Thickness, x1, x2, yLine, emitGeneratedStructure);
                             yCol -= hr2.Thickness + hr2.SpacingAfter; remain -= needed; consumed += needed; idx++;
@@ -494,6 +498,7 @@ internal static partial class PdfWriter {
                             PageImage pageImage = CreatePageImage(ib2, imageStyle, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
                             currentPage!.Images.Add(pageImage);
                             AddImageLinkAnnotation(ib2, imageStyle, pageImage, xImg, yCol - ciimg.Height, ciimg.Width, ciimg.Height);
+                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             yCol -= ciimg.Height + imageStyle.SpacingAfter; remain -= needed; consumed += needed; idx++;
                         } else if (it is ColShape cs) {
@@ -517,6 +522,7 @@ internal static partial class PdfWriter {
                             if (needed > remain && consumed > 0) break;
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
+                            RecordFlowPlacement(yCol);
                             int? structElementIndex = DrawShapeAt(shape, shapeStyle, xCol, wCol, yCol);
                             AddShapeLinkAnnotation(shape, shapeStyle, xCol, wCol, yCol, structElementIndex);
                             yCol -= shape.Shape.Height + shapeStyle.SpacingAfter;
@@ -544,6 +550,7 @@ internal static partial class PdfWriter {
                             if (needed > remain && consumed > 0) break;
                             if (needed > remain && consumed == 0) { remain = 0; break; }
                             if (spacingBefore > 0) yCol -= spacingBefore;
+                            RecordFlowPlacement(yCol);
                             int? structElementIndex = DrawDrawingAt(drawing, drawingStyle, xCol, wCol, yCol);
                             AddDrawingLinkAnnotation(drawing, drawingStyle, xCol, wCol, yCol, structElementIndex);
                             yCol -= drawing.Drawing.Height + drawingStyle.SpacingAfter;
@@ -562,6 +569,7 @@ internal static partial class PdfWriter {
                             if (spacingBefore > 0) yCol -= spacingBefore;
                             double xField = GetAlignedObjectX(xCol, wCol, fieldWidth, GetFormFieldAlign(form.Block));
                             AddFormFieldAnnotation(form.Block, xField, yCol);
+                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             yCol -= fieldHeight + spacingAfter;
                             remain -= needed;
@@ -588,6 +596,7 @@ internal static partial class PdfWriter {
                             }
 
                             DrawDebugFlowObjectBox(xAnnotation, bottomY, annotationWidth, annotationHeight);
+                            RecordFlowPlacement(yCol);
                             pageDirty = true;
                             yCol -= annotationHeight + spacingAfter;
                             remain -= needed;

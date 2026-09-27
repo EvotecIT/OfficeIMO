@@ -172,7 +172,7 @@ internal static partial class PdfWriter {
                 options.AddTextShapingDiagnostics(
                     PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram),
                     value,
-                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null || options.TextShapingModeSnapshot == PdfTextShapingMode.OpenTypeLigatures);
             }
 
             // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
@@ -196,7 +196,7 @@ internal static partial class PdfWriter {
                 options.AddTextShapingDiagnostics(
                     PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram),
                     value,
-                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null || options.TextShapingModeSnapshot == PdfTextShapingMode.OpenTypeLigatures);
             }
 
             // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
@@ -245,7 +245,7 @@ internal static partial class PdfWriter {
                 options.AddTextShapingDiagnostics(
                     PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram),
                     value,
-                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null || options.TextShapingModeSnapshot == PdfTextShapingMode.OpenTypeLigatures);
             }
 
             // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;
@@ -270,7 +270,7 @@ internal static partial class PdfWriter {
                 options.AddTextShapingDiagnostics(
                     PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram),
                     value,
-                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null || options.TextShapingModeSnapshot == PdfTextShapingMode.OpenTypeLigatures);
             }
 
             // Only run the allocating embedded-font diagnostic scan when a diagnostics report needs it;

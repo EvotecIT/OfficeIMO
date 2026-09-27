@@ -28,39 +28,51 @@ internal static partial class PdfWriter {
                         RenderCanvasNamedDestination(destination);
                         break;
                     case PdfCanvasNamedDestinationLinkItem destinationLink:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - destinationLink.Y);
                         RenderCanvasNamedDestinationLink(destinationLink);
                         break;
                     case PdfCanvasTextItem text:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - text.Y);
                         RenderCanvasText(text);
                         break;
                     case PdfCanvasSearchableTextItem searchableText:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - searchableText.Y);
                         RenderCanvasSearchableText(searchableText);
                         break;
                     case PdfCanvasTextBoxItem textBox:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - textBox.Y);
                         RenderCanvasTextBox(textBox);
                         break;
                     case PdfCanvasShapeItem shape:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - shape.Y);
                         RenderCanvasShape(shape);
                         break;
                     case PdfCanvasDrawingItem drawing:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - drawing.Y);
                         RenderCanvasDrawing(drawing);
                         break;
                     case PdfCanvasImageItem image:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - image.Y);
                         RenderCanvasImage(image);
                         break;
                     case PdfCanvasTextAnnotationItem textAnnotation:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - textAnnotation.Y);
                         RenderCanvasTextAnnotation(textAnnotation);
                         break;
                     case PdfCanvasFreeTextAnnotationItem freeTextAnnotation:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - freeTextAnnotation.Y);
                         RenderCanvasFreeTextAnnotation(freeTextAnnotation);
                         break;
                     case PdfCanvasHighlightAnnotationItem highlightAnnotation:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - highlightAnnotation.Y);
                         RenderCanvasHighlightAnnotation(highlightAnnotation);
                         break;
                     case PdfCanvasFormFieldItem formField:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - formField.Y);
                         RenderCanvasFormField(formField);
                         break;
                     case PdfCanvasTableItem table:
+                        ResolveFloatingBookmarks(currentOpts.PageHeight - table.Y);
                         RenderCanvasTable(table);
                         break;
                     case PdfCanvasClipItem clip:

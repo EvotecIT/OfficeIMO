@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 using DocumentFormat.OpenXml.Wordprocessing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -18,6 +19,8 @@ namespace OfficeIMO.Word {
         private readonly WordHeaderFooter? _headerFooter;
         private Run _run => _wordParagraph._run!;
         private V.TextBox? _vmlTextBox;
+        private readonly AlternateContent? _selectedAlternateContent;
+        private readonly WordDrawing? _selectedDrawing;
 
         /// <summary>
         /// Add a new text box to the document
@@ -40,10 +43,16 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument"></param>
         /// <param name="paragraph"></param>
         /// <param name="run"></param>
-        internal WordTextBox(WordDocument wordDocument, Paragraph paragraph, Run run) {
+        /// <param name="selectedAlternateContent">Visible alternate-content source, when a run contains field markers.</param>
+        /// <param name="selectedVmlTextBox">Visible VML text box source, when a run contains field markers.</param>
+        /// <param name="selectedDrawing">Visible DrawingML text box source, when a run contains field markers.</param>
+        internal WordTextBox(WordDocument wordDocument, Paragraph paragraph, Run run, AlternateContent? selectedAlternateContent = null, V.TextBox? selectedVmlTextBox = null, WordDrawing? selectedDrawing = null) {
             _document = wordDocument;
             _wordParagraph = new WordParagraph(wordDocument, paragraph, run);
-            _vmlTextBox = run.Descendants<V.TextBox>().FirstOrDefault();
+            _selectedAlternateContent = selectedAlternateContent;
+            _selectedDrawing = selectedDrawing;
+            _vmlTextBox = selectedVmlTextBox ??
+                (selectedAlternateContent == null && selectedDrawing == null ? run.Descendants<V.TextBox>().FirstOrDefault() : null);
         }
 
         /// <summary>
@@ -489,10 +498,10 @@ namespace OfficeIMO.Word {
         }
 
         private AlternateContentChoice? _alternateContentChoice =>
-            _run.ChildElements.OfType<AlternateContent>().FirstOrDefault()?
+            (_selectedAlternateContent ?? _run.ChildElements.OfType<AlternateContent>().FirstOrDefault())?
                 .ChildElements.OfType<AlternateContentChoice>().FirstOrDefault();
 
-        private WordDrawing? _drawing => _alternateContentChoice?.ChildElements.OfType<WordDrawing>().FirstOrDefault();
+        private WordDrawing? _drawing => _selectedDrawing ?? _alternateContentChoice?.ChildElements.OfType<WordDrawing>().FirstOrDefault();
 
         private Inline? _inline => _drawing?.Inline;
 

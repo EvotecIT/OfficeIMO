@@ -16,6 +16,7 @@ internal static partial class PdfWriter {
                 var block = blockList[blockIndex];
                 IPdfBlock? nextBlock = blockIndex + 1 < blockList.Count ? blockList[blockIndex + 1] : null;
                 if (block is PageBlock pageBlock) {
+                    pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
@@ -24,6 +25,7 @@ internal static partial class PdfWriter {
                     currentPage = null;
                     StartPage(currentOpts);
                     ProcessBlocks(pageBlock.Blocks);
+                    pendingFloatingBookmarks.Clear();
                     FlushPage(force: true);
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
@@ -34,6 +36,17 @@ internal static partial class PdfWriter {
 
                 EnsurePage();
 
+                if (HasFloatingTables && (block is HeadingBlock || block is PdfListBlock || block is ImageBlock ||
+                    block is HorizontalRuleBlock || block is TextAnnotationBlock || block is FreeTextAnnotationBlock || block is HighlightAnnotationBlock || block is TextFieldBlock || block is CheckBoxBlock ||
+                    block is ChoiceFieldBlock || block is RadioButtonGroupBlock || block is ShapeBlock || block is DrawingBlock || block is RowBlock || block is ContainerBlock ||
+                    block is TableBlock ordinaryTable && (ordinaryTable.Style ?? currentOpts.DefaultTableStyleSnapshot)?.Position == null ||
+                    block is DeferredTableBlock ordinaryDeferredTable && (ordinaryDeferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot)?.Position == null)) {
+                    double collisionHeight = block is ContainerBlock
+                        ? MeasureWholeBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize) ?? GetCurrentFramePageStartY() - currentOpts.MarginBottom
+                        : MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
+                    AvoidFloatingBlock(Math.Max(1, collisionHeight));
+                }
+
                 if (block is SemanticBlock semantic) { RenderSemanticBlock(semantic); continue; }
                 if (block is SectionBlock section) { RenderSectionBlock(section); continue; }
                 if (block is TableOfContentsBlock tableOfContents) { RenderTableOfContentsBlock(tableOfContents); continue; }
@@ -42,8 +55,12 @@ internal static partial class PdfWriter {
                 if (block is MultiColumnBlock columns) { RenderMultiColumnBlock(columns); continue; }
                 if (block is ContainerBlock container) { RenderContainerBlock(container, nextBlock, blockList, blockIndex); continue; }
                 if (block is ColumnBreakBlock) { throw new InvalidOperationException("ColumnBreak can only be used inside a Columns block."); }
-                if (block is PageBreakBlock) { NewPage(); continue; }
-                if (block is BookmarkBlock bookmark) { AddNamedDestination(bookmark, y); continue; }
+                if (block is PageBreakBlock) { pendingFloatingBookmarks.Clear(); NewPage(); continue; }
+                if (block is BookmarkBlock bookmark) {
+                    if (HasFloatingTables) QueueFloatingBookmark(bookmark.Name);
+                    else AddNamedDestination(bookmark, y);
+                    continue;
+                }
                 if (block is SpacerBlock spacer) { ConsumeSpacer(spacer.Height); continue; }
                 if (block is HeadingBlock heading) { RenderHeadingFlowBlock(heading, nextBlock, blockList, blockIndex); continue; }
                 if (block is RichParagraphBlock paragraph) { RenderRichParagraphFlowBlock(paragraph, nextBlock, blockList, blockIndex); continue; }

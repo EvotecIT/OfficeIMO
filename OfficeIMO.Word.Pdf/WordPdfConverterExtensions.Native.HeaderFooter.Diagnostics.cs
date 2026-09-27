@@ -526,10 +526,32 @@ namespace OfficeIMO.Word.Pdf {
             if (paragraph._paragraph == null) {
                 return Array.Empty<W.SdtRun>();
             }
+            var controls = new List<W.SdtRun>();
+            var visibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
+            CollectNativeVisiblePictureControls(paragraph._paragraph, visibility, controls);
+            return controls;
+        }
 
-            return paragraph._paragraph.Descendants<W.SdtRun>()
-                .Where(IsNativePictureControl)
-                .ToList();
+        private static void CollectNativeVisiblePictureControls(
+            DocumentFormat.OpenXml.OpenXmlCompositeElement container,
+            WordComplexFieldRunVisibility visibility,
+            List<W.SdtRun> controls) {
+            foreach (DocumentFormat.OpenXml.OpenXmlElement child in container.ChildElements) {
+                if (child is W.Run run) {
+                    visibility.GetVisibleRun(run);
+                } else if (child is W.SdtRun control) {
+                    if (visibility.IsVisible && IsNativePictureControl(control)) controls.Add(control);
+                    if (control.SdtContentRun != null)
+                        CollectNativeVisiblePictureControls(control.SdtContentRun, visibility, controls);
+                } else if (child is W.SimpleField field) {
+                    if (visibility.IsVisible)
+                        CollectNativeVisiblePictureControls(field, visibility, controls);
+                    else
+                        visibility.ObserveDescendantRuns(field);
+                } else if (child is W.Hyperlink or W.CustomXmlRun) {
+                    CollectNativeVisiblePictureControls((DocumentFormat.OpenXml.OpenXmlCompositeElement)child, visibility, controls);
+                }
+            }
         }
 
         private static bool IsNativeRepeatingSectionControl(W.SdtRun sdtRun) =>

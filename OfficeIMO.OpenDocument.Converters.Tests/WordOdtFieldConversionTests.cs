@@ -433,6 +433,100 @@ public sealed class WordOdtFieldConversionTests {
     }
 
     [Fact]
+    public void ContentControlInsideSimpleFieldEmitsCachedTextOnce() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(new Run(new Text("Page ")),
+            new SimpleField(new SdtRun(new SdtContentRun(new Run(new Text("5"))))) {
+                Instruction = " PAGE "
+            });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Page 5", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void SimpleFieldInsideContentControlKeepsOrderAndReportsLoss() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(new SdtRun(new SdtContentRun(
+            new Run(new Text("Page ")),
+            new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " },
+            new Run(new Text(" today")))));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Page 5 today", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+        Assert.Throws<OdfConversionLossException>(() => source.ToOpenDocumentResult(
+            new WordOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
+    }
+
+    [Fact]
+    public void SimpleFieldInsideCustomXmlContentControlEmitsCachedTextOnce() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(new CustomXmlRun(
+            new SdtRun(new SdtContentRun(
+                new Run(new Text("Page ")),
+                new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }))));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("Page 5", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void ContentControlBeforeHyperlinkFieldPreservesInlineOrder() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(new Hyperlink(
+            new SdtRun(new SdtContentRun(new Run(new Text("A")))),
+            new SimpleField(new Run(new Text("5"))) { Instruction = " PAGE " }) { Anchor = "section" });
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.Equal("A5", Assert.Single(conversion.Value.Paragraphs).Text);
+        Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "fields" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void ComplexFieldInstructionRunsAndNestedSimpleFieldStayHidden() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph paragraph = source.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new Text("instruction")),
+            new SimpleField(new Run(new Text("hidden"))) { Instruction = " PAGE " },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Visible")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+
+        Assert.Equal("Visible", Assert.Single(conversion.Value.Paragraphs).Text);
+    }
+
+    [Fact]
+    public void ComplexFieldInstructionAcrossParagraphsStaysHiddenInOdt() {
+        using WordDocument source = WordDocument.Create();
+        WordParagraph start = source.AddParagraph("Start ");
+        start._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
+        source.AddParagraph("Hidden instruction");
+        WordParagraph result = source.AddParagraph("Result ");
+        result._paragraph.Append(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("Visible")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        Assert.DoesNotContain(conversion.Value.Paragraphs, paragraph => paragraph.Text.Contains("Hidden instruction"));
+        Assert.Contains(conversion.Value.Paragraphs, paragraph => paragraph.Text.Contains("Visible"));
+    }
+
+    [Fact]
     public void HandledHyperlinkFieldDoesNotHideInspectedDrawingField() {
         OdtDocument source = OdtDocument.Create();
         source.AddParagraph();
