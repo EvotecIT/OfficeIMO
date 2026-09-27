@@ -122,18 +122,13 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Creates a copy of this image and appends it to the specified paragraph.
-        /// The cloned image shares the same underlying image part.
+        /// The cloned image retains its native representation and establishes relationships in the destination story.
         /// </summary>
         /// <param name="paragraph">The paragraph to append the cloned image to.</param>
         /// <returns>The newly created <see cref="WordImage"/> instance.</returns>
         public WordImage Clone(WordParagraph paragraph) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-
-            var drawingClone = (WordDrawing)_Image.CloneNode(true);
-            var run = new DocumentFormat.OpenXml.Wordprocessing.Run(drawingClone);
-            paragraph._paragraph.Append(run);
-
-            return new WordImage(paragraph._document, drawingClone);
+            return CloneToParagraph(paragraph);
         }
 
         /// <summary>

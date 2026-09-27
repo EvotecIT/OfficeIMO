@@ -13,7 +13,8 @@ namespace OfficeIMO.OpenXml.Internal {
             out OfficeChartKind kind, out double bubbleScale, out OfficeChartBubbleSizeMode bubbleMode) {
             kind = default; bubbleScale = 100; bubbleMode = OfficeChartBubbleSizeMode.Area;
             C.PlotArea? plot = chart.PlotArea;
-            if (plot == null || plot.GetFirstChild<C.DataTable>() != null) return null;
+            if (plot == null || plot.GetFirstChild<C.DataTable>() != null ||
+                chart.Parent?.ChildElements.Any(element => element.LocalName == "userShapes") == true) return null;
             var layers = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(plot.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)), maximumPoints);
             if (layers.Count == 0) return null;
@@ -88,7 +89,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     scatterMarkers.ScatterStyle?.Val?.Value != C.ScatterStyleValues.Smooth;
             if (inheritedMarkers && layer.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName == "ser").Any(series => series.GetFirstChild<C.Marker>()?.Symbol?.Val == null)) return true;
-            if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.HighLowLines or C.UpDownBars)) return true;
+            if (layer.Descendants().Any(element => element is C.Trendline or C.ErrorBars or C.DropLines or C.HighLowLines or C.UpDownBars or C.SeriesLines)) return true;
             if (layer is C.BarChart && layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")
                 .Any(series => series.Descendants<C.InvertIfNegative>().Any(invert => invert.Val?.Value != false) &&
                     series.GetFirstChild<C.Values>()?.Descendants<C.NumericValue>().Any(value =>
@@ -101,6 +102,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (layer.Descendants<C.Explosion>().Any(explosion => explosion.Val?.Value != 0)) return true;
             } else if (layer is not C.BubbleChart && IsVaryColorsEnabled(layer.GetFirstChild<C.VaryColors>())) return true;
             if (layer is C.BarChart bars) {
+                if (bars.Descendants().Any(element => element.LocalName == "shape" &&
+                    element.GetAttributes().Any(attribute => attribute.LocalName == "val" && attribute.Value != "box"))) return true;
                 if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap != 150) return true;
                 int expectedOverlap = bars.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered ? 0 : 100;
                 if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && overlap != expectedOverlap) return true;

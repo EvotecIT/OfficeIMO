@@ -27,13 +27,6 @@ public static partial class OfficeChartDrawingRenderer {
         if (snapshot == null) {
             throw new ArgumentNullException(nameof(snapshot));
         }
-        if (!useMinimumCanvas && (snapshot.WidthPoints < MinimumChartCanvasWidth || snapshot.HeightPoints < MinimumChartCanvasHeight)) {
-            double authoredWidth = Math.Max(1D, snapshot.WidthPoints);
-            double authoredHeight = Math.Max(1D, snapshot.HeightPoints);
-            double scale = Math.Max(MinimumChartCanvasWidth / authoredWidth, MinimumChartCanvasHeight / authoredHeight);
-            OfficeDrawing expanded = Render(snapshot.WithSize(authoredWidth * scale, authoredHeight * scale), true, diagnostics);
-            return new OfficeDrawing(authoredWidth, authoredHeight).AddEffectDrawing(expanded, OfficeTransform.Scale(1D / scale, 1D / scale));
-        }
         if (HasUnsupportedAreaPointStyles(snapshot)) diagnostics?.Add(new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning, "ChartPointStylesUnsupported", AreaPointStyleWarning,
             snapshot.Name, OfficeConversionLossKind.Approximation));
@@ -61,15 +54,9 @@ public static partial class OfficeChartDrawingRenderer {
             double titleHeight = Math.Min(height, Math.Max(defaultTitleHeight, titleFontSize * 1.25D + 4D));
             double titleTop = Math.Min(layout.TitleTopPadding, Math.Max(0D, height - titleHeight));
             OfficeFontStyle titleFontStyle = style.TitleFontStyle ?? OfficeFontStyle.Bold;
-            drawing.AddText(
-                snapshot.Title!,
-                8D,
-                titleTop,
-                Math.Max(1D, width - 16D),
-                Math.Max(1D, titleHeight - 4D),
-                new OfficeFontInfo(titleFontFamily, titleFontSize, titleFontStyle),
-                style.TitleColor,
-                OfficeTextAlignment.Center);
+            AddChartText(drawing, snapshot.Title!, 8D, titleTop, Math.Max(1D, width - 16D),
+                Math.Max(1D, titleHeight - 4D), titleFontSize, style.TitleColor,
+                OfficeTextAlignment.Center, style, titleFontFamily, titleFontStyle);
             if (!layout.OverlayTitle) {
                 contentTop = titleHeight + Math.Max(0D, titleTop - 5D);
             }
@@ -138,8 +125,18 @@ public static partial class OfficeChartDrawingRenderer {
         double plotRight = 12D + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
         double horizontalAxisTitleHeight = HasHorizontalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         double plotBottom = 40D + horizontalAxisTitleHeight + bottomLegendHeight;
-        double plotWidth = Math.Max(20D, width - plotLeft - plotRight);
-        double plotHeight = Math.Max(20D, height - plotTop - plotBottom);
+        double minimumPlotWidth = Math.Min(20D, width);
+        double minimumPlotHeight = Math.Min(20D, height);
+        if (plotLeft + plotRight > width - minimumPlotWidth) {
+            double marginScale = Math.Max(0D, width - minimumPlotWidth) / (plotLeft + plotRight);
+            plotLeft *= marginScale; plotRight *= marginScale;
+        }
+        if (plotTop + plotBottom > height - minimumPlotHeight) {
+            double marginScale = Math.Max(0D, height - minimumPlotHeight) / (plotTop + plotBottom);
+            plotTop *= marginScale; plotBottom *= marginScale;
+        }
+        double plotWidth = Math.Max(minimumPlotWidth, width - plotLeft - plotRight);
+        double plotHeight = Math.Max(minimumPlotHeight, height - plotTop - plotBottom);
         double maximumBubbleDiameter = IsScatterChart(snapshot.ChartKind)
             ? GetBubbleMaximumDiameter(snapshot, plotWidth, plotHeight)
             : 0D;
@@ -1841,7 +1838,7 @@ public static partial class OfficeChartDrawingRenderer {
         shape.StrokeColor = stroke;
         shape.StrokeWidth = strokeWidth;
         shape.StrokeDashStyle = dashStyle;
-        drawing.AddShape(shape, x, y);
+        drawing.AddShapeForClippedRendering(shape, x, y);
     }
 
     private static void AddPolygonShape(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, double? fillOpacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {

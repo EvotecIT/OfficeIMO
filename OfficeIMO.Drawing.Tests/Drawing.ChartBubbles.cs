@@ -194,9 +194,7 @@ public class DrawingChartBubbleTests {
                 heightPoints: 60D,
                 layout: new OfficeChartLayout(showLegend: false)),
             useMinimumCanvas: false);
-        var scaledScene = Assert.IsType<OfficeDrawingEffectGroup>(Assert.Single(drawing.Elements));
-        Assert.Equal(scaledScene.Transform.M11, scaledScene.Transform.M22);
-        OfficeDrawing scene = scaledScene.InnerDrawing;
+        OfficeDrawing scene = drawing;
         OfficeDrawingShape horizontalAxis = scene.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                             shape.Shape.Width > 10D &&
@@ -217,8 +215,8 @@ public class DrawingChartBubbleTests {
             horizontalAxis.X + horizontalAxis.Shape.Width);
         Assert.InRange(centerY, verticalAxis.Y,
             verticalAxis.Y + verticalAxis.Shape.Height);
-        Assert.InRange(centerX * scaledScene.Transform.M11, 0D, drawing.Width);
-        Assert.InRange(centerY * scaledScene.Transform.M22, 0D, drawing.Height);
+        Assert.InRange(centerX, 0D, drawing.Width);
+        Assert.InRange(centerY, 0D, drawing.Height);
     }
 
     [Fact]
