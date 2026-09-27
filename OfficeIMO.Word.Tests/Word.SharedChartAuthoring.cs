@@ -57,6 +57,52 @@ public sealed class WordSharedChartAuthoringTests {
     }
 
     [Fact]
+    public void SharedChart_ScatterUpdatesReplaceLiteralTitlesAndMissingSourcesInSchemaOrder() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Scatter, Data(OfficeChartKind.Scatter, 0));
+        C.ScatterChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
+        series.GetFirstChild<C.SeriesText>()!.Remove();
+        series.AddChild(new C.SeriesText(new C.NumericValue { Text = "Imported title" }), true);
+        series.RemoveAllChildren<C.XValues>();
+        series.RemoveAllChildren<C.YValues>();
+        series.AddChild(new C.Smooth { Val = false }, true);
+        series.AddChild(new C.ScatterSerExtensionList(), true);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(OfficeChartKind.Scatter, Data(OfficeChartKind.Scatter, 10));
+        Assert.Single(series.GetFirstChild<C.SeriesText>()!.ChildElements);
+        Assert.NotNull(series.GetFirstChild<C.SeriesText>()!.GetFirstChild<C.StringReference>());
+        Assert.NotNull(series.GetFirstChild<C.XValues>()!.GetFirstChild<C.NumberReference>());
+        Assert.NotNull(series.GetFirstChild<C.YValues>()!.GetFirstChild<C.NumberReference>());
+        Assert.Equal("extLst", series.LastChild!.LocalName);
+        Assert.Empty(document.ValidateDocument());
+        using var bytes = new MemoryStream();
+        document.Save(bytes);
+        bytes.Position = 0;
+        using WordDocument reopened = WordDocument.Load(bytes);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SharedChart_ScatterUpdatesReplaceAllStringXSourceChoices(int sourceKind) {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Scatter, Data(OfficeChartKind.Scatter, 0));
+        C.ScatterChartSeries series = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
+        DocumentFormat.OpenXml.OpenXmlElement source = sourceKind == 0
+            ? new C.StringLiteral(new C.PointCount { Val = 1 }, new C.StringPoint { Index = 0, NumericValue = new C.NumericValue { Text = "1" } })
+            : sourceKind == 1 ? new C.StringReference(new C.Formula { Text = "Sheet1!$A$2:$A$4" })
+            : new C.MultiLevelStringReference(new C.Formula { Text = "Sheet1!$A$2:$A$4" });
+        series.AddChild(new C.XValues(source), true);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(OfficeChartKind.Scatter, Data(OfficeChartKind.Scatter, 10));
+        Assert.Single(series.GetFirstChild<C.XValues>()!.ChildElements);
+        Assert.NotNull(series.GetFirstChild<C.XValues>()!.GetFirstChild<C.NumberReference>());
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Fact]
     public void SharedChart_RejectsIncompatibleWorkbookBeforeChangingCachesOrPackage() {
         using WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartKind.Pie, Data(OfficeChartKind.Pie, 0));
