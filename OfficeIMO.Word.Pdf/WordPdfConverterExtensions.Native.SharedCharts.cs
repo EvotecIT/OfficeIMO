@@ -7,7 +7,7 @@ namespace OfficeIMO.Word.Pdf {
             snapshot = null;
             warning = null;
             if (!chart.TryGetOfficeSnapshot(out var shared)) {
-                warning = "The chart's complete cached data and supported appearance cannot be projected through the shared chart reader.";
+                warning = "Word charts are not partially exported when complete cached data and supported appearance cannot be projected through the shared chart reader.";
                 return false;
             }
             if (shared.Data.Series.Count > MaxNativeWordChartSeries || shared.Data.Categories.Count > MaxNativeWordChartPoints ||
