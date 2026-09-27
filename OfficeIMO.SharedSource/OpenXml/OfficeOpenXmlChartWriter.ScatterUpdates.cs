@@ -44,6 +44,8 @@ namespace OfficeIMO.OpenXml.Internal {
                     seriesElement.RemoveAllChildren<C.Trendline>();
                     // A new series has no source magnitudes for per-point error bars.
                     seriesElement.RemoveAllChildren<C.ErrorBars>();
+                    seriesElement.RemoveAllChildren<C.DataPoint>();
+                    seriesElement.RemoveAllChildren<C.DataLabels>();
                     InsertSeries(scatterChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
