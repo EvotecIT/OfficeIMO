@@ -31,9 +31,10 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
             OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
-            bool validatePlot = true) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null) {
             List<OpenXmlCompositeElement> elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
+            projectionBudget ??= new ProjectionBudget();
             IReadOnlyList<string> categories = Array.Empty<string>();
             var populated = new List<(OpenXmlCompositeElement Element, IReadOnlyList<double> Values, int Position)>();
             int maximumLength = 0;
@@ -52,10 +53,8 @@ namespace OfficeIMO.OpenXml.Internal {
                     "Category " + (index + 1).ToString(CultureInfo.InvariantCulture)).ToArray();
             }
             var series = new List<Series>();
-            long totalPoints = 0;
             foreach (var item in populated) {
-                totalPoints += categories.Count;
-                ValidateTotalPoints(totalPoints);
+                projectionBudget.Reserve(categories.Count);
                 double[] normalized = new double[categories.Count];
                 for (int index = 0; index < item.Values.Count; index++) normalized[index] = item.Values[index];
                 series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints));
@@ -64,11 +63,11 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static Result? ReadScatter(IEnumerable<C.ScatterChartSeries> source, A.ColorScheme? scheme, int maximumPoints,
-            bool validatePlot = true) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null) {
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
             int sourcePosition = -1;
-            long totalPoints = 0;
+            projectionBudget ??= new ProjectionBudget();
             var elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             foreach (C.ScatterChartSeries element in elements) {
@@ -77,14 +76,22 @@ namespace OfficeIMO.OpenXml.Internal {
                 var y = OfficeOpenXmlChartCacheReader.ReadCachedNumbers(element.GetFirstChild<C.YValues>(), maximumPoints);
                 int count = Math.Min(x.Count, y.Count);
                 if (count == 0) continue;
-                totalPoints += Math.Max(x.Count, y.Count);
-                ValidateTotalPoints(totalPoints);
+                projectionBudget.Reserve(Math.Max(x.Count, y.Count));
                 double[] alignedX = x.Take(count).ToArray();
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartKind.Scatter,
                     scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
+        }
+
+        /// <summary>Bounds normalized positions retained by one complete chart projection.</summary>
+        internal sealed class ProjectionBudget {
+            private long _positions;
+            internal void Reserve(int positions) {
+                _positions += positions;
+                ValidateTotalPoints(_positions);
+            }
         }
 
         private static void ValidateTotalPoints(long total) {
