@@ -264,7 +264,7 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ### Spreadsheet and CSV delivery order
 
-- [ ] Add incremental asynchronous CSV readers that expose the first row before EOF, with bounded dialect/schema sampling, cancellation during I/O, compression, multiline records, and caller-owned stream lifetime tests. Keep the existing snapshot-reader contract explicit.
+- [ ] Extend incremental asynchronous CSV input with bounded delimiter detection and ordered parallel projection, and qualify sustained-input memory and first-row latency on representative workloads. Keep the snapshot and incremental reader contracts explicit.
 - [ ] Extend the independent Excel formula corpus beyond scalar expressions to function composition, cross-sheet and named references, date systems, errors, circular references, and resource limits. Gate each supported calculation contract against producer-cached results across supported runtimes.
 - [ ] Materialize bounded pivot results without an Office refresh, including deterministic aggregations, grouped keys, totals, layout, cache consistency, and GETPIVOTDATA. Qualify results against independently calculated Excel workbooks before extending slicers and timelines.
 - [ ] Add bounded SEQUENCE, FILTER, SORT, and UNIQUE calculation with spill-shape limits, collision checks, error propagation, saved-and-reopened caches, and independent producer oracles. Define LET/LAMBDA separately after the expression and dependency contracts are qualified.

@@ -432,8 +432,16 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
         Delimiter = CsvParser.GetDelimiterChar(options);
         DelimiterText = CsvParser.GetDelimiterText(options);
         _useRawStringValues = CanUseRawStringValues(columns);
+#if NET8_0_OR_GREATER
+        if (rows is ICsvAsyncDataReaderRowSource { HasStaticValues: true })
+            _useRawStringValues = false;
+#endif
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
+#if NET8_0_OR_GREATER
+        if (rows is ICsvAsyncDataReaderRowSource { HasStaticValues: true })
+            _useDirectValueConversion = false;
+#endif
     }
 
     /// <inheritdoc />
@@ -859,6 +867,9 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.String)
         {
             if (_textRowSource is not null &&
+#if NET8_0_OR_GREATER
+                _textRowSource is not ICsvAsyncDataReaderRowSource { HasStaticValues: true } &&
+#endif
                 (_stringNullValue is null || !_textRowSource.IsNull(ordinal, _stringNullValue)))
             {
                 var textValue = _textRowSource.GetString(ordinal);
@@ -1097,6 +1108,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
     /// <inheritdoc />
     public override Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
+            return ReadIncrementalAsync(asynchronousRows, cancellationToken);
+#endif
         try
         {
             return Task.FromResult(ReadCore(cancellationToken));
@@ -1110,6 +1125,25 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
             return Task.FromException<bool>(exception);
         }
     }
+
+#if NET8_0_OR_GREATER
+    private async Task<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
+        if (_closed) return false;
+        if (_hasBufferedRow) return ReadSlow(cancellationToken);
+        // A failed or cancelled advance must not leave the previous row exposed.
+        ClearCurrentRow();
+        bool available = await rows.ReadAsync(cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        _processingCancellationToken.ThrowIfCancellationRequested();
+        _hasCurrentTextRow = available;
+        _hasRows ??= available;
+        if (available) _rowIndex++;
+        return available;
+    }
+#endif
 
     /// <inheritdoc />
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1529,6 +1563,10 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadat
 
     private object? GetRawValue(int ordinal)
     {
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource { HasStaticValues: true } asynchronousRows)
+            return asynchronousRows.GetRawValue(ordinal);
+#endif
         if (_textRowSource is not null)
         {
             return _stringNullValue is not null && _textRowSource.IsNull(ordinal, _stringNullValue)

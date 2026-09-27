@@ -25,14 +25,14 @@ internal static partial class CsvFile
         options ??= new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: false);
-        return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
     }
 
     internal static TextReader OpenTextReaderForAsyncRead(string path, CsvLoadOptions options, int bufferSize = 256 * 1024)
     {
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var stream = OpenReadStream(path, options, bufferSize, useAsync: true);
-        return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+        return new StreamReader(new CsvBomReadStream(stream), encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
     }
 
     internal static TextReader OpenTextReader(Stream source, CsvLoadOptions options, bool leaveOpen, int bufferSize = 256 * 1024)
@@ -62,7 +62,7 @@ internal static partial class CsvFile
 
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         return new StreamReader(
-            input,
+            new CsvBomReadStream(input),
             encoding,
             detectEncodingFromByteOrderMarks: true,
             bufferSize,
@@ -168,12 +168,8 @@ internal static partial class CsvFile
         }
 
         var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions);
-        Stream stream = WrapReadStream(fileStream, compressionType, leaveOpen: false);
-        if (compressionType == CsvCompressionType.None)
-        {
-            stream = new CsvBoundedReadStream(stream, options.MaxInputBytes, leaveOpen: false);
-        }
-        else if (options.MaxDecompressedBytes is { } maxBytesLimit)
+        Stream stream = WrapReadStream(new CsvBoundedReadStream(fileStream, options.MaxInputBytes, leaveOpen: false), compressionType, leaveOpen: false);
+        if (compressionType != CsvCompressionType.None && options.MaxDecompressedBytes is { } maxBytesLimit)
         {
             stream = new CsvBoundedReadStream(stream, maxBytesLimit, leaveOpen: false);
         }
@@ -342,6 +338,15 @@ internal static partial class CsvFile
             RecordBytesRead(read);
             return read;
         }
+
+#if NET8_0_OR_GREATER
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        {
+            int read = await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+            RecordBytesRead(read);
+            return read;
+        }
+#endif
 
         private void RecordBytesRead(int count)
         {
