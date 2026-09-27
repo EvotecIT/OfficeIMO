@@ -11,6 +11,39 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_PreservesSurfaceAndGridAppearance() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
+        var space = chart.ChartPart!.ChartSpace!;
+        space.AddChild(new C.ShapeProperties(new DocumentFormat.OpenXml.Drawing.SolidFill(
+            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "112233" }), new DocumentFormat.OpenXml.Drawing.Outline(new DocumentFormat.OpenXml.Drawing.NoFill())), true);
+        var axis = space.GetFirstChild<C.Chart>()!.PlotArea!.GetFirstChild<C.ValueAxis>()!;
+        axis.GetFirstChild<C.MajorGridlines>()!.AddChild(new C.ChartShapeProperties(new DocumentFormat.OpenXml.Drawing.Outline(
+            new DocumentFormat.OpenXml.Drawing.SolidFill(new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "445566" }),
+            new DocumentFormat.OpenXml.Drawing.PresetDash { Val = DocumentFormat.OpenXml.Drawing.PresetLineDashValues.Dash }) { Width = 25400 }), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeColor.Parse("#112233"), snapshot.Style.BackgroundColor);
+        Assert.False(snapshot.Style.ShowBorder);
+        Assert.Equal(OfficeColor.Parse("#445566"), snapshot.Style.ValueGridLineColor);
+        Assert.Equal(2, snapshot.Style.ValueGridLineWidth);
+        Assert.Equal(OfficeStrokeDashStyle.Dash, snapshot.Style.ValueGridLineDashStyle);
+        Assert.True(snapshot.Style.ShowValueGridLines);
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.FillColor == OfficeColor.Parse("#112233"));
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.StrokeColor == OfficeColor.Parse("#445566") && shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dash);
+    }
+
+    [Fact]
+    public void OfficeSnapshot_RejectsAnUnqualifiedSurfaceInsteadOfDroppingItsAppearance() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Pie, new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        chart.ChartPart!.ChartSpace!.AddChild(new C.ShapeProperties(new DocumentFormat.OpenXml.Drawing.GradientFill()), true);
+        string before = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
+        Assert.Contains(document.CreateVisualSnapshot().Diagnostics, diagnostic => diagnostic.Code == WordImageExportDiagnosticCodes.UnsupportedChart);
+    }
+    [Fact]
     public void OfficeSnapshot_PreservesReferencedAxisFormatsAndLimitsAfterResize() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
