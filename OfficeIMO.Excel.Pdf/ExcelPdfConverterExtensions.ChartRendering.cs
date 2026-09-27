@@ -65,7 +65,8 @@ namespace OfficeIMO.Excel.Pdf {
                 PixelsToPoints(snapshot.WidthPixels),
                 PixelsToPoints(snapshot.HeightPixels),
                 options.ChartStyle ?? snapshot.Style,
-                options.ChartLayout ?? (preserveWorksheetLegend ? snapshot.Layout ?? new OfficeChartLayout() : DefaultExcelPdfChartLayout));
+                options.ChartLayout ?? (preserveWorksheetLegend ? snapshot.Layout ?? new OfficeChartLayout() : DefaultExcelPdfChartLayout),
+                snapshot.RadialLayout);
         }
 
         private static OfficeChartSeries CreateOfficeChartSeries(ExcelChartSeries series, ExcelChartType defaultType, OfficeChartKind defaultKind) {

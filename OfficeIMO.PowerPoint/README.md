@@ -393,6 +393,14 @@ files but static export reports an approximation and uses the series fill.
 See the [shared point-style example](../OfficeIMO.Core/README.md#style-individual-chart-points)
 for an outlined unknown-status slice and a hatched slice.
 
+### Pie and doughnut geometry
+
+Use `chart.SetRadialLayout(new OfficeChartRadialLayout(90, 70))` on an existing native
+two-dimensional pie or doughnut chart. The first argument rotates the first slice boundary
+clockwise from the top (0–360 degrees); the second sets the doughnut hole percentage (10–90).
+`chart.RadialLayout` reads the native settings. Save/reopen, data updates, snapshots,
+managed image/PDF exports, and semantic HTML round trips preserve them.
+
 ### Table and chart together
 
 ```csharp

@@ -549,6 +549,9 @@ public static partial class PowerPointHtmlConverterExtensions {
         StringBuilder body, PptCore.PowerPointChartSnapshot snapshot) {
         PptCore.PowerPointChartData data = snapshot.Data;
         body.Append("<table class=\"officeimo-chart-data\"");
+        if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Pie || snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Doughnut) {
+            OfficeHtmlChartRadialLayout.AppendAttributes(body, snapshot.RadialLayout);
+        }
         if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Bubble) {
             body.Append(" data-officeimo-bubble-scale=\"")
                 .Append(snapshot.BubbleScalePercent.ToString("G17", CultureInfo.InvariantCulture))

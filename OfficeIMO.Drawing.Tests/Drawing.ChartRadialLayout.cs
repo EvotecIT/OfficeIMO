@@ -31,6 +31,27 @@ public sealed class DrawingChartRadialLayoutTests {
     }
 
     [Fact]
+    public void RadialGeometry_FirstSeriesIsInnermostAndRingsMeetWithoutGaps() {
+        var data = new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Inner", new[] { 1d }, null, color: OfficeColor.Parse("#FF0000")),
+            new OfficeChartSeries("Outer", new[] { 1d }, null, color: OfficeColor.Parse("#0000FF"))
+        });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Rings", null,
+            OfficeChartKind.Doughnut, data, 400, 400, null, new OfficeChartLayout(showLegend: false),
+            new OfficeChartRadialLayout(doughnutHolePercent: 50)));
+        var rings = drawing.Shapes.Where(s => s.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
+        Assert.Equal(2, rings.Length);
+        Assert.Equal(OfficeColor.Parse("#FF0000"), rings[0].Shape.FillColor);
+        Assert.Equal(OfficeColor.Parse("#0000FF"), rings[1].Shape.FillColor);
+        double[] Radii(OfficeDrawingShape ring) {
+            double cx = ring.Shape.Width / 2, cy = ring.Shape.Height / 2;
+            return ring.Shape.Points.Select(p => Math.Sqrt(Math.Pow(p.X - cx, 2) + Math.Pow(p.Y - cy, 2))).ToArray();
+        }
+        Assert.Equal(Radii(rings[0]).Max(), Radii(rings[1]).Min(), 8);
+        Assert.Equal(0.5, Radii(rings[0]).Min() / Radii(rings[1]).Max(), 8);
+    }
+
+    [Fact]
     public void RadialGeometry_RejectsValuesOutsideNativeContract() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartRadialLayout(-1));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartRadialLayout(361));

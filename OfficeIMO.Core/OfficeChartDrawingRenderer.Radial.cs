@@ -146,8 +146,8 @@ public static partial class OfficeChartDrawingRenderer {
         for (int s = 0; s < renderableSeries.Count; s++) {
             OfficeChartSeries values = renderableSeries[s].Series;
             int sourceSeriesIndex = renderableSeries[s].SourceIndex;
-            double outerRadius = radius - s * ringThickness;
-            double innerRadius = outerRadius - ringThickness;
+            double outerRadius = holeRadius + (s + 1) * ringThickness;
+            double innerRadius = holeRadius + s * ringThickness;
             double total = GetPositiveSeriesTotal(values, categories.Count);
             double start = GetFirstSliceAngle(snapshot.RadialLayout);
             int zeroLabelIndex = 0;
