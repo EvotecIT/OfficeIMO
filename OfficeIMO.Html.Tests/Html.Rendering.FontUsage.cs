@@ -47,6 +47,18 @@ public sealed class HtmlFontUsageTests {
         Assert.Equal(expectedLoss, rendered.HasLoss);
     }
 
+    [Theory]
+    [InlineData("Hello\u200e")]
+    [InlineData("\u200d")]
+    [InlineData("\ufe0f")]
+    public async Task ControlOnlyGraphemesDoNotRequestUnavailableSubset(string text) {
+        var rendered = await RenderAsync("p{font-family:Missing,Good}", "<p>" + text + "</p>",
+            "@font-face{font-family:Missing;unicode-range:U+0370-03FF;src:url('https://font.example/missing.ttf')}", missingFamily: null);
+        var unavailable = Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.Equal(HtmlDiagnosticSeverity.Info, unavailable.Severity);
+        Assert.Equal(OfficeConversionLossKind.None, unavailable.LossKind);
+    }
+
     [Fact]
     public async Task CallerFaceCanSatisfyUnavailableCssFace() {
         var options = CreateOptions();

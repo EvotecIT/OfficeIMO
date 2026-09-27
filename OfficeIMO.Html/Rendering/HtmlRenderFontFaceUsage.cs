@@ -59,7 +59,7 @@ internal sealed class HtmlRenderFontFaceUsage {
             if (!families.Any(family => _unavailable.ContainsKey(family))) return;
             foreach (string element in OfficeTextElements.Enumerate(text)) {
                 // Match the renderer's complete grapheme requests, not independent combining scalars.
-                if (string.IsNullOrWhiteSpace(element)) continue;
+                if (string.IsNullOrWhiteSpace(element) || !RequiresGlyph(element)) continue;
                 long characters = (long)familyNames!.Length + element.Length;
                 if (characters <= MaximumCachedCharacters) {
                     var key = (familyNames, descriptor, element);
@@ -76,6 +76,17 @@ internal sealed class HtmlRenderFontFaceUsage {
         } finally {
             _observing = false;
         }
+    }
+
+    private static bool RequiresGlyph(string text) {
+        for (int index = 0; index < text.Length; index++) {
+            int scalar = text[index];
+            if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
+                scalar = char.ConvertToUtf32(text[index], text[++index]);
+            }
+            if (!OfficeTextElements.IsIgnorableFontCoverageScalar(scalar)) return true;
+        }
+        return false;
     }
 
     private void ObserveElement(string text, List<string> families, OfficeFontFaceDescriptor requested) {
