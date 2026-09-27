@@ -148,10 +148,10 @@ namespace OfficeIMO.Excel {
                         result = left <= right;
                         return true;
                     case "=":
-                        result = Math.Abs(left - right) < 0.0000001;
+                        result = left == right;
                         return true;
                     case "<>":
-                        result = Math.Abs(left - right) >= 0.0000001;
+                        result = left != right;
                         return true;
                 }
             }
@@ -255,8 +255,7 @@ namespace OfficeIMO.Excel {
             result = false;
             int comparison;
             if (left.Number.HasValue && right.Number.HasValue) {
-                double delta = left.Number.Value - right.Number.Value;
-                comparison = Math.Abs(delta) < 0.0000001 ? 0 : delta < 0 ? -1 : 1;
+                comparison = left.Number.Value.CompareTo(right.Number.Value);
             } else {
                 string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
                 string rightText = right.Text ?? (right.Number.HasValue ? InvariantNumberText.Get(right.Number.Value) : string.Empty);
@@ -367,9 +366,9 @@ namespace OfficeIMO.Excel {
                     case "<=":
                         return left <= right;
                     case "<>":
-                        return Math.Abs(left - right) >= 0.0000001;
+                        return left != right;
                     default:
-                        return Math.Abs(left - right) < 0.0000001;
+                        return left == right;
                 }
             }
 

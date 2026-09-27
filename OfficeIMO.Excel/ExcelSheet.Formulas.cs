@@ -123,6 +123,7 @@ namespace OfficeIMO.Excel {
                         }
 
                         SetFormulaCachedValue(cell, result);
+                        if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
                         cell.CellFormula!.CalculateCell = false;
                         _excelDocument.MarkFormulaCellRecalculated(
                             _worksheetPart,
@@ -193,7 +194,9 @@ namespace OfficeIMO.Excel {
                     || _formulaEvaluationDepthCache == null
                     || _formulaEvaluationStack == null
                     || _formulaEvaluationDepthFrames == null) {
-                    return TryEvaluateFormulaValue(formula, out result);
+                    return cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                        ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
+                        : TryEvaluateFormulaValue(formula, out result);
                 }
 
                 string cacheKey = GetFormulaEvaluationCacheKey(reference);
@@ -227,7 +230,9 @@ namespace OfficeIMO.Excel {
                 bool evaluated = false;
                 int evaluationDepth = 0;
                 try {
-                    if (!TryEvaluateFormulaValue(formula, out result)) {
+                    if (!(cell.CellFormula.FormulaType?.Value == CellFormulaValues.Array
+                        ? TryEvaluateAuthoredFormulaCell(cell, formula, out result)
+                        : TryEvaluateFormulaValue(formula, out result))) {
                         return false;
                     }
                     if (depthFrame.DependencyGuardBlocked) {

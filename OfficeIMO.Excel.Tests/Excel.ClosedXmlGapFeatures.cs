@@ -664,7 +664,7 @@ namespace OfficeIMO.Tests {
                 ExcelFormulaInspection inspection = document.InspectFormulas();
                 Assert.Equal(3, inspection.UnsupportedFormulas);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B1"
-                    && formula.UnsupportedReason == "Function 'UNIQUE' is not supported by OfficeIMO's lightweight evaluator.");
+                    && formula.UnsupportedReason == "Array function 'UNIQUE' requires a matching fixed authored range, supported arguments, and a result within the array limits.");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B2"
                     && formula.UnsupportedReason == "Formula uses semicolon argument separators; OfficeIMO's lightweight evaluator expects Open XML comma-separated formulas.");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B3"

@@ -684,6 +684,36 @@ support typed guards and error fallbacks. `SEARCH` and text criteria recognize
 `TEXT` uses invariant English formatting and accepts an explicit `[$-409]`
 locale prefix; other locale qualifiers remain unsupported.
 
+Array calculation uses the range owned by `SetArrayFormula`, or the existing
+array reference in an imported workbook:
+
+```csharp
+using var document = ExcelDocument.Create("array-report.xlsx");
+var sheet = document.AddWorksheet("Results");
+sheet.SetArrayFormula("G2:H4", "SEQUENCE(3,2,10,-2)");
+document.Calculate();
+document.Save();
+```
+
+`SEQUENCE` produces rectangular numeric results. `FILTER` accepts a row or
+column mask of numbers or Booleans, including comparisons between operands of
+the same native type and a scalar empty-result fallback. Blank mask cells are
+false; mixed-type comparisons and text-mask coercion remain deferred.
+`SORT` supports numeric sort keys, both directions, and sorting rows or columns;
+blank, text, and mixed-type key collation remains deferred. `UNIQUE` preserves the first
+occurrence of distinct rows or columns and supports `exactly_once`. These
+functions can be nested within this array subset. Each input and output is
+limited to 100,000 cells, with at most 32 array-expression levels.
+
+Calculation updates an array only when its result exactly matches the authored
+range and the range contains neither another formula nor a merged cell. Array
+children participate in dependency calculation before caches are written, and
+a reference to the anchor is scalar. Shape changes, larger arrays, unsupported
+expressions, and empty results requiring Excel's extended error metadata remain
+deferred with existing caches preserved. Calculation does not resize dynamic
+spills or author dynamic-array metadata. The checked-in Excel-produced array
+corpus verifies typed caches through save and reopen.
+
 `CellAt(...).GetValue().Value` preserves the native cached result type, including
 Boolean values and text that looks numeric, such as the result of `="12"`.
 

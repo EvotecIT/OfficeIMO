@@ -142,7 +142,7 @@ namespace OfficeIMO.Excel {
 
         private static bool FormulaValuesEqual(FormulaArgumentValue left, FormulaArgumentValue right) {
             if (left.Number.HasValue && right.Number.HasValue) {
-                return Math.Abs(left.Number.Value - right.Number.Value) < 0.0000001;
+                return left.Number.Value == right.Number.Value;
             }
 
             string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
@@ -986,6 +986,14 @@ namespace OfficeIMO.Excel {
                 unresolvedFormula = true;
             }
 
+            return ResolveFormulaArgumentSnapshot(row, column, unresolvedFormula, cell?.CellFormula == null);
+        }
+
+        // Keep snapshot decoding and array-child lookup out of the recursive
+        // formula dependency frame. Their locals are needed only at a leaf.
+        private FormulaArgumentValue ResolveFormulaArgumentSnapshot(int row, int column, bool unresolvedFormula, bool withoutFormula) {
+            if (withoutFormula && _formulaEvaluationCache != null
+                && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue;
             var value = GetCellValueSnapshot(row, column);
             if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
                 return FormulaArgumentValue.UnresolvedFormula();
@@ -999,6 +1007,14 @@ namespace OfficeIMO.Excel {
 
             if (value.Kind == ExcelCellDataKind.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
+            }
+
+            var cachedType = value.HasFormula ? TryGetExistingCell(row, column)?.DataType?.Value : null;
+            if (value.Kind == ExcelCellDataKind.Text
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty);
             }
 
             if (value.Value is bool boolean) {
