@@ -615,6 +615,7 @@ namespace OfficeIMO.Excel {
                             ClearCellValueMetadataAttribute(spillCell);
                             spillCell.DataType = null;
                             if (ReferenceEquals(spillCell, cell)) spillCell.CellMetaIndex = null;
+                            DynamicSpillCacheSnapshots.Remove(DynamicCellKey(row, column));
                         }
                     }
                 }

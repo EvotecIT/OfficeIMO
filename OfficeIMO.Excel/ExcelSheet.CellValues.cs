@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel {
             var list = cells as IReadOnlyList<(int Row, int Column, object Value)> ?? cells.ToList();
             if (list.Count == 0) return;
             EnsureDynamicArrayWriteIndex();
-            if (_dynamicArrayWriteRanges.Count > 0)
+            if (SpillOwnership.WriteRanges.Count > 0)
                 foreach (var item in list) EnsureDynamicArrayCellWritable(item.Row, item.Column);
             DirectCellValuesSaveCandidate? appendSaveCandidate = null;
 

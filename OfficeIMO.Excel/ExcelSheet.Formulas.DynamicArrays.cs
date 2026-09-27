@@ -2,15 +2,46 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private bool _dynamicArrayWriteIndexInitialized;
-        private readonly List<(int Top, int Left, int Bottom, int Right)> _dynamicArrayWriteRanges =
-            new List<(int Top, int Left, int Bottom, int Right)>();
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            DocumentFormat.OpenXml.Packaging.WorksheetPart, DynamicSpillOwnership> DynamicSpillOwnerships =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<
+                DocumentFormat.OpenXml.Packaging.WorksheetPart, DynamicSpillOwnership>();
 
-        private void InvalidateDynamicArrayWriteIndex() => _dynamicArrayWriteIndexInitialized = false;
+        private sealed class DynamicSpillOwnership {
+            internal readonly Dictionary<long, DynamicSpillCacheSnapshot> Cells =
+                new Dictionary<long, DynamicSpillCacheSnapshot>();
+            internal bool WriteIndexInitialized;
+            internal readonly List<(int Top, int Left, int Bottom, int Right)> WriteRanges =
+                new List<(int Top, int Left, int Bottom, int Right)>();
+        }
+
+        private DynamicSpillOwnership SpillOwnership => DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
+        private Dictionary<long, DynamicSpillCacheSnapshot> DynamicSpillCacheSnapshots =>
+            SpillOwnership.Cells;
+
+        private sealed class DynamicSpillCacheSnapshot {
+            internal DocumentFormat.OpenXml.Spreadsheet.CellValues? Type;
+            internal string? Value;
+            internal uint? ValueMetaIndex;
+        }
+
+        private static DynamicSpillCacheSnapshot SnapshotDynamicSpillCell(Cell cell) => new DynamicSpillCacheSnapshot {
+            Type = cell.DataType?.Value,
+            Value = cell.CellValue?.Text,
+            ValueMetaIndex = cell.ValueMetaIndex?.Value
+        };
+
+        private static bool MatchesDynamicSpillSnapshot(Cell cell, DynamicSpillCacheSnapshot snapshot) =>
+            cell.DataType?.Value == snapshot.Type
+            && string.Equals(cell.CellValue?.Text, snapshot.Value, StringComparison.Ordinal)
+            && cell.ValueMetaIndex?.Value == snapshot.ValueMetaIndex;
+
+        private void InvalidateDynamicArrayWriteIndex() => SpillOwnership.WriteIndexInitialized = false;
 
         private void EnsureDynamicArrayWriteIndex() {
-            if (_dynamicArrayWriteIndexInitialized) return;
-            _dynamicArrayWriteRanges.Clear();
+            DynamicSpillOwnership ownership = SpillOwnership;
+            if (ownership.WriteIndexInitialized) return;
+            ownership.WriteRanges.Clear();
             var part = _excelDocument.WorkbookPartRoot.CellMetadataPart;
             if (part != null) {
                 if (!part.IsRootElementLoaded) ValidateInCellImageMetadataPart(part, "Cell metadata");
@@ -21,15 +52,15 @@ namespace OfficeIMO.Excel {
                         || CreateFormulaArrayInfo(cell, metadata)?.IsDynamic != true
                         || !TryFixedArrayBounds(cell.CellFormula.Reference?.Value ?? "",
                             out int top, out int left, out int bottom, out int right)) continue;
-                    _dynamicArrayWriteRanges.Add((top, left, bottom, right));
+                    ownership.WriteRanges.Add((top, left, bottom, right));
                 }
             }
-            _dynamicArrayWriteIndexInitialized = true;
+            ownership.WriteIndexInitialized = true;
         }
 
         private void EnsureDynamicArrayCellWritable(int row, int column) {
             EnsureDynamicArrayWriteIndex();
-            if (_dynamicArrayWriteRanges.Any(range => row >= range.Top && row <= range.Bottom
+            if (SpillOwnership.WriteRanges.Any(range => row >= range.Top && row <= range.Bottom
                 && column >= range.Left && column <= range.Right))
                 throw new InvalidOperationException($"Cell '{A1.CellReference(row, column)}' belongs to a dynamic array; clear its array formula first.");
         }
@@ -41,7 +72,7 @@ namespace OfficeIMO.Excel {
 
         private void EnsureDynamicArrayRangeWritable(int top, int left, int bottom, int right) {
             EnsureDynamicArrayWriteIndex();
-            if (_dynamicArrayWriteRanges.Any(range =>
+            if (SpillOwnership.WriteRanges.Any(range =>
                 RangesOverlapInclusive((top, left, bottom, right), range)))
                 throw new InvalidOperationException("The range overlaps a dynamic array; clear its array formula first.");
         }
@@ -90,6 +121,8 @@ namespace OfficeIMO.Excel {
                         cell.InlineString = null;
                         cell.ValueMetaIndex = null;
                         SetFormulaCachedValue(cell, array.Values[(row - plan.Top) * array.Columns + column - plan.Left]);
+                        if (cell != anchor)
+                            DynamicSpillCacheSnapshots[DynamicCellKey(row, column)] = SnapshotDynamicSpillCell(cell);
                     }
             }
             FixedArraySheetIndex index = GetFixedArraySheetIndex();
@@ -98,11 +131,13 @@ namespace OfficeIMO.Excel {
                     if (row == plan.Owner.Top && column == plan.Owner.Left) continue;
                     if (plan.Array != null && row <= plan.Bottom && column <= plan.Right) continue;
                     if (!index.Cells.TryGetValue(DynamicCellKey(row, column), out Cell? cell)) continue;
-                    if (!IsOwnedDynamicSpillCachedCell(cell)) continue;
+                    long key = DynamicCellKey(row, column);
+                    if (!IsOwnedDynamicSpillCachedCell(cell, key)) continue;
                     cell.CellValue = null;
                     cell.InlineString = null;
                     cell.DataType = null;
                     cell.ValueMetaIndex = null;
+                    DynamicSpillCacheSnapshots.Remove(key);
                     if (cell.StyleIndex == null && !cell.HasChildren) cell.Remove();
                 }
             if (!string.Equals(previousReference, anchor.CellFormula?.Reference?.Value, StringComparison.Ordinal))
@@ -146,7 +181,21 @@ namespace OfficeIMO.Excel {
                             long key = DynamicCellKey(row, column);
                             if (context.DynamicCells.ContainsKey(key)
                                 || index.Cells.TryGetValue(key, out Cell? cell)
-                                && IsDynamicSpillObstacle(owner, cell, row, column)) {
+                                && IsDynamicSpillObstacle(owner, cell, row, column,
+                                    array.Values[(row - top) * array.Columns + column - left])) {
+                                plan.ErrorSubtype = 1;
+                                break;
+                            }
+                        }
+                }
+                if (plan.ErrorSubtype == 0) {
+                    for (int row = owner.Top; row <= owner.Bottom && plan.ErrorSubtype == 0; row++)
+                        for (int column = owner.Left; column <= owner.Right; column++) {
+                            if (row == owner.Top && column == owner.Left
+                                || row <= plan.Bottom && column <= plan.Right) continue;
+                            long key = DynamicCellKey(row, column);
+                            if (index.Cells.TryGetValue(key, out Cell? oldCell)
+                                && !IsOwnedDynamicSpillCachedCell(oldCell, key)) {
                                 plan.ErrorSubtype = 1;
                                 break;
                             }
@@ -173,18 +222,34 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool IsDynamicSpillObstacle(FixedArrayOwner owner, Cell cell, int row, int column) {
+        private bool IsDynamicSpillObstacle(FixedArrayOwner owner, Cell cell, int row, int column,
+            FormulaArgumentValue expected) {
             if (row >= owner.Top && row <= owner.Bottom && column >= owner.Left && column <= owner.Right)
-                return !IsOwnedDynamicSpillCachedCell(cell);
+                return !IsOwnedDynamicSpillCachedCell(cell, DynamicCellKey(row, column), expected);
             return cell.CellValue != null || cell.InlineString != null || cell.ValueMetaIndex != null;
         }
 
-        private bool IsOwnedDynamicSpillCachedCell(Cell cell) {
+        private bool IsOwnedDynamicSpillCachedCell(Cell cell, long key, FormulaArgumentValue? expected = null) {
             if (cell.CellFormula != null || cell.CellMetaIndex != null || cell.InlineString != null) return false;
-            if (cell.ValueMetaIndex == null) return true;
-            if (cell.DataType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) return false;
-            string? error = ResolveRichValueError(cell, cell.CellValue?.Text);
-            return error == "#CALC!" || error == "#SPILL!";
+            if (DynamicSpillCacheSnapshots.TryGetValue(key, out DynamicSpillCacheSnapshot? snapshot))
+                return MatchesDynamicSpillSnapshot(cell, snapshot);
+            if (cell.CellValue == null && cell.ValueMetaIndex == null) return true;
+            if (expected == null) return false;
+            FormulaArgumentValue value = expected.Value;
+            if (value.IsError)
+                return cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error
+                    && ResolveRichValueError(cell, cell.CellValue?.Text) == value.ErrorCode;
+            if (cell.ValueMetaIndex != null) return false;
+            if (value.IsBoolean)
+                return cell.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean
+                    && cell.CellValue?.Text == (value.Number == 0 ? "0" : "1");
+            if (value.Number.HasValue)
+                return (cell.DataType == null
+                        || cell.DataType.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Number)
+                    && double.TryParse(cell.CellValue?.Text, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out double numeric)
+                    && numeric == value.Number.Value;
+            return value.Text != null && string.Equals(GetCellText(cell), value.Text, StringComparison.Ordinal);
         }
 
         private void RetireOldDynamicChildren(ArrayCalculationContext context, DynamicArrayPlan plan) {
@@ -196,7 +261,7 @@ namespace OfficeIMO.Excel {
                     if (plan.Array != null && row <= plan.Bottom && column <= plan.Right) continue;
                     long key = DynamicCellKey(row, column);
                     if (index.Cells.TryGetValue(key, out Cell? oldCell)
-                        && !IsOwnedDynamicSpillCachedCell(oldCell)) continue;
+                        && !IsOwnedDynamicSpillCachedCell(oldCell, key)) continue;
                     context.DynamicCells.Remove(key);
                     context.DynamicRetiredCells.Add(key);
                 }

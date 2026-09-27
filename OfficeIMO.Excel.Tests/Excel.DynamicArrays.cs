@@ -177,6 +177,73 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DynamicArrays_ChangedPlainCacheInsideOldRangeBlocksWithoutDataLoss() {
+            string path = Path.Combine(_directoryWithFiles, "ChangedNativeSpillChild.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                    cell => cell.CellReference?.Value == "H2");
+                child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+                child.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
+                Assert.Equal("#SPILL!", error);
+                Assert.True(sheet.TryGetCellText(2, 8, out var retained));
+                Assert.Equal("99", retained);
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+                Assert.Empty(document.ValidateOpenXml());
+            }
+            AssertWorkbookOpensViaExcelComWhenAvailable(path,
+                "A changed spill child must remain an intact blocker in desktop Excel.",
+                new Dictionary<string, string> { ["G1"] = "#SPILL!", ["H2"] = "99" });
+        }
+
+        [Fact]
+        public void DynamicArrays_ChangedPlainCacheSurvivesShrink() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, 2);
+            sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+            document.RecalculateSupportedFormulas();
+            var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                cell => cell.CellReference?.Value == "H2");
+            child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+            sheet.CellValue(1, 1, 1);
+            document.RecalculateSupportedFormulas();
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
+            Assert.Equal("#SPILL!", error);
+            Assert.True(sheet.TryGetCellText(2, 8, out var retained));
+            Assert.Equal("99", retained);
+        }
+
+        [Fact]
+        public void DynamicArrays_OwnershipSurvivesNewSheetWrappers() {
+            using var document = ExcelDocument.Create();
+            document.SheetCachingEnabled = false;
+            var authored = document.AddWorksheet("Data");
+            var other = document["Data"];
+            Assert.NotSame(authored, other);
+            other.CellValue(5, 5, 1); // Populate the shared write index before formula authoring.
+            authored.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
+            document.RecalculateSupportedFormulas();
+            Assert.Throws<InvalidOperationException>(() => other.CellValue(2, 8, 99));
+            var child = Assert.Single(other.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                cell => cell.CellReference?.Value == "H2");
+            child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+            document.RecalculateSupportedFormulas();
+            Assert.True(authored.TryGetCachedFormulaValue(1, 7, out var error));
+            Assert.Equal("#SPILL!", error);
+            Assert.True(other.TryGetCellText(2, 8, out var retained));
+            Assert.Equal("99", retained);
+        }
+
+        [Fact]
         public void DynamicArrays_TextTransformationCannotRewriteSpillChildren() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Data");
