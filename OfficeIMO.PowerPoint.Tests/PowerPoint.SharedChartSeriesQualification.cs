@@ -10,6 +10,40 @@ namespace OfficeIMO.Tests;
 
 public class PowerPointSharedChartSeriesQualificationTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NativeUpdate_PreservesUnprojectablePointAppearance(bool marker) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        var point = new C.DataPoint(new C.Index { Val = 0 });
+        if (marker) point.AddChild(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Diamond }), true);
+        else point.AddChild(new C.ChartShapeProperties(new A.GradientFill(new A.GradientStopList(
+            new A.GradientStop(new A.RgbColorModelHex { Val = "FF0000" }) { Position = 0 },
+            new A.GradientStop(new A.RgbColorModelHex { Val = "0000FF" }) { Position = 100000 }))), true);
+        series.AddChild(point, true);
+        string appearance = point.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 2d }) }));
+        series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        Assert.Equal(appearance, series.GetFirstChild<C.DataPoint>()!.OuterXml);
+        Assert.Equal("2", series.GetFirstChild<C.Values>()!.Descendants<C.NumericValue>().Single().Text);
+    }
+
+    [Fact]
+    public void Snapshot_IgnoresDormantMarkerOnlyLineDash() {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.Scatter, new OfficeChartData(new[] { "1" }, new[] {
+            new OfficeChartSeries("Values", new[] { 2d }, new[] { 1d }, null, null, true, connectLine: false) }));
+        var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
+        var properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+        var outline = properties.GetFirstChild<A.Outline>()!;
+        outline.AddChild(new A.PresetDash { Val = A.PresetLineDashValues.SystemDash }, true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.False(snapshot.Data.Series.Single().ConnectLine);
+    }
+    [Theory]
     [InlineData(OfficeChartKind.ColumnStacked)]
     [InlineData(OfficeChartKind.Scatter)]
     [InlineData(OfficeChartKind.Line)]

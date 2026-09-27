@@ -173,9 +173,9 @@ namespace OfficeIMO.OpenXml.Internal {
             bool showMarkers = markerShape.HasValue ? markerShape != OfficeChartMarkerShape.None : inheritedMarkers;
             bool connectLine = outline?.GetFirstChild<A.NoFill>() == null && scatterStyle != C.ScatterStyleValues.Marker;
             bool unsupported = markerShape == OfficeChartMarkerShape.Picture ||
-                outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
+                connectLine && outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
             bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
-            unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area);
+            unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area, connectLine);
             unsupported |= area && outline?.GetFirstChild<A.NoFill>() != null;
             unsupported |= showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true);
             // The shared model has one series colour and straight connecting lines.
@@ -189,8 +189,14 @@ namespace OfficeIMO.OpenXml.Internal {
             unsupported |= !filled && connectLine && markerFill.HasValue &&
                 (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value);
             OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
-            var styles = OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme,
-                element.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);
+            bool flatThreeDimensional = element.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true;
+            bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
+                (point.GetFirstChild<C.Marker>() != null || point.ChartShapeProperties != null &&
+                    !OfficeOpenXmlChartPointStyles.IsSupported(point.ChartShapeProperties, scheme, flatThreeDimensional)));
+            unsupported |= unsupportedPoints;
+            // Unsupported appearance blocks static export, but update-only readers still need
+            // the cached series. Native formatting remains in the source XML for the writer.
+            var styles = unsupportedPoints ? null : OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme, flatThreeDimensional);
             if (filled && kind != OfficeChartKind.Area && kind != OfficeChartKind.AreaStacked && kind != OfficeChartKind.AreaStacked100)
                 styles = InheritFilledOutline(styles, values.Count, outline, stroke, width);
             else if (filled && stroke.HasValue && stroke != fill) unsupported = true;

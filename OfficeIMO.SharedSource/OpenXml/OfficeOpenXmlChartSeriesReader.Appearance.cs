@@ -21,7 +21,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return elements.OrderBy(element => element.GetFirstChild<C.Order>()?.Val?.Value ?? uint.MaxValue).ToList();
     }
 
-    private static bool IsSupportedSeriesShape(C.ChartShapeProperties? properties, A.ColorScheme? scheme, bool filled, bool area = false) {
+    private static bool IsSupportedSeriesShape(C.ChartShapeProperties? properties, A.ColorScheme? scheme, bool filled, bool area = false, bool connectLine = true) {
         if (properties == null) return true;
         foreach (var child in properties.ChildElements) {
             if ((child is A.EffectList || child is A.Shape3DType) && !child.HasChildren && !child.HasAttributes) continue;
@@ -32,7 +32,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             foreach (var lineChild in outline.ChildElements) {
                 if (lineChild is A.NoFill) continue;
                 if (lineChild is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
-                if ((!filled || area) && lineChild is A.PresetDash && ReadDash(outline).HasValue) continue;
+                if ((!filled || area) && lineChild is A.PresetDash && (!connectLine || ReadDash(outline).HasValue)) continue;
                 return false;
             }
         }
