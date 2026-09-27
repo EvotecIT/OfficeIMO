@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ff51de3677944247b9a5b30465d1fc6f6ae491c8",
+  "worktreeDirty": false,
+  "archive": {
+    "path": "source.mhtml",
+    "bytes": 29443783,
+    "sha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735"
+  },
+  "resourceCount": 63,
+  "regressions": {
+    "generatedAndSvgFailedBeforeFix": 6,
+    "atomicLabelFailedBeforeNormalizationFix": 3,
+    "focusedFinalNet10": 234,
+    "fullHtmlNet8": 3636,
+    "fullHtmlNet10": 3636,
+    "netstandard20Warnings": 0
+  },
+  "review": "One P2 in shared normalization reproduced and fixed; targeted confirmation clear.",
+  "operations": [
+    {
+      "intent": "chromium-screen",
+      "pages": 4,
+      "sha256": "09db084e10317c4c5f4eae02f080493e1e28f94bbaf6d2d5f3d412e9406e4e63",
+      "warningCount": 0
+    },
+    {
+      "intent": "chromium-print",
+      "pages": 4,
+      "sha256": "1c0c994858d733a68d6647364912e27c96b34f2380c0f6adb86b942798f9fdf2",
+      "warningCount": 0
+    },
+    {
+      "intent": "officeimo-print",
+      "pages": 12,
+      "sha256": "e4103cbe8cfacfd255a69c3c422b2fc6e1b4e39e5c9e3038a74eafbf0bdeee9e",
+      "warningCount": 15
+    },
+    {
+      "intent": "officeimo-print-zero-margin",
+      "pages": 10,
+      "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+      "warningCount": 14
+    },
+    {
+      "intent": "officeimo-print-fit-1200",
+      "pages": 4,
+      "sha256": "7400106e406ba07643125f586c1a84b45b62d39fe279d44c7ea188b4b72a8760",
+      "warningCount": 13
+    },
+    {
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pages": 4,
+      "sha256": "e4a2edccd95a7211261b561c68d66409ad0d542df0ed1e0d1fe2c99d220fa1fd",
+      "warningCount": 11
+    },
+    {
+      "intent": "officeimo-print-browser-ua",
+      "pages": 10,
+      "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+      "warningCount": 14
+    },
+    {
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pages": 10,
+      "sha256": "13f7b1b5343d240416efdd8de596710e3dbe3d10a20f0f1209c9a9ce3c803f70",
+      "warningCount": 11
+    },
+    {
+      "intent": "officeimo-screen-media",
+      "pages": 10,
+      "sha256": "05f0127001217700023d7fed817c76f8e7abe6e124ebc392def6f7567167f730",
+      "warningCount": 14
+    },
+    {
+      "intent": "officeimo-screen-media-local-fonts",
+      "pages": 10,
+      "sha256": "13f7b1b5343d240416efdd8de596710e3dbe3d10a20f0f1209c9a9ce3c803f70",
+      "warningCount": 11
+    },
+    {
+      "intent": "officeimo-screen-snapshot",
+      "pages": 12,
+      "sha256": "a5c8cd8fb8bd59337e13daa048c1f626c1734506aceea2330c6a55997615214d",
+      "warningCount": 21
+    },
+    {
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pages": 12,
+      "sha256": "b928c034f14ee2a2d569667bb88987912376f98bf6e00e48f2a29174c6e9ce18",
+      "warningCount": 18
+    },
+    {
+      "intent": "peachpdf-print",
+      "pages": 3,
+      "sha256": "82a2d6743eb968cc010c92b61a1e92db8680954e159f62e9dc94af45602394ff",
+      "warningCount": 0
+    }
+  ],
+  "failures": [],
+  "visualInspection": {
+    "dpi": 96,
+    "pagePairs": 4,
+    "remaining": [
+      "Font selection",
+      "Title clamp and truncation",
+      "Repeated search control in fixed header",
+      "Footer spacing and wrapping"
+    ],
+    "parityClaim": false
+  },
+  "h4": {
+    "acceptance": "Passed",
+    "cases": 8,
+    "allOfficeimoPngsByteIdenticalTo": "45b4b30bb",
+    "officeimoPngsCompared": 85,
+    "chromiumIdentical": 45,
+    "chromiumChanged": [
+      "legacy-portal/chromium-print-1.png",
+      "legacy-portal/chromium-screen.png"
+    ],
+    "browserPrintChange": "Animated marquee position; remaining geometry and text stable."
+  },
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/h10-nasa-intrinsic-clean-ff51de367",
+  "retainedArchive": "Ignore/HtmlUnknownPageQualification/h10-nasa-font-capture-clean/source.mhtml"
+}
