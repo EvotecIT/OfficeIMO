@@ -46,21 +46,14 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex));
         if (font == null) return null;
 
-        string contextual = OfficeArabicTextShaper.Shape(request.Text);
+        string contextual = request.ApplyDefaultLatinLigatures ? request.Text : OfficeArabicTextShaper.Shape(request.Text);
         IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(
             request.Text,
             contextual,
             request.Direction,
-            request.CancellationToken);
+            request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures);
         if (visualElements.Count == 0) return null;
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
-        // Retain the established scalar/bidi fallback when presentation glyphs are absent.
-        // Only eligible Latin segments receive automatic GSUB; other scripts remain diagnosed.
-        if (request.ApplyDefaultLatinLigatures && !font.HasGlyphs(visual)) {
-            visualElements = MapVisualElements(request.Text, OfficeArabicTextShaper.ToLogicalText(request.Text),
-                request.Direction, request.CancellationToken);
-            visual = string.Concat(visualElements.Select(static element => element.VisualText));
-        }
         if (!font.HasGlyphs(visual)) return null;
         var tokens = new List<OfficeOpenTypeSubstitution.GlyphToken>();
         foreach (VisualTextElement element in visualElements) {
@@ -114,7 +107,8 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         string logical,
         string contextual,
         OfficeTextDirection direction,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        bool reorder = true) {
         var logicalElements = new List<VisualTextElement>();
         int logicalIndex = 0;
         foreach (string contextualElement in OfficeTextElements.Enumerate(contextual)) {
@@ -127,6 +121,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             logicalIndex += length;
         }
 
+        if (!reorder) return logicalElements;
         return OfficeBidiTextResolver.ToVisualOrder(
             contextual,
             logicalElements,

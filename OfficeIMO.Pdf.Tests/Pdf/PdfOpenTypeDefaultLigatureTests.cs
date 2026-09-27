@@ -8,6 +8,21 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
+    [Theory]
+    [InlineData("\u0628\u062A")]
+    [InlineData("\u05D0\u05D1")]
+    public void AutomaticLatinModePreservesNonLatinScalarSequence(string text) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(0x0628, 0x062A, 0xFE91, 0xFE96, 0x05D0, 0x05D1);
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
+        var scalar = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.UnicodeScalar));
+        var automatic = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(scalar.Glyphs.Select(glyph => glyph.GlyphId), automatic.Glyphs.Select(glyph => glyph.GlyphId));
+        Assert.Equal(text, string.Concat(automatic.Glyphs.Select(glyph => glyph.UnicodeText)));
+        Assert.Equal(scalar.TotalAdvanceWidth1000, automatic.TotalAdvanceWidth1000);
+        var explicitManaged = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures,
+            shapingProvider: OfficeManagedTextShapingProvider.Instance));
+        Assert.NotEqual(automatic.Glyphs.Select(glyph => glyph.GlyphId).ToArray(), explicitManaged.Glyphs.Select(glyph => glyph.GlyphId).ToArray());
+    }
     [Fact]
     public void RedactingMixedWhitespaceLigaturePreservesFollowingWord() {
         byte[] data = ManagedTextShapingTestAssets.CreateMixedWhitespaceLigatureFont();
