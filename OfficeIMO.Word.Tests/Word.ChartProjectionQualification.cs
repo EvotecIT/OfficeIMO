@@ -46,15 +46,23 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("titleParagraphs")]
     [InlineData("titleBreak")]
     [InlineData("dataTable")]
+    [InlineData("hierarchy")]
+    [InlineData("secondaryCategory")]
+    [InlineData("labelOffset")]
+    [InlineData("rounded")]
+    [InlineData("crossBetween")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
         var kind = feature == "negative" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
         var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, -4d }) }), title: "Revenue");
+        if (feature == "secondaryCategory") chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 3d, -4d }),
+            new OfficeChartSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
         var space = chart.ChartPart!.ChartSpace!;
         var native = space.GetFirstChild<C.Chart>()!;
         var plot = native.PlotArea!;
         var layer = plot.ChildElements.OfType<OpenXmlCompositeElement>().First(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal));
-        var series = layer.ChildElements.OfType<OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
+        var series = layer.ChildElements.OfType<OpenXmlCompositeElement>().First(item => item.LocalName == "ser");
         if (feature == "trendline") series.AddChild(new C.Trendline(new C.TrendlineType { Val = C.TrendlineValues.Linear }), true);
         else if (feature == "errorBars") series.AddChild(new C.ErrorBars(), true);
         else if (feature == "dropLines") layer.AddChild(new C.DropLines(), true);
@@ -80,6 +88,11 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "titleParagraphs") native.GetFirstChild<C.Title>()!.Descendants<C.RichText>().Single().Append(new A.Paragraph(new A.Run(new A.Text("2026"))));
         else if (feature == "titleBreak") native.GetFirstChild<C.Title>()!.Descendants<A.Paragraph>().Single().Append(new A.Break(), new A.Run(new A.Text("2026")));
         else if (feature == "dataTable") plot.AddChild(new C.DataTable(new C.ShowHorizontalBorder { Val = true }), true);
+        else if (feature == "hierarchy") series.GetFirstChild<C.CategoryAxisData>()!.Append(new C.MultiLevelStringReference());
+        else if (feature == "secondaryCategory") plot.Elements<C.CategoryAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Top).GetFirstChild<C.Delete>()!.Val = false;
+        else if (feature == "labelOffset") plot.GetFirstChild<C.CategoryAxis>()!.GetFirstChild<C.LabelOffset>()!.Val = 200;
+        else if (feature == "rounded") space.GetFirstChild<C.RoundedCorners>()!.Val = true;
+        else if (feature == "crossBetween") plot.GetFirstChild<C.ValueAxis>()!.GetFirstChild<C.CrossBetween>()!.Val = C.CrossBetweenValues.MidpointCategory;
         else if (feature == "dateAxis") {
             var category = plot.GetFirstChild<C.CategoryAxis>()!;
             var replacement = new C.DateAxis();

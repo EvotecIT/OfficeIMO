@@ -8,6 +8,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartStyle ReadStyle(C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null) {
+            if (chart.Parent?.GetFirstChild<C.RoundedCorners>()?.Val?.Value == true)
+                throw new NotSupportedException("Rounded native chart frames cannot be projected.");
             if (chart.GetFirstChild<C.Legend>()?.Elements<C.LegendEntry>().Any(entry => entry.GetFirstChild<C.TextProperties>() != null) == true)
                 throw new NotSupportedException("Per-entry legend text formatting cannot be projected.");
             if (chart.Descendants<C.Title>().Cast<OpenXmlElement>().Concat(chart.Elements<C.Legend>())

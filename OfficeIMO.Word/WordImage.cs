@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the relationship id of the embedded image.
         /// </summary>
-        public string? RelationshipId => GetBlip()?.Embed?.Value;
+        public string? RelationshipId => _vmlImageData?.RelationshipId?.Value ?? GetBlip()?.Embed?.Value;
 
         /// <summary>
         /// Gets the relationship id of an externally linked image, if any.
@@ -168,7 +168,7 @@ namespace OfficeIMO.Word {
         /// Get or sets the image's file name
         /// </summary>
         public string? FileName {
-            get => GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
+            get => _vmlShape != null ? _imagePart?.Uri.ToString().Split('/').LastOrDefault() : GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
                 var drawingProperties = GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
@@ -182,7 +182,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the image's description.
         /// </summary>
         public string? Description {
-            get => GetDocProperties()?.Description;
+            get => _vmlShape != null ? _vmlShape.GetAttribute("alt", "").Value : GetDocProperties()?.Description;
             set => GetWritableDocProperties()?.Description = value;
         }
 
@@ -227,6 +227,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? Width {
             get {
+                if (_vmlShape != null) return ReadVmlDimension("width");
                 var inlineCx = _Image.Inline?.Extent?.Cx?.Value;
                 if (inlineCx.HasValue) {
                     return inlineCx.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
@@ -269,6 +270,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? Height {
             get {
+                if (_vmlShape != null) return ReadVmlDimension("height");
                 var inlineCy = _Image.Inline?.Extent?.Cy?.Value;
                 if (inlineCy.HasValue) {
                     return inlineCy.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
