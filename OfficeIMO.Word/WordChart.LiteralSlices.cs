@@ -22,6 +22,9 @@ public partial class WordChart {
             _currentIndexValues = 0U;
             return;
         }
+        if (_chart.PlotArea?.ChildElements.Where(element =>
+                element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).Take(2).Count() != 1)
+            throw new NotSupportedException("Slice appends require a plot area with exactly one chart group.");
         OpenXmlCompositeElement? family = doughnut
             ? _chart.PlotArea?.GetFirstChild<DoughnutChart>()
             : (OpenXmlCompositeElement?)_chart.PlotArea?.GetFirstChild<PieChart>() ??

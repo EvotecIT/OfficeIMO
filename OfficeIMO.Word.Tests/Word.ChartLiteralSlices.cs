@@ -10,6 +10,48 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartLiteralSliceTests {
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SliceAppend_CreatesMissingDataSourcesBeforeSeriesExtensions(int family) {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        Append(chart, family, "A", 8);
+        PieChartSeries series = chart.ChartPart!.ChartSpace.Descendants<PieChartSeries>().Single();
+        series.RemoveAllChildren<CategoryAxisData>();
+        series.RemoveAllChildren<Values>();
+        series.Append(new ExtensionList());
+        Assert.Empty(document.ValidateDocument());
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        stream.Position = 0;
+        using WordDocument reopened = WordDocument.Load(stream);
+        chart = reopened.Charts.Single();
+        Append(chart, family, "B", 2);
+        series = chart.ChartPart!.ChartSpace.Descendants<PieChartSeries>().Single();
+        Assert.Equal("extLst", series.LastChild!.LocalName);
+        Assert.Equal("B", series.GetFirstChild<CategoryAxisData>()!.InnerText);
+        Assert.Equal("2", series.GetFirstChild<Values>()!.Descendants<NumericValue>().Single().Text);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SliceAppend_RejectsAdditionalPlotGroupsBeforeMutation(int family) {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        Append(chart, family, "A", 8);
+        PlotArea plot = chart.ChartPart!.ChartSpace.GetFirstChild<Chart>()!.PlotArea!;
+        OpenXmlCompositeElement extra = family == 0 ? new DoughnutChart(new HoleSize { Val = (byte)50 }) : new PieChart();
+        plot.Append(extra);
+        string before = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.Throws<NotSupportedException>(() => Append(chart, family, "B", 2));
+        Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
+    [Theory]
     [InlineData(0, false)]
     [InlineData(1, false)]
     [InlineData(2, false)]
