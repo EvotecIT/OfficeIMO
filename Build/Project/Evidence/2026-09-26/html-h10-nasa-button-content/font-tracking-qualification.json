@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "687984d61f04f4a99fc9ca539fb1855c9825a9ac",
+  "validatedCandidateFingerprint": "1acbcf2fb9b0368b4b2420596a40fd8ec8871fc2",
+  "runUtc": "2026-09-27T16:40:58.833752+00:00",
+  "platform": {
+    "os": "macOS 27.0",
+    "sdk": "10.0.112",
+    "poppler": "26.09.0"
+  },
+  "scope": "Bounded horizontal normal AAT tracking in Drawing and ordinary embedded TrueType PDF text; prerequisite evidence, not NASA or H10 acceptance.",
+  "contracts": [
+    "Nominal glyph metrics and embedded PDF widths remain unchanged.",
+    "Run measurement and painting apply size-dependent normal tracking once per painted grapheme cluster.",
+    "Positive and signed RTL runs preserve attached glyph offsets; ligatures count as their painted cluster.",
+    "Raster export scale changes geometry while retaining the authored tracking evaluation size.",
+    "The optional HarfBuzz adapter excludes trak from its shaping face; the owned layout applies tracking.",
+    "Standard, named, explicit-direction positioned and embedded/fallback form PDF paths use the same tracking-aware commands."
+  ],
+  "systemUiExplicitInstance": {
+    "fontSha256": "44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571",
+    "fontSize": 16,
+    "opticalSize": 17,
+    "reference": "system-ui-native-metrics.json",
+    "coreTextWidth": 72.5625,
+    "chromiumWidth": 72.5625,
+    "managed": {
+      "opsz": 17,
+      "loaded": true,
+      "measured": true,
+      "width": 72.5625,
+      "advances": [
+        10.46875,
+        9.0234375,
+        3.640625,
+        13.609375,
+        8.515625,
+        5.5,
+        3.640625,
+        9.140625,
+        9.0234375
+      ]
+    },
+    "limitation": "Only the explicit optical-size-17 instance at authored size 16 is matched here; generic-family mapping and automatic per-size selection remain unimplemented."
+  },
+  "validation": {
+    "pdfNet10": {
+      "passed": 7961,
+      "skipped": 0
+    },
+    "pdfNet8": {
+      "passed": 7961,
+      "skipped": 0
+    },
+    "focusedPdfFontFormShapingNet10": {
+      "passed": 133
+    },
+    "focusedDrawingTrackingNet10": {
+      "passed": 22
+    },
+    "pdfNetstandard20Build": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "priorCoreTrackingCandidate": {
+      "fingerprint": "253088053dc35d2083c88a068044e57f91555eaa",
+      "drawingNet10Passed": 2660,
+      "drawingNet8Passed": 2660,
+      "harfBuzzNet10Passed": 24,
+      "harfBuzzNet8Passed": 24,
+      "boundary": "Before the mechanically shared grapheme helper and PDF integration; final shared helper is additionally covered by focused Drawing and full PDF checks."
+    }
+  },
+  "regressionReproduction": {
+    "beforePdfTracking": {
+      "measuredWidthFailed": 2,
+      "measuredWidthPassed": 1,
+      "cases": "Sizes 10 and 15 measured nominal widths before the implementation; size 20 had zero normal tracking and already passed."
+    },
+    "reviewFindingsBeforeFix": {
+      "failed": 5,
+      "passed": 1,
+      "cases": "Four standard/named LTR/RTL positioned measurements and one negative attached-mark cluster failed; positive attachment passed."
+    },
+    "reviewDisposition": "Both PDF findings fixed and validated; one targeted read-only confirmation reported no actionable findings."
+  },
+  "renderedEvidence": {
+    "rasterDpi": 192,
+    "comparisons": [
+      {
+        "renderer": "poppler",
+        "size": [
+          480,
+          160
+        ],
+        "changedPixels": 66,
+        "differenceBounds": [
+          64,
+          40,
+          96,
+          64
+        ]
+      },
+      {
+        "renderer": "drawing",
+        "size": [
+          360,
+          120
+        ],
+        "changedPixels": 0,
+        "differenceBounds": null
+      },
+      {
+        "renderer": "poppler-direct-canvas",
+        "size": [
+          480,
+          160
+        ],
+        "changedPixels": 0,
+        "differenceBounds": null
+      },
+      {
+        "renderer": "poppler-directed",
+        "size": [
+          480,
+          160
+        ],
+        "changedPixels": 0,
+        "differenceBounds": null
+      },
+      {
+        "renderer": "poppler-signed",
+        "size": [
+          480,
+          160
+        ],
+        "changedPixels": 0,
+        "differenceBounds": null
+      },
+      {
+        "renderer": "poppler-form-embedded-versus-fallback",
+        "size": [
+          480,
+          160
+        ],
+        "changedPixels": 0,
+        "differenceBounds": null
+      }
+    ],
+    "signedAndDirectedFixture": "Synthetic independent marker font; manually positioned untracked references test geometry. Directed fixture uses internal scene construction and public PDF authoring.",
+    "textExtraction": "Poppler retains AB in direct/directed/form documents and A plus combining acute plus B in the signed fixture.",
+    "carlitoSha256": "f6418f708baede9789daef5d458c0f53d2a888af9820e8062934e504fedc6595",
+    "probeSha256": "01c9f774bd74325ffd46376efe342a3aa834cb33fa5442b3d25f46c3af015e1d",
+    "residual": "Carlito Drawing-to-PDF differs by 66 pixels from independent placement because of existing rounded nominal PDF metrics and run fitting. This is not exact visual parity."
+  },
+  "remainingQualification": {
+    "automaticOpticalSizeAndGenericAliases": false,
+    "authoredSizePreservedAcrossHtmlPdfScaling": false,
+    "nasaAllPageReplayForThisSource": false,
+    "h4AcceptanceForThisSource": false,
+    "supportedPlatformBudgets": false,
+    "fullH10MilestonesComplete": false
+  },
+  "retainedArtifacts": [
+    "Ignore/HtmlUnknownPageQualification/h10-systemui-probe-36ebe9646",
+    "Ignore/HtmlUnknownPageQualification/h10-pdf-tracking-8f2b21d5b"
+  ],
+  "cleanup": "Task-created probe bin/obj and optional HarfBuzz test bin/obj removed; compact sources, PDF/PNG comparisons and measurements retained."
+}
