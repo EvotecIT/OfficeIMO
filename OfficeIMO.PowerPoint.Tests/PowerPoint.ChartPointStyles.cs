@@ -47,6 +47,21 @@ public sealed class PowerPointChartPointStylesTests {
 
     [Theory]
     [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Bubble)]
+    public void PointStyles_PreserveExplicitOutlineVisibilityWithoutColourOrWidth(OfficeChartKind kind) {
+        using PowerPointPresentation authored = PowerPointPresentation.Create();
+        authored.AddSlide().AddChartPoints(kind, Data(kind, new OfficeChartPointStyle?[] {
+            new(showOutline: true), new(showOutline: false), null }), 20, 20, 600, 320);
+        using var bytes = new MemoryStream(authored.ToBytes());
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+        Assert.True(reopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
+        Assert.False(snapshot.Data.Series[0].PointStyles![1]!.ShowOutline);
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
     [InlineData(OfficeChartKind.ColumnClustered)]
     public void PointStyles_RenderHatchesInPngHtmlAndPdf(OfficeChartKind kind) {

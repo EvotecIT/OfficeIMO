@@ -17,6 +17,7 @@ public sealed class WordChartPointStylesTests {
             using (WordDocument authored = WordDocument.Create(path)) {
                 WordChart authoredChart = authored.AddChart("Status", false, 360, 180);
                 authoredChart.AddPie("Pass", 3).AddPie("Unknown", 2).AddPie("Fail", 1);
+                authoredChart.SetDataPointStyle(0, 0, new(showOutline: true));
                 authoredChart.SetDataPointStyle(0, 1, new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2));
                 authoredChart.SetDataPointStyle(0, 2, new(OfficeColor.White, hatch: OfficeChartHatchPattern.DiagonalCross,
                     hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black));
@@ -25,6 +26,7 @@ public sealed class WordChartPointStylesTests {
             using WordDocument reopened = WordDocument.Load(path);
             WordChart chart = Assert.Single(reopened.Charts);
             Assert.True(chart.TryGetSnapshot(out WordChartSnapshot snapshot));
+            Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
             Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
             Assert.Equal(OfficeChartHatchPattern.DiagonalCross, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
             Assert.Empty(reopened.ValidateDocument());
@@ -39,7 +41,7 @@ public sealed class WordChartPointStylesTests {
                 for (int x = 0; x < raster.Width; x++)
                     if (IsPurpleStroke(raster.GetPixel(x, y))) pixels++;
             Assert.True(pixels > 25, "Expected hatch strokes in the PDF; actual pixels " + pixels);
-            chart.SetDataPointStyle(0, 1, null).SetDataPointStyle(0, 2, null);
+            chart.SetDataPointStyle(0, 0, null).SetDataPointStyle(0, 1, null).SetDataPointStyle(0, 2, null);
             Assert.True(chart.TryGetSnapshot(out snapshot));
             Assert.Null(snapshot.Data.Series[0].PointStyles);
         } finally { if (File.Exists(path)) File.Delete(path); }

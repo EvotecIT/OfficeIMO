@@ -59,6 +59,19 @@ public sealed class DrawingChartPointStylesTests {
     }
 
     [Fact]
+    public void PointStyles_EnableBubbleOutlineOverDisabledSeriesOutline() {
+        var series = OfficeChartSeries.CreateBubble("Results", new[] { 1d }, new[] { 2d }, new[] { 3d },
+            showMarkerOutline: false).WithPointStyles(new OfficeChartPointStyle?[] { new(noFill: true, showOutline: true) });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
+            OfficeChartKind.Bubble, new OfficeChartData(new[] { "A" }, new[] { series }), 320, 240,
+            layout: new OfficeChartLayout(showLegend: false)));
+        var bubble = Assert.Single(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse);
+        Assert.Null(bubble.Shape.FillColor);
+        Assert.Equal(OfficeColor.Black, bubble.Shape.StrokeColor);
+        Assert.True(bubble.Shape.StrokeWidth > 0);
+    }
+
+    [Fact]
     public void PointStyles_RejectContradictoryAndUnboundedAppearance() {
         Assert.Throws<ArgumentException>(() => new OfficeChartPointStyle(OfficeColor.Black, noFill: true));
         Assert.Throws<ArgumentException>(() => new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.Cross));

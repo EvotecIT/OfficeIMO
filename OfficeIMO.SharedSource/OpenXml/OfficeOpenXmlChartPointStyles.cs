@@ -65,7 +65,7 @@ internal static class OfficeOpenXmlChartPointStyles {
             else { hatch = null; hatchColor = null; }
             A.Outline? outline = properties.GetFirstChild<A.Outline>();
             OfficeColor? line = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
-            bool? showOutline = outline?.GetFirstChild<A.NoFill>() != null ? false : line.HasValue ? true : null;
+            bool? showOutline = outline == null ? null : outline.GetFirstChild<A.NoFill>() != null ? false : true;
             double? width = outline?.Width?.Value is int emu && emu > 0 ? emu / 12700D : null;
             if (!fill.HasValue && !noFill && !hatch.HasValue && !line.HasValue && !width.HasValue && !showOutline.HasValue) continue;
             styles ??= new OfficeChartPointStyle?[count];

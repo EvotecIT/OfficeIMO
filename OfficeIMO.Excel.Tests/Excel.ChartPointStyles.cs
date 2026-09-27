@@ -16,7 +16,7 @@ public sealed class ExcelChartPointStylesTests {
         var hatch = new OfficeChartPointStyle(OfficeColor.White, hatch: OfficeChartHatchPattern.DiagonalCross,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
         var series = new OfficeChartSeries("Status", new[] { 3d, 2d, 1d })
-            .WithPointStyles(new OfficeChartPointStyle?[] { null, new(noFill: true, outlineColor: OfficeColor.Black), hatch });
+            .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true), new(noFill: true, outlineColor: OfficeColor.Black), hatch });
         using ExcelDocument authored = ExcelDocument.Create();
         authored.AddWorksheet("Results").AddChart(kind,
             new OfficeChartData(new[] { "Pass", "Unknown", "Fail" }, new[] { series }), 1, 1);
@@ -25,6 +25,7 @@ public sealed class ExcelChartPointStylesTests {
         Assert.Empty(reopened.ValidateDocument());
         ExcelChart chart = Assert.Single(reopened.Sheets.Single(sheet => sheet.Name == "Results").Charts);
         Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.True(snapshot.Data.Series[0].PointStyles![0]!.ShowOutline);
         Assert.True(snapshot.Data.Series[0].PointStyles![1]!.NoFill);
         Assert.Equal(hatch.Hatch, snapshot.Data.Series[0].PointStyles![2]!.Hatch);
         string svg = System.Text.Encoding.UTF8.GetString(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
@@ -41,7 +42,7 @@ public sealed class ExcelChartPointStylesTests {
                     if (IsPurpleStroke(raster.GetPixel(x, y))) pixels++;
         }
         Assert.True(pixels > 25, "Expected hatch strokes in the workbook PDF; actual pixels " + pixels);
-        chart.SetDataPointStyle(0, 1, null).SetDataPointStyle(0, 2, null);
+        chart.SetDataPointStyle(0, 0, null).SetDataPointStyle(0, 1, null).SetDataPointStyle(0, 2, null);
         Assert.True(chart.TryGetSnapshot(out snapshot));
         Assert.Null(snapshot.Data.Series[0].PointStyles);
     }
