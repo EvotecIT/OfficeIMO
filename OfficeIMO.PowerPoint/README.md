@@ -355,6 +355,13 @@ The shared authoring overload covers clustered, stacked, and 100% stacked column
 variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
 used by PNG/SVG, HTML, and PDF paths.
 
+Category and scatter readback retains supported marker shape, size and outline,
+connecting-line visibility, and stroke width and dash. Group marker settings and
+scatter styles apply when a series does not override them. Static projections
+reject unqualified dashes, curved lines, distinct marker and line colours, and
+unfilled marker treatments. Native data editing remains available. Cached chart
+projections are bounded to 100,000 positions across all native layers.
+
 Data updates retain cached formula-linked chart and axis titles and custom
 labels as native rich text, and custom error bars as numeric literals when
 replacing the embedded worksheet. Uncached bindings and unqualified workbook-linked

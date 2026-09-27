@@ -6,6 +6,45 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
     [Fact]
+    public void NumericAxes_KeepSmallNonzeroTicksDistinctFromZero() {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Small ticks", null, OfficeChartKind.Line,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.00025, 0.001 }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.001, verticalAxisMajorUnit: 0.00025)));
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("0.00025", labels);
+        Assert.Contains("0.001", labels);
+        Assert.DoesNotContain(labels, text => text.Contains("%"));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.BarClustered)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void NumericAxes_DoNotInferPercentagesFromFractionalTicks(OfficeChartKind kind) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Numeric ticks", null, kind,
+            new OfficeChartData(new[] { "One", "Two", "Three" }, new[] {
+                new OfficeChartSeries("Measurements", new[] { 1d, 3d, 2d }, new[] { 1d, 2d, 3d }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 3, verticalAxisMajorUnit: 0.75,
+                horizontalAxisMinimum: 0, horizontalAxisMaximum: 3, horizontalAxisMajorUnit: 0.75)));
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("0.75", labels);
+        Assert.DoesNotContain(labels, text => text.Contains("%"));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line, "0%")]
+    [InlineData(OfficeChartKind.LineStacked100, null)]
+    public void PercentageAxes_RetainExplicitOrPercentStackedFormatting(OfficeChartKind kind, string? format) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Percentage ticks", null, kind,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.25, 0.5 }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 1,
+                verticalAxisMajorUnit: 0.25, verticalAxisNumberFormat: format)));
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("25%", labels);
+        Assert.Contains("100%", labels);
+    }
+
+    [Fact]
     public void OfficeChartDrawingRenderer_BoundsCategoryLabelMeasurementWork() {
         const int categoryCount = 5_000;
         string oversizedLabel = new string('W', 100_000);
