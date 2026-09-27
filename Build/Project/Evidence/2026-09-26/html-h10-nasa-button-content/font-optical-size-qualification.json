@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "af9cdf10fcebb02f1148f6fc230a279b24a969a9",
+  "validatedCandidateFingerprint": "408fccb4ec4bc1b0cc340e8fd371651cbc409709",
+  "runUtc": "2026-09-27T17:04:08.547817+00:00",
+  "scope": "Scoped built-in TrueType optical selection, raster output scaling, HTML shaping/metrics and HTML-to-PDF outlines. Prerequisite evidence, not NASA or H10 acceptance.",
+  "contracts": [
+    "Authored size selects opsz within the declared axis range; explicit opsz is preserved.",
+    "Other selected axes, provider-owned programs, cloned faces and aliases retain their ownership contract.",
+    "Per-program and per-face optical instance caches each retain at most 16 entries and share accepted font bytes.",
+    "Raster scale changes geometry while selecting optical size from the authored size.",
+    "HTML PDF outline selection uses CSS text size before conversion to points."
+  ],
+  "validation": {
+    "drawing-net10": {
+      "passed": 2675,
+      "failed": 0,
+      "skipped": 0
+    },
+    "drawing-net8": {
+      "passed": 2675,
+      "failed": 0,
+      "skipped": 0
+    },
+    "html-net10": {
+      "passed": 3639,
+      "failed": 0,
+      "skipped": 0
+    },
+    "html-net8": {
+      "passed": 3639,
+      "failed": 0,
+      "skipped": 0
+    },
+    "core-netstandard2.0": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "html-pdf-netstandard2.0": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "review": {
+    "agent": "h10_optical_size_review",
+    "scope": "Fresh read-only review of the optical-size contract and listed consumers.",
+    "actionableP0ToP2Findings": 0,
+    "targetedConfirmationRequired": false
+  },
+  "nativeMetrics": {
+    "fontSha256": "44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571",
+    "reference": "Ignore/HtmlUnknownPageQualification/h10-systemui-probe-36ebe9646/native-font-size-matrix.txt",
+    "samples": [
+      {
+        "size": 10,
+        "managedWidth": 48.1640625,
+        "nativeWidth": 48.1640625,
+        "difference": 0.0
+      },
+      {
+        "size": 12,
+        "managedWidth": 56.53125,
+        "nativeWidth": 56.53125,
+        "difference": 0.0
+      },
+      {
+        "size": 14,
+        "managedWidth": 64.599609375,
+        "nativeWidth": 64.599609375,
+        "difference": 0.0
+      },
+      {
+        "size": 16,
+        "managedWidth": 72.5625,
+        "nativeWidth": 72.5625,
+        "difference": 0.0
+      },
+      {
+        "size": 20,
+        "managedWidth": 87.94921875,
+        "nativeWidth": 87.94174194335938,
+        "difference": 0.007476806640625
+      },
+      {
+        "size": 24,
+        "managedWidth": 104.40234375,
+        "nativeWidth": 104.41412544250488,
+        "difference": -0.011781692504882812
+      },
+      {
+        "size": 32,
+        "managedWidth": 139.28125,
+        "nativeWidth": 139.28125,
+        "difference": 0.0
+      },
+      {
+        "size": 48,
+        "managedWidth": 206.6015625,
+        "nativeWidth": 206.6015625,
+        "difference": 0.0
+      }
+    ],
+    "maximumAbsoluteDifference": 0.011781692504882812,
+    "limit": "Width measurements; no claim of native pixel equivalence. Existing integer variation metric rounding remains at sizes 20 and 24."
+  },
+  "htmlPdfProof": {
+    "authoredCssSizes": [
+      16,
+      24
+    ],
+    "explicitAxisReferencePairsByteIdentical": 2,
+    "automatedRegressionCssSizes": [
+      16,
+      24,
+      48
+    ],
+    "nativeRenderedSampleInspected": "html-automatic-24.png"
+  },
+  "rasterProof": {
+    "sizes": [
+      16,
+      24
+    ],
+    "scales": [
+      1,
+      2
+    ],
+    "explicitAxisReferencePixelsIdentical": true,
+    "samplesInspected": [
+      "automatic-16-2x.png",
+      "automatic-24-2x.png"
+    ]
+  },
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/h10-optical-size-cd726b200",
+  "retainedBytes": 39134,
+  "cleanup": {
+    "probeBinAndObjRemoved": true,
+    "approximateBuildBytesRemoved": 23068672
+  },
+  "remainingQualification": [
+    "Shared installed system-font alias resolution.",
+    "Authored tracking-size preservation in ordinary embedded HTML-to-PDF text.",
+    "NASA all-page visual replay, H4 and supported-platform budgets.",
+    "Remaining frozen and replacement corpus PDF/editable-output acceptance."
+  ],
+  "goalComplete": false
+}
