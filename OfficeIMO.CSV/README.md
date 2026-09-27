@@ -394,8 +394,11 @@ mutable single-threaded state.
 `OpenDataReaderAsync` performs bounded asynchronous source I/O and returns a
 memory-backed reader whose `ReadAsync` cursor works with `RowsAsAsync<T>`.
 Use `CsvDocument.Load` when an editable materialized document is required.
-`LoadAsync` and `SaveAsync` perform asynchronous source or destination I/O but
-still materialize the document or serialized output.
+`LoadAsync` materializes the document. `SaveAsync` formats and writes one record
+at a time through asynchronous destination I/O, without buffering the complete
+serialized file. Its temporary memory follows the largest record. Path replacements
+stage output before committing it; appends write directly and can leave a partial
+append on failure. Caller-owned streams stay open.
 
 Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
 `RecordNumber` is the one-based data-record number, while
@@ -512,6 +515,12 @@ CsvDocument.Load("next.csv")
         IncludeHeader = false
     });
 ```
+
+Append inserts a record separator when the existing file has no terminal newline.
+Empty appends leave the file unchanged. Use the existing file's encoding and dialect.
+Documents retain the full loaded `DelimiterText`, including multi-character delimiters,
+for default saves. `ICsvDataReaderDialectMetadata.DelimiterText` exposes that dialect
+through data readers; `Delimiter` remains the first character for existing consumers.
 
 ## Objects and ad hoc data
 

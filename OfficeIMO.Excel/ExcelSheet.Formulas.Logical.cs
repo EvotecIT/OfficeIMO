@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
-                result = new FormulaArgumentValue(isFormula ? 1d : 0d, isFormula ? "1" : "0");
+                result = new FormulaArgumentValue(isFormula ? 1d : 0d, isFormula ? "1" : "0", isBoolean: true);
                 return true;
             }
 
@@ -201,7 +201,7 @@ namespace OfficeIMO.Excel {
                     return false;
             }
 
-            result = new FormulaArgumentValue(matches ? 1d : 0d, matches ? "1" : "0");
+            result = new FormulaArgumentValue(matches ? 1d : 0d, matches ? "1" : "0", isBoolean: true);
             return true;
         }
 

@@ -564,6 +564,20 @@ OfficeIMO stores the native connection, table, and query-table relationship chai
 
 ### Formula inspection and calculation policy
 
+Scalar calculation supports parentheses, unary signs, percentages, powers,
+arithmetic precedence, text concatenation, comparisons, and expressions inside
+supported function arguments. For example, `SUM(A1,2)*3` and
+`IF(A1*2>10,"High","Low")` can be calculated without Excel. Errors such as
+`#DIV/0!`, `#VALUE!`, and `#NUM!` propagate through these expressions. Syntax
+and nested function evaluation are bounded to 128 levels; unsupported formulas
+continue to be reported explicitly rather than calculated from stale caches.
+
+For bounded row-memory XLSX exports, set `RequireStreaming = true` in
+`ExcelTabularWriteOptions`. With `WriteDataReader`, also set
+`UseSharedStrings = false` and `AutoFit = false`; tables require headers.
+With `WriteRows`, turn off tables and automatic sizing. Incompatible options
+are rejected before source rows are consumed or destination bytes are written.
+
 ```csharp
 using var document = ExcelDocument.Load("report.xlsx");
 

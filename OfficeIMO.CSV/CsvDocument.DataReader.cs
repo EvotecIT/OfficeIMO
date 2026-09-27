@@ -515,7 +515,8 @@ public sealed partial class CsvDocument
             _dateTimeFormats,
             _delimiter,
             _mappingErrorValuePolicy,
-            _rowsAreParsedStringsOnly), options);
+            _rowsAreParsedStringsOnly,
+            delimiterText: DelimiterText), options);
     }
 
     private static bool CanUseSinglePassFileDataReader(CsvLoadOptions options, CsvDataReaderOptions readerOptions) =>
@@ -830,7 +831,7 @@ public sealed partial class CsvDocument
                 EnumerateSampledThenRemainingRows(sampledRows, rowOwner),
                 _culture,
                 _dateTimeFormats,
-                _streamingSource.Options.Delimiter,
+                CsvParser.GetDelimiterChar(_streamingSource.Options),
                 _streamingSource.Options.MappingErrorValuePolicy,
                 rowOwner: rowOwner,
                 operationCancellationOptions: inferenceOptions);

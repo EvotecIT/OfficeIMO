@@ -16,7 +16,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Forward-only reader for CSV rows projected through an optional schema.
 /// </summary>
-internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastMappingValues, IDataReaderParallelBatchSource, IDataReaderParallelBatchInfo
+internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderDialectMetadata, ICsvDataReaderPositionMetadata, IDataReaderMappingMetadata, IDataReaderMappingErrorMetadata, IDataReaderFastMappingValues, IDataReaderParallelBatchSource, IDataReaderParallelBatchInfo
 {
 #if NET8_0_OR_GREATER
     bool IDataReaderParallelBatchSource.CanReadParallelBatches =>
@@ -361,13 +361,16 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         bool rawRowsAreParsedStringsOnly = false,
         IDisposable? rowOwner = null,
         CancellationToken processingCancellationToken = default,
-        CsvLoadOptions? operationCancellationOptions = null)
+        CsvLoadOptions? operationCancellationOptions = null,
+        string? delimiterText = null)
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         Delimiter = delimiter;
+        DelimiterText = delimiterText ?? (operationCancellationOptions is null
+            ? delimiter.ToString() : CsvParser.GetDelimiterText(operationCancellationOptions));
         _mappingErrorValuePolicy = mappingErrorValuePolicy;
         _rowOwner = rowOwner;
         _stringRowOptions = operationCancellationOptions;
@@ -397,6 +400,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         _dateTimeFormats = dateTimeFormats;
         _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         Delimiter = CsvParser.GetDelimiterChar(options);
+        DelimiterText = CsvParser.GetDelimiterText(options);
         _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -426,6 +430,7 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
         _mappingErrorValuePolicy = options.MappingErrorValuePolicy;
         _rowIndex = initialRowIndex;
         Delimiter = CsvParser.GetDelimiterChar(options);
+        DelimiterText = CsvParser.GetDelimiterText(options);
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectTextSourceStrings = _useRawStringValues && _stringNullValue is null;
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
@@ -442,6 +447,9 @@ internal sealed class CsvDataReader : DbDataReader, ICsvDataReaderMetadata, ICsv
 
     /// <inheritdoc />
     public char Delimiter { get; }
+
+    /// <inheritdoc />
+    public string DelimiterText { get; }
 
     /// <inheritdoc />
     public long RecordNumber => IsPositionedOnRow ? _rowIndex + 1L : 0L;

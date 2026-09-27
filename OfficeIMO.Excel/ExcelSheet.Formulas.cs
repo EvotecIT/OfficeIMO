@@ -260,6 +260,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
+            if (result.IsBoolean) {
+                cell.CellValue = new CellValue(result.Number == 0 ? "0" : "1");
+                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean;
+                return;
+            }
             if (result.Number.HasValue) {
                 cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
@@ -584,13 +589,27 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result) {
+        private int _scalarFormulaEvaluationDepth;
+
+        private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result, bool allowScalarExpression = true) {
+            result = default;
+            if (_scalarFormulaEvaluationDepth >= 128) return false;
+            _scalarFormulaEvaluationDepth++;
+            try {
+                return TryEvaluateFormulaValueCore(formula, out result, allowScalarExpression);
+            } finally {
+                _scalarFormulaEvaluationDepth--;
+            }
+        }
+
+        private bool TryEvaluateFormulaValueCore(string formula, out FormulaArgumentValue result, bool allowScalarExpression) {
             result = default;
             if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
                 return false;
             }
 
             formula = NormalizeSupportedFunctionPrefix(formula);
+            if (allowScalarExpression) return TryEvaluateScalarExpression(formula, out result);
             ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? functionCall);
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
@@ -646,16 +665,25 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryEvaluateFormula(formula, out double numeric)) {
-                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric));
+            if (TryEvaluateFormulaCore(formula, out double numeric, out FormulaArgumentValue error)) {
+                bool isBoolean = functionCall != null && (functionCall.Name.Equals("AND", StringComparison.OrdinalIgnoreCase)
+                    || functionCall.Name.Equals("OR", StringComparison.OrdinalIgnoreCase) || functionCall.Name.Equals("NOT", StringComparison.OrdinalIgnoreCase));
+                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric), isBoolean: isBoolean);
                 return true;
             }
+
+            if (error.IsError) { result = error; return true; }
 
             return false;
         }
 
         private bool TryEvaluateFormula(string formula, out double result) {
+            return TryEvaluateFormulaCore(formula, out result, out _);
+        }
+
+        private bool TryEvaluateFormulaCore(string formula, out double result, out FormulaArgumentValue error) {
             result = 0;
+            error = default;
             if (string.IsNullOrWhiteSpace(formula) || formula.Length > MaxSupportedFormulaLength) {
                 return false;
             }
@@ -817,6 +845,12 @@ namespace OfficeIMO.Excel {
                     if (function == "COUNTA") {
                         result = values.Count(v => v.HasValue || !string.IsNullOrEmpty(v.Text));
                         return true;
+                    }
+
+                    if (function != "COUNT") {
+                        foreach (FormulaArgumentValue value in values) {
+                            if (value.IsError) { error = value; return false; }
+                        }
                     }
 
                     var numbers = values.Where(v => v.Number.HasValue).Select(v => v.Number!.Value).ToList();

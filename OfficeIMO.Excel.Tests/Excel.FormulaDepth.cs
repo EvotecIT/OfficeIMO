@@ -353,6 +353,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(new[] { "Escaped Structured Brackets!A2" }, escapedOpening.Dependencies);
             Assert.Equal(new[] { "Escaped Structured Brackets!B2" }, escapedClosing.Dependencies);
+            Assert.Equal(2, document.Calculate());
+            Assert.Contains(document.InspectFormulas().Formulas, formula => formula.CellReference == "D1" && formula.CachedValue == "1");
+            Assert.Contains(document.InspectFormulas().Formulas, formula => formula.CellReference == "D2" && formula.CachedValue == "2");
         }
 
         [Fact]

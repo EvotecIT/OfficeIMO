@@ -85,20 +85,21 @@ namespace OfficeIMO.Excel {
             return value.ErrorCode ?? value.Text ?? (value.Number.HasValue ? InvariantNumberText.Get(value.Number.Value) : string.Empty);
         }
 
-        private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value) {
+        private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value, bool allowScalarExpression = true) {
             string trimmed = token.Trim();
+            if (allowScalarExpression) return TryEvaluateFormulaValue(trimmed, out value);
             if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"') {
                 value = new FormulaArgumentValue(null, trimmed.Substring(1, trimmed.Length - 2).Replace("\"\"", "\""));
                 return true;
             }
 
             if (trimmed.Equals("TRUE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(1d, "1");
+                value = new FormulaArgumentValue(1d, "1", isBoolean: true);
                 return true;
             }
 
             if (trimmed.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(0d, "0");
+                value = new FormulaArgumentValue(0d, "0", isBoolean: true);
                 return true;
             }
 
@@ -124,7 +125,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryEvaluateFormulaValue(trimmed, out value)) {
+            if (TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false)) {
                 return true;
             }
 
@@ -184,10 +185,26 @@ namespace OfficeIMO.Excel {
             int depth = 0;
             int bracketDepth = 0;
             bool inString = false;
+            bool inQuotedQualifier = false;
 
             for (int index = 0; index < args.Length; index++) {
                 char ch = args[index];
-                if (ch == '"') {
+                if (!inString && bracketDepth > 0 && ch == '\'' && index + 1 < args.Length) {
+                    builder.Append(ch);
+                    builder.Append(args[++index]);
+                    continue;
+                }
+                if (!inString && bracketDepth == 0 && ch == '\'') {
+                    builder.Append(ch);
+                    if (inQuotedQualifier && index + 1 < args.Length && args[index + 1] == '\'') {
+                        builder.Append(args[++index]);
+                    } else {
+                        inQuotedQualifier = !inQuotedQualifier;
+                    }
+                    continue;
+                }
+                if (inQuotedQualifier) { builder.Append(ch); continue; }
+                if (bracketDepth == 0 && ch == '"') {
                     builder.Append(ch);
                     if (inString && index + 1 < args.Length && args[index + 1] == '"') {
                         index++;
@@ -239,7 +256,7 @@ namespace OfficeIMO.Excel {
                 builder.Append(ch);
             }
 
-            if (depth != 0 || bracketDepth != 0 || inString) {
+            if (depth != 0 || bracketDepth != 0 || inString || inQuotedQualifier) {
                 return Array.Empty<string>();
             }
 
@@ -980,6 +997,10 @@ namespace OfficeIMO.Excel {
 
             if (value.Kind == ExcelCellDataKind.Error) {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
+            }
+
+            if (value.Value is bool boolean) {
+                return new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "1" : "0", isBoolean: true);
             }
 
             if (TryParseFormulaErrorLiteral(value.CachedText ?? value.Value?.ToString() ?? string.Empty, out string errorCode)) {

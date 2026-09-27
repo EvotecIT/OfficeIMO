@@ -17,7 +17,7 @@ namespace OfficeIMO.CSV;
 /// bounded workers. The source reader remains owned by one calling thread.
 /// </summary>
 internal sealed class CsvParallelDataReader : DbDataReader,
-    ICsvDataReaderMetadata,
+    ICsvDataReaderDialectMetadata,
     ICsvDataReaderPositionMetadata,
     IDataReaderMappingMetadata,
     IDataReaderMappingErrorMetadata,
@@ -96,6 +96,9 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     public override int Depth => 0;
 
     public char Delimiter => _source.Delimiter;
+
+    /// <inheritdoc />
+    public string DelimiterText => _source.DelimiterText;
 
     public long RecordNumber => IsPositionedOnRow ? _recordNumber : 0;
 

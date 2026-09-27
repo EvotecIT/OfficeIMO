@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 double value = string.Equals(left, right, StringComparison.Ordinal) ? 1d : 0d;
-                result = new FormulaArgumentValue(value, InvariantNumberText.Get(value));
+                result = new FormulaArgumentValue(value, InvariantNumberText.Get(value), isBoolean: true);
                 return true;
             }
 

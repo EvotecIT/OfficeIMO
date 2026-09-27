@@ -9,6 +9,14 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Excel Boolean formula caches
+
+OfficeIMO calculation now saves Boolean formulas as Boolean cached values.
+Comparisons, logical functions, information functions, and `EXACT` read back as
+`bool` through cached-value readers instead of numeric `1` or `0`. Applications
+that previously cast these results to `double` should accept `bool`, or convert
+explicitly with `Convert.ToDouble` when a numeric representation is required.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to

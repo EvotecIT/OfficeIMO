@@ -662,13 +662,13 @@ namespace OfficeIMO.Tests {
                 sheet.CellFormula(4, 2, "SUM({1,2})");
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();
-                Assert.Equal(4, inspection.UnsupportedFormulas);
+                Assert.Equal(3, inspection.UnsupportedFormulas);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B1"
                     && formula.UnsupportedReason == "Function 'UNIQUE' is not supported by OfficeIMO's lightweight evaluator.");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B2"
                     && formula.UnsupportedReason == "Formula uses semicolon argument separators; OfficeIMO's lightweight evaluator expects Open XML comma-separated formulas.");
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B3"
-                    && formula.UnsupportedReason == "Formula uses the text concatenation operator, which OfficeIMO's lightweight evaluator does not currently support.");
+                    && formula.IsSupportedByOfficeIMO);
                 Assert.Contains(inspection.Formulas, formula => formula.CellReference == "B4"
                     && formula.UnsupportedReason == "Formula uses array constants, which OfficeIMO's lightweight evaluator does not currently support.");
             }

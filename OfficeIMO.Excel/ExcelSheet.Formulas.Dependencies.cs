@@ -117,10 +117,6 @@ namespace OfficeIMO.Excel {
                     return "Formula uses semicolon argument separators; OfficeIMO's lightweight evaluator expects Open XML comma-separated formulas.";
                 }
 
-                if (formula.IndexOf('&') >= 0) {
-                    return "Formula uses the text concatenation operator, which OfficeIMO's lightweight evaluator does not currently support.";
-                }
-
                 if (formula.IndexOf('{') >= 0 || formula.IndexOf('}') >= 0) {
                     return "Formula uses array constants, which OfficeIMO's lightweight evaluator does not currently support.";
                 }
