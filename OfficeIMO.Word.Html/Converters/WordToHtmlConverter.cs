@@ -262,6 +262,13 @@ namespace OfficeIMO.Word.Html {
                     }
 
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
+                        run.Chart is WordChart chart) {
+                        IElement? chartImage = CreateChartImage(htmlDoc, chart, options, ref embeddedImageBytes);
+                        if (chartImage != null) target.Add(chartImage);
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
                         run.IsImage && run.Image != null) {
                         var imgObj = run.Image;
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
