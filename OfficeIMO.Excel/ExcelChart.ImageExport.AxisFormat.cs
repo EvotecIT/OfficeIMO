@@ -278,9 +278,9 @@ namespace OfficeIMO.Excel {
 
         private bool HasUnsupportedImageExportAxisNumberFormat(C.ChartSpace chartSpace) {
             foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
-                foreach (var axis in plotArea.Elements<C.ValueAxis>()) {
+                foreach (var axis in plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Where(axis => axis is C.ValueAxis or C.CategoryAxis or C.DateAxis)) {
                     if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
-                        plotArea.Descendants<C.NumberReference>().Any() && ResolveSourceLinkedAxisNumberFormat(axis) == null) return true;
+                        HasSourceLinkedNumericAxisReference(plotArea, axis) && ResolveSourceLinkedAxisNumberFormat(axis) == null) return true;
                 }
                 OpenXmlCompositeElement? categoryAxis = ResolveImageExportCategoryAxis(plotArea);
                 OpenXmlCompositeElement? valueAxis = ResolveImageExportValueAxis(plotArea);
