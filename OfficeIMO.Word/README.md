@@ -435,6 +435,40 @@ string markdown = document.ToMarkdown(new WordToMarkdownOptions());
 document.SaveAsPdf("report.pdf");
 ```
 
+## Editable charts from shared data
+
+Use `WordDocument.AddChart(OfficeChartKind, OfficeChartData, ...)` or the corresponding
+`WordParagraph.AddChart(...)` overload to create a native chart
+with an embedded Excel worksheet. `WordChart.SetData(kind, data)` updates its caches and
+worksheet together, preserving the drawing dimensions, title, name, and alternative text.
+The shared writer supports column and bar grouping variants, line and area grouping variants,
+pie, doughnut, radar, scatter, and bubble charts. Supported category combinations use each
+series' `RenderKind` and `AxisGroup`; scatter, bubble, horizontal bars, pie, doughnut, and radar
+have the combination restrictions enforced by the shared chart contract.
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create();
+var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, new[] {
+    new OfficeChartSeries("Status", new[] { 8d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
+        new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#008000")),
+        new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
+        new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#C00000"))
+    })
+});
+WordChart chart = document.AddChart(OfficeChartKind.Doughnut, data, "Status", width: 360, height: 240);
+chart.Name = "Status distribution";
+chart.AltText = "Eight passed, two could not be evaluated, and one failed.";
+document.Save("status.docx");
+```
+
+Omitting point styles preserves existing native overrides during a data update; supply an
+explicit array containing null entries to clear those points' fill and outline overrides.
+Native authoring is separate from static export support: Word's current snapshot and PDF
+routes do not project bubble or combination charts. Use the native DOCX for those families.
+
 ## Native doughnut charts
 
 `WordChart.AddDoughnut(category, value)` creates an editable native doughnut chart with a
