@@ -57,6 +57,25 @@ public sealed class WordSharedChartAuthoringTests {
     }
 
     [Fact]
+    public void SharedChart_RejectsIncompatibleWorkbookBeforeChangingCachesOrPackage() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Pie, Data(OfficeChartKind.Pie, 0));
+        ChartPart part = chart.ChartPart!;
+        part.DeletePart(part.GetPartsOfType<EmbeddedPackagePart>().Single());
+        EmbeddedPackagePart legacy = part.AddEmbeddedPackagePart("application/vnd.ms-excel");
+        byte[] legacyBytes = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+        using (var content = new MemoryStream(legacyBytes)) legacy.FeedData(content);
+        part.ChartSpace!.GetFirstChild<C.ExternalData>()!.Id = part.GetIdOfPart(legacy);
+        string before = part.ChartSpace.OuterXml;
+        Assert.Throws<NotSupportedException>(() => chart.SetData(OfficeChartKind.Pie, Data(OfficeChartKind.Pie, 10)));
+        Assert.Equal(before, part.ChartSpace.OuterXml);
+        Assert.Equal("application/vnd.ms-excel", part.GetPartsOfType<EmbeddedPackagePart>().Single().ContentType);
+        using var preserved = new MemoryStream();
+        using (Stream content = legacy.GetStream()) content.CopyTo(preserved);
+        Assert.Equal(legacyBytes, preserved.ToArray());
+    }
+
+    [Fact]
     public void SharedChart_ClearingNamePreservesRequiredDrawingAttribute() {
         using WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartKind.Pie, Data(OfficeChartKind.Pie, 0));

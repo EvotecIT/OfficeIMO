@@ -441,6 +441,8 @@ Use `WordDocument.AddChart(OfficeChartKind, OfficeChartData, ...)` or the corres
 `WordParagraph.AddChart(...)` overload to create a native chart
 with an embedded Excel worksheet. `WordChart.SetData(kind, data)` updates its caches and
 worksheet together, preserving the drawing dimensions, title, name, and alternative text.
+Existing embedded packages must be XLSX; updates reject other package formats before changing
+native data or package bytes.
 The shared writer supports column and bar grouping variants, line and area grouping variants,
 pie, doughnut, radar, scatter, and bubble charts. Supported category combinations use each
 series' `RenderKind` and `AxisGroup`; scatter, bubble, horizontal bars, pie, doughnut, and radar
