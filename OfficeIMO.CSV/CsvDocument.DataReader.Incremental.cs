@@ -11,7 +11,7 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Opens a forward-only CSV reader whose ReadAsync calls perform incremental asynchronous I/O.
     /// Initialization reads the header and, when requested, at most SchemaSampleSize data records.
-    /// Sequential projection and an explicit delimiter are required. Dispose the reader to close its file.
+    /// Delimiter detection replays a bounded prefix. Dispose the reader to close its file.
     /// </summary>
     public static Task<DbDataReader> OpenStreamingDataReaderAsync(string path,
         CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
@@ -27,7 +27,7 @@ public sealed partial class CsvDocument
     /// on failure and after disposal; its position advances and is not restored. Read and HasRows
     /// may perform synchronous I/O; use ReadAsync for asynchronous consumption. Cancellation or
     /// a parsing failure ends the reader. The opening token remains active for its lifetime.
-    /// Sequential projection and an explicit delimiter are required.
+    /// Delimiter detection samples at most 64 Ki characters and replays the prefix.
     /// </summary>
     public static Task<DbDataReader> OpenStreamingDataReaderAsync(Stream stream,
         CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
@@ -44,11 +44,8 @@ public sealed partial class CsvDocument
     {
         readerOptions ??= new CsvDataReaderOptions();
         ValidateAsyncReaderOptions(readerOptions);
+        readerOptions.ParallelProcessing?.GetDegreeOfParallelism();
         var options = loadOptions?.Clone() ?? new CsvLoadOptions();
-        if (options.DetectDelimiter)
-            throw new NotSupportedException("Incremental reading currently requires an explicit delimiter.");
-        if (readerOptions.ParallelProcessing is not null)
-            throw new NotSupportedException("Incremental reading currently requires sequential projection.");
         int skip = GetInitialRecordsToSkip(options);
         var explicitHeader = NormalizeExplicitHeader(options);
         var lifetime = CancellationTokenSource.CreateLinkedTokenSource(token, options.CancellationToken);
@@ -56,10 +53,14 @@ public sealed partial class CsvDocument
         options.Mode = CsvLoadMode.Stream;
         CsvParser.IncrementalRecords? records = null;
         CsvIncrementalRowSource? source = null;
+        TextReader? textReader = null;
         try
         {
             lifetime.Token.ThrowIfCancellationRequested();
-            records = new CsvParser.IncrementalRecords(readerFactory(options), options);
+            textReader = readerFactory(options);
+            if (options.DetectDelimiter)
+                textReader = await DetectIncrementalDelimiterAsync(textReader, options, lifetime.Token).ConfigureAwait(false);
+            records = new CsvParser.IncrementalRecords(textReader, options);
             IReadOnlyList<string>? header = explicitHeader is null ? null : AppendStaticColumnsToHeader(explicitHeader, options);
             var buffered = new Queue<CsvIncrementalRowSource.BufferedRecord>();
             while (await records.ReadAsync(true, lifetime.Token).ConfigureAwait(false))
@@ -97,12 +98,12 @@ public sealed partial class CsvDocument
             var result = new CsvDataReader(CreateDataReaderColumns(header, schema), source, header.Count,
                 options, options.Culture, options.DateTimeFormats);
             lifetime.Token.ThrowIfCancellationRequested();
-            return result;
+            return CsvParallelDataReader.Apply(result, readerOptions);
         }
         catch
         {
             if (source is not null) source.Dispose();
-            else { try { records?.Dispose(); } finally { lifetime.Dispose(); } }
+            else { try { if (records is not null) records.Dispose(); else textReader?.Dispose(); } finally { lifetime.Dispose(); } }
             throw;
         }
     }

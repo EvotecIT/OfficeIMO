@@ -39,6 +39,7 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     private bool _sourceEnded;
     private bool _useRawBatches;
     private bool _closed;
+    private bool _failed;
 
     internal CsvParallelDataReader(CsvDataReader source, CsvDataReaderParallelOptions options)
     {
@@ -117,8 +118,10 @@ internal sealed class CsvParallelDataReader : DbDataReader,
         get
         {
             if (_closed) return false;
+            ThrowIfFailed();
             if (_hasRows.HasValue) return _hasRows.Value;
-            _hasRows = EnsureCurrentBatch(CancellationToken.None);
+            try { _hasRows = EnsureCurrentBatch(CancellationToken.None); }
+            catch { FailAdvance(); throw; }
             return _hasRows.Value;
         }
     }
@@ -153,38 +156,60 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     public override async Task<bool> ReadAsync(CancellationToken cancellationToken)
     {
         if (_closed) return false;
+        ThrowIfFailed();
         cancellationToken.ThrowIfCancellationRequested();
         _stop.Token.ThrowIfCancellationRequested();
-        if (!await EnsureCurrentBatchAsync(cancellationToken).ConfigureAwait(false))
+        try
         {
-            _hasRows ??= false;
-            _recordNumber = 0;
-            return false;
-        }
+            if (!await EnsureCurrentBatchAsync(cancellationToken).ConfigureAwait(false))
+            {
+                _hasRows ??= false;
+                _recordNumber = 0;
+                return false;
+            }
 
-        _hasRows ??= true;
-        _currentRow++;
-        _recordNumber++;
-        return true;
+            _hasRows ??= true;
+            _currentRow++;
+            _recordNumber++;
+            return true;
+        }
+        catch { FailAdvance(); throw; }
     }
 
     private bool ReadCore(CancellationToken cancellationToken)
     {
         if (_closed) return false;
+        ThrowIfFailed();
         cancellationToken.ThrowIfCancellationRequested();
         _stop.Token.ThrowIfCancellationRequested();
-
-        if (!EnsureCurrentBatch(cancellationToken))
+        try
         {
-            _hasRows ??= false;
-            _recordNumber = 0;
-            return false;
-        }
+            if (!EnsureCurrentBatch(cancellationToken))
+            {
+                _hasRows ??= false;
+                _recordNumber = 0;
+                return false;
+            }
 
-        _hasRows ??= true;
-        _currentRow++;
-        _recordNumber++;
-        return true;
+            _hasRows ??= true;
+            _currentRow++;
+            _recordNumber++;
+            return true;
+        }
+        catch { FailAdvance(); throw; }
+    }
+
+    private void ThrowIfFailed()
+    {
+        if (_failed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
+    }
+
+    private void FailAdvance()
+    {
+        _failed = true;
+        _currentRow = -1;
+        _recordNumber = 0;
+        _stop.Cancel();
     }
 
     private bool EnsureCurrentBatch(CancellationToken cancellationToken)
@@ -227,6 +252,11 @@ internal sealed class CsvParallelDataReader : DbDataReader,
 
     private async Task<bool> EnsureCurrentBatchAsync(CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+        _stop.Token.ThrowIfCancellationRequested();
+        if (_currentBatch is not null && _currentRow + 1 < _currentBatch.Count) return true;
+        using CancellationTokenRegistration operationRegistration = cancellationToken.Register(
+            static state => ((CancellationTokenSource)state!).Cancel(), _stop);
         while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -237,7 +267,7 @@ internal sealed class CsvParallelDataReader : DbDataReader,
             }
 
             ReleaseCurrentBatchAndPropagateError();
-            FillPending(cancellationToken);
+            await FillPendingAsync(cancellationToken).ConfigureAwait(false);
             if (_pending.Count == 0)
             {
                 _sourceError?.Throw();
@@ -245,9 +275,6 @@ internal sealed class CsvParallelDataReader : DbDataReader,
             }
 
             Task<CsvDataReaderRawBatch> task = _pending.Dequeue();
-            using CancellationTokenRegistration registration = cancellationToken.Register(
-                static state => ((CancellationTokenSource)state!).Cancel(),
-                _stop);
             try
             {
                 _currentBatch = await task.ConfigureAwait(false);
@@ -329,6 +356,37 @@ internal sealed class CsvParallelDataReader : DbDataReader,
             {
                 _sourceError = ExceptionDispatchInfo.Capture(exception);
             }
+        }
+    }
+
+    private async Task FillPendingAsync(CancellationToken cancellationToken)
+    {
+        if (!_source.HasIncrementalSource)
+        {
+            FillPending(cancellationToken);
+            return;
+        }
+
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, _stop.Token);
+        while (!_sourceEnded && _sourceError is null && _pending.Count < _degreeOfParallelism)
+        {
+            linked.Token.ThrowIfCancellationRequested();
+            try
+            {
+                var capture = await _source.ReadRawBatchAsync(_batchSize, asynchronous: true, linked.Token).ConfigureAwait(false);
+                _sourceEnded = capture.ReachedEnd;
+                CsvDataReaderRawBatch rawBatch = capture.Batch;
+                if (rawBatch.Count == 0 && rawBatch.Error is null)
+                {
+                    rawBatch.Dispose();
+                    break;
+                }
+                _pending.Enqueue(Task.Factory.StartNew(
+                    () => _source.ConvertRawBatch(rawBatch, _stop.Token),
+                    CancellationToken.None, TaskCreationOptions.DenyChildAttach, TaskScheduler.Default));
+            }
+            catch (OperationCanceledException) { throw; }
+            catch (Exception exception) { _sourceError = ExceptionDispatchInfo.Capture(exception); }
         }
     }
 

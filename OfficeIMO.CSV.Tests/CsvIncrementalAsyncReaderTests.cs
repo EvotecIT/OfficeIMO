@@ -1,4 +1,6 @@
 #if NET8_0_OR_GREATER
+using System.Data.Common;
+using System.Linq;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -207,15 +209,165 @@ public class CsvIncrementalAsyncReaderTests
     }
 
     [Fact]
-    public async Task Explicit_Fallback_Restrictions_Are_Checked_Before_Reading()
+    public async Task Invalid_Parallel_Options_Are_Checked_Before_Reading()
     {
         using var input = new AsyncInput(Array.Empty<byte>(), 1, blockAtEnd: true);
-        await Assert.ThrowsAsync<NotSupportedException>(() => CsvDocument.OpenStreamingDataReaderAsync(input,
-            new CsvLoadOptions { DetectDelimiter = true }));
-        await Assert.ThrowsAsync<NotSupportedException>(() => CsvDocument.OpenStreamingDataReaderAsync(input,
-            readerOptions: new CsvDataReaderOptions { ParallelProcessing = new CsvDataReaderParallelOptions() }));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => CsvDocument.OpenStreamingDataReaderAsync(input,
+            readerOptions: new CsvDataReaderOptions { ParallelProcessing = new CsvDataReaderParallelOptions { BatchSize = 0 } }));
         Assert.False(input.Blocked.Task.IsCompleted);
         Assert.True(input.CanRead);
+    }
+
+    [Fact]
+    public async Task Parallel_Projection_Uses_Async_Input_And_Preserves_Order_And_Positions()
+    {
+        var csv = new StringBuilder("Id;Name\r\n");
+        for (int id = 1; id <= 1030; id++) csv.Append(id).Append(";\"row ").Append(id).Append("\r\nend\"\r\n");
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv.ToString()), 3);
+        var schema = new CsvSchemaBuilder().Column("Id").AsInt32().Column("Name").AsString().Done().Build();
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true }, new CsvDataReaderOptions
+            {
+                Schema = schema,
+                ParallelProcessing = new CsvDataReaderParallelOptions { BatchSize = 127, MaxDegreeOfParallelism = 3 }
+            });
+        int expected = 0;
+        var position = (ICsvDataReaderPositionMetadata)reader;
+        while (await reader.ReadAsync())
+        {
+            expected++;
+            Assert.Equal(expected, reader.GetInt32(0));
+            Assert.Equal($"row {expected}\r\nend", reader.GetString(1));
+            Assert.Equal(expected, position.RecordNumber);
+            Assert.Equal(expected * 2, position.PhysicalLineNumber);
+            Assert.Equal(expected * 2 + 1, position.PhysicalEndLineNumber);
+            Assert.True(reader.HasRows);
+        }
+        Assert.Equal(1030, expected);
+        Assert.Equal(0, position.RecordNumber);
+        Assert.True(input.CanRead);
+    }
+
+    [Fact]
+    public async Task Parallel_Cancellation_Interrupts_Blocked_Async_Batch_Capture()
+    {
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes("Id\n1\n"), 1, blockAtEnd: true);
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input, readerOptions: new CsvDataReaderOptions
+        {
+            Schema = new CsvSchemaBuilder().Column("Id").AsInt32().Done().Build(),
+            ParallelProcessing = new CsvDataReaderParallelOptions { BatchSize = 2, MaxDegreeOfParallelism = 2 }
+        });
+        using var cancellation = new CancellationTokenSource();
+        Task<bool> reading = reader.ReadAsync(cancellation.Token);
+        await input.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reading);
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+        Assert.Throws<InvalidOperationException>(() => reader.GetValue(0));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+        Assert.True(input.CanRead);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Parallel_Projection_Error_Yields_Valid_Prefix_Then_Ends_Reader(bool synchronous)
+    {
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Id\n1\n2\nbad\n4\n"));
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input, readerOptions: new CsvDataReaderOptions
+        {
+            Schema = new CsvSchemaBuilder().Column("Id").AsInt32().Done().Build(),
+            ParallelProcessing = new CsvDataReaderParallelOptions { BatchSize = 2, MaxDegreeOfParallelism = 3 }
+        });
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal(2, reader.GetInt32(0));
+        if (synchronous) Assert.ThrowsAny<CsvException>(() => reader.Read());
+        else await Assert.ThrowsAnyAsync<CsvException>(() => reader.ReadAsync());
+        Assert.Equal(0, ((ICsvDataReaderPositionMetadata)reader).RecordNumber);
+        Assert.Throws<InvalidOperationException>(() => reader.GetValue(0));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync());
+        Assert.Throws<InvalidOperationException>(() => reader.Read());
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(4096)]
+    public async Task Detection_Replays_Comments_Skips_And_Multiline_Records(int chunk)
+    {
+        const string csv = "# generated \"by tool\r\nignored\r\nName;Value\r\nAlpha;\"one\r\ntwo,three\"\r\nBeta;7\r\n";
+        var options = new CsvLoadOptions { DetectDelimiter = true, SkipInitialRecords = 1 };
+        using var expectedInput = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        using var expected = CsvDocument.OpenDataReader(expectedInput, options);
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), chunk);
+        using var actual = await CsvDocument.OpenStreamingDataReaderAsync(input, options);
+        Assert.Equal(';', ((ICsvDataReaderMetadata)actual).Delimiter);
+        Assert.True(options.DetectDelimiter);
+        Assert.Equal(',', options.Delimiter);
+        int row = 0;
+        while (expected.Read())
+        {
+            Assert.True(await actual.ReadAsync());
+            for (int i = 0; i < expected.FieldCount; i++) Assert.Equal(expected.GetValue(i), actual.GetValue(i));
+            var position = (ICsvDataReaderPositionMetadata)actual;
+            Assert.Equal(row++ == 0 ? 4 : 6, position.PhysicalLineNumber);
+        }
+        Assert.False(await actual.ReadAsync());
+    }
+
+    [Fact]
+    public async Task Detection_Returns_Before_Unbounded_Source_Eof()
+    {
+        string csv = "Name;Value\n" + string.Concat(Enumerable.Repeat("Alpha;7\n", 20_000));
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(csv), 4096, blockAtEnd: true);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true }, cancellationToken: timeout.Token);
+        Assert.True(await reader.ReadAsync(timeout.Token));
+        Assert.Equal("Alpha", reader.GetString(0));
+        Assert.Equal("7", reader.GetString(1));
+        Assert.False(input.Blocked.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task Detection_Cap_Inside_Record_Uses_Fallback_And_Replays_Whole_Field()
+    {
+        string name = new string('x', 70_000);
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes(name + "|7\n"), 4096);
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true, Delimiter = '|', Header = new[] { "Name", "Value" } });
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal(name, reader.GetString(0));
+        Assert.Equal("7", reader.GetString(1));
+        Assert.False(await reader.ReadAsync());
+    }
+
+    [Fact]
+    public async Task Detection_Cancellation_Leaves_Caller_Stream_Open()
+    {
+        using var input = new AsyncInput(Array.Empty<byte>(), 1, blockAtEnd: true);
+        using var cancellation = new CancellationTokenSource();
+        Task<DbDataReader> opening = CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true }, cancellationToken: cancellation.Token);
+        await input.Blocked.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        cancellation.Cancel();
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => opening);
+        Assert.True(input.CanRead);
+    }
+
+    [Fact]
+    public async Task Explicit_Text_Delimiter_Remains_Effective_When_Detection_Is_Enabled()
+    {
+        using var input = new AsyncInput(Encoding.UTF8.GetBytes("Name||Value\nAlpha||7\n"), 1);
+        using var reader = await CsvDocument.OpenStreamingDataReaderAsync(input,
+            new CsvLoadOptions { DetectDelimiter = true, DelimiterText = "||" });
+        Assert.Equal("||", ((ICsvDataReaderDialectMetadata)reader).DelimiterText);
+        Assert.Equal(2, reader.FieldCount);
+        Assert.True(await reader.ReadAsync());
+        Assert.Equal("Alpha", reader.GetString(0));
+        Assert.Equal("7", reader.GetString(1));
     }
 
     [Fact]
