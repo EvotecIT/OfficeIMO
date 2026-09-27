@@ -1,0 +1,42 @@
+using System;
+
+namespace OfficeIMO.Drawing;
+
+/// <summary>Independent numeric scale and label format for a chart value axis.</summary>
+public sealed class OfficeChartValueAxisLayout {
+    /// <summary>Creates a linear axis scale with optional explicit bounds, tick units, and numeric formatting.</summary>
+    public OfficeChartValueAxisLayout(double? minimum = null, double? maximum = null,
+        double? majorUnit = null, double? minorUnit = null, string? numberFormat = null) {
+        Minimum = ValidateFinite(minimum, nameof(minimum));
+        Maximum = ValidateFinite(maximum, nameof(maximum));
+        if (minimum.HasValue && maximum.HasValue && minimum.Value >= maximum.Value)
+            throw new ArgumentException("The axis maximum must exceed its minimum.", nameof(maximum));
+        MajorUnit = ValidatePositive(majorUnit, nameof(majorUnit));
+        MinorUnit = ValidatePositive(minorUnit, nameof(minorUnit));
+        NumberFormat = string.IsNullOrWhiteSpace(numberFormat) ? null : numberFormat!.Trim();
+        if (NumberFormat?.Length > OfficeChartLayout.MaxNumberFormatLength)
+            throw new ArgumentOutOfRangeException(nameof(numberFormat), "The axis number format exceeds the supported length.");
+    }
+
+    /// <summary>Explicit minimum, or automatic scaling when absent.</summary>
+    public double? Minimum { get; }
+    /// <summary>Explicit maximum, or automatic scaling when absent.</summary>
+    public double? Maximum { get; }
+    /// <summary>Major tick spacing, or automatic spacing when absent.</summary>
+    public double? MajorUnit { get; }
+    /// <summary>Minor tick spacing, or automatic spacing when absent.</summary>
+    public double? MinorUnit { get; }
+    /// <summary>Numeric label format, or the axis default when absent.</summary>
+    public string? NumberFormat { get; }
+
+    private static double? ValidateFinite(double? value, string name) {
+        if (value.HasValue && (double.IsNaN(value.Value) || double.IsInfinity(value.Value)))
+            throw new ArgumentOutOfRangeException(name, "Axis settings must be finite.");
+        return value;
+    }
+    private static double? ValidatePositive(double? value, string name) {
+        ValidateFinite(value, name);
+        if (value <= 0D) throw new ArgumentOutOfRangeException(name, "Axis tick units must be positive.");
+        return value;
+    }
+}

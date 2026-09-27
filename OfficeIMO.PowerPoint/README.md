@@ -351,6 +351,11 @@ PowerPointChart chart = slide.AddChartCm(
 chart.SaveDataSummary("quarterly-chart.txt");
 ```
 
+Use `chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 40,
+majorUnit: 10, numberFormat: "0"))` to give the secondary value axis an independent linear
+scale. Native data updates preserve these settings, and snapshots carry its bounds, tick units,
+and number format separately from the primary axis.
+
 The shared authoring overload covers clustered, stacked, and 100% stacked column/bar; line variants; area
 variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
 used by PNG/SVG, HTML, and PDF paths.

@@ -69,6 +69,7 @@
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartPointStyles.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartSecondaryAxis.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartSecondaryAxis.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartRadialLayout.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartRadialLayout.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartCacheReader.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartCacheReader.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartWorkbookSecurity.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartWorkbookSecurity.cs" />

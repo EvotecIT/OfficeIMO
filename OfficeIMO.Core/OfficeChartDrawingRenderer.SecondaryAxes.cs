@@ -7,12 +7,13 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeChartDrawingRenderer {
     private readonly struct SecondaryAxisRenderContext {
         internal SecondaryAxisRenderContext(bool hasSeries, ValueRange range,
-            IReadOnlyList<double> majorTicks, bool usesPercentDefaults, double labelBandWidth) {
+            IReadOnlyList<double> majorTicks, bool usesPercentDefaults, double labelBandWidth, OfficeChartLayout axisLayout) {
             HasSeries = hasSeries;
             Range = range;
             MajorTicks = majorTicks;
             UsesPercentDefaults = usesPercentDefaults;
             LabelBandWidth = labelBandWidth;
+            Layout = axisLayout;
         }
 
         internal bool HasSeries { get; }
@@ -20,6 +21,7 @@ public static partial class OfficeChartDrawingRenderer {
         internal IReadOnlyList<double> MajorTicks { get; }
         internal bool UsesPercentDefaults { get; }
         internal double LabelBandWidth { get; }
+        internal OfficeChartLayout Layout { get; }
     }
 
     private static SecondaryAxisRenderContext CreateSecondaryAxisRenderContext(
@@ -28,21 +30,29 @@ public static partial class OfficeChartDrawingRenderer {
             series.AxisGroup == OfficeChartAxisGroup.Secondary);
         if (!hasSeries) {
             return new SecondaryAxisRenderContext(false, GetCartesianValueRange(snapshot),
-                Array.Empty<double>(), false, 0D);
+                Array.Empty<double>(), false, 0D, layout);
         }
 
+        OfficeChartValueAxisLayout? axis = layout.SecondaryValueAxis;
+        var axisLayout = new OfficeChartLayout(axisNumberFormat: axis?.NumberFormat ?? "General",
+            horizontalAxisMinimum: axis?.Minimum, horizontalAxisMaximum: axis?.Maximum,
+            verticalAxisMinimum: axis?.Minimum, verticalAxisMaximum: axis?.Maximum,
+            horizontalAxisMajorUnit: axis?.MajorUnit, verticalAxisMajorUnit: axis?.MajorUnit,
+            horizontalAxisMinorUnit: axis?.MinorUnit, verticalAxisMinorUnit: axis?.MinorUnit,
+            axisLabelFontSize: layout.AxisLabelFontSize, axisTextFontFamily: layout.AxisTextFontFamily,
+            axisTextFontStyle: layout.AxisTextFontStyle);
         ValueRange range = ApplyValueAxisScale(
-            GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary), layout,
+            GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary), axisLayout,
             horizontal: barChart);
         bool usesPercentDefaults = snapshot.Data.Series.Any(series =>
             series.AxisGroup == OfficeChartAxisGroup.Secondary &&
             IsPercentKind(GetEffectiveSeriesKind(snapshot, series)));
-        IReadOnlyList<double> majorTicks = GetValueAxisMajorTicks(range, majorUnit: null);
+        IReadOnlyList<double> majorTicks = GetValueAxisMajorTicks(range, axis?.MajorUnit);
         double labelBandWidth = showLabels
-            ? MeasureValueAxisLabelBandWidth(range, majorTicks, layout, usesPercentDefaults,
+            ? MeasureValueAxisLabelBandWidth(range, majorTicks, axisLayout, usesPercentDefaults,
                 horizontalValueAxis: barChart)
             : 0D;
-        return new SecondaryAxisRenderContext(true, range, majorTicks, usesPercentDefaults, labelBandWidth);
+        return new SecondaryAxisRenderContext(true, range, majorTicks, usesPercentDefaults, labelBandWidth, axisLayout);
     }
 
     private static ValueRange GetPrimaryValueAxisRange(OfficeChartSnapshot snapshot,
@@ -68,7 +78,7 @@ public static partial class OfficeChartDrawingRenderer {
         double plotTop, double plotHeight, double labelLeft, double labelWidth, OfficeChartStyle style,
         OfficeChartLayout layout) {
         AddValueAxisLabels(drawing, axis.Range, plotTop, plotHeight, labelLeft, labelWidth,
-            OfficeTextAlignment.Left, style, layout, axis.UsesPercentDefaults);
+            OfficeTextAlignment.Left, style, axis.Layout, axis.UsesPercentDefaults);
     }
 
     private static void AddHorizontalSecondaryValueAxis(OfficeDrawing drawing,
@@ -85,7 +95,7 @@ public static partial class OfficeChartDrawingRenderer {
         SecondaryAxisRenderContext axis, double plotLeft, double plotTop, double plotWidth,
         OfficeChartStyle style, OfficeChartLayout layout) {
         AddHorizontalValueAxisLabels(drawing, axis.Range, plotLeft, plotTop - 13D, plotWidth,
-            Math.Max(12D, axis.LabelBandWidth), labelsAbovePlot: true, style, layout,
+            Math.Max(12D, axis.LabelBandWidth), labelsAbovePlot: true, style, axis.Layout,
             axis.UsesPercentDefaults);
     }
 
