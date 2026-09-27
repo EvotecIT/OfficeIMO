@@ -54,6 +54,9 @@ namespace OfficeIMO.OpenXml.Internal {
                     throw new NotSupportedException("The native numeric axis format cannot be projected.");
                 if (axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null)
                     throw new NotSupportedException("Explicit axis crossing values and display units require an independent axis projection.");
+                if (kind is OfficeChartKind.BarClustered or OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 &&
+                    axis.GetFirstChild<C.Crosses>()?.Val?.Value == C.CrossesValues.Maximum)
+                    throw new NotSupportedException("Maximum crossing for horizontal bar axes cannot be projected.");
             }
             QualifySecondaryLayout(plot, vertical);
             // Titles, visibility and category direction describe logical roles;
