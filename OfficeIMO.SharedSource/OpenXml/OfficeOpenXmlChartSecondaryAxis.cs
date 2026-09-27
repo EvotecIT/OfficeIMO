@@ -56,6 +56,16 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if (layout.MinorTickMark.HasValue) axis.AddChild(new C.MinorTickMark { Val = WriteTick(layout.MinorTickMark.Value) }, true);
     }
 
+    internal static void QualifyLinearProjection(C.PlotArea? plot) {
+        var axis = Resolve(plot);
+        if (axis == null) return;
+        var scaling = axis.GetFirstChild<C.Scaling>();
+        if (scaling?.GetFirstChild<C.LogBase>() != null ||
+            scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
+            axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
+            throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
+    }
+
     private static OfficeChartAxisTickMark ReadTick(C.TickMarkValues? value) =>
         value == C.TickMarkValues.Inside ? OfficeChartAxisTickMark.Inside :
         value == C.TickMarkValues.Outside ? OfficeChartAxisTickMark.Outside :

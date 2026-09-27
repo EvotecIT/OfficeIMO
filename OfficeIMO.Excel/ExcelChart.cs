@@ -137,25 +137,30 @@ namespace OfficeIMO.Excel {
             }
 
             (int anchorWidthPixels, int anchorHeightPixels) = GetAnchorSizePixels(geometry);
-            OfficeIMO.Drawing.OfficeChartRadialLayout radialLayout;
-            try { radialLayout = RadialLayout; }
-            catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is FormatException || exception is OverflowException) { snapshot = null!; return false; }
-            snapshot = new ExcelChartSnapshot(
-                Name,
-                Title,
-                ChartType,
-                data,
-                GetAnchorRow(),
-                GetAnchorColumn(),
-                GetAnchorOffsetXPixels(),
-                GetAnchorOffsetYPixels(),
-                anchorWidthPixels,
-                anchorHeightPixels,
-                CreateImageExportStyle(),
-                CreateImageExportLayout(),
-                CreateImageExportDiagnostics(),
-                radialLayout);
-            return true;
+            try {
+                var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot);
+                snapshot = new ExcelChartSnapshot(
+                    Name,
+                    Title,
+                    ChartType,
+                    data,
+                    GetAnchorRow(),
+                    GetAnchorColumn(),
+                    GetAnchorOffsetXPixels(),
+                    GetAnchorOffsetYPixels(),
+                    anchorWidthPixels,
+                    anchorHeightPixels,
+                    CreateImageExportStyle(),
+                    CreateImageExportLayout(),
+                    CreateImageExportDiagnostics(),
+                    RadialLayout);
+                return true;
+            } catch (Exception exception) when (exception is ArgumentException || exception is FormatException ||
+                exception is OverflowException || exception is NotSupportedException) {
+                snapshot = null!;
+                return false;
+            }
         }
 
         /// <summary>
