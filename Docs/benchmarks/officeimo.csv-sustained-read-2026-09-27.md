@@ -229,6 +229,76 @@ retained heap. The plain incremental domain A distribution is wide
 All raw values and confidence intervals remain in the BenchmarkDotNet JSON.
 These warm-cache results do not establish cold-storage latency.
 
+## Resident observations in fresh selected-reader workers
+
+Eight separately launched PowerShell workers each run one million rows, one
+shape, one reader, and AllRowsAsync. Each worker validates only its selected
+reader against independent expected fields and source order before sampling;
+no snapshot reader runs in incremental setup. Defaults retain dual-reader
+validation for the original comparison lane. Every measured traversal still
+verifies its ordered checksum and row count.
+
+The workers use two warmups and seven measurements, Normal priority, the same
+five-millisecond PowerForge probe, and the two declared processor masks.
+All **56 measured traversals** succeed. Metadata records eight distinct process
+IDs, SelectedEngineSetup=True, and identical fixture, workload, and library
+hashes. Each worker creates just its own input; its fixture hash matches the
+corresponding earlier six-field fixture. Worker launch order reverses reader
+order between shapes and domains. Each process contains one measured case;
+there is no cross-case rotation inside it.
+
+| Notes | Reader | Resident baseline median A / B MiB | Resident peak median A / B MiB | Largest sampled resident peak A / B MiB |
+| --- | --- | ---: | ---: | ---: |
+| Plain | Snapshot | 795.61 / 878.95 | 913.90 / 906.40 | 933.66 / 912.30 |
+| Plain | Incremental | 227.06 / 227.25 | 227.15 / 227.42 | 228.52 / 228.79 |
+| Multiline | Snapshot | 969.69 / 982.38 | 1084.35 / 1085.57 | 1103.75 / 1104.38 |
+| Multiline | Incremental | 220.80 / 225.85 | 225.18 / 226.71 | 242.25 / 228.16 |
+
+Incremental median sampled managed peaks are 77.7–78.5 MiB; snapshot medians
+are 589.2–595.0 MiB for plain input and 707.7–717.1 MiB for multiline input.
+These are absolute sampled heaps, including the runtime and uncollected
+objects, rather than the baseline-subtracted increases in earlier tables.
+
+The resident observations describe a warmed process dedicated to one case.
+They include PowerShell, loaded assemblies, generated-fixture setup, validation,
+and warmup pages. Forced managed collection does not decommit all resident
+pages. This removes pages from other reader workloads, while preserving the
+selected workload's warmup footprint. It does not isolate the library from
+its host, measure cold startup, establish an exact transient peak, or guarantee
+a ceiling on another machine. The observed maxima provide a Windows baseline
+for subsequent regression budgets; remaining reader contracts, row sizes, and
+Linux/macOS still need equivalent qualification.
+
+The reviewed workload is committed in
+848403199a3e109c4cf6f6a3b173e7d8b5c6c866. Measurement metadata records its
+frozen dirty candidate at 4e0d5fc3f23295f41f0f5412ee960dca4e21fdb9. Workload
+SHA-256 is `3191A23ED994601D58185E8F41BA98095EF38E546EA42652F83B5F3704DE1BA8`; the
+probe and runner hashes match the complete async traversal lane. The rebuilt
+CSV binary SHA-256 is
+`7CB4884E8C2774CC728D65A9F32528988293D7FB01E413D16561DB1342378B35`,
+and Core is
+`5C8BAB61302ADC4A3B98F79F171C57AF94F592D1F06CBD90478EB63A9B7D2C20`.
+These differ from the earlier rebuilt artifacts; this is not an exact-binary
+before/after comparison.
+The independent read-only setup review found no actionable defects.
+
+Raw artifacts and fixture manifests are retained under Ignore/Benchmarks:
+
+| Worker folder | Run | Process ID |
+| --- | --- | ---: |
+| CsvIsolated-A-Multiline-Incremental | 20260927-200307-71502c6d | 85968 |
+| CsvIsolated-A-Multiline-Snapshot | 20260927-200239-835e52b8 | 112112 |
+| CsvIsolated-A-Plain-Incremental | 20260927-200040-cbc410d3 | 106836 |
+| CsvIsolated-A-Plain-Snapshot | 20260927-200137-1ef29c49 | 37324 |
+| CsvIsolated-B-Multiline-Incremental | 20260927-200420-7fda0496 | 39880 |
+| CsvIsolated-B-Multiline-Snapshot | 20260927-200440-76d5dab3 | 114192 |
+| CsvIsolated-B-Plain-Incremental | 20260927-200406-b7d0607c | 108232 |
+| CsvIsolated-B-Plain-Snapshot | 20260927-200349-08321a68 | 44928 |
+
+Use the benchmark README's fresh-process command once per selected case and
+repeat with the second affinity mask. Generated inputs are removed after their
+hash manifests are retained. Instrumented timings are not throughput evidence.
+
 ## Reproduction and retained evidence
 
 Build OfficeIMO.CSV and the owning PSPublishModule checkout for net10.0.
@@ -287,5 +357,6 @@ source/artifact hash manifests. Generated input files are removed by benchmark
 cleanup. One first launch was rejected before measurement because its checkout
 was dirty; it contributes no results.
 
-Process-isolated resident budgets and Linux/macOS performance remain in the
+Resident observations for additional contracts and sizes, portable regression
+budgets, and Linux/macOS performance remain in the
 [product roadmap](../ROADMAP.md#spreadsheet-and-csv-delivery-order).
