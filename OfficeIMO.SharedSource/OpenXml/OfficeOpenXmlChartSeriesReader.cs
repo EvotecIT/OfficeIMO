@@ -176,6 +176,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
             bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
             unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area);
+            unsupported |= area && outline?.GetFirstChild<A.NoFill>() != null;
             unsupported |= showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true);
             // The shared model has one series colour and straight connecting lines.
             // Reject appearance that would otherwise be silently flattened in an export.
