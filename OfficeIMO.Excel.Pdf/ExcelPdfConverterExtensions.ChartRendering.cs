@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel.Pdf {
                 strokeWidth: series.SeriesLineWidth,
                 strokeDashStyle: series.SeriesLineDashStyle,
                 renderKind: renderKind,
-                axisGroup: series.AxisGroup);
+                axisGroup: series.AxisGroup).WithPointStyles(series.PointStyles);
         }
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind) {

@@ -94,6 +94,7 @@ namespace OfficeIMO.PowerPoint {
                     ReadSeriesStrokeWidth(element)) {
                     BubbleSizes = normalizedSizes,
                     PointColors = ReadBubblePointColors(element, pointCount, colorScheme),
+                    PointStyles = OfficeOpenXmlChartPointStyles.Read(element, pointCount, colorScheme),
                     StrokeColor = ReadSeriesStrokeColor(element, colorScheme),
                     ShowStroke = IsSeriesStrokeVisible(element),
                     SourceIndex = element.GetFirstChild<C.Index>()?.Val?.Value
@@ -129,9 +130,11 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedPointStyle(
             C.ChartShapeProperties? properties) =>
-            HasUnsupportedFill(properties) ||
+            properties?.ChildElements.Any(child => child is GradientFill or BlipFill or GroupFill) == true ||
+            (properties?.GetFirstChild<PatternFill>() is PatternFill pattern &&
+                !OfficeOpenXmlChartPointStyles.ReadHatch(pattern.Preset?.InnerText).HasValue) ||
             HasUnsupportedEffects(properties) ||
-            properties?.GetFirstChild<Outline>() != null;
+            HasUnsupportedOutlineFill(properties?.GetFirstChild<Outline>());
 
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
             outline != null &&
@@ -163,8 +166,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool HasUnresolvedPointColor(
-            C.ChartShapeProperties? properties, ColorScheme? colorScheme) =>
-            HasUnresolvedSolidFill(properties?.GetFirstChild<SolidFill>(), colorScheme);
+            C.ChartShapeProperties? properties, ColorScheme? colorScheme) {
+            if (HasUnresolvedSolidFill(properties?.GetFirstChild<SolidFill>(), colorScheme) ||
+                HasUnresolvedSolidFill(properties?.GetFirstChild<Outline>()?.GetFirstChild<SolidFill>(), colorScheme)) return true;
+            if (properties?.GetFirstChild<PatternFill>() is PatternFill pattern)
+                return !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<ForegroundColor>(), colorScheme).HasValue ||
+                    !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<BackgroundColor>(), colorScheme).HasValue;
+            return false;
+        }
 
         private static bool HasUnresolvedSolidFill(
             SolidFill? fill, ColorScheme? colorScheme) =>

@@ -92,7 +92,9 @@ namespace OfficeIMO.Word.Pdf {
 
             try {
                 IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(chartPart);
-                IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, out IReadOnlyList<string> categories);
+                A.ColorScheme? pointColorScheme = (chartPart?.OpenXmlPackage as WordprocessingDocument)?
+                    .MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+                IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, pointColorScheme, out IReadOnlyList<string> categories);
                 if (categories.Count == 0 || series.Count == 0) {
                     warning = "Word chart does not contain cached categories and values that can be rendered without Office.";
                     return false;
@@ -197,7 +199,7 @@ namespace OfficeIMO.Word.Pdf {
             return OfficeChartKind.Area;
         }
 
-        private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, out IReadOnlyList<string> categories) {
+        private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, A.ColorScheme? pointColorScheme, out IReadOnlyList<string> categories) {
             var series = new List<OfficeChartSeries>();
             var categoryList = new List<string>();
             bool isScatter = chartKind == OfficeChartKind.Scatter;
@@ -265,7 +267,8 @@ namespace OfficeIMO.Word.Pdf {
                     pointColors,
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
-                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>())));
+                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()))
+                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, pointColorScheme)));
                 seriesIndex++;
             }
 

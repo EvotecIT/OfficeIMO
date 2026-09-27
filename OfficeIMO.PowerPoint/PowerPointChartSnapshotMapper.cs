@@ -19,7 +19,8 @@ namespace OfficeIMO.PowerPoint {
                     showInLegend: item.ShowInLegend, connectLine: true,
                     strokeWidth: item.StrokeWidth,
                     renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
-                    axisGroup: item.AxisGroup)).ToList();
+                    axisGroup: item.AxisGroup)).Select((series, index) =>
+                        series.WithPointStyles(snapshot.Data.Series[index].PointStyles)).ToList();
             return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, MapKind(snapshot.ChartKind),
                 new OfficeChartData(snapshot.Data.Categories, series), width, height,
                 style ?? snapshot.Style, layout ?? snapshot.Layout,

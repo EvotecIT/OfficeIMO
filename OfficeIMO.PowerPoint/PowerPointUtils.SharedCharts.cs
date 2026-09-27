@@ -262,6 +262,7 @@ namespace OfficeIMO.PowerPoint {
                     fallbackBubbleColor);
                 ApplySharedSeriesMarker(seriesElement, series, kind);
                 ApplySharedPointColors(seriesElement, series);
+                OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);
             }
         }
 

@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel {
                 MapChartKind(chartKind), title);
             chart.ApplyAuthoredSeriesStyles(excelData.Series,
                 data.Series.Select(series => series.ShowInLegend).ToList());
+            chart.ApplySharedPointStyles(data.Series);
             return chart;
         }
 
