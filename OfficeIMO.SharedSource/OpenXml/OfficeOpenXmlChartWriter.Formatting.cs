@@ -40,7 +40,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     foreach (OpenXmlCompositeElement item in generatedSeries.Skip(offset).Take(count)) InsertSeries(slice, item.CloneNode(true));
                     var preserved = (OpenXmlCompositeElement)match.CloneNode(true);
                     ReplaceSharedSeriesData(preserved, slice, preservedSeriesIndexes);
-                    BindSharedAxisReferences(match, generated, axisBindings);
+                    BindSharedAxisReferences(match, generated, source, replacement, axisBindings);
                     ReplaceSharedAxisReferences(preserved, generated);
                     replacement.InsertBefore(preserved, generated);
                     usedLayers.Add(match);
@@ -157,13 +157,26 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void BindSharedAxisReferences(OpenXmlCompositeElement source,
-            OpenXmlCompositeElement generated, IDictionary<uint, uint> bindings) {
+            OpenXmlCompositeElement generated, C.PlotArea sourcePlot, C.PlotArea generatedPlot,
+            IDictionary<uint, uint> bindings) {
             List<C.AxisId> sourceIds = source.Elements<C.AxisId>().ToList();
             List<C.AxisId> generatedIds = generated.Elements<C.AxisId>().ToList();
             if (sourceIds.Count != generatedIds.Count) return;
             for (int index = 0; index < sourceIds.Count; index++) {
-                uint? sourceId = sourceIds[index].Val?.Value;
                 uint? generatedId = generatedIds[index].Val?.Value;
+                uint? sourceId = sourceIds[index].Val?.Value;
+                if (!(source is C.BubbleChart) && !(source is C.ScatterChart)) {
+                    OpenXmlCompositeElement? generatedAxis = generatedPlot.ChildElements.OfType<OpenXmlCompositeElement>()
+                        .SingleOrDefault(axis => (axis is C.ValueAxis || IsSharedCategoryAxis(axis)) &&
+                            axis.GetFirstChild<C.AxisId>()?.Val?.Value == generatedId);
+                    if (generatedAxis == null) throw new NotSupportedException("A chart axis reference must resolve to a unique category or value axis.");
+                    var referencedIds = new HashSet<uint>(sourceIds.Where(id => id.Val != null).Select(id => id.Val!.Value));
+                    var matches = sourcePlot.ChildElements.OfType<OpenXmlCompositeElement>().Where(axis =>
+                        axis.GetFirstChild<C.AxisId>()?.Val is { } id && referencedIds.Contains(id.Value) &&
+                        (generatedAxis is C.ValueAxis ? axis is C.ValueAxis : IsSharedCategoryAxis(axis))).Take(2).ToList();
+                    if (matches.Count != 1) throw new NotSupportedException("A category chart layer must reference one category axis and one value axis.");
+                    sourceId = matches[0].GetFirstChild<C.AxisId>()!.Val!.Value;
+                }
                 if (!sourceId.HasValue || !generatedId.HasValue) continue;
                 if (bindings.TryGetValue(generatedId.Value, out uint previous) && previous != sourceId.Value)
                     throw new NotSupportedException("Native layers in the same chart family and axis group must share their axis references for a shared data update.");
