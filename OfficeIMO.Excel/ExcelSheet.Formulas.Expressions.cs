@@ -30,6 +30,7 @@ namespace OfficeIMO.Excel {
 
             private bool Parse(int minimumPrecedence, out FormulaArgumentValue value) {
                 value = default;
+                if (!_sheet.HasSufficientFormulaExecutionStack()) return false;
                 if (++_depth > 128) { _depth--; return false; }
                 try {
                     SkipWhiteSpace();

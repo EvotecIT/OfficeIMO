@@ -182,7 +182,11 @@ namespace OfficeIMO.Excel {
 
             string? reference = NormalizeFormulaCellReference(cell.CellReference?.Value);
             string? previousCellReference = _formulaEvaluationCellReference;
+            // Expression nesting belongs to a single formula. Dependency cells have
+            // their own nesting budget and are bounded by MaximumDependencyDepth.
+            int previousScalarDepth = _scalarFormulaEvaluationDepth;
             _formulaEvaluationCellReference = reference;
+            _scalarFormulaEvaluationDepth = 0;
             try {
                 if (reference == null
                     || _formulaEvaluationCache == null
@@ -246,6 +250,7 @@ namespace OfficeIMO.Excel {
                 }
             } finally {
                 _formulaEvaluationCellReference = previousCellReference;
+                _scalarFormulaEvaluationDepth = previousScalarDepth;
             }
         }
 
@@ -589,10 +594,22 @@ namespace OfficeIMO.Excel {
             });
         }
 
+        private bool HasSufficientFormulaExecutionStack() {
+            try {
+                System.Runtime.CompilerServices.RuntimeHelpers.EnsureSufficientExecutionStack();
+                return true;
+            } catch (InsufficientExecutionStackException) {
+                // Independent cell and expression limits must also fit the caller's stack.
+                BlockCurrentFormulaByDependencyGuard();
+                return false;
+            }
+        }
+
         private int _scalarFormulaEvaluationDepth;
 
         private bool TryEvaluateFormulaValue(string formula, out FormulaArgumentValue result, bool allowScalarExpression = true) {
             result = default;
+            if (!HasSufficientFormulaExecutionStack()) return false;
             if (_scalarFormulaEvaluationDepth >= 128) return false;
             _scalarFormulaEvaluationDepth++;
             try {

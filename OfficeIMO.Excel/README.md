@@ -589,6 +589,17 @@ checked-in Excel-produced corpus verifies function composition, named and
 cross-sheet references, typed errors, rounding, and both date systems through
 calculation, save, and reopen.
 
+`Calculation.MaximumDependencyDepth` defaults to 256 formula cells per chain.
+The expression-nesting limit applies separately within each cell. A dependency
+limit or circular reference clears affected caches and marks those formulas
+dirty; unrelated formulas still calculate. Raise the dependency budget explicitly
+for longer trusted chains. Calculation also checks the caller's available stack;
+deeply composed dependencies can be left dirty even within those two budgets.
+The independent corpus includes forward and reverse
+300-cell chains and a circular-reference workbook, with cache recovery and
+diagnostics verified after save and reopen. Circular caches from Excel are
+preserved as input evidence rather than treated as a numeric cycle solution.
+
 For bounded row-memory XLSX exports, set `RequireStreaming = true` in
 `ExcelTabularWriteOptions`. With `WriteDataReader`, also set
 `UseSharedStrings = false` and `AutoFit = false`; tables require headers.
