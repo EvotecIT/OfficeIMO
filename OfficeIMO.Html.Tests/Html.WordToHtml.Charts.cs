@@ -130,6 +130,8 @@ public sealed class HtmlWordChartTests {
         if (limit == "output") options.MaxOutputCharacters = 1024;
         var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(options));
         Assert.Equal(limit == "output" ? "WordHtmlOutputLimitExceeded" : limit == "image" ? "WordImageSizeLimitExceeded" : "WordImageTotalSizeLimitExceeded", error.Code);
+        Assert.Equal(limit == "output" ? options.MaxOutputCharacters : limit == "image" ? options.MaxEmbeddedImageBytes : options.MaxTotalEmbeddedImageBytes, error.Limit);
+        Assert.True(error.Actual > error.Limit);
     }
 
     private static OfficeChartData Data() => new(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) });

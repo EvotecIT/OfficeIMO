@@ -32,8 +32,18 @@ namespace OfficeIMO.Word.Html {
                 bytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing, 1D, OfficeSvgSizeUnit.Point,
                     null, null, maximumBytes, System.Threading.CancellationToken.None);
             } catch (OfficeImageExportBatchLimitException ex) {
+                long actual = ex.Actual;
+                long limit = options.MaxEmbeddedImageBytes;
+                if (limitCode == "WordImageTotalSizeLimitExceeded") {
+                    actual = SaturatingAdd(embeddedImageBytes, actual);
+                    limit = options.MaxTotalEmbeddedImageBytes;
+                } else if (limitCode == "WordHtmlOutputLimitExceeded") {
+                    long encoded = actual > (long.MaxValue / 4L) * 3L ? long.MaxValue : ((actual + 2L) / 3L) * 4L;
+                    actual = SaturatingAdd(options.MaxOutputCharacters - GetRemainingOutputCharacters(owner), SaturatingAdd(prefix.Length, encoded));
+                    limit = options.MaxOutputCharacters;
+                }
                 ThrowExportLimitExceeded(options, limitCode, "A rendered chart exceeds the configured HTML export limits.",
-                    "WordChart", ex.Actual, ex.Maximum);
+                    "WordChart", actual, limit);
                 throw;
             } catch (Exception ex) when (ex is ArgumentException || ex is InvalidOperationException || ex is NotSupportedException) {
                 AddExportDiagnostic(options, "WordChartOmitted", "A Word chart could not be rendered as an HTML image.",
