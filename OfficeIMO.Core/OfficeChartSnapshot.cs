@@ -59,7 +59,24 @@ public sealed class OfficeChartSnapshot {
     public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
         OfficeChartData data, double widthPoints, double heightPoints,
         OfficeChartStyle? style, OfficeChartLayout? layout,
-        double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode) {
+        double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode)
+        : this(name, title, chartKind, data, widthPoints, heightPoints, style, layout,
+            bubbleScalePercent, bubbleSizeMode, OfficeChartRadialLayout.Default) {
+    }
+
+    /// <summary>Creates a chart snapshot with explicit radial geometry and default bubble sizing.</summary>
+    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+        OfficeChartData data, double widthPoints, double heightPoints,
+        OfficeChartStyle? style, OfficeChartLayout? layout, OfficeChartRadialLayout radialLayout)
+        : this(name, title, chartKind, data, widthPoints, heightPoints, style, layout,
+            100D, OfficeChartBubbleSizeMode.Area, radialLayout) {
+    }
+
+    /// <summary>Creates a chart snapshot with explicit bubble sizing and radial geometry.</summary>
+    public OfficeChartSnapshot(string name, string? title, OfficeChartKind chartKind,
+        OfficeChartData data, double widthPoints, double heightPoints,
+        OfficeChartStyle? style, OfficeChartLayout? layout,
+        double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode, OfficeChartRadialLayout radialLayout) {
         if (data == null) {
             throw new ArgumentNullException(nameof(data));
         }
@@ -104,6 +121,7 @@ public sealed class OfficeChartSnapshot {
         Layout = layout ?? OfficeChartLayout.Default;
         BubbleScalePercent = bubbleScalePercent;
         BubbleSizeMode = bubbleSizeMode;
+        RadialLayout = radialLayout ?? throw new ArgumentNullException(nameof(radialLayout));
     }
 
     /// <summary>Source shape or drawing name.</summary>
@@ -135,6 +153,9 @@ public sealed class OfficeChartSnapshot {
 
     /// <summary>Whether bubble values represent area or width.</summary>
     public OfficeChartBubbleSizeMode BubbleSizeMode { get; }
+
+    /// <summary>Pie rotation and doughnut hole geometry.</summary>
+    public OfficeChartRadialLayout RadialLayout { get; }
 
     private static void ValidatePositiveFinite(double value, string paramName) {
         if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) {

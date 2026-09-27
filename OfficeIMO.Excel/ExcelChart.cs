@@ -137,6 +137,9 @@ namespace OfficeIMO.Excel {
             }
 
             (int anchorWidthPixels, int anchorHeightPixels) = GetAnchorSizePixels(geometry);
+            OfficeIMO.Drawing.OfficeChartRadialLayout radialLayout;
+            try { radialLayout = RadialLayout; }
+            catch (ArgumentOutOfRangeException) { snapshot = null!; return false; }
             snapshot = new ExcelChartSnapshot(
                 Name,
                 Title,
@@ -150,7 +153,8 @@ namespace OfficeIMO.Excel {
                 anchorHeightPixels,
                 CreateImageExportStyle(),
                 CreateImageExportLayout(),
-                CreateImageExportDiagnostics());
+                CreateImageExportDiagnostics(),
+                radialLayout);
             return true;
         }
 

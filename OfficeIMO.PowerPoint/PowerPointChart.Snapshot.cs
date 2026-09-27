@@ -604,7 +604,8 @@ namespace OfficeIMO.PowerPoint {
                 bubbleSizeMode,
                 bubbleScalePercent,
                 ReadChartLayout(chart, kind),
-                ReadSharedTextStyle(chart));
+                ReadSharedTextStyle(chart),
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 
         private OfficeChartLayout ReadChartLayout(

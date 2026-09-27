@@ -113,7 +113,8 @@ namespace OfficeIMO.Word.Pdf {
                     width,
                     height,
                     style: style,
-                    layout: layout);
+                    layout: layout,
+                    radialLayout: chart.RadialLayout);
             } catch (NativeWordChartLimitException ex) {
                 warning = ex.Message;
                 return false;

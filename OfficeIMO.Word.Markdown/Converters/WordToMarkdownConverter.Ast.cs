@@ -1385,7 +1385,7 @@ namespace OfficeIMO.Word.Markdown {
                 data,
                 snapshot.WidthPoints,
                 snapshot.HeightPoints,
-                style);
+                style, layout: null, radialLayout: snapshot.RadialLayout);
         }
 
         private static OfficeChartStyle? CreateOfficeChartStyle(WordChartSnapshot snapshot) {
