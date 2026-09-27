@@ -311,8 +311,18 @@ public class PdfRedactionApplierTests {
             .UseFontFamily("Redaction Embedded", fontPath)
             .Paragraph(paragraph => paragraph.Text(text))
             .ToBytes();
-        PdfTextSpan span = Assert.Single(PdfReadDocument.Open(source).Pages[0].GetTextSpans(), static value => value.Text == "secret");
-        PdfRedactionArea area = BuildAreaForSubstring(span, span.Text);
+        PdfTextSpan[] spans = PdfReadDocument.Open(source).Pages[0].GetTextSpans().ToArray();
+        Assert.Equal(text, string.Concat(spans.Select(span => span.Text)));
+        int sourceOffset = 0;
+        var secretSpans = new List<PdfTextSpan>();
+        foreach (PdfTextSpan span in spans) {
+            if (sourceOffset >= "Alpha office ".Length && sourceOffset < "Alpha office secret".Length) secretSpans.Add(span);
+            sourceOffset += span.Text.Length;
+        }
+        Assert.Equal("secret", string.Concat(secretSpans.Select(span => span.Text)));
+        PdfTextSpan first = secretSpans[0], last = secretSpans[secretSpans.Count - 1];
+        PdfRedactionArea area = new(1, first.X + 0.1D, first.Y - first.FontSize + 0.1D,
+            last.X + last.Advance - first.X - 0.2D, first.FontSize * 1.5D - 0.2D, "secret");
 
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
         string extracted = PdfTextExtractor.ExtractAllText(redacted);

@@ -8,6 +8,39 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfOpenTypeDefaultLigatureTests {
+    [Fact]
+    public void RedactingOneOrdinaryCharacterPreservesOtherCharactersInWord() {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 'A', 'a', 'h', 'l', 'p');
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }.EmbedStandardFont(PdfStandardFont.Helvetica, data, "Test"))
+            .Canvas(c => c.Text("Alpha", 40, 40, 200, 30, fontSize: 12)).ToBytes();
+        var target = PdfReadDocument.Open(pdf).Pages[0].GetTextSpans().Single(s => s.Text == "p");
+        byte[] redacted = PdfRedactionApplier.Apply(pdf, new[] { new PdfRedactionArea(1,
+            target.X + 0.1, target.Y - target.FontSize, target.Advance - 0.2, target.FontSize * 1.5, "character") });
+        Assert.Equal("Alha", string.Concat(PdfReadDocument.Open(redacted).Pages[0].GetTextSpans().Select(span => span.Text)));
+        Assert.Equal("Al ha", PdfTextExtractor.ExtractAllText(redacted).Trim());
+    }
+    [Theory]
+    [InlineData(0x0259)]
+    [InlineData(0x1D00)]
+    [InlineData(0x02E0)]
+    [InlineData(0x2071)]
+    [InlineData(0x2160)]
+    [InlineData(0xFF21)]
+    [InlineData(0x1DF25)]
+    public void LatinRepertoireUsesRequiredFontFeatures(int first) {
+        string text = char.ConvertFromUtf32(first) + "A";
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithRequiredLigature("ccmp", first, 'A');
+        var font = PdfTrueTypeFontProgram.Parse(data, "Test");
+        var run = font.ShapeText(text, PdfTextShapingOptions.ForRendering("Test", PdfTextShapingMode.OpenTypeLigatures));
+        Assert.Equal(3, Assert.Single(run.Glyphs).GlyphId);
+        Assert.Equal(text, run.Glyphs[0].UnicodeText);
+        byte[] unsupported = ManagedTextShapingTestAssets.CreateFontWithRequiredLigature("ccmp", first, 'A', 8);
+        var report = new PdfConversionReport();
+        PdfDocument.Create(new PdfOptions().ReportDiagnosticsTo(report).EmbedStandardFont(PdfStandardFont.Helvetica, unsupported, "Test"))
+            .Paragraph(p => p.Text(text)).ToBytes();
+        Assert.Contains(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
+    }
+
     [Theory]
     [InlineData("\u03B1\u00B5\u03B2", false)]
     [InlineData("\u00B5", false)]

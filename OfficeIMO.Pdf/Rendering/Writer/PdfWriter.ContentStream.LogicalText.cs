@@ -21,39 +21,31 @@ internal sealed partial class ContentStreamBuilder {
         _textF += _textB * advance * _textScale;
     }
 
-    // Isolate logical words so glyph aliases retain their exact source text and
-    // conservative ActualText redaction cannot discard neighboring words.
+    // Isolate source clusters so conservative ActualText redaction cannot discard
+    // independent characters or neighboring clusters in the same cluster.
     private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double textRise) {
         double lineE = _lineE, lineF = _lineF;
         for (int index = 0; index < glyphs.Count;) {
-            var word = new List<PdfGlyphInfo>();
+            var cluster = new List<PdfGlyphInfo>();
             var logical = new System.Text.StringBuilder();
-            bool whitespace = string.IsNullOrWhiteSpace(glyphs[index].UnicodeText);
-            bool mixedWhitespace = false;
+            int clusterStart = glyphs[index].LogicalClusterStart;
             do {
                 PdfGlyphInfo glyph = glyphs[index++];
-                word.Add(glyph);
+                cluster.Add(glyph);
                 logical.Append(glyph.UnicodeText);
-                mixedWhitespace |= HasMixedWhitespace(glyph.UnicodeText);
-                if (glyph.UnicodeText.Length > 0) whitespace = char.IsWhiteSpace(glyph.UnicodeText[glyph.UnicodeText.Length - 1]);
-            } while (index < glyphs.Count && (glyphs[index].UnicodeText.Length == 0 ||
-                glyphs[index].LogicalClusterStart < glyphs[index].TextIndex ||
-                !mixedWhitespace && !HasMixedWhitespace(glyphs[index].UnicodeText) &&
-                char.IsWhiteSpace(glyphs[index].UnicodeText[0]) == whitespace));
+            } while (index < glyphs.Count && glyphs[index].LogicalClusterStart == clusterStart);
             _sb.Append("ET\nBT\n");
             TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;
             if (marked) _sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(logical.ToString())).Append(" >> BDC\n");
-            if (word.Any(glyph => glyph.HasPositioning)) AppendPositionedGlyphs(word, fontSize, textRise);
-            else ShowHexText(string.Concat(word.Select(glyph => glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture))));
+            if (cluster.Any(glyph => glyph.HasPositioning)) AppendPositionedGlyphs(cluster, fontSize, textRise);
+            else ShowHexText(string.Concat(cluster.Select(glyph => glyph.GlyphId.ToString("X4", System.Globalization.CultureInfo.InvariantCulture))));
             if (marked) _sb.Append("EMC\n");
-            AdvanceTrackedText(word.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D);
+            AdvanceTrackedText(cluster.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D);
         }
         _sb.Append("ET\nBT\n");
         TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
         _lineE = lineE; _lineF = lineF; _isolatedText = true;
     }
 
-    private static bool HasMixedWhitespace(string text) =>
-        !string.IsNullOrWhiteSpace(text) && text.Any(char.IsWhiteSpace);
 }

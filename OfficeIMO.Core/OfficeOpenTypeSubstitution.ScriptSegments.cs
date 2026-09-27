@@ -15,8 +15,10 @@ internal sealed partial class OfficeOpenTypeSubstitution {
             UnicodeCategory category = CharUnicodeInfo.GetUnicodeCategory(text, 0);
             marks[index] = category == UnicodeCategory.NonSpacingMark ||
                 category == UnicodeCategory.SpacingCombiningMark || category == UnicodeCategory.EnclosingMark;
-            // MICRO SIGN is a Common-script letter, not a Latin base.
-            strong[index] = char.IsLetter(text, 0) && scalars[index] != 0x00B5 ? (IsLatinDefaultScalar(scalars[index]) ? 1 : -1)
+            // Script membership also includes Latin modifier letters and letter numbers.
+            // MICRO SIGN remains Common and does not establish a Latin base.
+            strong[index] = IsLatinScriptScalar(scalars[index]) ? 1
+                : char.IsLetter(text, 0) && scalars[index] != 0x00B5 ? -1
                 : category == UnicodeCategory.Control || category == UnicodeCategory.Format ? -1 : 0;
         }
         var nextStrong = new int[scalars.Count];
