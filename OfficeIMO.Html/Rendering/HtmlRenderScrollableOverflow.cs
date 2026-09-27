@@ -4,11 +4,12 @@ namespace OfficeIMO.Html;
 
 /// <summary>Measures layout overflow without treating shadows or glyph ink as box geometry.</summary>
 internal static class HtmlRenderScrollableOverflow {
-    internal static double MeasureRight(IReadOnlyList<HtmlRenderVisual> visuals, CancellationToken cancellationToken) =>
-        Measure(visuals, OfficeTransform.Identity, new List<Clip>(), cancellationToken);
+    internal static double MeasureRight(IReadOnlyList<HtmlRenderVisual> visuals, CancellationToken cancellationToken,
+        double absoluteOverflowCap = double.PositiveInfinity) =>
+        Measure(visuals, OfficeTransform.Identity, new List<Clip>(), cancellationToken, absoluteOverflowCap);
 
     private static double Measure(IReadOnlyList<HtmlRenderVisual> visuals, OfficeTransform transform,
-        List<Clip> clips, CancellationToken cancellationToken) {
+        List<Clip> clips, CancellationToken cancellationToken, double absoluteOverflowCap) {
         double right = 0D;
         foreach (HtmlRenderVisual visual in visuals) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -26,9 +27,10 @@ internal static class HtmlRenderScrollableOverflow {
                 addedClip = true;
             }
             if (children != null) {
-                right = Math.Max(right, Measure(children, current, clips, cancellationToken));
+                right = Math.Max(right, Measure(children, current, clips, cancellationToken, absoluteOverflowCap));
             } else if (visual is HtmlRenderLayoutBox || visual is HtmlRenderText { IsPaintOnly: false } || visual is HtmlRenderImage
                 || visual is HtmlRenderDrawing || visual is HtmlRenderFormField) {
+                bool absolutePrintBox = visual is HtmlRenderLayoutBox { IsAbsolutePrintOverflow: true };
                 var polygon = new List<OfficePoint> {
                     current.TransformPoint(new OfficePoint(visual.X, visual.Y)),
                     current.TransformPoint(new OfficePoint(visual.X + visual.Width, visual.Y)),
@@ -36,7 +38,7 @@ internal static class HtmlRenderScrollableOverflow {
                     current.TransformPoint(new OfficePoint(visual.X, visual.Y + visual.Height))
                 };
                 foreach (Clip clip in clips) {
-                    if (clip.Horizontal) {
+                    if (clip.Horizontal && !absolutePrintBox) {
                         polygon = Cut(polygon, clip, horizontal: true, upper: false);
                         polygon = Cut(polygon, clip, horizontal: true, upper: true);
                     }
@@ -46,7 +48,8 @@ internal static class HtmlRenderScrollableOverflow {
                     }
                     if (polygon.Count == 0) break;
                 }
-                foreach (OfficePoint point in polygon) right = Math.Max(right, point.X);
+                foreach (OfficePoint point in polygon) right = Math.Max(right,
+                    absolutePrintBox ? Math.Min(point.X, absoluteOverflowCap) : point.X);
             }
             if (addedClip) clips.RemoveAt(clips.Count - 1);
         }

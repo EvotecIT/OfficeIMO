@@ -366,6 +366,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         style.ZIndex = "auto";
         HtmlRenderFlowBlock block = LayoutElementWithoutEditableRegionMarker(
             request.Element, Math.Max(1D, outerWidth), style, parentStyle, request.Depth);
+        if (!request.IsFixed && CapturePrintLayoutBoxes) {
+            // Absolute boxes retain their own scrollable print geometry even when
+            // an ancestor clips their paint. Paint effects may wrap the border
+            // box, so search those groups without marking descendant boxes.
+            MarkAbsolutePrintOverflow(block.Visuals, source);
+        }
         block = WrapEditableLayoutRegion(block, request.Element, request.Style, HtmlRenderLayoutRegionKind.Positioned);
         int artifactIndex = 0;
         foreach (FlattenedSemanticBoundary boundary in request.FlattenedSemanticBoundaries) {
@@ -390,6 +396,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : staticPosition.X);
         double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : staticPosition.Y);
         return new PositionedLayer(block, x, y);
+    }
+
+    private static bool MarkAbsolutePrintOverflow(IReadOnlyList<HtmlRenderVisual> visuals, string source) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            if (visual is HtmlRenderLayoutBox box && box.Source == source) {
+                box.MarkAbsolutePrintOverflow();
+                return true;
+            }
+            IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+            if (children != null && MarkAbsolutePrintOverflow(children, source)) return true;
+        }
+        return false;
     }
 
     private static HtmlRenderFlowBlock ApplyPositionedArtifactBoundary(

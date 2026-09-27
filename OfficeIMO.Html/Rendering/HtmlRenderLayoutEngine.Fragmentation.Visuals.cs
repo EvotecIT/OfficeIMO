@@ -147,7 +147,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     fragment.Add(new HtmlRenderLayoutBox(layoutBox.X,
                         layoutBox.Y + intersectionTop - layoutBox.LayoutY - start,
                         layoutBox.Width, Math.Max(0.01D, intersectionBottom - intersectionTop),
-                        fragment.Count, layoutBox.Source, intersectionTop - start));
+                        fragment.Count, layoutBox.Source, intersectionTop - start,
+                        layoutBox.IsAbsolutePrintOverflow));
                     continue;
                 }
 

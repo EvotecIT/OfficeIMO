@@ -10,11 +10,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderDocument CompletePrintLayout(HtmlRenderDocument rendered) {
         if (!CapturePrintLayoutBoxes) return rendered;
         double contentWidth = _options.PageWidth - _options.Margins.Left - _options.Margins.Right;
+        // A print-fit pass expands percentage-positioned boxes with the layout
+        // surface. Hold their fit contribution at the first resolved width;
+        // in-flow boxes can still request the second bounded pass.
+        double physicalContentWidth = contentWidth * (_options.PrintFitScale ?? 1D);
+        double positionedOverflowCap = physicalContentWidth * 1.5D;
+        if (_options.PrintFitContentWidth is double firstFitWidth) {
+            positionedOverflowCap = Math.Min(positionedOverflowCap, firstFitWidth);
+        }
         double overflowWidth = contentWidth;
         foreach (HtmlRenderPage page in rendered.Pages) {
             CheckCancellation();
             overflowWidth = Math.Max(overflowWidth,
-                HtmlRenderScrollableOverflow.MeasureRight(page.Scene, _cancellationToken) - page.Margins.Left);
+                HtmlRenderScrollableOverflow.MeasureRight(page.Scene, _cancellationToken,
+                    page.Margins.Left + positionedOverflowCap) - page.Margins.Left);
         }
         if (_printFitPasses < 2 && HtmlCssPrintFitResolver.TryApplyWidth(overflowWidth, _pageRules, _options)) {
             ++_printFitPasses;
