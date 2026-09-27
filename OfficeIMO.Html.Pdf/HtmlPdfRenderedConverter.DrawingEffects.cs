@@ -17,13 +17,26 @@ internal static partial class HtmlPdfRenderedConverter {
         bool suppressLink) {
         if (!TryGetRasterizedDrawingEffectReason(source, out string effectReason)) return false;
 
+        var imageDiagnostics = new List<OfficeImageExportDiagnostic>();
         byte[] png = OfficeDrawingRasterRenderer.ToPng(source, new OfficeDrawingRasterRenderOptions {
             Scale = rasterScale,
             ImageCodec = imageResources.ImageCodec,
             MaximumRasterPixels = imageResources.MaximumPixels,
             Background = OfficeColor.Transparent,
+            DiagnosticSink = imageDiagnostics,
+            DiagnosticSource = visual.Source,
             CancellationToken = cancellationToken
         });
+        foreach (var diagnostic in imageDiagnostics) {
+            conversionReport.Add(new PdfCore.PdfConversionWarning(
+                "OfficeIMO.Html.Pdf",
+                diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageStaticFrameSelected
+                    ? HtmlPdfDiagnosticCodes.ImageStaticFrameSelected
+                    : diagnostic.Code == OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted
+                        ? HtmlPdfDiagnosticCodes.ImagePayloadOmitted : diagnostic.Code,
+                diagnostic.Source ?? "html-drawing-image", diagnostic.Message,
+                PdfCore.PdfConversionWarningSeverity.Warning, diagnostic.LossKind));
+        }
         PdfCore.PdfCanvasImageResource? effectImage = imageResources.GetOrCreate(png, "image/png");
         if (effectImage != null) {
             bool fragmentLink = !suppressLink && IsFragmentLink(visual.LinkUri);

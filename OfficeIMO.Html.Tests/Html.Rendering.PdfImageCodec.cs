@@ -55,6 +55,48 @@ public sealed partial class HtmlRenderingTests {
             && x.LossKind == OfficeConversionLossKind.Omission);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlPdf_StaticApngSelectionReportsLossAcrossDrawingEffects(bool drawingEffect) {
+        const string apng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACGFjVEwAAAACAAAAAPONk3AAAAAaZmNUTAAAAAAAAAABAAAAAQAAAAAAAAAAAGQD6AAAs35jzQAAAA1JREFUeJxj+M/A8B8ABQAB/4mZPR0AAAAaZmNUTAAAAAEAAAABAAAAAQAAAAAAAAAAAGQD6AAAKA2JGQAAABFmZEFUAAAAAnicY2Bg+P8fAAMCAf/1e6XXAAAAAElFTkSuQmCC";
+        var document = HtmlConversionDocument.Parse(ImageHtml("image/png", apng, drawingEffect));
+        var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf));
+        Assert.Contains(result.Output.Warnings, x => x.Code == HtmlPdfDiagnosticCodes.ImageStaticFrameSelected
+            && x.LossKind == OfficeConversionLossKind.Omission);
+        Assert.NotEmpty(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()));
+        if (drawingEffect) Assert.Contains(result.Output.Warnings, x => x.Code == "HtmlPdfDrawingEffectRasterized");
+    }
+
+    [Theory]
+    [InlineData(16, false, true)]
+    [InlineData(1, false, false)]
+    [InlineData(16, true, false)]
+    public void HtmlPdf_RasterizedDrawingEffectUsesInspectedCodecBoundary(int size, bool malformed, bool visible) {
+        byte[] bytes = Convert.FromBase64String(CodecVp8Image);
+        if (malformed) { bytes[20] = 0; bytes[21] = 0; bytes[22] = 0; }
+        var codec = new PdfRasterCodec(OfficeColor.Red, size);
+        var document = HtmlConversionDocument.Parse(ImageHtml("image/webp", Convert.ToBase64String(bytes), true));
+        var result = document.RenderToPdfResult(HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
+            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions { ImageCodec = codec }));
+        Assert.Contains(result.Output.Warnings, x => x.Code == "HtmlPdfDrawingEffectRasterized");
+        Assert.Equal(malformed ? 0 : 1, codec.Calls);
+        if (!visible) Assert.Contains(result.Output.Warnings, x => x.Code == HtmlPdfDiagnosticCodes.ImagePayloadOmitted
+            && x.LossKind == OfficeConversionLossKind.Omission);
+        var embedded = Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()));
+        Assert.True(OfficePngReader.TryDecode(embedded.Bytes, out var image));
+        Assert.Equal(visible ? OfficeColor.Red : OfficeColor.Transparent, image!.GetPixel(8, 8));
+    }
+
+    private static string ImageHtml(string contentType, string base64, bool drawingEffect) {
+        string src = "data:" + contentType + ";base64," + base64;
+        if (!drawingEffect) return "<img src='" + src + "'>";
+        string svg = "<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'>"
+            + "<g style='mix-blend-mode:multiply'><image href='" + src + "' width='16' height='16'/></g></svg>";
+        return "<img width='16' height='16' src='data:image/svg+xml;base64,"
+            + Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)) + "'>";
+    }
+
     private static OfficeColor ExtractImagePixel(byte[] pdf) {
         var embedded = Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
         Assert.True(OfficePngReader.TryDecode(embedded.Bytes, out var image));
@@ -64,10 +106,11 @@ public sealed partial class HtmlRenderingTests {
     private sealed class PdfRasterCodec : IOfficeRasterImageCodec {
         private readonly OfficeColor _color;
         internal int Calls;
-        internal PdfRasterCodec(OfficeColor color) => _color = color;
+        private readonly int _size;
+        internal PdfRasterCodec(OfficeColor color, int size = 16) { _color = color; _size = size; }
         public bool TryDecode(byte[] bytes, string? contentType, out OfficeRasterImage? image) {
             Calls++;
-            image = new OfficeRasterImage(16, 16, _color);
+            image = new OfficeRasterImage(_size, _size, _color);
             return true;
         }
     }
