@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -44,13 +45,17 @@ namespace OfficeIMO.OpenXml.Internal {
                 List<C.NumericPoint> points = cache?.Elements<C.NumericPoint>().Take(MaximumSharedChartPoints + 1).ToList() ?? new List<C.NumericPoint>();
                 totalErrorPoints += points.Count;
                 uint? count = cache?.PointCount?.Val?.Value;
-                if (cache == null || !count.HasValue || totalErrorPoints > MaximumSharedChartPoints || count.Value > MaximumSharedChartPoints)
+                if (cache == null || !count.HasValue || totalErrorPoints > MaximumSharedChartPoints ||
+                    count.Value > MaximumSharedChartPoints || (uint)points.Count != count.Value)
                     throw new NotSupportedException("Replacing a chart workbook requires bounded cached values for custom error bars.");
                 var indexes = new HashSet<uint>();
                 foreach (C.NumericPoint point in points) {
                     uint? index = point.Index?.Value;
                     if (!index.HasValue || index.Value >= count!.Value || !indexes.Add(index.Value))
                         throw new NotSupportedException("Custom error-bar caches must have bounded, unique point indexes.");
+                    if (!double.TryParse(point.NumericValue?.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) ||
+                        double.IsNaN(value) || double.IsInfinity(value))
+                        throw new NotSupportedException("Custom error-bar caches must provide a finite numeric value for every declared point.");
                 }
                 var literal = new C.NumberLiteral(cache.ChildElements.Select(child => child.CloneNode(true)));
                 if (literal.FormatCode == null) literal.AddChild(new C.FormatCode { Text = "General" }, true);

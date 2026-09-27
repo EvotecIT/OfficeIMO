@@ -13,6 +13,34 @@ public sealed class PowerPointChartWorkbookBindingsTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
+    public void Updates_RejectIncompleteErrorBarCachesAcrossEntryPoints(int path) {
+        using var document = PowerPointPresentation.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(path == 2 ? OfficeChartKind.Scatter : OfficeChartKind.Line, data);
+        var part = document.Slides.Single().SlidePart.ChartParts.Single();
+        var source = (DocumentFormat.OpenXml.OpenXmlCompositeElement)part.ChartSpace!.Descendants().First(element => element.LocalName == "ser");
+        source.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
+            new C.Plus(new C.NumberReference(new C.Formula { Text = "Sheet1!$Z$2:$Z$3" }, new C.NumberingCache(new C.PointCount { Val = 2 },
+                new C.NumericPoint { Index = 0, NumericValue = new C.NumericValue { Text = "0.5" } })))), true);
+        string before = part.ChartSpace.OuterXml;
+        using var output = new MemoryStream();
+        using (var stream = part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single().GetStream()) stream.CopyTo(output);
+        byte[] workbook = output.ToArray();
+        Assert.Throws<NotSupportedException>(() => {
+            if (path == 0) chart.UpdateData(data);
+            else if (path == 1) chart.UpdateData(new PowerPointChartData(data.Categories, new[] { new PowerPointChartSeries("Updated", new[] { 3d, 4d }) }));
+            else chart.UpdateData(new PowerPointScatterChartData(new[] { new PowerPointScatterChartSeries("Updated", new[] { 1d, 2d }, new[] { 3d, 4d }) }));
+        });
+        Assert.Equal(before, part.ChartSpace.OuterXml);
+        using var updated = new MemoryStream();
+        using (var stream = part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single().GetStream()) stream.CopyTo(updated);
+        Assert.Equal(workbook, updated.ToArray());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
     public void Updates_RejectExternalWorkbookLinksAcrossEntryPoints(int path) {
         using var document = PowerPointPresentation.Create();
         var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });

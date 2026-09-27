@@ -9,6 +9,48 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartWorkbookBindingsTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void SharedUpdate_RejectsIncompleteErrorBarCachesBeforeMutation(int missing) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, Data());
+        var cache = new C.NumberingCache(new C.PointCount { Val = 2 },
+            new C.NumericPoint { Index = 0, NumericValue = new C.NumericValue { Text = "0.5" } },
+            new C.NumericPoint { Index = 1, NumericValue = new C.NumericValue { Text = "1.5" } });
+        if (missing == 0) cache.Elements<C.NumericPoint>().Last().Remove();
+        else if (missing == 1) cache.Elements<C.NumericPoint>().Last().NumericValue!.Remove();
+        else cache.Elements<C.NumericPoint>().Last().NumericValue!.Text = "NaN";
+        chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.ErrorBars(
+            new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
+            new C.Plus(new C.NumberReference(new C.Formula { Text = "Sheet1!$Z$2:$Z$3" }, cache))), true);
+        string before = chart.ChartPart.ChartSpace.OuterXml;
+        byte[] workbook = Workbook(chart);
+        Assert.Throws<System.NotSupportedException>(() => chart.SetData(OfficeChartKind.Line, Data()));
+        Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
+        Assert.Equal(workbook, Workbook(chart));
+    }
+
+    [Fact]
+    public void ScatterGrowth_PreservesExistingPointMetadataWithoutCopyingItToNewSeries() {
+        using var document = WordDocument.Create();
+        var styled = Data().Series.Single().WithPointStyles(new OfficeChartPointStyle?[] { new(OfficeColor.White), null });
+        var chart = document.AddChart(OfficeChartKind.Scatter, new OfficeChartData(Data().Categories, new[] { styled }));
+        var source = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChartSeries>().Single();
+        source.AddChild(new C.DataLabels(new C.DataLabel(new C.Index { Val = 0 },
+            (C.ChartText)Title("Original point").GetFirstChild<C.ChartText>()!.CloneNode(true)), new C.ShowValue { Val = false }), true);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(OfficeChartKind.Scatter, new OfficeChartData(Data().Categories, new[] { styled,
+            new OfficeChartSeries("Added", new[] { 3d, 4d }, new[] { 1d, 2d }) }));
+        var series = chart.ChartPart.ChartSpace.Descendants<C.ScatterChartSeries>().ToArray();
+        Assert.Single(series[0].Elements<C.DataPoint>());
+        Assert.Single(series[0].Elements<C.DataLabels>());
+        Assert.Empty(series[1].Elements<C.DataPoint>());
+        Assert.Empty(series[1].Elements<C.DataLabels>());
+        Assert.Empty(document.ValidateDocument());
+    }
+
     [Fact]
     public void ScatterGrowth_PreservesExistingErrorBarsWithoutCopyingMagnitudeDataToNewSeries() {
         using WordDocument document = WordDocument.Create();
