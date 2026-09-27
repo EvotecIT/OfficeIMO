@@ -575,14 +575,7 @@ namespace OfficeIMO.PowerPoint {
             kind == PowerPointChartSnapshotKind.StackedBar100;
 
         private static OfficeChartAxisGroup GetAxisGroup(C.PlotArea plotArea, OpenXmlCompositeElement chart) {
-            HashSet<uint> axisIds = new(chart.Elements<C.AxisId>()
-                .Where(axis => axis.Val?.Value != null).Select(axis => axis.Val!.Value));
-            return plotArea.Elements<C.ValueAxis>().Any(axis =>
-                       axis.AxisId?.Val?.Value != null && axisIds.Contains(axis.AxisId.Val.Value) &&
-                       (axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right ||
-                        axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Top))
-                ? OfficeChartAxisGroup.Secondary
-                : OfficeChartAxisGroup.Primary;
+            return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Read(plotArea, chart);
         }
 
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,

@@ -10,6 +10,25 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartImportedPreservationTests {
+    [Fact]
+    public void SharedUpdate_ReversedCategoryReferencesPreserveAxisFormatting() {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) });
+        var chart = document.AddChart(OfficeChartKind.Line, data);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var ids = plot.GetFirstChild<C.LineChart>()!.Elements<C.AxisId>().ToArray();
+        uint first = ids[0].Val!.Value; ids[0].Val = ids[1].Val; ids[1].Val = first;
+        var value = plot.GetFirstChild<C.ValueAxis>()!;
+        value.AddChild(Title("Imported scale"), true);
+        value.Scaling!.AddChild(new C.MaxAxisValue { Val = 123 }, true);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(OfficeChartKind.Line, data);
+        value = chart.ChartPart.ChartSpace.Descendants<C.ValueAxis>().Single();
+        Assert.Equal("Imported scale", value.GetFirstChild<C.Title>()!.InnerText);
+        Assert.Equal(123d, value.Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
