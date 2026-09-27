@@ -21,30 +21,14 @@ public partial class WordChart {
         double number = Convert.ToDouble(value, CultureInfo.InvariantCulture);
         if (double.IsNaN(number) || double.IsInfinity(number) || number < 0)
             throw new ArgumentOutOfRangeException(nameof(value), "Doughnut values must be finite and nonnegative.");
-        _chart ??= _chartPart?.ChartSpace?.GetFirstChild<Chart>();
-        DoughnutChart? doughnut = _chart?.PlotArea?.GetFirstChild<DoughnutChart>();
-        if (_chart != null && doughnut == null)
-            throw new NotSupportedException("An existing chart of another family cannot accept doughnut slices.");
-        if (doughnut?.Elements<PieChartSeries>().Skip(1).Any() == true)
-            throw new NotSupportedException("Use cached-data mutation APIs to edit a doughnut with multiple rings.");
-        PieChartSeries? existing = doughnut?.GetFirstChild<PieChartSeries>();
-        CategoryAxisData? categories = existing?.GetFirstChild<CategoryAxisData>();
-        Values? values = existing?.GetFirstChild<Values>();
-        if (categories?.GetFirstChild<StringReference>() != null || values?.GetFirstChild<NumberReference>() != null)
-            throw new NotSupportedException("Use cached-data mutation APIs for a doughnut whose data uses worksheet references.");
-        int categoryCount = categories?.GetFirstChild<StringLiteral>()?.Elements<StringPoint>().Take((int)MaxCachedChartPoints + 1).Count() ?? 0;
-        int valueCount = values?.GetFirstChild<NumberLiteral>()?.Elements<NumericPoint>().Take((int)MaxCachedChartPoints + 1).Count() ?? 0;
-        if (categoryCount != valueCount || valueCount >= MaxCachedChartPoints)
-            throw new InvalidOperationException("Doughnut slice caches must be aligned and contain fewer than 10000 points.");
+        PrepareLiteralSliceAppend(category, doughnut: true);
         if (_chart == null) {
             _chart = GenerateChart();
-            doughnut = new DoughnutChart(new VaryColors { Val = true }, AddDataLabel(), new HoleSize { Val = (ByteValue)50 });
+            var doughnut = new DoughnutChart(new VaryColors { Val = true }, AddDataLabel(), new HoleSize { Val = (ByteValue)50 });
             _chart.PlotArea!.Append(doughnut);
             _chartPart?.ChartSpace?.Append(_chart);
             UpdateTitle();
         }
-        _currentIndexCategory = (uint)categoryCount;
-        _currentIndexValues = (uint)valueCount;
         AddSingleCategory(category);
         AddSingleValue(value);
         return this;

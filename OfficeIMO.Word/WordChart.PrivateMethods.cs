@@ -45,11 +45,10 @@ namespace OfficeIMO.Word {
 
                 if (chartElement != null) {
                     var pieChartSeries = chartElement.GetFirstChild<PieChartSeries>();
-                    var dataLabels = chartElement.GetFirstChild<DataLabels>() ?? chartElement.AppendChild(AddDataLabel());
 
                     if (pieChartSeries == null) {
                         pieChartSeries = CreatePieChartSeries(_index, "Title?");
-                        chartElement.InsertBefore(pieChartSeries, dataLabels);
+                        chartElement.AddChild(pieChartSeries, true);
                     }
                     return pieChartSeries;
                 }
@@ -82,6 +81,17 @@ namespace OfficeIMO.Word {
 
             CategoryAxisData categoryAxis = InitializeCategoryAxisData();
 
+            if (categoryAxis.GetFirstChild<NumberLiteral>() is NumberLiteral numericCategories) {
+                numericCategories.Append(new NumericPoint {
+                    Index = _currentIndexCategory,
+                    NumericValue = new NumericValue { Text = category }
+                });
+                PointCount? count = numericCategories.GetFirstChild<PointCount>();
+                if (count != null) count.Val = _currentIndexCategory + 1;
+                else numericCategories.AddChild(new PointCount { Val = _currentIndexCategory + 1 }, true);
+                _currentIndexCategory++;
+                return;
+            }
             StringLiteral? stringLiteral = categoryAxis.GetFirstChild<StringLiteral>();
             // If StringLiteral does not exist, create it
             if (stringLiteral == null) {
@@ -94,7 +104,7 @@ namespace OfficeIMO.Word {
             if (pointCount != null) {
                 pointCount.Val = _currentIndexCategory + 1;
             } else {
-                stringLiteral.InsertAt(new PointCount() { Val = 1 }, 0);
+                stringLiteral.InsertAt(new PointCount() { Val = _currentIndexCategory + 1 }, 0);
             }
             // Increment the current index
             _currentIndexCategory++;
@@ -131,7 +141,7 @@ namespace OfficeIMO.Word {
                 pointCount.Val = _currentIndexValues + 1;
             } else {
                 int pos = literal.Elements<FormatCode>().Any() ? 1 : 0;
-                literal.InsertAt(new PointCount() { Val = 1 }, pos);
+                literal.InsertAt(new PointCount() { Val = _currentIndexValues + 1 }, pos);
             }
             // Increment the current index
             _currentIndexValues++;

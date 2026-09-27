@@ -439,7 +439,8 @@ document.SaveAsPdf("report.pdf");
 
 `WordChart.AddDoughnut(category, value)` creates an editable native doughnut chart with a
 50-percent hole. It accepts finite, nonnegative `int`, `double`, or `float` values and can
-append slices after reopening a chart authored with literal data. Linked worksheet caches
+append slices after reopening a chart authored with literal data, preserving gaps and disabled
+labels. Numeric category literals accept finite invariant numeric category strings. Linked worksheet caches
 and multi-ring imported doughnuts use the existing cached-data mutation APIs instead.
 
 ```csharp

@@ -69,6 +69,7 @@ namespace OfficeIMO.Word {
             if (!(value is int || value is double || value is float)) {
                 throw new NotSupportedException("Value must be of type int, double, or float");
             }
+            PrepareLiteralSliceAppend(category, doughnut: false);
             EnsureChartExistsPie();
             AddSingleCategory(category);
             AddSingleValue(value);
@@ -87,6 +88,7 @@ namespace OfficeIMO.Word {
             if (!(value is int || value is double || value is float)) {
                 throw new NotSupportedException("Value must be of type int, double, or float");
             }
+            PrepareLiteralSliceAppend(category, doughnut: false);
             EnsureChartExistsPie3D();
             AddSingleCategory(category);
             AddSingleValue(value);
