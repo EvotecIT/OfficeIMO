@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Html {
             if (contentRoot != null) {
                 ReserveOutputCharacters(
                     htmlDoc,
-                    MeasureOutputContentCharacters(contentRoot),
+                    MeasureOutputContentCharacters(contentRoot, options.TrackedChangePolicy),
                     "Repeated Word header or footer content exceeds the configured HTML output-character limit before DOM construction.",
                     "HeaderFooter:" + tagName + ":" + type + ":section-" + sectionIndex.ToString(CultureInfo.InvariantCulture));
             }

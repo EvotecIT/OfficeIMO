@@ -10,6 +10,51 @@ using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Tests {
     public partial class HtmlWordToHtml {
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_WordToHtml_ReferencedNotesReserveContentBeforeDomConstruction(bool footnote) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph source = document.AddParagraph("Reference");
+            if (footnote) source.AddFootNote(new string('x', 16_384));
+            else source.AddEndNote(new string('x', 16_384));
+            var options = new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = 4096,
+                ExportFootnotes = true,
+                ExportEndnotes = true
+            };
+
+            HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
+                () => document.ToHtmlResult(options));
+
+            Assert.Equal("WordHtmlOutputLimitExceeded", exception.Code);
+            Assert.StartsWith(footnote ? "Footnote:" : "Endnote:", exception.LimitSource, StringComparison.Ordinal);
+            Assert.True(exception.Actual > exception.Limit);
+        }
+
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_WordToHtml_NotesDoNotReserveRevisionContentOmittedFromOriginalView(bool footnote) {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph source = document.AddParagraph("Reference");
+            WordParagraph reference = footnote ? source.AddFootNote("Visible") : source.AddEndNote("Visible");
+            WordParagraph note = footnote ? reference.FootNote!.Paragraphs!.Skip(1).First() :
+                reference.EndNote!.Paragraphs!.Skip(1).First();
+            note.AddInsertedText(new string('x', 16_384), "Reviewer");
+            var result = document.ToHtmlResult(new WordToHtmlOptions {
+                IncludeDefaultCss = false,
+                MaxOutputCharacters = 4096,
+                ExportFootnotes = true,
+                ExportEndnotes = true,
+                TrackedChangePolicy = WordTrackedChangeExportPolicy.Original
+            });
+            Assert.True(result.Succeeded);
+            Assert.Contains("Visible", result.RequireValue(), StringComparison.Ordinal);
+            Assert.DoesNotContain(new string('x', 256), result.RequireValue(), StringComparison.Ordinal);
+        }
+
         [Fact]
         public void Test_WordToHtml_OriginalViewExcludesInsertedRevisionTextFromOutputBudget() {
             using WordDocument document = WordDocument.Create();

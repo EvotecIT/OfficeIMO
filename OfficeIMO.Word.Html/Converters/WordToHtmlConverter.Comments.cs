@@ -12,12 +12,13 @@ namespace OfficeIMO.Word.Html {
             Dictionary<string, WordComment> commentsById,
             List<(int Number, WordComment Comment)> comments,
             Dictionary<string, int> commentMap,
-            List<INode> nodes) {
+            List<INode> nodes,
+            CommentReference? occurrence = null) {
             if (!options.ExportComments || run._run == null) {
                 return false;
             }
 
-            var commentReference = run._run.Elements<CommentReference>().FirstOrDefault();
+            var commentReference = occurrence ?? run._run.Elements<CommentReference>().FirstOrDefault();
             var commentId = commentReference?.Id?.Value;
             if (string.IsNullOrEmpty(commentId)) {
                 return false;
