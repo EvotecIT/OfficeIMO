@@ -77,4 +77,18 @@ public sealed class HtmlSvgFontSizeProjectionTests {
         var text = Assert.Single(drawing.Drawing.Elements.OfType<OfficeDrawingText>());
         Assert.Equal(16D, text.Font.Size, 3);
     }
+
+    [Fact]
+    public void FontSizeResetAgreesAcrossComputedContainerContextAndRendering() {
+        var source = HtmlConversionDocument.Parse("<style>body{font-size:24px}#reset{font-size:initial;width:10em;container-type:inline-size}"
+            + "#probe{font-size:2em;color:blue}@container(min-width:200px){#probe{color:red}}</style>"
+            + "<div id='reset'><span id='probe'>Child</span></div>");
+        var styles = HtmlComputedStyleEngine.Compute(source);
+        Assert.Equal(12D, styles[source.Document.QuerySelector("#reset")!].ResolvedFontSizePoints);
+        Assert.Equal(24D, styles[source.Document.QuerySelector("#probe")!].ResolvedFontSizePoints);
+        Assert.Equal("rgba(0, 0, 255, 1)", styles[source.Document.QuerySelector("#probe")!].GetValue("color"));
+        var rendered = HtmlRenderEngine.Render(source, new HtmlRenderOptions());
+        var text = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals.OfType<HtmlRenderText>()).Where(item => item.Text == "Child"));
+        Assert.Equal(32D, text.Font.Size, 3);
+    }
 }

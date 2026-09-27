@@ -290,6 +290,7 @@ public static partial class HtmlComputedStyleEngine {
         double rootFontSize = 16D,
         double containerUnitWidth = double.NaN,
         double containerUnitHeight = double.NaN) {
+        if (style.IsResetValue("font-size")) return 16D;
         if (style.IsInheritedValue("font-size")) return inheritedFontSize;
         string value = style.GetValue("font-size").Trim().ToLowerInvariant();
         if (HtmlRenderCssValues.TryResolveFontSizeKeyword(value, inheritedFontSize, 16D, out double keywordSize)) {
