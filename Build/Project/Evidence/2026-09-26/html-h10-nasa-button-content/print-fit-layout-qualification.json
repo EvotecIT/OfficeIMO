@@ -1,0 +1,358 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "cc2b69df82f8b1bfdfb658e1ee3f0bf761a648e9",
+  "stableCandidateFingerprint": "0d56d1a8639956f2445e615d6d8348983ee55e2c",
+  "fingerprintMethod": "git diff --cached --full-index --binary --no-ext-diff --no-textconv --no-color | git hash-object --stdin",
+  "validationBoundary": "Tests and public probe ran on the staged source content before the identical implementation was committed. All-page exact-head qualification follows separately.",
+  "fixtures": [
+    {
+      "id": "table-flow-1200",
+      "htmlSha256": "5fad8851bcc3806eda5eb63dc8d14604c98c2727bb87a0b19759000bb336779d",
+      "managedPdfSha256": "370729c8e2999e8509abd48fff095395756a19f6e3e057b057274b26ea22c200",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        1200
+      ],
+      "pointsPerCssPixel": 0.49606275,
+      "originalGeometry": {
+        "pdfSha256": "9f739caa821db96ee68883b4cd22f687e7e1530f27566e52fbf2005110652c06",
+        "markers": {
+          "FLOWLEFT": {
+            "xMin": 2.25,
+            "yMin": 20.034,
+            "xMax": 66.258,
+            "yMax": 31.134
+          },
+          "FLOWRIGHT": {
+            "xMin": 452.25,
+            "yMin": 20.034,
+            "xMax": 524.25,
+            "yMax": 31.134
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "text-shadow-control",
+      "htmlSha256": "953add9a7e171a1bcf86a63776aeb42ba55fa717d98992872c500a02ee6879f7",
+      "managedPdfSha256": "f2d550cc67eb37ebfe079ed6fa5eed65271c0adf5a2255e430c6d24193a70a0f",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        793.7007874015749
+      ],
+      "pointsPerCssPixel": null,
+      "originalGeometry": null
+    },
+    {
+      "id": "tall-skew-control",
+      "htmlSha256": "d74b132773c34ea522d8068d106e4a411fa98e3171f8e1e1375c4d045a8fb424",
+      "managedPdfSha256": "7bc02fa278bf005ede09e32aaad87796ac72f02811fa0993136c13da5623ad95",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        2099.9999999999995
+      ],
+      "pointsPerCssPixel": null,
+      "originalGeometry": null
+    },
+    {
+      "id": "normal-720",
+      "htmlSha256": "779d35642b73869f6a0fd3dd3027344c494ceeeea9ab2cb10988ca8f4b0388d3",
+      "managedPdfSha256": "2485a281f236ba529091c9c4fae37c4fdc5e63879bb890d0e72b7d54377da7e8",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        793.7007874015749
+      ],
+      "pointsPerCssPixel": 0.75,
+      "originalGeometry": {
+        "pdfSha256": "2485a281f236ba529091c9c4fae37c4fdc5e63879bb890d0e72b7d54377da7e8",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "root-min-1200",
+      "htmlSha256": "93341416f7f7892e020122a4bc636f7f1cdf39124524a58078cc740c04cd8575",
+      "managedPdfSha256": "d6df37d7f11d8e9ad5e2115504759231af56ce59af5d4df94dd32fb5178288c0",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        1200
+      ],
+      "pointsPerCssPixel": 0.49606275,
+      "originalGeometry": {
+        "pdfSha256": "d6df37d7f11d8e9ad5e2115504759231af56ce59af5d4df94dd32fb5178288c0",
+        "markers": {
+          "MARK100": {
+            "xMin": 49.606275,
+            "yMin": 21.684247,
+            "xMax": 85.775202,
+            "yMax": 29.025975
+          },
+          "MARK700": {
+            "xMin": 347.243925,
+            "yMin": 36.566129,
+            "xMax": 383.412852,
+            "yMax": 43.907858
+          }
+        },
+        "pointsPerCssPixel": 0.49606275
+      }
+    },
+    {
+      "id": "child-width-1000",
+      "htmlSha256": "79c51030d3219783cab048fe901873514962d3687c5a65cfeb5b5e1e82c119b3",
+      "managedPdfSha256": "0c8735b5c97aac85bd110321c1f71780764b053a8d93fa179107fbb271bee3cc",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        999.9999999999999
+      ],
+      "pointsPerCssPixel": 0.59527575,
+      "originalGeometry": {
+        "pdfSha256": "d01228ec813d83d6b2b390188125a02156d61a9e445b90009f5d6f4d252153bc",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "child-width-1200",
+      "htmlSha256": "a7a042ce348887ed4809682c76f516f913c993365e2b71d916bdb929ac9a6a52",
+      "managedPdfSha256": "d6df37d7f11d8e9ad5e2115504759231af56ce59af5d4df94dd32fb5178288c0",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        1200
+      ],
+      "pointsPerCssPixel": 0.49606275,
+      "originalGeometry": {
+        "pdfSha256": "21278572e4d7b43b1f8d6701fcfa568aaa30a90f7dfa7bbd0c0ce76fed0a849a",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "child-min-1200",
+      "htmlSha256": "222b51ccf0589140a7903de74956d0450bca080da8a47efabb6e24748ba4045f",
+      "managedPdfSha256": "d6df37d7f11d8e9ad5e2115504759231af56ce59af5d4df94dd32fb5178288c0",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        1200
+      ],
+      "pointsPerCssPixel": 0.49606275,
+      "originalGeometry": {
+        "pdfSha256": "21278572e4d7b43b1f8d6701fcfa568aaa30a90f7dfa7bbd0c0ce76fed0a849a",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "table-width-1200",
+      "htmlSha256": "6aeea2f6ce8488db66e628def6aec3297d9da9bfa7afddd900192bcf07c0d373",
+      "managedPdfSha256": "18ad584ecff1011c2843ee063df84dd6a46b7504a833b4402f4964f1d7ecd729",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        1200
+      ],
+      "pointsPerCssPixel": null,
+      "originalGeometry": {
+        "pdfSha256": "7d78d1a354e35d20c26b2e9769be2980d225beab4a423e1d4f1f715eb78b4422",
+        "markers": {},
+        "pointsPerCssPixel": null
+      }
+    },
+    {
+      "id": "scroll-clip-1200",
+      "htmlSha256": "cdd82ecb64f990793d489e12ff7d3956f2442fa193b6828104512e184d69287d",
+      "managedPdfSha256": "4a1acfe563507eab58a0431b11574c3dd91917876ccfb24dc7897fec095fe8ab",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        793.7007874015749
+      ],
+      "pointsPerCssPixel": 0.75,
+      "originalGeometry": {
+        "pdfSha256": "4a1acfe563507eab58a0431b11574c3dd91917876ccfb24dc7897fec095fe8ab",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "hidden-clip-1200",
+      "htmlSha256": "8564de0fd2344d7117af08b32da6cad291e0ffb5c630f31d6262561e9764eee4",
+      "managedPdfSha256": "4a1acfe563507eab58a0431b11574c3dd91917876ccfb24dc7897fec095fe8ab",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        793.7007874015749
+      ],
+      "pointsPerCssPixel": 0.75,
+      "originalGeometry": {
+        "pdfSha256": "4a1acfe563507eab58a0431b11574c3dd91917876ccfb24dc7897fec095fe8ab",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "oversized-child-2400",
+      "htmlSha256": "c0bb7d9380fbfcfb96548d219d922a4aa18e1c6a0b52762c7ed9fac8ecf01fb9",
+      "managedPdfSha256": "07e94571d27349fc6c80053800467ef7ff5b7c711a891c2abf38889a9147eaeb",
+      "managedPages": 1,
+      "managedLayoutWidths": [
+        2400
+      ],
+      "pointsPerCssPixel": 0.24803174999999997,
+      "originalGeometry": {
+        "pdfSha256": "8a6e7bedc442cc632f164f9693b1d917e21c6f3714fe4925f395eb357c0f23b5",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    }
+  ],
+  "validation": {
+    "focusedPrintNet10": {
+      "passed": 27,
+      "failed": 0
+    },
+    "htmlFullNet10": {
+      "passed": 3664,
+      "failed": 0
+    },
+    "htmlFullNet8": {
+      "passed": 3664,
+      "failed": 0
+    },
+    "htmlPdfNetstandard20": {
+      "warnings": 0,
+      "errors": 0
+    },
+    "supportMatrixGenerator": {
+      "passed": 1,
+      "failed": 0
+    }
+  },
+  "review": {
+    "agent": "/root/h10_print_overflow_review",
+    "initialFingerprint": "75abeab9290ea058b8c5439030e9d1ca19656078",
+    "findings": [
+      {
+        "priority": "P2",
+        "contract": "Text-shadow clones must not widen layout",
+        "reproduction": "New byte-comparison regression failed before fix",
+        "resolution": "Internal paint-only text metadata is retained by translation/baseline projections and excluded from overflow measurement"
+      },
+      {
+        "priority": "P2",
+        "contract": "Transformed later-page box fragments must retain correct geometry",
+        "reproduction": "Tall skewed-box regression failed before fix",
+        "resolution": "Fragment geometry uses intersection top plus original paint offset; public replay produces one 2100CSSpx layout page"
+      }
+    ],
+    "targetedConfirmation": "No remaining actionable findings in the two remediation contracts",
+    "boundary": "candidate-reviewed"
+  },
+  "visualInspection": [
+    "child-width-1200-officeimo.png",
+    "hidden-clip-1200-officeimo.png",
+    "table-flow-1200-officeimo.png",
+    "text-shadow-control-officeimo.png",
+    "tall-skew-control-officeimo.png"
+  ],
+  "contract": "Automatic uniform print fitting includes positioned positive overflow within surface limits. Fixed-sheet clipping is available through AutoFitWidePrintContent=false. Existing fixed-sheet serialization coverage is retained and separate automatic positioned-overflow coverage added. No browser shrink cap is adopted.",
+  "limits": "Two corrective reflows; residual overflow emits HtmlRenderPrintFitOverflowUnresolved with approximation loss. Named/page-specific rules retain explicit-width requirement.",
+  "retainedArtifacts": "Ignore/HtmlUnknownPageQualification/h10-printfit-independent-76baff0c7",
+  "generatedProbeBinariesRemovedBytes": 170049695,
+  "h10AllPageAcceptance": false,
+  "remaining": [
+    "NASA native all-page replay and visual inspection",
+    "H4 exact-head regression replay",
+    "Supported-platform performance/allocation/peak-memory budgets",
+    "Other named pages, replacement held-out intent and editable-target qualification"
+  ]
+}
