@@ -11,6 +11,29 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
     [Theory]
+    [InlineData(true, WordTrackedChangeExportPolicy.Markup)]
+    [InlineData(false, WordTrackedChangeExportPolicy.Markup)]
+    [InlineData(true, WordTrackedChangeExportPolicy.Final)]
+    [InlineData(false, WordTrackedChangeExportPolicy.Final)]
+    [InlineData(true, WordTrackedChangeExportPolicy.Original)]
+    [InlineData(false, WordTrackedChangeExportPolicy.Original)]
+    public void Export_ReviewProjectionPreservesHeaderFooterChartOwnership(bool header, WordTrackedChangeExportPolicy policy) {
+        using var document = WordDocument.Create();
+        var region = header ? (WordHeaderFooter)document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default)
+            : document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default);
+        var chart = region.AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.AddParagraph("Revision");
+        var run = paragraph.GetRuns().Single()._run!; run.Remove();
+        paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Review" });
+        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = policy });
+        Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll((header ? "header" : "footer") + " img"));
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        var repeated = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true, TrackedChangePolicy = policy });
+        Assert.Single(new HtmlParser().ParseDocument(repeated.RequireValue()).QuerySelectorAll((header ? "header" : "footer") + " img"));
+        Assert.Single(paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.InsertedRun>());
+    }
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void Export_PreservesChartsAndTextInNestedHyperlinkContentControls(bool hyperlinkOutside) {
