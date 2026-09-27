@@ -1,0 +1,2867 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+  "worktreeClean": true,
+  "ownerVersions": {
+    "Core": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "Email": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "HTML Core": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "HTML AngleSharp": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "HTML": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "HTML PDF": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "MHTML": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "MHTML PDF": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "PDF": "3.4.3+3180f09cb116fb8ca69d11c0b4e9b70464f57a46",
+    "evidence runner": "1.0.0+3180f09cb116fb8ca69d11c0b4e9b70464f57a46"
+  },
+  "reports": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-pagearea-clean-3180f09cb/html-corpus-evidence.json",
+      "bytes": 236748,
+      "sha256": "9a7a02683caddb7c0869fa28dca5b167bbbc9a895e4d71d22666b1117fd5e5bb"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/html-mhtml-evidence.json",
+      "bytes": 103398,
+      "sha256": "026eba3f5c5b183c245e179a85be35a4b5f8fea2a61b2f136cef870eb2016807"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-budget-pagearea-release-clean-3180f09cb/html-static-budget.json",
+      "bytes": 2779,
+      "sha256": "3c76ed543381b7fa8743f54a4a4b80fb2ca4c775e95f4e084d135dbe78ec5189"
+    }
+  ],
+  "h4": {
+    "caseCount": 8,
+    "acceptance": {
+      "configurationSha256": "b347bb8e73ee67bd7130a460de8ee5bd4d3e336ff15cdc9f2756e02a3632a8ed",
+      "referencePolicy": "Chromium provides screen and print reference observations, not a universal oracle. OfficeIMO screen-to-page is compared with the completed OfficeIMO screen display list. Every selected case and capability must pass each applicable intent; intentional sheet, clipping, and font differences are admitted only through explicit bounded criteria.",
+      "passed": true,
+      "cases": [
+        {
+          "id": "subgrid-operations",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 18.75,
+                "comparison": "less-than-or-equal",
+                "threshold": 20,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 37.5325,
+                "comparison": "less-than-or-equal",
+                "threshold": 40,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 1.618111111111111,
+                "comparison": "less-than-or-equal",
+                "threshold": 2.5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 14.859737475457168,
+                "comparison": "less-than-or-equal",
+                "threshold": 18,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 2.2010345182096707,
+                "comparison": "less-than-or-equal",
+                "threshold": 3,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 2.2200312450233386,
+                "comparison": "less-than-or-equal",
+                "threshold": 3.5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 10.721110072787644,
+                "comparison": "less-than-or-equal",
+                "threshold": 18,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 3.0902183652603252,
+                "comparison": "less-than-or-equal",
+                "threshold": 5,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 80,
+                "comparison": "less-than-or-equal",
+                "threshold": 80,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 1.6552925347222223,
+                "comparison": "less-than-or-equal",
+                "threshold": 2,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 15.671733998756416,
+                "comparison": "less-than-or-equal",
+                "threshold": 18,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 2.243358580902535,
+                "comparison": "less-than-or-equal",
+                "threshold": 3,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "nested-fragmentation-report",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0.0045521653543417525,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 19.02588517060367,
+                "comparison": "less-than-or-equal",
+                "threshold": 21,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0.005979330708657926,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 31.095999999999997,
+                "comparison": "less-than-or-equal",
+                "threshold": 34,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 9.38056423611111,
+                "comparison": "less-than-or-equal",
+                "threshold": 11,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 38.439991664949524,
+                "comparison": "less-than-or-equal",
+                "threshold": 45,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 12.58579641389379,
+                "comparison": "less-than-or-equal",
+                "threshold": 15,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 5.306959254108072,
+                "comparison": "less-than-or-equal",
+                "threshold": 7,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 28.404286572520224,
+                "comparison": "less-than-or-equal",
+                "threshold": 35,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 7.099948137844682,
+                "comparison": "less-than-or-equal",
+                "threshold": 9,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 7.679413628472222,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 34.12575289793171,
+                "comparison": "less-than-or-equal",
+                "threshold": 42,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 10.305914756600451,
+                "comparison": "less-than-or-equal",
+                "threshold": 14,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "columns-footnotes-brief",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 7.722834645669288,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 9.029897135416666,
+                "comparison": "less-than-or-equal",
+                "threshold": 11,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 37.056767538457876,
+                "comparison": "less-than-or-equal",
+                "threshold": 45,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 12.188737889588033,
+                "comparison": "less-than-or-equal",
+                "threshold": 15,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 0.944954128440367,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.85,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 0.9279279279279279,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.87,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 9.42267789672544,
+                "comparison": "less-than-or-equal",
+                "threshold": 12,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 37.34894567793003,
+                "comparison": "less-than-or-equal",
+                "threshold": 45,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 12.685537534627532,
+                "comparison": "less-than-or-equal",
+                "threshold": 16,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 8.073914930555556,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 34.257913370084616,
+                "comparison": "less-than-or-equal",
+                "threshold": 42,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 10.913453603124939,
+                "comparison": "less-than-or-equal",
+                "threshold": 14,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "named-pages-brochure",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 21.037034667541548,
+                "comparison": "less-than-or-equal",
+                "threshold": 23,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 32.76770833333333,
+                "comparison": "less-than-or-equal",
+                "threshold": 35,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 3.5450360243055554,
+                "comparison": "less-than-or-equal",
+                "threshold": 4.5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 23.576203694453465,
+                "comparison": "less-than-or-equal",
+                "threshold": 28,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 4.811498535417294,
+                "comparison": "less-than-or-equal",
+                "threshold": 6,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 0.9615384615384616,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.94,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 2.4697367533285353,
+                "comparison": "less-than-or-equal",
+                "threshold": 3.5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 19.181631243784874,
+                "comparison": "less-than-or-equal",
+                "threshold": 24,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 3.3499143145021413,
+                "comparison": "less-than-or-equal",
+                "threshold": 5,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 1.797958767361111,
+                "comparison": "less-than-or-equal",
+                "threshold": 2.5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 16.110946758919848,
+                "comparison": "less-than-or-equal",
+                "threshold": 20,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 2.437382579513683,
+                "comparison": "less-than-or-equal",
+                "threshold": 3.5,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "stacking-clipping-board",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 18.066562500000003,
+                "comparison": "less-than-or-equal",
+                "threshold": 20,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 32.840937499999995,
+                "comparison": "less-than-or-equal",
+                "threshold": 35,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 3.0087627314814815,
+                "comparison": "less-than-or-equal",
+                "threshold": 4.5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 21.05924440898012,
+                "comparison": "less-than-or-equal",
+                "threshold": 27,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 4.031056487965007,
+                "comparison": "less-than-or-equal",
+                "threshold": 6,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact-or-nearest-resize"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 0.9555555555555556,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.94,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 0.9555555555555556,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.94,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 1,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 1,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 1.8847413593940305,
+                "comparison": "less-than-or-equal",
+                "threshold": 13,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 16.061483292350182,
+                "comparison": "less-than-or-equal",
+                "threshold": 48,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 2.5067700718453234,
+                "comparison": "less-than-or-equal",
+                "threshold": 17,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 80,
+                "comparison": "less-than-or-equal",
+                "threshold": 80,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 1.5808828125,
+                "comparison": "less-than-or-equal",
+                "threshold": 2,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 15.031373815613868,
+                "comparison": "less-than-or-equal",
+                "threshold": 18,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 2.140243853472279,
+                "comparison": "less-than-or-equal",
+                "threshold": 3,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "typography-specimen",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "bounded-managed-layout-deviation",
+            "rationale": "Chromium remains the visual reference. The current managed float model preserves the vertical text and all source content but places the following block flow below a float-only formatting context; geometry and pixels are bounded explicitly until cross-block float wrapping is implemented.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 207.234375,
+                "comparison": "less-than-or-equal",
+                "threshold": 215,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 8.178750000000008,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 8.104969618055556,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 34.71412783013487,
+                "comparison": "less-than-or-equal",
+                "threshold": 42,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 10.85096467430995,
+                "comparison": "less-than-or-equal",
+                "threshold": 14,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-text-extraction-variance-and-bounded-managed-layout-deviation",
+            "rationale": "OfficeIMO must preserve every source marker. Chromium PDF token overlap is a secondary observation because Linux Chromium emits separated glyph tokens and reorders vertical text during extraction; the current managed cross-block float placement remains visibly bounded.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact-or-nearest-resize"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 0.8076923076923077,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.48,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 0.875,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.75,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 1,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 1,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 5.219280960722785,
+                "comparison": "less-than-or-equal",
+                "threshold": 7,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 27.13729812211796,
+                "comparison": "less-than-or-equal",
+                "threshold": 33,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 6.9606772090808935,
+                "comparison": "less-than-or-equal",
+                "threshold": 9,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 4.170719184027778,
+                "comparison": "less-than-or-equal",
+                "threshold": 6,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 25.248088873288452,
+                "comparison": "less-than-or-equal",
+                "threshold": 32,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 5.639135161457903,
+                "comparison": "less-than-or-equal",
+                "threshold": 8,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "professional-print-catalog",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 0,
+                "comparison": "observed",
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 24,
+                "comparison": "less-than-or-equal",
+                "threshold": 24,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 0.006213090551185019,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 14.94795357611548,
+                "comparison": "less-than-or-equal",
+                "threshold": 17,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 0.012426181102370037,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 13.401041666666671,
+                "comparison": "less-than-or-equal",
+                "threshold": 16,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 4.60484055983927,
+                "comparison": "less-than-or-equal",
+                "threshold": 6,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 25.348049476835147,
+                "comparison": "less-than-or-equal",
+                "threshold": 31,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 6.382272965634584,
+                "comparison": "less-than-or-equal",
+                "threshold": 8,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "intentional-sheet-expansion",
+            "rationale": "OfficeIMO bleed and printer marks expand the physical sheet; a centered crop compares the trim-sized overlap with Chromium print.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected center-crop"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 1,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.98,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 63,
+                "comparison": "less-than-or-equal",
+                "threshold": 63,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 63,
+                "comparison": "less-than-or-equal",
+                "threshold": 63,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 3.2796026817562747,
+                "comparison": "less-than-or-equal",
+                "threshold": 5,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 21.609697505576253,
+                "comparison": "less-than-or-equal",
+                "threshold": 27,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 4.487356099292516,
+                "comparison": "less-than-or-equal",
+                "threshold": 6,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 2"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 649 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 649,
+                "comparison": "less-than-or-equal",
+                "threshold": 649,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 2.484780897046047,
+                "comparison": "less-than-or-equal",
+                "threshold": 3,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 18.51058938528828,
+                "comparison": "less-than-or-equal",
+                "threshold": 20,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 3.440736317332512,
+                "comparison": "less-than-or-equal",
+                "threshold": 4,
+                "passed": true
+              }
+            ]
+          }
+        },
+        {
+          "id": "legacy-portal",
+          "passed": true,
+          "screen": {
+            "intent": "screen-full-page-v1",
+            "reference": "Chromium screen screenshot and geometry",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium screen geometry and pixels are the reference; bounded text, font-rasterization, and full-page extent differences are admitted explicitly.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "dimensions-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "width-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "height-difference-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "geometry-match-ratio",
+                "actual": 0.375,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.35,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-x",
+                "actual": 55.398615491211864,
+                "comparison": "less-than-or-equal",
+                "threshold": 60,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-y",
+                "actual": 8.31114583333334,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-width",
+                "actual": 105.85588274560592,
+                "comparison": "less-than-or-equal",
+                "threshold": 112,
+                "passed": true
+              },
+              {
+                "id": "geometry-mean-absolute-height",
+                "actual": 9.959999999999999,
+                "comparison": "less-than-or-equal",
+                "threshold": 12,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 7.569836877893518,
+                "comparison": "less-than-or-equal",
+                "threshold": 10,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 35.93230268879378,
+                "comparison": "less-than-or-equal",
+                "threshold": 45,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 11.062310958041152,
+                "comparison": "less-than-or-equal",
+                "threshold": 15,
+                "passed": true
+              }
+            ]
+          },
+          "print": {
+            "intent": "print-paged-v1",
+            "reference": "Chromium print-to-PDF",
+            "classification": "browser-reference-tolerance",
+            "rationale": "Chromium print-to-PDF is the reference; centered page comparison admits bounded raster-edge and font differences.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "source-text-markers",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-alignment",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected exact-or-nearest-resize"
+              },
+              {
+                "id": "text-token-recall",
+                "actual": 0.9743589743589743,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.95,
+                "passed": true
+              },
+              {
+                "id": "text-token-precision",
+                "actual": 0.8636363636363636,
+                "comparison": "greater-than-or-equal",
+                "threshold": 0.84,
+                "passed": true
+              },
+              {
+                "id": "page-width-difference-pixels",
+                "actual": 1,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "page-height-difference-pixels",
+                "actual": 1,
+                "comparison": "less-than-or-equal",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 8.61681163938802,
+                "comparison": "less-than-or-equal",
+                "threshold": 19,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 40.19999294904883,
+                "comparison": "less-than-or-equal",
+                "threshold": 65,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 12.865491331463733,
+                "comparison": "less-than-or-equal",
+                "threshold": 29,
+                "passed": true
+              }
+            ]
+          },
+          "screenToPage": {
+            "intent": "screen-snapshot-paged-v1",
+            "reference": "OfficeIMO continuous screen display list",
+            "classification": "profile-consistency",
+            "rationale": "Fixed-canvas pages must reproduce the completed OfficeIMO screen display list within the declared horizontal clipping and final-page padding bounds.",
+            "passed": true,
+            "criteria": [
+              {
+                "id": "page-numbers-sequential",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "uniform-page-dimensions",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "fixed-page-width",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 640 px"
+              },
+              {
+                "id": "fixed-page-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 900 px"
+              },
+              {
+                "id": "page-count-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 1"
+              },
+              {
+                "id": "final-page-padding-match",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true,
+                "detail": "expected 0 px"
+              },
+              {
+                "id": "covers-screen-height",
+                "actual": 1,
+                "comparison": "required-true",
+                "threshold": 1,
+                "passed": true
+              },
+              {
+                "id": "clipped-width-pixels",
+                "actual": 128,
+                "comparison": "less-than-or-equal",
+                "threshold": 128,
+                "passed": true
+              },
+              {
+                "id": "trailing-height-pixels",
+                "actual": 0,
+                "comparison": "less-than-or-equal",
+                "threshold": 0,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-absolute-error",
+                "actual": 3.4233832465277776,
+                "comparison": "less-than-or-equal",
+                "threshold": 4,
+                "passed": true
+              },
+              {
+                "id": "pixel-root-mean-square-error",
+                "actual": 22.427526034878188,
+                "comparison": "less-than-or-equal",
+                "threshold": 27,
+                "passed": true
+              },
+              {
+                "id": "pixel-mean-luminance-error",
+                "actual": 5.076624092707871,
+                "comparison": "less-than-or-equal",
+                "threshold": 6,
+                "passed": true
+              }
+            ]
+          }
+        }
+      ],
+      "capabilities": [
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "bidi-text",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "typography-specimen"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "css-backgrounds",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "professional-print-catalog",
+            "stacking-clipping-board"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "css-borders-effects",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "stacking-clipping-board"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "generated-content",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "named-pages-brochure"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "html-source-decoding",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "legacy-portal"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "layout-columns",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "columns-footnotes-brief",
+            "nested-fragmentation-report"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "layout-grid",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "nested-fragmentation-report",
+            "professional-print-catalog",
+            "subgrid-operations"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "layout-positioning",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "named-pages-brochure",
+            "stacking-clipping-board"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "layout-tables",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "legacy-portal"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "paged-footnotes",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "columns-footnotes-brief"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "paged-fragmentation",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "columns-footnotes-brief",
+            "nested-fragmentation-report",
+            "professional-print-catalog"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "paged-page-rules",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "named-pages-brochure",
+            "professional-print-catalog"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "text-flow",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "columns-footnotes-brief",
+            "typography-specimen"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "paged-print-v1",
+          "capabilityId": "vertical-text",
+          "intents": [
+            "print-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "typography-specimen"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "bidi-text",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "typography-specimen"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "css-backgrounds",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "professional-print-catalog",
+            "stacking-clipping-board"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "css-borders-effects",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "stacking-clipping-board"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "generated-content",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "named-pages-brochure"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "html-source-decoding",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "legacy-portal"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "layout-columns",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "columns-footnotes-brief",
+            "nested-fragmentation-report"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "layout-grid",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "nested-fragmentation-report",
+            "professional-print-catalog",
+            "subgrid-operations"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "layout-positioning",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "named-pages-brochure",
+            "stacking-clipping-board"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "layout-tables",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "legacy-portal"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "text-flow",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "columns-footnotes-brief",
+            "typography-specimen"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        },
+        {
+          "profileId": "static-screen-v1",
+          "capabilityId": "vertical-text",
+          "intents": [
+            "screen-full-page-v1",
+            "screen-snapshot-paged-v1"
+          ],
+          "requiredCaseIds": [
+            "typography-specimen"
+          ],
+          "passed": true,
+          "failedCaseIds": []
+        }
+      ],
+      "failures": []
+    },
+    "matchingManagedImages": 43,
+    "changedManagedImages": 0,
+    "comparison": {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-h4-pagearea-clean-3180f09cb/managed-image-comparison.json",
+      "bytes": 7540,
+      "sha256": "dfdf1d6d2ff0d8ddd5ce34dd5be85441bdd9103af9f7158f02dbe8bba1817d6f"
+    }
+  },
+  "nasa": {
+    "archive": {
+      "path": "source.mhtml",
+      "bytes": 29443783,
+      "sha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735"
+    },
+    "operationCount": 13,
+    "operations": [
+      {
+        "intent": "chromium-screen",
+        "file": "chromium-screen.pdf",
+        "bytes": 20356623,
+        "sha256": "a06128b3c15eb8f632465f39e7c684c31ebce5b47d1bba86179b5312fa4218b0",
+        "pageCount": 4
+      },
+      {
+        "intent": "chromium-print",
+        "file": "chromium-print.pdf",
+        "bytes": 20348655,
+        "sha256": "0e41c25681b122fdc324e9c8adb643d5faa3483adacbaa85356b20dbcee805dd",
+        "pageCount": 4
+      },
+      {
+        "intent": "officeimo-print",
+        "file": "officeimo-print.pdf",
+        "bytes": 23195821,
+        "sha256": "0ce6853b67e3aa23866bcd70dd0ae1345f1598dd8dcf618e52970a3b6be7b87a",
+        "pageCount": 12
+      },
+      {
+        "intent": "officeimo-print-zero-margin",
+        "file": "officeimo-print-zero-margin.pdf",
+        "bytes": 23109711,
+        "sha256": "2bcfa88140edf8d2b9e99fb1b2cba605e6f996409862b40dcfaea21295c4a34e",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-print-fit-1200",
+        "file": "officeimo-print-fit-1200.pdf",
+        "bytes": 23051642,
+        "sha256": "66d854a23a000ec3f1c6fb7b788ae68982b3dc664dd8c85e65256c02f0ccd193",
+        "pageCount": 4
+      },
+      {
+        "intent": "officeimo-print-fit-1200-local-fonts",
+        "file": "officeimo-print-fit-1200-local-fonts.pdf",
+        "bytes": 24485415,
+        "sha256": "dbc5e92034d310169874547d434257afcce56c05b3d8154bc1a3803d9368d5b6",
+        "pageCount": 4
+      },
+      {
+        "intent": "officeimo-print-browser-ua",
+        "file": "officeimo-print-browser-ua.pdf",
+        "bytes": 23109711,
+        "sha256": "2bcfa88140edf8d2b9e99fb1b2cba605e6f996409862b40dcfaea21295c4a34e",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-print-zero-margin-local-fonts",
+        "file": "officeimo-print-zero-margin-local-fonts.pdf",
+        "bytes": 24833312,
+        "sha256": "346646469cbfe029b3080135cc69491469b29ce740c53d78b104da1606c9986d",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-screen-media",
+        "file": "officeimo-screen-media.pdf",
+        "bytes": 23109711,
+        "sha256": "2bcfa88140edf8d2b9e99fb1b2cba605e6f996409862b40dcfaea21295c4a34e",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-screen-media-local-fonts",
+        "file": "officeimo-screen-media-local-fonts.pdf",
+        "bytes": 24833312,
+        "sha256": "346646469cbfe029b3080135cc69491469b29ce740c53d78b104da1606c9986d",
+        "pageCount": 10
+      },
+      {
+        "intent": "officeimo-screen-snapshot",
+        "file": "officeimo-screen-snapshot.pdf",
+        "bytes": 23032369,
+        "sha256": "79e7fd0afff556ada86337de5f972a22f0ff8e2a4db4f3ae4b51fce74ea0a10e",
+        "pageCount": 12
+      },
+      {
+        "intent": "officeimo-screen-snapshot-local-fonts",
+        "file": "officeimo-screen-snapshot-local-fonts.pdf",
+        "bytes": 24447340,
+        "sha256": "397637c0b4618d8d4438cbcfa7ba7591be5e6f8887d4cd7ae345c51e1b20e1bd",
+        "pageCount": 12
+      },
+      {
+        "intent": "peachpdf-print",
+        "file": "peachpdf-print.pdf",
+        "bytes": 310574,
+        "sha256": "bcd6caf04a834f5d1aaaaf767f56780d835b7be379bcc86bae39828a7689051f",
+        "pageCount": 3
+      }
+    ],
+    "failures": [],
+    "pdfByteComparison": [
+      {
+        "file": "officeimo-print-browser-ua.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-print-fit-1200-local-fonts.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-print-fit-1200.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-print-zero-margin-local-fonts.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-print-zero-margin.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-print.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-screen-media-local-fonts.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-screen-media.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-screen-snapshot-local-fonts.pdf",
+        "byteIdentical": false
+      },
+      {
+        "file": "officeimo-screen-snapshot.pdf",
+        "byteIdentical": false
+      }
+    ],
+    "defaultDiagnosticPdfIdentical": true,
+    "visualInspection": {
+      "method": "72dpi Poppler rasterization; all-page montages for every owned PDF lane and native print.",
+      "inspectedPageCount": 98,
+      "observations": [
+        "Default print12 versus native4 remains unqualified; inset header and mostly empty page12.",
+        "Fit1200 lanes retain two gallery columns and four pages; header/card labels and footer typography differ from native.",
+        "Zero-margin/browser-UA/screen-media lanes retain narrow gallery and ten pages; fixed header overlays continuation content.",
+        "Snapshot lanes retain12 slices and footer on final slice; narrow responsive layout differs from frozen browser screen."
+      ],
+      "montages": [
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/chromium-print.png",
+          "bytes": 592875,
+          "sha256": "ac7ff0e94f97bb1364cefb55a1838c4eb1657ede25284d896c6917ab2227f3e2"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-print-browser-ua.png",
+          "bytes": 1160819,
+          "sha256": "652a0b70a345e655feebdeb90b6fda164f79670e5530f75b6b14f1bec25534ac"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-print-fit-1200-local-fonts.png",
+          "bytes": 586859,
+          "sha256": "82c099f2d49e5edef701a8a186619849398acdd5ba8eb78fd87395ee9465cb0a"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-print-fit-1200.png",
+          "bytes": 582514,
+          "sha256": "5bded6a5b081d1c6214cf03cc340cca64077190d8e145a18cf5e47ba66a1841b"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-print-zero-margin-local-fonts.png",
+          "bytes": 1165754,
+          "sha256": "d39c8e11de0a446dae93770b051b56228846d2c2121c64c5a27186a4d3824648"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-print-zero-margin.png",
+          "bytes": 1160280,
+          "sha256": "34a96ff695f3b3509e21bd6711cb3252620e47712b3c0c0441861a6d6bfecbcd"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-print.png",
+          "bytes": 1139293,
+          "sha256": "149d67ac1b3fc7df40d247371f96656be1a0cbe6abab96874167d3c1835da333"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-screen-media-local-fonts.png",
+          "bytes": 1165566,
+          "sha256": "14ccbac182c9c3da95fc7b73d7dd11065e02ced9572cefcd57adca07c7af6000"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-screen-media.png",
+          "bytes": 1160190,
+          "sha256": "1bce58fe9966b04373b96a9079f1fb038546b1d52c621f4c99fbf2a34d9e07e2"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-screen-snapshot-local-fonts.png",
+          "bytes": 1168767,
+          "sha256": "f92fcd50a63386ef01dff9fb0da39a3b1ad2395c372481f0e47e578799a142d9"
+        },
+        {
+          "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-pagearea-clean-3180f09cb/all-lane-pages/officeimo-screen-snapshot.png",
+          "bytes": 1161182,
+          "sha256": "f6dcad7e2100974f6ae4ee08122fdf2d1741f2d9879facd025789e220d992aad"
+        }
+      ]
+    },
+    "printFitOverflowDiagnosticCount": 0
+  },
+  "macOsReleaseBudget": {
+    "environment": {
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "osArchitecture": "Arm64",
+      "processArchitecture": "Arm64",
+      "frameworkDescription": ".NET 10.0.12",
+      "machineName": "evomini",
+      "processorCount": 10
+    },
+    "ceiling": {
+      "osFamily": "macOS",
+      "coldProcessElapsedMilliseconds": 8000,
+      "warmIterationElapsedMilliseconds": 3000,
+      "coldManagedAllocatedBytes": 1250000000,
+      "warmManagedAllocatedBytes": 1100000000,
+      "peakWorkingSetBytes": 700000000,
+      "outputBytesPerIteration": 3000000,
+      "cancellationElapsedMilliseconds": 250
+    },
+    "cold": {
+      "mode": "cold",
+      "processElapsedMilliseconds": 4707.8826,
+      "peakWorkingSetBytes": 380862464,
+      "memorySampleCount": 120,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 4634.7534,
+          "managedAllocatedBytes": 1076618352,
+          "outputBytes": 2154523,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+        }
+      ],
+      "deterministic": true
+    },
+    "warm": {
+      "mode": "warm",
+      "processElapsedMilliseconds": 11476.6198,
+      "peakWorkingSetBytes": 555745280,
+      "memorySampleCount": 284,
+      "iterations": [
+        {
+          "number": 1,
+          "elapsedMilliseconds": 2400.6843,
+          "managedAllocatedBytes": 887544712,
+          "outputBytes": 2154523,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+        },
+        {
+          "number": 2,
+          "elapsedMilliseconds": 2251.4112,
+          "managedAllocatedBytes": 888554272,
+          "outputBytes": 2154523,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+        },
+        {
+          "number": 3,
+          "elapsedMilliseconds": 1947.4809,
+          "managedAllocatedBytes": 888498992,
+          "outputBytes": 2154523,
+          "caseCount": 8,
+          "outputCount": 76,
+          "fingerprintSha256": "97c7d1ffa06f0fc4dac1334edb27ca8f7cb3248159381a0215718565b741e576"
+        }
+      ],
+      "deterministic": true
+    },
+    "cancellation": {
+      "status": "Passed",
+      "elapsedMilliseconds": 2.1692,
+      "detail": "Cancellation propagated through the asynchronous resource boundary."
+    },
+    "failures": []
+  },
+  "scope": "Clean-source macOS H4 and NASA replay; does not qualify other frozen pages, unfamiliar-page budgets, editable targets or Windows/Linux.",
+  "nextDeliverable": "Reproduce NASA footer continuation and default/native responsive print geometry with independent controls before further renderer changes."
+}
