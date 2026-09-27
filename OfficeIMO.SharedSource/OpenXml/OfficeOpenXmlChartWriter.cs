@@ -353,6 +353,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static IEnumerable<uint> GetHiddenSharedLegendIndexes(OfficeChartData data, OfficeChartKind kind) {
+            kind = data.Series.FirstOrDefault()?.RenderKind ?? kind;
             if (kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut) {
                 if (data.Series.Any(series => !series.ShowInLegend))
                     for (int point = 0; point < data.Categories.Count; point++) yield return (uint)point;
