@@ -299,6 +299,107 @@ Use the benchmark README's fresh-process command once per selected case and
 repeat with the second affinity mask. Generated inputs are removed after their
 hash manifests are retained. Instrumented timings are not throughput evidence.
 
+## Linux/WSL qualification
+
+The same public APIs and generated six-field workload run under Ubuntu
+24.04.3 LTS, WSL2 kernel 6.18.33.2-microsoft-standard-WSL2, PowerShell 7.6.5,
+and .NET 10.0.11 on x64. WSL reports one 96 MiB virtual L3 domain and 32
+virtual CPUs. Every worker uses guest affinity 0xFFFFFFFF and Normal priority.
+This guest placement is not the Windows physical-domain placement. The runtime
+patch also differs from Windows, so these results do not establish an OS speed
+ranking or native-Linux performance on another host.
+
+Inputs and reports are generated on the Linux ext4 filesystem. A temporary
+Linux-native sparse checkout at clean commit
+f66344ce5adee23eb324bf337800fb004a59290b supplies the benchmark code and Git
+provenance. Library and shared-tool binaries are loaded from the Windows build
+folders before timing. Their four hashes and the workload hash match the
+fresh-worker Windows lane. All generated fixture bytes and hashes match the
+corresponding Windows inputs.
+
+The accepted timing run uses all 32 cases, two warmups, seven rotated measured
+samples per case, and no outlier removal. **224 measured operations succeed**.
+It covers first-row consumption, complete asynchronous string traversal, and
+sequential/four-worker synchronous typed projection at both row counts and
+both shapes. Each operation validates its complete ordered result. Files use
+the warmed guest filesystem cache. Setup and field-by-field validation remain
+outside timing.
+
+Uninstrumented medians are:
+
+| Rows | Notes | Full async snapshot / incremental ms | Incremental typed sequential / parallel ms |
+| ---: | --- | ---: | ---: |
+| 100,000 | Plain | 76.92 / 109.30 | 50.85 / 83.26 |
+| 100,000 | Multiline | 163.76 / 193.97 | 91.76 / 133.51 |
+| 1,000,000 | Plain | 1170.43 / 1094.67 | 478.78 / 762.85 |
+| 1,000,000 | Multiline | 1910.09 / 2029.71 | 906.74 / 1409.52 |
+
+These are different consumer contracts: full async traversal requests all six
+fields as strings, while typed projection constructs the model. Compare the
+reader or projection modes within each column. Snapshot has the lower full
+async median at 100,000 rows and for one-million-row multiline input; incremental
+has the lower median for one-million-row plain input. This does not support a
+universal elapsed-time advantage. Parallel typed projection is 46–64% slower
+for these inexpensive conversions. FirstRow in this runner includes PowerShell
+dispatch; precise Linux first-row API latency still needs the BenchmarkDotNet
+lane. Raw sample ranges remain in the retained summaries.
+
+Four additional fresh workers each run one million rows, one shape, one
+reader, and AllRowsAsync, with selected-reader-only setup. Their process IDs
+are distinct, and all **28 measured traversals succeed**. The five-millisecond
+probe runs only in this separate memory lane.
+
+| Notes | Reader | Resident baseline median MiB | Resident peak median / largest sampled MiB | Managed peak median MiB |
+| --- | --- | ---: | ---: | ---: |
+| Plain | Snapshot | 981.36 | 1009.68 / 1014.30 | 586.60 |
+| Plain | Incremental | 264.12 | 264.30 / 264.64 | 64.04 |
+| Multiline | Snapshot | 1120.31 | 1148.55 / 1149.65 | 722.84 |
+| Multiline | Incremental | 264.48 | 264.64 / 265.02 | 64.14 |
+
+These are sampled lower-bound, warmed process observations. They include
+PowerShell, loaded assemblies, generated-input setup, validation, and the
+selected reader's warmups. Resident growth alone is small for incremental
+workers because their baseline already includes committed pages. Neither
+resident nor managed values represent the library's isolated footprint or
+establish portable ceilings.
+
+Accepted evidence is retained under Ignore/Benchmarks/CsvLinuxQualified:
+
+| Lane folder | Run | Measured samples |
+| --- | --- | ---: |
+| Timing | 20260927-202043-fc2b16de | 224 |
+| Memory-Plain-Incremental | 20260927-202601-7056e435 | 7 |
+| Memory-Plain-Snapshot | 20260927-202620-5b9f009a | 7 |
+| Memory-Multiline-Snapshot | 20260927-202640-af3e00e9 | 7 |
+| Memory-Multiline-Incremental | 20260927-202706-ddfb0b6a | 7 |
+
+Each folder preserves raw samples, summaries, comparisons, and metadata;
+qualification.json records the fixture hashes and selected-process identity,
+and environment.txt records the guest and filesystem inventory. Reports are
+copied immediately after each run. An earlier /tmp attempt lost its scratch
+directory before its reports could be retained and is excluded. The cause was
+not established. The accepted rehearsal uses a named Linux-home scratch folder;
+its generated inputs and source checkout are removed after retention.
+
+To reproduce in a native Git checkout, build or select the CSV and shared-tool
+binaries, and use a Linux-native output directory:
+
+```bash
+pwsh -NoProfile -File ./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 \\
+  -BinaryRoot "$CSV_BINARY_ROOT" -ModulePath "$POWERFORGE_MODULE_PATH" \\
+  -AffinityMask 0xFFFFFFFF -OutputRoot "$CSV_EVIDENCE_ROOT/Timing"
+# Start a separate process for each selected shape and reader:
+pwsh -NoProfile -File ./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 \\
+  -BinaryRoot "$CSV_BINARY_ROOT" -ModulePath "$POWERFORGE_MODULE_PATH" \\
+  -Rows 1000000 -Shape Plain -Engine Incremental -Operation AllRowsAsync \\
+  -SampleMemory -AffinityMask 0xFFFFFFFF -OutputRoot "$CSV_EVIDENCE_ROOT/Memory-Plain-Incremental"
+```
+
+Select affinity from the target's actual topology; the mask above reproduces
+this 32-vCPU guest. Further native-Linux/macOS qualification, other resident
+contracts and sizes, precise portable first-row latency, and regression
+budgets remain open.
+
 ## Reproduction and retained evidence
 
 Build OfficeIMO.CSV and the owning PSPublishModule checkout for net10.0.
@@ -358,5 +459,5 @@ cleanup. One first launch was rejected before measurement because its checkout
 was dirty; it contributes no results.
 
 Resident observations for additional contracts and sizes, portable regression
-budgets, and Linux/macOS performance remain in the
+budgets, and broader native-Linux/macOS performance remain in the
 [product roadmap](../ROADMAP.md#spreadsheet-and-csv-delivery-order).
