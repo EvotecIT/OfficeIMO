@@ -418,6 +418,13 @@ namespace OfficeIMO.Word.Html {
                         if (segment.IsRunArtifact) {
                             var artifactNodes = new List<INode>();
                             AppendRunArtifacts(sourceRun, artifactNodes, segment.ArtifactElement);
+                            if (artifactNodes.Count == 0) continue;
+                            if (string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase) ||
+                                string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.DeletedText, StringComparison.OrdinalIgnoreCase)) {
+                                var revision = CreateOutputElement(htmlDoc, string.Equals(sourceRun.CharacterStyleId, HtmlSemanticStyleIds.InsertedText, StringComparison.OrdinalIgnoreCase) ? "ins" : "del");
+                                foreach (var artifact in artifactNodes) revision.AppendChild(artifact);
+                                artifactNodes = new List<INode> { revision };
+                            }
                             IElement? sourceAnchor = hyperlinkNode == null && sourceRun.IsHyperLink && sourceRun.Hyperlink != null
                                 ? CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink) : null;
                             if (sourceAnchor != null) {
@@ -519,6 +526,12 @@ namespace OfficeIMO.Word.Html {
                     // Imported chart runs may also contain text, pictures or other charts.
                     // The existing segment projector preserves the actual child order and
                     // supplies the specific drawing occurrence to artifact conversion.
+                    if (run._stdRun?.GetFirstChild<SdtContentRun>() is SdtContentRun controlContent &&
+                        (controlContent.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any() || HasExtendedChart(controlContent))) {
+                        foreach (INode expandedNode in CreateExpandedEquationContainerNodes(controlContent, Array.Empty<WordEquationOccurrence>(), run))
+                            AppendNode(expandedNode);
+                        continue;
+                    }
                     if ((run.IsChart || HasExtendedChart(run._run)) && run._run != null) {
                         foreach (INode expandedNode in CreateExpandedEquationContainerNodes(run._run, Array.Empty<WordEquationOccurrence>(), run)) {
                             AppendNode(expandedNode);

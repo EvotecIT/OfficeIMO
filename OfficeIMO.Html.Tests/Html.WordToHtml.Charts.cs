@@ -11,6 +11,64 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
     [Fact]
+    public void Export_RendersChartsInsideRichTextContentControls() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.Paragraphs.Single();
+        var run = paragraph.GetRuns().Single()._run!;
+        run.Remove();
+        paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.SdtRun(
+            new DocumentFormat.OpenXml.Wordprocessing.SdtProperties(),
+            new DocumentFormat.OpenXml.Wordprocessing.SdtContentRun(run)));
+        var result = document.ToHtmlResult();
+        Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Export_RevisionMarkupWrapsChartArtifacts(bool inserted) {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.Paragraphs.Single();
+        var run = paragraph.GetRuns().Single()._run!;
+        run.Remove();
+        if (inserted) paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.InsertedRun(run) { Id = "1", Author = "Reviewer" });
+        else paragraph._paragraph.Append(new DocumentFormat.OpenXml.Wordprocessing.DeletedRun(run) { Id = "1", Author = "Reviewer" });
+        var result = document.ToHtmlResult(new WordToHtmlOptions { TrackedChangePolicy = WordTrackedChangeExportPolicy.Markup });
+        Assert.Single(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll(inserted ? "ins img" : "del img"));
+    }
+
+    [Fact]
+    public void Export_OmittedLinkedChartDoesNotConsumeTheDiscardedAnchorBudget() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, Data());
+        chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.Smooth { Val = true }, true);
+        var paragraph = document.Paragraphs.Single();
+        var run = paragraph.GetRuns().Single()._run!;
+        paragraph.AddHyperLink("Link", new Uri("https://example.test/" + new string('a', 12000)));
+        var hyperlink = paragraph._paragraph.Elements<DocumentFormat.OpenXml.Wordprocessing.Hyperlink>().Single();
+        hyperlink.RemoveAllChildren(); run.Remove(); hyperlink.Append(run);
+        var result = document.ToHtmlResult(new WordToHtmlOptions { MaxOutputCharacters = 5000 });
+        Assert.DoesNotContain("<a ", result.RequireValue());
+        Assert.Single(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
+
+    [Fact]
+    public void Export_AdjacentChartTextPreservesExplicitCapsResets() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var run = document.Paragraphs.Single().GetRuns().Single()._run!;
+        run.RunProperties = new DocumentFormat.OpenXml.Wordprocessing.RunProperties(
+            new DocumentFormat.OpenXml.Wordprocessing.Caps { Val = false },
+            new DocumentFormat.OpenXml.Wordprocessing.SmallCaps { Val = false });
+        run.Append(new DocumentFormat.OpenXml.Wordprocessing.Text("Mixed case"));
+        var html = document.ToHtml();
+        Assert.Contains("text-transform:none", html);
+        Assert.Contains("font-variant:normal", html);
+    }
+    [Fact]
     public void Export_PreservesEachVmlImageOccurrenceBesideAChart() {
         using var document = WordDocument.Create();
         document.AddChart(OfficeChartKind.ColumnClustered, Data());

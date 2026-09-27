@@ -162,14 +162,17 @@ namespace OfficeIMO.Word.Html {
                 span.AppendChild(node);
                 node = span;
             }
-            if (run.CapsStyle == WordCapsStyle.SmallCaps || run.CapsStyle == WordCapsStyle.Caps) {
+            var capitalizationStyles = new List<string>();
+            if (run.CapsStyle == WordCapsStyle.SmallCaps) capitalizationStyles.Add("font-variant:small-caps");
+            else if (run.CapsStyle == WordCapsStyle.Caps) capitalizationStyles.Add("text-transform:uppercase");
+            if (IsExplicitlyDisabled(run._runProperties?.SmallCaps)) capitalizationStyles.Add("font-variant:normal");
+            if (IsExplicitlyDisabled(run._runProperties?.Caps)) capitalizationStyles.Add("text-transform:none");
+            if (capitalizationStyles.Count > 0) {
                 var span = CreateOutputElement(htmlDocument, "span");
                 SetOutputAttribute(
                     span,
                     "style",
-                    run.CapsStyle == WordCapsStyle.SmallCaps
-                        ? "font-variant:small-caps"
-                        : "text-transform:uppercase",
+                    string.Join(";", capitalizationStyles),
                     "EquationRunFormatting:caps");
                 span.AppendChild(node);
                 node = span;
