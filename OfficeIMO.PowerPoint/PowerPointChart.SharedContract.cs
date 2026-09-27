@@ -34,11 +34,13 @@ namespace OfficeIMO.PowerPoint {
                 throw new NotSupportedException(
                     "Bubble chart data cannot be updated without an embedded workbook.");
             }
+            byte[]? workbookBytes = embedded != null ? OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind) : null;
+            Action? preserveBindings = embedded != null ? OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart) : null;
             OfficeOpenXmlChartWriter.UpdateSharedChartData(chartPart, data, chartKind);
+            preserveBindings?.Invoke();
 
             if (embedded != null) {
-                byte[] workbookBytes = OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind);
-                using var stream = new MemoryStream(workbookBytes);
+                using var stream = new MemoryStream(workbookBytes!);
                 embedded.FeedData(stream);
             }
             Save();

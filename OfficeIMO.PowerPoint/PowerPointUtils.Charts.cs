@@ -195,6 +195,9 @@ namespace OfficeIMO.PowerPoint {
                 throw new InvalidOperationException("Chart plot area not found.");
             }
 
+            if (OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedNativeChartLayers(plotArea).Take(2).Count() != 1)
+                throw new NotSupportedException("Category-only updates require a single native chart layer; use shared chart data for combinations.");
+
             if (plotArea.GetFirstChild<C.BarChart>() is C.BarChart barChart) {
                 UpdateBarChartSeries(barChart, data);
                 return;

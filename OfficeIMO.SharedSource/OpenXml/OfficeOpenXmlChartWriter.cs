@@ -74,8 +74,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new InvalidOperationException("Chart plot area not found.");
 
             ISet<uint>? preservedSeriesIndexes = null;
-            if (defaultKind == OfficeChartKind.Scatter && plotArea.Elements<C.ScatterChart>().Any() &&
-                !plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Any(IsSharedChartLayer)) {
+            if (defaultKind == OfficeChartKind.Scatter && IsOnlySharedScatterPlot(plotArea)) {
                 UpdateScatterData(chartPart, NormalizeScatterData(data));
             } else {
                 preservedSeriesIndexes = new HashSet<uint>();
@@ -362,6 +361,12 @@ namespace OfficeIMO.OpenXml.Internal {
                     if (!data.Series[index].ShowInLegend) yield return (uint)index;
             }
         }
+
+        internal static IEnumerable<OpenXmlElement> GetSharedNativeChartLayers(C.PlotArea plotArea) =>
+            plotArea.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.OrdinalIgnoreCase));
+
+        private static bool IsOnlySharedScatterPlot(C.PlotArea plotArea) => plotArea.Elements<C.ScatterChart>().Any() &&
+            GetSharedNativeChartLayers(plotArea).All(element => element is C.ScatterChart);
 
         private static C.Legend CreateSharedLegend(OfficeChartData data, OfficeChartKind kind) {
             C.Legend legend = new(new C.LegendPosition { Val = C.LegendPositionValues.Bottom });

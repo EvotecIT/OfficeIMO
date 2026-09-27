@@ -50,7 +50,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("A secondary-axis chart requires at least one primary-axis series.");
             }
 
-            if (descriptors.Any(item => item.Kind == OfficeChartKind.Scatter ||
+            if (defaultKind == OfficeChartKind.Scatter || defaultKind == OfficeChartKind.Bubble ||
+                descriptors.Any(item => item.Kind == OfficeChartKind.Scatter ||
                                         item.Kind == OfficeChartKind.Bubble)) {
                 bool sameNumericKind = descriptors.All(item => item.Kind == defaultKind);
                 if ((defaultKind != OfficeChartKind.Scatter && defaultKind != OfficeChartKind.Bubble) ||

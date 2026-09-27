@@ -172,6 +172,7 @@ namespace OfficeIMO.PowerPoint {
             }
             byte[] workbook = PowerPointChartWorkbookEditor.Update(original,
                 data);
+            Action preserveBindings = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart);
             using (var validation = new MemoryStream(workbook,
                        writable: false)) {
                 _ = PowerPointChartWorkbookSecurity.ReadAndValidate(
@@ -195,6 +196,7 @@ namespace OfficeIMO.PowerPoint {
                         $"Sheet1!${column}$2:${column}${lastRow}",
                         item.Values);
                 }
+                preserveBindings();
                 using var replacement = new MemoryStream(workbook,
                     writable: false);
                 embedded.FeedData(replacement);
