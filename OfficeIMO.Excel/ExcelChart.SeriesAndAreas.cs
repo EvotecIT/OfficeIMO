@@ -89,6 +89,7 @@ namespace OfficeIMO.Excel {
         /// Sets the line color for a chart series by index.
         /// </summary>
         public ExcelChart SetSeriesLineColor(int seriesIndex, string color, double? widthPoints = null) {
+            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
@@ -113,6 +114,7 @@ namespace OfficeIMO.Excel {
         /// Sets the line color for a chart series by name.
         /// </summary>
         public ExcelChart SetSeriesLineColor(string seriesName, string color, double? widthPoints = null, bool ignoreCase = true) {
+            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
@@ -192,8 +194,8 @@ namespace OfficeIMO.Excel {
             if (seriesIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(seriesIndex));
             }
-            if (size is < 1 or > 72) {
-                throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
+            if (size is < 2 or > 72) {
+                throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
             }
             if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
                 throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
@@ -202,6 +204,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
             }
 
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
             bool applied = ApplySeriesMarkerByIndex(seriesIndex, marker => {
                 ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
             });
@@ -221,8 +224,8 @@ namespace OfficeIMO.Excel {
             if (seriesName == null) {
                 throw new ArgumentNullException(nameof(seriesName));
             }
-            if (size is < 1 or > 72) {
-                throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 1 and 72.");
+            if (size is < 2 or > 72) {
+                throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
             }
             if (fillColor != null && string.IsNullOrWhiteSpace(fillColor)) {
                 throw new ArgumentException("Marker fill color cannot be empty.", nameof(fillColor));
@@ -231,6 +234,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Marker line color cannot be empty.", nameof(lineColor));
             }
 
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
             bool applied = ApplySeriesMarkerByName(seriesName, ignoreCase, marker => {
                 ApplyMarker(marker, style, size, fillColor, lineColor, lineWidthPoints);
             });

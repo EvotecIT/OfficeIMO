@@ -34,9 +34,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ChartPart chartPart = GetChartPart();
+            EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
             PowerPointUtils.UpdateChartData(chartPart, data);
-
-            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
             if (embedded != null) {
                 byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(data);
                 using var stream = new MemoryStream(workbookBytes);
@@ -56,9 +55,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             ChartPart chartPart = GetChartPart();
+            EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
             PowerPointUtils.UpdateChartData(chartPart, data);
-
-            EmbeddedPackagePart? embedded = chartPart.GetPartsOfType<EmbeddedPackagePart>().FirstOrDefault();
             if (embedded != null) {
                 byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(data);
                 using var stream = new MemoryStream(workbookBytes);
