@@ -8,6 +8,19 @@ namespace OfficeIMO.Tests;
 
 public class ExcelSourceLinkedChartFormatTests {
     [Fact]
+    public void ChartAxis_ReportsStylesheetsBeyondTheResolutionWorkBound() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        var sheet = document.AddWorksheet("Styles");
+        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
+        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
+        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        var formats = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!.CellFormats!;
+        for (int index = formats.ChildElements.Count; index <= 100_000; index++)
+            formats.Append(new DocumentFormat.OpenXml.Spreadsheet.CellFormat { NumberFormatId = 9 });
+        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
+    }
+    [Fact]
     public void ChartAxis_ReportsMixedSourceNumberFormats() {
         using var document = ExcelDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx"));
         var sheet = document.AddWorksheet("Mixed");

@@ -20,6 +20,12 @@ providers and the `LatinLigatures` mode retain their selection behavior.
 
 ## Native chart appearance bounds
 
+Managed chart axes and data labels use consistent rounding across supported .NET
+runtimes. Explicit numeric formats round midpoint values away from zero; for example,
+`0%` formats `0.705` as `71%`. Excel source-linked axes use the referenced cells' number
+format when it can be qualified. To keep a specific axis format, pass
+`sourceLinked: false` to `SetValueAxisNumberFormat`.
+
 Native Word and PowerPoint data updates replace the embedded chart worksheet.
 Formula-linked chart titles, axis titles, custom labels and custom error bars
 now retain their cached content as native rich text or numeric literals. Supply

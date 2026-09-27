@@ -6,6 +6,18 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
     [Theory]
+    [InlineData(.705, "0%", "71%")]
+    [InlineData(-.705, "0%", "-71%")]
+    [InlineData(12.5, "0", "13")]
+    [InlineData(-12.5, "0", "-13")]
+    [InlineData(12.345, "0.00", "12.35")]
+    public void NumericChartLabels_RoundMidpointsConsistently(double value, string format, string expected) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Rounding", null, OfficeChartKind.Line,
+            new OfficeChartData(new[] { "Point" }, new[] { new OfficeChartSeries("Value", new[] { value }) }), 480, 260,
+            layout: new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true, dataLabelNumberFormat: format)));
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == expected);
+    }
+    [Theory]
     [InlineData(0.005)]
     [InlineData(0.002)]
     public void NumericAxes_KeepAdjacentFractionalTicksDistinct(double majorUnit) {

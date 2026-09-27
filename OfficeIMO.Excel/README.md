@@ -420,6 +420,13 @@ public sealed record ImmutableRow(string Name, string Status);
 
 ### Charts and dashboard recipes
 
+Managed chart images resolve source-linked axis formats from the referenced worksheet
+cells when those cells share one number format. For example, percentage cells formatted
+as `0%` produce percentage axis labels with no decimal places. An explicitly unlinked
+axis keeps the format supplied to `SetValueAxisNumberFormat`. Mixed formats, unresolved
+references, and sources beyond the format-resolution work bounds report
+`ChartAxisNumberFormatApproximation` and use the axis's declared format.
+
 ```csharp
 using OfficeIMO.Excel;
 
