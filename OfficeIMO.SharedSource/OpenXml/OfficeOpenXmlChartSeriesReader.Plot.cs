@@ -13,7 +13,7 @@ namespace OfficeIMO.OpenXml.Internal {
             out OfficeChartKind kind, out double bubbleScale, out OfficeChartBubbleSizeMode bubbleMode) {
             kind = default; bubbleScale = 100; bubbleMode = OfficeChartBubbleSizeMode.Area;
             C.PlotArea? plot = chart.PlotArea;
-            if (plot == null) return null;
+            if (plot == null || plot.GetFirstChild<C.DataTable>() != null) return null;
             var layers = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(plot.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)), maximumPoints);
             if (layers.Count == 0) return null;
@@ -132,15 +132,25 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static bool HasIncompleteNumericProjectionCaches(OpenXmlCompositeElement layer, int maximumPoints) {
+            IReadOnlyList<string>? sharedCategories = null;
             foreach (var series in layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(element => element.LocalName == "ser")) {
+                int? seriesLength = null;
                 foreach (var cache in series.ChildElements.Where(element => element is C.Values or C.XValues or C.YValues or C.BubbleSize)) {
                     var points = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(cache.Descendants<C.NumericPoint>(), maximumPoints);
                     int length = OfficeOpenXmlChartCacheReader.GetCachedPointLength(cache, points, point => point.Index?.Value, maximumPoints);
-                    if (points.Count != length || points.Any(point => point.Index?.Value == null) ||
+                    if (length == 0 || points.Count != length || points.Any(point => point.Index?.Value == null) ||
                         points.Select(point => point.Index!.Value).Distinct().Count() != length ||
                         points.Any(point => !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,
                             System.Globalization.CultureInfo.InvariantCulture, out double number) || double.IsNaN(number) || double.IsInfinity(number))) return true;
+                    if (seriesLength.HasValue && seriesLength.Value != length) return true;
+                    seriesLength = length;
                 }
+                if (!seriesLength.HasValue) return true;
+                if (layer is C.ScatterChart or C.BubbleChart) continue;
+                var categories = OfficeOpenXmlChartCacheReader.ReadCachedStrings(series.GetFirstChild<C.CategoryAxisData>(), maximumPoints);
+                if (categories.Count != seriesLength.Value ||
+                    sharedCategories != null && !sharedCategories.SequenceEqual(categories, StringComparer.Ordinal)) return true;
+                sharedCategories = categories;
             }
             return false;
         }
