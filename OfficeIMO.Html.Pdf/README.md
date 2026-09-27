@@ -108,8 +108,11 @@ layout width inside their printable area. For example, a source with a
 can use `PrintLayoutWidthCssPixels = 1400` without replacing the authored sheet.
 An explicit width must exceed the printable area. By default, PDF conversion also fits
 visible layout overflow, including fixed-width descendants, tables and root minimum
-widths, within a uniform authored sheet. Hidden or scroll-clipped descendants and
-paint-only shadows do not expand the fitting width. CSS media queries retain the
+widths, within a uniform authored sheet. Hidden or scroll-clipped containers and
+paint-only shadows do not expand the fitting width. Root overflow propagated from
+`html` or `body` clips the final viewport and permits print fitting of the underlying
+layout. Fixed-position boxes use the page area inside its margins and repeat on each page.
+CSS media queries retain the
 physical print context during reflow. Named or page-specific `@page` rules still need an explicit
 `PrintLayoutWidthCssPixels`. Set `AutoFitWidePrintContent = false` to keep the
 unscaled print layout. Automatic fitting includes positioned content outside the original

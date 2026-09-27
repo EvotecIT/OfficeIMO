@@ -15,7 +15,7 @@ internal static class HtmlRenderScrollableOverflow {
             OfficeTransform current = visual is HtmlRenderEffectGroup effect ? effect.Transform.Then(transform) : transform;
             IReadOnlyList<HtmlRenderVisual>? children = Children(visual);
             bool addedClip = false;
-            if (visual is HtmlRenderClipGroup rectangle && current.TryInvert(out OfficeTransform inverse)) {
+            if (visual is HtmlRenderClipGroup { IsViewportOverflow: false } rectangle && current.TryInvert(out OfficeTransform inverse)) {
                 clips.Add(new Clip(inverse, rectangle.ClipX, rectangle.ClipY,
                     rectangle.ClipWidth, rectangle.ClipHeight, rectangle.ClipHorizontal, rectangle.ClipVertical));
                 addedClip = true;

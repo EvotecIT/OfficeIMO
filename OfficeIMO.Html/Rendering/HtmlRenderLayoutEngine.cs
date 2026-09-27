@@ -1184,7 +1184,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         children,
                         fragment.Count,
                         clipGroup.Source,
-                        Math.Max(start, clipGroup.LayoutY) - start));
+                        Math.Max(start, clipGroup.LayoutY) - start,
+                        clipGroup.IsViewportOverflow));
                 }
                 continue;
             }

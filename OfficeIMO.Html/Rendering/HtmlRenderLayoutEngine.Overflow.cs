@@ -76,7 +76,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double clipHeight) {
         bool clipHorizontal = style.OverflowX != "visible";
         bool clipVertical = style.OverflowY != "visible";
-        if (!clipHorizontal && !clipVertical) {
+        // The propagated root overflow belongs to the viewport, not a second clip
+        // on the body/root box. This also applies to flex, grid and column roots.
+        if ((!clipHorizontal && !clipVertical) || ReferenceEquals(element, _viewportOverflowElement)) {
             foreach (HtmlRenderVisual visual in content) target.Add(visual.Translate(0D, 0D, target.Count));
             return;
         }

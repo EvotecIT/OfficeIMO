@@ -1,0 +1,409 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "053cdf1ad346b996375ecd1671225c9cee09ad88",
+  "candidateDiffFingerprint": "c68ffde6cd6492284b831423a5cba2f9177c25bc",
+  "scope": "Paged fixed containing block, propagated viewport clipping, and fixed cache geometry",
+  "specification": [
+    "https://www.w3.org/TR/css-position-3/",
+    "https://www.w3.org/TR/css-overflow-3/"
+  ],
+  "defects": [
+    {
+      "classification": "existing",
+      "contract": "Paged fixed boxes use the page area, not the sheet including margins.",
+      "baseline": "400x300px sheet with40px margins spuriously fit to506.25px and one page; native two pages.",
+      "corrected": "400px layout, two pages; fixed x/y40px,width320px."
+    },
+    {
+      "classification": "existing",
+      "contract": "Propagated root overflow applies at viewport; ordinary wrappers retain local clips.",
+      "baseline": "Root-hidden600px child on400px sheet was clipped from fitting; specialized roots also emitted duplicate local clip.",
+      "corrected": "Generic/flex/grid root controls fit600px; wrapper-hidden retains400px and two pages."
+    },
+    {
+      "classification": "remediation-introduced",
+      "contract": "Equal page areas on different sheets must invalidate cached fixed viewport lengths.",
+      "corrected": "Regression proves300x250 and400x350 sheets with equal260x210 areas produce distinct viewport-unit geometry."
+    }
+  ],
+  "tests": {
+    "focused": {
+      "passed": 28,
+      "failed": 0
+    },
+    "htmlNet8": {
+      "passed": 3673,
+      "failed": 0
+    },
+    "htmlNet10": {
+      "passed": 3673,
+      "failed": 0
+    },
+    "htmlPdfNetstandard20Build": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "independentBrowserControls": [
+    {
+      "id": "fixed-percent-margin",
+      "pages": [
+        {
+          "Width": 400,
+          "Height": 300,
+          "Margins": {
+            "Left": 40,
+            "Top": 40,
+            "Right": 40,
+            "Bottom": 40
+          }
+        },
+        {
+          "Width": 400,
+          "Height": 300,
+          "Margins": {
+            "Left": 40,
+            "Top": 40,
+            "Right": 40,
+            "Bottom": 40
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "id": "body-hidden-wide",
+      "pages": [
+        {
+          "Width": 600,
+          "Height": 450,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "id": "body-clip-wide",
+      "pages": [
+        {
+          "Width": 600,
+          "Height": 450,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "id": "html-hidden-wide",
+      "pages": [
+        {
+          "Width": 600,
+          "Height": 450,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "id": "column-body-hidden-wide",
+      "pages": [
+        {
+          "Width": 600,
+          "Height": 450,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "id": "grid-body-hidden-wide",
+      "pages": [
+        {
+          "Width": 600,
+          "Height": 450,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "id": "wrapper-hidden-wide",
+      "pages": [
+        {
+          "Width": 400,
+          "Height": 300,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        },
+        {
+          "Width": 400,
+          "Height": 300,
+          "Margins": {
+            "Left": 0,
+            "Top": 0,
+            "Right": 0,
+            "Bottom": 0
+          }
+        }
+      ],
+      "warnings": []
+    }
+  ],
+  "markerMetrics": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-chromium.xml",
+      "markerAdvancePt": 46.671877
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-officeimo.xml",
+      "markerAdvancePt": 46.672023
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-chromium.xml",
+      "markerAdvancePt": 46.671877
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-officeimo.xml",
+      "markerAdvancePt": 46.672023
+    }
+  ],
+  "visualInspection": {
+    "specializedRoots": "Native and owned geometry/glyph positions agree in inspected montage.",
+    "nasa": "All12 corrected default pages inspected; inset repeated header, narrow one-column gallery, footer on11 and mostly empty12. Native4 remains unqualified."
+  },
+  "nasa": {
+    "defaultPages": 12,
+    "layoutWidthCssPx": 793.7007874015749,
+    "marginsCssPx": 48,
+    "printFitWarnings": [],
+    "diagnosticAblation": "Removing fixed header removes spurious fitting. No ordinary-unclipped overflow found in emulated print DOM audit; this is not a paginated oracle."
+  },
+  "review": {
+    "reviewer": "/root/h10_pagearea_root_overflow_review",
+    "fullPassFingerprint": "c121f214da8094db7c723b3b71315d14c2ace1e6",
+    "finding": "P2 fixed cache regression reproduced and corrected; sibling specialized root duplicate clip corrected.",
+    "targetedConfirmation": "No actionable findings; final fingerprint confirmed.",
+    "boundary": "current",
+    "residualGaps": [
+      "Reserved footnote/float area has no direct visual control.",
+      "Inline static anchors with nonzero margins have no direct visual control."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/body-clip-wide-chromium.pdf",
+      "bytes": 13667,
+      "sha256": "98252cc105ca65a4d15a827db31147c90f893ec4fa1b797df75e6206aeab74a8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/body-clip-wide-officeimo.pdf",
+      "bytes": 1711,
+      "sha256": "d37b02365894a784e65b4c8d15491d049a645362e89c8abfe87c431f78205901"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/body-clip-wide.html",
+      "bytes": 251,
+      "sha256": "e3fe86324ac9146f8f9deaa2f42bd4ae347dc91b538aead143cf621128589d2f"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/body-hidden-wide-chromium.pdf",
+      "bytes": 13667,
+      "sha256": "98252cc105ca65a4d15a827db31147c90f893ec4fa1b797df75e6206aeab74a8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/body-hidden-wide-officeimo.pdf",
+      "bytes": 1711,
+      "sha256": "d37b02365894a784e65b4c8d15491d049a645362e89c8abfe87c431f78205901"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/body-hidden-wide.html",
+      "bytes": 253,
+      "sha256": "5d74b6dae439c136ffd06bf698f1d1773727c81a950dae42c47f47aa25ef4966"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/cases.json",
+      "bytes": 2182,
+      "sha256": "d451200542a2abdcdf9be48d2389ffc4e7309affbd4c2a7d770b72f4939c6aa8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-chromium.pdf",
+      "bytes": 13667,
+      "sha256": "98252cc105ca65a4d15a827db31147c90f893ec4fa1b797df75e6206aeab74a8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-chromium.png",
+      "bytes": 4502,
+      "sha256": "30f8896c7cd32f1cd77a5c77b749ad654355a762b6703f74954211a65f5f4511"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-chromium.xml",
+      "bytes": 675,
+      "sha256": "adff6c2346a674356f4af00b192cd809872f41961ee6c94b8dec60950ccde538"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-officeimo.pdf",
+      "bytes": 1711,
+      "sha256": "d37b02365894a784e65b4c8d15491d049a645362e89c8abfe87c431f78205901"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-officeimo.png",
+      "bytes": 4405,
+      "sha256": "4b7cf48f4910546b4a479b3c2cf8773011ac6c8edd74f0a0782d3cfec361c9c1"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide-officeimo.xml",
+      "bytes": 519,
+      "sha256": "b45e613e84f5aaef9e8325a700836e6192a22c8f04c010e4fab36f96b8a73823"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/column-body-hidden-wide.html",
+      "bytes": 304,
+      "sha256": "3bd560c73aede34c735c8fed57d4ed9c42e9a9f57738d9f1c07a8190e55b4b0e"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/fixed-percent-margin-chromium.pdf",
+      "bytes": 14343,
+      "sha256": "5d14edb48a89cecc2504e8c91c03b424baae9a4c9a87fe49a80063a1f87f459e"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/fixed-percent-margin-officeimo.pdf",
+      "bytes": 2305,
+      "sha256": "ca8f5711965bb18eb7f87ad5540ff6f36c30be9839c9ee9892aff8b40a3e9765"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/fixed-percent-margin.html",
+      "bytes": 258,
+      "sha256": "2145608e00dcb7a08b8a819af19b415e5b91c974484d50908ba46a5ab4082ca6"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-chromium.pdf",
+      "bytes": 13667,
+      "sha256": "98252cc105ca65a4d15a827db31147c90f893ec4fa1b797df75e6206aeab74a8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-chromium.png",
+      "bytes": 4502,
+      "sha256": "30f8896c7cd32f1cd77a5c77b749ad654355a762b6703f74954211a65f5f4511"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-chromium.xml",
+      "bytes": 675,
+      "sha256": "adff6c2346a674356f4af00b192cd809872f41961ee6c94b8dec60950ccde538"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-officeimo.pdf",
+      "bytes": 1711,
+      "sha256": "d37b02365894a784e65b4c8d15491d049a645362e89c8abfe87c431f78205901"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-officeimo.png",
+      "bytes": 4405,
+      "sha256": "4b7cf48f4910546b4a479b3c2cf8773011ac6c8edd74f0a0782d3cfec361c9c1"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide-officeimo.xml",
+      "bytes": 519,
+      "sha256": "b45e613e84f5aaef9e8325a700836e6192a22c8f04c010e4fab36f96b8a73823"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/grid-body-hidden-wide.html",
+      "bytes": 282,
+      "sha256": "1bb61a96b78392bfc9e137027e3083013de277cdac895c5961da90bc90b31ee8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/html-hidden-wide-chromium.pdf",
+      "bytes": 13667,
+      "sha256": "98252cc105ca65a4d15a827db31147c90f893ec4fa1b797df75e6206aeab74a8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/html-hidden-wide-officeimo.pdf",
+      "bytes": 1711,
+      "sha256": "d37b02365894a784e65b4c8d15491d049a645362e89c8abfe87c431f78205901"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/html-hidden-wide.html",
+      "bytes": 253,
+      "sha256": "b5c282445c6cfc19a6fe6f15febc5c2e2c07a99dad24978ee3ee0d28afd96c5e"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/specialized-root-controls.png",
+      "bytes": 25572,
+      "sha256": "5ed184607d47ecba90806dab0185f1fe42b40c8a1d6a7ef24e76e04f3725e802"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/wrapper-hidden-wide-chromium.pdf",
+      "bytes": 13927,
+      "sha256": "6680ed848ec82bc21f9cd9d378039cfc73799a04476a997d2c9587ac57e3ffa0"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/wrapper-hidden-wide-officeimo.pdf",
+      "bytes": 2119,
+      "sha256": "1c8286f83d98fb4e326e79f28fc3814999c95311cc8d3d8f040bd7007bfaf5a7"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/remediated/wrapper-hidden-wide.html",
+      "bytes": 253,
+      "sha256": "4a2a14068d6651d979ade417dc4360268d2f3e587ac1d6dd344334c78dc51718"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-print-overflow-source-053cdf1ad/output/layout-sources.json",
+      "bytes": 203820,
+      "sha256": "8cca38afafb1beebcfd011fcec999f00280253ce7eb7d461e32419af44281bab"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-print-overflow-source-053cdf1ad/candidate/layout-sources.json",
+      "bytes": 153713,
+      "sha256": "7afe0e1816d59833bf4bc1a46c7909d6ae66a445896efc12fc5dba2b5040eadb"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-print-overflow-source-053cdf1ad/remediated/layout-sources.json",
+      "bytes": 40002,
+      "sha256": "0bc6cf5eed232535f79e1184a14b9cfb9992d1309e548b03a32779a3964d3338"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-print-overflow-source-053cdf1ad/remediated/default.pdf",
+      "bytes": 23195821,
+      "sha256": "0ce6853b67e3aa23866bcd70dd0ae1345f1598dd8dcf618e52970a3b6be7b87a"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-nasa-print-overflow-source-053cdf1ad/remediated/pages/all-pages.png",
+      "bytes": 1398849,
+      "sha256": "e3f63b4f6161be696e308bc24c133f63c467cca17beed59e8c876aded1fefc8e"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/h10-print-fixed-pagearea-053cdf1ad/nasa-audit/nasa-root-overflow-audit.json",
+      "bytes": 129324,
+      "sha256": "79e25a6e98e851ccac28e80658da64d947797091e5ad9c2a2d58e5884befbfb5"
+    }
+  ],
+  "acceptance": "Focused contract qualification only; NASA default/native equivalence and clean-source H4/platform replay remain open."
+}

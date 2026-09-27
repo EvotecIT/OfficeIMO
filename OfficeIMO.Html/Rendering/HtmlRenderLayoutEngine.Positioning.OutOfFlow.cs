@@ -214,7 +214,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         for (int index = 0; index < _fixedPositionedElements.Count; index++) {
-            _fixedPositionedElements[index].Resolve(this, surfaceWidth, surfaceHeight);
+            PositionedRequestPlacement placement = CreateFixedPositionedPlacement(
+                _fixedPositionedElements[index], surfaceWidth, surfaceHeight);
+            placement.Request.Resolve(this, placement.Width, placement.Height);
         }
     }
 
@@ -255,9 +257,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ActiveMargins.Top)));
         }
         placements.AddRange(_fixedPositionedElements.Select(request =>
-            new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D)));
+            CreateFixedPositionedPlacement(request, surfaceWidth, surfaceHeight)));
         return placements;
     }
+
+    private PositionedRequestPlacement CreateFixedPositionedPlacement(
+        PositionedElementRequest request, double surfaceWidth, double surfaceHeight) =>
+        _options.Mode == HtmlRenderMode.Paged
+            // Fixed boxes use the entire page area, including reserved footnote/float
+            // space, rather than the reduced normal-flow body or the page margins.
+            ? new PositionedRequestPlacement(request, _activePageGeometry.ContentWidth,
+                _activePageGeometry.ContentHeight, ActiveMargins.Left, ActiveMargins.Top)
+            : new PositionedRequestPlacement(request, surfaceWidth, surfaceHeight, 0D, 0D);
 
     private void CollectGlobalPositionedRunningStringAssignments(
         ICollection<HtmlCssRunningStringAssignment> target,
@@ -456,6 +467,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         private PositionedLayer? _cached;
         private double _width;
         private double _height;
+        private double _pageViewportWidth;
+        private double _pageViewportHeight;
         internal PositionedElementRequest(
             IElement element,
             IElement directParent,
@@ -493,10 +506,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal IReadOnlyList<FlattenedSemanticBoundary> FlattenedSemanticBoundaries { get; }
         internal bool IsFixed => string.Equals(Style.Position, "fixed", StringComparison.Ordinal);
         internal PositionedLayer Resolve(HtmlRenderLayoutEngine engine, double width, double height) {
-            if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D) {
+            bool pageViewportChanged = IsFixed && engine._options.Mode == HtmlRenderMode.Paged
+                && (Math.Abs(engine._activePageGeometry.Width - _pageViewportWidth) > 0.0001D
+                    || Math.Abs(engine._activePageGeometry.Height - _pageViewportHeight) > 0.0001D);
+            if (_cached == null || Math.Abs(width - _width) > 0.0001D || Math.Abs(height - _height) > 0.0001D
+                || pageViewportChanged) {
                 _cached = engine.LayoutPositionedElement(this, width, height);
                 _width = width;
                 _height = height;
+                _pageViewportWidth = engine._activePageGeometry.Width;
+                _pageViewportHeight = engine._activePageGeometry.Height;
             }
             return _cached;
         }
