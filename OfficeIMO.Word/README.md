@@ -491,6 +491,9 @@ drawings use that same series. Unqualified native dashes, curved lines, distinct
 marker and connecting-line colours, or unfilled marker treatments reject the
 managed snapshot rather than changing their appearance. Cached projections are
 bounded to 10,000 positions per Word cache and 100,000 positions across a chart.
+Point overrides use a separate 1,000,000-record limit that counts stale and duplicate
+records. Picture markers reject static projection. Radar series inherit visible
+markers only from the native marker style unless the series supplies a marker.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain

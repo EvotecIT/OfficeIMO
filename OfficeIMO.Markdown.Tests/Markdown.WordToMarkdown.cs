@@ -1076,7 +1076,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordChart_TryGetSnapshot_Clamps_Inflated_Cache_PointCounts() {
+        public void WordChart_TryGetSnapshot_Rejects_Inflated_Cache_PointCounts() {
             using var doc = WordDocument.Create();
             var chart = doc.AddChart("Inflated cache", width: 400, height: 240);
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
@@ -1091,11 +1091,9 @@ namespace OfficeIMO.Tests {
                 pointCount.Val = 1_000_000U;
             }
 
-            Assert.True(chart.TryGetSnapshot(out var snapshot));
-
-            Assert.Equal(new[] { "Q1", "Q2" }, snapshot.Data.Categories);
-            var series = Assert.Single(snapshot.Data.Series);
-            Assert.Equal(new[] { 10D, 20D }, series.Values);
+            string before = chartSpace.OuterXml;
+            Assert.False(chart.TryGetSnapshot(out _));
+            Assert.Equal(before, chartSpace.OuterXml);
         }
 
         [Fact]
