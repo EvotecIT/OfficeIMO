@@ -7,6 +7,55 @@ using Pig = UglyToad.PdfPig.PdfDocument;
 namespace OfficeIMO.Tests;
 
 public class PdfFloatingTablePaginationRegressionTests {
+    [Fact]
+    public void StaticConstrainedFlowRemeasuresSpacingAfterFloatClearance() {
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 50))
+            .Flow(flow => flow.Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { LineHeight = 1, SpacingBefore = 50, SpacingAfter = 0 })
+                .Spacer(80).Paragraph(p => p.Text("last"), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = 0 }),
+                new PdfFlowOptions { KeepTogether = true }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "last");
+    }
+
+    [Fact]
+    public void ReplayedConstrainedFlowClearsLowerFloatWithNewHeight() {
+        var lower = Floating(320, 30); lower.Position = new PdfTablePosition(verticalOffset: 70);
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "top" } }, style: Floating(320, 30))
+            .Table(new[] { new[] { "lower" } }, style: lower)
+            .Deferred(context => flow => flow.Paragraph(p => p.Text(context.IsAtPageTop ? "first" : "first\none\ntwo\nthree\nfour\nfive"))
+                .Spacer(30).Paragraph(p => p.Text("last")), new PdfFlowOptions { KeepTogether = true }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "last");
+    }
+
+    [Fact]
+    public void ConstrainedFlowMovesAsAWholePastFloat() {
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
+            .Flow(flow => flow.Paragraph(p => p.Text("first")).Spacer(50).Paragraph(p => p.Text("last")),
+                new PdfFlowOptions { KeepTogether = true }).ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first" || word.Text == "last");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "last");
+    }
+
+    [Fact]
+    public void FloatKeepWithNextIncludesAfterSpacing() {
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 90))
+            .Paragraph(p => p.Text("first"), style: new PdfParagraphStyle { KeepWithNext = true, SpacingAfter = 50 })
+            .Paragraph(p => p.Text("next")).ToBytes());
+        Assert.Equal(2, pdf.NumberOfPages);
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "next");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

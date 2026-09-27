@@ -27,6 +27,20 @@ internal static partial class PdfWriter {
             }
 
             double? measuredHeight = MeasureFlowBlocks(blocks);
+            while (HasFloatingTables && measuredHeight.HasValue && measuredHeight.Value > 0.001D &&
+                (flow.Options.KeepTogether || flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage)) {
+                double previousY = y;
+                AvoidFloatingBlock(measuredHeight.Value);
+                if (y >= previousY - 0.001D) break;
+                context = CreateFlowContext();
+                if (flow.IsReplayable) {
+                    blocks = MaterializeFlow(flow, context);
+                }
+                // Clearance changes page-top spacing and can change replayed content.
+                // Recheck the complete group against any lower floating regions.
+                measuredHeight = MeasureFlowBlocks(blocks);
+                available = y - currentOpts.MarginBottom;
+            }
             if (!measuredHeight.HasValue &&
                 (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
                 throw new NotSupportedException("KeepTogether and non-continuing overflow behavior require flow content whose height can be determined before rendering. Remove the constraint or move dynamic, multi-column, deferred-table, table-of-contents, canvas, or explicit page-boundary content outside the flow.");
