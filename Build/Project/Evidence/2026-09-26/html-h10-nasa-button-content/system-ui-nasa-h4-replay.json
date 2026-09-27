@@ -239,7 +239,7 @@
           "meanAbsoluteChannelDifference": 10.819467012839738
         }
       ],
-      "inspection": "All four pages viewed in a three-lane montage. Same page count and broad gallery order; header controls, overview wrapping, gallery/card labels, lower gallery spacing and footer content still differ. No visual parity claim.",
+      "inspection": "All four pages viewed. Page count and broad gallery order match. Later native-PDF extraction verifies all seven overview line breaks; wider emulated DOM wrapping is not the print reference. Header/card paint and footer positions still differ.",
       "metricBoundary": "Top-left comparison with white padding for PDF page-size rounding, no rescaling. Whole-page differences localize no cause and are not an acceptance score."
     },
     "resourceObservation": "The fit-width local-font lane reports system-ui weight400 decodedBytes=15744864 and weight700 decodedBytes=0. This diagnostic is not a complete retained-memory budget.",
@@ -265,7 +265,7 @@
     }
   },
   "remaining": [
-    "NASA header controls, overview wrapping, card labels, gallery spacing and footer content",
+    "NASA header controls, glyph/card paint and footer geometry; overview line breaks verified by native PDF extraction",
     "Default/other PDF intent fidelity",
     "Platform static timing, allocation and retained-memory budgets",
     "Remaining WAI/MDN/TodoMVC gaps and replacement held-out/output qualification"
