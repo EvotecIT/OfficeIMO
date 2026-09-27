@@ -364,7 +364,8 @@ projections are bounded to 100,000 positions across all native layers.
 
 Category discovery checks all populated series before generating fallback labels.
 The longest available category cache supplies labels, and shorter series retain
-their positions with zero padding. Mixed snapshots validate the whole plot once.
+their positions with zero padding. Mixed snapshots require matching category
+caches and share one budget for native and normalized positions across the plot.
 Marker-only plots use the marker fill; a marker fill cannot replace an unresolved
 connecting-line colour in a static export.
 
