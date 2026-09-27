@@ -40,6 +40,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return new OfficeChartLayout(overlayLegend: legend?.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false,
                 overlayTitle: chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>() is C.Overlay title && title.Val?.Value != false,
                 showLegend: legend != null, legendPosition: sharedPosition, hiddenCategoryLegendIndexes: hidden,
+                fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
                 categoryAxisTitle: ReadLayoutTitle(horizontal), valueAxisTitle: ReadLayoutTitle(vertical),
                 categoryAxisNumberFormat: horizontal is C.ValueAxis ? null : ReadLayoutFormat(horizontal),
                 horizontalAxisNumberFormat: horizontal is C.ValueAxis ? ReadLayoutFormat(horizontal) : null,
