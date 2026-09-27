@@ -35,7 +35,7 @@ Open any screenshot at full size to inspect the workspace. For immediate use wit
 
 ## Get Studio
 
-Use the [source build guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme) to run Studio on your desktop. The [downloads page](/downloads/#studio-downloads) lists available packages.
+Download a signed MSI installer or portable ZIP for [Windows](/downloads/#studio-downloads), or a Debian package or portable ZIP for [Linux](/downloads/#studio-linux-downloads). Both platforms offer x64 and Arm64 packages and include the .NET runtime. Use the [source build guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme) for macOS or development builds.
 
 ## Prefer a command or an API?
 

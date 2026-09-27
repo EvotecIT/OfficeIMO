@@ -68,9 +68,9 @@
       "guide": "/studio/",
       "paths": [
         { "label": "Studio workflows and screenshots", "url": "/studio/" },
-        { "label": "Source build instructions", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme" }
+        { "label": "Windows and Linux downloads", "url": "/downloads/#studio-downloads" }
       ],
-      "boundary": "Studio currently requires a source build. Public installers and native printer submission are not available."
+      "boundary": "Windows and Linux packages are available for x64 and Arm64. macOS requires a source build. Check the Studio guide for optional OCR providers and printing requirements."
     }
   ]
 }
