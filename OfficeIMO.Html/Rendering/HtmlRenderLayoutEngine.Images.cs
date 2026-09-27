@@ -499,6 +499,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double textWidth = Math.Max(0.01D, width - horizontalInset * 2D);
         double lineHeight = Math.Max(0.01D, style.LineHeight);
         string normalized = CollapseImageAlternativeText(alternativeText);
+        _fontUsage?.Observe(normalized, style.Font.FamilyName, style.FontDescriptor);
         // Alternative text can be arbitrarily long, but only a small prefix can paint inside an image.
         // Keep the remainder as one clipped text visual so PDF text extraction retains the full value.
         int wrappedLength = Math.Min(normalized.Length, 1024);

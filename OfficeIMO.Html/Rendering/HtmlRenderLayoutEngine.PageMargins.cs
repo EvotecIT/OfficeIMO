@@ -38,6 +38,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 string text = box.Content.Render(page.PageNumber, pages.Count, page.RunningStrings);
                 double textHeight = Math.Max(1D, box.Font.Size * _options.DefaultLineHeight);
                 if (text.Length == 0 || !TryGetMarginBoxBounds(page, box.Position, textHeight, out double x, out double y, out double width, out double height)) continue;
+                _fontUsage?.Observe(text, box.Font.FamilyName, OfficeFontFaceDescriptor.FromStyle(box.Font.Style));
                 var marginText = new HtmlRenderText(
                     text,
                     x,

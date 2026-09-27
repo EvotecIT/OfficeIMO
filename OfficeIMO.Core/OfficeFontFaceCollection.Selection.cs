@@ -23,21 +23,35 @@ public sealed partial class OfficeFontFaceCollection {
             if (addedFamilies.Add(family)) families.Add(family);
         }
         foreach (string family in families) {
-            var available = new List<(OfficeFontFace Face, int RegistrationIndex)>();
-            for (int index = _faces.Count - 1; index >= 0; index--) {
-                OfficeFontFace face = _faces[index];
-                if (!MatchesFamily(face, family)) continue;
-                available.Add((face, index));
-            }
-            available.Sort((left, right) => {
-                int rank = CompareFaceSelection(left.Face, right.Face, descriptor);
-                return rank != 0 ? rank : right.RegistrationIndex.CompareTo(left.RegistrationIndex);
-            });
+            List<(OfficeFontFace Face, int RegistrationIndex)> available = ResolveFamilyCandidates(family, descriptor);
             foreach ((OfficeFontFace face, _) in available) {
                 if (added.Add(face)) result.Add(face);
             }
         }
         return result;
+    }
+
+    /// <summary>Resolves a complete text element within one requested family, without entering later fallback families.</summary>
+    internal OfficeFontFace? ResolveFaceInFamily(string text, string family, OfficeFontFaceDescriptor descriptor) {
+        foreach ((OfficeFontFace face, _) in ResolveFamilyCandidates(family, descriptor)) {
+            bool explicitResource = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase);
+            if (explicitResource ? face.HasGlyphs(text) : face.Covers(text)) return face;
+        }
+        return null;
+    }
+
+    private List<(OfficeFontFace Face, int RegistrationIndex)> ResolveFamilyCandidates(string family, OfficeFontFaceDescriptor descriptor) {
+        var available = new List<(OfficeFontFace Face, int RegistrationIndex)>();
+        for (int index = _faces.Count - 1; index >= 0; index--) {
+            OfficeFontFace face = _faces[index];
+            if (!MatchesFamily(face, family)) continue;
+            available.Add((face, index));
+        }
+        available.Sort((left, right) => {
+            int rank = CompareFaceSelection(left.Face, right.Face, descriptor);
+            return rank != 0 ? rank : right.RegistrationIndex.CompareTo(left.RegistrationIndex);
+        });
+        return available;
     }
 
     private static int CompareFaceSelection(

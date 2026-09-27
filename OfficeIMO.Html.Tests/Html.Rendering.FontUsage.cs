@@ -19,6 +19,8 @@ public sealed class HtmlFontUsageTests {
     [InlineData("Good", "<button style='font-family:Missing'>Label</button>", true)]
     [InlineData("Good", "<svg width='120' height='40'><text x='0' y='20' font-family='Missing'>SVG text</text></svg>", true)]
     [InlineData("Good", "<svg width='120' height='40'><text display='none' font-family='Missing'>Hidden SVG</text></svg>", false)]
+    [InlineData("Good", "<svg width='120' height='40'><text visibility='hidden' font-family='Missing'>Hidden SVG</text></svg>", false)]
+    [InlineData("Good", "<svg width='120' height='40'><text visibility='hidden'><tspan visibility='visible' font-family='Missing'>Visible SVG</tspan></text></svg>", true)]
     public async Task UnavailableFaceLossDependsOnTextRequest(string families, string additionalHtml, bool expectedLoss) {
         HtmlRenderDocument rendered = await RenderAsync("p{font-family:" + families + "}", "<p>Visible text</p>" + additionalHtml);
         Assert.Equal(expectedLoss, rendered.HasLoss);
@@ -96,6 +98,43 @@ public sealed class HtmlFontUsageTests {
         Assert.Equal(expectedLoss ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.None, unavailable.LossKind);
         Assert.Equal(expectedLoss, result.Report.HasLoss);
         Assert.Contains("Visible text", OfficeIMO.Pdf.PdfReadDocument.Open(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task PageMarginTextAttributesUnavailableHeaderFace() {
+        var options = CreateOptions();
+        options.Mode = HtmlRenderMode.Paged;
+        options.Margins = HtmlRenderMargins.All(40);
+        var rendered = await HtmlRenderEngine.RenderAsync(HtmlConversionDocument.Parse(Style("p{font-family:Good}@page{@top-center{content:'Header';font-family:Missing}}") + "<p>Body</p>"), options);
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+    }
+
+    [Theory]
+    [InlineData("value='\u03a9'", "input{font-family:Missing,Good}")]
+    [InlineData("placeholder='\u03a9'", "input{font-family:Good}input::placeholder{font-family:Missing,Good}")]
+    public async Task InputTextAttributesUnavailableUnicodeSubset(string attributes, string css) {
+        var rendered = await RenderAsync(css, "<input " + attributes + ">",
+            "@font-face{font-family:Missing;unicode-range:U+0370-03FF;src:url('https://font.example/missing.ttf')}", missingFamily: null);
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+    }
+
+    [Fact]
+    public async Task CombiningTextRequiresOneCoveringFaceRatherThanIndependentScalars() {
+        var source = HtmlConversionDocument.Parse("<style>"
+            + "@font-face{font-family:Good;unicode-range:U+0065;src:url('https://font.example/good.ttf')}"
+            + "@font-face{font-family:Good;unicode-range:U+0301;src:url('https://font.example/good.ttf')}"
+            + "@font-face{font-family:Missing;src:url('https://font.example/missing.ttf')}"
+            + "p{font-family:Good,Missing}</style><p>e\u0301</p>");
+        var rendered = await HtmlRenderEngine.RenderAsync(source, CreateOptions());
+        Assert.Equal(HtmlDiagnosticSeverity.Warning, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
+    }
+
+    [Fact]
+    public async Task QuotedFamilyContainingCommaSatisfiesTextBeforeMissingFallback() {
+        var rendered = await RenderAsync("p{font-family:'Good, Family',Missing}", "<p>Visible text</p>",
+            "@font-face{font-family:'Good, Family';src:url('https://font.example/good.ttf')}");
+        Assert.False(rendered.HasLoss);
+        Assert.Equal(HtmlDiagnosticSeverity.Info, Assert.Single(rendered.Diagnostics, x => x.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable).Severity);
     }
 
     private static async Task<HtmlRenderDocument> RenderAsync(string css, string body, string extraFaces = "", string? missingFamily = "Missing") =>

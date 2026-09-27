@@ -8,12 +8,14 @@ namespace OfficeIMO.Html;
 /// </summary>
 internal sealed class HtmlRenderFontFaceUsage {
     private const int MaximumCachedRequests = 4096;
+    private const int MaximumCachedCharacters = 65536;
     private readonly OfficeFontFaceCollection _fonts;
     private readonly HtmlDiagnosticReport _diagnostics;
     private readonly Dictionary<string, List<UnavailableFace>> _unavailable = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<OfficeFontFace, int> _definitionOrder = new();
-    private readonly HashSet<(string Families, OfficeFontFaceDescriptor Descriptor, int Scalar)> _observed = new();
+    private readonly HashSet<(string Families, OfficeFontFaceDescriptor Descriptor, string TextElement)> _observed = new();
     private bool _observing;
+    private int _cachedCharacters;
 
     internal HtmlRenderFontFaceUsage(OfficeFontFaceCollection fonts, HtmlDiagnosticReport diagnostics) {
         _fonts = fonts;
@@ -53,48 +55,39 @@ internal sealed class HtmlRenderFontFaceUsage {
         if (_unavailable.Count == 0 || _observing || string.IsNullOrEmpty(text) || string.IsNullOrWhiteSpace(familyNames)) return;
         _observing = true;
         try {
-            List<string>? families = null;
-            for (int index = 0; index < text.Length; index++) {
-                int scalar = text[index];
-                if (char.IsHighSurrogate(text[index]) && index + 1 < text.Length && char.IsLowSurrogate(text[index + 1])) {
-                    scalar = char.ConvertToUtf32(text[index], text[++index]);
-                } else if (char.IsSurrogate(text[index])) continue;
-                // These controls do not select a separate font face. Whitespace stays with its adjacent run.
-                if (char.IsWhiteSpace(text, Math.Min(index, text.Length - 1)) || scalar is 0x200C or 0x200D
-                    || scalar >= 0xFE00 && scalar <= 0xFE0F || scalar >= 0xE0100 && scalar <= 0xE01EF) continue;
-                if (_observed.Count >= MaximumCachedRequests) _observed.Clear();
-                if (!_observed.Add((familyNames!, descriptor, scalar))) continue;
-                families ??= OfficeFontFamilyParser.Parse(familyNames);
-                ObserveScalar(scalar, families, descriptor);
+            List<string> families = OfficeFontFamilyParser.Parse(familyNames);
+            if (!families.Any(family => _unavailable.ContainsKey(family))) return;
+            foreach (string element in OfficeTextElements.Enumerate(text)) {
+                // Match the renderer's complete grapheme requests, not independent combining scalars.
+                if (string.IsNullOrWhiteSpace(element)) continue;
+                long characters = (long)familyNames!.Length + element.Length;
+                if (characters <= MaximumCachedCharacters) {
+                    var key = (familyNames, descriptor, element);
+                    if (_observed.Contains(key)) continue;
+                    if (_observed.Count >= MaximumCachedRequests || _cachedCharacters + characters > MaximumCachedCharacters) {
+                        _observed.Clear();
+                        _cachedCharacters = 0;
+                    }
+                    _observed.Add(key);
+                    _cachedCharacters += (int)characters;
+                }
+                ObserveElement(element, families, descriptor);
             }
         } finally {
             _observing = false;
         }
     }
 
-    private void ObserveScalar(int scalar, List<string> families, OfficeFontFaceDescriptor requested) {
-        string text = char.ConvertFromUtf32(scalar);
+    private void ObserveElement(string text, List<string> families, OfficeFontFaceDescriptor requested) {
         foreach (string family in families) {
-            OfficeFontFace? available = null;
-            int availableOrder = -1;
-            foreach (OfficeFontFace face in _fonts.Faces) {
-                if (!string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase)) continue;
-                bool explicitResource = string.Equals(face.ResourceFamilyName, family, StringComparison.OrdinalIgnoreCase)
-                    && !string.Equals(face.FamilyName, family, StringComparison.OrdinalIgnoreCase);
-                if (!(explicitResource ? face.HasGlyphs(text) : face.Covers(text))) continue;
-                int order = _definitionOrder.TryGetValue(face, out int registeredOrder) ? registeredOrder : int.MaxValue;
-                int rank = available == null ? -1 : OfficeFontFaceCollection.CompareFaceDescriptors(face.Descriptor, available.Descriptor, requested);
-                if (rank < 0 || rank == 0 && order >= availableOrder) {
-                    available = face;
-                    availableOrder = order;
-                }
-            }
+            OfficeFontFace? available = _fonts.ResolveFaceInFamily(text, family, requested);
+            int availableOrder = available == null ? -1
+                : _definitionOrder.TryGetValue(available, out int registeredOrder) ? registeredOrder : int.MaxValue;
 
             if (_unavailable.TryGetValue(family, out List<UnavailableFace>? unavailable)) {
                 UnavailableFace? preferred = null;
                 foreach (UnavailableFace face in unavailable) {
-                    if (!face.Ranges.Contains(scalar)) continue;
+                    if (!face.Ranges.ContainsFontCoverageText(text)) continue;
                     int rank = preferred == null ? -1 : OfficeFontFaceCollection.CompareFaceDescriptors(face.Descriptor, preferred.Descriptor, requested);
                     if (rank < 0 || rank == 0 && face.Order >= preferred!.Order) preferred = face;
                 }
@@ -107,7 +100,7 @@ internal sealed class HtmlRenderFontFaceUsage {
                     }
                 }
             }
-            // An available face in an earlier requested family makes later families irrelevant for this scalar.
+            // An available face in an earlier requested family makes later families irrelevant for this grapheme.
             if (available != null) return;
         }
     }

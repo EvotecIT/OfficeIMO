@@ -359,6 +359,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         children.Add(visual.Translate(geometry.Margins.Left, cursorY, _paintOrder++));
                     }
                     if (chunk.Start > 0.0001D) {
+                        _fontUsage?.Observe("\u00a0(cont.)", entry.MarkerStyle.Font.FamilyName, entry.MarkerStyle.FontDescriptor);
                         children.Add(new HtmlRenderText(
                             "\u00a0(cont.)",
                             geometry.Margins.Left + entry.MarkerBlock.Width,

@@ -230,7 +230,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         visuals.Add(new HtmlRenderShape(swatch, x, y, visuals.Count, source: source + ":swatch"));
     }
 
-    private static void AddGaugeContent(
+    private void AddGaugeContent(
         ICollection<HtmlRenderVisual> visuals,
         IElement element,
         string tag,
@@ -292,7 +292,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         visuals.Add(new HtmlRenderShape(arrow, arrowX, arrowY, visuals.Count, source: source + ":arrow"));
     }
 
-    private static void AddSingleLineControlText(
+    private void AddSingleLineControlText(
         ICollection<HtmlRenderVisual> visuals,
         string text,
         double x,
@@ -304,6 +304,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         OfficeTextAlignment alignment,
         string source) {
         if (text.Length == 0 || width <= 0D || height <= 0D) return;
+        if (style.PaintVisible) _fontUsage?.Observe(text, style.Font.FamilyName, style.FontDescriptor);
         double lineHeight = Math.Min(style.LineHeight, height);
         double textY = y + Math.Max(0D, (height - lineHeight) / 2D);
         visuals.Add(new HtmlRenderText(
@@ -353,6 +354,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < Math.Min(lines.Count, maximumLines); index++) {
             string line = lines[index];
             if (line.Length == 0) continue;
+            if (style.PaintVisible) _fontUsage?.Observe(line, style.Font.FamilyName, style.FontDescriptor);
             visuals.Add(new HtmlRenderText(
                 line,
                 x,

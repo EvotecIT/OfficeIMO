@@ -33,6 +33,12 @@ public static partial class OfficeSvgDrawingReader {
         AddTextElementRuns(element, style, paintServers, references, drawing.Fonts, transform, preserve, false, viewX, viewY,
             drawing.Width, drawing.Height, runs, textPaths, observer: null, 0D, 0D, null, 0, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
+        // Hidden runs can advance later visible descendants, but a wholly hidden text object has no painted font loss.
+        if (references.FontTextUsageObserver != null && runs.Any(run => run.Style.VisibilityVisible)) {
+            foreach (SvgTextRun run in runs) {
+                references.FontTextUsageObserver(run.Text, run.Style.FontFamily, OfficeFontFaceDescriptor.FromStyle(run.Style.FontStyle));
+            }
+        }
         ApplyTextAnchors(runs);
         ApplyTextPaths(runs, textPaths, references, viewX, viewY, observer: null, ref unsupported);
         foreach (SvgTextRun run in runs) {
@@ -126,7 +132,6 @@ public static partial class OfficeSvgDrawingReader {
                 }
                 string text = NormalizeText(textNode.Value, preserve, ref cursor);
                 if (text.Length == 0) continue;
-                references.FontTextUsageObserver?.Invoke(text, style.FontFamily, OfficeFontFaceDescriptor.FromStyle(style.FontStyle));
                 if (RequiresPaintedTextOutline(style) && text.Length > 4096) {
                     ReportTextRunLimit(ref cursor, ref unsupported);
                     return;
