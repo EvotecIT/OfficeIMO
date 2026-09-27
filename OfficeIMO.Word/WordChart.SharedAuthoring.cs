@@ -13,7 +13,7 @@ public partial class WordChart {
         get => _drawing?.Descendants<DW.DocProperties>().FirstOrDefault()?.Name?.Value;
         set {
             DW.DocProperties? properties = _drawing?.Descendants<DW.DocProperties>().FirstOrDefault();
-            if (properties != null) properties.Name = value;
+            if (properties != null) properties.Name = value ?? string.Empty;
         }
     }
 
