@@ -73,6 +73,7 @@ namespace OfficeIMO.Word.Html {
                     part.Header = projectedRoot;
                     restore.Add(() => part.Header = header);
                     projectedRegions.Add(header, projectedRoot);
+                    projectedRegions.Add(projectedRoot, projectedRoot);
                     existing = projectedRoot;
                 }
                 Header projected = (Header)existing;
@@ -86,6 +87,7 @@ namespace OfficeIMO.Word.Html {
                     part.Footer = projectedRoot;
                     restore.Add(() => part.Footer = footer);
                     projectedRegions.Add(footer, projectedRoot);
+                    projectedRegions.Add(projectedRoot, projectedRoot);
                     existing = projectedRoot;
                 }
                 Footer projected = (Footer)existing;
