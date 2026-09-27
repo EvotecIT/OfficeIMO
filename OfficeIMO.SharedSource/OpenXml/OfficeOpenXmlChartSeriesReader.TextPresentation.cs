@@ -110,6 +110,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             } else if (attribute.LocalName == "strike") {
                 if (attribute.Value is not "noStrike" and not "sngStrike") throw new NotSupportedException("The chart text strike cannot be projected.");
                 style = attribute.Value == "sngStrike" ? (style ?? OfficeFontStyle.Regular) | OfficeFontStyle.Strikethrough : (style ?? OfficeFontStyle.Regular) & ~OfficeFontStyle.Strikethrough;
+            } else if (attribute.LocalName == "spc" && attribute.Value == "-1") {
+                // Some producers serialize this visually negligible default on every chart run.
             } else if (attribute.LocalName is not "lang" and not "altLang" and not "dirty" and not "smtClean" and not "smtId") {
                 throw new NotSupportedException("The chart text attributes cannot be projected.");
             }

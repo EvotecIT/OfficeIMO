@@ -21,9 +21,6 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         LabelLayout? selected = null;
         foreach (var layer in chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) ?? Enumerable.Empty<OpenXmlCompositeElement>()) {
-            if (layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser")
-                .Any(item => item.GetFirstChild<C.DataLabels>() != null))
-                throw new NotSupportedException("Series-specific chart labels cannot be projected by this layout reader.");
             var labels = layer.GetFirstChild<C.DataLabels>();
             var current = new LabelLayout {
                 Values = LabelFlag<C.ShowValue>(labels), Categories = LabelFlag<C.ShowCategoryName>(labels),
@@ -39,11 +36,22 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     _ => throw new NotSupportedException("The native data label position cannot be projected.")
                 }
             };
-            if (labels?.Elements<C.DataLabel>().Any() == true || LabelFlag<C.ShowLegendKey>(labels) ||
+            if (layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser")
+                .Any(item => item.GetFirstChild<C.DataLabels>() is C.DataLabels seriesLabels &&
+                    (current.Visible || HasVisibleLabelContent(seriesLabels))))
+                throw new NotSupportedException("Series-specific chart labels cannot be projected by this layout reader.");
+            if (!current.Visible && labels != null && HasVisibleLabelContent(labels))
+                throw new NotSupportedException("The native data label overrides cannot be projected.");
+            if (!current.Visible) {
+                current.Separator = null;
+                current.NumberFormat = null;
+                current.Position = OfficeChartDataLabelPosition.BestFit;
+            }
+            if (current.Visible && (labels?.Elements<C.DataLabel>().Any() == true || LabelFlag<C.ShowLegendKey>(labels) ||
                 LabelFlag<C.ShowBubbleSize>(labels) ||
                 (LabelFlag<C.ShowLeaderLines>(labels) && layer is C.PieChart or C.DoughnutChart && current.Position == OfficeChartDataLabelPosition.BestFit) ||
                 (LabelFlag<C.ShowLeaderLines>(labels) && current.Position is not OfficeChartDataLabelPosition.BestFit and
-                    not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd))
+                    not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd)))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
                 if (HasUnsupportedSharedAxisNumberFormat(labels))
@@ -65,4 +73,12 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
 
     private static bool LabelFlag<T>(C.DataLabels? labels) where T : C.BooleanType =>
         labels?.GetFirstChild<T>() is T flag && flag.Val?.Value != false;
+
+    private static bool HasVisibleLabelContent(C.DataLabels labels) =>
+        LabelFlag<C.ShowValue>(labels) || LabelFlag<C.ShowCategoryName>(labels) ||
+        LabelFlag<C.ShowSeriesName>(labels) || LabelFlag<C.ShowPercent>(labels) ||
+        LabelFlag<C.ShowLegendKey>(labels) || LabelFlag<C.ShowBubbleSize>(labels) ||
+        labels.Elements<C.DataLabel>().Any(label => label.GetFirstChild<C.ChartText>() != null ||
+            label.Descendants<C.BooleanType>().Any(flag => flag.Val?.Value != false &&
+                flag is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or C.ShowBubbleSize));
 }

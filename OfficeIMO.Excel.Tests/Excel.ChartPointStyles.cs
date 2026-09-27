@@ -46,7 +46,7 @@ public sealed class ExcelChartPointStylesTests {
     [InlineData(OfficeChartKind.Doughnut)]
     [InlineData(OfficeChartKind.ColumnClustered)]
     public void PointStyles_PreserveNativeStylesAndRenderHatchesAfterReopen(OfficeChartKind kind) {
-        var hatch = new OfficeChartPointStyle(OfficeColor.White, hatch: OfficeChartHatchPattern.DiagonalCross,
+        var hatch = new OfficeChartPointStyle(OfficeColor.White, hatch: OfficeChartHatchPattern.WideForwardDiagonal,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
         var series = new OfficeChartSeries("Status", new[] { 3d, 2d, 1d })
             .WithPointStyles(new OfficeChartPointStyle?[] { new(showOutline: true), new(noFill: true, outlineColor: OfficeColor.Black), hatch });

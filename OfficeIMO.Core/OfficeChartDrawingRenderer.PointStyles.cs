@@ -10,7 +10,7 @@ public static partial class OfficeChartDrawingRenderer {
     private static bool HasUnsupportedAreaPointStyles(OfficeChartSnapshot snapshot) => snapshot.Data.Series.Any(series =>
         IsAreaChart(series.RenderKind ?? snapshot.ChartKind) && series.PointStyles?.Any(style => style != null &&
             (style.NoFill || style.FillColor.HasValue || style.Hatch.HasValue || style.OutlineColor.HasValue ||
-                style.OutlineWidth.HasValue || style.ShowOutline.HasValue)) == true);
+                style.OutlineWidth.HasValue || style.ShowOutline.HasValue || style.OutlineJoin.HasValue)) == true);
 
     private static OfficeChartPointStyle? GetPointStyle(OfficeChartSeries series, int index) =>
         GetPointStyle(series.PointStyles, index);
@@ -43,7 +43,9 @@ public static partial class OfficeChartDrawingRenderer {
         if (style?.ShowOutline != false && (style?.ShowOutline == true || style?.OutlineWidth != null) && !outline.HasValue) outline = OfficeColor.Black;
         double width = style?.OutlineWidth ?? defaultWidth;
         if (outline.HasValue && width <= 0 && (style?.ShowOutline == true || style?.OutlineColor != null)) width = 0.75;
-        AddShape(drawing, shape.Clone(), x, y, fill, style?.Hatch == null ? outline : null,
+        OfficeShape baseShape = shape.Clone();
+        baseShape.StrokeLineJoin = style?.OutlineJoin;
+        AddShape(drawing, baseShape, x, y, fill, style?.Hatch == null ? outline : null,
             style?.Hatch == null && outline.HasValue ? width : 0);
         if (style?.Hatch is OfficeChartHatchPattern hatch && shape.Width > 0 && shape.Height > 0) {
             OfficeClipPath clip;
@@ -61,7 +63,10 @@ public static partial class OfficeChartDrawingRenderer {
                 clip = OfficeClipPath.Path(commands);
             } else clip = OfficeClipPath.Rectangle(shape.Width, shape.Height);
             AddPointHatch(drawing, x, y, shape.Width, shape.Height, clip, hatch, style.HatchColor!.Value);
-            if (outline.HasValue) AddShape(drawing, shape, x, y, null, outline, width);
+            if (outline.HasValue) {
+                shape.StrokeLineJoin = style?.OutlineJoin;
+                AddShape(drawing, shape, x, y, null, outline, width);
+            }
         }
     }
 
@@ -73,14 +78,16 @@ public static partial class OfficeChartDrawingRenderer {
         if (pointStyle?.ShowOutline != false && (pointStyle?.ShowOutline == true || pointStyle?.OutlineWidth != null) && !outline.HasValue) outline = OfficeColor.Black;
         if (outline.HasValue && outlineWidth <= 0 && (pointStyle?.ShowOutline == true || pointStyle?.OutlineColor != null)) outlineWidth = 0.75;
         if (pointStyle?.Hatch == null) {
-            AddPolygonShape(drawing, points, fill, outline, outline.HasValue ? outlineWidth : 0);
+            AddPolygonShape(drawing, points, fill, outline, outline.HasValue ? outlineWidth : 0,
+                strokeLineJoin: pointStyle?.OutlineJoin);
             return;
         }
         AddPolygonShape(drawing, points, fill, null, 0);
         if (pointStyle?.Hatch is OfficeChartHatchPattern hatch) {
             AddPointHatch(drawing, points, hatch, pointStyle.HatchColor!.Value);
         }
-        if (outline.HasValue && outlineWidth > 0) AddPolygonShape(drawing, points, null, outline, outlineWidth);
+        if (outline.HasValue && outlineWidth > 0) AddPolygonShape(drawing, points, null, outline, outlineWidth,
+            strokeLineJoin: pointStyle?.OutlineJoin);
     }
 
     private static void AddPointSwatch(OfficeDrawing drawing, double x, double y, double size,
@@ -111,13 +118,15 @@ public static partial class OfficeChartDrawingRenderer {
         var strokes = new OfficeDrawing(width, height);
         // Keep cost bounded for large chart frames while maintaining a readable normal-size hatch.
         double step = Math.Max(6, (width + height) / 512);
+        if (hatch == OfficeChartHatchPattern.WideForwardDiagonal) step *= 2;
         void Line(double x1, double y1, double x2, double y2) =>
             AddShape(strokes, OfficeShape.Line(x1, y1, x2, y2), Math.Min(x1, x2), Math.Min(y1, y2), null, color, 0.75);
         if (hatch == OfficeChartHatchPattern.Horizontal || hatch == OfficeChartHatchPattern.Cross)
             for (double y = Math.Min(step / 2, height / 2); y < height; y += step) Line(0, y, width, y);
         if (hatch == OfficeChartHatchPattern.Vertical || hatch == OfficeChartHatchPattern.Cross)
             for (double x = Math.Min(step / 2, width / 2); x < width; x += step) Line(x, 0, x, height);
-        if (hatch == OfficeChartHatchPattern.ForwardDiagonal || hatch == OfficeChartHatchPattern.DiagonalCross)
+        if (hatch == OfficeChartHatchPattern.ForwardDiagonal || hatch == OfficeChartHatchPattern.WideForwardDiagonal ||
+            hatch == OfficeChartHatchPattern.DiagonalCross)
             for (double sum = step / 2; sum < width + height; sum += step) {
                 double x1 = Math.Max(0, sum - height), x2 = Math.Min(width, sum);
                 Line(x1, sum - x1, x2, sum - x2);

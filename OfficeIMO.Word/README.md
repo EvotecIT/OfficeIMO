@@ -559,7 +559,8 @@ chart.SetDataPointStyle(0, 1,
 
 Use `chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to apply an
 `OfficeIMO.Drawing.OfficeChartPointStyle` to a native Word chart. Solid fill, explicit no-fill,
-outlines, and six hatch patterns are supported without changing the chart values.
+outlines with optional joins, and seven hatch patterns are supported without changing
+the chart values.
 Passing null clears the point's fill and outline overrides.
 
 Native save/reopen, chart snapshots, managed images, PDF export, and Markdown SVG chart

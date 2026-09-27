@@ -20,10 +20,10 @@ public static partial class OfficeChartDrawingRenderer {
         for (int i = 0; i < legendIndexes.Count; i++) {
             int seriesIndex = legendIndexes[i];
             string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
-            widest = Math.Max(widest, Math.Min(72D, name.Length * 4.8D));
+            widest = Math.Max(widest, Math.Min(72D, name.Length * 6D));
         }
 
-        return Math.Min(Math.Max(58D, widest + 26D), Math.Max(0D, chartWidth * layout.SeriesLegendWidthRatio));
+        return BoundLegendWidth(Math.Max(58D, widest + 34D), chartWidth, layout.SeriesLegendWidthRatio);
     }
 
     private static double GetOverlaySeriesLegendWidth(IReadOnlyList<OfficeChartSeries> series, double chartWidth, OfficeChartLayout layout) {
@@ -36,10 +36,10 @@ public static partial class OfficeChartDrawingRenderer {
         for (int i = 0; i < legendIndexes.Count; i++) {
             int seriesIndex = legendIndexes[i];
             string name = string.IsNullOrWhiteSpace(series[seriesIndex].Name) ? "Series " + (seriesIndex + 1).ToString(CultureInfo.InvariantCulture) : series[seriesIndex].Name;
-            widest = Math.Max(widest, Math.Min(72D, name.Length * 4.8D));
+            widest = Math.Max(widest, Math.Min(72D, name.Length * 6D));
         }
 
-        return Math.Min(Math.Max(58D, widest + 26D), Math.Max(0D, chartWidth * layout.SeriesLegendWidthRatio));
+        return BoundLegendWidth(Math.Max(58D, widest + 34D), chartWidth, layout.SeriesLegendWidthRatio);
     }
 
     private static double GetCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
@@ -56,10 +56,10 @@ public static partial class OfficeChartDrawingRenderer {
         for (int i = 0; i < legendIndexes.Count; i++) {
             int categoryIndex = legendIndexes[i];
             string name = string.IsNullOrWhiteSpace(categories[categoryIndex]) ? "Category " + (categoryIndex + 1).ToString(CultureInfo.InvariantCulture) : categories[categoryIndex];
-            widest = Math.Max(widest, Math.Min(78D, name.Length * 4.8D));
+            widest = Math.Max(widest, Math.Min(78D, name.Length * 6D));
         }
 
-        return Math.Min(Math.Max(62D, widest + 26D), Math.Max(0D, chartWidth * layout.CategoryLegendWidthRatio));
+        return BoundLegendWidth(Math.Max(62D, widest + 34D), chartWidth, layout.CategoryLegendWidthRatio);
     }
 
     private static double GetOverlayCategoryLegendWidth(IReadOnlyList<string> categories, double chartWidth, OfficeChartLayout layout) {
@@ -72,11 +72,14 @@ public static partial class OfficeChartDrawingRenderer {
         for (int i = 0; i < legendIndexes.Count; i++) {
             int categoryIndex = legendIndexes[i];
             string name = string.IsNullOrWhiteSpace(categories[categoryIndex]) ? "Category " + (categoryIndex + 1).ToString(CultureInfo.InvariantCulture) : categories[categoryIndex];
-            widest = Math.Max(widest, Math.Min(78D, name.Length * 4.8D));
+            widest = Math.Max(widest, Math.Min(78D, name.Length * 6D));
         }
 
-        return Math.Min(Math.Max(62D, widest + 26D), Math.Max(0D, chartWidth * layout.CategoryLegendWidthRatio));
+        return BoundLegendWidth(Math.Max(62D, widest + 34D), chartWidth, layout.CategoryLegendWidthRatio);
     }
+
+    private static double BoundLegendWidth(double desired, double chartWidth, double ratio) =>
+        Math.Min(desired, Math.Max(chartWidth * ratio, Math.Min(desired, chartWidth * 0.5D)));
 
     private static void AddSeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         List<int> legendIndexes = GetLegendSeriesIndexes(series);
@@ -88,6 +91,7 @@ public static partial class OfficeChartDrawingRenderer {
         double rowHeight = layout.LegendRowHeight;
         double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
         double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
+        AddLegendFrame(drawing, x - 2D, startY - 2D, width + 4D, visibleRows * rowHeight + 4D, style);
         for (int i = 0; i < legendIndexes.Count && i < visibleRows; i++) {
             int seriesIndex = legendIndexes[i];
             double rowY = startY + i * rowHeight;
@@ -113,6 +117,7 @@ public static partial class OfficeChartDrawingRenderer {
         double rowHeight = layout.LegendRowHeight;
         double visibleRows = Math.Min(legendIndexes.Count, Math.Max(1D, Math.Floor(plotHeight / rowHeight)));
         double startY = y + Math.Max(0D, (plotHeight - visibleRows * rowHeight) / 2D);
+        AddLegendFrame(drawing, x - 2D, startY - 2D, width + 4D, visibleRows * rowHeight + 4D, style);
         for (int i = 0; i < legendIndexes.Count && i < visibleRows; i++) {
             int categoryIndex = legendIndexes[i];
             double rowY = startY + i * rowHeight;
@@ -284,6 +289,8 @@ public static partial class OfficeChartDrawingRenderer {
         int visibleCount = Math.Min(labelList.Count, columns * 2);
         double itemWidth = Math.Max(44D, width / Math.Max(1, columns));
         double rowHeight = layout.LegendRowHeight;
+        int visibleRows = (int)Math.Ceiling(visibleCount / (double)Math.Max(1, columns));
+        AddLegendFrame(drawing, x - 2D, y - 2D, width + 4D, visibleRows * rowHeight + 4D, style);
         double swatchOffset = Math.Max(0D, (rowHeight - layout.LegendSwatchSize) / 2D);
         for (int i = 0; i < visibleCount; i++) {
             int row = i / columns;
@@ -297,6 +304,13 @@ public static partial class OfficeChartDrawingRenderer {
             double textOffset = layout.LegendSwatchSize + layout.LegendTextGap;
             AddChartText(drawing, name, itemX + textOffset, rowY, Math.Max(1D, itemWidth - textOffset - 2D), rowHeight, layout.LegendFontSize, GetLegendTextColor(style), OfficeTextAlignment.Left, style, layout.LegendFontFamily, layout.LegendFontStyle);
         }
+    }
+
+    private static void AddLegendFrame(OfficeDrawing drawing, double x, double y, double width, double height, OfficeChartStyle style) {
+        if (!style.LegendBackgroundColor.HasValue && !style.LegendBorderColor.HasValue) return;
+        AddShape(drawing, OfficeShape.Rectangle(width, height), x, y,
+            style.LegendBackgroundColor, style.LegendBorderColor,
+            style.LegendBorderColor.HasValue ? style.LegendBorderWidth ?? 0.75D : 0D);
     }
 
     private static int GetLegendBandColumns(IEnumerable<string?> labels, double width, OfficeChartLayout layout) {

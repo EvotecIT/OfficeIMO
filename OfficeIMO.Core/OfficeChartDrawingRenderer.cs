@@ -1850,7 +1850,7 @@ public static partial class OfficeChartDrawingRenderer {
         drawing.AddShapeForClippedRendering(shape, x, y);
     }
 
-    private static void AddPolygonShape(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, double? fillOpacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid) {
+    private static void AddPolygonShape(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points, OfficeColor? fill, OfficeColor? stroke, double strokeWidth, double? fillOpacity = null, OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid, OfficeStrokeLineJoin? strokeLineJoin = null) {
         if (points.Count < 3) {
             return;
         }
@@ -1891,6 +1891,7 @@ public static partial class OfficeChartDrawingRenderer {
 
         OfficeShape shape = OfficeShape.Polygon(points);
         shape.FillOpacity = fillOpacity;
+        shape.StrokeLineJoin = strokeLineJoin;
         AddShape(drawing, shape, minX, minY, fill, stroke, strokeWidth, dashStyle);
     }
 
