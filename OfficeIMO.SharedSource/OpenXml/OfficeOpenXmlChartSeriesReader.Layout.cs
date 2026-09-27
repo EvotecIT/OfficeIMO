@@ -3,16 +3,22 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, string? axisTitleFont = null) {
+        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
             if (chart.PlotArea?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.LegendPosition>()?.Val?.Value == C.LegendPositionValues.TopRight)
+                chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.LegendPosition>()?.Val?.Value == C.LegendPositionValues.TopRight ||
+                chart.PlotArea?.Descendants<C.Title>().Any(title => title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null) == true)
                 throw new NotSupportedException("Manual chart layouts and top-right legends cannot be projected.");
             var labels = ReadLabels(chart);
+            var defaultText = ReadNativeText(chart, chart, scheme);
+            var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
+            var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
+            var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
             var legend = chart.GetFirstChild<C.Legend>();
             var position = legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
             var sharedPosition = position == C.LegendPositionValues.Left ? OfficeChartLegendPosition.Left :
@@ -44,6 +50,10 @@ namespace OfficeIMO.OpenXml.Internal {
                     throw new NotSupportedException("Logarithmic chart axes cannot be projected.");
                 if (axis is C.ValueAxis && axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin)
                     throw new NotSupportedException("Reversed numeric chart axes cannot be projected.");
+                if (axis is C.ValueAxis numericAxis && HasUnsupportedSharedAxisNumberFormat(numericAxis))
+                    throw new NotSupportedException("The native numeric axis format cannot be projected.");
+                if (axis.GetFirstChild<C.CrossesAt>() != null || axis.GetFirstChild<C.DisplayUnits>() != null)
+                    throw new NotSupportedException("Explicit axis crossing values and display units require an independent axis projection.");
             }
             QualifySecondaryLayout(plot, vertical);
             // Titles, visibility and category direction describe logical roles;
@@ -55,6 +65,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 vertical = categoryAxis;
             }
             return new OfficeChartLayout(overlayLegend: legend?.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false,
+                legendFontSize: legendText.Size, legendFontStyle: legendText.Style,
+                axisLabelFontSize: axisText.Size, axisTextFontStyle: axisText.Style,
+                axisTitleFontSize: axisTitleText.Size, axisTitleFontStyle: axisTitleText.Style,
+                dataLabelFontSize: defaultText.Size, dataLabelFontStyle: defaultText.Style,
                 overlayTitle: chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>() is C.Overlay title && title.Val?.Value != false,
                 showLegend: legend != null, legendPosition: sharedPosition, hiddenCategoryLegendIndexes: hidden,
                 showDataLabels: labels.Visible, showDataLabelValues: labels.Values, showDataLabelCategoryNames: labels.Categories,
@@ -72,8 +86,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 verticalAxisMajorUnit: vertical?.GetFirstChild<C.MajorUnit>()?.Val?.Value,
                 verticalAxisMinorUnit: vertical?.GetFirstChild<C.MinorUnit>()?.Val?.Value,
                 showCategoryAxis: !IsDeletedAxis(categoryAxis), showValueAxis: !IsDeletedAxis(valueAxis),
+                showCategoryAxisLine: !IsDeletedAxis(categoryAxis), showValueAxisLine: !IsDeletedAxis(valueAxis),
                 showCategoryAxisLabels: categoryAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
                 showValueAxisLabels: valueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
+                horizontalAxisTickLabelPosition: ReadLayoutTickLabelPosition(horizontal),
+                verticalAxisTickLabelPosition: ReadLayoutTickLabelPosition(vertical),
+                horizontalAxisCrossingPosition: ReadLayoutCrossing(horizontal), verticalAxisCrossingPosition: ReadLayoutCrossing(vertical),
                 horizontalAxisMajorTickMark: ReadLayoutTick(horizontal?.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
                 horizontalAxisMinorTickMark: ReadLayoutTick(horizontal?.GetFirstChild<C.MinorTickMark>()?.Val?.Value),
                 verticalAxisMajorTickMark: ReadLayoutTick(vertical?.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
@@ -96,7 +114,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (axis.GetFirstChild<C.Title>() != null || axis.GetFirstChild<C.ChartShapeProperties>() != null ||
                     axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
                     throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
-                if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None))
+                if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value is C.TickLabelPositionValues tickPosition && tickPosition != C.TickLabelPositionValues.NextTo))
                     throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
                 if (axis is C.ValueAxis) QualifyAutomaticSecondaryScale(axis);
             }
@@ -120,6 +138,12 @@ namespace OfficeIMO.OpenXml.Internal {
         private static double? ReadLayoutMinimum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MinAxisValue>()?.Val?.Value;
         private static double? ReadLayoutMaximum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;
         private static bool IsDeletedAxis(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false;
+        private static OfficeChartAxisTickLabelPosition ReadLayoutTickLabelPosition(OpenXmlCompositeElement? axis) =>
+            axis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.High ? OfficeChartAxisTickLabelPosition.High :
+            axis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.Low ? OfficeChartAxisTickLabelPosition.Low : OfficeChartAxisTickLabelPosition.NextTo;
+        private static OfficeChartAxisCrossingPosition ReadLayoutCrossing(OpenXmlCompositeElement? axis) =>
+            axis?.GetFirstChild<C.Crosses>()?.Val?.Value == C.CrossesValues.Maximum ? OfficeChartAxisCrossingPosition.Maximum :
+            axis?.GetFirstChild<C.Crosses>()?.Val?.Value == C.CrossesValues.Minimum ? OfficeChartAxisCrossingPosition.Minimum : OfficeChartAxisCrossingPosition.AutoZero;
         private static OfficeChartAxisTickMark ReadLayoutTick(C.TickMarkValues? value) =>
             value == C.TickMarkValues.Inside ? OfficeChartAxisTickMark.Inside : value == C.TickMarkValues.Outside ? OfficeChartAxisTickMark.Outside :
                 value == C.TickMarkValues.Cross ? OfficeChartAxisTickMark.Cross : OfficeChartAxisTickMark.None;
