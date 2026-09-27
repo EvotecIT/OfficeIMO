@@ -111,7 +111,7 @@ namespace OfficeIMO.Word {
 
             if (pieChartSeries != null) {
                 if (!pieChartSeries.Elements<CategoryAxisData>().Any()) {
-                    pieChartSeries.Append(categoryAxis);
+                    pieChartSeries.AddChild(categoryAxis, true);
                 }
             }
         }
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word {
             // add values to the series if it does not exist
             if (pieChartSeries != null) {
                 if (!pieChartSeries.Elements<Values>().Any()) {
-                    pieChartSeries.Append(values);
+                    pieChartSeries.AddChild(values, true);
                 }
             }
         }
