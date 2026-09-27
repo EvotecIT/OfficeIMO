@@ -224,8 +224,15 @@ public sealed class OfficeChartSeries {
             new ReadOnlyCollection<OfficeChartPointStyle?>(new List<OfficeChartPointStyle?>(pointStyles));
         if (styles != null && styles.Count != Values.Count)
             throw new ArgumentException("Point styles must match the number of series values.", nameof(pointStyles));
+        return CopyWithPresentation(styles, ShowInLegend);
+    }
+
+    /// <summary>Returns a copy with the requested legend visibility and unchanged data and appearance.</summary>
+    public OfficeChartSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, showInLegend);
+
+    private OfficeChartSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles, bool showInLegend) {
         return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
-            ShowMarkers, ShowInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            ShowMarkers, showInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
             PointStyles = styles
         };
