@@ -37,7 +37,20 @@ $lookupEdges = @(
     'GETPIVOTDATA("Count",ErrorGroups!A1,"Group","Literal")',
     'GETPIVOTDATA("CountNumbers",ErrorGroups!A1,"Group","Literal")',
     'GETPIVOTDATA("Metric",Sum!A1,"Product",1)',
-    'FALSE()'
+    'FALSE()',
+    'GETPIVOTDATA("Metric",RowsOnly!A1,"Region","North")',
+    'GETPIVOTDATA("Metric",ColumnsOnly!A1,"Product","B")',
+    'GETPIVOTDATA("Metric",Scalar!A1)',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key",1)',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key","1")',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key",TRUE())',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key","TRUE")',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key"," North ")',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key","North")',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key"," north ")',
+    'GETPIVOTDATA("Metric",Keys!A1,"Key","(blank)")',
+    'GETPIVOTDATA("Metric",ErrorCount!A1)',
+    'GETPIVOTDATA("Metric",ErrorNumbers!A1)'
 )
 $application = $null; $workbooks = $null; $workbook = $null
 $sheets = $null; $source = $null; $oracles = $null; $caches = $null
@@ -166,6 +179,57 @@ try {
             if ($null -ne $owned) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($owned) }
         }
     }
+    $profileRecords = @()
+    foreach ($profile in @('RowsOnly', 'ColumnsOnly', 'Scalar', 'Keys', 'ErrorCount', 'ErrorNumbers')) {
+        $profileSheet = $null; $profileCache = $null; $profilePivot = $null; $profileField = $null; $profileAmount = $null; $keySource = $null
+        try {
+            $profileSource = "'Source'!R1C1:R9C4"
+            if ($profile -eq 'ErrorCount' -or $profile -eq 'ErrorNumbers') { $profileSource = "'ErrorSource'!R1C1:R8C2" }
+            if ($profile -eq 'Keys') {
+                $keySource = $sheets.Add(); $keySource.Name = 'KeySource'
+                $keyRows = @(@('Key', 'Amount'), @(1.0, 2.0), @('1', 3.0), @($true, 5.0), @('TRUE', 7.0),
+                    @(' North ', 11.0), @('North', 13.0), @(' north ', 17.0), @($null, 19.0))
+                for ($row = 0; $row -lt $keyRows.Count; $row++) {
+                    for ($column = 0; $column -lt 2; $column++) {
+                        $cell = $keySource.Cells.Item($row + 1, $column + 1)
+                        try {
+                            if ($keyRows[$row][$column] -is [string]) { $cell.NumberFormat = '@' }
+                            $cell.Value2 = $keyRows[$row][$column]
+                        } finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($cell) }
+                    }
+                }
+                $profileSource = "'KeySource'!R1C1:R9C2"
+            }
+            $profileSheet = $sheets.Add(); $profileSheet.Name = $profile
+            $profileCache = $caches.Create(1, $profileSource, 6)
+            $destination = $profileSheet.Range('A1')
+            try { $profilePivot = $profileCache.CreatePivotTable($destination, 'Pivot' + $profile) }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($destination) }
+            if ($profile -ne 'Scalar') {
+                $axisName = if ($profile -eq 'RowsOnly') { 'Region' } elseif ($profile -eq 'ColumnsOnly') { 'Product' } elseif ($profile -eq 'Keys') { 'Key' } else { 'Group' }
+                $profileField = $profilePivot.PivotFields($axisName)
+                $profileField.Orientation = if ($profile -eq 'ColumnsOnly') { 2 } else { 1 }
+            }
+            $profileAmount = $profilePivot.PivotFields('Amount')
+            $profileFunction = if ($profile -eq 'ErrorCount') { -4112 } elseif ($profile -eq 'ErrorNumbers') { -4113 } else { -4157 }
+            $measure = $profilePivot.AddDataField($profileAmount, 'Metric', $profileFunction)
+            [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($measure)
+            if ($profile -ne 'ColumnsOnly' -and $profile -ne 'Scalar') { $profilePivot.RowAxisLayout(1) }
+            if ($profile -eq 'RowsOnly') {
+                # Exercise imported custom subtotal flags on a supported single-field axis.
+                $profileField.Subtotals = @($false,$true,$true,$true,$true,$true,$true,$true,$true,$true,$true,$true)
+            }
+            [void]$profilePivot.RefreshTable()
+            $tableRange = $profilePivot.TableRange1
+            try { $profileRange = $tableRange.Address($false, $false) }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($tableRange) }
+            $profileRecords += [ordered]@{ name = 'Pivot' + $profile; sheet = $profile; sourceRange = $profileSource; function = $profileFunction; outputRange = $profileRange }
+        } finally {
+            foreach ($owned in @($profileAmount, $profileField, $profilePivot, $profileCache, $profileSheet, $keySource)) {
+                if ($null -ne $owned) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($owned) }
+            }
+        }
+    }
     $edgeSheet = $null
     try {
         $edgeSheet = $sheets.Add()
@@ -192,6 +256,8 @@ try {
         sourceRange = 'Source!A1:D9'; errorSourceRange = 'ErrorSource!A1:B8'; lookupFormulaCells = $lookupRow - 1
         aggregationLookupCells = 99; typedErrorLookupCells = 66
         lookupEdgeFormulaCells = $lookupEdges.Count
+        keySourceRange = 'KeySource!A1:B9'
+        layoutAndKeyProfiles = $profileRecords
         layout = 'Tabular, one row key, one column key, both grand totals'
         pivots = $records
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory 'aggregation-conformance.provenance.json') -Encoding utf8

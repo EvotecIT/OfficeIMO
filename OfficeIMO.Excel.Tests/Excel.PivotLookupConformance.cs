@@ -4,6 +4,34 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Fact]
+        public void Test_PivotLookup_Accepts100000KeysWithDefaultAndGrandTotalItems() {
+            using var document = ExcelDocument.Load(PivotLookupOraclePath);
+            var sheet = document.GetSheet("RowsOnly");
+            var part = sheet.WorksheetPart.PivotTableParts.Single();
+            var definition = part.PivotTableDefinition!;
+            var shared = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!.CacheFields!.Elements<CacheField>().First().SharedItems!;
+            shared.RemoveAllChildren();
+            var fieldItems = definition.PivotFields!.Elements<PivotField>().First().Items!;
+            fieldItems.RemoveAllChildren();
+            definition.RowItems!.RemoveAllChildren();
+            for (uint index = 0; index < 100_000; index++) {
+                shared.AppendChild(new StringItem { Val = "Key" + index });
+                fieldItems.AppendChild(new Item { Index = index });
+                definition.RowItems.AppendChild(new RowItem(new MemberPropertyIndex { Val = (int)index }));
+            }
+            fieldItems.AppendChild(new Item { ItemType = ItemValues.Default });
+            definition.RowItems.AppendChild(new RowItem(new MemberPropertyIndex { Val = 0 }) { ItemType = ItemValues.Grand });
+            shared.Count = 100_000;
+            fieldItems.Count = 100_001;
+            definition.RowItems.Count = 100_001;
+            definition.Location!.Reference = "A1:B100002";
+            sheet.CellValue(2, 2, 7d);
+            sheet.CellValue(100002, 2, 11d);
+            Assert.Equal(7d, sheet.GetPivotData("PivotRowsOnly", "Metric", new Dictionary<string, object?> { ["Region"] = "Key0" }).Value);
+            Assert.Equal(11d, sheet.GetPivotData("PivotRowsOnly", "Metric").Value);
+        }
+
         private static string PivotLookupOraclePath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", "aggregation-conformance.xlsx");
 
         [Fact]
@@ -14,7 +42,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Load(PivotLookupOraclePath)) {
                     foreach (var name in new[] { "Lookups", "LookupEdges" }) {
                         var sheet = document.GetSheet(name);
-                        int rows = name == "Lookups" ? 165 : 22;
+                        int rows = name == "Lookups" ? 165 : 35;
                         int column = name == "Lookups" ? 2 : 1;
                         sheet.ClearCachedFormulaResults();
                         Assert.Equal(rows, sheet.RecalculateSupportedFormulas());
@@ -24,11 +52,11 @@ namespace OfficeIMO.Tests {
                             AssertPivotLookupOracleValue(expected[row - 1, 0], actual);
                         }
                     }
-                    Assert.Equal(191, document.Calculate());
+                    Assert.Equal(204, document.Calculate());
                     document.Save(output);
                 }
                 using var reopened = ExcelDocumentReader.Open(output);
-                foreach (var item in new[] { (Name: "Lookups", Range: "B1:B165"), (Name: "LookupEdges", Range: "A1:A22") }) {
+                foreach (var item in new[] { (Name: "Lookups", Range: "B1:B165"), (Name: "LookupEdges", Range: "A1:A35") }) {
                     var expected = oracle.GetSheet(item.Name).ReadRange(item.Range);
                     var actual = reopened.GetSheet(item.Name).ReadRange(item.Range);
                     for (int row = 0; row < expected.GetLength(0); row++) AssertPivotLookupOracleValue(expected[row, 0], actual[row, 0]);
@@ -73,7 +101,7 @@ namespace OfficeIMO.Tests {
             definition.RowItems = null;
             Assert.Throws<NotSupportedException>(() => sheet.GetPivotData("PivotSum", "Metric"));
             document.GetSheet("LookupEdges").ClearCachedFormulaResults();
-            Assert.True(document.GetSheet("LookupEdges").RecalculateSupportedFormulas() < 22);
+            Assert.True(document.GetSheet("LookupEdges").RecalculateSupportedFormulas() < 35);
             Assert.Null(document.GetSheet("LookupEdges").CellAt(2, 1).GetValue().Value);
         }
 

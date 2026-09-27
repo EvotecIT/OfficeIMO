@@ -428,6 +428,7 @@ namespace OfficeIMO.Excel {
                 cacheDefPart.PivotCacheDefinition = cacheDef;
                 ReportPivotTiming("AddPivotTable.SaveCacheDefinition");
                 var cacheRecordsPart = cacheDefPart.AddNewPart<PivotTableCacheRecordsPart>();
+                cacheDef.Id = cacheDefPart.GetIdOfPart(cacheRecordsPart);
                 if (!effectiveSavePivotCacheRecords) {
                     cacheRecordsPart.PivotCacheRecords = new PivotCacheRecords { Count = 0U };
                 } else if (canUseDeferredPivotValues) {

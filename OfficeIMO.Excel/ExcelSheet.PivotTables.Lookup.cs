@@ -93,7 +93,8 @@ namespace OfficeIMO.Excel {
         private static int FindSavedPivotAxisItem(OpenXmlCompositeElement? axis, int[] axisFields, CacheField[] fields, PivotField[] pivotFields,
             int measure, Dictionary<string, object?> criteria) {
             if (axis == null || axis.ChildElements.Count == 0) throw new NotSupportedException("The pivot view has no saved axis items. Refresh or materialize the view first.");
-            if (axis.ChildElements.Count > 100_000) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
+            // One additional item accommodates the grand total for 100,000 real keys.
+            if (axis.ChildElements.Count > 100_001) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
             int realField = -1;
             foreach (int field in axisFields) if (field >= 0) { realField = field; break; }
             bool hasCriterion = realField >= 0 && criteria.TryGetValue(fields[realField].Name?.Value ?? "", out _);
@@ -105,7 +106,8 @@ namespace OfficeIMO.Excel {
                 var savedItems = pivotFields[realField].Items;
                 var shared = fields[realField].SharedItems;
                 if (savedItems == null || shared == null) return -1;
-                if (savedItems.ChildElements.Count > 100_000 || shared.ChildElements.Count > 100_000)
+                // Pivot fields also carry a default subtotal item, even when totals are hidden.
+                if (savedItems.ChildElements.Count > 100_001 || shared.ChildElements.Count > 100_000)
                     throw new NotSupportedException("The saved pivot field exceeds lookup limits.");
                 fieldItems = savedItems.ChildElements.ToArray();
                 sharedItems = shared.ChildElements.ToArray();
@@ -126,7 +128,12 @@ namespace OfficeIMO.Excel {
                     if (indices.Count <= realPosition || !TryPivotLookupUnsigned(indices[realPosition], "v", 0, out uint key)) return -1;
                     if (key >= fieldItems.Length) return -1;
                     if (!TryPivotLookupUnsigned(fieldItems[(int)key], "x", uint.MaxValue, out uint sharedIndex) || sharedIndex >= sharedItems.Length) return -1;
-                    if (!PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItems[(int)sharedIndex]), criteria[fields[realField].Name?.Value ?? ""])) continue;
+                    object? expected = criteria[fields[realField].Name?.Value ?? ""];
+                    var sharedItem = sharedItems[(int)sharedIndex];
+                    bool matches = sharedItem is MissingItem
+                        ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
+                        : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem), expected);
+                    if (!matches) continue;
                 }
                 if (found >= 0) return -1;
                 found = position;

@@ -549,11 +549,42 @@ Both paths support saved, ungrouped views with at most one row and one column
 field, multiple measures, and text, numeric, Boolean or blank item keys. They
 return typed errors for unknown items, fields or measures and zero for a blank
 intersection of existing items. Lookup accepts at most 256 fields/measures and
-criteria, 100,000 items per axis and one million output cells. Grouped views,
+criteria, 100,000 shared keys per field, 100,001 axis/field items (including a
+total or default item), and one million output cells. Grouped views,
 page fields, compressed axis prefixes and views without saved axis items remain
 unsupported. The public method throws `NotSupportedException` for those profiles;
 formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
 and refresh-on-open settings; it does not populate an output view for lookup.
+
+Call `MaterializePivotTable` to generate an output view without an Office refresh:
+
+```csharp
+ExcelPivotMaterializationResult result = sheet.MaterializePivotTable("SalesPivot");
+Console.WriteLine(result.OutputRange);
+```
+
+Materialization supports one ordinary measure, all eleven aggregation modes,
+and at most one ungrouped field on each axis. It writes a tabular view in
+first-seen key order, optional grand totals, typed values/errors, source cache
+records and consistent axis metadata. It saves a copy of the source records in
+the pivot cache and clears refresh-on-open. Source formulas must have saved
+cached results; materialization does not calculate them.
+Regeneration normalizes imported axis subtotal settings to match this view;
+custom intermediate subtotal layouts are not retained.
+
+The operation rejects destination collisions with unrelated values, formulas,
+source cells, other pivots, tables and merged ranges. It replaces a previous
+materialized view and clears its stale tail while retaining existing cell styles.
+Preparation and writing run under the workbook lock; the shared mutation owner
+rolls back interrupted writes or invalid generated metadata. Use
+`ExcelMutationPlanOptions` to lower source/output and rollback budgets. The source
+and affected output are each capped at one million cells, fields at 256, and
+distinct items per field and observed aggregate groups at 100,000.
+
+Multiple measures, multiple real fields per axis, grouping, date/error item keys,
+filters, page fields, calculated fields, shared caches and associated interaction
+caches still require additional materialization support. Imported definitions
+remain available through the existing metadata and refresh-on-open APIs.
 
 ### Guarded query-backed tables
 

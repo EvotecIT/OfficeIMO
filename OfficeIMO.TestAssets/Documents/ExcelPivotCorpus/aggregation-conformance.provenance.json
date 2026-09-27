@@ -1,84 +1,129 @@
-{
-  "producer": "Microsoft Excel",
-  "version": "16.0",
-  "build": 20326.0,
-  "generatedUtc": "2026-09-27T13:48:40.8043087Z",
-  "regeneration": "Build/Verification/New-ExcelPivotOracle.ps1",
-  "file": "aggregation-conformance.xlsx",
-  "sha256": "08ff830c74386f5046d7514ee8e94c1af3520a8208322d388b198e7151a2876a",
-  "sourceRange": "Source!A1:D9",
-  "errorSourceRange": "ErrorSource!A1:B8",
-  "lookupFormulaCells": 165,
-  "aggregationLookupCells": 99,
-  "typedErrorLookupCells": 66,
-  "lookupEdgeFormulaCells": 22,
-  "layout": "Tabular, one row key, one column key, both grand totals",
-  "pivots": [
-    {
-      "name": "PivotSum",
-      "sheet": "Sum",
-      "function": "Sum",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotCount",
-      "sheet": "Count",
-      "function": "Count",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotCountNumbers",
-      "sheet": "CountNumbers",
-      "function": "CountNumbers",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotAverage",
-      "sheet": "Average",
-      "function": "Average",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotMinimum",
-      "sheet": "Minimum",
-      "function": "Minimum",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotMaximum",
-      "sheet": "Maximum",
-      "function": "Maximum",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotProduct",
-      "sheet": "Product",
-      "function": "Product",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotStandardDeviation",
-      "sheet": "StandardDeviation",
-      "function": "StandardDeviation",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotStandardDeviationP",
-      "sheet": "StandardDeviationP",
-      "function": "StandardDeviationP",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotVariance",
-      "sheet": "Variance",
-      "function": "Variance",
-      "outputRange": "A1:D6"
-    },
-    {
-      "name": "PivotVarianceP",
-      "sheet": "VarianceP",
-      "function": "VarianceP",
-      "outputRange": "A1:D6"
-    }
-  ]
+﻿{
+    "producer":  "Microsoft Excel",
+    "version":  "16.0",
+    "build":  20326,
+    "generatedUtc":  "2026-09-27T14:37:21.7761993Z",
+    "regeneration":  "Build/Verification/New-ExcelPivotOracle.ps1",
+    "file":  "aggregation-conformance.xlsx",
+    "sha256":  "307b15b43da7c2db9e9c3e180b4abbd761ae2a7a70972f989e5ab75d853dba4e",
+    "sourceRange":  "Source!A1:D9",
+    "errorSourceRange":  "ErrorSource!A1:B8",
+    "lookupFormulaCells":  165,
+    "aggregationLookupCells":  99,
+    "typedErrorLookupCells":  66,
+    "lookupEdgeFormulaCells":  35,
+    "keySourceRange":  "KeySource!A1:B9",
+    "layoutAndKeyProfiles":  [
+                                 {
+                                     "name":  "PivotRowsOnly",
+                                     "sheet":  "RowsOnly",
+                                     "sourceRange":  "\u0027Source\u0027!R1C1:R9C4",
+                                     "function":  -4157,
+                                     "outputRange":  "A1:B5"
+                                 },
+                                 {
+                                     "name":  "PivotColumnsOnly",
+                                     "sheet":  "ColumnsOnly",
+                                     "sourceRange":  "\u0027Source\u0027!R1C1:R9C4",
+                                     "function":  -4157,
+                                     "outputRange":  "A1:D3"
+                                 },
+                                 {
+                                     "name":  "PivotScalar",
+                                     "sheet":  "Scalar",
+                                     "sourceRange":  "\u0027Source\u0027!R1C1:R9C4",
+                                     "function":  -4157,
+                                     "outputRange":  "A1:A2"
+                                 },
+                                 {
+                                     "name":  "PivotKeys",
+                                     "sheet":  "Keys",
+                                     "sourceRange":  "\u0027KeySource\u0027!R1C1:R9C2",
+                                     "function":  -4157,
+                                     "outputRange":  "A1:B9"
+                                 },
+                                 {
+                                     "name":  "PivotErrorCount",
+                                     "sheet":  "ErrorCount",
+                                     "sourceRange":  "\u0027ErrorSource\u0027!R1C1:R8C2",
+                                     "function":  -4112,
+                                     "outputRange":  "A1:B8"
+                                 },
+                                 {
+                                     "name":  "PivotErrorNumbers",
+                                     "sheet":  "ErrorNumbers",
+                                     "sourceRange":  "\u0027ErrorSource\u0027!R1C1:R8C2",
+                                     "function":  -4113,
+                                     "outputRange":  "A1:B8"
+                                 }
+                             ],
+    "layout":  "Tabular, one row key, one column key, both grand totals",
+    "pivots":  [
+                   {
+                       "name":  "PivotSum",
+                       "sheet":  "Sum",
+                       "function":  "Sum",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotCount",
+                       "sheet":  "Count",
+                       "function":  "Count",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotCountNumbers",
+                       "sheet":  "CountNumbers",
+                       "function":  "CountNumbers",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotAverage",
+                       "sheet":  "Average",
+                       "function":  "Average",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotMinimum",
+                       "sheet":  "Minimum",
+                       "function":  "Minimum",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotMaximum",
+                       "sheet":  "Maximum",
+                       "function":  "Maximum",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotProduct",
+                       "sheet":  "Product",
+                       "function":  "Product",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotStandardDeviation",
+                       "sheet":  "StandardDeviation",
+                       "function":  "StandardDeviation",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotStandardDeviationP",
+                       "sheet":  "StandardDeviationP",
+                       "function":  "StandardDeviationP",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotVariance",
+                       "sheet":  "Variance",
+                       "function":  "Variance",
+                       "outputRange":  "A1:D6"
+                   },
+                   {
+                       "name":  "PivotVarianceP",
+                       "sheet":  "VarianceP",
+                       "function":  "VarianceP",
+                       "outputRange":  "A1:D6"
+                   }
+               ]
 }
