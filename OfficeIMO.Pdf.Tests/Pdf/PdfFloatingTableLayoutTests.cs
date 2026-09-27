@@ -7,6 +7,119 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class PdfFloatingTableLayoutTests {
+    [Fact]
+    public void FloatingTableKeepWithNextTransfersFullWidthFloatAndClearedLineTogether() {
+        var style = Floating(320, 70); style.KeepWithNext = true;
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(80)
+            .Table(new[] { new[] { "floating" } }, style: style)
+            .Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { SpacingAfter = 0 }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "floating");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "floating");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "below");
+    }
+
+    [Fact]
+    public void OuterKeptFlowAccountsForNestedKeptFlowClearance() {
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Canvas(c => c.Text("before", 40, 10, 100, 20)).Spacer(60).Flow(flow => {
+            flow.Table(new[] { new[] { "floating" } }, style: Floating(100, 70));
+            flow.Flow(nested => nested.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { LineHeight = 3.75, SpacingAfter = 0 }),
+                new PdfFlowOptions { KeepTogether = true });
+        }, new PdfFlowOptions { KeepTogether = true }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), word => word.Text == "floating");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "floating");
+        Assert.Contains(pdf.GetPage(2).GetWords(), word => word.Text == "below");
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    public void TrailingFloatingBookmarksStayAtExplicitPageAndSectionBoundaries(int boundary) {
+        var document = PdfDocument.Create(Options(240));
+        if (boundary == 0) document.Compose(builder => builder.Page(page => page.Content(content => content
+            .Table(new[] { new[] { "floating" } }, style: Floating()).Bookmark("target"))));
+        else document.Table(new[] { new[] { "floating" } }, style: Floating()).Bookmark("target")
+            .Section("next", _ => { }, new PdfSectionOptions { StartOnNewPage = true });
+        var destination = Assert.Single(PdfInspector.Inspect(document.Paragraph(p => p.Text("later")).ToBytes()).NamedDestinations.Where(d => d.Name == "target"));
+        Assert.Equal(1, destination.PageNumber);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void TransparentNestedFlowsPreserveFloatingGeometry(int kind) {
+        void Paint(PdfContentBuilder content) => content.Table(new[] { new[] { "floating" } }, style: Floating(100, 70));
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(60).Flow(flow => {
+            if (kind == 0) flow.Semantic(PdfSemanticRole.Section, Paint);
+            else if (kind == 1) flow.Layer("float", Paint);
+            else flow.Flow(Paint);
+            flow.Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+        }, new PdfFlowOptions { KeepTogether = true, OverflowBehavior = PdfFlowOverflowBehavior.Skip }).ToBytes());
+        Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "alongside");
+    }
+
+    [Theory]
+    [InlineData(PdfFlowOverflowBehavior.Skip)]
+    [InlineData(PdfFlowOverflowBehavior.MoveToNextPage)]
+    public void FloatingClearanceIsIncludedExactlyOnceInFlowMeasurement(PdfFlowOverflowBehavior overflow) {
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(60).Flow(flow => {
+            flow.Table(new[] { new[] { "floating" } }, style: Floating(320, 70));
+            flow.Paragraph(p => p.Text("below"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+        }, new PdfFlowOptions { OverflowBehavior = overflow }).ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "below");
+    }
+
+    [Fact]
+    public void FloatingTableOwnKeepWithNextMeasuresUnionWithFollowingText() {
+        var style = Floating(100, 60); style.KeepWithNext = true;
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(100)
+            .Table(new[] { new[] { "floating" } }, style: style)
+            .Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = 0 }).ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "alongside");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PendingFloatBookmarkStaysBeforeExplicitPageBoundary(bool pageBlock) {
+        var document = PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: Floating()).Bookmark("target");
+        if (pageBlock) document.Compose(builder => builder.Page(page => page.Content(content => content.Paragraph(p => p.Text("later")))));
+        else document.PageBreak().Paragraph(p => p.Text("later"));
+        var destination = Assert.Single(PdfInspector.Inspect(document.ToBytes()).NamedDestinations);
+        Assert.Equal(1, destination.PageNumber);
+        Assert.Equal(200, destination.DestinationTop!.Value, 3);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PageAnchoredRowCannotUseHeightAbovePositiveOffset(bool deferred) {
+        var style = Floating(120, 230);
+        style.Position = new PdfTablePosition(verticalAnchor: PdfTableAnchor.Page, verticalOffset: 20);
+        var document = PdfDocument.Create(Options(240));
+        if (deferred) document.TableDeferred(() => new[] { new[] { "too tall" } }, batchSize: 1, style: style);
+        else document.Table(new[] { new[] { "too tall" } }, style: style);
+        Assert.Throws<System.ArgumentException>(() => document.ToBytes());
+    }
+
+    [Theory]
+    [InlineData(PdfFlowOverflowBehavior.Skip)]
+    [InlineData(PdfFlowOverflowBehavior.MoveToNextPage)]
+    [InlineData(PdfFlowOverflowBehavior.Continue)]
+    public void ConstrainedFlowMeasuresSideBySideFloatWithoutIgnoredSpacing(PdfFlowOverflowBehavior overflow) {
+        var style = Floating(100, 70); style.SpacingBefore = 100; style.SpacingAfter = 100;
+        var capture = new PdfLayoutPositionCapture();
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Spacer(60).Flow(flow => {
+            flow.Table(new[] { new[] { "floating" } }, style: style);
+            flow.Paragraph(p => p.Text("alongside"), style: new PdfParagraphStyle { SpacingAfter = 0 });
+        }, new PdfFlowOptions { KeepTogether = true, OverflowBehavior = overflow }, capture: capture).ToBytes());
+        Assert.Equal(1, pdf.NumberOfPages);
+        Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "alongside");
+        Assert.Contains(pdf.GetPage(1).GetWords(), w => w.Text == "floating");
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

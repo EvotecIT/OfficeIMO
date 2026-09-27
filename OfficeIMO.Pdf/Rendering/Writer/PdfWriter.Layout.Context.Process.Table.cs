@@ -213,6 +213,11 @@ internal static partial class PdfWriter {
 
             double TableBottom() => style.Position?.VerticalAnchor == PdfTableAnchor.Page ? 0 : currentOpts.MarginBottom;
             double maxContentHeight = style.Position?.VerticalAnchor == PdfTableAnchor.Page ? currentOpts.PageHeight : GetFullPageContentHeight();
+            if (style.Position is { VerticalAnchor: not PdfTableAnchor.Flow, VerticalAlignment: PdfTableVerticalAlignment.Top, VerticalOffset: > 0 } capacityPosition) {
+                // Offset-preserving anchors cannot use space above their resolved top.
+                maxContentHeight = Math.Min(maxContentHeight,
+                    Math.Max(0, PositionTableY(capacityPosition, maxContentHeight) - TableBottom()));
+            }
             string? captionText = string.IsNullOrWhiteSpace(style.Caption) ? null : style.Caption;
             System.Collections.Generic.IReadOnlyList<PdfTextRun>? captionRuns = null;
             System.Collections.Generic.List<System.Collections.Generic.List<RichSeg>>? captionLines = null;
@@ -260,7 +265,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            if (style.KeepWithNext && nextBlock != null) {
+            if (style.KeepWithNext && nextBlock != null && style.Position == null) {
                 double tableHeight = tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter : 0D);
                 double nextHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, tableHeight);
                 double keepHeight = tableHeight + nextHeight;
@@ -268,6 +273,17 @@ internal static partial class PdfWriter {
                     NewInitialTablePage();
                     tableSpacingBefore = 0D;
                 }
+            }
+
+            if (style.KeepWithNext && nextBlock != null && style.Position != null) {
+                double anchoredY = y;
+                double keepHeight;
+                try {
+                    y = flowYBeforeTable;
+                    keepHeight = MeasureKeepWithNextChainHeight(blockList, blockIndex, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, 0);
+                } finally { y = anchoredY; }
+                if (keepHeight <= GetFullPageContentHeight() + 0.001 && flowYBeforeTable < GetCurrentFramePageStartY() - 0.001 &&
+                    flowYBeforeTable - keepHeight < currentOpts.MarginBottom) NewInitialTablePage();
             }
 
             int minimumFirstPageBodyRows = Math.Min(

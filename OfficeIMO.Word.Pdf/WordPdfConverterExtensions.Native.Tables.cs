@@ -141,8 +141,12 @@ namespace OfficeIMO.Word.Pdf {
                         "table",
                         "Positioned table wrapping in a multi-column section is approximated.");
                 }
-                if (pdf.SupportsPositionedTables) style.Position = CreateNativeTablePosition(tablePosition,
-                    table._tableProperties?.GetFirstChild<W.TableOverlap>()?.Val?.Value != W.TableOverlapValues.Never);
+                if (pdf.SupportsPositionedTables) {
+                    style.Position = CreateNativeTablePosition(tablePosition,
+                        table._tableProperties?.GetFirstChild<W.TableOverlap>()?.Val?.Value != W.TableOverlapValues.Never);
+                    // tblpX is a placement coordinate, not a width reservation.
+                    style.LeftIndent = 0;
+                }
             }
             if (cellFills.Count > 0) {
                 if (style.CellFills == null) {
