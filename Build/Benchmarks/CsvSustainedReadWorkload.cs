@@ -43,12 +43,14 @@ public sealed class CsvSustainedReadWorkload
         }
     }
 
-    public void Prepare(string operation)
+    public void Prepare(string operation, string selectedEngine = null)
     {
+        if (selectedEngine != null && selectedEngine != "Snapshot" && selectedEngine != "Incremental")
+            throw new ArgumentException("Unknown CSV engine.", nameof(selectedEngine));
         _expectedByOperation[operation] = ExpectedChecksum(operation);
         // Validate every field and source order outside timed operations, independently of checksums.
-        RunAsync(false, operation, true).GetAwaiter().GetResult();
-        RunAsync(true, operation, true).GetAwaiter().GetResult();
+        if (selectedEngine != "Incremental") RunAsync(false, operation, true).GetAwaiter().GetResult();
+        if (selectedEngine != "Snapshot") RunAsync(true, operation, true).GetAwaiter().GetResult();
     }
 
     public void Execute(bool incremental, string operation, bool sampleMemory)

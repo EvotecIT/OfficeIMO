@@ -9,6 +9,10 @@ param(
     [int] $IterationCount = 7,
     [ValidateSet('FirstRow', 'AllRowsAsync', 'TypedSequential', 'TypedParallel')]
     [string[]] $Operation = @('FirstRow', 'AllRowsAsync', 'TypedSequential', 'TypedParallel'),
+    [ValidateSet('Snapshot', 'Incremental')]
+    [string[]] $Engine = @('Snapshot', 'Incremental'),
+    [ValidateSet('Plain', 'Multiline')]
+    [string[]] $Shape = @('Plain', 'Multiline'),
     [string] $AffinityMask,
     [switch] $SampleMemory,
     [switch] $Plan
@@ -41,9 +45,10 @@ try {
     }
     $process.PriorityClass = [Diagnostics.ProcessPriorityClass]::Normal
     if (-not $Plan) { [void] (New-Item -ItemType Directory -Path $fixtureRoot) }
+    $caseNames = @(foreach ($count in $Rows) { foreach ($notes in $Shape) { "Rows-$count-$notes" } })
     $result = Invoke-BenchmarkSuite -Path (Join-Path $PSScriptRoot 'csv-sustained-read.benchmark.ps1') `
-        -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; FixtureRoot = $fixtureRoot; Rows = $Rows; Degree = $Degree; Batch = $Batch; SampleMemory = [bool] $SampleMemory } `
-        -WarmupCount $WarmupCount -IterationCount $IterationCount -Operation $Operation -Plan:$Plan
+        -OutputRoot $OutputRoot -Variable @{ BinaryRoot = $BinaryRoot; FixtureRoot = $fixtureRoot; Rows = $Rows; Degree = $Degree; Batch = $Batch; SampleMemory = [bool] $SampleMemory; SelectedEngineSetup = ($Engine.Count -eq 1) } `
+        -WarmupCount $WarmupCount -IterationCount $IterationCount -Operation $Operation -Engine $Engine -Case $caseNames -Plan:$Plan
     $result
     if (-not $Plan -and @($result.Samples | Where-Object Status -ne 'Succeeded').Count -gt 0) {
         throw 'CSV sustained-read qualification failed. Inspect the retained result artifacts.'

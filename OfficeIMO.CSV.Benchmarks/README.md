@@ -72,6 +72,26 @@ full asynchronous traversal slice. Record processor/cache topology and repeat bo
 lanes with `-AffinityMask` on every relevant Windows or Linux processor domain.
 Use `-Degree` and `-Batch` to qualify other parallel configurations separately.
 
+For resident observations without pages left by another reader workload, start
+one fresh `pwsh -NoProfile -File` process per row count, shape, engine, and
+operation. Select one case with `-Rows`, `-Shape Plain` or `Multiline`,
+`-Engine Snapshot` or `Incremental`, and `-Operation`, and use `-SampleMemory`.
+For example:
+
+```powershell
+pwsh -NoProfile -File ./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 -Rows 1000000 -Shape Plain -Engine Incremental -Operation AllRowsAsync -SampleMemory -AffinityMask 0xFFFF -OutputRoot ./Ignore/Benchmarks/CsvIsolatedPlain
+```
+
+A single selected engine validates only that reader in setup, against independent
+expected values. The default two-engine lane validates both. Fixture generation,
+runtime loading, and selected-reader validation occur before sampling; resident
+baseline therefore includes their committed pages. Warmups use the selected
+workload. This measures a warmed process dedicated to one case, rather than
+cold startup or the library's isolated native footprint. Record absolute
+resident baseline and peak alongside their increase, and verify distinct
+`ProcessId` metadata for separately launched cases. Timing, validation, metrics,
+and artifacts remain owned by the shared PowerForge runner.
+
 The memory lane uses PowerForge's five-millisecond probe. It reports baseline
 and sampled peak managed heap and resident process memory, their increases, and
 the number of observations. Peaks are lower bounds: polling can miss brief

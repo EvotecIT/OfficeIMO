@@ -5,6 +5,7 @@ $rows = Get-BenchmarkInput Rows 100000, 1000000 -Int
 $degree = Get-BenchmarkInput Degree 4 -Int
 $batch = Get-BenchmarkInput Batch 1024 -Int
 $sampleMemory = Get-BenchmarkInput SampleMemory $false -Bool
+$selectedEngineSetup = Get-BenchmarkInput SelectedEngineSetup $false -Bool
 $references = @([IO.Directory]::GetFiles((Join-Path $PSHOME 'ref'), '*.dll'))
 foreach ($name in 'OfficeIMO.Core', 'OfficeIMO.CSV') {
     $path = Join-Path $binaryRoot "$name.dll"
@@ -22,6 +23,8 @@ New-BenchmarkSuite 'officeimo-csv-sustained-read' {
     Set-BenchmarkPolicy -Warmup 2 -Iteration 7 -Order Rotated -OutlierMode None -MemoryCleanup BeforeIteration
     Add-BenchmarkMetadata Contract 'FirstRow/AllRowsAsync: async initialization/read, every string field consumed. Typed: async initialization, synchronous ordered projection, full checksum, no retained row array.'
     Add-BenchmarkMetadata SampleMemory ([string] $sampleMemory)
+    Add-BenchmarkMetadata SelectedEngineSetup ([string] $selectedEngineSetup)
+    Add-BenchmarkMetadata ProcessId ([string] [Diagnostics.Process]::GetCurrentProcess().Id)
     Add-BenchmarkMetadata Degree ([string] $degree[0])
     Add-BenchmarkMetadata Batch ([string] $batch[0])
     Add-BenchmarkMetadata Sampling 'PowerForge 5ms sampled lower-bound peaks; separate instrumented memory lane.'
@@ -46,9 +49,10 @@ New-BenchmarkSuite 'officeimo-csv-sustained-read' {
             $workloads[$key] = [CsvSustainedReadWorkload]::new((Join-Path $fixtureRoot "$key.csv"), $case.Rows, ($case.Shape -eq 'Multiline'), $degree[0], $batch[0])
         }
         $run.Workload = $workloads[$key]
-        $validationKey = "$key-$($case.Operation)"
+        $validationKey = "$key-$($case.Operation)-$(if ($selectedEngineSetup) { $case.Engine } else { 'Both' })"
         if (-not $workloads.ContainsKey($validationKey)) {
-            $run.Workload.Prepare($case.Operation)
+            if ($selectedEngineSetup) { $run.Workload.Prepare($case.Operation, $case.Engine) }
+            else { $run.Workload.Prepare($case.Operation) }
             $workloads[$validationKey] = $true
         }
     }
