@@ -109,6 +109,12 @@ namespace OfficeIMO.Word {
             _document = document;
             _vmlShape = shape;
             _vmlImageData = shape.GetFirstChild<V.ImageData>();
+            _Image = new WordDrawing();
+            string? relationshipId = _vmlImageData?.RelationshipId?.Value;
+            if (!string.IsNullOrEmpty(relationshipId)) {
+                var owner = WordPartOwnership.Resolve(document, shape);
+                _imagePart = owner.GetPartById(relationshipId!) as ImagePart;
+            }
         }
 
         /// <summary>
@@ -376,6 +382,6 @@ namespace OfficeIMO.Word {
             _Image = drawing;
         }
 
-        private OpenXmlPart GetContainingPart() => WordPartOwnership.Resolve(_document, _Image);
+        private OpenXmlPart GetContainingPart() => WordPartOwnership.Resolve(_document, _vmlShape ?? (OpenXmlElement)_Image);
     }
 }

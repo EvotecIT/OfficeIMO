@@ -31,6 +31,9 @@ namespace OfficeIMO.OpenXml.Internal {
             var plot = chart.PlotArea;
             if (plot?.Descendants().Any(element => element is C.TickLabelSkip or C.TickMarkSkip) == true)
                 throw new NotSupportedException("Category-axis label and tick skipping cannot be projected.");
+            if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true ||
+                plot?.Descendants<C.CrossBetween>().Any(crossing => crossing.Val?.Value is C.CrossBetweenValues value && value != C.CrossBetweenValues.Between) == true)
+                throw new NotSupportedException("Independent category label offsets and cross-between geometry cannot be projected.");
             OpenXmlCompositeElement? horizontal = null, vertical = null;
             if (!radial && plot != null) {
                 var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
@@ -116,6 +119,8 @@ namespace OfficeIMO.OpenXml.Internal {
             foreach (var axis in secondaryLayers.SelectMany(layer => layer.Elements<C.AxisId>())
                 .Select(reference => groups.Resolve(reference.Val?.Value)).Distinct()) {
                 if (axis == null) throw new NotSupportedException("The secondary chart axes cannot be resolved.");
+                if (axis is C.CategoryAxis or C.DateAxis && !IsDeletedAxis(axis))
+                    throw new NotSupportedException("Visible secondary category axes cannot be projected.");
                 if (axis.GetFirstChild<C.Title>() != null || axis.GetFirstChild<C.ChartShapeProperties>() != null ||
                     axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
                     throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
