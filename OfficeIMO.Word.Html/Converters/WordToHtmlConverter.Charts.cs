@@ -5,6 +5,9 @@ using System.Globalization;
 
 namespace OfficeIMO.Word.Html {
     internal partial class WordToHtmlConverter {
+        private static bool HasExtendedChart(DocumentFormat.OpenXml.OpenXmlElement? element) =>
+            element?.Descendants().Any(child => child.LocalName == "chart" &&
+                child.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2014/chartex") == true;
         private static IElement? CreateChartImage(IDocument owner, WordChart chart,
             WordToHtmlOptions options, ref long embeddedImageBytes) {
             if (!chart.TryGetOfficeSnapshot(out var snapshot)) {

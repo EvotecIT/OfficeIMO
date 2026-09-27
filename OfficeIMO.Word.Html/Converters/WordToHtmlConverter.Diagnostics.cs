@@ -145,6 +145,8 @@ namespace OfficeIMO.Word.Html {
             root is not DocumentFormat.OpenXml.Drawing.Theme &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Fonts &&
             root is not DocumentFormat.OpenXml.Wordprocessing.Settings &&
+            root is not DocumentFormat.OpenXml.Drawing.Charts.ChartSpace &&
+            root.NamespaceUri != "http://schemas.microsoft.com/office/drawing/2014/chartex" &&
             root is not DocumentFormat.OpenXml.Wordprocessing.WebSettings;
 
         private static IEnumerable<(OpenXmlElement Element, bool OmitOutputContent)> EnumerateRootAndDescendants(
@@ -156,9 +158,12 @@ namespace OfficeIMO.Word.Html {
                 (OpenXmlElement element, bool inOmittedRevision) = pending.Pop();
                 bool omitOutputContent = inOmittedRevision || IsRevisionContentExcluded(element, policy);
                 yield return (element, omitOutputContent);
-                for (int index = element.ChildElements.Count - 1; index >= 0; index--) {
-                    pending.Push((element.ChildElements[index], omitOutputContent));
-                }
+                // Retain one sibling continuation per depth rather than allocating a
+                // stack entry for every child before the element budget can stop traversal.
+                if (!ReferenceEquals(element, root) && element.NextSibling() is OpenXmlElement sibling)
+                    pending.Push((sibling, inOmittedRevision));
+                if (element.FirstChild is OpenXmlElement child)
+                    pending.Push((child, omitOutputContent));
             }
         }
 
@@ -191,6 +196,23 @@ namespace OfficeIMO.Word.Html {
 
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 yield return (root.Root, root.PartUri);
+            }
+            var chartUris = new HashSet<Uri>();
+            IEnumerable<OpenXmlPart> stories = new OpenXmlPart[] { mainPart }
+                .Concat(mainPart.HeaderParts).Concat(mainPart.FooterParts);
+            if (mainPart.FootnotesPart != null) stories = stories.Append(mainPart.FootnotesPart);
+            if (mainPart.EndnotesPart != null) stories = stories.Append(mainPart.EndnotesPart);
+            foreach (var story in stories) {
+                foreach (var chart in story.Parts.Select(relationship => relationship.OpenXmlPart)
+                    .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                    if (chartUris.Add(chart.Uri) && chart.RootElement is OpenXmlElement chartRoot)
+                        yield return (chartRoot, chart.Uri.ToString());
+                    foreach (var presentation in chart.Parts.Select(relationship => relationship.OpenXmlPart)
+                        .Where(part => part.ContentType.IndexOf("chart", StringComparison.OrdinalIgnoreCase) >= 0)) {
+                        if (chartUris.Add(presentation.Uri) && presentation.RootElement is OpenXmlElement presentationRoot)
+                            yield return (presentationRoot, presentation.Uri.ToString());
+                    }
+                }
             }
             if (mainPart.WordprocessingCommentsPart?.Comments is OpenXmlElement comments) {
                 yield return (comments, mainPart.WordprocessingCommentsPart.Uri.ToString());

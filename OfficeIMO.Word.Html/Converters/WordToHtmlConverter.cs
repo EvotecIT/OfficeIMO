@@ -261,6 +261,11 @@ namespace OfficeIMO.Word.Html {
                         return true;
                     }
 
+                    if (HasExtendedChart(artifactElement ?? (includeAll ? run._run : null))) {
+                        AddExportDiagnostic(options, "WordChartOmitted", "An extended Office chart has no supported HTML image projection.",
+                            OfficeConversionLossKind.Omission);
+                        return true;
+                    }
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing) &&
                         (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing chartDrawing &&
                             chartDrawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any()
@@ -273,7 +278,12 @@ namespace OfficeIMO.Word.Html {
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
                         (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing imageDrawing &&
                             imageDrawing.Descendants<DocumentFormat.OpenXml.Drawing.Pictures.Picture>().Any()
-                            ? new WordImage(run._document, imageDrawing) : includeAll || artifactElement is DocumentFormat.OpenXml.Vml.ImageData ? run.Image : null) is WordImage imgObj) {
+                            ? new WordImage(run._document, imageDrawing)
+                            : artifactElement is DocumentFormat.OpenXml.Vml.ImageData vmlImage &&
+                                vmlImage.Ancestors<DocumentFormat.OpenXml.Vml.Shape>().FirstOrDefault() is DocumentFormat.OpenXml.Vml.Shape vmlShape &&
+                                run._run != null
+                                ? new WordImage(run._document, run._paragraph, run._run, vmlShape)
+                                : includeAll ? run.Image : null) is WordImage imgObj) {
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
                             if (options.EmbedImagesAsBase64) {
@@ -509,7 +519,7 @@ namespace OfficeIMO.Word.Html {
                     // Imported chart runs may also contain text, pictures or other charts.
                     // The existing segment projector preserves the actual child order and
                     // supplies the specific drawing occurrence to artifact conversion.
-                    if (run.IsChart && run._run != null) {
+                    if ((run.IsChart || HasExtendedChart(run._run)) && run._run != null) {
                         foreach (INode expandedNode in CreateExpandedEquationContainerNodes(run._run, Array.Empty<WordEquationOccurrence>(), run)) {
                             AppendNode(expandedNode);
                         }

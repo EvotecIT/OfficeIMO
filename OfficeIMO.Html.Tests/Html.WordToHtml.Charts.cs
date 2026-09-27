@@ -10,6 +10,40 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Export_DiagnosesUnsupportedExtendedChartsIncludingChartOnlyHeaders(bool header) {
+        using var document = WordDocument.Create();
+        var chart = header
+            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data())
+            : document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var reference = chart.Drawing!.Descendants<C.ChartReference>().Single();
+        var extended = new DocumentFormat.OpenXml.OpenXmlUnknownElement("cx", "chart", "http://schemas.microsoft.com/office/drawing/2014/chartex");
+        extended.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", reference.Id!.Value!));
+        reference.Parent!.ReplaceChild(extended, reference);
+        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+        Assert.Single(result.Report.Diagnostics, diagnostic => diagnostic.Code == "WordChartOmitted");
+        Assert.Empty(new HtmlParser().ParseDocument(result.RequireValue()).QuerySelectorAll("img"));
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Export_ElementBudgetIncludesChartPartsBeforeSnapshotReading(bool header) {
+        using var document = WordDocument.Create();
+        var chart = header
+            ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph().AddChart(OfficeChartKind.ColumnClustered, Data())
+            : document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var space = chart.ChartPart!.ChartSpace!;
+        var native = space.GetFirstChild<C.Chart>()!;
+        native.Append(new C.TextProperties(new DocumentFormat.OpenXml.Drawing.BodyProperties(),
+            new DocumentFormat.OpenXml.Drawing.ListStyle(),
+            new DocumentFormat.OpenXml.Drawing.Paragraph(Enumerable.Range(0, 1000).Select(index =>
+                new DocumentFormat.OpenXml.Drawing.Run(new DocumentFormat.OpenXml.Drawing.Text("Extra text"))))));
+        var error = Assert.Throws<HtmlConversionLimitException>(() => document.ToHtml(new WordToHtmlOptions { MaxDocumentElements = 500 }));
+        Assert.Equal("WordElementLimitExceeded", error.Code);
+        Assert.Contains("chart", error.LimitSource, StringComparison.OrdinalIgnoreCase);
+    }
     [Fact]
     public void Export_ReportsConfiguredAggregateLimitWhenTheFirstChartExhaustsIt() {
         using var document = WordDocument.Create();
