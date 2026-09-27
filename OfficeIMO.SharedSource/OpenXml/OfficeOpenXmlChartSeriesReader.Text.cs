@@ -69,8 +69,9 @@ internal sealed class OfficeOpenXmlChartTextReader {
                         or C.DateAxis or C.ValueAxis or C.SeriesAxis)
                     .Select(axis => axis.GetFirstChild<C.Title>())
                     .Where(title => title != null
-                        && title.Descendants<A.Text>()
-                            .Any(text => !string.IsNullOrEmpty(text.Text)))
+                        && (title.Descendants<A.Text>().Any(text => !string.IsNullOrEmpty(text.Text)) ||
+                            title.GetFirstChild<C.ChartText>()?.GetFirstChild<C.StringReference>()?.StringCache?
+                                .Descendants<C.StringPoint>().Any(point => !string.IsNullOrEmpty(point.NumericValue?.Text)) == true))
                     .Cast<C.Title>()
                     .ToArray();
             string?[] fonts = titles.Select(title =>

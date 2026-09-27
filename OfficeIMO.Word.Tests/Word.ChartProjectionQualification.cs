@@ -51,6 +51,9 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("labelOffset")]
     [InlineData("rounded")]
     [InlineData("crossBetween")]
+    [InlineData("automaticMarker")]
+    [InlineData("inheritedMarker")]
+    [InlineData("labelAlignment")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
         var kind = feature == "negative" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
@@ -93,6 +96,9 @@ public sealed class WordChartProjectionQualificationTests {
         else if (feature == "labelOffset") plot.GetFirstChild<C.CategoryAxis>()!.GetFirstChild<C.LabelOffset>()!.Val = 200;
         else if (feature == "rounded") space.GetFirstChild<C.RoundedCorners>()!.Val = true;
         else if (feature == "crossBetween") plot.GetFirstChild<C.ValueAxis>()!.GetFirstChild<C.CrossBetween>()!.Val = C.CrossBetweenValues.MidpointCategory;
+        else if (feature == "automaticMarker") series.AddChild(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Auto }), true);
+        else if (feature == "inheritedMarker") series.RemoveAllChildren<C.Marker>();
+        else if (feature == "labelAlignment") plot.GetFirstChild<C.CategoryAxis>()!.AddChild(new C.LabelAlignment { Val = C.LabelAlignmentValues.Left }, true);
         else if (feature == "dateAxis") {
             var category = plot.GetFirstChild<C.CategoryAxis>()!;
             var replacement = new C.DateAxis();
