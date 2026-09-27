@@ -77,6 +77,7 @@
     {{ if studio_msi_x64 && studio_msi_arm64 && studio_zip_x64 && studio_zip_arm64 }}
       <p>OfficeIMO Studio {{ string.replace studio_windows_release.tag "Studio-v" "v" }}. Choose an installer or a portable ZIP for your processor.</p>
       {{ if studio_windows_release.tag == "Studio-v0.1.9765" }}<p>Arm64 installation and runtime testing for version 0.1.9765 is pending.</p>{{ end }}
+      {{ if studio_windows_release.tag == "Studio-v0.1.9766" }}<p>Arm64 installation and runtime testing for version 0.1.9766 is pending.</p>{{ end }}
       <dl class="imo-channel-list">
         <div><dt>Windows x64</dt><dd><a href="{{ studio_msi_x64.downloadUrl }}">Windows x64 MSI installer</a> · <a href="{{ studio_zip_x64.downloadUrl }}">Windows x64 portable ZIP</a></dd></div>
         <div><dt>Windows Arm64</dt><dd><a href="{{ studio_msi_arm64.downloadUrl }}">Windows Arm64 MSI installer</a> · <a href="{{ studio_zip_arm64.downloadUrl }}">Windows Arm64 portable ZIP</a></dd></div>
@@ -94,6 +95,7 @@
     {{ if studio_deb_x64 && studio_deb_arm64 && studio_linux_zip_x64 && studio_linux_zip_arm64 }}
       <p>OfficeIMO Studio {{ string.replace studio_linux_release.tag "Studio-v" "v" }}. The packages support Debian-compatible distributions; portable ZIPs are available for both processors.</p>
       {{ if studio_linux_release.tag == "Studio-v0.1.9765" }}<p>Arm64 installation and runtime testing for version 0.1.9765 is pending.</p>{{ end }}
+      {{ if studio_linux_release.tag == "Studio-v0.1.9766" }}<p>Arm64 installation and runtime testing for version 0.1.9766 is pending.</p>{{ end }}
       <dl class="imo-channel-list">
         <div><dt>Linux x64</dt><dd><a href="{{ studio_deb_x64.downloadUrl }}">Linux x64 DEB package</a> · <a href="{{ studio_linux_zip_x64.downloadUrl }}">Linux x64 portable ZIP</a></dd></div>
         <div><dt>Linux Arm64</dt><dd><a href="{{ studio_deb_arm64.downloadUrl }}">Linux Arm64 DEB package</a> · <a href="{{ studio_linux_zip_arm64.downloadUrl }}">Linux Arm64 portable ZIP</a></dd></div>
