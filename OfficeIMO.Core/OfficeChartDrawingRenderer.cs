@@ -688,7 +688,7 @@ public static partial class OfficeChartDrawingRenderer {
         (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
         for (int i = 0; i <= 4; i++) {
             double x = plotLeft + plotWidth * i / 4D;
-            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY + Math.Min(start, end), null, color, lineWidth, OfficeStrokeDashStyle.Solid);
         }
     }
 
@@ -710,7 +710,7 @@ public static partial class OfficeChartDrawingRenderer {
         (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
         foreach (double tick in ticks) {
             double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
-            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY + Math.Min(start, end), null, color, lineWidth, OfficeStrokeDashStyle.Solid);
         }
     }
 
@@ -734,7 +734,7 @@ public static partial class OfficeChartDrawingRenderer {
                 drawing,
                 OfficeShape.Line(0D, start, 0D, end),
                 x,
-                axisY,
+                axisY + Math.Min(start, end),
                 null,
                 color,
                 Math.Max(0.5D, lineWidth * 0.8D),
@@ -761,7 +761,7 @@ public static partial class OfficeChartDrawingRenderer {
         double minorLineWidth = Math.Max(0.5D, lineWidth * 0.8D);
         foreach (double tick in ticks) {
             double x = ToPlotX(tick, range.Min, range.Max, plotLeft, plotWidth);
-            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY, null, color, minorLineWidth, OfficeStrokeDashStyle.Solid);
+            AddShape(drawing, OfficeShape.Line(0D, start, 0D, end), x, axisY + Math.Min(start, end), null, color, minorLineWidth, OfficeStrokeDashStyle.Solid);
         }
     }
 
@@ -780,7 +780,7 @@ public static partial class OfficeChartDrawingRenderer {
         (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
         for (int i = 0; i <= 4; i++) {
             double y = plotTop + plotHeight * i / 4D;
-            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX, y, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX + Math.Min(start, end), y, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
         }
     }
 
@@ -793,16 +793,17 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<double> ticks,
         OfficeChartAxisTickMark tickMark,
         OfficeColor color,
-        double lineWidth) {
+        double lineWidth,
+        bool positiveOutside = false) {
         if (tickMark == OfficeChartAxisTickMark.None) {
             return;
         }
 
-        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
         for (int i = ticks.Count - 1; i >= 0; i--) {
             double tick = ticks[i];
             double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight);
-            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX, y, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
+            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX + Math.Min(start, end), y, null, color, lineWidth, OfficeStrokeDashStyle.Solid);
         }
     }
 
@@ -815,17 +816,18 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<double> ticks,
         OfficeChartAxisTickMark tickMark,
         OfficeColor color,
-        double lineWidth) {
+        double lineWidth,
+        bool positiveOutside = false) {
         if (tickMark == OfficeChartAxisTickMark.None) {
             return;
         }
 
-        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside: false);
+        (double start, double end) = GetAxisTickMarkOffsets(tickMark, positiveOutside);
         double minorLineWidth = Math.Max(0.5D, lineWidth * 0.8D);
         for (int i = ticks.Count - 1; i >= 0; i--) {
             double tick = ticks[i];
             double y = ToPlotY(tick, range.Min, range.Max, plotTop, plotHeight);
-            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX, y, null, color, minorLineWidth, OfficeStrokeDashStyle.Solid);
+            AddShape(drawing, OfficeShape.Line(start, 0D, end, 0D), axisX + Math.Min(start, end), y, null, color, minorLineWidth, OfficeStrokeDashStyle.Solid);
         }
     }
 
@@ -847,7 +849,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddShape(
                 drawing,
                 OfficeShape.Line(start, 0D, end, 0D),
-                axisX,
+                axisX + Math.Min(start, end),
                 y,
                 null,
                 color,

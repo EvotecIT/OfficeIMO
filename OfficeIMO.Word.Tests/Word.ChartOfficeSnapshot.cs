@@ -29,6 +29,20 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Equal("Georgia", snapshot.Layout.AxisTitleFontFamily);
     }
     [Fact]
+    public void OfficeSnapshot_PreservesIndependentSecondaryTickPresentation() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Volume", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
+        var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        secondary.AddChild(new C.MajorTickMark { Val = C.TickMarkValues.Cross }, true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeChartAxisTickMark.Cross, snapshot.Layout.SecondaryValueAxis!.MajorTickMark);
+    }
+
+    [Fact]
     public void OfficeSnapshot_PreservesIndependentSecondaryAxisLimitsAndFormat() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
@@ -36,7 +50,9 @@ public sealed class WordChartOfficeSnapshotTests {
             new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
-        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 2, majorUnit: 0.5, numberFormat: "0%"));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 2,
+            majorUnit: 0.5, minorUnit: 0.25, numberFormat: "0%",
+            majorTickMark: OfficeChartAxisTickMark.Cross, minorTickMark: OfficeChartAxisTickMark.Outside));
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(2, snapshot.Layout.SecondaryValueAxis!.Maximum);
         Assert.Equal(0.5, snapshot.Layout.SecondaryValueAxis.MajorUnit);
@@ -51,6 +67,9 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.True(reopened.Charts.Single().TryGetOfficeSnapshot(out var imported));
         Assert.Equal(2, imported.Layout.SecondaryValueAxis!.Maximum);
         Assert.Equal("0%", imported.Layout.SecondaryValueAxis.NumberFormat);
+        Assert.Equal(0.25, imported.Layout.SecondaryValueAxis.MinorUnit);
+        Assert.Equal(OfficeChartAxisTickMark.Cross, imported.Layout.SecondaryValueAxis.MajorTickMark);
+        Assert.Equal(OfficeChartAxisTickMark.Outside, imported.Layout.SecondaryValueAxis.MinorTickMark);
     }
     [Fact]
     public void OfficeSnapshot_PreservesInheritedTextFontsAndRejectsConflictingBodyFonts() {
