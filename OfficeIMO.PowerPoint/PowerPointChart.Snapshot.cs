@@ -509,12 +509,14 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var parts = new List<(PowerPointChartSnapshotKind Kind, PowerPointChartData Data)>();
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ValidatePlotBudget(plotArea, PowerPointUtils.MaximumSharedChartPoints);
+            var axisGroups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
             foreach (OpenXmlElement element in plotArea.ChildElements) {
                 if (element is C.BarChart barChart) {
                     PowerPointChartSnapshotKind kind = GetBarChartSnapshotKind(barChart);
                     PowerPointChartData? data = ReadCategorySeriesData(
                         barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
-                        GetAxisGroup(plotArea, barChart));
+                        axisGroups.Read(barChart), validatePlot: false);
                     if (data != null) {
                         parts.Add((kind, data));
                     }
@@ -522,7 +524,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointChartSnapshotKind kind = GetLineChartSnapshotKind(lineChart);
                     PowerPointChartData? data = ReadCategorySeriesData(
                         lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
-                        GetAxisGroup(plotArea, lineChart));
+                        axisGroups.Read(lineChart), validatePlot: false);
                     if (data != null) {
                         parts.Add((kind, data));
                     }
@@ -530,12 +532,12 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointChartSnapshotKind kind = GetAreaChartSnapshotKind(areaChart);
                     PowerPointChartData? data = ReadCategorySeriesData(
                         areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
-                        GetAxisGroup(plotArea, areaChart));
+                        axisGroups.Read(areaChart), validatePlot: false);
                     if (data != null) {
                         parts.Add((kind, data));
                     }
                 } else if (element is C.ScatterChart scatterChart) {
-                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme);
+                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme, validatePlot: false);
                     if (data != null) {
                         parts.Add((PowerPointChartSnapshotKind.Scatter, data));
                     }
@@ -583,10 +585,6 @@ namespace OfficeIMO.PowerPoint {
             kind == PowerPointChartSnapshotKind.ClusteredBar ||
             kind == PowerPointChartSnapshotKind.StackedBar ||
             kind == PowerPointChartSnapshotKind.StackedBar100;
-
-        private static OfficeChartAxisGroup GetAxisGroup(C.PlotArea plotArea, OpenXmlCompositeElement chart) {
-            return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Read(plotArea, chart);
-        }
 
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,
             PowerPointChartSnapshotKind kind, PowerPointChartData data,
@@ -850,15 +848,15 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements,
             PowerPointChartSnapshotKind? chartKind = null, A.ColorScheme? colorScheme = null,
-            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) =>
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary, bool validatePlot = true) =>
             ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadCategories(seriesElements,
                 PowerPointChartSnapshotMapper.MapKind(chartKind ?? PowerPointChartSnapshotKind.ClusteredColumn),
-                colorScheme, axisGroup, PowerPointUtils.MaximumSharedChartPoints), chartKind);
+                colorScheme, axisGroup, PowerPointUtils.MaximumSharedChartPoints, validatePlot), chartKind);
 
         private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements,
-            A.ColorScheme? colorScheme = null) =>
+            A.ColorScheme? colorScheme = null, bool validatePlot = true) =>
             ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadScatter(seriesElements,
-                colorScheme, PowerPointUtils.MaximumSharedChartPoints), PowerPointChartSnapshotKind.Scatter);
+                colorScheme, PowerPointUtils.MaximumSharedChartPoints, validatePlot), PowerPointChartSnapshotKind.Scatter);
 
         private static PowerPointChartData? ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.Result? source,
             PowerPointChartSnapshotKind? kind) => source == null ? null : new PowerPointChartData(source.Categories,

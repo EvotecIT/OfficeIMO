@@ -22,11 +22,13 @@ namespace OfficeIMO.OpenXml.Internal {
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
             var sourceOrder = new Dictionary<OpenXmlCompositeElement, int>();
+            var sourceGroups = OfficeOpenXmlChartAxisGroups.Create(source);
+            var replacementGroups = OfficeOpenXmlChartAxisGroups.Create(replacement);
             foreach (OpenXmlCompositeElement generated in replacement.ChildElements
                          .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList()) {
                 List<OpenXmlCompositeElement> matches = sourceLayers.Where(candidate =>
                     !usedLayers.Contains(candidate) &&
-                    AreCompatibleSharedChartLayers(candidate, generated, source, replacement)).ToList();
+                    AreCompatibleSharedChartLayers(candidate, generated, sourceGroups, replacementGroups)).ToList();
                 if (matches.Count == 0) continue;
                 List<OpenXmlCompositeElement> generatedSeries = generated.ChildElements.OfType<OpenXmlCompositeElement>()
                     .Where(IsSharedSeriesElement).ToList();
@@ -41,7 +43,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     foreach (OpenXmlCompositeElement item in generatedSeries.Skip(offset).Take(count)) InsertSeries(slice, item.CloneNode(true));
                     var preserved = (OpenXmlCompositeElement)match.CloneNode(true);
                     ReplaceSharedSeriesData(preserved, slice, preservedSeriesIndexes);
-                    BindSharedAxisReferences(match, generated, source, replacement, axisBindings);
+                    BindSharedAxisReferences(match, generated, sourceGroups, replacementGroups, axisBindings);
                     ReplaceSharedAxisReferences(preserved, generated);
                     replacement.InsertBefore(preserved, generated);
                     sourceOrder.Add(preserved, sourceLayers.IndexOf(match));
@@ -75,7 +77,8 @@ namespace OfficeIMO.OpenXml.Internal {
             element is C.BubbleChart;
 
         private static bool AreCompatibleSharedChartLayers(OpenXmlCompositeElement source,
-            OpenXmlCompositeElement replacement, C.PlotArea sourcePlotArea, C.PlotArea replacementPlotArea) {
+            OpenXmlCompositeElement replacement, OfficeOpenXmlChartAxisGroups.Groups sourceGroups,
+            OfficeOpenXmlChartAxisGroups.Groups replacementGroups) {
             if (source.GetType() != replacement.GetType()) return false;
             if (source is C.BarChart sourceBar && replacement is C.BarChart replacementBar) {
                 if (sourceBar.BarDirection?.Val?.Value != replacementBar.BarDirection?.Val?.Value ||
@@ -86,13 +89,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (sourceArea.Grouping?.Val?.Value != replacementArea.Grouping?.Val?.Value) return false;
             }
 
-            return IsSecondarySharedChartLayer(source, sourcePlotArea) ==
-                   IsSecondarySharedChartLayer(replacement, replacementPlotArea);
-        }
-
-        private static bool IsSecondarySharedChartLayer(OpenXmlCompositeElement chartLayer,
-            C.PlotArea plotArea) {
-            return OfficeOpenXmlChartAxisGroups.Read(plotArea, chartLayer) == OfficeIMO.Drawing.OfficeChartAxisGroup.Secondary;
+            return sourceGroups.Read(source) == replacementGroups.Read(replacement);
         }
 
         private static void ReplaceSharedSeriesData(
@@ -176,7 +173,8 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void BindSharedAxisReferences(OpenXmlCompositeElement source,
-            OpenXmlCompositeElement generated, C.PlotArea sourcePlot, C.PlotArea generatedPlot,
+            OpenXmlCompositeElement generated, OfficeOpenXmlChartAxisGroups.Groups sourceGroups,
+            OfficeOpenXmlChartAxisGroups.Groups generatedGroups,
             IDictionary<uint, uint> bindings) {
             List<C.AxisId> sourceIds = source.Elements<C.AxisId>().ToList();
             List<C.AxisId> generatedIds = generated.Elements<C.AxisId>().ToList();
@@ -185,16 +183,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 uint? generatedId = generatedIds[index].Val?.Value;
                 uint? sourceId = sourceIds[index].Val?.Value;
                 if (!(source is C.BubbleChart) && !(source is C.ScatterChart)) {
-                    OpenXmlCompositeElement? generatedAxis = generatedPlot.ChildElements.OfType<OpenXmlCompositeElement>()
-                        .SingleOrDefault(axis => (axis is C.ValueAxis || IsSharedCategoryAxis(axis)) &&
-                            axis.GetFirstChild<C.AxisId>()?.Val?.Value == generatedId);
+                    OpenXmlCompositeElement? generatedAxis = generatedGroups.Resolve(generatedId);
                     if (generatedAxis == null) throw new NotSupportedException("A chart axis reference must resolve to a unique category or value axis.");
-                    var referencedIds = new HashSet<uint>(sourceIds.Where(id => id.Val != null).Select(id => id.Val!.Value));
-                    var matches = sourcePlot.ChildElements.OfType<OpenXmlCompositeElement>().Where(axis =>
-                        axis.GetFirstChild<C.AxisId>()?.Val is { } id && referencedIds.Contains(id.Value) &&
+                    var matches = sourceIds.Select(id => sourceGroups.Resolve(id.Val?.Value)).Where(axis => axis != null &&
                         (generatedAxis is C.ValueAxis ? axis is C.ValueAxis : IsSharedCategoryAxis(axis))).Take(2).ToList();
                     if (matches.Count != 1) throw new NotSupportedException("A category chart layer must reference one category axis and one value axis.");
-                    sourceId = matches[0].GetFirstChild<C.AxisId>()!.Val!.Value;
+                    sourceId = matches[0]!.GetFirstChild<C.AxisId>()!.Val!.Value;
                 }
                 if (!sourceId.HasValue || !generatedId.HasValue) continue;
                 if (bindings.TryGetValue(generatedId.Value, out uint previous) && previous != sourceId.Value)
