@@ -14,9 +14,13 @@ namespace OfficeIMO.Word.Pdf {
                 : horizontal == W.HorizontalAlignmentValues.Right || horizontal == W.HorizontalAlignmentValues.Outside
                     ? PdfCore.PdfAlign.Right : PdfCore.PdfAlign.Left;
             var vertical = position.TablePositionYAlignment?.Value;
+            bool relativeVertical = vertical.HasValue && verticalAnchor != PdfCore.PdfTableAnchor.Flow;
+            if (!relativeVertical) vertical = null;
             PdfCore.PdfTableVerticalAlignment verticalAlignment = vertical == W.VerticalAlignmentValues.Center
                 ? PdfCore.PdfTableVerticalAlignment.Center : vertical == W.VerticalAlignmentValues.Bottom
-                    ? PdfCore.PdfTableVerticalAlignment.Bottom : PdfCore.PdfTableVerticalAlignment.Top;
+                    ? PdfCore.PdfTableVerticalAlignment.Bottom : vertical == W.VerticalAlignmentValues.Inside
+                    ? PdfCore.PdfTableVerticalAlignment.Inside : vertical == W.VerticalAlignmentValues.Outside
+                        ? PdfCore.PdfTableVerticalAlignment.Outside : PdfCore.PdfTableVerticalAlignment.Top;
             return new PdfCore.PdfTablePosition(horizontalAnchor, verticalAnchor, alignment, verticalAlignment,
                 horizontal.HasValue ? 0 : (position.TablePositionX?.Value ?? 0) / 20D,
                 vertical.HasValue ? 0 : (position.TablePositionY?.Value ?? 0) / 20D,

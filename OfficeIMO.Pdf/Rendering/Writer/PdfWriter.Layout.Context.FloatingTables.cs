@@ -4,6 +4,38 @@ internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private readonly List<(LayoutResult.Page? Page, double Left, double Right, double Top, double Bottom, bool AllowOverlap)> floatingTables = new();
 
+        private sealed class FloatingFlowCapture {
+            public List<PdfLayoutRegion> PaintedRegions { get; } = new();
+            public HashSet<int> FlowPages { get; } = new();
+        }
+        private readonly Stack<FloatingFlowCapture> activeFloatingFlowCaptures = new();
+
+        private void RecordFlowPlacement(double topY) {
+            foreach (var capture in activeFloatingFlowCaptures) capture.FlowPages.Add(pages.Count + 1);
+            ResolveFloatingBookmarks(topY);
+        }
+
+        private readonly List<(LayoutResult.Page Page, PageNamedDestination Destination)> pendingFloatingBookmarks = new();
+
+        private void QueueFloatingBookmark(string name) {
+            EnsurePage();
+            var destination = new PageNamedDestination { Name = name, Y = y };
+            currentPage!.NamedDestinations.Add(destination);
+            pendingFloatingBookmarks.Add((currentPage, destination));
+        }
+
+        private void ResolveFloatingBookmarks(double topY) {
+            if (pendingFloatingBookmarks.Count == 0) return;
+            foreach (var pending in pendingFloatingBookmarks) {
+                pending.Destination.Y = topY;
+                if (!ReferenceEquals(pending.Page, currentPage)) {
+                    pending.Page.NamedDestinations.Remove(pending.Destination);
+                    currentPage!.NamedDestinations.Add(pending.Destination);
+                }
+            }
+            pendingFloatingBookmarks.Clear();
+        }
+
         private PdfOptions PageAnchorOptions => activeContainerScopes.Count > 0 ? activeContainerScopes[0].PageOptions : currentPage?.Options ?? currentOpts;
 
         private double PositionTableX(PdfTablePosition position, double tableWidth) {
@@ -24,8 +56,12 @@ internal static partial class PdfWriter {
                 : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageHeight - PageAnchorOptions.MarginTop : y;
             double bottom = position.VerticalAnchor == PdfTableAnchor.Page ? 0
                 : position.VerticalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginBottom : currentOpts.MarginBottom;
-            double alignment = position.VerticalAlignment == PdfTableVerticalAlignment.Bottom ? top - bottom - tableHeight
-                : position.VerticalAlignment == PdfTableVerticalAlignment.Center ? (top - bottom - tableHeight) / 2 : 0;
+            PdfTableVerticalAlignment vertical = position.VerticalAlignment;
+            bool evenPage = (pages.Count + 1) % 2 == 0;
+            if (vertical == PdfTableVerticalAlignment.Inside) vertical = evenPage ? PdfTableVerticalAlignment.Bottom : PdfTableVerticalAlignment.Top;
+            else if (vertical == PdfTableVerticalAlignment.Outside) vertical = evenPage ? PdfTableVerticalAlignment.Top : PdfTableVerticalAlignment.Bottom;
+            double alignment = vertical == PdfTableVerticalAlignment.Bottom ? top - bottom - tableHeight
+                : vertical == PdfTableVerticalAlignment.Center ? (top - bottom - tableHeight) / 2 : 0;
             return top - alignment - position.VerticalOffset;
         }
 
@@ -43,6 +79,8 @@ internal static partial class PdfWriter {
         }
 
         private void ReserveFloatingTable(PdfTablePosition position, double left, double top, double tableWidth, double height) {
+            foreach (var capture in activeFloatingFlowCaptures)
+                capture.PaintedRegions.Add(new PdfLayoutRegion(pages.Count + 1, left, top - height, tableWidth, height));
             floatingTables.RemoveAll(region => !ReferenceEquals(region.Page, currentPage));
             floatingTables.Add((currentPage, left - position.DistanceLeft,
                 left + tableWidth + position.DistanceRight, top + position.DistanceTop,

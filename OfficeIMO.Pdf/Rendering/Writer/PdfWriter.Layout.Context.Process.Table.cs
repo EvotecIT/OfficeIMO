@@ -321,6 +321,8 @@ internal static partial class PdfWriter {
 
                 int? captionMarkedContentId = RegisterTextStructureElement("Caption", EnsureTableStructureElement());
                 MarkRichFonts(captionRuns);
+                if (style!.Position == null) RecordFlowPlacement(y);
+                else ResolveFloatingBookmarks(y);
                 WriteRichParagraph(sb, new RichParagraphBlock(captionRuns, style.CaptionAlign, style.CaptionColor), captionLines, captionLineHeights, currentOpts, FirstTextBaselineFromTop(captionFont, captionSize, y), captionSize, captionLeading, currentPage!.Annotations, xOrigin, tableWidth, structureType: "Caption", markedContentId: captionMarkedContentId, structurePage: currentPage);
                 if (style.Position is { } captionPosition)
                     ReserveFloatingTable(captionPosition, xOrigin, y, tableWidth, captionHeight + style.CaptionSpacingAfter);
@@ -482,6 +484,8 @@ internal static partial class PdfWriter {
                 double rowPadTop = GetTableRowMaxPaddingTop(tb, style, rowIndex, cols);
                 double rowPadBottom = GetTableRowMaxPaddingBottom(tb, style, rowIndex, cols);
                 double rowHeight = MeasureTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
+                if (style?.Position == null) RecordFlowPlacement(y);
+                else ResolveFloatingBookmarks(y);
                 double rowBottom = y - rowHeight;
                 if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
                 int bodyRowIndex = bodyRowOffset + rowIndex - headerRowCount;

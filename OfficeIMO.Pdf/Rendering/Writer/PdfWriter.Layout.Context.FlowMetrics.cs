@@ -185,6 +185,7 @@ internal static partial class PdfWriter {
                         namedFont: markerNamedFont);
                 }
 
+                RecordFlowPlacement(y);
                 pageDirty = true;
                 int? bodyMarkedContentId = firstSegment || listItemElement == null
                     ? RegisterTextStructureElement("LBody", listItemElementIndex)
@@ -688,6 +689,7 @@ internal static partial class PdfWriter {
                     continue;
                 }
 
+                RecordFlowPlacement(y);
                 double consumed = Math.Min(remaining, available);
                 y -= consumed;
                 remaining -= consumed;
@@ -708,6 +710,7 @@ internal static partial class PdfWriter {
                 spacingBefore = 0D;
             }
             if (spacingBefore > 0) y -= spacingBefore;
+            RecordFlowPlacement(y);
             double yLine = y - ruleStyle.Thickness * 0.5;
             DrawHLine(sb, ruleStyle.Color, ruleStyle.Thickness, containerX, containerX + containerWidth, yLine, emitGeneratedStructure);
             pageDirty = true;

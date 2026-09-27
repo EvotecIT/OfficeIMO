@@ -22,7 +22,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     // Isolate source clusters so conservative ActualText redaction cannot discard
-    // independent characters or neighboring clusters in the same cluster.
+    // independent neighboring source characters.
     private void WriteIsolatedLogicalGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double textRise) {
         double lineE = _lineE, lineF = _lineF;
         for (int index = 0; index < glyphs.Count;) {

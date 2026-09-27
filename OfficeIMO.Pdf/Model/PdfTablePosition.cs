@@ -17,7 +17,11 @@ public enum PdfTableVerticalAlignment {
     /// <summary>Center the table vertically.</summary>
     Center,
     /// <summary>Align the table's bottom edge.</summary>
-    Bottom
+    Bottom,
+    /// <summary>Top on odd output pages and bottom on even output pages.</summary>
+    Inside,
+    /// <summary>Bottom on odd output pages and top on even output pages.</summary>
+    Outside
 }
 
 /// <summary>
@@ -36,7 +40,7 @@ public sealed class PdfTablePosition {
         if (horizontalAnchor < PdfTableAnchor.Flow || horizontalAnchor > PdfTableAnchor.Page) throw new ArgumentOutOfRangeException(nameof(horizontalAnchor));
         if (verticalAnchor < PdfTableAnchor.Flow || verticalAnchor > PdfTableAnchor.Page) throw new ArgumentOutOfRangeException(nameof(verticalAnchor));
         if (horizontalAlignment != PdfAlign.Left && horizontalAlignment != PdfAlign.Center && horizontalAlignment != PdfAlign.Right) throw new ArgumentOutOfRangeException(nameof(horizontalAlignment));
-        if (verticalAlignment < PdfTableVerticalAlignment.Top || verticalAlignment > PdfTableVerticalAlignment.Bottom) throw new ArgumentOutOfRangeException(nameof(verticalAlignment));
+        if (verticalAlignment < PdfTableVerticalAlignment.Top || verticalAlignment > PdfTableVerticalAlignment.Outside) throw new ArgumentOutOfRangeException(nameof(verticalAlignment));
         Validate(horizontalOffset, nameof(horizontalOffset), false);
         Validate(verticalOffset, nameof(verticalOffset), false);
         Validate(distanceLeft, nameof(distanceLeft), true);
