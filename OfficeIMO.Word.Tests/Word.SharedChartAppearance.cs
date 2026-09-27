@@ -9,6 +9,41 @@ namespace OfficeIMO.Tests;
 public sealed class WordSharedChartAppearanceTests {
     [Theory]
     [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void SharedAppearance_AddsPropertiesBeforePreservedTrendlineAndErrorBars(OfficeChartKind kind) {
+        using WordDocument document = WordDocument.Create();
+        var chart = document.AddChart(kind, Data(kind));
+        var series = Series(chart);
+        series.RemoveAllChildren<C.ChartShapeProperties>();
+        series.RemoveAllChildren<C.Marker>();
+        series.AddChild(new C.Trendline(new C.TrendlineType { Val = C.TrendlineValues.Linear }), true);
+        series.AddChild(new C.ErrorBars(new C.ErrorBarType { Val = C.ErrorBarValues.Both },
+            new C.ErrorBarValueType { Val = C.ErrorValues.FixedValue }, new C.ErrorBarValue { Val = 1 }), true);
+        Assert.Empty(document.ValidateDocument());
+        chart.SetData(kind, Data(kind, color: OfficeColor.Parse("#168A56")));
+        Assert.Single(Series(chart).Elements<C.Trendline>());
+        Assert.Single(Series(chart).Elements<C.ErrorBars>());
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void SharedAppearance_RadialOverrideHidesEveryLegendCategory(OfficeChartKind renderKind) {
+        using WordDocument document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeChartSeries("Status", new[] { 1d, 2d, 3d }, null, null, null, true,
+                showInLegend: false, renderKind: renderKind) }));
+        Assert.Equal(new uint[] { 0, 1, 2 }, chart.ChartPart!.ChartSpace!.Descendants<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
+        chart.SetData(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeChartSeries("Updated", new[] { 3d, 2d, 1d }, null, null, null, true,
+                showInLegend: false, renderKind: renderKind) }));
+        Assert.Equal(new uint[] { 0, 1, 2 }, chart.ChartPart.ChartSpace.Descendants<C.LegendEntry>().Select(e => e.Index!.Val!.Value));
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Radar)]
     [InlineData(OfficeChartKind.Scatter)]
     public void SharedAppearance_ReconnectsLineWithoutExplicitColorOrWidth(OfficeChartKind kind) {

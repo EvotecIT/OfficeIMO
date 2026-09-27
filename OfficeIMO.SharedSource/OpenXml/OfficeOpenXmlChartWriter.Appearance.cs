@@ -167,24 +167,11 @@ namespace OfficeIMO.OpenXml.Internal {
             return rgb;
         }
 
-        private static void InsertSharedSeriesProperties(OpenXmlCompositeElement series, C.ChartShapeProperties properties) {
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.InvertIfNegative>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.Marker>() ?? series.GetFirstChild<C.DataPoint>() ??
-                series.GetFirstChild<C.DataLabels>() ?? series.GetFirstChild<C.CategoryAxisData>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.Values>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.XValues>() ?? series.GetFirstChild<C.YValues>();
-            if (insertBefore != null) series.InsertBefore(properties, insertBefore);
-            else series.Append(properties);
-        }
+        private static void InsertSharedSeriesProperties(OpenXmlCompositeElement series, C.ChartShapeProperties properties) =>
+            series.AddChild(properties, true);
 
-        private static void InsertSharedMarker(OpenXmlCompositeElement series, C.Marker marker) {
-            OpenXmlElement? insertBefore = series.GetFirstChild<C.DataPoint>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.DataLabels>() ?? series.GetFirstChild<C.CategoryAxisData>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.Values>() ??
-                (OpenXmlElement?)series.GetFirstChild<C.XValues>() ?? series.GetFirstChild<C.YValues>();
-            if (insertBefore != null) series.InsertBefore(marker, insertBefore);
-            else series.Append(marker);
-        }
+        private static void InsertSharedMarker(OpenXmlCompositeElement series, C.Marker marker) =>
+            series.AddChild(marker, true);
 
     }
 }
