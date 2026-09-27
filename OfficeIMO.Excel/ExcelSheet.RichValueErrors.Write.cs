@@ -4,7 +4,7 @@ using Rich = DocumentFormat.OpenXml.Office2019.Excel.RichData;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private bool TryWriteRichFormulaError(Cell cell, string? error) {
+        private bool TryWriteRichFormulaError(Cell cell, string? error, DynamicArrayPlan? spillPlan = null) {
             if (error != "#CALC!" && error != "#SPILL!") return false;
             WorkbookPart workbook = _excelDocument.WorkbookPartRoot;
             CellMetadataPart metadataPart = workbook.CellMetadataPart ?? workbook.AddNewPart<CellMetadataPart>();
@@ -18,29 +18,37 @@ namespace OfficeIMO.Excel {
             Rich.RichValueStructures structures = structurePart.RichValueStructures ??= new Rich.RichValueStructures();
             bool emptyArray = error == "#CALC!" && cell.CellFormula?.FormulaType?.Value == CellFormulaValues.Array;
             bool changed = false;
-            string detailName = emptyArray ? "subType" : "propagated";
-            string detailType = emptyArray ? "i" : "b";
-            string detailValue = emptyArray ? "3" : "1";
             string errorType = error == "#CALC!" ? "13" : "8";
+            bool spillOrigin = spillPlan != null && error == "#SPILL!";
+            string[] keyNames = spillOrigin
+                ? new[] { "colOffset", "errorType", "rwOffset", "subType" }
+                : new[] { "errorType", emptyArray ? "subType" : "propagated" };
+            string[] keyTypes = spillOrigin ? new[] { "i", "i", "i", "i" }
+                : new[] { "i", emptyArray ? "i" : "b" };
+            string[] keyValues = spillOrigin
+                ? new[] { spillPlan!.ErrorColumns.ToString(System.Globalization.CultureInfo.InvariantCulture), errorType,
+                    spillPlan.ErrorRows.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    spillPlan.ErrorSubtype.ToString(System.Globalization.CultureInfo.InvariantCulture) }
+                : new[] { errorType, emptyArray ? "3" : "1" };
+            string[] keySignature = keyNames.Select((name, i) => name + ":" + keyTypes[i]).ToArray();
             var existingStructures = structures.Elements<Rich.RichValueStructure>().ToList();
             int structureIndex = existingStructures.FindIndex(item => item.T?.Value == "_error"
                 && item.Elements<Rich.Key>().Select(key => key.N?.Value + ":" + key.GetAttributes()
                     .FirstOrDefault(attribute => attribute.LocalName == "t" && string.IsNullOrEmpty(attribute.NamespaceUri)).Value)
-                    .SequenceEqual(new[] { "errorType:i", detailName + ":" + detailType }));
+                    .SequenceEqual(keySignature));
             if (structureIndex < 0) {
                 changed = true;
                 structureIndex = existingStructures.Count;
-                structures.Append(new Rich.RichValueStructure(
-                    new Rich.Key { N = "errorType", T = Rich.RichValueValueType.I },
-                    new Rich.Key { N = detailName, T = emptyArray ? Rich.RichValueValueType.I : Rich.RichValueValueType.B }) { T = "_error" });
+                structures.Append(new Rich.RichValueStructure(keyNames.Select((name, i) =>
+                    new Rich.Key { N = name, T = keyTypes[i] == "i" ? Rich.RichValueValueType.I : Rich.RichValueValueType.B })) { T = "_error" });
             }
             var existingValues = values.Elements<Rich.RichValue>().ToList();
             int valueIndex = existingValues.FindIndex(item => item.S?.Value == (uint)structureIndex
-                && item.Elements<Rich.Value>().Select(value => value.Text).SequenceEqual(new[] { errorType, detailValue }));
+                && item.Elements<Rich.Value>().Select(value => value.Text).SequenceEqual(keyValues));
             if (valueIndex < 0) {
                 changed = true;
                 valueIndex = existingValues.Count;
-                values.Append(new Rich.RichValue(new Rich.Value(errorType), new Rich.Value(detailValue)) { S = (uint)structureIndex });
+                values.Append(new Rich.RichValue(keyValues.Select(value => new Rich.Value(value))) { S = (uint)structureIndex });
             }
             var existingFuture = future.Elements<FutureMetadataBlock>().ToList();
             int futureIndex = existingFuture.FindIndex(item => item.Descendants<Rich.RichValueBlock>().Any(value => value.I?.Value == (uint)valueIndex));

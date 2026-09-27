@@ -104,6 +104,7 @@ namespace OfficeIMO.Excel {
                 bool allFormulasEvaluated = true;
 
                 try {
+                    if (_excelDocument.WorkbookPartRoot.CellMetadataPart != null) PlanDynamicArrayOwners();
                     foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula != null).ToList()) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         if (!TryEvaluateFormulaCellValue(cell, out FormulaArgumentValue result)) {
@@ -124,8 +125,12 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        SetFormulaCachedValue(cell, result);
-                        if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
+                        if (TryGetDynamicArrayPlan(cell, out DynamicArrayPlan dynamicPlan)) {
+                            WriteDynamicArrayFormulaCache(dynamicPlan);
+                        } else {
+                            SetFormulaCachedValue(cell, result);
+                            if (TryGetCalculatedArray(cell, out FormulaArrayValue array)) WriteFixedArrayFormulaCache(cell, array);
+                        }
                         cell.CellFormula!.CalculateCell = false;
                         _excelDocument.MarkFormulaCellRecalculated(
                             _worksheetPart,
@@ -494,14 +499,27 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets a shared-free array formula over a range. The top-left cell owns the formula metadata.
         /// </summary>
-        public void SetArrayFormula(string a1Range, string formula) {
+        public void SetArrayFormula(string a1Range, string formula) => SetArrayFormulaCore(a1Range, formula, dynamic: false);
+
+        /// <summary>
+        /// Authors a dynamic array at one anchor cell. Calculation determines its bounded spill range.
+        /// </summary>
+        public void SetDynamicArrayFormula(string a1Cell, string formula) {
+            var (row, column) = A1.ParseCellRef(a1Cell);
+            if (row < 1 || row > A1.MaxRows || column < 1 || column > A1.MaxColumns)
+                throw new ArgumentOutOfRangeException(nameof(a1Cell));
+            string anchor = A1.CellReference(row, column);
+            SetArrayFormulaCore(anchor + ":" + anchor, formula, dynamic: true);
+        }
+
+        private void SetArrayFormulaCore(string a1Range, string formula, bool dynamic) {
             if (string.IsNullOrWhiteSpace(formula)) throw new ArgumentNullException(nameof(formula));
             var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
             WriteLock(() => {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
-                        && A1.TryParseRange(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive((r1, c1, r2, c2), (existingR1, existingC1, existingR2, existingC2))) {
                         throw new InvalidOperationException($"Array formula range '{a1Range}' overlaps existing array formula range '{reference}'.");
                     }
@@ -510,6 +528,7 @@ namespace OfficeIMO.Excel {
                 var topLeft = GetCell(r1, c1);
                 bool retainsCachedValue = topLeft.CellValue != null;
                 ClearCellValueMetadata(topLeft);
+                topLeft.CellMetaIndex = dynamic ? EnsureDynamicArrayMetadata() : null;
                 topLeft.CellFormula = new CellFormula(QualifyAuthoredArrayFunctions(Utilities.ExcelSanitizer.SanitizeFormula(formula))) {
                     FormulaType = CellFormulaValues.Array,
                     Reference = a1Range
@@ -531,6 +550,7 @@ namespace OfficeIMO.Excel {
                     }
                 }
 
+                InvalidateDynamicArrayWriteIndex();
                 WorksheetRoot.Save();
             });
         }
@@ -583,24 +603,22 @@ namespace OfficeIMO.Excel {
                 foreach (var cell in WorksheetRoot.Descendants<Cell>().Where(c => c.CellFormula?.FormulaType?.Value == CellFormulaValues.Array).ToList()) {
                     string? reference = cell.CellFormula?.Reference?.Value;
                     if (!string.IsNullOrWhiteSpace(reference)
-                        && A1.TryParseRange(reference!.Replace("$", string.Empty), out int existingR1, out int existingC1, out int existingR2, out int existingC2)
+                        && TryFixedArrayBounds(reference!, out int existingR1, out int existingC1, out int existingR2, out int existingC2)
                         && RangesOverlapInclusive(bounds, (existingR1, existingC1, existingR2, existingC2))) {
-                        for (int row = existingR1; row <= existingR2; row++) {
-                            for (int column = existingC1; column <= existingC2; column++) {
-                                var spillCell = TryGetExistingCell(row, column);
-                                if (spillCell == null) {
-                                    continue;
-                                }
-
-                                spillCell.CellFormula = null;
-                                spillCell.CellValue = null;
-                                ClearCellValueMetadataAttribute(spillCell);
-                                spillCell.DataType = null;
-                            }
+                        foreach (Cell spillCell in WorksheetRoot.Descendants<Cell>().ToList()) {
+                            if (!TryParseCellReference(spillCell.CellReference?.Value ?? "", out int row, out int column)
+                                || row < existingR1 || row > existingR2 || column < existingC1 || column > existingC2)
+                                continue;
+                            spillCell.CellFormula = null;
+                            spillCell.CellValue = null;
+                            ClearCellValueMetadataAttribute(spillCell);
+                            spillCell.DataType = null;
+                            if (ReferenceEquals(spillCell, cell)) spillCell.CellMetaIndex = null;
                         }
                     }
                 }
 
+                InvalidateDynamicArrayWriteIndex();
                 WorksheetRoot.Save();
             });
         }

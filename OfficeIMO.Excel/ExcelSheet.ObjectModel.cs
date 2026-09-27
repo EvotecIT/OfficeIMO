@@ -135,6 +135,9 @@ namespace OfficeIMO.Excel {
                 var ws = WorksheetRoot;
                 bool worksheetChanged = false;
 
+                if (options.HasFlag(ExcelClearOptions.Values) || options.HasFlag(ExcelClearOptions.Formulas))
+                    EnsureDynamicArrayRangeWritable(r1, c1, r2, c2);
+
                 if (clearCellFields) {
                     worksheetChanged |= ClearExistingCellFieldsInRange((r1, c1, r2, c2), options);
                 }

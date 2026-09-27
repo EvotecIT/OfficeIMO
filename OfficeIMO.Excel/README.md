@@ -685,13 +685,25 @@ support typed guards and error fallbacks. `SEARCH` and text criteria recognize
 locale prefix; other locale qualifiers remain unsupported.
 
 Array calculation uses the range owned by `SetArrayFormula`, or the existing
-array reference in an imported workbook:
+array reference in an imported workbook. A fixed range must match the result
+shape:
 
 ```csharp
 using var document = ExcelDocument.Create("array-report.xlsx");
 var sheet = document.AddWorksheet("Results");
 sheet.SetArrayFormula("G2:H4", "SEQUENCE(3,2,10,-2)");
 document.Calculate();
+document.Save();
+```
+
+Use `SetDynamicArrayFormula` when the result shape may change:
+
+```csharp
+using var document = ExcelDocument.Create("dynamic-report.xlsx");
+var sheet = document.AddWorksheet("Results");
+sheet.CellValue(1, 1, 3);
+sheet.SetDynamicArrayFormula("G2", "SEQUENCE(A1,2)");
+document.Calculate(); // G2:H4 contains 1 through 6
 document.Save();
 ```
 
@@ -707,15 +719,20 @@ limited to 100,000 cells, with at most 32 array-expression levels.
 `SetArrayFormula` writes the Excel compatibility prefixes for these four
 functions, including nested calls, while preserving literals and reference text.
 
-Calculation updates an array only when its result exactly matches the authored
-range and the range contains neither another formula nor a merged cell. Array
-children participate in dependency calculation before caches are written, and
-a reference to the anchor is scalar. Shape changes, larger arrays, unsupported
-expressions remain deferred with existing caches preserved. Empty results use
-Excel's rich-value `#CALC!` metadata. Zero-sized `SEQUENCE` dimensions produce
-`#CALC!`; negative dimensions produce `#VALUE!`. Calculation does not resize dynamic
-spills or author dynamic-array metadata. The checked-in Excel-produced array
-corpus verifies typed caches through save and reopen.
+Fixed arrays update only when their result matches the authored range and the
+range contains neither another formula nor a merged cell. Dynamic arrays write
+Excel's native dynamic-array metadata, resize their cached range as inputs
+change, and clear vacated children. A nonempty cell, fixed array, table, or
+merged range that blocks a spill yields `#SPILL!` at the anchor without
+overwriting the blocker. Clearing the blocker allows the next calculation to
+spill. Value, formula, bulk-value, and clear operations reject edits inside an
+active spill; call `ClearArrayFormula` to remove the array first. Array children
+participate in same-sheet dependency calculation before caches are written;
+a reference to the anchor is scalar. Unsupported expressions remain deferred
+with existing caches preserved. Empty results use Excel's rich-value `#CALC!`
+metadata. Zero-sized `SEQUENCE` dimensions produce `#CALC!`; negative
+dimensions produce `#VALUE!`. The checked-in Excel-produced array corpus
+verifies cached results through save and reopen.
 
 Cached reads resolve native rich-value `#CALC!` and `#SPILL!` errors across the
 object model, range reads, and forward-only data readers. Unknown or unresolved
