@@ -182,7 +182,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the image's description.
         /// </summary>
         public string? Description {
-            get => _vmlShape != null ? _vmlShape.GetAttribute("alt", "").Value : GetDocProperties()?.Description;
+            get => _vmlShape != null ? _vmlShape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value : GetDocProperties()?.Description;
             set => GetWritableDocProperties()?.Description = value;
         }
 
