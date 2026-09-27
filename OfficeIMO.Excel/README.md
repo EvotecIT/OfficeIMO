@@ -734,6 +734,11 @@ metadata. Zero-sized `SEQUENCE` dimensions produce `#CALC!`; negative
 dimensions produce `#VALUE!`. The checked-in Excel-produced array corpus
 verifies cached results through save and reopen.
 
+For a workbook loaded with existing spill caches, shrinking the spill can leave
+old child cells whose ownership cannot be distinguished from values edited
+outside the sheet API. In that case calculation reports `#SPILL!` and keeps
+those cells. Clear and re-author the array only when you own the old range.
+
 Cached reads resolve native rich-value `#CALC!` and `#SPILL!` errors across the
 object model, range reads, and forward-only data readers. Unknown or unresolved
 rich values retain their ordinary cell fallback. Rich error metadata is limited
