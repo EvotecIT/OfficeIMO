@@ -8,20 +8,20 @@ internal sealed partial class PdfTrueTypeFontProgram {
     internal PdfTextShowCommand EncodeTextShowCommand(string text) =>
         ToTextShowCommand(text, ShapeText(text));
 
-    internal double MeasureShapedTextWidth(string text, PdfGlyphRun run, double fontSize) {
+    internal double MeasureShapedTextWidth(string text, PdfGlyphRun run, double fontSize, double fontMetricScale = 1D) {
         double nominal = run.TotalAdvanceWidth1000 * fontSize / 1000D;
         if (_tracking == null || run.Direction == OfficeTextDirection.TopToBottom) return nominal;
         int count = 0;
         foreach (bool boundary in GetTrackingBoundaries(text, run)) if (boundary) count++;
-        double adjustment = _tracking.GetAdjustment(fontSize) * fontSize / UnitsPerEm;
+        double adjustment = _tracking.GetAdjustment(fontSize / fontMetricScale) * fontSize / UnitsPerEm;
         return Math.Abs(nominal + (run.TotalAdvanceWidth1000 < 0 ? -adjustment : adjustment) * count);
     }
 
-    internal PdfTextShowCommand ToTextShowCommand(string text, PdfGlyphRun run) {
+    internal PdfTextShowCommand ToTextShowCommand(string text, PdfGlyphRun run, double fontMetricScale = 1D) {
         PdfTextShowCommand command = run.ToTextShowCommand();
         if (_tracking == null) return command;
         return new PdfTextShowCommand(command.GlyphHex, run.Glyphs, command.ActualText,
-            _tracking, UnitsPerEm, GetTrackingBoundaries(text, run), run.TotalAdvanceWidth1000 < 0);
+            _tracking, UnitsPerEm, GetTrackingBoundaries(text, run), run.TotalAdvanceWidth1000 < 0, fontMetricScale);
     }
 
     private static bool[] GetTrackingBoundaries(string text, PdfGlyphRun run) {

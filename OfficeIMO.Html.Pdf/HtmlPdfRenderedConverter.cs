@@ -952,7 +952,8 @@ internal static partial class HtmlPdfRenderedConverter {
             baselineFontSize.Value * PointsPerCssPixel,
             visual.LineHeight * PointsPerCssPixel,
             (visual.TextPaintWidth ?? visual.TextAdvanceWidth) * PointsPerCssPixel,
-            visual.PaintTopOverflow * PointsPerCssPixel);
+            visual.PaintTopOverflow * PointsPerCssPixel,
+            fontMetricScale: PointsPerCssPixel);
     }
 
     private static bool IsFragmentLink(string? link) =>

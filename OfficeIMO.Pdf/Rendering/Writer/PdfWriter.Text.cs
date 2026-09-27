@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
 
     private static PdfTextShowCommand EncodeTextShowCommand(string text, PdfStandardFont font, PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         PdfTextEncodingDiagnostic? diagnostic = GetFirstTextEncodingDiagnostic(text, font, options);
         if (diagnostic != null) {
             throw CreateTextEncodingException(diagnostic, nameof(text));
@@ -58,7 +58,7 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            return fontProgram.ToTextShowCommand(text, glyphRun);
+            return fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
         }
 
         if (options != null &&
@@ -96,7 +96,7 @@ internal static partial class PdfWriter {
         return command.ActualText == null
             ? command
             : new PdfTextShowCommand(command.GlyphHex, command.PositionedGlyphs, tracking: command.Tracking,
-                unitsPerEm: command.UnitsPerEm, trackingBoundaries: command.TrackingBoundaries, negativeTracking: command.NegativeTracking);
+                unitsPerEm: command.UnitsPerEm, trackingBoundaries: command.TrackingBoundaries, negativeTracking: command.NegativeTracking, fontMetricScale: command.FontMetricScale);
     }
 
     private static PdfTextShowCommand EncodeTextShowCommand(
@@ -105,7 +105,7 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? namedFont,
         PdfOptions? options,
         OfficeTextFeatureSettings? featureSettings = null,
-        OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
+        OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
         if (namedFont.HasValue &&
             options != null &&
             options.TryGetNamedFontProgram(namedFont.Value, out PdfTrueTypeFontProgram? fontProgram) &&
@@ -137,7 +137,7 @@ internal static partial class PdfWriter {
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
             options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-            return fontProgram.ToTextShowCommand(text, glyphRun);
+            return fontProgram.ToTextShowCommand(text, glyphRun, fontMetricScale);
         }
 
         if (namedFont.HasValue &&
@@ -165,7 +165,7 @@ internal static partial class PdfWriter {
             return glyphRun.ToTextShowCommand();
         }
 
-        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection);
+        return EncodeTextShowCommand(text, fallbackFont, options, featureSettings, textDirection, fontMetricScale);
     }
 
     private static PdfTextEncodingDiagnostic? GetFirstTextEncodingDiagnostic(string text, PdfStandardFont font, PdfOptions? options) {
@@ -398,132 +398,6 @@ internal static partial class PdfWriter {
     }
 
     // Rich paragraph layout
-    private sealed class RichSeg {
-        public RichSeg(
-            string text,
-            bool bold,
-            bool italic,
-            bool underline,
-            bool strike,
-            PdfColor? color,
-            PdfColor? backgroundColor,
-            string? uri,
-            string? destinationName,
-            string? contents,
-            PdfStandardFont font,
-            double fontSize,
-            PdfTextBaseline baseline,
-            double measuredWidth,
-            bool leadingSpace = false,
-            double leadingAdvance = 0,
-            bool leadingSpaceIsExpandable = true,
-            PdfTabLeaderStyle leadingTabLeader = PdfTabLeaderStyle.None,
-            bool endsWithHardBreak = false,
-            bool endsWithTextSeparator = false,
-            PdfInlineElement? inlineElement = null,
-            PdfNamedFontFace? namedFont = null,
-            OfficeIMO.Drawing.OfficeTextDecorationStyle underlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
-            PdfColor? decorationColor = null,
-            OfficeTextFeatureSettings? featureSettings = null,
-            OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
-            Text = text;
-            Bold = bold;
-            Italic = italic;
-            Underline = underline;
-            Strike = strike;
-            Color = color;
-            BackgroundColor = backgroundColor;
-            Uri = uri;
-            DestinationName = destinationName;
-            Contents = contents;
-            Font = font;
-            FontSize = fontSize;
-            Baseline = baseline;
-            MeasuredWidth = measuredWidth;
-            LeadingSpace = leadingSpace;
-            LeadingAdvance = leadingAdvance;
-            LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
-            LeadingTabLeader = leadingTabLeader;
-            EndsWithHardBreak = endsWithHardBreak;
-            EndsWithTextSeparator = endsWithTextSeparator;
-            InlineElement = inlineElement;
-            NamedFont = namedFont;
-            UnderlineStyle = underlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
-                ? underlineStyle
-                : underline ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-            StrikeStyle = strikeStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None
-                ? strikeStyle
-                : strike ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
-            DecorationColor = decorationColor;
-            FeatureSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
-            TextDirection = textDirection;
-        }
-
-        public string Text { get; }
-
-        public bool Bold { get; }
-
-        public bool Italic { get; }
-
-        public bool Underline { get; }
-
-        public OfficeIMO.Drawing.OfficeTextDecorationStyle UnderlineStyle { get; }
-
-        public bool Strike { get; }
-
-        public OfficeIMO.Drawing.OfficeTextDecorationStyle StrikeStyle { get; }
-
-        public PdfColor? Color { get; }
-
-        public PdfColor? BackgroundColor { get; }
-
-        public PdfColor? DecorationColor { get; }
-
-        public string? Uri { get; }
-
-        public string? DestinationName { get; }
-
-        public string? Contents { get; }
-
-        public PdfStandardFont Font { get; }
-
-        public double FontSize { get; }
-
-        public PdfTextBaseline Baseline { get; }
-
-        public double MeasuredWidth { get; }
-
-        public bool LeadingSpace { get; }
-
-        public double LeadingAdvance { get; }
-
-        public bool LeadingSpaceIsExpandable { get; }
-
-        public PdfTabLeaderStyle LeadingTabLeader { get; }
-
-        public bool EndsWithHardBreak { get; }
-
-        public bool EndsWithTextSeparator { get; }
-
-        public PdfInlineElement? InlineElement { get; }
-
-        public PdfNamedFontFace? NamedFont { get; }
-
-        public OfficeTextFeatureSettings FeatureSettings { get; }
-
-        public OfficeTextDirection TextDirection { get; }
-
-        public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
-
-        public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
-
-        public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection);
-    }
-
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
         if (line.Count == 0) {
             return;
@@ -1966,18 +1840,18 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts), runFontSize, textRise, suppressActualText);
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, s.NamedFont, opts, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                            .ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings), runFontSize, textRise, suppressActualText);
+                        content.ShowText(EncodeTextShowCommand(" ", s.Font, s.NamedFont, opts, s.FeatureSettings, fontMetricScale: s.FontMetricScale), runFontSize, textRise, suppressActualText);
                         xCursor += gap;
                     }
                 }
@@ -2039,7 +1913,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection), runFontSize, textRise, suppressActualText)
+                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale), runFontSize, textRise, suppressActualText)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -2053,7 +1927,7 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection), runFontSize, textRise, suppressActualText);
+                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection, s.FontMetricScale), runFontSize, textRise, suppressActualText);
                 }
 
                 double baselineY = lineY + textRise;
@@ -2094,7 +1968,7 @@ internal static partial class PdfWriter {
                     currentTextRise = separatorTextRise;
                 }
 
-                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts, last.FeatureSettings), separatorFontSize, separatorTextRise, suppressActualText);
+                content.ShowText(EncodeTextShowCommand(" ", last.Font, last.NamedFont, opts, last.FeatureSettings, fontMetricScale: last.FontMetricScale), separatorFontSize, separatorTextRise, suppressActualText);
             }
 
             if (Math.Abs(currentTextRise) > 0.0001) {

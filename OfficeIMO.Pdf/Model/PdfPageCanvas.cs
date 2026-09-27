@@ -763,6 +763,7 @@ internal sealed class PdfCanvasTextItem : PdfCanvasItem {
     internal bool PreservePositionedText { get; set; }
     internal double? PositionedAdvanceWidth { get; set; }
     internal double PositionedClipTopOverflow { get; set; }
+    internal double PositionedFontMetricScale { get; set; } = 1D;
 }
 
 internal sealed class PdfCanvasTextBoxItem : PdfCanvasItem {

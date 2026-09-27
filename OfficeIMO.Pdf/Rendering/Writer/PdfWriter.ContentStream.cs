@@ -286,7 +286,7 @@ internal sealed class ContentStreamBuilder {
         if (!command.HasPositioning) {
             ShowHexText(command.GlyphHex);
         } else {
-            double tracking1000 = (command.Tracking?.GetAdjustment(fontSize) ?? 0D) * 1000D / command.UnitsPerEm;
+            double tracking1000 = (command.Tracking?.GetAdjustment(fontSize / command.FontMetricScale) ?? 0D) * 1000D / command.UnitsPerEm;
             AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise,
                 command.NegativeTracking ? -tracking1000 : tracking1000, command.TrackingBoundaries);
         }
