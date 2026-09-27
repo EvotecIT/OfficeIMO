@@ -10,6 +10,53 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData("inside")]
+    [InlineData("outside")]
+    [InlineData("center")]
+    public void SaveAsPdf_TextAnchorIgnoresRelativeVerticalAlignment(string alignment) {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(1, 1);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "floating";
+        table._tableProperties!.TablePositionProperties = new TablePositionProperties {
+            HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Text,
+            TablePositionY = 1000,
+            TablePositionYAlignment = alignment == "inside" ? VerticalAlignmentValues.Inside :
+                alignment == "outside" ? VerticalAlignmentValues.Outside : VerticalAlignmentValues.Center
+        };
+        document.AddParagraph("following");
+        var options = new WordToPdfOptions { IncludePageNumbers = false,
+            PageSize = new PdfCore.PageSize(400, 500), Margins = PdfCore.PageMargins.Uniform(40) };
+        using var aligned = PdfPigDocument.Open(document.ToPdfDocumentResult(options).Value.ToBytes());
+        table._tableProperties.TablePositionProperties.TablePositionYAlignment = null;
+        using var absolute = PdfPigDocument.Open(document.ToPdfDocumentResult(options).Value.ToBytes());
+        Assert.Equal(absolute.GetPage(1).GetWords().Single(w => w.Text == "floating").BoundingBox,
+            aligned.GetPage(1).GetWords().Single(w => w.Text == "floating").BoundingBox);
+    }
+
+    [Theory]
+    [InlineData("inside", true)]
+    [InlineData("outside", false)]
+    public void SaveAsPdf_VerticalInsideOutsideMatchesPageParity(string alignment, bool oddTop) {
+        using var document = WordDocument.Create();
+        for (int page = 0; page < 2; page++) {
+            if (page > 0) document.AddPageBreak();
+            var table = document.AddTable(1, 1);
+            table.Rows[0].Height = 1000;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = page == 0 ? "odd" : "even";
+            table._tableProperties!.TablePositionProperties = new TablePositionProperties {
+                HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Margin,
+                TablePositionYAlignment = alignment == "inside" ? VerticalAlignmentValues.Inside : VerticalAlignmentValues.Outside
+            };
+            document.AddParagraph("following");
+        }
+        using var pdf = PdfPigDocument.Open(document.ToPdfDocumentResult(new WordToPdfOptions {
+            IncludePageNumbers = false, PageSize = new PdfCore.PageSize(400, 500), Margins = PdfCore.PageMargins.Uniform(40)
+        }).Value.ToBytes());
+        Assert.Equal(oddTop, pdf.GetPage(1).GetWords().Single(w => w.Text == "odd").BoundingBox.Top > 300);
+        Assert.Equal(!oddTop, pdf.GetPage(2).GetWords().Single(w => w.Text == "even").BoundingBox.Top > 300);
+    }
+
+    [Theory]
     [InlineData(0, 500)]
     [InlineData(1400, 200)]
     public void SaveAsPdf_FullWidthFloatingTableMovesTextBelowOrToNextPage(int tableOffset, int pageHeight) {

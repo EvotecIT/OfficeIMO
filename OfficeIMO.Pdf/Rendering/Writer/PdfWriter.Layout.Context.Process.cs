@@ -54,7 +54,11 @@ internal static partial class PdfWriter {
                 if (block is ContainerBlock container) { RenderContainerBlock(container, nextBlock, blockList, blockIndex); continue; }
                 if (block is ColumnBreakBlock) { throw new InvalidOperationException("ColumnBreak can only be used inside a Columns block."); }
                 if (block is PageBreakBlock) { NewPage(); continue; }
-                if (block is BookmarkBlock bookmark) { AddNamedDestination(bookmark, y); continue; }
+                if (block is BookmarkBlock bookmark) {
+                    if (HasFloatingTables) QueueFloatingBookmark(bookmark.Name);
+                    else AddNamedDestination(bookmark, y);
+                    continue;
+                }
                 if (block is SpacerBlock spacer) { ConsumeSpacer(spacer.Height); continue; }
                 if (block is HeadingBlock heading) { RenderHeadingFlowBlock(heading, nextBlock, blockList, blockIndex); continue; }
                 if (block is RichParagraphBlock paragraph) { RenderRichParagraphFlowBlock(paragraph, nextBlock, blockList, blockIndex); continue; }

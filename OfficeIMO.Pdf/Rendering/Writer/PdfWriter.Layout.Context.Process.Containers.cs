@@ -13,6 +13,10 @@ internal static partial class PdfWriter {
             while (blockIndex < pendingBlocks.Count) {
                 while (blockIndex < pendingBlocks.Count && pendingBlocks[blockIndex] is ColumnBreakBlock) blockIndex++;
                 if (blockIndex >= pendingBlocks.Count) break;
+                // Columns are assigned using the space remaining after float clearance.
+                // Their row may span the available frame, so reserve that frame before
+                // choosing which source blocks belong to each column.
+                if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, y - currentOpts.MarginBottom));
                 double availableHeight = y - currentOpts.MarginBottom;
                 if (availableHeight < currentOpts.DefaultFontSize * 1.4D) {
                     NewPage();
@@ -66,7 +70,6 @@ internal static partial class PdfWriter {
                     row.AddColumn(column);
                 }
 
-                if (HasFloatingTables) AvoidFloatingBlock(Math.Max(1, MeasureKeepWithNextBlockHeight(row, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize)));
                 RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0);
                 if (blockIndex < pendingBlocks.Count) NewPage();
             }
@@ -277,6 +280,8 @@ internal static partial class PdfWriter {
             }
 
             y -= spacingBefore;
+            if (style.PaddingY > 0) RecordFlowPlacement(y);
+            else ResolveFloatingBookmarks(y);
             PdfOptions parentOptions = currentOpts;
             double parentYStart = yStart;
             PdfOptions pageOptions = currentPage!.Options;

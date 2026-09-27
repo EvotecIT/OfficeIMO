@@ -93,8 +93,11 @@ internal static partial class PdfWriter {
             int startPageNumber = pages.Count + 1;
             double startY = y;
             PdfOptions startOptions = currentOpts;
-            ProcessBlocks(blocks);
-            CaptureFlowRegions(capture, startPageNumber, startY, startOptions);
+            var paintedRegions = new FloatingFlowCapture();
+            if (capture != null) activeFloatingFlowCaptures.Push(paintedRegions);
+            try { ProcessBlocks(blocks); }
+            finally { if (capture != null) activeFloatingFlowCaptures.Pop(); }
+            CaptureFlowRegions(capture, startPageNumber, startY, startOptions, paintedRegions);
         }
 
         private IReadOnlyList<IPdfBlock> MaterializeFlow(FlowBlock flow, PdfFlowContext context) {
@@ -126,9 +129,21 @@ internal static partial class PdfWriter {
             return MeasureBlockSequence(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
         }
 
-        private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions) {
+        private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions, FloatingFlowCapture paintedRegions) {
             if (capture == null) {
                 return;
+            }
+
+            void AddCapturedRegion(PdfLayoutRegion region) {
+                var painted = paintedRegions.PaintedRegions.Where(item => item.PageNumber == region.PageNumber).ToList();
+                if (painted.Count == 0) { capture.Add(region); return; }
+                // A float-only group leaves its flow cursor unchanged. Do not let that
+                // nominal frame extend the painted table's captured bounds, even when
+                // pagination synthesized a completed-page frame.
+                if (paintedRegions.FlowPages.Contains(region.PageNumber) && region.Height > 0) painted.Add(region);
+                double left = painted.Min(item => item.X), bottom = painted.Min(item => item.Y);
+                double right = painted.Max(item => item.X + item.Width), top = painted.Max(item => item.Y + item.Height);
+                capture.Add(new PdfLayoutRegion(region.PageNumber, left, bottom, right - left, top - bottom));
             }
 
             int endPageNumber = pages.Count + (currentPage == null ? 0 : 1);
@@ -140,11 +155,11 @@ internal static partial class PdfWriter {
             if (endPageNumber == startPageNumber) {
                 double bottom = Math.Min(startY, y);
                 double height = Math.Max(0D, startY - y);
-                capture.Add(new PdfLayoutRegion(startPageNumber, startOptions.MarginLeft, bottom, startOptions.PageWidth - startOptions.MarginLeft - startOptions.MarginRight, height));
+                AddCapturedRegion(new PdfLayoutRegion(startPageNumber, startOptions.MarginLeft, bottom, startOptions.PageWidth - startOptions.MarginLeft - startOptions.MarginRight, height));
                 return;
             }
 
-            capture.Add(new PdfLayoutRegion(
+            AddCapturedRegion(new PdfLayoutRegion(
                 startPageNumber,
                 startOptions.MarginLeft,
                 startOptions.MarginBottom,
@@ -154,7 +169,7 @@ internal static partial class PdfWriter {
             for (int pageNumber = startPageNumber + 1; pageNumber < endPageNumber; pageNumber++) {
                 LayoutResult.Page completedPage = pages[pageNumber - 1];
                 PdfOptions options = completedPage.Options;
-                capture.Add(new PdfLayoutRegion(
+                AddCapturedRegion(new PdfLayoutRegion(
                     pageNumber,
                     options.MarginLeft,
                     options.MarginBottom,
@@ -163,7 +178,7 @@ internal static partial class PdfWriter {
             }
 
             if (currentPage != null) {
-                capture.Add(new PdfLayoutRegion(
+                AddCapturedRegion(new PdfLayoutRegion(
                     endPageNumber,
                     currentOpts.MarginLeft,
                     y,

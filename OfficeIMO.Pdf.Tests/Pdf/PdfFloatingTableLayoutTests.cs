@@ -8,8 +8,140 @@ namespace OfficeIMO.Tests;
 
 public class PdfFloatingTableLayoutTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CaptureIncludesContinuedTextBeforeFloatOnFinalPage(bool heading) {
+        var capture = new PdfLayoutPositionCapture();
+        string text = string.Join("\n", Enumerable.Range(0, heading ? 8 : 15).Select(i => "line" + i));
+        byte[] bytes = PdfDocument.Create(Options(240)).Flow(flow => {
+            if (heading) flow.H1(text);
+            else flow.Paragraph(p => p.Text(text), style: new PdfParagraphStyle { LineHeight = 1, SpacingAfter = 0 });
+            flow.Table(new[] { new[] { "floating" } }, style: Floating(120, 30));
+        }, capture: capture).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        Assert.True(pdf.NumberOfPages > 1);
+        var finalPage = pdf.GetPage(pdf.NumberOfPages);
+        var firstContinuedWord = finalPage.GetWords().First(word => word.Text.StartsWith("line"));
+        var region = capture.Regions.Single(item => item.PageNumber == pdf.NumberOfPages);
+        Assert.Equal(320, region.Width, 3);
+        Assert.True(region.Y + region.Height >= firstContinuedWord.BoundingBox.Top);
+        var floating = finalPage.GetWords().Single(word => word.Text == "floating");
+        Assert.True(region.Y <= floating.BoundingBox.Bottom);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void FloatingBookmarkResolvesAtFirstColumnOrCanvasContent(int kind) {
+        var document = PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: Floating(320, 80))
+            .Bookmark("target");
+        if (kind == 0) document.Columns(columns => columns.H1("first"));
+        else if (kind == 1) document.Columns(columns => columns.Rectangle(60, 20));
+        else document.Canvas(canvas => canvas.Text("first", 40, 130, 120, 20));
+        byte[] bytes = document.PageBreak().Paragraph(p => p.Text("later")).ToBytes();
+        var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations);
+        Assert.Equal(1, destination.PageNumber);
+        Assert.InRange(destination.DestinationTop!.Value, 100, 130);
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void MultiPageFloatOnlyCaptureExcludesUnusedFlowFrame(bool deferred, bool nested) {
+        var capture = new PdfLayoutPositionCapture();
+        var rows = new[] { new[] { "first" }, new[] { "second" } };
+        var style = Floating(120, 90);
+        System.Action<PdfContentBuilder> table = flow => {
+            if (deferred) flow.TableDeferred(() => rows, batchSize: 1, style: style);
+            else flow.Table(rows, style: style);
+        };
+        var document = PdfDocument.Create(Options(240));
+        if (nested) document.Flow(flow => flow.Flow(table), capture: capture);
+        else document.Flow(table, capture: capture);
+        document.ToBytes();
+        Assert.Equal(2, capture.Regions.Count);
+        Assert.All(capture.Regions, region => {
+            Assert.Equal(120, region.Width, 3);
+            Assert.Equal(90, region.Height, 3);
+            Assert.Equal(110, region.Y, 3);
+        });
+    }
+
+    [Fact]
+    public void AutomaticColumnsAssignSourceOrderAfterFloatClearance() {
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: Floating(320, 80))
+            .Columns(columns => {
+                for (int index = 0; index < 12; index++) columns.Paragraph(p => p.Text("item" + index),
+                    style: new PdfParagraphStyle { SpacingAfter = 0, LineHeight = 1 });
+            }, new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }).ToBytes());
+        var first = pdf.GetPage(1).GetWords().Where(w => w.Text.StartsWith("item")).Select(w => int.Parse(w.Text.Substring(4))).OrderBy(i => i).ToArray();
+        Assert.Equal(Enumerable.Range(0, first.Length), first);
+        Assert.Equal(12, pdf.GetPages().SelectMany(page => page.GetWords()).Count(w => w.Text.StartsWith("item")));
+        Assert.All(pdf.GetPage(1).GetWords().Where(w => w.Text.StartsWith("item")), word => Assert.True(word.BoundingBox.Top < 121));
+    }
+
+    [Theory]
+    [InlineData(PdfTableVerticalAlignment.Inside, true)]
+    [InlineData(PdfTableVerticalAlignment.Outside, false)]
+    public void VerticalInsideOutsideUsesPhysicalPageParity(PdfTableVerticalAlignment alignment, bool oddTop) {
+        var style = Floating(120, 50);
+        style.Position = new PdfTablePosition(verticalAnchor: PdfTableAnchor.Margin, verticalAlignment: alignment);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options())
+            .Table(new[] { new[] { "odd" } }, style: style).PageBreak()
+            .Table(new[] { new[] { "even" } }, style: style).ToBytes());
+        Assert.Equal(oddTop, pdf.GetPage(1).GetWords().Single(w => w.Text == "odd").BoundingBox.Top > 300);
+        Assert.Equal(!oddTop, pdf.GetPage(2).GetWords().Single(w => w.Text == "even").BoundingBox.Top > 300);
+    }
+
+    [Fact]
+    public void OffsetFullWidthFloatDoesNotSplitKeptParagraph() {
+        var style = Floating(320, 90); style.Position = new PdfTablePosition(verticalOffset: 25);
+        using var pdf = PdfPigDocument.Open(PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: style)
+            .Paragraph(p => p.Text("first\nsecond\nthird\nfourth\nfifth"), style: new PdfParagraphStyle { KeepTogether = true }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
+        Assert.Equal(5, pdf.GetPage(2).GetWords().Count());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StandaloneBookmarkFollowsActualParagraphPlacement(bool movePage) {
+        var style = Floating(320, movePage ? 145 : 80);
+        var document = PdfDocument.Create(Options(240)).Table(new[] { new[] { "floating" } }, style: style)
+            .Bookmark("target");
+        byte[] bytes = document.Paragraph(p => p.Text("targetword")).ToBytes();
+        using var pdf = PdfPigDocument.Open(bytes);
+        var destination = Assert.Single(PdfInspector.Inspect(bytes).NamedDestinations);
+        Assert.Equal(movePage ? 2 : 1, destination.PageNumber);
+        var word = pdf.GetPage(destination.PageNumber!.Value).GetWords().Single(w => w.Text == "targetword");
+        Assert.InRange(destination.DestinationTop!.Value - word.BoundingBox.Top, 0, 12);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void CapturedFlowIncludesFloatingTablePaintedBounds(bool nested) {
+        var capture = new PdfLayoutPositionCapture();
+        var style = Floating(120, 80); style.Position = new PdfTablePosition(verticalOffset: 50);
+        var document = PdfDocument.Create(Options());
+        if (nested) document.Flow(flow => flow.Flow(inner => inner.Table(new[] { new[] { "floating" } }, style: style)), capture: capture);
+        else document.Flow(flow => flow.Table(new[] { new[] { "floating" } }, style: style), capture: capture);
+        document.ToBytes();
+        var region = Assert.Single(capture.Regions);
+        Assert.Equal(80, region.Height, 3);
+        Assert.Equal(120, region.Width, 3);
+        Assert.Equal(330, region.Y, 3);
+    }
+
+    [Theory]
     [InlineData(PdfTableVerticalAlignment.Center)]
     [InlineData(PdfTableVerticalAlignment.Bottom)]
+    [InlineData(PdfTableVerticalAlignment.Inside)]
+    [InlineData(PdfTableVerticalAlignment.Outside)]
     public void DeferredFloatingTablesRejectAlignmentThatRequiresTotalHeight(PdfTableVerticalAlignment alignment) {
         var style = Floating(120, 30);
         style.Position = new PdfTablePosition(verticalAlignment: alignment);

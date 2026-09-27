@@ -61,6 +61,7 @@ internal static partial class PdfWriter {
                 var sliceLines = lines.GetRange(lineIndex, take);
                 var sliceHeights = lineHeights.GetRange(lineIndex, take);
                 EnsurePage();
+                RecordFlowPlacement(y);
                 if (lineIndex == 0) captureFirstPlacement?.Invoke();
                 if (lineIndex == 0 && headingStyle?.AnchoredCanvas is { } headingCanvas) RenderCanvasBlock(headingCanvas);
                 pageDirty = true;
@@ -191,8 +192,10 @@ internal static partial class PdfWriter {
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
                     ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, actualHeight + spacingAfter) : 0;
-                bool mustMove = paragraphStyle?.KeepTogether == true && actualHeight > y - currentOpts.MarginBottom + 0.001;
-                mustMove |= nextHeight > 0 && actualHeight + spacingAfter + nextHeight > y - currentOpts.MarginBottom + 0.001 &&
+                bool simulatedPageBreak = floatingPageStarts.Count > 0;
+                bool mustMove = paragraphStyle?.KeepTogether == true &&
+                    (simulatedPageBreak || actualHeight > y - currentOpts.MarginBottom + 0.001);
+                mustMove |= nextHeight > 0 && (simulatedPageBreak || actualHeight + spacingAfter + nextHeight > y - currentOpts.MarginBottom + 0.001) &&
                     originalLineHeights.Sum() + spacingAfter + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
                 if (mustMove) { NewPage(); RestoreUnobstructedWrapping(); }
             }
@@ -288,6 +291,7 @@ internal static partial class PdfWriter {
                 }
 
                 bool sliceStartsAtFirstLine = lineIndex == 0;
+                RecordFlowPlacement(y - (floatingLineGaps?[lineIndex] ?? 0D));
                 if (sliceStartsAtFirstLine && paragraphStyle?.AnchoredCanvas is { } paragraphCanvas) RenderCanvasBlock(paragraphCanvas);
                 pageDirty = true;
                 var paragraphFont = ChooseNormal(currentOpts.DefaultFont);
