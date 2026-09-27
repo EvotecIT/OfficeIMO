@@ -534,6 +534,27 @@ document.Save();
 
 Pivot support covers source-range pivots, row/column/page/data fields, styles, layouts, filters, calculated fields, grouping metadata, shared-cache-aware source updates, refresh-on-open, and readback. `AddPivotSlicer` authors native slicer caches, worksheet views, and drawing anchors for supported fields. `AddPivotTimeline` does the same for date-only fields. Compatible views reuse shared caches; removing the last view can prune its cache. Unsupported imported siblings remain preserved.
 
+Read an existing saved pivot value with `GetPivotData`. The lookup uses the pivot's
+saved output cells and axis metadata; changing source cells does not refresh it.
+
+```csharp
+using var document = ExcelDocument.Load("saved-sales-pivot.xlsx");
+var sheet = document.GetSheet("Summary");
+ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
+    new Dictionary<string, object?> { ["Region"] = "North" });
+```
+
+The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
+Both paths support saved, ungrouped views with at most one row and one column
+field, multiple measures, and text, numeric, Boolean or blank item keys. They
+return typed errors for unknown items, fields or measures and zero for a blank
+intersection of existing items. Lookup accepts at most 256 fields/measures and
+criteria, 100,000 items per axis and one million output cells. Grouped views,
+page fields, compressed axis prefixes and views without saved axis items remain
+unsupported. The public method throws `NotSupportedException` for those profiles;
+formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
+and refresh-on-open settings; it does not populate an output view for lookup.
+
 ### Guarded query-backed tables
 
 ```csharp

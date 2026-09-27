@@ -631,6 +631,12 @@ namespace OfficeIMO.Excel {
             if (functionCall != null) {
                     string function = functionCall.Name.ToUpperInvariant();
                     string args = functionCall.Arguments;
+                    if (function == "GETPIVOTDATA") return TryEvaluatePivotDataValue(args, out result);
+                    if ((function == "TRUE" || function == "FALSE") && string.IsNullOrWhiteSpace(args)) {
+                        bool boolean = function == "TRUE";
+                        result = new FormulaArgumentValue(boolean ? 1 : 0, function, isBoolean: true);
+                        return true;
+                    }
                     if (function == "NA" && string.IsNullOrWhiteSpace(args)) {
                         result = FormulaArgumentValue.Error("#N/A");
                         return true;

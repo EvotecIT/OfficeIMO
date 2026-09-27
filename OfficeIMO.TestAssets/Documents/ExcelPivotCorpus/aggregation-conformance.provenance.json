@@ -2,15 +2,16 @@
   "producer": "Microsoft Excel",
   "version": "16.0",
   "build": 20326.0,
-  "generatedUtc": "2026-09-27T13:25:00.3910504Z",
+  "generatedUtc": "2026-09-27T13:48:40.8043087Z",
   "regeneration": "Build/Verification/New-ExcelPivotOracle.ps1",
   "file": "aggregation-conformance.xlsx",
-  "sha256": "e286a5de61ee8dcd8d337fff5e60000c704eda53e57f566fbd8c1540a421092d",
+  "sha256": "08ff830c74386f5046d7514ee8e94c1af3520a8208322d388b198e7151a2876a",
   "sourceRange": "Source!A1:D9",
   "errorSourceRange": "ErrorSource!A1:B8",
   "lookupFormulaCells": 165,
   "aggregationLookupCells": 99,
   "typedErrorLookupCells": 66,
+  "lookupEdgeFormulaCells": 22,
   "layout": "Tabular, one row key, one column key, both grand totals",
   "pivots": [
     {

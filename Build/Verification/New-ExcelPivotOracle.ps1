@@ -17,6 +17,28 @@ $functions = [ordered]@{
     StandardDeviation = -4155; StandardDeviationP = -4156
     Variance = -4164; VarianceP = -4165
 }
+$lookupEdges = @(
+    'GETPIVOTDATA("Metric",Sum!A1,"Region","West","Product","A")',
+    'GETPIVOTDATA("Amount",Sum!A1)',
+    'GETPIVOTDATA("Count",ErrorGroups!A1)', 'GETPIVOTDATA("CountNumbers",ErrorGroups!A1)',
+    'GETPIVOTDATA("Metric",Sum!B4,"Region","North")',
+    'GETPIVOTDATA("Metric",Sum!A1:D6,"Product","A")',
+    'GETPIVOTDATA("Metric",Sum!Z1)',
+    'GETPIVOTDATA("Metric",Sum!A1,"Region","North","Region","North")',
+    'GETPIVOTDATA("Metric",Sum!A1,"Region","North","Region","South")',
+    'GETPIVOTDATA("Metric",Sum!A1,"Region","north")',
+    'GETPIVOTDATA("Metric",Sum!A1,"notafield","A")', 'GETPIVOTDATA("missing",Sum!A1)',
+    'GETPIVOTDATA("Count",ErrorGroups!A1,"Group","TextNumber")',
+    'IFERROR(GETPIVOTDATA("Metric",Sum!Z1),77)',
+    'GETPIVOTDATA("Metric",Sum!A1,"Region",Source!A2)',
+    'GETPIVOTDATA("Metric",Sum!A1,"Region","West")',
+    'GETPIVOTDATA("Metric",Sum!A1,"Region","West","Product","B")',
+    'GETPIVOTDATA("Metric",Sum!A1,"Product","a")',
+    'GETPIVOTDATA("Count",ErrorGroups!A1,"Group","Literal")',
+    'GETPIVOTDATA("CountNumbers",ErrorGroups!A1,"Group","Literal")',
+    'GETPIVOTDATA("Metric",Sum!A1,"Product",1)',
+    'FALSE()'
+)
 $application = $null; $workbooks = $null; $workbook = $null
 $sheets = $null; $source = $null; $oracles = $null; $caches = $null
 $closed = $false
@@ -144,6 +166,18 @@ try {
             if ($null -ne $owned) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($owned) }
         }
     }
+    $edgeSheet = $null
+    try {
+        $edgeSheet = $sheets.Add()
+        $edgeSheet.Name = 'LookupEdges'
+        for ($index = 0; $index -lt $lookupEdges.Count; $index++) {
+            $cell = $edgeSheet.Cells.Item($index + 1, 1)
+            try { $cell.Formula = '=' + $lookupEdges[$index] }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($cell) }
+        }
+    } finally {
+        if ($null -ne $edgeSheet) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($edgeSheet) }
+    }
     $application.CalculateFullRebuild()
     $path = Join-Path $directory 'aggregation-conformance.xlsx'
     $workbook.SaveAs($path, 51)
@@ -157,6 +191,7 @@ try {
         sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
         sourceRange = 'Source!A1:D9'; errorSourceRange = 'ErrorSource!A1:B8'; lookupFormulaCells = $lookupRow - 1
         aggregationLookupCells = 99; typedErrorLookupCells = 66
+        lookupEdgeFormulaCells = $lookupEdges.Count
         layout = 'Tabular, one row key, one column key, both grand totals'
         pivots = $records
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory 'aggregation-conformance.provenance.json') -Encoding utf8
