@@ -27,6 +27,13 @@ public static partial class OfficeChartDrawingRenderer {
         if (snapshot == null) {
             throw new ArgumentNullException(nameof(snapshot));
         }
+        if (!useMinimumCanvas && (snapshot.WidthPoints < MinimumChartCanvasWidth || snapshot.HeightPoints < MinimumChartCanvasHeight)) {
+            double authoredWidth = Math.Max(1D, snapshot.WidthPoints);
+            double authoredHeight = Math.Max(1D, snapshot.HeightPoints);
+            double scale = Math.Max(MinimumChartCanvasWidth / authoredWidth, MinimumChartCanvasHeight / authoredHeight);
+            OfficeDrawing expanded = Render(snapshot.WithSize(authoredWidth * scale, authoredHeight * scale), true, diagnostics);
+            return new OfficeDrawing(authoredWidth, authoredHeight).AddEffectDrawing(expanded, OfficeTransform.Scale(1D / scale, 1D / scale));
+        }
         if (HasUnsupportedAreaPointStyles(snapshot)) diagnostics?.Add(new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning, "ChartPointStylesUnsupported", AreaPointStyleWarning,
             snapshot.Name, OfficeConversionLossKind.Approximation));
