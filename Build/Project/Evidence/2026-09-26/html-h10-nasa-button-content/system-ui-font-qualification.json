@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "sourceBase": "afaaf861c960e31a6fbc055c0370e2fb84d06eeb",
+  "sourceCommit": "76b0df74815baf5afaf1e87d01c34c2e6314a2ef",
+  "validatedCandidateFingerprint": "b3c3d2f303a2babc8c1b80ed13f64c6cf52dc844",
+  "fingerprintMethod": "git diff --cached --full-index --binary --no-ext-diff --no-textconv --no-color | git hash-object --stdin",
+  "runUtc": "2026-09-27T18:22:16.604719+00:00",
+  "scope": "Installed system UI family selection, scoped variable font weight and optical size, and operation-wide decoded font resource accounting.",
+  "contracts": [
+    "Drawing and PDF share platform family aliases; concrete font names must match parsed family metadata.",
+    "HTML loads installed faces only for CSS lists containing system UI aliases, preserving earlier concrete families, supplied fonts and host providers.",
+    "Built-in aliases and weights share immutable owned font buffers. Host provider and axis callbacks retain independent per-family selection.",
+    "Raster fallback selects authored optical size and variable bold weight without additional synthetic bolding; SVG measurement uses the same instance.",
+    "Nested documents share decoded font and encoded resource admission budgets.",
+    "PDF system and document embedding permissions both gate installed font loading."
+  ],
+  "validation": {
+    "drawing-net10": {
+      "passed": 2688,
+      "failed": 0
+    },
+    "drawing-net8": {
+      "passed": 2688,
+      "failed": 0
+    },
+    "html-net10": {
+      "passed": 3651,
+      "failed": 0
+    },
+    "html-net8": {
+      "passed": 3651,
+      "failed": 0
+    },
+    "pdf-net10": {
+      "passed": 7973,
+      "failed": 0
+    },
+    "pdf-net8": {
+      "passed": 7973,
+      "failed": 0,
+      "skipped": 0
+    },
+    "drawing-focused-net10": {
+      "passed": 256,
+      "failed": 0
+    },
+    "html-focused-net10": {
+      "passed": 318,
+      "failed": 0
+    },
+    "html-pdf-netstandard2.0": {
+      "warnings": 0,
+      "errors": 0
+    }
+  },
+  "renderedProof": {
+    "cases": [
+      {
+        "family": "system-ui",
+        "size": 16,
+        "weight": 400,
+        "stem": "system-ui-400-16",
+        "width": 72.5625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=17;GRAD=400;wght=400",
+        "pdfBytes": 6074,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "system-ui",
+        "size": 24,
+        "weight": 400,
+        "stem": "system-ui-400-24",
+        "width": 104.40234375,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=24;GRAD=400;wght=400",
+        "pdfBytes": 6208,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "system-ui",
+        "size": 16,
+        "weight": 700,
+        "stem": "system-ui-700-16",
+        "width": 79.0390625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=17;GRAD=400;wght=700",
+        "pdfBytes": 6184,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "system-ui",
+        "size": 24,
+        "weight": 700,
+        "stem": "system-ui-700-24",
+        "width": 114.5390625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=24;GRAD=400;wght=700",
+        "pdfBytes": 6310,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "-apple-system",
+        "size": 16,
+        "weight": 400,
+        "stem": "apple-system-400-16",
+        "width": 72.5625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=17;GRAD=400;wght=400",
+        "pdfBytes": 6074,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "-apple-system",
+        "size": 24,
+        "weight": 400,
+        "stem": "apple-system-400-24",
+        "width": 104.40234375,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=24;GRAD=400;wght=400",
+        "pdfBytes": 6208,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "-apple-system",
+        "size": 16,
+        "weight": 700,
+        "stem": "apple-system-700-16",
+        "width": 79.0390625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=17;GRAD=400;wght=700",
+        "pdfBytes": 6184,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "-apple-system",
+        "size": 24,
+        "weight": 700,
+        "stem": "apple-system-700-24",
+        "width": 114.5390625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=24;GRAD=400;wght=700",
+        "pdfBytes": 6310,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "BlinkMacSystemFont",
+        "size": 16,
+        "weight": 400,
+        "stem": "BlinkMacSystemFont-400-16",
+        "width": 72.5625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=17;GRAD=400;wght=400",
+        "pdfBytes": 6074,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "BlinkMacSystemFont",
+        "size": 24,
+        "weight": 400,
+        "stem": "BlinkMacSystemFont-400-24",
+        "width": 104.40234375,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=24;GRAD=400;wght=400",
+        "pdfBytes": 6208,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "BlinkMacSystemFont",
+        "size": 16,
+        "weight": 700,
+        "stem": "BlinkMacSystemFont-700-16",
+        "width": 79.0390625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=17;GRAD=400;wght=700",
+        "pdfBytes": 6184,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      },
+      {
+        "family": "BlinkMacSystemFont",
+        "size": 24,
+        "weight": 700,
+        "stem": "BlinkMacSystemFont-700-24",
+        "width": 114.5390625,
+        "fingerprint": "sha256:44890958f3e0b997028121ed7c7a789f3f5cce227c7a93ce8f86ec0db26da571:face=auto:axes=wdth=100;opsz=24;GRAD=400;wght=700",
+        "pdfBytes": 6310,
+        "pdfByteIdentical": true,
+        "fontSha256": "44890958F3E0B997028121ED7C7A789F3F5CCE227C7A93CE8F86EC0DB26DA571",
+        "renderDpi": 300,
+        "changedPixels": 0
+      }
+    ],
+    "reference": "Explicitly supplied SFNS with selected weight; selected-instance consistency, not a browser oracle.",
+    "samplesInspected": [
+      "system-ui-400-16-detail.png",
+      "system-ui-700-24-detail.png"
+    ]
+  },
+  "independentReview": {
+    "task": "/root/h10_systemui_review",
+    "boundary": "current",
+    "findings": [],
+    "confirmationUsed": false
+  },
+  "remaining": [
+    "NASA all-page browser replay and H4 regression evidence",
+    "Windows/Linux alias rendering and supported-platform resource/performance budgets",
+    "Other named H10 corpus fidelity/resource gaps",
+    "PDF intents and applicable editable output qualification"
+  ],
+  "artifacts": {
+    "path": "Ignore/HtmlUnknownPageQualification/h10-systemui-integration-afaaf861c",
+    "retainedBytes": 1073023,
+    "removedProbeBuildBytes": 23097422
+  }
+}
