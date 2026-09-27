@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ee9a57b038e2fabcb5fa74b350ef22481b46e74c",
+  "sourceClean": true,
+  "frozenArchiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "reproduction": "The external Bootstrap CSS has data: SVG URL values in custom properties. A used stylesheet with an unused URL previously produced HtmlRenderStylesheetUrlResourcesPending as an Approximation even when the resource graph and paint were intact.",
+  "validation": {
+    "redThenGreenFocusedRegression": true,
+    "htmlTestsNet10": {
+      "passed": 3711,
+      "failed": 0
+    },
+    "focusedNet8": {
+      "passed": 3,
+      "failed": 0
+    },
+    "netstandard20Warnings": 0,
+    "nasaOperations": 13,
+    "nasaConversionFailures": 0,
+    "ownedPdfByteIdentical": 10,
+    "ownedPdfsCompared": 10,
+    "h4AcceptancePassed": 8,
+    "h4AcceptanceTotal": 8,
+    "h4OwnedArtifactsByteIdentical": 161,
+    "h4OwnedArtifactsCompared": 161
+  },
+  "ownedNasaOperations": [
+    {
+      "intent": "officeimo-print",
+      "pdfSha256": "4d513b799a7ad6675936d546332e93b17e850e30bc69fd09b8db13b8c28a63a4",
+      "pageCount": 4,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-print-zero-margin",
+      "pdfSha256": "76d6e6cede0466efe5270be8e9b91d63755b6e19960f78b2e2161905605a1e4f",
+      "pageCount": 4,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-print-fit-1200",
+      "pdfSha256": "64c827702ce647c9995de6a9b96008a09099faa6a6b817195d95d7b1a6cbba91",
+      "pageCount": 4,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "pdfSha256": "ec09ebd2cf1713ee5665af0377669c5537d10f7e86535085041232b3342ca3df",
+      "pageCount": 4,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-print-browser-ua",
+      "pdfSha256": "76d6e6cede0466efe5270be8e9b91d63755b6e19960f78b2e2161905605a1e4f",
+      "pageCount": 4,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "pdfSha256": "6f0bdba6384c2f16a4dbdebf6133495750b0f4f2fc6995ea221da121043b652e",
+      "pageCount": 4,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-screen-media",
+      "pdfSha256": "e864cc3ebd8fbe53d9290fb8bea9ff0149fc54a93b7d5b2cf3135de8cb7392f1",
+      "pageCount": 10,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-screen-media-local-fonts",
+      "pdfSha256": "9630831ad7b1dd568d141a6798167562831283d5ec346753cc8213411894fccc",
+      "pageCount": 10,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-screen-snapshot",
+      "pdfSha256": "dba4dc94de0428456a2bfc8dec5f09ff34133d89c45706e845fc0409adfafd03",
+      "pageCount": 12,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    },
+    {
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "pdfSha256": "127a952d96d009af32fc97ee6f5148cef8eab431c80841aae31b23ab410401f4",
+      "pageCount": 12,
+      "removedObsoleteWarnings": 1,
+      "otherWarningsUnchanged": true
+    }
+  ],
+  "limitations": [
+    "This removes only a false approximation warning; other NASA loss and resource diagnostics remain.",
+    "Chromium and PeachPDF PDF bytes vary between replays, so they are not used for byte-equivalence claims.",
+    "The current run covers macOS and this frozen archive; unfamiliar pages and supported-platform budgets remain open."
+  ]
+}
