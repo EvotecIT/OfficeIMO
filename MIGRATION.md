@@ -20,6 +20,18 @@ providers and the `LatinLigatures` mode retain their selection behavior.
 
 ## Native chart appearance bounds
 
+Native Word and PowerPoint data updates replace the embedded chart worksheet.
+Formula-linked chart titles, axis titles, custom labels and custom error bars
+now retain their cached content as native rich text or numeric literals. Supply
+a complete bounded cache before updating these charts. An uncached binding or
+an unqualified workbook-linked extension rejects the update without changing
+the chart or workbook.
+
+For shared scatter and bubble authoring, each series' `RenderKind` must be
+absent or match the chart kind. Use the same numeric family for the chart and
+all of its series. PowerPoint's legacy category-only updates require a single
+native chart layer; use `UpdateData(OfficeChartData)` for supported combinations.
+
 Shared chart series stroke and marker outline widths must be finite, greater
 than zero, and at most 1584 points. Replace invalid widths before constructing
 `OfficeChartSeries`. Excel's explicit styling methods retain zero-width support

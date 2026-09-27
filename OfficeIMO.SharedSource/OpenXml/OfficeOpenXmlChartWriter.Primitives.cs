@@ -259,6 +259,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
+            ValidateSharedChartData(data, OfficeChartKind.Scatter);
 
             C.ChartSpace? chartSpace = chartPart.ChartSpace;
             C.Chart? chart = chartSpace?.GetFirstChild<C.Chart>();
@@ -266,6 +267,8 @@ namespace OfficeIMO.OpenXml.Internal {
             if (plotArea == null) {
                 throw new InvalidOperationException("Chart plot area not found.");
             }
+            if (!IsOnlySharedScatterPlot(plotArea))
+                throw new NotSupportedException("In-place scatter updates require a plot containing only scatter chart layers.");
 
             List<C.ScatterChart> scatterCharts = plotArea.Elements<C.ScatterChart>().ToList();
             if (scatterCharts.Count > 0) {
