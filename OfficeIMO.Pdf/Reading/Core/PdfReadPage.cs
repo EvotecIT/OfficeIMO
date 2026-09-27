@@ -205,7 +205,8 @@ public sealed partial class PdfReadPage {
         PageContentStreamSequence contentSequence = GetContentStreamSequence(pageContentBudget);
         string content = contentSequence.Content;
         if (content.Length > 0) {
-            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources);
+            PdfPageInvokedResourceNames invokedResources = GetRootInvokedResourceNames(content, pageResources,
+                cancellationToken.CanBeCanceled ? cancellationToken.ThrowIfCancellationRequested : null);
             CollectTextAndForms(
                 content,
                 pageResources,
@@ -847,7 +848,9 @@ public sealed partial class PdfReadPage {
         bool includeHiddenOptionalContent = false,
         PdfTextStateSnapshot? initialTextState = null,
         PdfPageInvokedResourceNames? invokedResourceNames = null,
-        Action<int>? onTextSpan = null) {
+        Action<int>? onTextSpan = null,
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -918,7 +921,8 @@ public sealed partial class PdfReadPage {
         PdfPageOptionalContentVisibility? optionalContentVisibility = includeHiddenOptionalContent
             ? null
             : GetOptionalContentVisibility(resources);
-        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = invokedResourceNames ?? GetInvokedResourceNames(
+            content, resources, cancellationCheck ?? (Action)pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfPageGraphicsStateResource> graphicsStates =
             GetGraphicsStateResources(resources, decoders, widthProviders, fonts);
         spans.AddRange(TextContentParser.Parse(
@@ -973,7 +977,9 @@ public sealed partial class PdfReadPage {
             initialArtifactContent: inheritedArtifactContent,
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
-            onTextSpan: onTextSpan));
+            onTextSpan: onTextSpan,
+            initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+            initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -1005,7 +1011,9 @@ public sealed partial class PdfReadPage {
                      inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                      cancellationCheck: cancellationCheck,
-                     initialTextState: initialTextState)) {
+                     initialTextState: initialTextState,
+                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+                     initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
@@ -1063,7 +1071,7 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
-                    invocation.HasUnsupportedEffect || !invocation.FillColorResolved || HasTransparencyGroupForTextEditing(formDict),
+                    invocation.HasUnsupportedEffect || HasTransparencyGroupForTextEditing(formDict),
                     useLogicalTextFilters,
                     includeArtifactText,
                     contentNestingDepth + 1,
@@ -1081,7 +1089,9 @@ public sealed partial class PdfReadPage {
                     cancellationCheck: cancellationCheck,
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
                     initialTextState: formInitialTextState,
-                    onTextSpan: onTextSpan);
+                    onTextSpan: onTextSpan,
+                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
+                    initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity);
             } finally {
                 activeForms.Remove(formStream);
             }

@@ -100,7 +100,7 @@ internal static partial class PdfRedactionPlanner {
             if (area.PageNumber <= readDocument.Pages.Count) {
                 PdfReadPage page = readDocument.Pages[area.PageNumber - 1];
                 if (!nestedPathPrimitivesByPage.TryGetValue(area.PageNumber, out IReadOnlyList<PdfPageVisualPrimitive>? primitives)) {
-                    primitives = page.GetIdentityVisualPrimitives();
+                    primitives = page.GetIdentityVisualPrimitives(cancellationToken);
                     nestedPathPrimitivesByPage.Add(area.PageNumber, primitives);
                 }
                 AddPathMatches(area, page, primitives, matches, findings, excludeGeneratedRedactionMarks);
