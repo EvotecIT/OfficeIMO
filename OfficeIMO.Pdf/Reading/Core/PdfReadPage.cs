@@ -823,7 +823,8 @@ public sealed partial class PdfReadPage {
         PdfTextStateSnapshot? initialTextState = null,
         PdfPageInvokedResourceNames? invokedResourceNames = null,
         Action<int>? onTextSpan = null,
-        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D) {
+        double initialStrokeWidth = 1D, int initialStrokeLineJoin = 0, double initialMiterLimit = 10D,
+        bool initialFillColorResolved = true, bool initialStrokeColorResolved = true, string initialStrokeDashIdentity = "[]:0") {
         cancellationCheck?.Invoke();
         EnsureContentNestingBudget(contentNestingDepth);
         pageContentBudget ??= new PageContentBudget(this);
@@ -951,7 +952,8 @@ public sealed partial class PdfReadPage {
             cancellationCheck: cancellationCheck,
             initialTextState: initialTextState,
             onTextSpan: onTextSpan,
-            initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit));
+            initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+            initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -984,7 +986,8 @@ public sealed partial class PdfReadPage {
                      inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
                      cancellationCheck: cancellationCheck,
                      initialTextState: initialTextState,
-                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit)) {
+                     initialStrokeWidth: initialStrokeWidth, initialStrokeLineJoin: initialStrokeLineJoin, initialMiterLimit: initialMiterLimit,
+                     initialFillColorResolved: initialFillColorResolved, initialStrokeColorResolved: initialStrokeColorResolved, initialStrokeDashIdentity: initialStrokeDashIdentity)) {
             if (!TryGetFormStream(resources, invocation.Name, out int? formObjectNumber, out var formStream)) {
                 continue;
             }
@@ -1042,7 +1045,7 @@ public sealed partial class PdfReadPage {
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
                     invocation.ClipPath,
-                    invocation.HasUnsupportedEffect || !invocation.FillColorResolved || HasTransparencyGroupForTextEditing(formDict),
+                    invocation.HasUnsupportedEffect || HasTransparencyGroupForTextEditing(formDict),
                     useLogicalTextFilters,
                     includeArtifactText,
                     contentNestingDepth + 1,
@@ -1061,7 +1064,8 @@ public sealed partial class PdfReadPage {
                     includeHiddenOptionalContent: includeHiddenOptionalContent,
                     initialTextState: formInitialTextState,
                     onTextSpan: onTextSpan,
-                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit);
+                    initialStrokeWidth: invocation.StrokeWidth, initialStrokeLineJoin: invocation.StrokeLineJoin, initialMiterLimit: invocation.MiterLimit,
+                    initialFillColorResolved: invocation.FillColorResolved, initialStrokeColorResolved: invocation.StrokeColorResolved, initialStrokeDashIdentity: invocation.StrokeDashIdentity);
             } finally {
                 activeForms.Remove(formStream);
             }

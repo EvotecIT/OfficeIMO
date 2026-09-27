@@ -345,7 +345,7 @@ supplies labels; callers
 can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
 installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible
 opacity, resolved paint, proven contrast, and full visibility within the visual
-page and any rectangular clip. Patterned or combined fill-and-stroke labels,
+page and any rectangular clip. Patterned, dashed-stroke, or combined fill-and-stroke labels,
 labels with partial or unproven clipping, and image backdrops need separate
 visibility evidence such as positioned
 OCR. Native text crossing a page or crop edge still counts as possible field

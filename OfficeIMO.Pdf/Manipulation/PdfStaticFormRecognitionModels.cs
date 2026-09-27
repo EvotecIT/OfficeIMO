@@ -59,7 +59,7 @@ public sealed class PdfStaticFormRecognitionOptions {
     public int MaxPages { get; set; } = 50;
     /// <summary>Maximum proposals retained across the document.</summary>
     public int MaxProposals { get; set; } = 250;
-    /// <summary>Maximum primitive comparisons spent evaluating visual field candidates.</summary>
+    /// <summary>Maximum comparison work reserved while evaluating visual field candidates; candidate scans reserve conservative upper bounds.</summary>
     public int MaxCandidateScanWork { get; set; } = 1_000_000;
     /// <summary>Maximum diagnostics retained, including a truncation marker when further diagnostics are omitted.</summary>
     public int MaxDiagnostics { get; set; } = 1_000;

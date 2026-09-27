@@ -118,6 +118,8 @@ internal static partial class PdfStaticFormRecognizer {
                         nativeTextBounds.Add(spanVisual);
                         continue;
                     }
+                    ChargeEffectLookup(checked(filledAreas.Count * 2), ref candidateScanWork,
+                        maxCandidateScanWork, cancellationToken);
                     if (span.Color is OfficeColor ink &&
                         !HasContrastingBackdrop(filledAreas, spanVisual, ink, span.PaintOrder, span.ContentOrderKey)) {
                         // Keep the text as possible field occupancy, but do not infer a label without visible contrast.

@@ -17,7 +17,8 @@ internal static partial class PdfStaticFormRecognizer {
         PdfStaticFormRecognitionOptions effective = options ?? new PdfStaticFormRecognitionOptions();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();
-        var snapshot = source.GetReadSnapshot(PdfLoadOptions.WithArtifactText(source.ReadOptions), cancellationToken);
+        PdfLoadOptions resultOptions = source.ReadOptions;
+        var snapshot = source.GetReadSnapshot(PdfLoadOptions.WithArtifactText(resultOptions), cancellationToken);
         byte[] pdf = snapshot.Bytes;
         PdfReadDocument document = snapshot.Document;
         int[] pageNumbers = effective.PageSelection?.ToPageNumbers(document.Pages.Count, nameof(effective.PageSelection))
@@ -82,12 +83,20 @@ internal static partial class PdfStaticFormRecognizer {
                 out List<VisualRect> nativeTextBounds, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
             pageDirections[pageNumber] = PdfTextDirectionAnalysis.Resolve(PdfReadingDirection.Auto,
                 labels.Select(static label => label.Text));
+            long fillCount = filledAreas.Count;
+            long gradientStops = primitives.Sum(static paint => (long)(paint.StrokeGradient?.Stops.Count ??
+                paint.StrokeRadialGradient?.Stops.Count ?? 0));
             for (int candidateIndex = 0; candidateIndex < primitives.Count; candidateIndex++) {
                 PdfPageVisualPrimitive primitive = primitives[candidateIndex];
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!TryGetCandidate(primitive, pageWidth, pageHeight, out VisualRect visual, out PdfStaticFormEvidenceKind evidence)) continue;
+                // Reserve the full comparison upper bound before inspecting this candidate.
+                // Repaint checks nest two backdrop scans inside the primitive/fill loop;
+                // painted-region removal is quadratic, and gradients inspect each stop.
                 candidateScanWork = checked(candidateScanWork +
-                    ((long)primitives.Count + imagePlacementCount) * (filledAreas.Count + 1L) +
+                    primitives.Count * (2L * fillCount * fillCount + fillCount * (gradientStops + 6L) + 2L) +
+                    fillCount * fillCount + fillCount * (3L * gradientStops + 3L) +
+                    imagePlacementCount * (fillCount + 2L) +
                     effects.Count + labels.Count * 2L + nativeTextBounds.Count + proposed.Count + page.FormWidgets.Count +
                     page.Annotations.Count + page.LinkAnnotations.Count + tableBounds.Count);
                 if (candidateScanWork > effective.MaxCandidateScanWork) {
@@ -166,13 +175,13 @@ internal static partial class PdfStaticFormRecognizer {
                     continue;
                 }
                 proposed.Add(new Candidate(pageNumber, visual, evidence, labelMatch, confidence));
-                if (proposed.Count > effective.MaxProposals) {
-                    throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, effective.MaxProposals, proposed.Count);
-                }
             }
         }
 
         proposed = AssignLabels(proposed, pageDirections, AddDiagnostic, ref candidateScanWork, effective.MaxCandidateScanWork, cancellationToken);
+        if (proposed.Count > effective.MaxProposals) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.FormFields, effective.MaxProposals, proposed.Count);
+        }
         var usedNames = new HashSet<string>(StringComparer.Ordinal);
         foreach (PdfFormField field in document.FormFields) {
             if (string.IsNullOrWhiteSpace(field.Name)) continue;
@@ -198,7 +207,7 @@ internal static partial class PdfStaticFormRecognizer {
                 new PdfLogicalVisualBounds(candidate.Visual.Left, candidate.Visual.Top, candidate.Visual.Right, candidate.Visual.Bottom),
                 candidate.Confidence, candidate.Evidence, candidate.Label.IsOcr));
         }
-        return new PdfStaticFormRecognitionReport(pdf, snapshot.Options, proposals, diagnostics);
+        return new PdfStaticFormRecognitionReport(pdf, resultOptions, proposals, diagnostics);
 
         void AddDiagnostic(string code, int pageNumber, string message) {
             if (diagnostics.Count < effective.MaxDiagnostics) {
