@@ -68,6 +68,7 @@
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartAxisGroups.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartRadialLayout.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartRadialLayout.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartCacheReader.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartCacheReader.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartWorkbookSecurity.cs" Link="SharedSource\OpenXml\OfficeOpenXmlChartWorkbookSecurity.cs" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartSeriesReader*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlChartWriter*.cs" Link="SharedSource\OpenXml\%(Filename)%(Extension)" />
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" Link="SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" />
