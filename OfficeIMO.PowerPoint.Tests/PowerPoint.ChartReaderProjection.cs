@@ -8,6 +8,31 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartReaderProjectionTests {
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Radar)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void Snapshot_RejectsPictureMarkers(OfficeChartKind kind) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) }));
+        var marker = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.Marker>().Single();
+        marker.Symbol!.Val = C.MarkerStyleValues.Picture;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_InheritsRadarMarkerVisibility(bool markers) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Radar, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) }));
+        var layer = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.RadarChart>().Single();
+        layer.RadarStyle!.Val = markers ? C.RadarStyleValues.Marker : C.RadarStyleValues.Standard;
+        layer.Elements<C.RadarChartSeries>().Single().GetFirstChild<C.Marker>()!.Remove();
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(markers, snapshot.Data.Series.Single().ShowMarkers);
+    }
     [Fact]
     public void MixedSnapshot_RejectsAggregatePaddingExpansionAcrossLayers() {
         using var document = PowerPointPresentation.Create();

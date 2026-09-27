@@ -31,7 +31,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
             OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
-            bool validatePlot = true, ProjectionBudget? projectionBudget = null) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
             List<OpenXmlCompositeElement> elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             projectionBudget ??= new ProjectionBudget();
@@ -57,13 +57,13 @@ namespace OfficeIMO.OpenXml.Internal {
                 projectionBudget.Reserve(categories.Count);
                 double[] normalized = new double[categories.Count];
                 for (int index = 0; index < item.Values.Count; index++) normalized[index] = item.Values[index];
-                series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints));
+                series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints, maximumPointOverrides));
             }
             return series.Count == 0 ? null : new Result(categories, series);
         }
 
         internal static Result? ReadScatter(IEnumerable<C.ScatterChartSeries> source, A.ColorScheme? scheme, int maximumPoints,
-            bool validatePlot = true, ProjectionBudget? projectionBudget = null) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
             int sourcePosition = -1;
@@ -80,7 +80,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 double[] alignedX = x.Take(count).ToArray();
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartKind.Scatter,
-                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints));
+                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }
@@ -123,7 +123,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static Series ReadSeries(OpenXmlCompositeElement element, IReadOnlyList<double> values,
             IReadOnlyList<double>? xValues, OfficeChartKind kind, A.ColorScheme? scheme,
-            OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints) {
+            OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints, int maximumPointOverrides) {
             C.ChartShapeProperties? properties = element.GetFirstChild<C.ChartShapeProperties>();
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), scheme);
@@ -155,7 +155,8 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             if (string.IsNullOrWhiteSpace(name)) name = "Series " + (fallbackIndex + 1).ToString(CultureInfo.InvariantCulture);
             OfficeColor?[]? pointColors = null;
-            foreach (C.DataPoint point in OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(element.Elements<C.DataPoint>(), maximumPoints)) {
+            var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides);
+            foreach (C.DataPoint point in pointOverrides) {
                 uint? index = point.Index?.Val?.Value;
                 if (!index.HasValue || index.Value >= values.Count) continue;
                 A.SolidFill? pointFill = point.ChartShapeProperties?.GetFirstChild<A.SolidFill>();
@@ -169,9 +170,12 @@ namespace OfficeIMO.OpenXml.Internal {
             C.ScatterStyleValues? scatterStyle = (element.Parent as C.ScatterChart)?.ScatterStyle?.Val?.Value;
             bool inheritedMarkers = (element.Parent?.GetFirstChild<C.ShowMarker>()?.Val?.Value ?? true) &&
                 scatterStyle != C.ScatterStyleValues.Line && scatterStyle != C.ScatterStyleValues.Smooth;
+            if (element.Parent is C.RadarChart radar)
+                inheritedMarkers = radar.RadarStyle?.Val?.Value == C.RadarStyleValues.Marker;
             bool showMarkers = markerShape.HasValue ? markerShape != OfficeChartMarkerShape.None : inheritedMarkers;
             bool connectLine = outline?.GetFirstChild<A.NoFill>() == null && scatterStyle != C.ScatterStyleValues.Marker;
-            bool unsupported = outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
+            bool unsupported = markerShape == OfficeChartMarkerShape.Picture ||
+                outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
             // The shared model has one series colour and straight connecting lines.
             // Reject appearance that would otherwise be silently flattened in an export.
             C.Smooth? smoothing = element.GetFirstChild<C.Smooth>() ?? element.Parent?.GetFirstChild<C.Smooth>();
@@ -189,7 +193,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 markerSize: markerSize, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
-                .WithPointStyles(OfficeOpenXmlChartPointStyles.Read(element, values.Count, scheme));
+                .WithPointStyles(OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme));
             return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data, unsupported);
         }
 
