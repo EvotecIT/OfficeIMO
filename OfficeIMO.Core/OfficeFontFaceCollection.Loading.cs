@@ -176,7 +176,7 @@ public sealed partial class OfficeFontFaceCollection {
                     normalizedRanges,
                     parsed,
                     sourceFormat,
-                    canEmbedAsStaticPdfFont);
+                    canEmbedAsStaticPdfFont, automaticOpticalSizing: ReferenceEquals(parsed, builtInProgram));
                 if (decodedBytes == 0) decodedBytes = acceptedData.Length;
                 return true;
             }
@@ -191,7 +191,7 @@ public sealed partial class OfficeFontFaceCollection {
             normalizedRanges,
             parsed,
             sourceFormat,
-            canEmbedAsStaticPdfFont));
+            canEmbedAsStaticPdfFont, automaticOpticalSizing: ReferenceEquals(parsed, builtInProgram)));
         if (decodedBytes == 0) decodedBytes = acceptedData.Length;
         return true;
     }

@@ -608,6 +608,8 @@ embedded.Add("Report Variable", File.ReadAllBytes("ReportVariable.ttf"));
 
 `OfficeFontFaceCollection` accepts TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is available on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. The engine is part of `OfficeIMO.Core`; it does not require another font-program package or a license key.
 
+Scoped built-in TrueType measurement and raster rendering select an `opsz` axis from the authored text size, clamped to the font's axis range. Raster output scaling preserves that selection. Supplying `opsz` through `FontVariationResolver` fixes the optical coordinate explicitly; other supplied axes are preserved. Exporters can use the size-aware `TryResolveFaceForText` overload to obtain the same outline instance. CFF2 and provider-owned programs retain their selected axes.
+
 ## What it provides
 
 - `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.

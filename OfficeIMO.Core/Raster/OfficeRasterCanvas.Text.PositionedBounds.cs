@@ -35,7 +35,7 @@ public sealed partial class OfficeRasterCanvas {
                 return (left, top, right, bottom, hasInk);
             }
         }
-        IOfficeFontProgram? font = ResolveTextFont(text, fontInfo.FamilyName, fontInfo.Style, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(text, fontInfo.FamilyName, fontInfo.Style, size, out OfficeFontStyle resolvedStyle);
         // An unresolved face is not evidence of an empty glyph.
         if (font == null) return (left - size, top - size, right + size, bottom + size, true);
         double naturalAdvance = MeasureResolvedText(text, font, size, features, textDirection);

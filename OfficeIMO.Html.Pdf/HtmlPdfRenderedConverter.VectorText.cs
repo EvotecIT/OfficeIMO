@@ -37,6 +37,7 @@ internal static partial class HtmlPdfRenderedConverter {
                     run.Text,
                     run.FamilyName,
                     requestedStyle,
+                    visual.Font.Size,
                     out OfficeFontFace? face)
                 || face == null) {
                 return false;

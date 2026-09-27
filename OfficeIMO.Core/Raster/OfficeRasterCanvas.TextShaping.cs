@@ -93,7 +93,7 @@ public sealed partial class OfficeRasterCanvas {
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeColor? decorationColor = null) {
         if (string.IsNullOrEmpty(text) || color.A == 0 || width <= 0D || height <= 0D) return true;
-        IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, out OfficeFontStyle resolvedStyle);
+        IOfficeFontProgram? font = ResolveTextFont(text, fontFamily, style, fontSize, out OfficeFontStyle resolvedStyle);
         if (font == null ||
             !TryGetShapedTextRun(text, font, featureSettings, OfficeTextDirection.TopToBottom, out OfficeTextShapingResult run) ||
             !HasUsableVerticalPositioning(run)) {

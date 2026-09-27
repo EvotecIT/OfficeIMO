@@ -375,7 +375,7 @@ public sealed partial class OfficeFontFaceCollection {
 
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         foreach (OfficeFontFallbackRun run in runs) {
-            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, out OfficeFontStyle _);
+            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             width += font.Measure(run.Text, fontSize);
         }
@@ -398,7 +398,7 @@ public sealed partial class OfficeFontFaceCollection {
         IReadOnlyList<OfficeFontFallbackRun> runs = PlanFallbackRuns(text, familyNames, style);
         var resolvedWidths = new List<double>(elements.Count);
         foreach (OfficeFontFallbackRun run in runs) {
-            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, out OfficeFontStyle _);
+            IOfficeFontProgram? font = ResolveForText(run.Text, run.FamilyName, style, fontSize, out OfficeFontStyle _);
             if (font == null) return false;
             var runElements = new List<string>();
             foreach (string element in OfficeTextElements.Enumerate(run.Text)) runElements.Add(element);
@@ -485,6 +485,31 @@ public sealed partial class OfficeFontFaceCollection {
         return face != null;
     }
 
+    /// <summary>Resolves a face at the authored text size, selecting a built-in TrueType optical
+    /// axis automatically unless the variation resolver explicitly supplied opsz. Provider-owned
+    /// programs retain their provider-selected axes.</summary>
+    public bool TryResolveFaceForText(string? text, string? familyNames, OfficeFontStyle style,
+        double fontSize, out OfficeFontFace? face) {
+        ValidateOpticalFontSize(fontSize);
+        if (!TryResolveFaceForText(text, familyNames, style, out face)) return false;
+        face = face!.ForOpticalSize(fontSize);
+        return true;
+    }
+
+    /// <summary>Resolves numeric weight, stretch, and slant with automatic built-in TrueType optical sizing.</summary>
+    public bool TryResolveFaceForText(string? text, string? familyNames, OfficeFontFaceDescriptor descriptor,
+        double fontSize, out OfficeFontFace? face) {
+        ValidateOpticalFontSize(fontSize);
+        if (!TryResolveFaceForText(text, familyNames, descriptor, out face)) return false;
+        face = face!.ForOpticalSize(fontSize);
+        return true;
+    }
+
+    private static void ValidateOpticalFontSize(double size) {
+        if (size <= 0D || double.IsNaN(size) || double.IsInfinity(size))
+            throw new ArgumentOutOfRangeException(nameof(size));
+    }
+
     /// <summary>Resolves a scoped face using numeric weight, stretch, and slant matching.</summary>
     public bool TryResolveFaceForText(
         string? text,
@@ -556,6 +581,13 @@ public sealed partial class OfficeFontFaceCollection {
         IOfficeFontProgram? font = ResolveForText(text, familyNames, style, out OfficeFontFace? face);
         resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
         return font;
+    }
+
+    internal IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style,
+        double fontSize, out OfficeFontStyle resolvedStyle) {
+        ResolveForText(text, familyNames, style, out OfficeFontFace? face);
+        resolvedStyle = face?.Style ?? OfficeFontStyle.Regular;
+        return face?.ForOpticalSize(fontSize).Program;
     }
 
     private IOfficeFontProgram? ResolveForText(string text, string? familyNames, OfficeFontStyle style, out OfficeFontFace? resolvedFace) {

@@ -567,6 +567,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             text,
             effectiveFont.FamilyName,
             effectiveFont.Style,
+            effectiveFont.Size,
             out OfficeFontStyle _);
         if (font == null) {
             measured = 0D;

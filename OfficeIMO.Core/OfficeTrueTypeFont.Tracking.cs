@@ -11,6 +11,7 @@ public sealed partial class OfficeTrueTypeFont {
         if (_tracking == null || scale == _trackingEvaluationScale) return this;
         if (scale <= 0 || double.IsNaN(scale) || double.IsInfinity(scale)) throw new ArgumentOutOfRangeException(nameof(scale));
         var instance = (OfficeTrueTypeFont)MemberwiseClone();
+        instance._opticalSizeFonts = null;
         instance._trackingEvaluationScale = scale;
         return instance;
     }

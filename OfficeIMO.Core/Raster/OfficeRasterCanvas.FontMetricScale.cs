@@ -7,7 +7,8 @@ public sealed partial class OfficeRasterCanvas {
     private Dictionary<OfficeTrueTypeFont, OfficeTrueTypeFont>? _scaledMetricFonts;
 
     private IOfficeFontProgram? ResolveMetricScale(IOfficeFontProgram? font) {
-        if (FontMetricScale == 1D || font is not OfficeTrueTypeFont trueType) return font;
+        if (font is not OfficeTrueTypeFont trueType) return font;
+        if (FontMetricScale == 1D) return trueType;
         var cache = _scaledMetricFonts ??= new Dictionary<OfficeTrueTypeFont, OfficeTrueTypeFont>();
         if (cache.TryGetValue(trueType, out OfficeTrueTypeFont? instance)) return instance;
         if (cache.Count >= 1024) cache.Clear();
