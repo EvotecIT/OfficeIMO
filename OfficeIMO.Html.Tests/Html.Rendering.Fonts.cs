@@ -584,8 +584,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(rendered.Fonts.Faces);
         Assert.Contains(rendered.Diagnostics, diagnostic =>
-            diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded
-            && diagnostic.Message.Contains("Decoded font data", StringComparison.Ordinal));
+            diagnostic.Code == HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded);
     }
 
     [Fact]

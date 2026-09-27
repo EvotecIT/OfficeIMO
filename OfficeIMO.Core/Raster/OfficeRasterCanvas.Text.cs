@@ -740,7 +740,10 @@ public sealed partial class OfficeRasterCanvas {
             return ResolveMetricScale(_font);
         }
 
-        return ResolveMetricScale(OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle) ?? _font);
+        OfficeTrueTypeFont? installed = OfficeTrueTypeFont.TryLoadFontFamilyForText(fontFamily, style, text, out resolvedStyle);
+        installed = installed?.ForInstalledOpticalSize(size / FontMetricScale, (style & OfficeFontStyle.Bold) != 0);
+        if (installed?.HasSelectedBoldWeight == true) resolvedStyle |= OfficeFontStyle.Bold;
+        return ResolveMetricScale(installed ?? _font);
     }
 
     private void DrawStrokeText(

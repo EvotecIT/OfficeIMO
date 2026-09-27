@@ -1181,7 +1181,8 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
                     font = TryLoad(path);
                 }
 
-                if (font != null && font.HasGlyphs("OfficeIMO 0123456789")) {
+                if (font != null && font.HasFamilyKey(NormalizeFontFamilyKey(family))
+                    && font.HasGlyphs("OfficeIMO 0123456789")) {
                     return new FontFamilyResolution(font, path);
                 }
             }
@@ -1222,6 +1223,10 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> ExpandGenericFontFamily(string family) {
+        if (OfficeSystemFontFamilyAliases.IsSystemUi(family)) {
+            foreach (string candidate in OfficeSystemFontFamilyAliases.Expand(family)) yield return candidate;
+            yield break;
+        }
         string key = NormalizeFontFamilyKey(family);
         if (key == "sansserif" || key == "sans") {
             yield return "Aptos";
@@ -1286,6 +1291,7 @@ public sealed partial class OfficeTrueTypeFont : IOfficeBoundedFontProgram, IOff
     }
 
     private static IEnumerable<string> CandidateKnownFamilyPaths(string key) {
+        if (key == "sfns") yield return "/System/Library/Fonts/SFNS.ttf";
         string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
         if (!string.IsNullOrEmpty(windows)) {
             string fonts = Path.Combine(windows, "Fonts");

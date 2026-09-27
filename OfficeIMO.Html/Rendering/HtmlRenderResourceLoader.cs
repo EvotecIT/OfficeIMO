@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// Operation-scoped owner for HTML resource policy, resolution, MIME validation, deduplication,
 /// caching, budgets, timeouts, cancellation evidence, canonical identities, and content digests.
 /// </summary>
-public sealed class HtmlResourceSession {
+public sealed partial class HtmlResourceSession {
     private int _resolverRequestCount;
     private readonly object _diagnosticSync = new object();
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(HtmlResourceIdentityComparer.Instance);
@@ -222,11 +222,11 @@ public sealed class HtmlResourceSession {
             stop = true;
             return false;
         }
-        if (length > MaxTotalResourceBytes - AcceptedResourceBytes) {
+        if (length > MaxTotalResourceBytes - AcceptedResourceBytes - DecodedFontBytes) {
             Diagnostics.Add("OfficeIMO.Html.Renderer", HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
                 "Resolved resources exceeded the configured total byte limit.",
                 HtmlDiagnosticSeverity.Error, reference.Source,
-                "bytes=" + (AcceptedResourceBytes + length), OfficeConversionLossKind.Omission);
+                "bytes=" + (AcceptedResourceBytes + DecodedFontBytes + length), OfficeConversionLossKind.Omission);
             stop = true;
             return false;
         }
@@ -258,9 +258,9 @@ public sealed class HtmlResourceSession {
             return false;
         }
 
-        if (estimatedBytes > MaxTotalResourceBytes - AcceptedResourceBytes) {
+        if (estimatedBytes > MaxTotalResourceBytes - AcceptedResourceBytes - DecodedFontBytes) {
             diagnosticCode = HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded;
-            diagnosticDetail = "bytes=" + (AcceptedResourceBytes + estimatedBytes);
+            diagnosticDetail = "bytes=" + (AcceptedResourceBytes + DecodedFontBytes + estimatedBytes);
             return false;
         }
 

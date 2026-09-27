@@ -187,6 +187,7 @@ public static class HtmlRenderEngine {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
+        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
             document,
@@ -336,6 +337,7 @@ public static class HtmlRenderEngine {
             resolved.Validate();
             styles = HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits);
         }
+        HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
             limits: limits, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();

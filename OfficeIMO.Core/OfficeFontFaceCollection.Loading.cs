@@ -14,7 +14,8 @@ public sealed partial class OfficeFontFaceCollection {
         int? maximumDecodedBytes,
         out int decodedBytes,
         out string? error,
-        bool applyDescriptorWeight = false) {
+        bool applyDescriptorWeight = false,
+        bool useOwnedDataSnapshot = false) {
         decodedBytes = 0;
         error = null;
         if (string.IsNullOrWhiteSpace(familyName) || data == null || data.Length == 0) {
@@ -23,8 +24,8 @@ public sealed partial class OfficeFontFaceCollection {
         }
 
         OfficeFontContainerFormat sourceFormat = OfficeFontContainerDecoder.Detect(data);
-        byte[] openTypeData;
-        bool decoded = maximumDecodedBytes.HasValue
+        byte[] openTypeData = Array.Empty<byte>();
+        bool decoded = useOwnedDataSnapshot || (maximumDecodedBytes.HasValue
             ? OfficeFontContainerDecoder.TryDecodeToOpenType(
                 data,
                 maximumDecodedBytes.Value,
@@ -35,7 +36,8 @@ public sealed partial class OfficeFontFaceCollection {
                 data,
                 out openTypeData,
                 out _,
-                out error);
+                out error));
+        if (useOwnedDataSnapshot) openTypeData = data;
         IReadOnlyDictionary<string, float>? variationValues = null;
         if (decoded && (FontVariationResolver != null || applyDescriptorWeight)) {
             try {
@@ -143,7 +145,7 @@ public sealed partial class OfficeFontFaceCollection {
             if (decoded && string.IsNullOrWhiteSpace(error)) error = "Decoded font data does not contain a supported outline program.";
             return false;
         }
-        if (decodedBytes == 0 && maximumDecodedBytes.HasValue) {
+        if (!useOwnedDataSnapshot && decodedBytes == 0 && maximumDecodedBytes.HasValue) {
             // The face owns one independent embedding snapshot. The built-in TrueType program
             // retains the decoded sfnt buffer, while CFF retains that reader buffer plus its
             // independent shaping snapshot.
@@ -176,8 +178,9 @@ public sealed partial class OfficeFontFaceCollection {
                     normalizedRanges,
                     parsed,
                     sourceFormat,
-                    canEmbedAsStaticPdfFont, automaticOpticalSizing: ReferenceEquals(parsed, builtInProgram));
-                if (decodedBytes == 0) decodedBytes = acceptedData.Length;
+                    canEmbedAsStaticPdfFont, useDataSnapshot: useOwnedDataSnapshot,
+                    automaticOpticalSizing: ReferenceEquals(parsed, builtInProgram));
+                if (!useOwnedDataSnapshot && decodedBytes == 0) decodedBytes = acceptedData.Length;
                 return true;
             }
         }
@@ -191,8 +194,9 @@ public sealed partial class OfficeFontFaceCollection {
             normalizedRanges,
             parsed,
             sourceFormat,
-            canEmbedAsStaticPdfFont, automaticOpticalSizing: ReferenceEquals(parsed, builtInProgram)));
-        if (decodedBytes == 0) decodedBytes = acceptedData.Length;
+            canEmbedAsStaticPdfFont, useDataSnapshot: useOwnedDataSnapshot,
+            automaticOpticalSizing: ReferenceEquals(parsed, builtInProgram)));
+        if (!useOwnedDataSnapshot && decodedBytes == 0) decodedBytes = acceptedData.Length;
         return true;
     }
 

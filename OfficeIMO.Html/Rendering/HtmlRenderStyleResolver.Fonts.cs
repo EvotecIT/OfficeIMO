@@ -4,7 +4,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderStyleResolver {
-    private static OfficeFontFaceDescriptor ResolveFontFaceDescriptor(
+    internal static OfficeFontFaceDescriptor ResolveFontFaceDescriptor(
         string tag,
         HtmlComputedStyle computed,
         OfficeFontFaceDescriptor inherited) {

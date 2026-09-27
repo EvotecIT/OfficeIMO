@@ -60,14 +60,12 @@ public sealed partial class PdfEmbeddedFontFamily {
     }
 
     private static SystemFontFamilyCacheEntry ResolveSystemFontFamily(string requestedFamily, string exposedFamily) {
-        string normalizedFamily = NormalizeFamilyKey(requestedFamily);
-        System.Collections.Generic.IReadOnlyList<string> candidateFiles = SystemFontIndex.Value.Find(normalizedFamily);
-        bool found = TryFromSystemFontFiles(
-            requestedFamily,
-            candidateFiles,
-            out PdfEmbeddedFontFamily? fontFamily,
-            exposedFamily);
-        return new SystemFontFamilyCacheEntry(found ? fontFamily : null);
+        foreach (string candidate in OfficeIMO.Drawing.OfficeSystemFontFamilyAliases.Expand(requestedFamily)) {
+            System.Collections.Generic.IReadOnlyList<string> files = SystemFontIndex.Value.Find(NormalizeFamilyKey(candidate));
+            if (TryFromSystemFontFiles(candidate, files, out PdfEmbeddedFontFamily? family, exposedFamily))
+                return new SystemFontFamilyCacheEntry(family);
+        }
+        return new SystemFontFamilyCacheEntry(null);
     }
 
     private static SystemFontMetadataIndex BuildSystemFontMetadataIndex() {

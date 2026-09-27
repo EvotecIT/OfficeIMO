@@ -84,8 +84,17 @@ public sealed partial class PdfEmbeddedFontFamily {
         return true;
     }
 
-    private static OfficeFontFaceCollection? LoadSystemFaceCollection(string familyName) =>
-        LoadSystemFaceCollection(familyName, SystemFontIndex.Value.Find(NormalizeFamilyKey(familyName)));
+    private static OfficeFontFaceCollection? LoadSystemFaceCollection(string familyName) {
+        foreach (string candidate in OfficeSystemFontFamilyAliases.Expand(familyName)) {
+            OfficeFontFaceCollection? faces = LoadSystemFaceCollection(candidate,
+                SystemFontIndex.Value.Find(NormalizeFamilyKey(candidate)));
+            if (faces == null) continue;
+            if (!string.Equals(candidate, familyName, System.StringComparison.OrdinalIgnoreCase))
+                faces.AddAlias(familyName, candidate);
+            return faces;
+        }
+        return null;
+    }
 
     private static OfficeFontFaceCollection? LoadSystemFaceCollection(
         string familyName,

@@ -326,8 +326,9 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintContext style,
         OfficeFontFaceCollection fonts,
         out IOfficeFontProgram? program) {
-        program = fonts.ResolveForText(text, style.FontFamily, style.FontStyle, out _)
-            ?? OfficeTrueTypeFont.TryLoadFontFamily(style.FontFamily);
+        program = fonts.ResolveForText(text, style.FontFamily, style.FontStyle, fontSize, out _)
+            ?? OfficeTrueTypeFont.TryLoadFontFamilyForText(style.FontFamily, style.FontStyle, text, out _)
+                ?.ForInstalledOpticalSize(fontSize, (style.FontStyle & OfficeFontStyle.Bold) != 0);
         if (program != null) {
             double measured = program.Measure(text, fontSize);
             if (!double.IsNaN(measured) && !double.IsInfinity(measured) && measured > 0D) {

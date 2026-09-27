@@ -23,7 +23,6 @@ internal static class HtmlRenderFontFaceLoader {
         var reported = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         usage = new HtmlRenderFontFaceUsage(fonts, diagnostics);
         int definitionOrder = 0;
-        long decodedFontBytes = 0L;
         var pipelineOptions = new HtmlResourcePipelineOptions {
             Limits = limits.Clone(),
             MaxResponsiveImageCandidates = options.ResponsiveImageCandidateLimit,
@@ -58,8 +57,7 @@ internal static class HtmlRenderFontFaceLoader {
                     fonts,
                     reported,
                     usage,
-                    definitionOrder++,
-                    ref decodedFontBytes);
+                    definitionOrder++);
             }
         }
 
@@ -76,8 +74,7 @@ internal static class HtmlRenderFontFaceLoader {
         OfficeFontFaceCollection fonts,
         Dictionary<string, int> reported,
         HtmlRenderFontFaceUsage usage,
-        int definitionOrder,
-        ref long decodedFontBytes) {
+        int definitionOrder) {
         var definitionDiagnostics = new HashSet<int>();
         void Report(string code, string message, string? source, string? detail = null) =>
             definitionDiagnostics.Add(ReportOnce(diagnostics, reported, code, message, source, detail));
@@ -170,14 +167,12 @@ internal static class HtmlRenderFontFaceLoader {
                 continue;
             }
 
-            long remainingDecodedBytes = resources.MaxTotalResourceBytes
-                - resources.AcceptedResourceBytes
-                - decodedFontBytes;
+            long remainingDecodedBytes = resources.RemainingFontBytes;
             if (remainingDecodedBytes <= 0L) {
                 Report(HtmlRenderDiagnosticCodes.TotalResourceByteLimitExceeded,
                     "Decoded font data exceeded the configured operation-wide resource budget.",
                     source,
-                    "decodedFontBytes=" + decodedFontBytes);
+                    "decodedFontBytes=" + resources.DecodedFontBytes);
                 continue;
             }
 
@@ -191,7 +186,7 @@ internal static class HtmlRenderFontFaceLoader {
                 out int acceptedDecodedBytes,
                 out string? fontError,
                 applyDescriptorWeight: true)) {
-                decodedFontBytes += acceptedDecodedBytes;
+                resources.AcceptDecodedFontBytes(acceptedDecodedBytes);
                 usage.RegisterAvailable(definition.FamilyName, descriptor, ranges, definitionOrder, definitionDiagnostics);
                 return;
             }
