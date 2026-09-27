@@ -3,10 +3,40 @@ using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartSecondaryAxisLayoutTests {
+    [Theory]
+    [InlineData("zeroUnit")]
+    [InlineData("invertedBounds")]
+    [InlineData("malformedNumber")]
+    [InlineData("logarithmic")]
+    [InlineData("reversed")]
+    [InlineData("displayUnits")]
+    public void SecondaryValueAxis_InvalidImportedSettingsRejectSnapshot(string setting) {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Results");
+        var chart = sheet.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }), 1, 1);
+        var secondary = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        if (setting == "zeroUnit") secondary.AddChild(new C.MajorUnit { Val = 0 }, true);
+        else if (setting == "invertedBounds") {
+            secondary.Scaling!.AddChild(new C.MinAxisValue { Val = 2 }, true);
+            secondary.Scaling.AddChild(new C.MaxAxisValue { Val = 1 }, true);
+        } else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+        else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
+        else if (setting == "displayUnits") secondary.AddChild(new C.DisplayUnits(
+            new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
+        else secondary.Scaling!.AddChild(new C.MaxAxisValue { Val = new DocumentFormat.OpenXml.DoubleValue { InnerText = "invalid" } }, true);
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
     [Fact]
     public void SecondaryValueAxis_ReopenSnapshotPreservesIndependentSettings() {
         using var document = ExcelDocument.Create();

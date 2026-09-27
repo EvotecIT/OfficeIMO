@@ -96,6 +96,9 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (!forDataUpdate)
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea);
+
                 if (!forDataUpdate
                     && !TryReadSharedTextStyle(chart, out _)) {
                     snapshot = null!;

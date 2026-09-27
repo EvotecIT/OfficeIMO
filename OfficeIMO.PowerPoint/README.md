@@ -356,6 +356,8 @@ majorUnit: 10, numberFormat: "0"))` to give the secondary value axis an independ
 scale. Native data updates preserve these settings, and snapshots carry its bounds, tick units,
 tick appearance, and number format separately from the primary axis. Use the optional
 `majorTickMark` and `minorTickMark` settings for independent inside, outside, or crossing ticks.
+Static snapshots reject secondary logarithmic or reversed scales, display units, and explicit
+numeric crossing values. Native data updates preserve these settings.
 
 The shared authoring overload covers clustered, stacked, and 100% stacked column/bar; line variants; area
 variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
