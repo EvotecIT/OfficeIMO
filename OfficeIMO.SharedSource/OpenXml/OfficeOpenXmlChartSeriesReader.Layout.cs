@@ -6,7 +6,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind) {
+        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, string? axisTitleFont = null) {
             var labels = ReadLabels(chart);
             var legend = chart.GetFirstChild<C.Legend>();
             var position = legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
@@ -38,6 +38,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (axis!.GetFirstChild<C.Scaling>()?.GetFirstChild<C.LogBase>() != null)
                     throw new NotSupportedException("Logarithmic chart axes cannot be projected.");
             }
+            QualifySecondaryLayout(plot, vertical);
             return new OfficeChartLayout(overlayLegend: legend?.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false,
                 overlayTitle: chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>() is C.Overlay title && title.Val?.Value != false,
                 showLegend: legend != null, legendPosition: sharedPosition, hiddenCategoryLegendIndexes: hidden,
@@ -45,7 +46,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 showDataLabelSeriesNames: labels.SeriesNames, showDataLabelPercentages: labels.Percentages,
                 dataLabelSeparator: labels.Separator, dataLabelNumberFormat: labels.NumberFormat, dataLabelPosition: labels.Position,
                 fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
-                categoryAxisTitle: ReadLayoutTitle(horizontal), valueAxisTitle: ReadLayoutTitle(vertical),
+                categoryAxisTitle: ReadLayoutTitle(horizontal), valueAxisTitle: ReadLayoutTitle(vertical), axisTitleFontFamily: axisTitleFont,
                 categoryAxisNumberFormat: horizontal is C.ValueAxis ? null : ReadLayoutFormat(horizontal),
                 horizontalAxisNumberFormat: horizontal is C.ValueAxis ? ReadLayoutFormat(horizontal) : null,
                 verticalAxisNumberFormat: ReadLayoutFormat(vertical),
@@ -64,6 +65,36 @@ namespace OfficeIMO.OpenXml.Internal {
                 verticalAxisMinorTickMark: ReadLayoutTick(vertical?.GetFirstChild<C.MinorTickMark>()?.Val?.Value),
                 reverseCategoryAxis: horizontal is not C.ValueAxis && horizontal?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin,
                 categoryAxisOrientationSpecified: horizontal is not C.ValueAxis && horizontal?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null);
+        }
+
+        private static void QualifySecondaryLayout(C.PlotArea? plot, OpenXmlCompositeElement? primaryValueAxis) {
+            if (plot == null) return;
+            var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
+            var secondaryLayers = plot.ChildElements.OfType<OpenXmlCompositeElement>().Where(element =>
+                element.LocalName.EndsWith("Chart", StringComparison.Ordinal) && groups.Read(element) == OfficeChartAxisGroup.Secondary).ToArray();
+            if (secondaryLayers.Length == 0) return;
+            // The shared secondary renderer currently uses automatic scales and the primary
+            // value-label treatment. Reject native settings it cannot represent independently.
+            foreach (var axis in secondaryLayers.SelectMany(layer => layer.Elements<C.AxisId>())
+                .Select(reference => groups.Resolve(reference.Val?.Value)).Distinct()) {
+                if (axis == null) throw new NotSupportedException("The secondary chart axes cannot be resolved.");
+                if (axis.GetFirstChild<C.Title>() != null || axis.GetFirstChild<C.ChartShapeProperties>() != null ||
+                    axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
+                    throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
+                if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None))
+                    throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
+                if (axis is C.ValueAxis) QualifyAutomaticSecondaryScale(axis);
+            }
+            if (primaryValueAxis != null) QualifyAutomaticSecondaryScale(primaryValueAxis);
+        }
+
+        private static void QualifyAutomaticSecondaryScale(OpenXmlCompositeElement axis) {
+            var scaling = axis.GetFirstChild<C.Scaling>();
+            if (scaling?.GetFirstChild<C.MinAxisValue>() != null || scaling?.GetFirstChild<C.MaxAxisValue>() != null ||
+                scaling?.GetFirstChild<C.LogBase>() != null || scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
+                axis.GetFirstChild<C.MajorUnit>() != null || axis.GetFirstChild<C.MinorUnit>() != null ||
+                axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value is string format && !string.Equals(format, "General", StringComparison.OrdinalIgnoreCase))
+                throw new NotSupportedException("Independent secondary-axis scales and formats cannot be projected.");
         }
 
         private static string? ReadLayoutTitle(OpenXmlCompositeElement? axis) {

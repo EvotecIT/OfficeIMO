@@ -103,7 +103,7 @@ doc.SaveAsMarkdown("report.md", options);
 - Headers, footers, and native Word table-of-contents fields are exported as semantic Markdown blocks/markers and restored on import where possible.
 - `VisualFallbackMode.SvgDataUri` embeds supported Word chart snapshots directly in Markdown as SVG images.
 - `VisualFallbackMode.SvgFile` writes supported chart snapshots into a sidecar `*.assets` directory next to the Markdown file and links to those files.
-- Chart SVG fallbacks preserve cached chart data, chart type, dimensions, series colors, pie/doughnut point colors, common theme/scheme colors, and basic transparency transforms. Unsupported chart constructs remain semantic placeholders instead of being silently dropped when `UnsupportedContentMode.Placeholder` is enabled.
+- Chart SVG fallbacks use the shared Word chart projection. They preserve supported cached values, numeric X coordinates, bubble sizes, category combinations and secondary-axis assignments, dimensions, native plotting order, series and point styles, radial geometry, basic label content, surfaces, axes, and resolved fonts. Secondary scales are automatic; unsupported native settings remain semantic placeholders when `UnsupportedContentMode.Placeholder` is enabled.
 
 ## Explicit IntelligenceX transcript contract
 

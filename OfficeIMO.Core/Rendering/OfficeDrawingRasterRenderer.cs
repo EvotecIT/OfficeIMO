@@ -578,7 +578,8 @@ public static partial class OfficeDrawingRasterRenderer {
         if (fillRadialGradient != null || fillGradient != null || fill.HasValue) {
             List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
-                if (contours[i].Closed && contours[i].Points.Count >= 3) {
+                // Filled contours close implicitly; retain their open state for stroking.
+                if (contours[i].Points.Count >= 3) {
                     closedContours.Add(TransformShapePoints(drawingShape, contours[i].Points, scale));
                 }
             }
@@ -913,7 +914,8 @@ public static partial class OfficeDrawingRasterRenderer {
         if (fillRadialGradient != null || fillGradient != null || fill.HasValue) {
             List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
-                if (contours[i].Closed && contours[i].Points.Count >= 3) {
+                // SVG and PDF fills close open contours without closing their strokes.
+                if (contours[i].Points.Count >= 3) {
                     closedContours.Add(contours[i].Points);
                 }
             }

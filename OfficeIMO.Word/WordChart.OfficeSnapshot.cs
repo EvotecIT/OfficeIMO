@@ -18,7 +18,8 @@ public partial class WordChart {
             if (_chartPart == null || chart == null) return false;
             // Preserve the existing flat projection for single legacy 3-D groups. A rejected
             // 2-D projection must never fall back through a less strict legacy reader.
-            var groups = chart.PlotArea?.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
+            var groups = chart.PlotArea?.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).Take(10001).ToArray();
+            if (groups?.Length > 10000) return false;
             if (groups?.Length == 1 && groups[0] is C.Bar3DChart or C.Line3DChart or C.Area3DChart or C.Pie3DChart) {
                 if (!TryGetSnapshot(out var legacy) || !OfficeOpenXmlChartSeriesReader.TryReadKind(groups[0], out var legacyKind)) return false;
                 snapshot = new OfficeChartSnapshot(legacy.Name, legacy.Title, legacyKind,
@@ -30,8 +31,11 @@ public partial class WordChart {
             var data = OfficeOpenXmlChartSeriesReader.ReadPlot(_chartPart, chart, scheme, (int)MaxCachedChartPoints,
                 out var kind, out var bubbleScale, out var bubbleMode);
             if (data == null) return false;
+            var textReader = new OfficeOpenXmlChartTextReader(_document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.FontScheme);
+            if (!textReader.TryReadSharedTextStyle(chart, out var textStyle) ||
+                !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) return false;
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, data.ToData(), GetWidthPoints(), GetHeightPoints(),
-                OfficeOpenXmlChartSeriesReader.ReadStyle(chart, kind, scheme), OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind),
+                OfficeOpenXmlChartSeriesReader.ReadStyle(chart, kind, scheme, textStyle), OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, axisTitleFont),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
             return true;
         } catch {
