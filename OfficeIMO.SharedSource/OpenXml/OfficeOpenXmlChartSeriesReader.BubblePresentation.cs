@@ -207,7 +207,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
 
         private static bool HasUnsupportedSharedAxisNumberFormat(
-            C.ValueAxis axis) {
+            OpenXmlCompositeElement axis) {
             string? format = axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
             if (string.IsNullOrWhiteSpace(format)) return false;
             if (string.Equals(format, "General",

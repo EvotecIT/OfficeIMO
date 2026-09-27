@@ -185,6 +185,23 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Theory]
+    [InlineData("m/d/yyyy")]
+    [InlineData("# ?/?")]
+    [InlineData("0.00E+00")]
+    [InlineData("[>=100]0;0")]
+    public void Snapshot_RejectsUnrepresentedNumericCategoryFormats(string format) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Line);
+        var native = chart.ChartPart!.ChartSpace!;
+        var categories = native.Descendants<C.CategoryAxisData>().Single();
+        categories.RemoveAllChildren();
+        categories.Append(new C.NumberLiteral(new C.FormatCode("General"), new C.PointCount { Val = 2 },
+            new C.NumericPoint(new C.NumericValue("1")) { Index = 0 }, new C.NumericPoint(new C.NumericValue("2")) { Index = 1 }));
+        native.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.NumberingFormat>()!.FormatCode = format;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void Snapshot_RejectsUnrepresentedMaximumCrossingForBars(bool valueAxis) {
