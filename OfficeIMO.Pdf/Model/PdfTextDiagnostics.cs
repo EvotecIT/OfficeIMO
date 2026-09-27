@@ -668,7 +668,7 @@ internal static class PdfTextDiagnostics {
             }
 
             if (info != null) {
-                AddFontLayoutDiagnostics(run.Text, info, diagnostics, reportedCodes, source, indexOffset: 0);
+                AddFontLayoutDiagnostics(run.Text, info, diagnostics, reportedCodes, source, indexOffset: 0, featureSettings: run.FeatureSettings);
             }
         }
 

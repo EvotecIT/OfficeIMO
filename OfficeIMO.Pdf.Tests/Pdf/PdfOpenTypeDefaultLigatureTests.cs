@@ -514,6 +514,26 @@ public class PdfOpenTypeDefaultLigatureTests {
         Assert.DoesNotContain(PdfTextDiagnostics.AnalyzeAdvancedTextLayout("fi", font), diagnostic => diagnostic.Code == "unsupported-font-ligature-substitution");
     }
 
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, false)]
+    [InlineData(1, true)]
+    public void RunLayoutDiagnosticsHonorEachRunsOptionalFeatures(int enabled, bool configuredRunFirst) {
+        byte[] data = ManagedTextShapingTestAssets.CreateFontWithLigature('f', 'i', featureTag: "dlig", scriptTag: "latn", lookupFlags: 8);
+        var configured = new PdfTextRun("fi").WithFeatureSettings(OfficeTextFeatureSettings.Default.With("dlig", enabled));
+        var ordinary = new PdfTextRun("fi");
+        var runs = configuredRunFirst ? new[] { configured, ordinary } : new[] { ordinary, configured };
+
+        var diagnostics = PdfTextDiagnostics.AnalyzeAdvancedTextLayoutRuns(runs, data, source: "Run preflight");
+        var substitutions = diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-font-ligature-substitution").ToList();
+        if (enabled == 1) {
+            Assert.Single(substitutions);
+            Assert.Equal("Run preflight", substitutions[0].Source);
+        } else {
+            Assert.Empty(substitutions);
+        }
+    }
+
     [Fact]
     public void LogicalWordScopeIncludesMultipleSubstitutionContinuations() {
         var glyphs = new[] {
