@@ -26,6 +26,38 @@ public sealed class DrawingChartPointStylesTests {
         Assert.Throws<ArgumentException>(() => source.WithPointStyles(Array.Empty<OfficeChartPointStyle?>()));
     }
 
+    [Theory]
+    [InlineData(OfficeChartHatchPattern.Horizontal)]
+    [InlineData(OfficeChartHatchPattern.Vertical)]
+    [InlineData(OfficeChartHatchPattern.ForwardDiagonal)]
+    [InlineData(OfficeChartHatchPattern.BackwardDiagonal)]
+    [InlineData(OfficeChartHatchPattern.Cross)]
+    [InlineData(OfficeChartHatchPattern.DiagonalCross)]
+    public void PointStyles_HatchesCoverEveryQuadrantOfThePoint(OfficeChartHatchPattern hatch) {
+        OfficeColor ink = OfficeColor.Parse("#7300A3");
+        var series = new OfficeChartSeries("Results", new[] { 8d }).WithPointStyles(
+            new OfficeChartPointStyle?[] { new(hatch: hatch, hatchColor: ink) });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
+            OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { series }), 320, 240,
+            style: new OfficeChartStyle(backgroundColor: OfficeColor.Parse("#EEEEEE")),
+            layout: new OfficeChartLayout(showLegend: false)));
+        var bar = drawing.Shapes.Single(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.FillColor == OfficeColor.White && shape.Shape.Height > 50);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        for (int row = 0; row < 2; row++)
+            for (int column = 0; column < 2; column++) {
+                int pixels = 0;
+                int left = (int)(bar.X + column * bar.Shape.Width / 2) + 3;
+                int top = (int)(bar.Y + row * bar.Shape.Height / 2) + 3;
+                int right = (int)(bar.X + (column + 1) * bar.Shape.Width / 2) - 3;
+                int bottom = (int)(bar.Y + (row + 1) * bar.Shape.Height / 2) - 3;
+                for (int y = top; y < bottom; y++)
+                    for (int x = left; x < right; x++)
+                        if (IsPurpleStroke(raster.GetPixel(x, y))) pixels++;
+                Assert.True(pixels > 10, "Expected hatch coverage in quadrant " + row + "," + column);
+            }
+    }
+
     [Fact]
     public void PointStyles_RejectContradictoryAndUnboundedAppearance() {
         Assert.Throws<ArgumentException>(() => new OfficeChartPointStyle(OfficeColor.Black, noFill: true));
@@ -67,4 +99,7 @@ public sealed class DrawingChartPointStylesTests {
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.DoesNotContain(">B<", svg, StringComparison.Ordinal);
     }
+    // Thin hatch strokes blend with their background during antialiasing.
+    private static bool IsPurpleStroke(OfficeColor pixel) =>
+        pixel.R < 200 && pixel.G < 150 && pixel.B > pixel.G + 40 && pixel.R > pixel.G + 20;
 }

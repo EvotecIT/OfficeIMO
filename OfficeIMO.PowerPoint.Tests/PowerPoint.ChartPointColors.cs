@@ -87,7 +87,8 @@ namespace OfficeIMO.Tests {
                 CreateData(OfficeChartKind.Doughnut, Colors), 1, 1, 20, 10);
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
-            OfficeColor[] swatches = drawing.Shapes.Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            OfficeColor[] swatches = drawing.Shapes.Where(shape =>
+                (shape.Shape.Kind == OfficeShapeKind.Rectangle || shape.Shape.Kind == OfficeShapeKind.Polygon) &&
                 shape.Shape.FillColor.HasValue && shape.Shape.Width < 20 && shape.Shape.Height < 20)
                 .Select(shape => shape.Shape.FillColor!.Value).ToArray();
             Assert.Equal(new[] { Colors[0]!.Value, OfficeColor.FromRgb(90, 100, 110), Colors[2]!.Value }, swatches);

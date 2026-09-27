@@ -5,6 +5,7 @@ using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
+using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -48,8 +49,8 @@ public sealed class PowerPointChartPointStylesTests {
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
     [InlineData(OfficeChartKind.ColumnClustered)]
-    public void PointStyles_RenderHatchesInPngAndHtml(OfficeChartKind kind) {
-        var hatch = new OfficeChartPointStyle(OfficeColor.White, hatch: OfficeChartHatchPattern.DiagonalCross,
+    public void PointStyles_RenderHatchesInPngHtmlAndPdf(OfficeChartKind kind) {
+        var hatch = new OfficeChartPointStyle(hatch: OfficeChartHatchPattern.DiagonalCross,
             hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black, outlineWidth: 2);
         using PowerPointPresentation presentation = PowerPointPresentation.Create();
         presentation.SlideSize.SetSizePoints(640, 360);
@@ -58,11 +59,20 @@ public sealed class PowerPointChartPointStylesTests {
         int hatchPixels = 0;
         for (int y = 0; y < raster!.Height; y++)
             for (int x = 0; x < raster.Width; x++)
-                if (raster.GetPixel(x, y).Equals(hatch.HatchColor!.Value)) hatchPixels++;
+                if (IsPurpleStroke(raster.GetPixel(x, y))) hatchPixels++;
         Assert.True(hatchPixels > 50, "Hatch strokes should be visible; actual pixels " + hatchPixels);
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions { ExportProfile = PowerPointHtmlExportProfile.VisualReview });
         Assert.Contains("clipPath", html, StringComparison.Ordinal);
         Assert.Contains("#7300A3", html, StringComparison.OrdinalIgnoreCase);
+        byte[] pdf = presentation.ToPdfBytes();
+        var page = Assert.Single(OfficeIMO.Pdf.PdfDocument.Load(pdf).Render.Pages(options:
+            new OfficeIMO.Pdf.PdfPageRenderOptions { Dpi = 72, MaxPages = 1, ContinueOnError = false }));
+        Assert.True(OfficePngReader.TryDecode(page.Bytes!, out raster));
+        hatchPixels = 0;
+        for (int y = 0; y < raster!.Height; y++)
+            for (int x = 0; x < raster.Width; x++)
+                if (IsPurpleStroke(raster.GetPixel(x, y))) hatchPixels++;
+        Assert.True(hatchPixels > 50, "Hatch strokes should be visible in PDF; actual pixels " + hatchPixels);
     }
 
     private static OfficeChartData Data(OfficeChartKind kind, OfficeChartPointStyle?[] styles) {
@@ -82,4 +92,7 @@ public sealed class PowerPointChartPointStylesTests {
         Assert.Equal(hatch, styles[2]!.Hatch);
         Assert.Equal(OfficeColor.Parse("#7300A3"), styles[2]!.HatchColor);
     }
+    // Thin hatch strokes blend with their background during antialiasing.
+    private static bool IsPurpleStroke(OfficeColor pixel) =>
+        pixel.R < 200 && pixel.G < 150 && pixel.B > pixel.G + 40 && pixel.R > pixel.G + 20;
 }

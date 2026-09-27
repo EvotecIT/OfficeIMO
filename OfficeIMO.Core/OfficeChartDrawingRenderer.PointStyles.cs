@@ -86,7 +86,7 @@ public static partial class OfficeChartDrawingRenderer {
         // Keep cost bounded for large chart frames while maintaining a readable normal-size hatch.
         double step = Math.Max(6, (width + height) / 512);
         void Line(double x1, double y1, double x2, double y2) =>
-            AddShape(strokes, OfficeShape.Line(x1, y1, x2, y2), 0, 0, null, color, 0.75);
+            AddShape(strokes, OfficeShape.Line(x1, y1, x2, y2), Math.Min(x1, x2), Math.Min(y1, y2), null, color, 0.75);
         if (hatch == OfficeChartHatchPattern.Horizontal || hatch == OfficeChartHatchPattern.Cross)
             for (double y = step / 2; y < height; y += step) Line(0, y, width, y);
         if (hatch == OfficeChartHatchPattern.Vertical || hatch == OfficeChartHatchPattern.Cross)

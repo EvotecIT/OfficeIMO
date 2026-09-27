@@ -473,6 +473,18 @@ modernChart.SetTitle("Current pipeline")
 
 `ExcelModernChart` can inspect imported ChartEx objects and change their name, title, supported layout, and one-cell placement without replacing unrelated markup. `UpdateData` is available only when the ChartEx formulas resolve to OfficeIMO's owned hidden chart-data sheet; visible imported business data is never claimed as writable chart storage. Other imported charts remain formatting-preserving but data replacement is rejected. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.
 
+### Individual chart point styles
+
+Shared chart authoring accepts `OfficeChartSeries.WithPointStyles`; existing native charts
+can be edited with `chart.SetDataPointStyle(seriesIndex, pointIndex, style)`. Solid fills,
+explicit no-fill, outlines, and six hatch patterns remain editable in Excel and survive
+save/reopen. A null style clears the point's fill and outline overrides.
+
+Snapshots, managed image export, and PDF export carry these styles through the shared
+renderer. Pie and doughnut legend swatches follow their slice appearance. Static area charts
+retain their series fill and report unsupported per-point appearance. See the
+[shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+
 ### Pivot tables and pivot-backed charts
 
 ```csharp

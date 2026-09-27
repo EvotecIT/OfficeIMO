@@ -573,7 +573,7 @@ namespace OfficeIMO.Excel {
                 any = colors.Length > 0;
             }
 
-            foreach (C.DataPoint point in series.Elements<C.DataPoint>()) {
+            foreach (C.DataPoint point in OfficeOpenXmlChartPointStyles.GetBoundedPoints(series)) {
                 uint? rawIndex = point.GetFirstChild<C.Index>()?.Val?.Value;
                 if (rawIndex == null || rawIndex.Value > int.MaxValue) {
                     continue;

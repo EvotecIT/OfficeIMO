@@ -435,6 +435,18 @@ string markdown = document.ToMarkdown(new WordToMarkdownOptions());
 document.SaveAsPdf("report.pdf");
 ```
 
+## Individual chart point styles
+
+Use `chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to apply an
+`OfficeIMO.Drawing.OfficeChartPointStyle` to a native Word chart. Solid fill, explicit no-fill,
+outlines, and six hatch patterns are supported without changing the chart values.
+Passing null clears the point's fill and outline overrides.
+
+Native save/reopen, chart snapshots, managed images, PDF export, and Markdown SVG chart
+fallbacks carry supported point styles. Pie legend swatches follow their slices.
+Static area charts use the series fill and report unsupported per-point styling.
+See the [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+
 ## Managed image export
 
 Word page previews use the shared Drawing renderer and can be returned as PNG, JPEG, TIFF, lossless WebP, or SVG without Office automation:

@@ -796,7 +796,7 @@ namespace OfficeIMO.Word.Pdf {
 
             OfficeColor?[] colors = new OfficeColor?[valueCount];
             bool anyColor = false;
-            foreach (DataPoint point in seriesElement.Elements<DataPoint>()) {
+            foreach (DataPoint point in OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.GetBoundedPoints(seriesElement)) {
                 uint? index = point.Index?.Val?.Value;
                 if (!index.HasValue || index.Value >= valueCount) {
                     continue;

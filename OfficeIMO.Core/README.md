@@ -577,6 +577,29 @@ foreach (var issue in rendered.QualityReport.Issues) {
 }
 ```
 
+### Style individual chart points
+
+Use `OfficeChartSeries.WithPointStyles` to attach appearances aligned with the series values.
+The returned series preserves its data and other settings. A null entry inherits the point
+colour; an explicit no-fill style leaves an outlined slice visible without changing its value.
+
+```csharp
+var status = new OfficeChartSeries("Status", new[] { 8d, 2d, 1d })
+    .WithPointStyles(new OfficeChartPointStyle?[] {
+        new(fillColor: OfficeColor.Parse("#168A56")),
+        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
+        new(hatch: OfficeChartHatchPattern.DiagonalCross,
+            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black)
+    });
+```
+
+Hatches support horizontal, vertical, forward diagonal, backward diagonal, cross, and
+diagonal cross strokes. Their default background is white; set `fillColor` to choose another
+background. Outline widths use points. `showOutline: false` hides the outline explicitly.
+The renderer clips hatches to slice, bar, and marker geometry and styles category legend
+swatches with the same appearance. Per-point area styling is not applied by static rendering;
+`RenderWithQuality` reports `UnsupportedAppearance` and retains the series fill.
+
 ### Load first-party font programs for renderers
 
 ```csharp
