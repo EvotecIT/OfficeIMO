@@ -9,8 +9,8 @@ using OfficeIMO.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
-namespace OfficeIMO.PowerPoint {
-    internal static partial class PowerPointUtils {
+namespace OfficeIMO.OpenXml.Internal {
+    internal static partial class OfficeOpenXmlChartWriter {
         internal static byte[] BuildBubbleChartWorkbook(OfficeChartData data) {
             if (data == null) throw new ArgumentNullException(nameof(data));
 

@@ -4,8 +4,8 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
-namespace OfficeIMO.PowerPoint {
-    internal static partial class PowerPointUtils {
+namespace OfficeIMO.OpenXml.Internal {
+    internal static partial class OfficeOpenXmlChartWriter {
         private static void PreserveSharedChartFormatting(
             C.PlotArea source, C.PlotArea replacement,
             ISet<uint> preservedSeriesIndexes) {
