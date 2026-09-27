@@ -24,6 +24,7 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor? outline = style?.ShowOutline == false ? null : style?.OutlineColor ?? defaultOutline;
         if (style?.ShowOutline == true && !outline.HasValue) outline = OfficeColor.Black;
         double width = style?.OutlineWidth ?? defaultWidth;
+        if (outline.HasValue && width <= 0 && (style?.ShowOutline == true || style?.OutlineColor != null)) width = 0.75;
         AddShape(drawing, shape.Clone(), x, y, fill, style?.Hatch == null ? outline : null, width);
         if (style?.Hatch is OfficeChartHatchPattern hatch && shape.Width > 0 && shape.Height > 0) {
             OfficeClipPath clip;
@@ -51,6 +52,11 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor? outline = pointStyle?.ShowOutline == false ? null : pointStyle?.OutlineColor ?? defaultOutline;
         double outlineWidth = pointStyle?.OutlineWidth ?? defaultWidth;
         if (pointStyle?.ShowOutline == true && !outline.HasValue) outline = OfficeColor.Black;
+        if (outline.HasValue && outlineWidth <= 0 && (pointStyle?.ShowOutline == true || pointStyle?.OutlineColor != null)) outlineWidth = 0.75;
+        if (pointStyle?.Hatch == null) {
+            AddPolygonShape(drawing, points, fill, outline, outlineWidth);
+            return;
+        }
         AddPolygonShape(drawing, points, fill, null, 0);
         if (pointStyle?.Hatch is OfficeChartHatchPattern hatch) {
             AddPointHatch(drawing, points, hatch, pointStyle.HatchColor!.Value);
