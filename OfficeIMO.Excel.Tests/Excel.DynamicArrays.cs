@@ -127,11 +127,71 @@ namespace OfficeIMO.Tests {
             var sheet = document.AddWorksheet("Data");
             sheet.SetDynamicArrayFormula("G1", "SEQUENCE(K2,2)");
             sheet.SetDynamicArrayFormula("K1", "SEQUENCE(2,2)");
+            Assert.All(sheet.InspectFormulas().Formulas, formula => Assert.True(formula.IsSupportedByOfficeIMO));
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(3, 8, out var downstream));
             Assert.Equal("6", downstream);
             Assert.True(sheet.TryGetCellText(2, 12, out var upstream));
             Assert.Equal("4", upstream);
+        }
+
+        [Fact]
+        public void DynamicArrays_RichTextAndImagesCannotReplaceOwnedCells() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Data");
+            sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
+            document.RecalculateSupportedFormulas();
+            Assert.Throws<InvalidOperationException>(() =>
+                sheet.SetRichText(2, 8, new[] { new ExcelRichTextRun("text") }));
+            Assert.Throws<InvalidOperationException>(() =>
+                sheet.SetRichText(1, 7, new[] { new ExcelRichTextRun("text") }));
+            Assert.Throws<InvalidOperationException>(() => sheet.SetInCellImage(2, 8, TinyPng));
+            Assert.Throws<InvalidOperationException>(() => sheet.SetInCellImage(1, 7, TinyPng));
+            var table = new System.Data.DataTable();
+            table.Columns.Add("Value", typeof(int));
+            table.Rows.Add(99);
+            Assert.Throws<InvalidOperationException>(() =>
+                sheet.InsertDataTable(table, startRow: 2, startColumn: 8, includeHeaders: false));
+            document.RecalculateSupportedFormulas();
+            Assert.True(sheet.TryGetCellText(2, 8, out var child));
+            Assert.Equal("4", child);
+        }
+
+        [Fact]
+        public void DynamicArrays_ImportedContentInsideOldRangeBlocksWithoutDataLoss() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Data");
+            sheet.SetDynamicArrayFormula("G1", "SEQUENCE(2,2)");
+            document.RecalculateSupportedFormulas();
+            var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                cell => cell.CellReference?.Value == "H2");
+            child.CellValue = null;
+            child.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;
+            child.InlineString = new DocumentFormat.OpenXml.Spreadsheet.InlineString(
+                new DocumentFormat.OpenXml.Spreadsheet.Text("external"));
+            document.RecalculateSupportedFormulas();
+            Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
+            Assert.Equal("#SPILL!", error);
+            Assert.True(sheet.TryGetCellText(2, 8, out var retained));
+            Assert.Equal("external", retained);
+        }
+
+        [Fact]
+        public void DynamicArrays_TextTransformationCannotRewriteSpillChildren() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "alpha");
+            sheet.CellValue(2, 1, "beta");
+            sheet.CellValue(1, 2, 1);
+            sheet.CellValue(2, 2, 1);
+            sheet.SetDynamicArrayFormula("G1", "FILTER(A1:A2,B1:B2)");
+            document.RecalculateSupportedFormulas();
+            Assert.True(sheet.TryGetCellText(2, 7, out var original));
+            Assert.Equal("beta", original);
+            Assert.Throws<InvalidOperationException>(() => sheet.TransformCellTextCase(
+                2, 7, OfficeIMO.Drawing.OfficeTextCase.Uppercase));
+            Assert.True(sheet.TryGetCellText(2, 7, out var retained));
+            Assert.Equal("beta", retained);
         }
 
         [Fact]

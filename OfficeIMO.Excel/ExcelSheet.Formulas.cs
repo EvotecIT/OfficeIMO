@@ -350,6 +350,7 @@ namespace OfficeIMO.Excel {
                     [Name] = sharedFormulaDefinitions
                 };
                 try {
+                    if (metadataPart != null) PlanDynamicArrayOwners();
                     foreach (Cell cell in formulaCells) {
                         _formulaEvaluationGuardState.DependencyGuardBlocked = false;
                         string formula = ResolveCellFormulaText(cell, sharedFormulaDefinitions);

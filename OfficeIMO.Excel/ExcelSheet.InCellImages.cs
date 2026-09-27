@@ -123,6 +123,7 @@ namespace OfficeIMO.Excel {
             string contentType,
             string altText,
             OpenXmlPart? reusableImagePart) {
+            EnsureDynamicArrayCellWritable(row, column);
             Cell cell = GetCell(row, column);
             if (reusableImagePart == null
                 && cell.ValueMetaIndex != null

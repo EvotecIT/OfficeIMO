@@ -76,6 +76,7 @@ namespace OfficeIMO.Excel {
 
         private void WriteDynamicArrayFormulaCache(DynamicArrayPlan plan) {
             Cell anchor = plan.Owner.Cell;
+            string? previousReference = anchor.CellFormula?.Reference?.Value;
             if (plan.ErrorSubtype != 0) {
                 anchor.CellFormula!.Reference = anchor.CellReference!.Value!;
                 TryWriteRichFormulaError(anchor, "#SPILL!", plan);
@@ -97,14 +98,15 @@ namespace OfficeIMO.Excel {
                     if (row == plan.Owner.Top && column == plan.Owner.Left) continue;
                     if (plan.Array != null && row <= plan.Bottom && column <= plan.Right) continue;
                     if (!index.Cells.TryGetValue(DynamicCellKey(row, column), out Cell? cell)) continue;
-                    if (cell.CellFormula != null || cell.CellMetaIndex != null) continue;
+                    if (!IsOwnedDynamicSpillCachedCell(cell)) continue;
                     cell.CellValue = null;
                     cell.InlineString = null;
                     cell.DataType = null;
                     cell.ValueMetaIndex = null;
                     if (cell.StyleIndex == null && !cell.HasChildren) cell.Remove();
                 }
-            InvalidateDynamicArrayWriteIndex();
+            if (!string.Equals(previousReference, anchor.CellFormula?.Reference?.Value, StringComparison.Ordinal))
+                InvalidateDynamicArrayWriteIndex();
         }
 
         private bool TryPlanDynamicArray(FixedArrayOwner owner, FormulaArrayValue array,
@@ -171,22 +173,32 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static bool IsDynamicSpillObstacle(FixedArrayOwner owner, Cell cell, int row, int column) {
-            if (cell.CellFormula != null || cell.CellMetaIndex != null) return true;
-            if (cell.ValueMetaIndex != null && cell.DataType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) return true;
+        private bool IsDynamicSpillObstacle(FixedArrayOwner owner, Cell cell, int row, int column) {
             if (row >= owner.Top && row <= owner.Bottom && column >= owner.Left && column <= owner.Right)
-                return false;
+                return !IsOwnedDynamicSpillCachedCell(cell);
             return cell.CellValue != null || cell.InlineString != null || cell.ValueMetaIndex != null;
         }
 
-        private static void RetireOldDynamicChildren(ArrayCalculationContext context, DynamicArrayPlan plan) {
+        private bool IsOwnedDynamicSpillCachedCell(Cell cell) {
+            if (cell.CellFormula != null || cell.CellMetaIndex != null || cell.InlineString != null) return false;
+            if (cell.ValueMetaIndex == null) return true;
+            if (cell.DataType?.Value != DocumentFormat.OpenXml.Spreadsheet.CellValues.Error) return false;
+            string? error = ResolveRichValueError(cell, cell.CellValue?.Text);
+            return error == "#CALC!" || error == "#SPILL!";
+        }
+
+        private void RetireOldDynamicChildren(ArrayCalculationContext context, DynamicArrayPlan plan) {
             FixedArrayOwner owner = plan.Owner;
+            FixedArraySheetIndex index = GetFixedArraySheetIndex();
             for (int row = owner.Top; row <= owner.Bottom; row++)
                 for (int column = owner.Left; column <= owner.Right; column++) {
                     if (row == owner.Top && column == owner.Left) continue;
                     if (plan.Array != null && row <= plan.Bottom && column <= plan.Right) continue;
-                    context.DynamicCells.Remove(DynamicCellKey(row, column));
-                    context.DynamicRetiredCells.Add(DynamicCellKey(row, column));
+                    long key = DynamicCellKey(row, column);
+                    if (index.Cells.TryGetValue(key, out Cell? oldCell)
+                        && !IsOwnedDynamicSpillCachedCell(oldCell)) continue;
+                    context.DynamicCells.Remove(key);
+                    context.DynamicRetiredCells.Add(key);
                 }
         }
 
