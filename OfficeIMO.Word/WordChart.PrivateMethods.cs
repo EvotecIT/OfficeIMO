@@ -41,6 +41,7 @@ namespace OfficeIMO.Word {
                 if (chartElement == null) {
                     chartElement = _chart.PlotArea?.GetFirstChild<Pie3DChart>();
                 }
+                chartElement ??= _chart.PlotArea?.GetFirstChild<DoughnutChart>();
 
                 if (chartElement != null) {
                     var pieChartSeries = chartElement.GetFirstChild<PieChartSeries>();
