@@ -628,7 +628,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         return tag;
     }
 
-    private double ResolveFontSize(string value, double parentFontSize, double rootFontSize) {
+    internal double ResolveFontSize(string value, double parentFontSize, double rootFontSize) {
         if (string.IsNullOrWhiteSpace(value)) return parentFontSize;
         string normalized = value.Trim().ToLowerInvariant();
         if (HtmlRenderCssValues.TryResolveFontSizeKeyword(

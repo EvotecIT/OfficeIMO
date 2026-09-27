@@ -13,7 +13,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         byte[]? bytes;
         OfficeImageInfo? imageInfo;
-        if (!TryReadInlineSvgSource(element, out bytes, out imageInfo)) {
+        if (!TryReadInlineSvgSource(element, style.Font.Size, out bytes, out imageInfo)) {
             bytes = null;
             imageInfo = null;
             string sourceDescription = HtmlRenderStyleResolver.DescribeSource(element);

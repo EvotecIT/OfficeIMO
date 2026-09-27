@@ -20,7 +20,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         byte[]? bytes = null;
         string contentType = string.Empty;
         OfficeImageInfo? imageInfo = null;
-        if (TryReadInlineSvgSource(element, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
+        if (TryReadInlineSvgSource(element, style.Font.Size, out byte[]? inlineSvg, out OfficeImageInfo? inlineSvgInfo)) {
             bytes = inlineSvg;
             contentType = "image/svg+xml";
             imageInfo = inlineSvgInfo;
@@ -155,6 +155,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private bool TryReadInlineSvgSource(
         IElement element,
+        double resolvedRootFontSize,
         out byte[]? bytes,
         out OfficeImageInfo? imageInfo) {
         bytes = null;
@@ -169,9 +170,35 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .ToArray();
             IReadOnlyList<XElement> svgElements = svg.DescendantsAndSelf().ToArray();
             int count = Math.Min(htmlElements.Count, svgElements.Count);
+            var fontSizes = new Dictionary<IElement, double>();
             for (int index = 0; index < count; index++) {
-                if (!_computedStyles.Elements.TryGetValue(htmlElements[index], out HtmlComputedStyle? computed)) continue;
-                string computedSvgStyle = BuildInlineSvgComputedStyle(computed);
+                IElement current = htmlElements[index];
+                double inheritedFontSize = current.ParentElement != null && fontSizes.TryGetValue(current.ParentElement, out double parentSize)
+                    ? parentSize : resolvedRootFontSize;
+                if (!_computedStyles.Elements.TryGetValue(current, out HtmlComputedStyle? computed)) {
+                    fontSizes[current] = inheritedFontSize;
+                    continue;
+                }
+                string fontSizeValue = computed.GetValue("font-size");
+                bool hasSpecifiedFontSize = computed.IsSpecifiedValue("font-size")
+                    || !computed.IsImplicitlyInheritedValue("font-size")
+                        && (computed.IsInheritedValue("font-size") || !string.IsNullOrWhiteSpace(fontSizeValue));
+                string? presentationFontSize = hasSpecifiedFontSize ? null : current.GetAttribute("font-size");
+                // CSS font sizes use the HTML used-value context. Presentation attributes remain
+                // in SVG for its tolerant reader; their value also establishes descendant em/% context.
+                double usedFontSize = index == 0 && string.IsNullOrWhiteSpace(presentationFontSize)
+                    ? resolvedRootFontSize
+                    : hasSpecifiedFontSize && computed.IsInheritedValue("font-size")
+                    ? inheritedFontSize
+                    : !hasSpecifiedFontSize && double.TryParse(presentationFontSize,
+                        System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double presentationSize)
+                        && !double.IsNaN(presentationSize) && !double.IsInfinity(presentationSize) && presentationSize >= 0D
+                    ? presentationSize
+                    : _styleResolver.ResolveFontSize(hasSpecifiedFontSize ? fontSizeValue : presentationFontSize ?? string.Empty,
+                        inheritedFontSize, _styleResolver.RootFontSize);
+                fontSizes[current] = usedFontSize;
+                bool projectFontSize = hasSpecifiedFontSize || index == 0 && string.IsNullOrWhiteSpace(presentationFontSize);
+                string computedSvgStyle = BuildInlineSvgComputedStyle(computed, projectFontSize ? usedFontSize : null);
                 if (computedSvgStyle.Length > 0) svgElements[index].SetAttributeValue("style", computedSvgStyle);
             }
             source = svg.ToString(SaveOptions.DisableFormatting);
@@ -185,13 +212,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private static string BuildInlineSvgComputedStyle(HtmlComputedStyle computed) {
+    private static string BuildInlineSvgComputedStyle(HtmlComputedStyle computed, double? fontSize) {
         var style = new StringBuilder();
         foreach (KeyValuePair<string, string> property in computed.Properties) {
+            if (property.Key.Equals("font-size", StringComparison.OrdinalIgnoreCase)) continue;
             if (!property.Key.StartsWith("--", StringComparison.Ordinal)
                 && !IsSvgComputedStyleProperty(property.Key)) continue;
             if (style.Length > 0) style.Append(';');
             style.Append(property.Key).Append(':').Append(property.Value);
+        }
+        if (fontSize.HasValue) {
+            if (style.Length > 0) style.Append(';');
+            style.Append("font-size:").Append(fontSize.Value.ToString("R", System.Globalization.CultureInfo.InvariantCulture)).Append("px");
         }
         return style.ToString();
     }
