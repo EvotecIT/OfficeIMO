@@ -526,6 +526,23 @@ namespace OfficeIMO.PowerPoint {
 
             TryReadAxisTitleTypeface(chart,
                 ReadChartDefaultTypeface(chart), out string? axisTitleFont);
+            C.ValueAxis? primaryValueAxis = null;
+            if (plotArea != null) {
+                var groups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
+                var primaryLayer = plotArea.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(layer =>
+                    layer is not C.ScatterChart && layer is not C.BubbleChart &&
+                    layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                    groups.Read(layer) == OfficeChartAxisGroup.Primary);
+                primaryValueAxis = primaryLayer?.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value))
+                    .OfType<C.ValueAxis>().SingleOrDefault();
+            }
+            bool horizontalValue = primaryValueAxis?.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom ||
+                primaryValueAxis?.AxisPosition?.Val?.Value == C.AxisPositionValues.Top;
+            var primaryScale = primaryValueAxis?.GetFirstChild<C.Scaling>();
+            if (primaryValueAxis != null) {
+                if (horizontalValue) horizontalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
+                else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
+            }
 
             return new OfficeChartLayout(overlayLegend: overlay,
                 overlayTitle: overlayTitle,
@@ -535,11 +552,20 @@ namespace OfficeIMO.PowerPoint {
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
                 verticalAxisNumberFormat: verticalAxisNumberFormat,
+                horizontalAxisMinimum: horizontalValue ? primaryScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value : null,
+                horizontalAxisMaximum: horizontalValue ? primaryScale?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value : null,
+                horizontalAxisMajorUnit: horizontalValue ? primaryValueAxis?.GetFirstChild<C.MajorUnit>()?.Val?.Value : null,
+                horizontalAxisMinorUnit: horizontalValue ? primaryValueAxis?.GetFirstChild<C.MinorUnit>()?.Val?.Value : null,
+                verticalAxisMinimum: !horizontalValue ? primaryScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value : null,
+                verticalAxisMaximum: !horizontalValue ? primaryScale?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value : null,
+                verticalAxisMajorUnit: !horizontalValue ? primaryValueAxis?.GetFirstChild<C.MajorUnit>()?.Val?.Value : null,
+                verticalAxisMinorUnit: !horizontalValue ? primaryValueAxis?.GetFirstChild<C.MinorUnit>()?.Val?.Value : null,
                 horizontalAxisMajorTickMark: horizontalMajorTickMark,
                 verticalAxisMajorTickMark: verticalMajorTickMark,
                 horizontalAxisMinorTickMark: horizontalMinorTickMark,
                 verticalAxisMinorTickMark: verticalMinorTickMark,
-                axisTitleFontFamily: axisTitleFont);
+                axisTitleFontFamily: axisTitleFont)
+                .WithSecondaryValueAxis(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea));
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(

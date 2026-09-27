@@ -338,7 +338,8 @@ namespace OfficeIMO.Excel {
                 showCategoryAxisLabels: showCategoryAxisLabels,
                 showValueAxisLabels: showValueAxisLabels,
                 connectScatterPoints: connectScatterPoints,
-                overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()));
+                overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()))
+                .WithSecondaryValueAxis(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea));
         }
 
         private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {

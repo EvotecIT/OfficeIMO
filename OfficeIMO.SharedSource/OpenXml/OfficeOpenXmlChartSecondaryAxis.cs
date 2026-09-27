@@ -1,0 +1,54 @@
+using System;
+using System.Linq;
+using DocumentFormat.OpenXml;
+using OfficeIMO.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+
+namespace OfficeIMO.OpenXml.Internal;
+
+/// <summary>Owns numeric settings on the referenced secondary value axis.</summary>
+internal static class OfficeOpenXmlChartSecondaryAxis {
+    internal static C.ValueAxis? Resolve(C.PlotArea? plot) {
+        if (plot == null) return null;
+        var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
+        var axes = plot.ChildElements.OfType<OpenXmlCompositeElement>()
+            .Where(layer => layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                groups.Read(layer) == OfficeChartAxisGroup.Secondary)
+            .SelectMany(layer => layer.Elements<C.AxisId>())
+            .Select(reference => groups.Resolve(reference.Val?.Value)).OfType<C.ValueAxis>().Distinct().ToArray();
+        if (axes.Length > 1) throw new NotSupportedException("Multiple independent secondary value axes cannot be projected.");
+        return axes.SingleOrDefault();
+    }
+
+    internal static OfficeChartValueAxisLayout? Read(C.PlotArea? plot) {
+        var axis = Resolve(plot);
+        if (axis == null) return null;
+        var scaling = axis.GetFirstChild<C.Scaling>();
+        return new OfficeChartValueAxisLayout(
+            minimum: scaling?.GetFirstChild<C.MinAxisValue>()?.Val?.Value,
+            maximum: scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
+            majorUnit: axis.GetFirstChild<C.MajorUnit>()?.Val?.Value,
+            minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
+            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value);
+    }
+
+    internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
+        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        var axis = Resolve(chart?.PlotArea) ?? throw new InvalidOperationException("The chart has no referenced secondary value axis.");
+        var scaling = axis.GetFirstChild<C.Scaling>() ?? new C.Scaling();
+        if (scaling.Parent == null) axis.AddChild(scaling, true);
+        scaling.RemoveAllChildren<C.MinAxisValue>();
+        scaling.RemoveAllChildren<C.MaxAxisValue>();
+        scaling.RemoveAllChildren<C.LogBase>();
+        scaling.RemoveAllChildren<C.Orientation>();
+        scaling.AddChild(new C.Orientation { Val = C.OrientationValues.MinMax }, true);
+        if (layout.Minimum.HasValue) scaling.AddChild(new C.MinAxisValue { Val = layout.Minimum.Value }, true);
+        if (layout.Maximum.HasValue) scaling.AddChild(new C.MaxAxisValue { Val = layout.Maximum.Value }, true);
+        axis.RemoveAllChildren<C.MajorUnit>();
+        axis.RemoveAllChildren<C.MinorUnit>();
+        if (layout.MajorUnit.HasValue) axis.AddChild(new C.MajorUnit { Val = layout.MajorUnit.Value }, true);
+        if (layout.MinorUnit.HasValue) axis.AddChild(new C.MinorUnit { Val = layout.MinorUnit.Value }, true);
+        axis.RemoveAllChildren<C.NumberingFormat>();
+        if (layout.NumberFormat != null) axis.AddChild(new C.NumberingFormat { FormatCode = layout.NumberFormat, SourceLinked = false }, true);
+    }
+}

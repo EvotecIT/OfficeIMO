@@ -577,6 +577,11 @@ foreach (var issue in rendered.QualityReport.Issues) {
 }
 ```
 
+Use `layout.WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
+majorUnit: 0.2, numberFormat: "0%"))` for an independent secondary value-axis scale.
+The returned layout preserves the primary axis settings and leaves the original layout unchanged.
+Bounds must be finite and ordered; tick units must be positive.
+
 ### Style individual chart points
 
 Use `OfficeChartSeries.WithPointStyles` to attach appearances aligned with the series values.
