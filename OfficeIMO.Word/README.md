@@ -443,10 +443,15 @@ with an embedded Excel worksheet. `WordChart.SetData(kind, data)` updates its ca
 worksheet together, preserving the drawing dimensions, title, name, and alternative text.
 Existing embedded packages must be XLSX; updates reject other package formats before changing
 native data or package bytes.
+External or unresolved workbook links also reject the update; embed an XLSX
+workbook before replacing chart data.
 Formula-linked titles, axis titles and custom labels retain their cached text as
 native rich text; custom error bars retain cached numeric values as literals.
 Updates reject uncached bindings and unqualified workbook-linked extensions
 before changing the chart or worksheet.
+Native axes retain their referenced identity, and compatible repeated layers
+retain separate formatting when they share an axis pair. Repeated layers of
+the same family and axis group with different axis pairs reject shared updates.
 The shared writer supports column and bar grouping variants, line and area grouping variants,
 pie, doughnut, radar, scatter, and bubble charts. Supported category combinations use each
 series' `RenderKind` and `AxisGroup`; scatter, bubble, horizontal bars, pie, doughnut, and radar

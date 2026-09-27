@@ -13,6 +13,28 @@ public sealed class PowerPointChartWorkbookBindingsTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
+    public void Updates_RejectExternalWorkbookLinksAcrossEntryPoints(int path) {
+        using var document = PowerPointPresentation.Create();
+        var data = new OfficeChartData(new[] { "1", "2" }, new[] { new OfficeChartSeries("Status", new[] { 1d, 2d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(path == 2 ? OfficeChartKind.Scatter : OfficeChartKind.Line, data);
+        var part = document.Slides.Single().SlidePart.ChartParts.Single();
+        part.DeletePart(part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single());
+        var link = part.AddExternalRelationship("http://schemas.openxmlformats.org/officeDocument/2006/relationships/package", new Uri("https://example.test/data.xlsx"));
+        part.ChartSpace!.GetFirstChild<C.ExternalData>()!.Id = link.Id;
+        string before = part.ChartSpace.OuterXml;
+        Assert.Throws<NotSupportedException>(() => {
+            if (path == 0) chart.UpdateData(data);
+            else if (path == 1) chart.UpdateData(new PowerPointChartData(data.Categories, new[] { new PowerPointChartSeries("Updated", new[] { 3d, 4d }) }));
+            else chart.UpdateData(new PowerPointScatterChartData(new[] { new PowerPointScatterChartSeries("Updated", new[] { 1d, 2d }, new[] { 3d, 4d }) }));
+        });
+        Assert.Equal(before, part.ChartSpace.OuterXml);
+        Assert.Empty(part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
     [InlineData(3)]
     public void Updates_MaterializeCachedLinkedTitlesAcrossSupportedEntryPoints(int path) {
         using PowerPointPresentation document = PowerPointPresentation.Create();
