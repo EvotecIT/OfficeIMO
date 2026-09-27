@@ -11,6 +11,69 @@ namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
     [Theory]
+    [InlineData("Code")]
+    [InlineData("HTMLPreformatted")]
+    public void Export_StyledCodeParagraphWithChartRetainsImage(string style) {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.Paragraphs.Single();
+        paragraph.SetStyleId(style);
+        paragraph.GetRuns().Single()._run!.Append(new DocumentFormat.OpenXml.Wordprocessing.Text(" chart text"));
+        var html = new HtmlParser().ParseDocument(document.ToHtml());
+        Assert.Single(html.QuerySelectorAll("img"));
+        Assert.Contains("chart text", html.Body!.TextContent);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    public void Export_EachMixedRunNoteReferenceUsesItsOwnOccurrence(bool footnote, bool withChart) {
+        using var document = WordDocument.Create();
+        if (withChart) document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        else document.AddParagraph("Adjacent text");
+        var targetRun = document.Paragraphs.First().GetRuns().Single()._run!;
+        for (int index = 1; index <= 2; index++) {
+            var source = document.AddParagraph("Reference " + index);
+            var noteRun = footnote ? source.AddFootNote("Note " + index) : source.AddEndNote("Note " + index);
+            var reference = footnote
+                ? (DocumentFormat.OpenXml.OpenXmlElement)noteRun._run!.Elements<DocumentFormat.OpenXml.Wordprocessing.FootnoteReference>().Single()
+                : noteRun._run!.Elements<DocumentFormat.OpenXml.Wordprocessing.EndnoteReference>().Single();
+            reference.Remove();
+            targetRun.Append(reference);
+        }
+        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportFootnotes = true, ExportEndnotes = true });
+        var html = new HtmlParser().ParseDocument(result.RequireValue());
+        Assert.Equal(withChart ? 1 : 0, html.QuerySelectorAll("img").Length);
+        Assert.Single(html.QuerySelectorAll("a[href='#" + (footnote ? "fn1" : "en1") + "']"));
+        Assert.Single(html.QuerySelectorAll("a[href='#" + (footnote ? "fn2" : "en2") + "']"));
+        Assert.Contains("Note 1", html.Body!.TextContent);
+        Assert.Contains("Note 2", html.Body.TextContent);
+    }
+
+    [Fact]
+    public void Export_EachMixedChartRunCommentReferenceUsesItsOwnOccurrence() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var chartRun = document.Paragraphs.First().GetRuns().Single()._run!;
+        for (int index = 1; index <= 2; index++) {
+            var source = document.AddParagraph("Comment " + index);
+            source.AddComment("Reviewer", "R", "Note " + index);
+            var reference = source._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.CommentReference>().Single();
+            reference.Remove();
+            chartRun.Append(reference);
+        }
+        var result = document.ToHtmlResult(new WordToHtmlOptions { ExportComments = true });
+        var html = new HtmlParser().ParseDocument(result.RequireValue());
+        Assert.Single(html.QuerySelectorAll("img"));
+        Assert.Single(html.QuerySelectorAll("a[href='#comment1']"));
+        Assert.Single(html.QuerySelectorAll("a[href='#comment2']"));
+        Assert.Contains("Note 1", html.Body!.TextContent);
+        Assert.Contains("Note 2", html.Body.TextContent);
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void Export_RendersChartsInNotes(bool footnote) {

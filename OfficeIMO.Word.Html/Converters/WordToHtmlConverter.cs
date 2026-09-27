@@ -226,12 +226,12 @@ namespace OfficeIMO.Word.Html {
                 bool AppendRunArtifacts(WordParagraph run, List<INode> target, DocumentFormat.OpenXml.OpenXmlElement? artifactElement = null) {
                     bool includeAll = artifactElement == null;
                     if ((includeAll || artifactElement is FootnoteReference || artifactElement is EndnoteReference) &&
-                        TryAppendNoteReference(htmlDoc, run, options, processNotes, target, footnotes, footnoteMap, endnotes, endnoteMap)) {
+                        TryAppendNoteReference(htmlDoc, run, options, processNotes, target, footnotes, footnoteMap, endnotes, endnoteMap, artifactElement)) {
                         return true;
                     }
 
                     if ((includeAll || artifactElement is CommentReference) &&
-                        TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, target)) {
+                        TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, target, artifactElement as CommentReference)) {
                         return true;
                     }
 
@@ -541,7 +541,9 @@ namespace OfficeIMO.Word.Html {
                             AppendNode(expandedNode);
                         continue;
                     }
-                    if ((run.IsChart || HasExtendedChart(run._run)) && run._run != null) {
+                    bool multipleReferences = run._run?.ChildElements.Count(child =>
+                        child is FootnoteReference or EndnoteReference or CommentReference) > 1;
+                    if ((run.IsChart || HasExtendedChart(run._run) || multipleReferences) && run._run != null) {
                         foreach (INode expandedNode in CreateExpandedEquationContainerNodes(run._run, Array.Empty<WordEquationOccurrence>(), run)) {
                             AppendNode(expandedNode);
                         }
@@ -755,6 +757,10 @@ namespace OfficeIMO.Word.Html {
             }
 
             bool IsCodeParagraph(WordParagraph para) {
+                // A text-only code block cannot carry rendered inline artifacts.
+                if (para.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage ||
+                    run.IsStructuredDocumentTag || run.IsEquation || run.FootNote != null || run.EndNote != null ||
+                    run._run?.Elements<CommentReference>().Any() == true)) return false;
                 if (string.Equals(para.StyleId, "Code", StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(para.StyleId, "HTMLPreformatted", StringComparison.OrdinalIgnoreCase)) {
                     return true;

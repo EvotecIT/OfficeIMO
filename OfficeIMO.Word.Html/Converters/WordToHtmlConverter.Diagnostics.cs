@@ -102,11 +102,12 @@ namespace OfficeIMO.Word.Html {
             return length;
         }
 
-        private static long MeasureOutputContentCharacters(OpenXmlElement root) {
+        private static long MeasureOutputContentCharacters(OpenXmlElement root,
+            WordTrackedChangeExportPolicy policy = WordTrackedChangeExportPolicy.Markup) {
             long characters = 0;
             foreach ((OpenXmlElement Element, bool OmitOutputContent) inspected in EnumerateRootAndDescendants(
                          root,
-                         WordTrackedChangeExportPolicy.Markup)) {
+                         policy)) {
                 if (inspected.OmitOutputContent) continue;
                 characters = SaturatingAdd(characters, GetOutputContentCharacters(inspected.Element));
             }
