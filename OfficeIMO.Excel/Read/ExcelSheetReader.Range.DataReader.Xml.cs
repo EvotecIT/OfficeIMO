@@ -919,7 +919,7 @@ namespace OfficeIMO.Excel {
                     value = dateSerial.Serial;
                     return true;
                 }
-                if (_utf8Source != null && _currentRow[ordinal] is DateTime) {
+                if (_utf8Source != null && (_currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.DateTime || _currentRow[ordinal] is DateTime)) {
                     _utf8Source.ReadValue(ordinal + _utf8SourceOrdinalOffset, XmlDataReaderTargetKind.Numeric,
                         out XmlDataReaderPrimitiveKind kind, out value, out _, out _, out _, out _, out _);
                     if (kind == XmlDataReaderPrimitiveKind.Double) return true;

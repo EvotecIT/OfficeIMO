@@ -254,6 +254,9 @@ With `TreatDatesUsingNumberFormat` enabled, calendar formats use the workbook's
 `DateTime` as a carrier for the unshifted serial; changing the workbook date
 system does not add days to a duration. Use a numeric getter or disable date
 format interpretation when the application needs the original serial.
+These rules apply to XLSX, XLS and XLSB tabular readers, including cached numeric
+formulas. XLS import preserves the source date system and numeric serials rather
+than reconstructing them from `DateTime` values.
 Numeric properties mapped through `RowsAs<T>` or `RowsAsParallel<T>` also receive
 the original serial, including cached formula values. A cell converter returning
 `ExcelCellValue.NotHandled`, or a type converter returning `(false, null)`,

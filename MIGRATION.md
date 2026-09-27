@@ -32,6 +32,19 @@ duration serial instead. Use a numeric getter, or set
 `ExcelReadOptions.TreatDatesUsingNumberFormat = false`, to retrieve the original
 serial directly. Calendar date formats continue to use the workbook date system.
 
+This distinction also applies to XLS and XLSB tabular readers. Early calendar
+serials in XLS and XLSB use the same January 1, 1900 = serial 1 contract as XLSX.
+
+## XLS import date-system preservation
+
+XLS import retains the source workbook's date system, numeric date and duration
+serials, and date-validation literals. A 1904 workbook therefore remains a 1904
+workbook instead of having its styled date values rewritten into the 1900 system.
+Applications that assumed every imported XLS used the 1900 system must inspect
+`ExcelDocument.DateSystem` before interpreting numeric calendar values. Serial 60
+remains 60 through import and save; reading it as `DateTime` still uses the
+February 28 surrogate because .NET cannot represent February 29, 1900.
+
 ## Excel dates before March 1900
 
 The 1900 date-system converter now uses Excel serials rather than OLE Automation

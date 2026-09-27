@@ -121,21 +121,21 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StorePlannedRkCell(byte[] bytes, int position, int ordinal, bool isDate) {
+        private void StorePlannedRkCell(byte[] bytes, int position, int ordinal, ExcelSerialDateStyle dateStyle) {
             ref byte payload = ref bytes[position];
             double number = BiffRkNumberReader.ReadRkNumber(
                 Unsafe.ReadUnaligned<uint>(
                     ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
-            StoreNumber(ordinal, number, isDate);
+            StoreNumber(ordinal, number, dateStyle);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StorePlannedRealCell(byte[] bytes, int position, int ordinal, bool isDate) {
+        private void StorePlannedRealCell(byte[] bytes, int position, int ordinal, ExcelSerialDateStyle dateStyle) {
             ref byte payload = ref bytes[position];
             double number = BitConverter.Int64BitsToDouble(
                 Unsafe.ReadUnaligned<long>(
                     ref Unsafe.Add(ref payload, sizeof(int) + sizeof(uint))));
-            StoreNumber(ordinal, number, isDate);
+            StoreNumber(ordinal, number, dateStyle);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,14 +158,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void StoreNumber(int ordinal, double number, uint styleIndex) {
-            bool isDate = _options.TreatDatesUsingNumberFormat
-                && _dateStyles[styleIndex];
-            StoreNumber(ordinal, number, isDate);
+            ExcelSerialDateStyle dateStyle = _options.TreatDatesUsingNumberFormat
+                ? _dateStyles[styleIndex] : ExcelSerialDateStyle.None;
+            StoreNumber(ordinal, number, dateStyle);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void StoreNumber(int ordinal, double number, bool isDate) {
-            _kinds[ordinal] = isDate ? XlsbTabularValueKind.Date : XlsbTabularValueKind.Number;
+        private void StoreNumber(int ordinal, double number, ExcelSerialDateStyle dateStyle) {
+            _kinds[ordinal] = NumericKind(dateStyle);
             _numbers[ordinal] = number;
         }
 

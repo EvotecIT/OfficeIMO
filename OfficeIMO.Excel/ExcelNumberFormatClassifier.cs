@@ -1,5 +1,10 @@
 namespace OfficeIMO.Excel {
     internal static class ExcelNumberFormatClassifier {
+        internal static ExcelSerialDateStyle ClassifySerialDateStyle(uint numberFormatId, string? code) {
+            if (!ExcelBuiltInNumberFormats.IsDate(numberFormatId) && !LooksLikeDateFormat(code)) return ExcelSerialDateStyle.None;
+            return ExcelBuiltInNumberFormats.IsDateSystemShift(numberFormatId) || LooksLikeDateSystemFormat(code)
+                ? ExcelSerialDateStyle.Calendar : ExcelSerialDateStyle.Time;
+        }
         internal static bool LooksLikeDateFormat(string? code) {
             if (string.IsNullOrWhiteSpace(code)) {
                 return false;

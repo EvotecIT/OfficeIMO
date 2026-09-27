@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => _strings[ordinal]!,
                 XlsbTabularValueKind.Number => GetNumericValue(_numbers[ordinal]),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal],
-                XlsbTabularValueKind.Date => ConvertDate(_numbers[ordinal]),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date),
                 XlsbTabularValueKind.Custom => _customValues[ordinal] ?? DBNull.Value,
                 _ => DBNull.Value
             };
@@ -75,7 +75,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 XlsbTabularValueKind.Text or XlsbTabularValueKind.Error => _strings[ordinal]!,
                 XlsbTabularValueKind.Number => _numbers[ordinal].ToString("R", _options.Culture),
                 XlsbTabularValueKind.Boolean => _booleans[ordinal].ToString(),
-                XlsbTabularValueKind.Date => ConvertDate(_numbers[ordinal]).ToString(_options.Culture),
+                XlsbTabularValueKind.Date or XlsbTabularValueKind.Time => ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date).ToString(_options.Culture),
                 XlsbTabularValueKind.Custom when !IsMissingCustomValue(_customValues[ordinal]) =>
                     Convert.ToString(_customValues[ordinal], _options.Culture)
                     ?? string.Empty,
@@ -151,8 +151,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         public override DateTime GetDateTime(int ordinal) {
             ValidateReadableOrdinal(ordinal);
-            return _kinds[ordinal] == XlsbTabularValueKind.Date
-                ? ConvertDate(_numbers[ordinal])
+            return _kinds[ordinal] is XlsbTabularValueKind.Date or XlsbTabularValueKind.Time
+                ? ConvertDate(_numbers[ordinal], _kinds[ordinal] == XlsbTabularValueKind.Date)
                 : Convert.ToDateTime(GetValue(ordinal), _options.Culture);
         }
 
@@ -164,7 +164,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static bool IsNumericValueKind(XlsbTabularValueKind kind) =>
             kind == XlsbTabularValueKind.Number
-            || kind == XlsbTabularValueKind.Date;
+            || kind == XlsbTabularValueKind.Date
+            || kind == XlsbTabularValueKind.Time;
 
         public override char GetChar(int ordinal) => Convert.ToChar(GetValue(ordinal), _options.Culture);
 

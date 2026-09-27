@@ -29,10 +29,10 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 int payloadOffset = start + cell.RelativePayloadOffset;
                 switch (cell.RecordType) {
                     case BrtCellRk:
-                        StorePlannedRkCell(bytes, payloadOffset, cell.Column - _firstColumn, cell.IsDate);
+                        StorePlannedRkCell(bytes, payloadOffset, cell.Column - _firstColumn, cell.DateStyle);
                         break;
                     case BrtCellReal:
-                        StorePlannedRealCell(bytes, payloadOffset, cell.Column - _firstColumn, cell.IsDate);
+                        StorePlannedRealCell(bytes, payloadOffset, cell.Column - _firstColumn, cell.DateStyle);
                         break;
                     case BrtCellIsst:
                         StorePlannedSharedStringCell(bytes, payloadOffset, cell.Column - _firstColumn);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int payloadPosition,
             int recordSize,
             int column,
-            bool isDate) {
+            ExcelSerialDateStyle dateStyle) {
             if (_disabled || _physicalRowIndex <= 0) {
                 return;
             }
@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 payloadPosition - _currentContentPosition,
                 recordSize,
                 column,
-                isDate);
+                dateStyle);
             if (_cells == null) {
                 _candidateCells.Add(cell);
             } else {
@@ -187,12 +187,12 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             int relativePayloadOffset,
             int recordSize,
             int column,
-            bool isDate) {
+            ExcelSerialDateStyle dateStyle) {
             RecordType = recordType;
             RelativePayloadOffset = relativePayloadOffset;
             RecordSize = recordSize;
             Column = column;
-            IsDate = isDate;
+            DateStyle = dateStyle;
         }
 
         internal int RecordType { get; }
@@ -203,14 +203,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
 
         internal int Column { get; }
 
-        internal bool IsDate { get; }
+        internal ExcelSerialDateStyle DateStyle { get; }
 
         public bool Equals(XlsbValidatedCellPlan other) =>
             RecordType == other.RecordType
             && RelativePayloadOffset == other.RelativePayloadOffset
             && RecordSize == other.RecordSize
             && Column == other.Column
-            && IsDate == other.IsDate;
+            && DateStyle == other.DateStyle;
 
         public override bool Equals(object? obj) =>
             obj is XlsbValidatedCellPlan other && Equals(other);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 hash = (hash * 397) ^ RelativePayloadOffset;
                 hash = (hash * 397) ^ RecordSize;
                 hash = (hash * 397) ^ Column;
-                return (hash * 397) ^ IsDate.GetHashCode();
+                return (hash * 397) ^ DateStyle.GetHashCode();
             }
         }
     }
