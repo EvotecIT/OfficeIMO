@@ -55,7 +55,37 @@ public sealed class HtmlWordChartTests {
         var result = document.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true });
         var dom = new HtmlParser().ParseDocument(result.RequireValue());
         Assert.NotNull(dom.QuerySelector("header"));
-        Assert.True(dom.QuerySelector("header img") != null || result.Report.Diagnostics.Any(item => item.Code == "WordChartOmitted"));
+        Assert.Null(dom.QuerySelector("header img"));
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Export_UsesTheNativeHeaderOrFooterChartPart(bool footer) {
+        using var document = WordDocument.Create();
+        var bodyChart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Body", new[] { 1d }, null, OfficeColor.Parse("#224466")) }), title: "Body");
+        WordHeaderFooter region = footer ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default) : document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        var regionChart = region.AddParagraph().AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "B" }, new[] { new OfficeChartSeries("Region", new[] { 9d }, null, OfficeColor.Parse("#D97706")) }), title: "Region");
+        var owner = footer ? (DocumentFormat.OpenXml.Packaging.OpenXmlPart)region._footer!.FooterPart! : region._header!.HeaderPart!;
+        const string id = "rIdChartCollision";
+        document.MainDocumentPartRoot.ChangeIdOfPart(bodyChart.ChartPart!, id);
+        bodyChart.Drawing!.Descendants<C.ChartReference>().Single().Id = id;
+        owner.ChangeIdOfPart(regionChart.ChartPart!, id);
+        regionChart.Drawing!.Descendants<C.ChartReference>().Single().Id = id;
+        using var stream = new MemoryStream(); document.Save(stream); stream.Position = 0;
+        using var reopened = WordDocument.Load(stream);
+        var result = reopened.ToHtmlResult(new WordToHtmlOptions { ExportHeadersAndFooters = true });
+        var dom = new HtmlParser().ParseDocument(result.RequireValue());
+        var image = Assert.Single(dom.QuerySelectorAll(footer ? "footer img" : "header img"));
+        Assert.Equal("Region", image.GetAttribute("alt"));
+        string svg = Encoding.UTF8.GetString(Convert.FromBase64String(image.GetAttribute("src")!.Substring("data:image/svg+xml;base64,".Length)));
+        Assert.Contains("#D97706", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("#224466", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+        Assert.Empty(reopened.ValidateDocument());
     }
 
     [Theory]
