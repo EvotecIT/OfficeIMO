@@ -1865,6 +1865,8 @@ public static partial class OfficeChartDrawingRenderer {
         double centerY = contentTop + contentHeight / 2D;
         double start = -Math.PI / 2D;
         int zeroLabelIndex = 0;
+        OfficeColor zeroLabelColor = GetPointDataLabelColor(style, values,
+            Enumerable.Range(0, categories.Count).First(index => TryGetSeriesValue(values, index, out double firstValue) && firstValue > 0));
         for (int i = 0; i < categories.Count; i++) {
             if (!TryGetSeriesValue(values, i, out double seriesValue)) {
                 continue;
@@ -1888,13 +1890,12 @@ public static partial class OfficeChartDrawingRenderer {
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddStyledPointPolygon(drawing, points, sliceColor, GetPointStyle(values, i), OfficeColor.White, 0.5D);
                 if (ShouldShowDataLabel(layout, 0, i)) {
-                    AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, value, total, centerX, centerY, radius, start + sweep / 2D, zeroLabelIndex: null);
+                    AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, centerX, centerY, radius, start + sweep / 2D, zeroLabelIndex: null);
                 }
 
                 start = end;
             } else if (ShouldShowDataLabel(layout, 0, i)) {
-                OfficeColor sliceColor = GetPointColor(style, values, 0);
-                AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, 0D, total, centerX, centerY, radius, -Math.PI / 2D, zeroLabelIndex);
+                AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, radius, -Math.PI / 2D, zeroLabelIndex);
                 zeroLabelIndex++;
             }
         }
@@ -1962,6 +1963,8 @@ public static partial class OfficeChartDrawingRenderer {
             double total = GetPositiveSeriesTotal(values, categories.Count);
             double start = -Math.PI / 2D;
             int zeroLabelIndex = 0;
+            OfficeColor zeroLabelColor = GetPointDataLabelColor(style, values,
+                Enumerable.Range(0, categories.Count).First(index => TryGetSeriesValue(values, index, out double firstValue) && firstValue > 0));
             for (int i = 0; i < categories.Count; i++) {
                 if (!TryGetSeriesValue(values, i, out double seriesValue)) {
                     continue;
@@ -1974,13 +1977,12 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeColor sliceColor = GetPointColor(style, values, i);
                     AddDoughnutSlice(drawing, centerX, centerY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
                     if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                        AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, value, total, centerX, centerY, Math.Max(innerRadius + 8D, outerRadius - ringThickness * 0.42D), start + sweep / 2D, zeroLabelIndex: null);
+                        AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, centerX, centerY, Math.Max(innerRadius + 8D, outerRadius - ringThickness * 0.42D), start + sweep / 2D, zeroLabelIndex: null);
                     }
 
                     start = end;
                 } else if (s == 0 && ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                    OfficeColor sliceColor = GetPointColor(style, values, 0);
-                    AddPieDataLabel(drawing, layout, style, GetReadableDataLabelColor(sliceColor), categories[i], values, 0D, total, centerX, centerY, outerRadius, -Math.PI / 2D, zeroLabelIndex);
+                    AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, outerRadius, -Math.PI / 2D, zeroLabelIndex);
                     zeroLabelIndex++;
                 }
             }

@@ -4,6 +4,42 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPointStylesTests {
+    [Theory]
+    [InlineData(OfficeChartKind.Pie, false)]
+    [InlineData(OfficeChartKind.Pie, true)]
+    [InlineData(OfficeChartKind.Doughnut, false)]
+    [InlineData(OfficeChartKind.Doughnut, true)]
+    public void PointStyles_UnfilledSliceLabelsContrastWithTheVisibleBackground(OfficeChartKind kind, bool dark) {
+        OfficeColor background = dark ? OfficeColor.Black : OfficeColor.White;
+        var series = new OfficeChartSeries("Results", new[] { 7d, 0d }).WithPointStyles(
+            new OfficeChartPointStyle?[] { new(noFill: true), null });
+        OfficeDrawing Draw(OfficeColor? labelColor = null) => OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot("Results", null, kind,
+                new OfficeChartData(new[] { "A", "B" }, new[] { series }), 640, 360,
+                style: new OfficeChartStyle(backgroundColor: background, dataLabelTextColor: labelColor),
+                layout: new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true)));
+        var labels = Draw().Elements.OfType<OfficeDrawingText>().Where(text => text.Text == "7" || text.Text == "0").ToArray();
+        Assert.Equal(2, labels.Length);
+        Assert.All(labels, label => Assert.Equal(dark ? OfficeColor.White : OfficeColor.Black, label.Color));
+        Assert.All(Draw(OfficeColor.Red).Elements.OfType<OfficeDrawingText>().Where(text => text.Text == "7" || text.Text == "0"),
+            label => Assert.Equal(OfficeColor.Red, label.Color));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PointStyles_WidthOnlyOutlinesRemainVisibleUnlessExplicitlyHidden(bool hidden) {
+        var series = new OfficeChartSeries("Results", new[] { 8d }).WithPointStyles(
+            new OfficeChartPointStyle?[] { new(outlineWidth: 2, showOutline: hidden ? false : null) });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
+            OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] { series }), 320, 240,
+            layout: new OfficeChartLayout(showLegend: false)));
+        var bar = Assert.Single(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Shape.FillColor == OfficeChartDrawingRenderer.GetSeriesColor(0) && shape.Shape.Height > 50);
+        Assert.Equal(hidden ? null : OfficeColor.Black, bar.Shape.StrokeColor);
+        Assert.Equal(hidden ? 0 : 2, bar.Shape.StrokeWidth);
+    }
+
     [Fact]
     public void PointStyles_CopyKeepsBubbleAndSeriesContracts() {
         var source = OfficeChartSeries.CreateBubble("Results", new[] { 1d }, new[] { 2d }, new[] { 3d },
