@@ -12,10 +12,11 @@ namespace OfficeIMO.OpenXml.Internal {
     /// <summary>Reads cached series into the shared model without format-specific chart types.</summary>
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal sealed class Series {
-            internal Series(uint sourceIndex, OfficeChartSeries data, bool hasUnsupportedAppearance = false) {
-                SourceIndex = sourceIndex; Data = data; HasUnsupportedAppearance = hasUnsupportedAppearance;
+            internal Series(uint sourceIndex, OfficeChartSeries data, bool hasUnsupportedAppearance = false, uint? sourceOrder = null) {
+                SourceIndex = sourceIndex; Data = data; HasUnsupportedAppearance = hasUnsupportedAppearance; SourceOrder = sourceOrder;
             }
             internal uint SourceIndex { get; }
+            internal uint? SourceOrder { get; }
             internal OfficeChartSeries Data { get; }
             internal bool HasUnsupportedAppearance { get; }
         }
@@ -32,7 +33,7 @@ namespace OfficeIMO.OpenXml.Internal {
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
             OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
             bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
-            List<OpenXmlCompositeElement> elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
+            List<OpenXmlCompositeElement> elements = OrderSeries(OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints));
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             projectionBudget ??= new ProjectionBudget();
             IReadOnlyList<string> categories = Array.Empty<string>();
@@ -68,7 +69,7 @@ namespace OfficeIMO.OpenXml.Internal {
             IReadOnlyList<string>? categories = null;
             int sourcePosition = -1;
             projectionBudget ??= new ProjectionBudget();
-            var elements = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints);
+            var elements = OrderSeries(OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints));
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             foreach (C.ScatterChartSeries element in elements) {
                 sourcePosition++;
@@ -176,6 +177,9 @@ namespace OfficeIMO.OpenXml.Internal {
             bool connectLine = outline?.GetFirstChild<A.NoFill>() == null && scatterStyle != C.ScatterStyleValues.Marker;
             bool unsupported = markerShape == OfficeChartMarkerShape.Picture ||
                 outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
+            bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
+            unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area);
+            unsupported |= showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true);
             // The shared model has one series colour and straight connecting lines.
             // Reject appearance that would otherwise be silently flattened in an export.
             C.Smooth? smoothing = element.GetFirstChild<C.Smooth>() ?? element.Parent?.GetFirstChild<C.Smooth>();
@@ -187,14 +191,20 @@ namespace OfficeIMO.OpenXml.Internal {
             unsupported |= !filled && connectLine && markerFill.HasValue &&
                 (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value);
             OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
+            var styles = OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme,
+                element.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);
+            if (filled && kind != OfficeChartKind.Area && kind != OfficeChartKind.AreaStacked && kind != OfficeChartKind.AreaStacked100)
+                styles = InheritFilledOutline(styles, values.Count, outline, stroke, width);
+            else if (filled && stroke.HasValue && stroke != fill) unsupported = true;
             var data = new OfficeChartSeries(name, values, xValues, seriesColor,
                 pointColors, showMarkers: showMarkers,
                 connectLine: connectLine,
                 markerSize: markerSize, markerShape: markerShape,
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
-                .WithPointStyles(OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, scheme));
-            return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data, unsupported);
+                .WithPointStyles(styles);
+            return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data, unsupported,
+                element.GetFirstChild<C.Order>()?.Val?.Value);
         }
 
         private static OfficeStrokeDashStyle? ReadDash(A.Outline? outline) => outline?.GetFirstChild<A.PresetDash>()?.Val?.InnerText switch {

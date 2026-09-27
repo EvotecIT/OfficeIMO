@@ -217,6 +217,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Native ChartML series index retained for legend and mixed-chart projection.</summary>
         internal uint? SourceIndex { get; set; }
+        internal uint? SourceOrder { get; set; }
     }
 
     /// <summary>
