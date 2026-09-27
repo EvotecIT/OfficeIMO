@@ -21,6 +21,7 @@ namespace OfficeIMO.OpenXml.Internal {
             List<OpenXmlCompositeElement> sourceLayers = source.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
+            var sourceOrder = new Dictionary<OpenXmlCompositeElement, int>();
             foreach (OpenXmlCompositeElement generated in replacement.ChildElements
                          .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList()) {
                 List<OpenXmlCompositeElement> matches = sourceLayers.Where(candidate =>
@@ -43,10 +44,23 @@ namespace OfficeIMO.OpenXml.Internal {
                     BindSharedAxisReferences(match, generated, source, replacement, axisBindings);
                     ReplaceSharedAxisReferences(preserved, generated);
                     replacement.InsertBefore(preserved, generated);
+                    sourceOrder.Add(preserved, sourceLayers.IndexOf(match));
                     usedLayers.Add(match);
                     offset += count;
                 }
                 generated.Remove();
+            }
+            // Source order controls overlap in imported combinations. Retained layers
+            // keep that order; newly introduced layers retain their generated order.
+            var layers = replacement.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
+            var ordered = layers.OrderBy(layer => sourceOrder.TryGetValue(layer, out int order) ? order : int.MaxValue).ToList();
+            if (layers.Count > 0) {
+                OpenXmlElement? following = layers.Last().NextSibling();
+                foreach (var layer in layers) layer.Remove();
+                foreach (var layer in ordered) {
+                    if (following == null) replacement.Append(layer);
+                    else replacement.InsertBefore(layer, following);
+                }
             }
         }
 

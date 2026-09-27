@@ -41,11 +41,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     seriesElement = template != null
                         ? (C.ScatterChartSeries)template.CloneNode(true)
                         : new C.ScatterChartSeries();
-                    seriesElement.RemoveAllChildren<C.Trendline>();
-                    // A new series has no source magnitudes for per-point error bars.
-                    seriesElement.RemoveAllChildren<C.ErrorBars>();
-                    seriesElement.RemoveAllChildren<C.DataPoint>();
-                    seriesElement.RemoveAllChildren<C.DataLabels>();
+                    ClearAddedSeriesMetadata(seriesElement);
                     InsertSeries(scatterChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }

@@ -125,25 +125,19 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
                 sheetData.Append(headerRow);
 
-                for (int pointIndex = 0; pointIndex < maxPoints; pointIndex++) {
-                    uint excelRow = (uint)(pointIndex + 2);
-                    var row = new S.Row { RowIndex = excelRow, Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" } };
-
-                    for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
-                        OfficeChartSeries series = data.Series[seriesIndex];
-                        int xColumnIndex = (seriesIndex * 2) + 1;
-                        int yColumnIndex = xColumnIndex + 1;
-
-                        if (pointIndex < series.XValues!.Count) {
-                            row.Append(CreateNumberCell($"{ColumnLetter(xColumnIndex)}{excelRow}", series.XValues![pointIndex]));
-                        }
-                        if (pointIndex < series.Values.Count) {
-                            row.Append(CreateNumberCell($"{ColumnLetter(yColumnIndex)}{excelRow}", series.Values[pointIndex]));
-                        }
+                var rows = new S.Row[maxPoints];
+                for (int seriesIndex = 0; seriesIndex < seriesCount; seriesIndex++) {
+                    OfficeChartSeries series = data.Series[seriesIndex];
+                    string xColumn = ColumnLetter(seriesIndex * 2 + 1);
+                    string yColumn = ColumnLetter(seriesIndex * 2 + 2);
+                    for (int pointIndex = 0; pointIndex < series.Values.Count; pointIndex++) {
+                        uint excelRow = (uint)(pointIndex + 2);
+                        S.Row row = rows[pointIndex] ??= new S.Row { RowIndex = excelRow, Spans = new ListValue<StringValue> { InnerText = $"1:{totalColumns}" } };
+                        row.Append(CreateNumberCell($"{xColumn}{excelRow}", series.XValues![pointIndex]));
+                        row.Append(CreateNumberCell($"{yColumn}{excelRow}", series.Values[pointIndex]));
                     }
-
-                    sheetData.Append(row);
                 }
+                foreach (S.Row row in rows) sheetData.Append(row);
 
                 var sheets = wbPart.Workbook.AppendChild(new S.Sheets());
                 sheets.Append(new S.Sheet {
