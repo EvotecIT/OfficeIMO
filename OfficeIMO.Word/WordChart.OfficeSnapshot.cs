@@ -37,10 +37,40 @@ public partial class WordChart {
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, data.ToData(), GetWidthPoints(), GetHeightPoints(),
                 OfficeOpenXmlChartSeriesReader.ReadStyle(chart, kind, scheme, textStyle), OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, axisTitleFont, scheme),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
+            if (HasUnclippedExplicitScale(snapshot)) {
+                snapshot = null!;
+                return false;
+            }
             return true;
         } catch {
             snapshot = null!;
             return false;
         }
     }
+
+    private static bool HasUnclippedExplicitScale(OfficeChartSnapshot snapshot) {
+        OfficeChartLayout layout = snapshot.Layout;
+        foreach (OfficeChartSeries series in snapshot.Data.Series) {
+            OfficeChartKind kind = series.RenderKind ?? snapshot.ChartKind;
+            bool lineOrArea = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
+                OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
+            bool numericPoints = kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble;
+            if (!lineOrArea && !numericPoints) continue;
+            // The shared renderer has no plot clipping for these marks yet. A stacked series
+            // can cross a bound through its cumulative value even when each source value fits.
+            if (kind is OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
+                OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100 &&
+                (layout.VerticalAxisMinimum.HasValue || layout.VerticalAxisMaximum.HasValue)) return true;
+            // An unstacked area also paints the polygon down to zero. Without clipping,
+            // an explicit range that excludes zero lets its baseline escape the plot.
+            if (kind == OfficeChartKind.Area && IsOutside(0d, layout.VerticalAxisMinimum, layout.VerticalAxisMaximum)) return true;
+            if (series.Values.Any(value => IsOutside(value, layout.VerticalAxisMinimum, layout.VerticalAxisMaximum))) return true;
+            if (numericPoints && (layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue) &&
+                (series.XValues == null || series.XValues.Any(value => IsOutside(value, layout.HorizontalAxisMinimum, layout.HorizontalAxisMaximum)))) return true;
+        }
+        return false;
+    }
+
+    private static bool IsOutside(double value, double? minimum, double? maximum) =>
+        minimum.HasValue && value < minimum.Value || maximum.HasValue && value > maximum.Value;
 }

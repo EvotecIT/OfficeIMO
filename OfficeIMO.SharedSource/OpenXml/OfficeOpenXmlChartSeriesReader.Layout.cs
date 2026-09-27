@@ -101,7 +101,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 showValueAxisLabels: valueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
                 horizontalAxisTickLabelPosition: ReadLayoutTickLabelPosition(horizontal),
                 verticalAxisTickLabelPosition: ReadLayoutTickLabelPosition(vertical),
-                horizontalAxisCrossingPosition: ReadLayoutCrossing(horizontal), verticalAxisCrossingPosition: ReadLayoutCrossing(vertical),
+                // A native axis's crosses value positions the perpendicular axis.
+                horizontalAxisCrossingPosition: ReadLayoutCrossing(vertical), verticalAxisCrossingPosition: ReadLayoutCrossing(horizontal),
                 horizontalAxisMajorTickMark: ReadLayoutTick(horizontal?.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
                 horizontalAxisMinorTickMark: ReadLayoutTick(horizontal?.GetFirstChild<C.MinorTickMark>()?.Val?.Value),
                 verticalAxisMajorTickMark: ReadLayoutTick(vertical?.GetFirstChild<C.MajorTickMark>()?.Val?.Value),

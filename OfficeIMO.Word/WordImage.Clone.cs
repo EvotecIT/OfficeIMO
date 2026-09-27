@@ -1,4 +1,6 @@
 using Blip = DocumentFormat.OpenXml.Drawing.Blip;
+using HyperlinkOnClick = DocumentFormat.OpenXml.Drawing.HyperlinkOnClick;
+using HyperlinkOnHover = DocumentFormat.OpenXml.Drawing.HyperlinkOnHover;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -17,9 +19,11 @@ public partial class WordImage {
             if (sourceOwner.TryGetPartById(id, out var part) && part is ImagePart imagePart) {
                 var destinationPart = destinationOwner.AddPart(imagePart);
                 mapped = destinationOwner.GetIdOfPart(destinationPart);
+            } else if (sourceOwner.HyperlinkRelationships.FirstOrDefault(item => item.Id == id) is HyperlinkRelationship hyperlink) {
+                mapped = destinationOwner.AddHyperlinkRelationship(hyperlink.Uri, hyperlink.IsExternal).Id;
             } else {
                 var external = sourceOwner.ExternalRelationships.FirstOrDefault(item => item.Id == id)
-                    ?? throw new InvalidOperationException("The source image relationship cannot be resolved.");
+                    ?? throw new InvalidOperationException("The source drawing relationship cannot be resolved.");
                 mapped = destinationOwner.AddExternalRelationship(external.RelationshipType, external.Uri).Id;
             }
             relationships.Add(id, mapped);
@@ -51,6 +55,10 @@ public partial class WordImage {
             if (blip.Embed?.Value is string id) blip.Embed = Remap(id);
             if (blip.Link?.Value is string link) blip.Link = Remap(link);
         }
+        foreach (var hyperlink in drawing.Descendants<HyperlinkOnClick>())
+            if (hyperlink.Id?.Value is string id) hyperlink.Id = Remap(id);
+        foreach (var hyperlink in drawing.Descendants<HyperlinkOnHover>())
+            if (hyperlink.Id?.Value is string id) hyperlink.Id = Remap(id);
         const string relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         foreach (var svg in drawing.Descendants().Where(element => element.LocalName == "svgBlip"
             && (element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2010/main"
