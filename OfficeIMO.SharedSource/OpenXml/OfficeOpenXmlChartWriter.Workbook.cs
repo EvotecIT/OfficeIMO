@@ -160,7 +160,7 @@ namespace OfficeIMO.OpenXml.Internal {
             return ms.ToArray();
         }
 
-        private static string ColumnLetter(int column) {
+        internal static string ColumnLetter(int column) {
             int dividend = column;
             string columnName = string.Empty;
             while (dividend > 0) {
