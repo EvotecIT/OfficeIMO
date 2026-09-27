@@ -7,6 +7,7 @@ internal static partial class PdfWriter {
         private void RenderSectionBlock(SectionBlock section) {
             encounteredSectionDefinitions.Add(section);
             if (section.Options.StartOnNewPage && (pageDirty || HasCurrentPageNonContentObjects())) {
+                pendingFloatingBookmarks.Clear();
                 NewPage();
             }
 

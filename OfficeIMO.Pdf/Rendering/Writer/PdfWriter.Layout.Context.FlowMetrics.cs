@@ -237,9 +237,11 @@ internal static partial class PdfWriter {
 
         private double MeasureKeepWithNextChainHeight(System.Collections.Generic.IList<IPdfBlock> blocks, int startIndex, double frameX, double frameWidth, double fontSize, double precedingHeight) {
             double savedY = y;
+            var savedFloats = floatingTables.ToArray();
             try {
                 y -= precedingHeight;
-                double height = 0D;
+                double startY = y;
+                double deepest = y;
                 int inspectedBlocks = 0;
                 for (int blockIndex = startIndex; blockIndex < blocks.Count; blockIndex++) {
                     IPdfBlock block = blocks[blockIndex];
@@ -252,6 +254,11 @@ internal static partial class PdfWriter {
                     inspectedBlocks++;
 
                     bool keepWithNext = KeepsWithNext(block);
+                    if (block is TableBlock floating && TryMeasureFloatingTable(floating, frameWidth, fontSize, out double floatingBottom)) {
+                        deepest = Math.Min(deepest, floatingBottom);
+                        if (!keepWithNext) break;
+                        continue;
+                    }
                     double blockHeight;
                     if (keepWithNext) {
                         double? measured = MeasureWholeBlockHeight(block, frameX, frameWidth, fontSize);
@@ -264,16 +271,22 @@ internal static partial class PdfWriter {
                         blockHeight = MeasureNextBlockFirstVisualHeight(block, frameX, frameWidth, fontSize);
                     }
 
-                    height += blockHeight;
+                    if (floatingTables.Count > savedFloats.Length) {
+                        if (block is RichParagraphBlock paragraph)
+                            blockHeight = MeasureFloatingParagraph(paragraph, frameX, frameWidth, fontSize, firstVisualOnly: !keepWithNext);
+                        else AvoidFloatingBlock(blockHeight);
+                    }
                     y -= blockHeight;
+                    deepest = Math.Min(deepest, y);
                     if (!keepWithNext) {
                         break;
                     }
                 }
 
-                return height;
+                return startY - deepest;
             } finally {
                 y = savedY;
+                floatingTables.Clear(); floatingTables.AddRange(savedFloats);
             }
         }
 
@@ -676,8 +689,8 @@ internal static partial class PdfWriter {
             }
 
             int measuredRowCount = firstVisualOnly ? 1 : rowHeights.Length;
-            double tableHeight = ResolveTopLevelSpacingBefore(style.SpacingBefore) + captionHeight + GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
-            return firstVisualOnly ? tableHeight : tableHeight + style.SpacingAfter;
+            double tableHeight = (style.Position == null ? ResolveTopLevelSpacingBefore(style.SpacingBefore) : 0D) + captionHeight + GetTableRowsHeight(rowHeights, 0, measuredRowCount, rowGap);
+            return firstVisualOnly || style.Position != null ? tableHeight : tableHeight + style.SpacingAfter;
         }
 
         private void ConsumeSpacer(double height) {

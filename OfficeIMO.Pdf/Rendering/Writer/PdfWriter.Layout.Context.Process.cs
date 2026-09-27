@@ -16,6 +16,7 @@ internal static partial class PdfWriter {
                 var block = blockList[blockIndex];
                 IPdfBlock? nextBlock = blockIndex + 1 < blockList.Count ? blockList[blockIndex + 1] : null;
                 if (block is PageBlock pageBlock) {
+                    pendingFloatingBookmarks.Clear();
                     FlushPage(pageDirty || HasCurrentPageNonContentObjects());
                     optionsStack.Push(pageBlock.Options);
                     pageGroupStack.Push(currentPageGroupId);
@@ -24,6 +25,7 @@ internal static partial class PdfWriter {
                     currentPage = null;
                     StartPage(currentOpts);
                     ProcessBlocks(pageBlock.Blocks);
+                    pendingFloatingBookmarks.Clear();
                     FlushPage(force: true);
                     optionsStack.Pop();
                     currentPageGroupId = pageGroupStack.Pop();
@@ -53,7 +55,7 @@ internal static partial class PdfWriter {
                 if (block is MultiColumnBlock columns) { RenderMultiColumnBlock(columns); continue; }
                 if (block is ContainerBlock container) { RenderContainerBlock(container, nextBlock, blockList, blockIndex); continue; }
                 if (block is ColumnBreakBlock) { throw new InvalidOperationException("ColumnBreak can only be used inside a Columns block."); }
-                if (block is PageBreakBlock) { NewPage(); continue; }
+                if (block is PageBreakBlock) { pendingFloatingBookmarks.Clear(); NewPage(); continue; }
                 if (block is BookmarkBlock bookmark) {
                     if (HasFloatingTables) QueueFloatingBookmark(bookmark.Name);
                     else AddNamedDestination(bookmark, y);

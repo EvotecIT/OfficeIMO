@@ -10,6 +10,30 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Theory]
+    [InlineData(720)]
+    [InlineData(6400)]
+    public void SaveAsPdf_PositionOffsetDoesNotReserveTableWidth(int offset) {
+        using var document = WordDocument.Create();
+        var table = document.AddTable(1, 2);
+        table.Rows[0].Cells[0].Paragraphs[0].Text = "left";
+        table.Rows[0].Cells[1].Paragraphs[0].Text = "right";
+        table._tableProperties!.TablePositionProperties = new TablePositionProperties {
+            HorizontalAnchor = HorizontalAnchorValues.Margin, VerticalAnchor = VerticalAnchorValues.Text,
+            TablePositionX = 0
+        };
+        var options = new WordToPdfOptions { IncludePageNumbers = false,
+            PageSize = new PdfCore.PageSize(400, 500), Margins = PdfCore.PageMargins.Uniform(40) };
+        using var baseline = PdfPigDocument.Open(document.ToPdfDocumentResult(options).Value.ToBytes());
+        table._tableProperties.TablePositionProperties.TablePositionX = offset;
+        using var shifted = PdfPigDocument.Open(document.ToPdfDocumentResult(options).Value.ToBytes());
+        double ColumnGap(PdfPigDocument pdf) {
+            var words = pdf.GetPage(1).GetWords().ToArray();
+            return words.Single(w => w.Text == "right").BoundingBox.Left - words.Single(w => w.Text == "left").BoundingBox.Left;
+        }
+        Assert.Equal(ColumnGap(baseline), ColumnGap(shifted), 3);
+    }
+
+    [Theory]
     [InlineData("inside")]
     [InlineData("outside")]
     [InlineData("center")]
