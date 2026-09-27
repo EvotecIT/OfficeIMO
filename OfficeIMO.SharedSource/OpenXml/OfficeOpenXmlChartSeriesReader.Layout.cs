@@ -7,6 +7,11 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, string? axisTitleFont = null) {
+            if (chart.PlotArea?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
+                chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
+                chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
+                chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.LegendPosition>()?.Val?.Value == C.LegendPositionValues.TopRight)
+                throw new NotSupportedException("Manual chart layouts and top-right legends cannot be projected.");
             var labels = ReadLabels(chart);
             var legend = chart.GetFirstChild<C.Legend>();
             var position = legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
@@ -37,8 +42,18 @@ namespace OfficeIMO.OpenXml.Internal {
             foreach (var axis in new[] { horizontal, vertical }.Where(axis => axis != null)) {
                 if (axis!.GetFirstChild<C.Scaling>()?.GetFirstChild<C.LogBase>() != null)
                     throw new NotSupportedException("Logarithmic chart axes cannot be projected.");
+                if (axis is C.ValueAxis && axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin)
+                    throw new NotSupportedException("Reversed numeric chart axes cannot be projected.");
             }
             QualifySecondaryLayout(plot, vertical);
+            // Titles, visibility and category direction describe logical roles;
+            // scales and tick marks describe the physical horizontal/vertical axes.
+            var categoryAxis = horizontal;
+            var valueAxis = vertical;
+            if (kind == OfficeChartKind.BarClustered || kind == OfficeChartKind.BarStacked || kind == OfficeChartKind.BarStacked100) {
+                horizontal = valueAxis;
+                vertical = categoryAxis;
+            }
             return new OfficeChartLayout(overlayLegend: legend?.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false,
                 overlayTitle: chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>() is C.Overlay title && title.Val?.Value != false,
                 showLegend: legend != null, legendPosition: sharedPosition, hiddenCategoryLegendIndexes: hidden,
@@ -46,8 +61,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 showDataLabelSeriesNames: labels.SeriesNames, showDataLabelPercentages: labels.Percentages,
                 dataLabelSeparator: labels.Separator, dataLabelNumberFormat: labels.NumberFormat, dataLabelPosition: labels.Position,
                 fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
-                categoryAxisTitle: ReadLayoutTitle(horizontal), valueAxisTitle: ReadLayoutTitle(vertical), axisTitleFontFamily: axisTitleFont,
-                categoryAxisNumberFormat: horizontal is C.ValueAxis ? null : ReadLayoutFormat(horizontal),
+                categoryAxisTitle: ReadLayoutTitle(categoryAxis), valueAxisTitle: ReadLayoutTitle(valueAxis), axisTitleFontFamily: axisTitleFont,
+                categoryAxisNumberFormat: categoryAxis is C.ValueAxis ? null : ReadLayoutFormat(categoryAxis),
                 horizontalAxisNumberFormat: horizontal is C.ValueAxis ? ReadLayoutFormat(horizontal) : null,
                 verticalAxisNumberFormat: ReadLayoutFormat(vertical),
                 horizontalAxisMinimum: ReadLayoutMinimum(horizontal), horizontalAxisMaximum: ReadLayoutMaximum(horizontal),
@@ -56,15 +71,15 @@ namespace OfficeIMO.OpenXml.Internal {
                 horizontalAxisMinorUnit: horizontal?.GetFirstChild<C.MinorUnit>()?.Val?.Value,
                 verticalAxisMajorUnit: vertical?.GetFirstChild<C.MajorUnit>()?.Val?.Value,
                 verticalAxisMinorUnit: vertical?.GetFirstChild<C.MinorUnit>()?.Val?.Value,
-                showCategoryAxis: !IsDeletedAxis(horizontal), showValueAxis: !IsDeletedAxis(vertical),
-                showCategoryAxisLabels: horizontal?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
-                showValueAxisLabels: vertical?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
+                showCategoryAxis: !IsDeletedAxis(categoryAxis), showValueAxis: !IsDeletedAxis(valueAxis),
+                showCategoryAxisLabels: categoryAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
+                showValueAxisLabels: valueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value != C.TickLabelPositionValues.None,
                 horizontalAxisMajorTickMark: ReadLayoutTick(horizontal?.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
                 horizontalAxisMinorTickMark: ReadLayoutTick(horizontal?.GetFirstChild<C.MinorTickMark>()?.Val?.Value),
                 verticalAxisMajorTickMark: ReadLayoutTick(vertical?.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
                 verticalAxisMinorTickMark: ReadLayoutTick(vertical?.GetFirstChild<C.MinorTickMark>()?.Val?.Value),
-                reverseCategoryAxis: horizontal is not C.ValueAxis && horizontal?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin,
-                categoryAxisOrientationSpecified: horizontal is not C.ValueAxis && horizontal?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null);
+                reverseCategoryAxis: categoryAxis is not C.ValueAxis && categoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin,
+                categoryAxisOrientationSpecified: categoryAxis is not C.ValueAxis && categoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null);
         }
 
         private static void QualifySecondaryLayout(C.PlotArea? plot, OpenXmlCompositeElement? primaryValueAxis) {
