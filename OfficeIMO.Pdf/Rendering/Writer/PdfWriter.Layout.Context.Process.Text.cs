@@ -190,10 +190,10 @@ internal static partial class PdfWriter {
                 lines = wrapped.Lines; lineHeights = wrapped.LineHeights;
                 double actualHeight = (y < frameStart - 0.001 ? spacingBefore : 0) + lineHeights.Sum();
                 double nextHeight = paragraphStyle?.KeepWithNext == true && nextBlock != null
-                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, actualHeight) : 0;
+                    ? MeasureKeepWithNextChainHeight(blockList, blockIndex + 1, currentOpts.MarginLeft, width, size, actualHeight + spacingAfter) : 0;
                 bool mustMove = paragraphStyle?.KeepTogether == true && actualHeight > y - currentOpts.MarginBottom + 0.001;
-                mustMove |= nextHeight > 0 && actualHeight + nextHeight > y - currentOpts.MarginBottom + 0.001 &&
-                    originalLineHeights.Sum() + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
+                mustMove |= nextHeight > 0 && actualHeight + spacingAfter + nextHeight > y - currentOpts.MarginBottom + 0.001 &&
+                    originalLineHeights.Sum() + spacingAfter + nextHeight <= frameStart - currentOpts.MarginBottom + 0.001;
                 if (mustMove) { NewPage(); RestoreUnobstructedWrapping(); }
             }
 
