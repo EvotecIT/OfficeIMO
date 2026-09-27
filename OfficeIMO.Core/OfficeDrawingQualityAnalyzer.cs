@@ -25,20 +25,7 @@ public static class OfficeDrawingQualityAnalyzer {
 
         IReadOnlyList<OfficeDrawingElement> elements = drawing.Elements;
         for (int i = 0; i < elements.Count; i++) {
-            OfficeDrawingElement element = elements[i];
-            DrawingBounds bounds = GetBounds(element);
-            if (IsOutsideCanvas(bounds, drawing.Width, drawing.Height, options.BoundsTolerance)) {
-                issues.Add(new OfficeDrawingQualityIssue(
-                    OfficeDrawingQualityIssueKind.ElementOutsideBounds,
-                    FormatBoundsMessage(bounds, drawing.Width, drawing.Height),
-                    i));
-            }
-
-            if (element is OfficeDrawingText text) {
-                textBoxes.Add((i, text.Text, bounds));
-            } else if (element is OfficeDrawingRichText richText) {
-                textBoxes.Add((i, richText.PlainText, bounds));
-            }
+            AppendElementQuality(elements[i], i, OfficeTransform.Identity, drawing, options, issues, textBoxes);
         }
 
         if (options.DetectTextOverlap) {
@@ -46,6 +33,25 @@ public static class OfficeDrawingQualityAnalyzer {
         }
 
         return new OfficeDrawingQualityReport(issues);
+    }
+
+    private static void AppendElementQuality(OfficeDrawingElement element, int rootIndex, OfficeTransform transform,
+        OfficeDrawing drawing, OfficeDrawingQualityOptions options, List<OfficeDrawingQualityIssue> issues,
+        List<(int Index, string Text, DrawingBounds Bounds)> textBoxes) {
+        DrawingBounds local = GetBounds(element);
+        var transformed = transform.TransformRectangleBounds(local.Left, local.Top, local.Right - local.Left, local.Bottom - local.Top);
+        var bounds = new DrawingBounds(transformed.Left, transformed.Top, transformed.Right, transformed.Bottom);
+        if (IsOutsideCanvas(bounds, drawing.Width, drawing.Height, options.BoundsTolerance)) {
+            issues.Add(new OfficeDrawingQualityIssue(OfficeDrawingQualityIssueKind.ElementOutsideBounds,
+                FormatBoundsMessage(bounds, drawing.Width, drawing.Height), rootIndex));
+        }
+        if (element is OfficeDrawingText text) textBoxes.Add((rootIndex, text.Text, bounds));
+        else if (element is OfficeDrawingRichText richText) textBoxes.Add((rootIndex, richText.PlainText, bounds));
+        else if (element is OfficeDrawingEffectGroup group) {
+            OfficeTransform childTransform = group.Transform.Then(transform);
+            foreach (OfficeDrawingElement child in group.InnerDrawing.Elements)
+                AppendElementQuality(child, rootIndex, childTransform, drawing, options, issues, textBoxes);
+        }
     }
 
     private static void AddTextOverlapIssues(IReadOnlyList<(int Index, string Text, DrawingBounds Bounds)> textBoxes, double tolerance, List<OfficeDrawingQualityIssue> issues) {
