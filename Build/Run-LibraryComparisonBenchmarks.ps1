@@ -142,6 +142,7 @@ $definitions = [ordered]@{
         ComparisonId = "csv-async-read-$Framework"
         Suite = 'OfficeIMO.CSV.AsyncRead'
         CatalogEligible = $false
+        FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
         IdentityVariables = @('operation', 'rowcount', 'shape')
         ExpectedCases = @(
             foreach ($operation in @('FirstRow', 'AllRows')) {
@@ -931,6 +932,9 @@ foreach ($name in $selected) {
     )
     if ($RunMode -eq 'quick') {
         $arguments += @('--job', 'Dry')
+    }
+    elseif ($null -ne $definition.PSObject.Properties['FullRunArguments']) {
+        $arguments += $definition.FullRunArguments
     }
     if ($AffinityMask -ne 0 -and $null -eq $affinityApplication) {
         $arguments += @('--affinity', $AffinityMask.ToString([Globalization.CultureInfo]::InvariantCulture))

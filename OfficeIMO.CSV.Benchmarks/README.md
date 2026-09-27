@@ -27,6 +27,11 @@ does not update the website evidence catalog or generated comparison tables.
 Raw reports stay in the captured artifact folder. The derived normalized JSON
 is written beside that folder so re-importing the raw reports can still verify
 the complete captured file set and hashes.
+`-RunMode full` uses six warmup and twelve measured iterations per case and
+retains outliers. Setup checks the worker's affinity against the runner's
+declaration and records its actual affinity and priority in the log. Repeat
+the complete matrix on each discovered processor domain before interpreting
+relative timings, and retain the raw samples when background load is present.
 
 ## Text export and quote density
 

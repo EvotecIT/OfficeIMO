@@ -2,6 +2,8 @@ using System.Data.Common;
 using System.Globalization;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
+using System.Diagnostics;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -28,6 +30,20 @@ public class CsvAsyncReadBenchmarks
     [GlobalSetup]
     public async Task Setup()
     {
+        using (var process = Process.GetCurrentProcess())
+        {
+            string? expectedAffinity = Environment.GetEnvironmentVariable("OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY");
+            if (!string.IsNullOrEmpty(expectedAffinity))
+            {
+                if (!OperatingSystem.IsWindows() && !OperatingSystem.IsLinux())
+                    throw new PlatformNotSupportedException("Processor affinity qualification requires Windows or Linux.");
+                if (process.ProcessorAffinity != BenchmarkProcessorAffinity.ParseList(expectedAffinity)[0])
+                    throw new InvalidOperationException("The benchmark worker did not inherit its declared processor affinity.");
+            }
+            Console.WriteLine(OperatingSystem.IsWindows()
+                ? $"Worker placement: affinity={BenchmarkProcessorAffinity.Format(process.ProcessorAffinity)}; priority={process.PriorityClass}"
+                : $"Worker placement: priority={process.PriorityClass}");
+        }
         _path = Path.Combine(Path.GetTempPath(), $"officeimo-csv-async-read-{Guid.NewGuid():N}.csv");
         using (var writer = new StreamWriter(_path, false, new UTF8Encoding(false)))
         {
