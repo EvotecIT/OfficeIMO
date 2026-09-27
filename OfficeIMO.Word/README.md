@@ -492,6 +492,11 @@ marker and connecting-line colours, or unfilled marker treatments reject the
 managed snapshot rather than changing their appearance. Cached projections are
 bounded to 10,000 positions per Word cache and 100,000 positions across a chart.
 
+Category discovery checks all populated series before generating fallback labels.
+The longest available category cache supplies labels, and shorter series retain
+their positions with zero padding. Marker-only plots use the marker fill; a
+marker fill cannot replace an unresolved connecting-line colour in a static export.
+
 `RadialLayout` reads native pie rotation and doughnut hole size. `SetRadialLayout(...)`
 updates an existing two-dimensional pie or doughnut chart. These settings survive
 save/reopen, data updates, snapshots, managed images, PDF, and chart projections to Markdown.
