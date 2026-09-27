@@ -7,12 +7,29 @@ using Pig = UglyToad.PdfPig.PdfDocument;
 namespace OfficeIMO.Tests;
 
 public class PdfFloatingTablePaginationRegressionTests {
-    [Fact]
-    public void FloatClearanceRechecksFlowMinimumHeight() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MinimumHeightClearanceIncludesOffsetFloatAndDynamicContent(bool dynamicContent) {
+        var table = Floating(320, 50);
+        table.Position = new PdfTablePosition(verticalOffset: 80);
+        using var pdf = Pig.Open(PdfDocument.Create(Options(240))
+            .Table(new[] { new[] { "floating" } }, style: table)
+            .Flow(flow => {
+                if (dynamicContent) flow.Deferred(_ => nested => nested.Paragraph(p => p.Text("first")));
+                else flow.Paragraph(p => p.Text("first"));
+            }, new PdfFlowOptions { MinimumRemainingHeight = 100 }).ToBytes());
+        Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
+        Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
+    }
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FloatClearanceRechecksFlowMinimumHeight(bool keepTogether) {
         using var pdf = Pig.Open(PdfDocument.Create(Options(240))
             .Table(new[] { new[] { "floating" } }, style: Floating(320, 100))
             .Flow(flow => flow.Paragraph(p => p.Text("first")),
-                new PdfFlowOptions { KeepTogether = true, MinimumRemainingHeight = 100 }).ToBytes());
+                new PdfFlowOptions { KeepTogether = keepTogether, MinimumRemainingHeight = 100 }).ToBytes());
         Assert.DoesNotContain(pdf.GetPage(1).GetWords(), w => w.Text == "first");
         Assert.Contains(pdf.GetPage(2).GetWords(), w => w.Text == "first");
     }
