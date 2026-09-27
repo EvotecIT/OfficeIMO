@@ -318,6 +318,26 @@ public sealed class DrawingTrueTypeVariableFontTests {
     }
 
     [Fact]
+    public void ItemVariationStoreTreatsNoVariationDeltaSetIndexAsZero() {
+        byte[] source = ReadAsset("RobotoFlex.ttf");
+        byte[] data = new byte[source.Length + 12];
+        Buffer.BlockCopy(source, 0, data, 0, source.Length);
+        int offset = source.Length;
+        WriteUInt16(data, offset, 1);
+        WriteUInt32(data, offset + 2, 8);
+        // An empty store is valid: no data sets, axes, or regions are referenced.
+        OfficeOpenTypeReader reader = Assert.IsType<OfficeOpenTypeReader>(OfficeOpenTypeReader.TryCreate(data));
+        OfficeOpenTypeItemVariationStore store = OfficeOpenTypeItemVariationStore.Parse(
+            reader, offset, data.Length, OfficeFontVariationModel.None);
+
+        store.ValidateIndex(ushort.MaxValue, ushort.MaxValue);
+        Assert.Equal(0, store.Evaluate(ushort.MaxValue, ushort.MaxValue));
+        Assert.Throws<InvalidDataException>(() => store.Evaluate(ushort.MaxValue, 0));
+        Assert.Throws<InvalidDataException>(() => store.Evaluate(0, ushort.MaxValue));
+        Assert.Throws<InvalidDataException>(() => store.Evaluate(0, 0));
+    }
+
+    [Fact]
     public void ItemVariationStoreRejectsNullDataOffsets() {
         byte[] source = ReadAsset("RobotoFlex.ttf");
         byte[] data = new byte[source.Length + 16];
