@@ -1716,11 +1716,9 @@ public static partial class OfficeChartDrawingRenderer {
 
         double legendWidth = GetSeriesLegendWidth(series, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        double visualWidth = Math.Max(80D, width - legendWidth);
-        double centerX = (leftLegend ? legendWidth : 0D) + visualWidth / 2D;
-        double contentHeight = Math.Max(40D, height - contentTop - bottomLegendHeight);
-        double centerY = contentTop + contentHeight / 2D;
-        double radius = Math.Max(28D, Math.Min(visualWidth - 52D, contentHeight - 42D) / 2D);
+        GetRadialPlotGeometry(width, height, contentTop, bottomLegendHeight, legendWidth,
+            leftLegend, 52D, 42D, out double centerX, out double centerY, out double radius,
+            out double visualWidth, out double contentHeight);
         ValueRange range = GetRadarValueRange(series);
 
         for (int ring = 1; ring <= 4; ring++) {

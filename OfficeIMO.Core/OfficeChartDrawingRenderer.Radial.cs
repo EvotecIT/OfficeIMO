@@ -5,6 +5,23 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
+    private static void GetRadialPlotGeometry(double width, double height, double topBand,
+        double bottomBand, double sideBand, bool leftLegend, double horizontalPadding,
+        double verticalPadding, out double centerX, out double centerY, out double radius,
+        out double visualWidth, out double contentHeight) {
+        // Legend and title bands must leave a plot inside the authored frame, even on tiny exports.
+        sideBand = Math.Max(0D, Math.Min(sideBand, width - Math.Min(1D, width)));
+        topBand = Math.Max(0D, Math.Min(topBand, height - Math.Min(1D, height)));
+        bottomBand = Math.Max(0D, Math.Min(bottomBand, height - topBand - Math.Min(1D, height)));
+        visualWidth = width - sideBand;
+        contentHeight = height - topBand - bottomBand;
+        centerX = (leftLegend ? sideBand : 0D) + visualWidth / 2D;
+        centerY = topBand + contentHeight / 2D;
+        double preferredRadius = Math.Max(28D,
+            Math.Min(visualWidth - horizontalPadding, contentHeight - verticalPadding) / 2D);
+        radius = Math.Min(preferredRadius, Math.Min(visualWidth, contentHeight) / 2D);
+    }
+
     private static void AddPieSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, bool doughnut, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
@@ -43,11 +60,9 @@ public static partial class OfficeChartDrawingRenderer {
             : bottomLegendHeight;
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        double contentHeight = Math.Max(40D, height - contentTop - categoryBottomLegendHeight);
-        double visualWidth = Math.Max(80D, width - legendWidth);
-        double radius = Math.Max(28D, Math.Min(visualWidth - 48D, contentHeight - 36D) / 2D);
-        double centerX = (leftLegend ? legendWidth : 0D) + visualWidth / 2D;
-        double centerY = contentTop + contentHeight / 2D;
+        GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
+            leftLegend, 48D, 36D, out double centerX, out double centerY, out double radius,
+            out double visualWidth, out double contentHeight);
         double start = GetFirstSliceAngle(snapshot.RadialLayout);
         int zeroLabelIndex = 0;
         OfficeColor zeroLabelColor = GetPointDataLabelColor(style, values,
@@ -135,11 +150,9 @@ public static partial class OfficeChartDrawingRenderer {
             : bottomLegendHeight;
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        double contentHeight = Math.Max(40D, height - contentTop - categoryBottomLegendHeight);
-        double visualWidth = Math.Max(80D, width - legendWidth);
-        double radius = Math.Max(28D, Math.Min(visualWidth - 48D, contentHeight - 36D) / 2D);
-        double centerX = (leftLegend ? legendWidth : 0D) + visualWidth / 2D;
-        double centerY = contentTop + contentHeight / 2D;
+        GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
+            leftLegend, 48D, 36D, out double centerX, out double centerY, out double radius,
+            out double visualWidth, out double contentHeight);
 
         double holeRadius = radius * snapshot.RadialLayout.DoughnutHolePercent / 100D;
         double ringThickness = (radius - holeRadius) / renderableSeries.Count;

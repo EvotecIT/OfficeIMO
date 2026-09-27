@@ -5,6 +5,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartRadialLayoutTests {
     [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    [InlineData(OfficeChartKind.Radar)]
+    public void SmallAuthoredCanvas_KeepsRadialGeometryInsideTheFrame(OfficeChartKind kind) {
+        var data = new OfficeChartData(new[] { "A", "B", "C" },
+            new[] { new OfficeChartSeries("Values", new[] { 3d, 4d, 5d }) });
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, 90, 30, null, new OfficeChartLayout(showLegend: false)), false);
+        var polygons = drawing.Shapes.Where(shape => shape.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
+        Assert.NotEmpty(polygons);
+        foreach (var polygon in polygons)
+            foreach (var point in polygon.Shape.Points) {
+                Assert.InRange(polygon.X + point.X, -0.000001, 90.000001);
+                Assert.InRange(polygon.Y + point.Y, -0.000001, 30.000001);
+            }
+    }
+
+    [Theory]
     [InlineData(10)]
     [InlineData(50)]
     [InlineData(90)]

@@ -1,4 +1,5 @@
 using Blip = DocumentFormat.OpenXml.Drawing.Blip;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using V = DocumentFormat.OpenXml.Vml;
@@ -27,9 +28,21 @@ public partial class WordImage {
         if (_vmlShape != null) {
             var shape = (V.Shape)_vmlShape.CloneNode(true);
             shape.Id = "image-" + Guid.NewGuid().ToString("N");
+            var picture = new Picture();
+            if (shape.Type?.Value is string reference && reference.StartsWith("#", StringComparison.Ordinal)) {
+                var definition = sourceOwner.RootElement?.Descendants<V.Shapetype>()
+                    .FirstOrDefault(item => item.Id?.Value == reference.Substring(1));
+                if (definition != null) {
+                    var copiedDefinition = (V.Shapetype)definition.CloneNode(true);
+                    copiedDefinition.Id = "image-type-" + Guid.NewGuid().ToString("N");
+                    shape.Type = "#" + copiedDefinition.Id.Value;
+                    picture.Append(copiedDefinition);
+                }
+            }
             foreach (var image in shape.Descendants<V.ImageData>())
                 if (image.RelationshipId?.Value is string id) image.RelationshipId = Remap(id);
-            var run = new Run(new Picture(shape));
+            picture.Append(shape);
+            var run = new Run(picture);
             paragraph._paragraph.Append(run);
             return new WordImage(paragraph._document, paragraph._paragraph, run, shape);
         }
@@ -38,6 +51,16 @@ public partial class WordImage {
             if (blip.Embed?.Value is string id) blip.Embed = Remap(id);
             if (blip.Link?.Value is string link) blip.Link = Remap(link);
         }
+        const string relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        foreach (var svg in drawing.Descendants().Where(element => element.LocalName == "svgBlip"
+            && (element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2010/main"
+                || element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2016/SVG/main"))) {
+            var embed = svg.GetAttributes().FirstOrDefault(attribute =>
+                attribute.LocalName == "embed" && attribute.NamespaceUri == relationshipNamespace);
+            if (!string.IsNullOrEmpty(embed.Value))
+                svg.SetAttribute(new OpenXmlAttribute("r", "embed", relationshipNamespace, Remap(embed.Value!)));
+        }
+        WordDrawingIdAllocator.Reassign(paragraph._document, drawing);
         paragraph._paragraph.Append(new Run(drawing));
         return new WordImage(paragraph._document, drawing);
     }
