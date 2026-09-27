@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "baseCommit": "d91d8c6704d0577226616800a8c5ecefea5c1c20",
+  "validatedStagedDiffHash": "fe48c9618cce7171ffd23dd6785c578b0a999a21",
+  "fingerprintCommand": "git diff --cached --full-index --binary --no-ext-diff --no-textconv --no-color | git hash-object --stdin",
+  "scope": "Supported float, flex and grid editable regions retain source-ordered text when positioned descendants split their paint envelopes. Explicit paint identity and matching page, bounds and semantic origins distinguish these envelopes from genuine page or column fragmentation.",
+  "reproduction": { "positionedFailures": 3, "ordinaryControlsPassed": 3 },
+  "validation": {
+    "focusedNet10": { "passed": 255, "failed": 0 },
+    "htmlNet8": { "passed": 3698, "failed": 0, "skipped": 0 },
+    "htmlNet10": { "passed": 3698, "failed": 0, "skipped": 0 },
+    "htmlPdfNetstandard20": { "warnings": 0, "errors": 0 },
+    "nativeSaveReopen": ["Word", "Excel", "PowerPoint", "RTF"],
+    "pdfTextAndVisualInspection": ["HTML", "Word", "PowerPoint"]
+  },
+  "independentReview": {
+    "readOnlyPass": true,
+    "actionableFindings": 0,
+    "reviewerDefaultDiffHash": "b3330b6b4b2552552f9547537eb5fc6553d69973",
+    "fingerprintDifference": "Default git diff output differs from the full-index binary fingerprint; the four-file source candidate remained unchanged."
+  },
+  "artifacts": "Ignore/HtmlUnknownPageQualification/h10-editable-paint-projection-d91d8c670/results",
+  "limits": "Narrow supported-region proof only. PowerPoint reports placement simplifications. Unknown-page editable appearance, fresh H4/NASA replay and current-source platform budgets remain separate qualification gates."
+}

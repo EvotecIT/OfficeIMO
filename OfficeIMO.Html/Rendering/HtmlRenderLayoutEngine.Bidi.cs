@@ -5,8 +5,10 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private static string ResolveLogicalText(IEnumerable<HtmlRenderVisual> visuals, string fallback) {
+        IReadOnlyList<HtmlRenderVisual> materialized = visuals as IReadOnlyList<HtmlRenderVisual> ?? visuals.ToArray();
+        if (HtmlRenderLogicalText.TryResolveReorderedText(materialized, out string reorderedText)) return reorderedText;
         var text = new StringBuilder();
-        foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
+        foreach (HtmlRenderVisual visual in materialized.OrderBy(item => item.PaintOrder)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderText renderedText) text.Append(renderedText.Text);
             else if (visual is HtmlRenderLogicalTextGroup logicalText) text.Append(logicalText.Text);
