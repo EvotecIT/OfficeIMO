@@ -77,6 +77,16 @@ namespace OfficeIMO.PowerPoint {
 
         private bool TryGetSnapshot(A.ColorScheme? colorScheme,
             bool forDataUpdate, out PowerPointChartSnapshot snapshot) {
+            if (!TryReadSnapshot(colorScheme, forDataUpdate, out snapshot)) return false;
+            if (!forDataUpdate && snapshot.Data.Series.Any(series => series.HasUnsupportedSharedAppearance)) {
+                snapshot = null!;
+                return false;
+            }
+            return true;
+        }
+
+        private bool TryReadSnapshot(A.ColorScheme? colorScheme,
+            bool forDataUpdate, out PowerPointChartSnapshot snapshot) {
             try {
                 ChartPart chartPart = GetChartPart();
                 C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
@@ -840,105 +850,26 @@ namespace OfficeIMO.PowerPoint {
 
         private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements,
             PowerPointChartSnapshotKind? chartKind = null, A.ColorScheme? colorScheme = null,
-            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            var seriesList = seriesElements.ToList();
-            if (seriesList.Count == 0) {
-                return null;
-            }
+            OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) =>
+            ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadCategories(seriesElements,
+                PowerPointChartSnapshotMapper.MapKind(chartKind ?? PowerPointChartSnapshotKind.ClusteredColumn),
+                colorScheme, axisGroup, PowerPointUtils.MaximumSharedChartPoints), chartKind);
 
-            IReadOnlyList<string> categories = Array.Empty<string>();
-            for (int i = 0; i < seriesList.Count; i++) {
-                IReadOnlyList<double> values = ReadCachedNumbers(seriesList[i].GetFirstChild<C.Values>());
-                if (values.Count == 0) {
-                    continue;
-                }
+        private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements,
+            A.ColorScheme? colorScheme = null) =>
+            ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadScatter(seriesElements,
+                colorScheme, PowerPointUtils.MaximumSharedChartPoints), PowerPointChartSnapshotKind.Scatter);
 
-                categories = ReadCachedStrings(seriesList[i].GetFirstChild<C.CategoryAxisData>());
-                if (categories.Count == 0) {
-                    categories = CreateFallbackCategories(values.Count);
-                }
-
-                if (categories.Count > 0) {
-                    break;
-                }
-            }
-
-            if (categories.Count == 0) {
-                return null;
-            }
-
-            var series = new List<PowerPointChartSeries>();
-            for (int i = 0; i < seriesList.Count; i++) {
-                OpenXmlCompositeElement seriesElement = seriesList[i];
-                IReadOnlyList<double> values = NormalizeValues(ReadCachedNumbers(seriesElement.GetFirstChild<C.Values>()), categories.Count);
-                if (values.Count == 0) {
-                    continue;
-                }
-
-                string name = ReadSeriesName(seriesElement);
-                if (string.IsNullOrWhiteSpace(name)) {
-                    name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
-                }
-
-                series.Add(new PowerPointChartSeries(name, values, null, chartKind,
-                    ReadSeriesColor(seriesElement, chartKind, colorScheme), ReadSeriesStrokeWidth(seriesElement),
-                    axisGroup) {
-                    PointColors = ReadPointColors(seriesElement, values.Count, colorScheme),
-                    PointStyles = OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, colorScheme),
-                    SourceIndex = seriesElement.GetFirstChild<C.Index>()?.Val?.Value
-                });
-            }
-
-            return series.Count == 0 ? null : new PowerPointChartData(categories, series);
-        }
-
-        private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements, A.ColorScheme? colorScheme = null) {
-            var seriesList = seriesElements.ToList();
-            if (seriesList.Count == 0) {
-                return null;
-            }
-
-            var series = new List<PowerPointChartSeries>();
-            IReadOnlyList<double>? categoryXValues = null;
-            for (int i = 0; i < seriesList.Count; i++) {
-                C.ScatterChartSeries seriesElement = seriesList[i];
-                IReadOnlyList<double> xValues = ReadCachedNumbers(seriesElement.GetFirstChild<C.XValues>());
-                IReadOnlyList<double> yValues = ReadCachedNumbers(seriesElement.GetFirstChild<C.YValues>());
-                int pointCount = Math.Min(xValues.Count, yValues.Count);
-                if (pointCount == 0) {
-                    continue;
-                }
-
-                IReadOnlyList<double> values = NormalizeValues(yValues, pointCount);
-                if (values.Count == 0) {
-                    continue;
-                }
-
-                categoryXValues ??= xValues.Take(pointCount).ToList();
-                string name = ReadSeriesName(seriesElement);
-                if (string.IsNullOrWhiteSpace(name)) {
-                    name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
-                }
-
-                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList(),
-                    PowerPointChartSnapshotKind.Scatter,
-                    ReadSeriesColor(seriesElement, PowerPointChartSnapshotKind.Scatter, colorScheme),
-                    ReadSeriesStrokeWidth(seriesElement)) {
-                    PointColors = ReadPointColors(seriesElement, values.Count, colorScheme),
-                    PointStyles = OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, colorScheme),
-                    SourceIndex = seriesElement.GetFirstChild<C.Index>()?.Val?.Value
-                });
-            }
-
-            if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {
-                return null;
-            }
-
-            var categories = categoryXValues
-                .Select(value => value.ToString(CultureInfo.InvariantCulture))
-                .ToList();
-            return series.Count == 0 ? null : new PowerPointChartData(categories, series);
-        }
+        private static PowerPointChartData? ProjectSharedSeries(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.Result? source,
+            PowerPointChartSnapshotKind? kind) => source == null ? null : new PowerPointChartData(source.Categories,
+                source.Series.Select(item => new PowerPointChartSeries(item.Data.Name, item.Data.Values, item.Data.XValues,
+                    kind, item.Data.Color, item.Data.StrokeWidth, item.Data.AxisGroup) {
+                    PointColors = item.Data.PointColors,
+                    PointStyles = item.Data.PointStyles,
+                    SourceIndex = item.SourceIndex,
+                    SharedAppearance = item.Data,
+                    HasUnsupportedSharedAppearance = item.HasUnsupportedAppearance
+                }));
 
         private static OfficeColor? ReadSeriesColor(OpenXmlCompositeElement seriesElement, PowerPointChartSnapshotKind? chartKind, A.ColorScheme? colorScheme) {
             C.ChartShapeProperties? properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
