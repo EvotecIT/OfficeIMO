@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "fb6d0c43e5042ebe12830b993ae0149f21fe1d1a",
+  "sourceClean": true,
+  "browserVersion": "151.0.7922.34",
+  "frozenArchiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "change": "Absolute border-box overflow inside a clipped gallery contributes to bounded print fitting even through paint-effect groups. Percentage-positioned boxes cannot trigger a second fit solely because the first fit enlarged their containing block, including when root min-width started that fit.",
+  "reducedBrowserComparisons": {
+    "nineCardAbsoluteHeaderPages": { "chromium": 3, "officeimo": 3 },
+    "paintEffectVariants": [ "transform", "opacity", "clip-path" ],
+    "paintEffectPagesEach": { "chromium": 3, "officeimo": 3 },
+    "overflowClipAndHiddenPagesEach": { "chromium": 3, "officeimo": 3 },
+    "inFlow960Absolute110PercentPages": { "chromium": 3, "officeimo": 3 },
+    "rootMinWidth960Absolute140PercentPages": { "chromium": 3, "officeimo": 3 },
+    "ordinaryClippedInFlowGalleryRetainsFullScale": true,
+    "preExistingVisibleOverflowLimit": "Changing the nine-card list to overflow-x:visible produces three Chromium pages and one over-fitted OfficeIMO page. This distinct in-flow case remains open; the accepted absolute-gallery fix does not widen that contract."
+  },
+  "validation": {
+    "htmlTestsNet8": { "passed": 3711, "failed": 0 },
+    "htmlTestsNet10": { "passed": 3711, "failed": 0 },
+    "netstandard20BuildWarnings": 0,
+    "h4AdvancedHeldOut": {
+      "acceptedCases": 8,
+      "totalCases": 8,
+      "failures": 0,
+      "managedImagesComparedToEe77d7d1a": 43,
+      "managedImagesByteIdentical": 41,
+      "changedManagedImages": [
+        "stacking-clipping-board/officeimo-print-page-1.png",
+        "stacking-clipping-board/officeimo-print-scene-page-1.png"
+      ],
+      "stackingClippingPrintPixelMeanAbsoluteErrorBefore": 1.8847413593940305,
+      "stackingClippingPrintPixelMeanAbsoluteErrorAfter": 2.1946892432334226,
+      "stackingClippingPrintPixelMeanAbsoluteErrorCeiling": 13
+    },
+    "macosReleaseH4Budget": {
+      "passed": true,
+      "coldProcessMilliseconds": 4704.2,
+      "slowestWarmMilliseconds": 2050.5,
+      "peakWorkingSetBytes": 547078144,
+      "coldWarmDeterministic": true,
+      "otherFailures": []
+    },
+    "independentReview": "One read-only candidate review found nested paint effects and percentage refitting; both reproduced and were fixed. Its clipping concern did not reproduce in the tested Chromium controls. One targeted confirmation found no remaining validated P0-P2. The root min-width sibling concern then reproduced and was closed with focused and full tests."
+  },
+  "nasaExactHeadReplay": {
+    "operationCount": 13,
+    "conversionFailures": 0,
+    "chromiumPrintPages": 4,
+    "officeimoDefaultPrintPagesBefore": 12,
+    "officeimoDefaultPrintPagesAfter": 4,
+    "officeimoExplicitFitPrintPages": 4,
+    "officeimoScreenMediaPages": 10,
+    "officeimoScreenSnapshotPages": 12,
+    "peachPdfPrintPages": 3,
+    "ownedPdfBytesMatchPreCommitCandidate": "10 of 10",
+    "inspected": "All pages in every operation were rasterized into 13 retained contact sheets; full-size default-print pages were also compared side by side with Chromium.",
+    "visualParity": false,
+    "remainingDifferences": [
+      "First-page title, header, card-label and body-text geometry differ.",
+      "The card groups cross sheet boundaries at different positions despite matching print page counts.",
+      "The final Magnetospheres cards and footer have different widths, clipping and vertical positions.",
+      "Screen-media and fixed screen-snapshot intents retain distinct ten-page and twelve-slice layouts."
+    ]
+  },
+  "retainedArtifacts": {
+    "h4": "Ignore/HtmlUnknownPageQualification/h10-h4-positioned-overflow-clean-fb6d0c43e",
+    "nasa": "Ignore/HtmlUnknownPageQualification/h10-nasa-positioned-overflow-clean-fb6d0c43e",
+    "budget": "Ignore/HtmlUnknownPageQualification/h10-budget-positioned-overflow-clean-fb6d0c43e"
+  }
+}
