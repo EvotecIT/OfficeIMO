@@ -20,6 +20,18 @@ public sealed class DrawingExportQualityTests {
         Assert.True(title.Height >= 30D);
     }
 
+    [Fact]
+    public void ChartQualityRenderingCanPreserveSmallAuthoredDimensions() {
+        var snapshot = new OfficeChartSnapshot(null, null, OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }), 90, 30);
+        var authored = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
+        Assert.Equal(90d, authored.Drawing.Width);
+        Assert.Equal(30d, authored.Drawing.Height);
+        var defaultCanvas = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
+        Assert.Equal(240d, defaultCanvas.Drawing.Width);
+        Assert.Equal(150d, defaultCanvas.Drawing.Height);
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]

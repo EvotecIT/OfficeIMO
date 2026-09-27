@@ -554,7 +554,16 @@ public static partial class OfficeChartDrawingRenderer {
     /// <param name="qualityOptions">Optional drawing quality analysis options.</param>
     /// <returns>Rendered chart drawing plus quality report.</returns>
     public static OfficeChartRenderingResult RenderWithQuality(OfficeChartSnapshot snapshot, OfficeDrawingQualityOptions? qualityOptions = null) {
-        OfficeDrawing drawing = Render(snapshot);
+        return RenderWithQuality(snapshot, useMinimumCanvas: true, qualityOptions);
+    }
+
+    /// <summary>Renders a chart with configurable minimum canvas sizing and drawing quality diagnostics.</summary>
+    /// <param name="snapshot">Chart snapshot to render.</param>
+    /// <param name="useMinimumCanvas">Whether to enlarge small authored dimensions to the default minimum canvas.</param>
+    /// <param name="qualityOptions">Optional drawing quality analysis options.</param>
+    /// <returns>Rendered chart drawing plus quality report.</returns>
+    public static OfficeChartRenderingResult RenderWithQuality(OfficeChartSnapshot snapshot, bool useMinimumCanvas, OfficeDrawingQualityOptions? qualityOptions = null) {
+        OfficeDrawing drawing = Render(snapshot, useMinimumCanvas);
         OfficeDrawingQualityReport qualityReport = OfficeDrawingQualityAnalyzer.Analyze(drawing, qualityOptions);
         if (HasUnsupportedAreaPointStyles(snapshot)) {
             var issues = qualityReport.Issues.ToList();
