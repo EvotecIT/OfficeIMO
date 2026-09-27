@@ -485,6 +485,14 @@ renderer. Pie and doughnut legend swatches follow their slice appearance. Static
 retain their series fill and report unsupported per-point appearance. See the
 [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
 
+### Pie and doughnut geometry
+
+Use `chart.SetRadialLayout(new OfficeChartRadialLayout(90, 70))` on an existing native
+two-dimensional pie or doughnut chart. Rotation runs clockwise from the top (0–360 degrees);
+the doughnut hole is an inner-to-outer diameter percentage (10–90). `chart.RadialLayout`
+reads the native settings. Save/reopen, data updates, snapshots, managed chart images and
+workbook PDF exports and semantic HTML round trips preserve them.
+
 ### Pivot tables and pivot-backed charts
 
 ```csharp
