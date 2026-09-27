@@ -8,15 +8,17 @@ meta.primary_label: "Explore Studio workflows"
 meta.primary_url: "/studio/"
 ---
 
-OfficeIMO Studio brings the OfficeIMO engines into a visual workspace. It currently requires a source build: a public installer is not available. The commercial products and Windows application below already offer end-user downloads. That difference matters before comparing individual features.
+OfficeIMO Studio brings the OfficeIMO engines into a visual workspace. [Windows and Linux downloads](/downloads/#studio-downloads) include installers and portable archives for x64 and Arm64. macOS uses the source build guide.
 
 This comparison was checked on **7 September 2026**. OfficeIMO entries describe the current source and linked workflow evidence. Other entries describe vendors' published features, not a hands-on test or a performance ranking. Edition and provider requirements are stated where they affect the task; an unverified feature is not treated as unsupported.
+
+Studio download availability was updated on **27 September 2026** for version 0.1.9765. Windows and Linux x64 installation and launch were verified; Arm64 installation and runtime testing for version 0.1.9765 is pending.
 
 ## Compare the editions and workflows
 
 | Product / edition | Relevant documented capabilities | Availability and limits |
 |---|---|---|
-| **OfficeIMO Studio** | Supported PDF text/image edits, comments, AcroForms, page organization, conversion, redaction, comparison, and lossless optimization | Source build; OCR requires an optional provider; print-sheet preview does not submit to a native printer |
+| **OfficeIMO Studio** | Supported PDF text/image edits, comments, AcroForms, page organization, conversion, redaction, comparison, and lossless optimization | Windows/Linux packages; macOS source build; OCR requires an optional provider; see the Studio guide for printing requirements |
 | **Acrobat Standard** | PDF editing, page organization, conversion, forms, signatures, and password protection | Commercial plan; advanced OCR, comparison, and redaction are listed in Pro |
 | **Acrobat Pro** | Standard features plus searchable scans, PDF comparison, redaction, and additional agreement workflows | Commercial plan; evaluate desktop and service features against deployment requirements |
 | **Acrobat Studio** | Pro features plus PDF Spaces, AI Assistant, and Adobe Express Premium | Commercial bundle; these additional services are a different workflow from OfficeIMO's desktop editor |
@@ -31,7 +33,7 @@ Sources: [Adobe's edition comparison](https://www.adobe.com/acrobat/pricing/comp
 
 **Choose OfficeIMO when you need to connect document work to code and automation.** Its [.NET PDF engine](/products/pdf/), [PowerShell module](/products/pswriteoffice/), [CLI](/tool/), and [browser PDF tools](/pdf/) expose related capabilities through different entry points. Check each entry point's guide: an engine API is not automatically a command or a desktop feature.
 
-**Evaluate Studio from source when you want to shape that visual workflow.** Start with the [actual screenshots and supported tasks](/studio/). Object-level PDF editing is not paragraph reflow, drawn signatures are not certificate signatures, and an OCR text layer does not recover the original Word document.
+**Evaluate Studio on your own documents.** Start with the [actual screenshots and supported tasks](/studio/) and [download a desktop package](/downloads/#studio-downloads). Object-level PDF editing is not paragraph reflow, drawn signatures are not certificate signatures, and an OCR text layer does not recover the original Word document.
 
 ## Compare evidence without combining unlike scores
 

@@ -4,18 +4,20 @@
     "headlineLead": "Your documents.",
     "headlineAccent": "A clearer workspace.",
     "summary": "Edit supported PDF text and images, review comments, fill forms, and organize pages. Convert and assemble documents, then inspect the result before saving.",
-    "primaryLabel": "Explore the workspace",
-    "primaryUrl": "#application-guide",
+    "primaryLabel": "Download Studio",
+    "primaryUrl": "/downloads/#studio-downloads",
     "secondaryLabel": "Source and build guide",
     "secondaryUrl": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme",
-    "availability": "Build Studio from source using the Studio guide",
+    "availability": "Windows and Linux downloads are available for x64 and Arm64. Arm64 installation and runtime testing for version 0.1.9765 is pending. macOS uses the source build guide.",
     "image": "/images/studio/workspace-light.png",
     "imageDark": "/images/studio/workspace-dark.png",
     "imageAlt": "OfficeIMO Studio displaying the public document showcase dashboard with page navigation and document tools.",
     "caption": "Actual Studio window with an OfficeIMO sample PDF. Desktop source build. Select the image to open it at full size.",
     "facts": ["Windows · macOS · Linux development", "Local document workflows", "MIT licensed"],
     "channels": [
-      { "name": "Source build", "detail": "Build and run the desktop workspace", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme", "label": "Open build guide" }
+      { "name": "Windows", "detail": "Signed MSI installer or portable ZIP for x64 and Arm64", "state": "Available", "url": "/downloads/#studio-downloads", "label": "Download for Windows" },
+      { "name": "Linux", "detail": "Debian package or portable ZIP for x64 and Arm64", "state": "Available", "url": "/downloads/#studio-linux-downloads", "label": "Download for Linux" },
+      { "name": "Source build", "detail": "Build the desktop workspace, including on macOS", "state": "Available", "url": "https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme", "label": "Open build guide" }
     ]
   },
   "tool": {
