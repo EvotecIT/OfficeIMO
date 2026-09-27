@@ -10,6 +10,32 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Export_PreservesChartsAndTextInNestedHyperlinkContentControls(bool hyperlinkOutside) {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraph = document.Paragraphs.Single();
+        var run = paragraph.GetRuns().Single()._run!;
+        run.Remove();
+        var before = new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text("Before "));
+        var after = new DocumentFormat.OpenXml.Wordprocessing.Run(new DocumentFormat.OpenXml.Wordprocessing.Text(" After"));
+        var hyperlink = new DocumentFormat.OpenXml.Wordprocessing.Hyperlink { Anchor = "chart-target" };
+        var content = new DocumentFormat.OpenXml.Wordprocessing.SdtContentRun();
+        var control = new DocumentFormat.OpenXml.Wordprocessing.SdtRun(new DocumentFormat.OpenXml.Wordprocessing.SdtProperties(), content);
+        if (hyperlinkOutside) {
+            content.Append(run); hyperlink.Append(before, control, after); paragraph._paragraph.Append(hyperlink);
+        } else {
+            hyperlink.Append(run); content.Append(before, hyperlink, after); paragraph._paragraph.Append(control);
+        }
+        var result = document.ToHtmlResult();
+        var html = new HtmlParser().ParseDocument(result.RequireValue());
+        Assert.Single(html.QuerySelectorAll("a[href='#chart-target'] img"));
+        Assert.Contains("Before", html.Body!.TextContent);
+        Assert.Contains("After", html.Body.TextContent);
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
     [Fact]
     public void Export_RendersChartsInsideRichTextContentControls() {
         using var document = WordDocument.Create();
