@@ -14,9 +14,14 @@ public sealed class OdpMasterPage {
         get {
             string? styleName = (string?)_element.Attribute(OdfNamespaces.Draw + "style-name");
             OdfStyle? style = styleName == null ? null : _presentation.Styles.FindInPart(OdfStyleFamily.DrawingPage, styleName, "styles.xml");
-            XElement? properties = style?.Element.Element(OdfNamespaces.Style + "drawing-page-properties");
-            if (string.Equals((string?)properties?.Attribute(OdfNamespaces.Draw + "fill"), "none", StringComparison.OrdinalIgnoreCase)) return null;
-            string? value = (string?)properties?.Attribute(OdfNamespaces.Draw + "fill-color");
+            IReadOnlyList<OdfStyle> chain = style == null ? Array.Empty<OdfStyle>() : _presentation.Styles.Resolve(style);
+            string? mode = chain.Select(candidate => (string?)candidate.Element
+                .Element(OdfNamespaces.Style + "drawing-page-properties")?.Attribute(OdfNamespaces.Draw + "fill"))
+                .FirstOrDefault(value => value != null);
+            if (mode != null && !string.Equals(mode, "solid", StringComparison.OrdinalIgnoreCase)) return null;
+            string? value = chain.Select(candidate => (string?)candidate.Element
+                .Element(OdfNamespaces.Style + "drawing-page-properties")?.Attribute(OdfNamespaces.Draw + "fill-color"))
+                .FirstOrDefault(color => color != null);
             return value == null ? (OdfColor?)null : OdfColor.Parse(value);
         }
         set {

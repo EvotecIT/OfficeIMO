@@ -1,5 +1,7 @@
 using OfficeIMO.Core.Internal;
+using System;
 using System.Globalization;
+using System.Threading;
 
 namespace OfficeIMO.Pdf;
 
@@ -221,6 +223,18 @@ internal static class PdfImageExtractor {
         }
 
         return images;
+    }
+
+    /// <summary>Visits images one at a time without retaining every extracted payload.</summary>
+    internal static void VisitImages(PdfReadDocument document, Action<PdfExtractedImage> visit,
+        CancellationToken cancellationToken) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(visit, nameof(visit));
+        document.DemandContentExtraction("image");
+        for (int i = 0; i < document.Pages.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            document.Pages[i].VisitImages(i + 1, visit, cancellationToken);
+        }
     }
 
     /// <summary>

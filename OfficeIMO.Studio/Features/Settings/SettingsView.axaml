@@ -70,7 +70,8 @@
             <TextBlock Text="{loc:Loc Settings.PrivacyAndDiagnostics}" Classes="sectionTitle" />
             <TextBlock Text="{Binding PrivacyNotice}" TextWrapping="Wrap" />
             <TextBlock Text="{loc:Loc Settings.PrivateDocumentsHelp}" TextWrapping="Wrap" Classes="muted" />
-            <CheckBox IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}" />
+            <ToggleSwitch IsChecked="{Binding RememberSession, Mode=TwoWay}" Content="{loc:Loc Session.Remember}"
+                          OnContent="{x:Null}" OffContent="{x:Null}" AutomationProperties.Name="{loc:Loc Session.Remember}" />
             <TextBlock Text="{loc:Loc Session.RememberDescription}" TextWrapping="Wrap" Classes="muted" />
             <TextBlock Text="{loc:Loc Settings.DocumentHistory}" FontWeight="SemiBold" Margin="0,4,0,0" />
             <TextBlock Text="{loc:Loc Settings.HistoryPrivacyHelp}" TextWrapping="Wrap" Classes="muted" />

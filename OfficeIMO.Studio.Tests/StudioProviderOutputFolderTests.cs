@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using OfficeIMO.Drawing;
 using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
@@ -34,7 +35,7 @@ public sealed class StudioProviderOutputFolderTests {
             var window = new Window { Width = 960, Height = 620, Content = new StudioJobsView { DataContext = jobs } };
             try {
                 window.Show(); window.UpdateLayout();
-                job.CompleteBatch(OfficeIMO.Workflows.OfficeWorkflowStatus.Unconfirmed, null, "Two recovery copies are available.", recoveries, false);
+                job.CompleteBatch(OfficeIMO.Workflows.OfficeWorkflowStatus.Unconfirmed, null, "Two recovery copies are available.", recoveries, false, isDirectoryOutput: true);
                 window.UpdateLayout();
                 Assert.Same(recoveries[0], job.Recovery);
                 Assert.True(job.HasMultipleRecoveries);
@@ -142,6 +143,8 @@ public sealed class StudioProviderOutputFolderTests {
             Assert.Equal(failSecond, model.HasRecovery);
             var job = Assert.Single(services.Jobs.Entries);
             Assert.True(job.HasOutput, job.Summary);
+            Assert.False(job.CanOpenOutput);
+            Assert.False(shell.Jobs.OpenOutputCommand.CanExecute(job));
             Assert.Equal(failSecond, job.HasRecovery);
             var first = folder.Files.Values.First();
             Assert.True(OfficeImageReader.TryValidateContent(first.Bytes, first.Name, default, out _));
@@ -157,10 +160,19 @@ public sealed class StudioProviderOutputFolderTests {
             var window = new Window { Width = width, Height = height, Content = new OutputIntakeWorkbenchView { DataContext = shell } };
             try {
                 window.Show(); window.UpdateLayout();
+                Assert.False(model.HasBrowsableOutput);
+                var openFolder = window.GetVisualDescendants().OfType<Button>()
+                    .Single(button => ReferenceEquals(button.Command, shell.OutputActions.OpenCommand) &&
+                        Equals(button.CommandParameter, model.PublishedDirectory));
+                Assert.False(openFolder.IsEffectivelyVisible);
                 Capture(window, $"provider-folder-output-{width}-{(dark ? "dark" : "light")}.png");
                 if (failSecond) {
                     window.Content = new StudioJobsView { DataContext = shell.Jobs };
                     window.UpdateLayout();
+                    var openJob = window.GetVisualDescendants().OfType<Button>()
+                        .Single(button => ReferenceEquals(button.Command, shell.Jobs.OpenOutputCommand) &&
+                            ReferenceEquals(button.CommandParameter, job));
+                    Assert.False(openJob.IsEffectivelyVisible);
                     Capture(window, "provider-folder-output-partial-jobs.png");
                 }
             } finally { window.Close(); }

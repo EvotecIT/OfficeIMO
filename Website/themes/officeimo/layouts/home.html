@@ -9,7 +9,7 @@
   <link rel="alternate" hreflang="en" href="{{ base_url }}{{ current_path }}" />
   <link rel="alternate" hreflang="x-default" href="{{ base_url }}{{ current_path }}" />
   {{ head_html }}
-  <script>(function(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;})();</script>
+  {{ include "theme-init" }}
   {{ include "theme-tokens" }}
   {{ assets.critical_css_html }}
   {{ assets.preloads_html }}
@@ -25,11 +25,10 @@
 
   <main id="content" class="imo-main imo-main--home">
     {{ include "sections/platform-hero" }}
-    {{ include "sections/trust-banner" }}
     <div class="imo-container">{{ include "shortcodes/document-tasks" }}</div>
     {{ include "sections/showcase-preview" }}
+    {{ include "sections/community" }}
     {{ include "sections/faq-preview" }}
-    {{ include "sections/cta" }}
   </main>
 
   {{ include "footer" }}

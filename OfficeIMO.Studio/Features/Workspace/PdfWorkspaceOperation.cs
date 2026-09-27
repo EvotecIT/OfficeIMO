@@ -7,6 +7,7 @@ internal enum PdfWorkspaceOperationKind {
     Duplicate,
     Import,
     Crop,
+    Resize,
     InsertBlank,
     Annotation,
     TextEdit,
@@ -21,6 +22,10 @@ internal enum PdfWorkspaceOperationKind {
     Redaction,
     Watermark,
     PageNumbers,
+    HeaderFooter,
+    Metadata,
+    Bookmarks,
+    Attachments,
     RecoveryRestore,
     Undo,
     Redo

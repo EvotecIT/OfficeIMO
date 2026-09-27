@@ -4,8 +4,13 @@ namespace OfficeIMO.OpenDocument;
 public sealed class OdsRowRun {
     private readonly OdsDocument _document;
     private readonly XElement _element;
-    internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount) {
+    private readonly Func<long, string?>? _inheritedStyleResolver;
+    private readonly Func<IReadOnlyList<OdsColumnRun>>? _columnRunsProvider;
+    internal OdsRowRun(OdsDocument document, XElement element, long startRow, long repeatCount,
+        Func<long, string?>? inheritedStyleResolver = null, Func<IReadOnlyList<OdsColumnRun>>? columnRunsProvider = null) {
         _document = document; _element = element; StartRow = startRow; RepeatCount = repeatCount;
+        _inheritedStyleResolver = inheritedStyleResolver;
+        _columnRunsProvider = columnRunsProvider;
     }
     /// <summary>Zero-based first logical row.</summary>
     public long StartRow { get; }
@@ -15,19 +20,46 @@ public sealed class OdsRowRun {
     public IReadOnlyList<OdsCellRun> CellRuns {
         get {
             var runs = new List<OdsCellRun>();
+            IReadOnlyList<OdsColumnRun>? columnRuns = _columnRunsProvider?.Invoke();
             long start = 0;
+            int columnRunIndex = 0;
             foreach (XElement cell in OdsSheet.CellElements(_element)) {
                 long count = OdsRepeatModel.Read(cell, OdfNamespaces.Table + "number-columns-repeated");
-                runs.Add(new OdsCellRun(_document, cell, start, count));
-                start = checked(start + count);
+                long end = checked(start + count);
+                bool usesColumnDefault = columnRuns != null
+                    && cell.Attribute(OdfNamespaces.Table + "style-name") == null
+                    && _element.Attribute(OdfNamespaces.Table + "default-cell-style-name") == null;
+                for (long column = start; column < end;) {
+                    long boundary = end;
+                    if (usesColumnDefault) {
+                        while (columnRunIndex < columnRuns!.Count
+                            && checked(columnRuns[columnRunIndex].StartColumn + columnRuns[columnRunIndex].RepeatCount) <= column)
+                            columnRunIndex++;
+                        if (columnRunIndex < columnRuns.Count) {
+                            OdsColumnRun definition = columnRuns[columnRunIndex];
+                            boundary = Math.Min(end, column < definition.StartColumn
+                                ? definition.StartColumn
+                                : checked(definition.StartColumn + definition.RepeatCount));
+                        }
+                    }
+                    long segmentStart = column;
+                    runs.Add(new OdsCellRun(_document, cell, segmentStart, boundary - segmentStart,
+                        inheritedStyleResolver: _inheritedStyleResolver == null
+                            ? null : () => _inheritedStyleResolver(segmentStart)));
+                    column = boundary;
+                }
+                start = end;
             }
             return runs;
         }
     }
     /// <summary>Whether the prototype row is hidden.</summary>
-    public bool Hidden => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
+    public bool Hidden => new OdsRow(_document, _element).Hidden;
     /// <summary>Referenced prototype row style.</summary>
     public string? StyleName => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
+    /// <summary>Default cell style for cells without an explicit style in this row.</summary>
+    public string? DefaultCellStyleName => (string?)_element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+    internal XElement Element => _element;
     /// <summary>Explicit prototype row height.</summary>
     public OdfLength? Height => new OdsRow(_document, _element).Height;
 }
@@ -39,13 +71,27 @@ public sealed class OdsRow {
     internal OdsRow(OdsDocument document, XElement element) { _document = document; _element = element; }
     /// <summary>Whether this row is hidden.</summary>
     public bool Hidden {
-        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
-        set { _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null); Dirty(); }
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") is "collapse" or "filter" ||
+            HiddenByGroup;
+        set {
+            if (!value && HiddenByGroup)
+                throw new InvalidOperationException("Expand the owning row group before unhiding this row.");
+            _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null);
+            Dirty();
+        }
     }
+    private bool HiddenByGroup => _element.Ancestors(OdfNamespaces.Table + "table-row-group").Any(group =>
+        OdfBoolean.TryParseXml((string?)group.Attribute(OdfNamespaces.Table + "display"), out bool displayed)
+        && !displayed);
     /// <summary>Referenced row style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
         set { _element.SetAttributeValue(OdfNamespaces.Table + "style-name", value); Dirty(); }
+    }
+    /// <summary>Default table-cell style used when a cell has no direct style.</summary>
+    public string? DefaultCellStyleName {
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        set { _element.SetAttributeValue(OdfNamespaces.Table + "default-cell-style-name", value); Dirty(); }
     }
     /// <summary>Explicit row height.</summary>
     public OdfLength? Height {

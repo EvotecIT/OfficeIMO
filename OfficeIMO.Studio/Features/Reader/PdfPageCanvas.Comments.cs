@@ -25,7 +25,7 @@ public sealed partial class PdfPageCanvas {
     }
 
     private void DrawCommentAnchor(DrawingContext context) {
-        if (CommentAnchorBounds is Rect area) context.DrawRectangle(null, new Pen(Brushes.DodgerBlue, 2D), area.Inflate(4D));
+        if (CommentAnchorBounds is Rect area) context.DrawRectangle(null, new Pen(new SolidColorBrush(PageAccent), 2D), area.Inflate(4D));
     }
 
     private void QueueCommentAnchorReveal() => Dispatcher.UIThread.Post(() => {

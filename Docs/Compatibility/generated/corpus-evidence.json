@@ -3,8 +3,8 @@
   "generatedFrom": "Build/CorpusEvidence/corpus-evidence.json",
   "summary": {
     "corpusCount": 5,
-    "recordCount": 66,
-    "verifiedArtifactCount": 93
+    "recordCount": 67,
+    "verifiedArtifactCount": 94
   },
   "corpora": [
     {
@@ -57,8 +57,8 @@
       "id": "open-document-producers",
       "owner": "OfficeIMO.OpenDocument",
       "manifest": "OfficeIMO.OpenDocument.Tests/Fixtures/producer-manifest.json",
-      "manifestSha256": "82a787d7939005f670c8fa12a3000659aa58183ec591436e0933d246d8ec70c7",
-      "recordCount": 10,
+      "manifestSha256": "d1d44441b8965274c344b5913e9cab55e7c4a1095ff83942e40e303e4b78df91",
+      "recordCount": 11,
       "diffPolicy": {
         "kind": "package-and-semantic",
         "stableFields": [

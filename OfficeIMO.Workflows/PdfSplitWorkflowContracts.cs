@@ -14,6 +14,8 @@ public sealed class PdfSplitWorkflowRequest {
     public OfficeWorkflowDirectoryOutput? DirectoryOutput { get; set; }
     /// <summary>Maximum pages in each consecutive part.</summary>
     public int PagesPerDocument { get; set; } = 1;
+    /// <summary>Explicit parts to create instead of fixed-size parts, for example one part per top-level bookmark.</summary>
+    public PdfSplitPlan? Plan { get; set; }
     /// <summary>Maximum permitted number of generated parts.</summary>
     public int MaximumParts { get; set; } = 1000;
     /// <summary>Optional input password.</summary>

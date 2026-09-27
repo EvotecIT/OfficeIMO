@@ -84,7 +84,9 @@ public sealed partial class MainWindowViewModel {
         ResetNotificationScopeForNavigation();
         NotifyVisibleNotifications();
         OnPropertyChanged(nameof(SelectedDocumentModeCommand));
+        if (value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit and not StudioDocumentMode.Forms) CancelFillSignPlacement();
         if (value is not StudioDocumentMode.Annotate and not StudioDocumentMode.Edit &&
+            !IsFillSignPlacement(SelectedEditorToolChoice.Tool) &&
             SelectedEditorToolChoice.Tool != PdfEditorTool.Select) {
             SelectedEditorToolChoice = EditorTools[0];
         }
@@ -99,6 +101,7 @@ public sealed partial class MainWindowViewModel {
     }
 
     partial void OnWorkspaceModeChanged(StudioWorkspaceMode value) {
+        OnPropertyChanged(nameof(ShowOcrPrompt));
         ResetNotificationScopeForNavigation();
         NotifyVisibleNotifications();
         OnPropertyChanged(nameof(SecurityWarning));

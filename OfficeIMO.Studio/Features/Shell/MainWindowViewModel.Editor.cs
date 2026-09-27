@@ -36,6 +36,15 @@ public sealed partial class MainWindowViewModel {
     [ObservableProperty]
     private string _editorLinkUri = "https://";
 
+    /// <summary>True when the Link tool points to a page of this document instead of a web address.</summary>
+    [ObservableProperty]
+    private bool _editorLinkToPage;
+
+    [ObservableProperty]
+    private int _editorLinkPage = 1;
+
+    public bool IsLinkToolActive => ActiveEditorTool == PdfEditorTool.Link;
+
     [ObservableProperty]
     private double _editorFontSize = 14D;
 
@@ -179,8 +188,27 @@ public sealed partial class MainWindowViewModel {
 
     public bool IsCreatingButton => SelectedFormFieldCreationChoice.Kind == PdfFormFieldCreationKind.PushButton;
 
+    private static readonly PdfEditorTool[] ShapeTools = [PdfEditorTool.Rectangle, PdfEditorTool.Ellipse, PdfEditorTool.Line, PdfEditorTool.Polygon, PdfEditorTool.Ink, PdfEditorTool.Stamp];
+
+    /// <summary>The shape tool the grouped Shapes button shows and returns to.</summary>
+    [ObservableProperty]
+    private PdfEditorTool _lastShapeTool = PdfEditorTool.Rectangle;
+
+    public bool IsShapeToolActive => ShapeTools.Contains(ActiveEditorTool);
+
     partial void OnSelectedEditorToolChoiceChanged(PdfEditorToolChoice value) {
         foreach (PdfPageViewModel page in Pages) page.EditorTool = value.Tool;
+        if (ShapeTools.Contains(value.Tool)) LastShapeTool = value.Tool;
+        OnPropertyChanged(nameof(IsShapeToolActive));
+        OnPropertyChanged(nameof(IsLinkToolActive));
+        UpdateFormAnchor();
+        // Choosing any other tool abandons a pending signature or date placement.
+        if (IsPlacingFillSignItem && !IsFillSignPlacement(value.Tool)) {
+            _pendingPlacementImage = null;
+            _pendingPlacementText = null;
+            IsPlacingFillSignItem = false;
+            PlacementHint = null;
+        }
     }
 
     partial void OnSelectedFormFieldChanged(PdfFormFieldViewModel? oldValue, PdfFormFieldViewModel? newValue) {
@@ -200,6 +228,11 @@ public sealed partial class MainWindowViewModel {
     }
 
     [RelayCommand]
+    private void SetEditorColor(string? hex) {
+        if (!string.IsNullOrWhiteSpace(hex)) EditorColorHex = hex;
+    }
+
+    [RelayCommand]
     private void SelectEditorTool(string? toolId) {
         if (!Enum.TryParse(toolId, ignoreCase: true, out PdfEditorTool tool)) return;
         PdfEditorToolChoice? choice = EditorTools.FirstOrDefault(candidate => candidate.Tool == tool);
@@ -212,11 +245,13 @@ public sealed partial class MainWindowViewModel {
         EditorTools.Add(new(PdfEditorTool.FreeText, LocalizedEditorText("FreeText", "Label", "Text box"), LocalizedEditorText("FreeText", "Hint", "Draw a free-text annotation")));
         EditorTools.Add(new(PdfEditorTool.Highlight, LocalizedEditorText("Highlight", "Label", "Highlight"), LocalizedEditorText("Highlight", "Hint", "Drag across text or an area")));
         EditorTools.Add(new(PdfEditorTool.Underline, LocalizedEditorText("Underline", "Label", "Underline"), LocalizedEditorText("Underline", "Hint", "Drag across text or an area")));
+        EditorTools.Add(new(PdfEditorTool.Squiggly, LocalizedEditorText("Squiggly", "Label", "Squiggly"), LocalizedEditorText("Squiggly", "Hint", "Drag across text to mark a wavy underline")));
         EditorTools.Add(new(PdfEditorTool.StrikeOut, LocalizedEditorText("StrikeOut", "Label", "Strikeout"), LocalizedEditorText("StrikeOut", "Hint", "Drag across text or an area")));
         EditorTools.Add(new(PdfEditorTool.Rectangle, LocalizedEditorText("Rectangle", "Label", "Rectangle"), LocalizedEditorText("Rectangle", "Hint", "Draw a rectangle annotation")));
         EditorTools.Add(new(PdfEditorTool.Ellipse, LocalizedEditorText("Ellipse", "Label", "Ellipse"), LocalizedEditorText("Ellipse", "Hint", "Draw an ellipse annotation")));
         EditorTools.Add(new(PdfEditorTool.Line, LocalizedEditorText("Line", "Label", "Line"), LocalizedEditorText("Line", "Hint", "Drag a review line")));
         EditorTools.Add(new(PdfEditorTool.Ink, LocalizedEditorText("Ink", "Label", "Ink"), LocalizedEditorText("Ink", "Hint", "Draw a freehand ink path")));
+        EditorTools.Add(new(PdfEditorTool.Polygon, LocalizedEditorText("Polygon", "Label", "Polygon"), LocalizedEditorText("Polygon", "Hint", "Draw an outline around an area")));
         EditorTools.Add(new(PdfEditorTool.Stamp, LocalizedEditorText("Stamp", "Label", "Stamp"), LocalizedEditorText("Stamp", "Hint", "Place an annotation stamp")));
         EditorTools.Add(new(PdfEditorTool.AddText, LocalizedEditorText("AddText", "Label", "Add text"), LocalizedEditorText("AddText", "Hint", "Add permanent page text without reflowing existing content")));
         EditorTools.Add(new(PdfEditorTool.AddImage, LocalizedEditorText("AddImage", "Label", "Add image"), LocalizedEditorText("AddImage", "Hint", "Choose and place a PNG or JPEG image")));
@@ -241,10 +276,26 @@ public sealed partial class MainWindowViewModel {
     private string LocalizedEditorText(string tool, string property, string fallback) =>
         _localizer.GetOrDefault($"Editor.Tool.{tool}.{property}", fallback);
 
+    // Selection quick actions and the page context menu create markup directly: switch to annotating,
+    // choose the matching tool, and run the same gesture path a drawn markup uses.
+    private void OnPageMarkupRequested(PdfEditorTool tool, PdfEditorGesture gesture) {
+        if (_workspace is null || IsWorkspaceBusy) return;
+        if (!CanEditAnnotations) {
+            OperationStatus = UiText("Capability.AnnotationsUnavailable");
+            return;
+        }
+        if (DocumentMode != StudioDocumentMode.Annotate) ShowAnnotateModeCommand.Execute(null);
+        if (DocumentMode != StudioDocumentMode.Annotate) return;
+        SelectEditorTool(tool.ToString());
+        if (ActiveEditorTool != tool) return;
+        OnPageEditorGestureCompleted(gesture);
+    }
+
     private async void OnPageEditorGestureCompleted(PdfEditorGesture gesture) {
         using var notifications = BeginNotificationScope();
         bool acceptsEditorGesture = DocumentMode is StudioDocumentMode.Annotate or StudioDocumentMode.Edit ||
-                                    DocumentMode == StudioDocumentMode.Protect && ActiveEditorTool == PdfEditorTool.Redact;
+                                    DocumentMode == StudioDocumentMode.Protect && ActiveEditorTool == PdfEditorTool.Redact ||
+                                    DocumentMode == StudioDocumentMode.Forms && IsFillSignPlacement(ActiveEditorTool);
         if (_workspace is null ||
             !acceptsEditorGesture ||
             ActiveEditorTool == PdfEditorTool.Select ||
@@ -252,8 +303,14 @@ public sealed partial class MainWindowViewModel {
         PdfWorkspace workspace = _workspace;
         long revision = workspace.Revision;
         PdfEditorTool tool = ActiveEditorTool;
-        PdfEditorProperties properties = CreateEditorProperties();
         ErrorMessage = null;
+        PdfEditorProperties properties;
+        try {
+            properties = CreateEditorProperties(IsFillSignPlacement(tool));
+        } catch (Exception error) {
+            ErrorMessage = error.Message;
+            return;
+        }
         if (tool == PdfEditorTool.Redact) {
             if (!CanRedact) {
                 ErrorMessage = UiText("Editor.RedactionUnavailable");
@@ -281,6 +338,19 @@ public sealed partial class MainWindowViewModel {
             AddRedactionMark(new PdfRedactionMarkViewModel(plan.Areas[0],
                 new Rect(gesture.Left, gesture.Top, gesture.Right - gesture.Left, gesture.Bottom - gesture.Top),
                 _localizer.GetOrDefault("Redaction.DrawnArea", "Drawn area")));
+            return;
+        }
+
+        if (IsFillSignPlacement(tool)) {
+            try {
+                (PdfEditorTool placementTool, PdfEditorGesture placed, PdfEditorProperties placement) = PrepareFillSignPlacement(gesture, properties);
+                if (await RunMutationAsync(
+                        token => workspace.ApplyEditorGestureAsync(placementTool, placed, placement, token, CreateProgress()),
+                        CancellationToken.None, successStatus: UiText(tool == PdfEditorTool.AddText ? "FillSign.DatePlaced" : "FillSign.SignaturePlaced")).ConfigureAwait(true))
+                    CompleteFillSignPlacement();
+            } catch (Exception ex) {
+                ErrorMessage = ex.Message;
+            }
             return;
         }
 
@@ -391,7 +461,7 @@ public sealed partial class MainWindowViewModel {
         }, cancellationToken).ConfigureAwait(true);
         if (!succeeded || proof is null) return;
         LastRedactionSummary = proof.Summary;
-        OperationStatus = proof.Evidence.IsVerified
+        SetMutationStatus(proof.Evidence.IsVerified
             ? UiFormat(
                 "Editor.RedactionVerified",
                 proof.Evidence.VerifiedAbsentCount,
@@ -399,7 +469,7 @@ public sealed partial class MainWindowViewModel {
             : UiFormat(
                 "Editor.RedactionIncomplete",
                 proof.Evidence.ResidualCount,
-                proof.Evidence.InconclusiveCount);
+                proof.Evidence.InconclusiveCount));
     }
 
     [RelayCommand]
@@ -520,7 +590,9 @@ public sealed partial class MainWindowViewModel {
     [RelayCommand]
     private async Task UpdateSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
-        PdfColor color = ParseColor(EditorColorHex);
+        PdfColor color;
+        try { color = ParseColor(EditorColorHex); }
+        catch (Exception error) { ErrorMessage = error.Message; return; }
         string contents = SelectedAnnotationContents;
         string author = SelectedAnnotationAuthor;
         ClearObjectSelection();
@@ -533,7 +605,9 @@ public sealed partial class MainWindowViewModel {
     private async Task ReplyToSelectedAnnotationAsync(CancellationToken cancellationToken) {
         if (_workspace is null || SelectedAnnotationObjectNumber is not int objectNumber) return;
         string reply = AnnotationReplyText;
-        PdfColor color = ParseColor(EditorColorHex);
+        PdfColor color;
+        try { color = ParseColor(EditorColorHex); }
+        catch (Exception error) { ErrorMessage = error.Message; return; }
         ClearObjectSelection();
         bool succeeded = await RunMutationAsync(
             token => _workspace.AddAnnotationReplyAsync(objectNumber, reply, EditorAuthor, color, token, CreateProgress()),
@@ -568,13 +642,14 @@ public sealed partial class MainWindowViewModel {
             cancellationToken).ConfigureAwait(true);
     }
 
-    private PdfEditorProperties CreateEditorProperties() => new(
+    private PdfEditorProperties CreateEditorProperties(bool fillSignPlacement = false) => new(
         EditorText ?? string.Empty,
         EditorAuthor ?? string.Empty,
-        ParseColor(EditorColorHex),
+        fillSignPlacement ? OfficeIMO.Pdf.PdfColor.FromRgb(27, 42, 74) : ParseColor(EditorColorHex),
         string.IsNullOrWhiteSpace(EditorStampName) ? "Approved" : EditorStampName.Trim(),
         EditorLinkUri ?? string.Empty,
-        Math.Clamp(EditorFontSize, 4D, 144D));
+        Math.Clamp(EditorFontSize, 4D, 144D),
+        LinkPageNumber: EditorLinkToPage && Pages.Count > 0 ? Math.Clamp(EditorLinkPage, 1, Pages.Count) : null);
 
     private void RebuildFormFieldModels() {
         string? selectedName = SelectedFormField?.Name;

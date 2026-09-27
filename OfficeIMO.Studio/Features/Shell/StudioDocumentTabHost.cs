@@ -153,6 +153,33 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
     private static bool DocumentOwnsPath(MainWindowViewModel document, string path) =>
         document.DocumentPath is { Length: > 0 } source && OfficeStorageIdentity.AreEquivalent(source, path);
 
+    // Paths of tabs closed in this session, newest last; kept in memory only.
+    private readonly List<string> _closedPaths = new();
+
+    internal bool CanReopenClosedTab => _closedPaths.Count > 0;
+
+    /// <summary>Reopens the most recently closed document that is not already open.</summary>
+    internal async Task ReopenClosedTabAsync() {
+        while (_closedPaths.Count > 0 && !_disposed) {
+            string path = _closedPaths[^1];
+            try {
+                if (Tabs.Any(tab => DocumentOwnsPath(tab.Document, path))) {
+                    RemoveClosedPath(path);
+                    continue;
+                }
+                await OpenDocumentAsync(path).ConfigureAwait(true);
+                if (Tabs.Any(tab => DocumentOwnsPath(tab.Document, path))) RemoveClosedPath(path);
+            } catch (Exception exception) when (IsPathIdentityFailure(exception)) {
+                ActiveDocument.ErrorMessage = exception.Message;
+            }
+            return;
+        }
+    }
+
+    private void RemoveClosedPath(string path) {
+        if (_closedPaths.Remove(path)) OnPropertyChanged(nameof(CanReopenClosedTab));
+    }
+
     internal async Task CloseTabAsync(StudioDocumentTabViewModel tab) {
         if (_disposed || !Tabs.Contains(tab)) return;
         SelectedTab = tab;
@@ -162,6 +189,13 @@ public sealed partial class StudioDocumentTabHost : ObservableObject, IDisposabl
         if (!await tab.Document.RequestCloseDocumentAsync().ConfigureAwait(true)) return;
 
         int index = Tabs.IndexOf(tab);
+        string? closedPath = tab.Document.LastClosedDocumentPath;
+        if (!string.IsNullOrEmpty(closedPath)) {
+            _closedPaths.Remove(closedPath);
+            _closedPaths.Add(closedPath);
+            if (_closedPaths.Count > 10) _closedPaths.RemoveAt(0);
+            OnPropertyChanged(nameof(CanReopenClosedTab));
+        }
         Tabs.Remove(tab);
         OnPropertyChanged(nameof(HasTabs));
         if (Tabs.Count == 0) {

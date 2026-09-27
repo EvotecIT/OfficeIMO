@@ -353,8 +353,6 @@
         ],
         "Js": [
           "/js/site.js",
-          "/assets/prism/prism-core.min.js",
-          "/assets/prism/prism-autoloader.min.js",
           "/js/source-viewer.js"
         ]
       },
@@ -693,22 +691,36 @@
       "Items": [
         {
           "Title": "Studio",
-          "Url": "/studio/"
+          "Url": "/studio/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Desktop workspace for PDFs and documents"
         },
         {
-          "Title": "Browser tools",
-          "Url": "/convert/"
+          "Title": "Browser",
+          "Url": "/convert/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Convert files right in your tab"
         },
         {
           "Title": "CLI",
-          "Url": "/tool/"
+          "Url": "/tool/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "Scripts, CI jobs and MCP"
         },
         {
-          "Title": "Libraries",
-          "Url": "/libraries/"
+          "Title": ".NET",
+          "Url": "/libraries/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "NuGet packages for every format"
         },
         {
-          "Title": "Documentation",
+          "Title": "PowerShell",
+          "Url": "/products/pswriteoffice/",
+          "CssClass": "imo-nav__item--product",
+          "Description": "PSWriteOffice module"
+        },
+        {
+          "Title": "Docs",
           "Url": "/docs/"
         },
         {
@@ -784,6 +796,10 @@
         {
           "Title": "Studio",
           "Url": "/studio/"
+        },
+        {
+          "Title": "Browser tools",
+          "Url": "/convert/"
         },
         {
           "Title": "CLI",
@@ -886,8 +902,13 @@
           "External": true
         },
         {
-          "Title": "Report Issue",
+          "Title": "Report an issue",
           "Url": "https://github.com/EvotecIT/OfficeIMO/issues",
+          "External": true
+        },
+        {
+          "Title": "Sponsor",
+          "Url": "https://github.com/sponsors/PrzemyslawKlys",
           "External": true
         }
       ]

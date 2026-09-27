@@ -41,7 +41,7 @@ public sealed partial class PrintPreviewViewModel {
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
         catch (Exception error) {
             if (!_disposed && ReferenceEquals(_paperSourceCancellation, operation))
-                PaperSourceError = T("PaperSource.Unavailable", "Paper-source discovery failed. Printing will use the printer default.") + " " + error.Message;
+                PaperSourceError = T("PaperSource.Unavailable", "Paper-source discovery failed. Printing will use the printer default.") + " " + Infrastructure.StudioMessages.Describe(error);
         } finally {
             if (ReferenceEquals(_paperSourceCancellation, operation)) {
                 _paperSourceCancellation = null;

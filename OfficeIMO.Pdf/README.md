@@ -316,6 +316,53 @@ PdfAcroFormEditResult edited = PdfDocument.Load("input.pdf").Forms.Edit(form => 
 File.WriteAllBytes("form.pdf", edited.ToBytes());
 ```
 
+For a static paper-style form, inspect proposed fields before creating any widgets:
+
+```csharp
+PdfDocument source = PdfDocument.Load("static-form.pdf");
+PdfStaticFormRecognitionReport proposals = source.Forms.RecognizeStaticLayout();
+foreach (PdfStaticFormFieldProposal field in proposals.Proposals)
+    Console.WriteLine($"{field.Index}: {field.Label} ({field.Kind}, {field.Confidence:0.00})");
+
+int[] accepted = proposals.Proposals
+    .Where(field => field.Confidence >= 0.6)
+    .Select(field => field.Index)
+    .ToArray();
+if (accepted.Length > 0)
+    File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(accepted).ToBytes());
+```
+
+Recognition proposes text fields from empty continuous outlines or writing lines
+and check boxes from small square outlines. Dashed outlines and writing lines are
+skipped with an `unsupported-outline-dash` diagnostic because their painted
+segments cannot be proven from the recognition geometry. Later fill, stroke, or image paint that
+intersects a required outline segment is also skipped conservatively, including
+partially erased boxes and writing lines. Exact rectangular path fills can prove
+opaque covers; arbitrary or compound paths do not prove their entire bounds are
+filled. Compound filled-and-stroked paths are not split into independent field
+candidates, since their shared fill rule can leave holes. Nearby native text
+supplies labels; callers
+can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
+installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible
+opacity, resolved paint, proven contrast, and full visibility within the visual
+page and any rectangular clip. Patterned, dashed-stroke, or combined fill-and-stroke labels,
+labels with partial or unproven clipping, and image backdrops need separate
+visibility evidence such as positioned
+OCR. Native text crossing a page or crop edge still counts as possible field
+occupancy within the visible page. Labels partially covered by later paint are excluded.
+A label names at most one nearest eligible field; equally plausible assignments
+require manual authoring. Detected table text and table regions are excluded from
+automatic form evidence. Duplicate labels retain the strongest evidence after
+the OCR confidence adjustment, and native text occupancy respects exact
+rectangular clips and conservative text-stroke envelopes. Overlapping labels
+that support different fields require manual assignment. Unsupported graphics-state paint is excluded
+from field evidence. The report includes page-local tab
+order suggestions and collision diagnostics. It does not infer radio groups,
+choice values, calculations, or form actions from static marks. Applying selected
+proposals edits the analyzed PDF snapshot; a new analysis is needed to include
+later changes to the source document. The usual PDF mutation and preservation
+checks apply.
+
 The same transaction creates text fields, check boxes, combo or list choices,
 radio-button groups, push buttons, and empty signature fields. Generated widget
 appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,
@@ -617,6 +664,17 @@ IReadOnlyList<PdfExtractedImage> images = pdf.Images.Extract();
 IReadOnlyList<PdfImagePlacement> placements = pdf.Images.Placements("1-2");
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Attachments.Extract();
 ```
+
+For documents with many embedded images, `pdf.Images.Visit(image => { ... }, cancellationToken)`
+processes images one at a time. Inside the callback, `image.CopyTo(output, cancellationToken)`
+copies its file bytes to a stream without cloning the payload. Check `image.IsImageFile`
+before saving it as a standalone image file.
+
+When the application needs only one embedded file, select its metadata from
+`pdf.Inspect().Attachments` and call `pdf.Attachments.Extract(selected, maximumDecodedBytes)`.
+This bounds the selected decoded payload and avoids decoding the other files.
+`pdf.Attachments.Remove(selected)` removes the matching file specification when
+more than one attachment uses the same display name.
 
 `PdfDocument.Read(...)` is the only semantic reconstruction entry point. Both
 profiles return `PdfDocumentReadResult`; they do not maintain separate logical
@@ -1561,6 +1619,8 @@ if (!proof.CanClaimConformance || !declaredClaims.CanClaimAllDeclaredConformance
 ```
 
 Formal generation gates are available for PDF/A-2a/b/u, PDF/A-3a/b/u, PDF/A-4/4e/4f, PDF/UA-1, PDF/UA-2, PDF/X-1a:2003, PDF/X-4, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. PDF/X additionally inspects the complete serialized artifact before any bytes are returned or committed to a destination. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
+
+For an opened PDF, `pdf.AssessCompliance(profile, cancellationToken)` checks readback readiness and observes cancellation during inspection. Readiness does not replace external conformance validation.
 
 PDF authoring accepts font faces up to 128 MiB each. `EmbedStandardFont` and `PdfEmbeddedFontFamily.FromFiles` check file size before reading and recheck while reading, so use their path overloads when loading files. Byte-array inputs are checked before OfficeIMO copies them. An oversized face throws `InvalidDataException` without changing the authoring options.
 

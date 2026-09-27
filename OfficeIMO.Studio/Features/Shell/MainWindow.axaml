@@ -1,6 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
-                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                     xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="using:OfficeIMO.Studio.Infrastructure.Localization"
+        xmlns:infra="using:OfficeIMO.Studio.Infrastructure"
+        xmlns:chrome="using:Avalonia.Controls.Chrome"
         xmlns:shell="using:OfficeIMO.Studio.Features.Shell"
         xmlns:workspace="using:OfficeIMO.Studio.Features.Workspace"
         xmlns:workflow="using:OfficeIMO.Studio.Features.Workflows"
@@ -16,178 +18,334 @@
         Height="820"
         MinWidth="960"
         MinHeight="620"
-        Background="{DynamicResource StudioWindowBrush}"
+        Background="{DynamicResource StudioChromeBrush}"
         Foreground="{DynamicResource StudioTextBrush}"
-        ExtendClientAreaToDecorationsHint="False"
+        ExtendClientAreaToDecorationsHint="True"
         WindowDecorations="Full"
-        ExtendClientAreaTitleBarHeightHint="42"
+        ExtendClientAreaTitleBarHeightHint="44"
         DragDrop.AllowDrop="True">
-  <Grid RowDefinitions="Auto,*" ColumnDefinitions="116,*">
-    <Border Grid.Row="0" Grid.ColumnSpan="2" Background="{DynamicResource StudioPanelBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1">
-      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" Margin="12,0" MinHeight="54">
+  <Window.Styles>
+    <Style Selector="ListBox#DocumentTabs ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="0,0,2,0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ListBox#DocumentTabs ListBoxItem /template/ ContentPresenter">
+      <Setter Property="CornerRadius" Value="8,8,0,0" />
+    </Style>
+    <Style Selector="ListBox#DocumentTabs ListBoxItem:selected /template/ ContentPresenter, ListBox#DocumentTabs ListBoxItem:pointerover /template/ ContentPresenter, ListBox#DocumentTabs ListBoxItem:selected:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.documentTab">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="8,8,0,0" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover Border.documentTab">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected Border.documentTab">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" />
+    </Style>
+    <Style Selector="Border.documentTab TextBlock.tabTitle">
+      <Setter Property="Foreground" Value="{DynamicResource StudioMutedTextBrush}" />
+    </Style>
+    <Style Selector="ListBoxItem:selected Border.documentTab TextBlock.tabTitle">
+      <Setter Property="Foreground" Value="{DynamicResource StudioTextBrush}" />
+    </Style>
+    <Style Selector="Button.tabClose">
+      <Setter Property="Width" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="CornerRadius" Value="5" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Opacity" Value="0.6" />
+    </Style>
+    <Style Selector="Button.tabClose:pointerover"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button.tabClose.dirty"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="ListBoxItem:pointerover Button.tabClose.dirty"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="ListBoxItem:pointerover Ellipse.dirtyDot"><Setter Property="Opacity" Value="0" /></Style>
+    <Style Selector="Button.tabClose:pointerover /template/ ContentPresenter"><Setter Property="Background" Value="{DynamicResource StudioPanelMutedBrush}" /></Style>
+    <Style Selector="Button#CommandSearchButton">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="10,0,6,0" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button#CommandSearchButton:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource StudioPanelRaisedBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
+    </Style>
+    <Style Selector="Border.railIndicator">
+      <Setter Property="Width" Value="3" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="CornerRadius" Value="2" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="-7,0,0,0" />
+      <Setter Property="Background" Value="{DynamicResource StudioAccentBrush}" />
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="ToggleButton.nav:checked Border.railIndicator"><Setter Property="Opacity" Value="1" /></Style>
+    <Style Selector="Button#ThemeToggle PathIcon.sun"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector="Button#ThemeToggle.dark PathIcon.sun"><Setter Property="IsVisible" Value="True" /></Style>
+    <Style Selector="Button#ThemeToggle.dark PathIcon.moon"><Setter Property="IsVisible" Value="False" /></Style>
+  </Window.Styles>
 
-
-
-        <Grid Grid.Column="0" ColumnDefinitions="Auto,*,Auto" Margin="0,6,0,0">
-          <Image Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png" Width="28" Height="28" Margin="4,0,12,6"
-                 AutomationProperties.Name="OfficeIMO Studio" />
-          <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
-                   Grid.Column="1" ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
-                   IsVisible="{Binding HasTabs}" SelectionMode="Single"
-                   Background="Transparent" BorderThickness="0"
-                   ScrollViewer.HorizontalScrollBarVisibility="Auto" ScrollViewer.VerticalScrollBarVisibility="Disabled">
-            <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
-            <ListBox.Styles>
-              <Style Selector="ListBoxItem">
-                <Setter Property="Padding" Value="0" />
-                <Setter Property="Margin" Value="0,0,4,0" />
-                <Setter Property="Background" Value="Transparent" />
-              </Style>
-              <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
-                <Setter Property="Background" Value="Transparent" />
-              </Style>
-              <Style Selector="Border.documentTab">
-                <Setter Property="Background" Value="{DynamicResource StudioWindowBrush}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource StudioBorderBrush}" />
-                <Setter Property="BorderThickness" Value="1,1,1,0" />
-              </Style>
-              <Style Selector="ListBoxItem:selected Border.documentTab">
-                <Setter Property="Background" Value="{DynamicResource StudioAccentSoftBrush}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource StudioAccentBrush}" />
-                <Setter Property="BorderThickness" Value="1,1,1,2" />
-              </Style>
-            </ListBox.Styles>
-            <ListBox.ItemTemplate>
-              <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
-                <Border Classes="documentTab" MinWidth="150" MaxWidth="250" Height="37" Padding="11,4,5,4"
-                        CornerRadius="7,7,0,0">
-                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="7">
-                    <TextBlock Text="{Binding Title}" FontSize="12" FontWeight="SemiBold"
-                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
-                    <Button Grid.Column="1" Classes="ghost" Command="{Binding CloseCommand}"
-                            Content="×" Padding="4,0" VerticalAlignment="Center"
-                            AutomationProperties.Name="{loc:Loc Common.Close}" />
+  <Grid x:Name="ShellRoot" RowDefinitions="44,*" ColumnDefinitions="72,*">
+    <!-- Title bar: drag area, tabs, command search and window actions. -->
+    <Border x:Name="TitleBarDragArea" Grid.ColumnSpan="2" Background="Transparent"
+            chrome:WindowDecorationProperties.ElementRole="TitleBar" />
+    <Image Grid.Row="0" Grid.Column="0" Source="avares://OfficeIMO.Studio/Assets/OfficeIMO.Studio.png"
+           Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"
+           AutomationProperties.Name="OfficeIMO Studio" />
+    <Grid x:Name="TitleBar" Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+      <StackPanel Orientation="Horizontal" VerticalAlignment="Stretch" Spacing="2">
+        <TextBlock Text="OfficeIMO Studio" VerticalAlignment="Center" FontWeight="SemiBold" Margin="2,0,10,0"
+                   x:Name="AppTitleText" x:DataType="shell:StudioDocumentTabHost" IsVisible="{Binding !HasTabs}" IsHitTestVisible="False" />
+        <ListBox x:Name="DocumentTabs" x:DataType="shell:StudioDocumentTabHost"
+                 ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}"
+                 IsVisible="{Binding HasTabs}" SelectionMode="Single" VerticalAlignment="Bottom"
+                 Background="Transparent" BorderThickness="0" MaxWidth="900"
+                 chrome:WindowDecorationProperties.ElementRole="User"
+                 ScrollViewer.HorizontalScrollBarVisibility="Hidden" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+          <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ListBox.ItemsPanel>
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="shell:StudioDocumentTabViewModel">
+              <Border Classes="documentTab" MinWidth="140" MaxWidth="240" Height="36" Padding="12,0,6,0"
+                      ToolTip.Tip="{Binding SourcePath}" PointerReleased="OnDocumentTabPointerReleased">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                  <PathIcon Data="{StaticResource IconDocument}" Width="13" Height="13" Foreground="{DynamicResource StudioErrorBrush}" />
+                  <TextBlock Grid.Column="1" Classes="tabTitle" Text="{Binding DisplayTitle}" FontSize="12.5" FontWeight="Medium"
+                             TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  <Grid Grid.Column="2">
+                    <Ellipse Classes="dirtyDot" Width="7" Height="7" Fill="{DynamicResource StudioAccentBrush}" IsVisible="{Binding IsDirty}"
+                             HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" />
+                    <Button Classes="tabClose" Classes.dirty="{Binding IsDirty}" Command="{Binding CloseCommand}"
+                            AutomationProperties.Name="{loc:Loc Common.Close}" ToolTip.Tip="{loc:Loc Common.Close}">
+                      <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+                    </Button>
                   </Grid>
-                </Border>
-              </DataTemplate>
-            </ListBox.ItemTemplate>
-          </ListBox>
-          <Button x:Name="OpenDocumentTabButton" Grid.Column="2" Classes="ghost" x:DataType="shell:StudioDocumentTabHost"
-                  Command="{Binding OpenNewTabCommand}" Content="+" FontSize="18" Padding="8,1"
-                  AutomationProperties.Name="{loc:Loc MainWindow.OpenAnotherDocument}"
-                  AutomationProperties.HelpText="{loc:Loc MainWindow.OpenAnotherDocument}"
-                  ToolTip.Tip="{loc:Loc MainWindow.OpenAnotherDocument}" />
-        </Grid>
-
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-          <ToggleButton Classes="tool" Content="{loc:Loc Assistant.Title}" IsChecked="{Binding IsAssistantVisible, Mode=OneWay}" Command="{Binding ToggleAssistantCommand}" />
-          <Button Classes="tool" Click="OnCommandsClick" Content="{loc:Loc Commands.PaletteTitle}" />
-          <Button Classes="tool" Click="OnFindClick" IsVisible="{Binding HasDocument}"
-                  Content="{loc:Loc MainWindow.Find}" AutomationProperties.Name="{loc:Loc MainWindow.Find}" />
-        </StackPanel>
-        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
-          <Button Classes="tool" IsVisible="{Binding ShowPdfDocumentControls}" Command="{Binding Commands[SaveAs]}" AutomationProperties.Name="{loc:Loc MainWindow.SaveAs}" Content="{loc:Loc MainWindow.SaveAs}" />
-          <Button Classes="tool" Click="OnToggleThemeClick" Width="36" Padding="7"
-                  AutomationProperties.Name="{loc:Loc MainWindow.Theme}"
-                  AutomationProperties.HelpText="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}"
-                  ToolTip.Tip="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}">
-            <PathIcon Data="{StaticResource IconTheme}" Width="17" Height="17" />
-          </Button>
-        </StackPanel>
-      </Grid>
-    </Border>
-
-    <Border Grid.Row="1" Grid.Column="0" Background="{DynamicResource StudioNavBrush}"
-            BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,1,0" Padding="6,10">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto">
-        <ToggleButton Grid.Row="0" Classes="nav"
-                     IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding Commands[Home]}"
-                     AutomationProperties.Name="{loc:Loc MainWindow.Home}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Home}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-        <ToggleButton Grid.Row="1" Classes="nav" IsEnabled="{Binding HasDocument}"
-                     IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}"
-                     AutomationProperties.Name="{loc:Loc MainWindow.Document}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Document}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-        <ToggleButton Grid.Row="2" Classes="nav"
-                     IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding Commands[Tools]}"
-                     AutomationProperties.Name="{loc:Loc MainWindow.Tools}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Tools}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-        <ToggleButton Grid.Row="3" Classes="nav"
-                     IsChecked="{Binding IsOcrMode, Mode=OneWay}" Command="{Binding Commands[Ocr]}"
-                     AutomationProperties.Name="{loc:Loc MainWindow.OCR}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-        <ToggleButton Grid.Row="4" Classes="nav"
-                     IsChecked="{Binding IsConversionMode, Mode=OneWay}" Command="{Binding Commands[Convert]}"
-                     AutomationProperties.Name="{loc:Loc MainWindow.Convert}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconConvert}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-        <ToggleButton Grid.Row="5" Classes="nav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}"
-                      AutomationProperties.Name="{loc:Loc Jobs.Title}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Jobs.Title}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-        <ToggleButton Grid.Row="7" Classes="nav"
-                      IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Command="{Binding Commands[Settings]}"
-                      AutomationProperties.Name="{loc:Loc Settings.Settings}" ToolTip.Tip="{loc:Loc Settings.Settings}">
-          <StackPanel Spacing="3" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" FontSize="12" Width="96" MaxLines="2" TextWrapping="Wrap" TextAlignment="Center" /></StackPanel>
-        </ToggleButton>
-      </Grid>
-    </Border>
-
-    <SplitView x:Name="AssistantHost" Grid.Row="1" Grid.Column="1" PanePlacement="Right" OpenPaneLength="400"
-               IsPaneOpen="{Binding IsAssistantVisible, Mode=TwoWay}" DisplayMode="Overlay">
-      <SplitView.Pane><Border IsVisible="{Binding IsAssistantVisible}"><ai:AssistantView DataContext="{Binding Assistant}" /></Border></SplitView.Pane>
-    <Grid RowDefinitions="Auto,*">
-      <StackPanel Grid.Row="0">
-        <Border IsVisible="{Binding HasVisibleError}" Background="{DynamicResource StudioErrorSoftBrush}"
-                BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="0,0,0,1" Padding="12,8">
-          <Grid ColumnDefinitions="*,Auto"><TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" /><Button Grid.Column="1" Classes="ghost" Command="{Binding DismissErrorCommand}" AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" Content="{loc:Loc MainWindow.Dismiss}" /></Grid>
-        </Border>
-        <Border IsVisible="{Binding HasSecurityWarning}" Background="{DynamicResource StudioWarningSoftBrush}"
-                BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="12,8">
-          <TextBlock Text="{Binding SecurityWarning}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
-        </Border>
-        <Border IsVisible="{Binding Session.HasStorageError}" Background="{DynamicResource StudioWarningSoftBrush}"
-                BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="12,8">
-          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-            <TextBlock Text="{Binding Session.StorageError}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
-            <Button Grid.Column="1" Classes="tool" Command="{Binding Session.RetryStorageCommand}" Content="{loc:Loc Session.RetryStorage}" />
-          </Grid>
-        </Border>
-        <Border IsVisible="{Binding HasVisibleOperationStatus}" Background="{DynamicResource StudioAccentSoftBrush}"
-                BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="0,0,0,1" Padding="12,7">
-          <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
-            <TextBlock TextWrapping="Wrap" Text="{Binding OperationStatus}" Foreground="{DynamicResource StudioAccentBrush}" />
-            <Button Grid.Column="1" Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.RestoreRecoveredEdits}" Content="{loc:Loc MainWindow.RestoreRecoveredEdits}" IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
-            <Button Grid.Column="2" Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.Discard}" Content="{loc:Loc MainWindow.Discard}" IsVisible="{Binding HasRecovery}" Command="{Binding DiscardRecoveryCommand}" Margin="6,0" />
-            <ProgressBar Grid.Column="3" IsVisible="{Binding IsWorkspaceBusy}" Width="100" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
-            <Button Grid.Column="4" Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.Cancel}" Content="{loc:Loc MainWindow.Cancel}" IsVisible="{Binding CanCancelOperation}" Command="{Binding CancelOperationCommand}" Margin="8,0,0,0" />
-          </Grid>
-        </Border>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <Button x:Name="OpenDocumentTabButton" Classes="icon" x:DataType="shell:StudioDocumentTabHost"
+                Command="{Binding OpenNewTabCommand}" Width="30" Height="30" VerticalAlignment="Center"
+                chrome:WindowDecorationProperties.ElementRole="User"
+                AutomationProperties.Name="{loc:Loc MainWindow.OpenAnotherDocument}"
+                AutomationProperties.HelpText="{loc:Loc MainWindow.OpenAnotherDocument}"
+                ToolTip.Tip="{loc:Loc MainWindow.OpenAnotherDocument}">
+          <PathIcon Data="{StaticResource IconPlus}" Width="14" Height="14" />
+        </Button>
       </StackPanel>
 
-      <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
-      <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />
-      <TabControl Grid.Row="1" IsVisible="{Binding IsOcrMode}">
-        <TabItem Header="{loc:Loc OcrSession.SinglePdf}"><workflow:SearchablePdfOcrView /></TabItem>
-        <TabItem Header="{loc:Loc OcrSession.FilesTab}"><workflow:OcrSessionView DataContext="{Binding OcrSession}" /></TabItem>
-      </TabControl>
-      <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
-      <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
-        <Border Padding="20,16,20,10" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>
-        <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
-      </Grid>
-      <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
-      <Grid Grid.Row="1" IsVisible="{Binding IsJobsMode}"><workflow:StudioJobsView DataContext="{Binding Jobs}" /></Grid>
-      <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />
-      <Grid Grid.Row="1" IsVisible="{Binding IsSettingsMode}">
-        <settings:SettingsView DataContext="{Binding Settings}" />
-      </Grid>
+      <Button x:Name="CommandSearchButton" Grid.Column="2" Width="300" VerticalAlignment="Center" Click="OnCommandsClick"
+              chrome:WindowDecorationProperties.ElementRole="User"
+              AutomationProperties.Name="{loc:Loc Commands.PaletteTitle}" ToolTip.Tip="{loc:Loc Shell.CommandSearchTip}">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+          <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" Foreground="{DynamicResource StudioMutedTextBrush}" />
+          <TextBlock Grid.Column="1" Text="{loc:Loc Shell.CommandSearch}" Foreground="{DynamicResource StudioMutedTextBrush}"
+                     FontSize="12.5" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+          <Border Grid.Column="2" Classes="kbd"><TextBlock x:Name="CommandSearchShortcut" Text="Ctrl K" /></Border>
+        </Grid>
+      </Button>
+      <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="2" VerticalAlignment="Center"
+                  chrome:WindowDecorationProperties.ElementRole="User">
+        <ToggleButton x:Name="AssistantToggle" Classes="icon" IsChecked="{Binding IsAssistantVisible, Mode=OneWay}" Command="{Binding ToggleAssistantCommand}"
+                      AutomationProperties.Name="{loc:Loc Assistant.Title}" ToolTip.Tip="{loc:Loc Assistant.Title}">
+          <PathIcon Data="{StaticResource IconSparkle}" />
+        </ToggleButton>
+        <Button x:Name="ThemeToggle" Classes="icon" Click="OnToggleThemeClick"
+                      AutomationProperties.Name="{loc:Loc MainWindow.Theme}"
+                      AutomationProperties.HelpText="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}"
+                      ToolTip.Tip="{loc:Loc MainWindow.SwitchLightAndDarkAppearance}">
+          <Panel>
+            <PathIcon Classes="moon" Data="{StaticResource IconMoon}" />
+            <PathIcon Classes="sun" Data="{StaticResource IconSun}" />
+          </Panel>
+        </Button>
+      </StackPanel>
+      <Border x:Name="CaptionButtonsSpacer" Grid.Column="4" Width="0" />
     </Grid>
-    </SplitView>
+
+    <!-- Navigation rail. -->
+    <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" RowSpacing="2" Margin="8,4,8,10">
+      <infra:StudioRadioToggle Grid.Row="0" Classes="nav"
+                   IsChecked="{Binding IsHomeMode, Mode=OneWay}" Command="{Binding Commands[Home]}"
+                   AutomationProperties.Name="{loc:Loc MainWindow.Home}" ToolTip.Tip="{loc:Loc MainWindow.Home}" ToolTip.Placement="Right">
+        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconHome}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Home}" /></StackPanel></Panel>
+      </infra:StudioRadioToggle>
+      <infra:StudioRadioToggle Grid.Row="1" Classes="nav" IsEnabled="{Binding HasDocument}"
+                   IsChecked="{Binding IsPdfWorkspaceMode, Mode=OneWay}" Command="{Binding ShowPdfWorkspaceCommand}"
+                   AutomationProperties.Name="{loc:Loc MainWindow.Document}" ToolTip.Tip="{loc:Loc MainWindow.Document}" ToolTip.Placement="Right">
+        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconDocument}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Document}" /></StackPanel></Panel>
+      </infra:StudioRadioToggle>
+      <infra:StudioRadioToggle Grid.Row="2" Classes="nav"
+                   IsChecked="{Binding IsToolsMode, Mode=OneWay}" Command="{Binding Commands[Tools]}"
+                   AutomationProperties.Name="{loc:Loc MainWindow.Tools}" ToolTip.Tip="{loc:Loc MainWindow.Tools}" ToolTip.Placement="Right">
+        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconTools}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Tools}" /></StackPanel></Panel>
+      </infra:StudioRadioToggle>
+      <infra:StudioRadioToggle Grid.Row="3" Classes="nav"
+                   IsChecked="{Binding IsOcrMode, Mode=OneWay}" Command="{Binding Commands[Ocr]}"
+                   AutomationProperties.Name="{loc:Loc MainWindow.OCR}" ToolTip.Tip="{loc:Loc MainWindow.OCR}" ToolTip.Placement="Right">
+        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconOcr}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.OCR}" /></StackPanel></Panel>
+      </infra:StudioRadioToggle>
+      <infra:StudioRadioToggle Grid.Row="4" Classes="nav"
+                   IsChecked="{Binding IsConversionMode, Mode=OneWay}" Command="{Binding Commands[Convert]}"
+                   AutomationProperties.Name="{loc:Loc MainWindow.Convert}" ToolTip.Tip="{loc:Loc MainWindow.Convert}" ToolTip.Placement="Right">
+        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconConvert}" Width="18" Height="18" /><TextBlock Text="{loc:Loc MainWindow.Convert}" /></StackPanel></Panel>
+      </infra:StudioRadioToggle>
+      <infra:StudioRadioToggle Grid.Row="5" Classes="nav" IsChecked="{Binding IsJobsMode, Mode=OneWay}" Command="{Binding Commands[Jobs]}"
+                   AutomationProperties.Name="{loc:Loc Jobs.Title}" ToolTip.Tip="{loc:Loc Jobs.Title}" ToolTip.Placement="Right">
+        <Panel>
+          <Border Classes="railIndicator" />
+          <StackPanel Spacing="2" HorizontalAlignment="Center">
+            <Panel HorizontalAlignment="Center">
+              <PathIcon Data="{StaticResource IconJobs}" Width="18" Height="18" />
+              <Ellipse Width="8" Height="8" Fill="{DynamicResource StudioSpineBrush}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                       Margin="0,-2,-4,0" IsVisible="{Binding Jobs.History.HasActive}" />
+            </Panel>
+            <TextBlock Text="{loc:Loc Jobs.Title}" />
+          </StackPanel>
+        </Panel>
+      </infra:StudioRadioToggle>
+      <infra:StudioRadioToggle Grid.Row="7" Classes="nav"
+                   IsChecked="{Binding IsSettingsMode, Mode=OneWay}" Command="{Binding Commands[Settings]}"
+                   AutomationProperties.Name="{loc:Loc Settings.Settings}" ToolTip.Tip="{loc:Loc Settings.Settings}" ToolTip.Placement="Right">
+        <Panel><Border Classes="railIndicator" /><StackPanel Spacing="2" HorizontalAlignment="Center"><PathIcon Data="{StaticResource IconSettings}" Width="18" Height="18" /><TextBlock Text="{loc:Loc Settings.Settings}" /></StackPanel></Panel>
+      </infra:StudioRadioToggle>
+    </Grid>
+
+    <!-- Content surface: a raised sheet with a rounded leading corner. -->
+    <Border x:Name="ContentSurface" Grid.Row="1" Grid.Column="1" Background="{DynamicResource StudioPanelBrush}"
+            BorderBrush="{DynamicResource StudioSubtleBorderBrush}" BorderThickness="1,1,0,0" CornerRadius="10,0,0,0" ClipToBounds="True">
+      <Panel>
+        <SplitView x:Name="AssistantHost" PanePlacement="Right" OpenPaneLength="400"
+                   IsPaneOpen="{Binding IsAssistantVisible, Mode=TwoWay}" DisplayMode="Overlay"
+                   PaneBackground="{DynamicResource StudioPanelBrush}">
+          <SplitView.Pane><Border IsVisible="{Binding IsAssistantVisible}"><ai:AssistantView DataContext="{Binding Assistant}" /></Border></SplitView.Pane>
+          <Grid RowDefinitions="Auto,*">
+            <StackPanel Grid.Row="0">
+              <Border IsVisible="{Binding HasVisibleError}" Background="{DynamicResource StudioErrorSoftBrush}"
+                      BorderBrush="{DynamicResource StudioErrorBrush}" BorderThickness="0,0,0,1" Padding="14,8">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+                  <PathIcon Data="{StaticResource IconWarning}" Width="15" Height="15" Foreground="{DynamicResource StudioErrorBrush}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="{Binding ErrorMessage}" Foreground="{DynamicResource StudioErrorBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <Button Grid.Column="2" Classes="tool" Command="{Binding Commands[SaveAs]}" IsVisible="{Binding CanRecoverWithSaveAs}" Content="{loc:Loc Shell.SaveCopyInstead}" />
+                  <Button Grid.Column="3" Classes="ghost" Command="{Binding DismissErrorCommand}" AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" Content="{loc:Loc MainWindow.Dismiss}" />
+                </Grid>
+              </Border>
+              <Border IsVisible="{Binding HasSecurityWarning}" Background="{DynamicResource StudioWarningSoftBrush}"
+                      BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="14,8">
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                  <PathIcon Data="{StaticResource IconShieldCheck}" Width="15" Height="15" Foreground="{DynamicResource StudioWarningBrush}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Text="{Binding SecurityWarning}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" />
+                </Grid>
+              </Border>
+              <Border IsVisible="{Binding Session.HasStorageError}" Background="{DynamicResource StudioWarningSoftBrush}"
+                      BorderBrush="{DynamicResource StudioWarningBrush}" BorderThickness="0,0,0,1" Padding="14,8">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                  <TextBlock Text="{Binding Session.StorageError}" Foreground="{DynamicResource StudioWarningBrush}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Classes="tool" Command="{Binding Session.RetryStorageCommand}" Content="{loc:Loc Session.RetryStorage}" />
+                </Grid>
+              </Border>
+            </StackPanel>
+
+            <home:HomeView Grid.Row="1" IsVisible="{Binding IsHomeMode}" />
+            <home:ToolsView Grid.Row="1" IsVisible="{Binding IsToolsMode}" />
+            <TabControl Grid.Row="1" Classes="pageTabs" IsVisible="{Binding IsOcrMode}">
+              <TabItem Header="{loc:Loc OcrSession.SinglePdf}"><workflow:SearchablePdfOcrView /></TabItem>
+              <TabItem Header="{loc:Loc OcrSession.FilesTab}"><workflow:OcrSessionView DataContext="{Binding OcrSession}" /></TabItem>
+            </TabControl>
+            <workspace:DocumentWorkspaceView x:Name="DocumentWorkspace" Grid.Row="1" IsVisible="{Binding IsPdfWorkspaceMode}" />
+            <Grid Grid.Row="1" IsVisible="{Binding IsConversionMode}" RowDefinitions="Auto,*">
+              <Border Padding="24,18,24,12" Background="{DynamicResource StudioPanelBrush}"><StackPanel Spacing="4"><TextBlock Text="{loc:Loc MainWindow.Convert}" Classes="pageTitle" /><TextBlock Text="{loc:Loc MainWindow.PrepareRunAndInspectConversionJobs}" Classes="muted" /></StackPanel></Border>
+              <workflow:ConversionWorkbenchView x:Name="ConversionView" Grid.Row="1" />
+            </Grid>
+            <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
+            <Grid Grid.Row="1" IsVisible="{Binding IsJobsMode}"><workflow:StudioJobsView DataContext="{Binding Jobs}" /></Grid>
+            <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />
+            <Grid Grid.Row="1" IsVisible="{Binding IsSettingsMode}">
+              <settings:SettingsView DataContext="{Binding Settings}" />
+            </Grid>
+          </Grid>
+        </SplitView>
+
+        <!-- Notices stack at the bottom centre, above the page pill and the Pages action bar, so they
+             never cover the inspector or the navigation rail. Newest job results sit above the operation notice. -->
+        <StackPanel x:Name="ToastStack" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="16,0,16,96" Spacing="8" MaxWidth="560">
+          <Border x:Name="JobToast" Classes="floating" IsVisible="False" Opacity="0" RenderTransform="translateY(12px)"
+                  MinWidth="320" Padding="12,8,6,8" AutomationProperties.LiveSetting="Polite">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+              <Border x:Name="JobToastBadge" Width="26" Height="26" CornerRadius="8" Background="{DynamicResource StudioSuccessSoftBrush}" VerticalAlignment="Center">
+                <PathIcon x:Name="JobToastIcon" Data="{StaticResource IconCheck}" Width="13" Height="13" Foreground="{DynamicResource StudioSuccessBrush}" />
+              </Border>
+              <StackPanel Grid.Column="1" Spacing="1" VerticalAlignment="Center">
+                <TextBlock x:Name="JobToastTitle" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock x:Name="JobToastDetail" Classes="caption" TextWrapping="Wrap" MaxHeight="36" TextTrimming="CharacterEllipsis" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button x:Name="JobToastOpenButton" Classes="tool" Content="{loc:Loc Jobs.OpenOutput}" Click="OnJobToastOpenClick" />
+                <Button Classes="tool" Content="{loc:Loc Shell.ViewJobs}" Click="OnJobToastViewClick" />
+              </StackPanel>
+              <Button Grid.Column="3" Classes="icon" Width="26" Height="26" VerticalAlignment="Center" Click="OnDismissJobToastClick"
+                      AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" ToolTip.Tip="{loc:Loc MainWindow.Dismiss}">
+                <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+              </Button>
+            </Grid>
+          </Border>
+
+          <!-- Operation status: progress, results with Undo, and recovery choices without shifting the layout. -->
+          <Border x:Name="OperationToast" Classes="floating" IsVisible="False" Opacity="0" RenderTransform="translateY(12px)"
+                  MinWidth="320" Padding="12,8,6,8" AutomationProperties.LiveSetting="Polite">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10">
+              <Panel VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconInfo}" Width="16" Height="16" Foreground="{DynamicResource StudioAccentBrush}" IsVisible="{Binding !IsWorkspaceBusy}" />
+                <ProgressBar IsVisible="{Binding IsWorkspaceBusy}" IsIndeterminate="True" Width="16" MinWidth="16" Height="3" VerticalAlignment="Center" />
+              </Panel>
+              <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                <TextBlock x:Name="OperationToastText" TextWrapping="Wrap" MaxWidth="380" Text="{Binding OperationStatus}" />
+                <ProgressBar IsVisible="{Binding IsWorkspaceBusy}" Minimum="0" Maximum="1" Value="{Binding OperationProgressFraction}" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                <Button Classes="tool" x:Name="ToastUndoButton" AutomationProperties.Name="{loc:Loc DocumentWorkspace.Undo}" Content="{loc:Loc DocumentWorkspace.Undo}"
+                        Command="{Binding Commands[Undo]}" IsVisible="False" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.RestoreRecoveredEdits}" Content="{loc:Loc MainWindow.RestoreRecoveredEdits}" IsVisible="{Binding HasRecovery}" Command="{Binding RestoreRecoveryCommand}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.Discard}" Content="{loc:Loc MainWindow.Discard}" IsVisible="{Binding HasRecovery}" Command="{Binding DiscardRecoveryCommand}" />
+                <Button Classes="tool" AutomationProperties.Name="{loc:Loc MainWindow.Cancel}" Content="{loc:Loc MainWindow.Cancel}" IsVisible="{Binding CanCancelOperation}" Command="{Binding CancelOperationCommand}" />
+              </StackPanel>
+              <Button Grid.Column="3" Classes="icon" Width="26" Height="26" VerticalAlignment="Center" Click="OnDismissToastClick"
+                      AutomationProperties.Name="{loc:Loc MainWindow.Dismiss}" ToolTip.Tip="{loc:Loc MainWindow.Dismiss}">
+                <PathIcon Data="{StaticResource IconClose}" Width="10" Height="10" />
+              </Button>
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- Full-window drop target that explains what will happen. -->
+        <Border x:Name="DropOverlay" IsVisible="False" Background="{DynamicResource StudioScrimBrush}" IsHitTestVisible="False">
+          <Border Classes="floating" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="36,28" CornerRadius="16"
+                  BorderBrush="{DynamicResource StudioAccentBrush}" BorderThickness="2">
+            <StackPanel Spacing="10" HorizontalAlignment="Center" MaxWidth="420">
+              <Border Width="56" Height="56" CornerRadius="14" Background="{DynamicResource StudioAccentSoftBrush}" HorizontalAlignment="Center">
+                <PathIcon Data="{StaticResource IconOpen}" Width="26" Height="26" Foreground="{DynamicResource StudioAccentBrush}" />
+              </Border>
+              <TextBlock x:Name="DropOverlayTitle" FontSize="18" FontWeight="SemiBold" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+              <TextBlock x:Name="DropOverlayDetail" Classes="muted" HorizontalAlignment="Center" TextAlignment="Center" />
+            </StackPanel>
+          </Border>
+        </Border>
+
+        <shell:StudioCommandPalette x:Name="CommandPalette" IsVisible="False" />
+      </Panel>
+    </Border>
   </Grid>
 </Window>

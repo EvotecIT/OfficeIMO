@@ -38,6 +38,36 @@ public sealed class PdfEditorCommandTests {
     }
 
     [Fact]
+    public void MarkupKeepsSeparateQuadsForSelectedLines() {
+        byte[] source = CreateSource();
+        var gesture = new PdfEditorGesture(1, 40D, 50D, 300D, 90D,
+            Array.Empty<PdfEditorVisualPoint>(), TextQuads: [
+                new PdfEditorVisualBounds(200D, 50D, 300D, 65D),
+                new PdfEditorVisualBounds(40D, 75D, 120D, 90D)
+            ]);
+        PdfEditorCommand command = PdfEditorCommandFactory.Create(source, PdfEditorTool.Highlight, gesture, CreateProperties());
+
+        byte[] edited = PdfEditorCommandExecutor.Apply(source, command);
+        PdfAnnotation annotation = Assert.Single(PdfDocument.Load(edited).Inspect().GetAnnotationsBySubtype("Highlight"));
+
+        Assert.Equal(16, annotation.QuadPoints.Count);
+        Assert.Equal(100D, annotation.QuadPoints[2] - annotation.QuadPoints[0], 3);
+        Assert.Equal(80D, annotation.QuadPoints[10] - annotation.QuadPoints[8], 3);
+    }
+
+    [Fact]
+    public void SelectionGeometryGroupsAdjacentGlyphsWithoutFillingTheGapBetweenLines() {
+        byte[] source = CreateSource(string.Join(" ", Enumerable.Repeat("selection geometry", 30)));
+        IReadOnlyList<PdfPageInteractionRegion> regions = PdfDocument.Load(source).Render.Interactions(1).TextRegions;
+
+        IReadOnlyList<PdfEditorVisualBounds> quads = OfficeIMO.Studio.Features.Reader.PdfPageCanvas.MergeSelectedTextRegions(regions);
+
+        Assert.True(quads.Count >= 2);
+        Assert.All(quads, quad => Assert.True(quad.Width > 0 && quad.Height > 0));
+        Assert.True(quads[0].Bottom < quads[1].Top);
+    }
+
+    [Fact]
     public void LinkTool_CreatesUriActionReturnedByReader() {
         byte[] source = CreateSource();
         PdfEditorCommand command = PdfEditorCommandFactory.Create(source, PdfEditorTool.Link, CreateGesture(), CreateProperties());

@@ -10,6 +10,54 @@ using OfficeIMO.Studio.Features.Workspace;
 namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioCommentReviewTests {
+    [Fact]
+    public async Task CommentSummaryTreatsPdfTextAsPlainMarkdownText() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "untrusted-comments.pdf");
+            byte[] original = CreateSource();
+            var first = PdfDocument.Load(original).Inspect().GetAnnotationsBySubtype("Text").First();
+            byte[] updated = PdfAnnotationReviewEditor.AddReply(original, first.ObjectNumber!.Value,
+                "Body\n## Forged **bold** <script>", new() { Author = "Alice\n## Forged", CreatePopup = true }).Bytes;
+            File.WriteAllBytes(source, updated);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+
+            string summary = model.BuildCommentSummary("Report\n## Forged.md");
+            Assert.DoesNotContain("\n## Forged", summary);
+            Assert.DoesNotContain("<script>", summary);
+            Assert.Contains("Report \\#\\# Forged\\.md", summary);
+            Assert.Contains("Alice \\#\\# Forged", summary);
+            Assert.Contains("Body \\#\\# Forged \\*\\*bold\\*\\* &lt;script&gt;", summary);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task CommentSummaryAvailabilityTracksWorkspaceBusyState() {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "comments.pdf");
+            File.WriteAllBytes(source, CreateSource());
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+            int changes = 0;
+            model.ExportCommentSummaryCommand.CanExecuteChanged += (_, _) => changes++;
+
+            Assert.True(model.ExportCommentSummaryCommand.CanExecute(null));
+            model.IsWorkspaceBusy = true;
+            Assert.False(model.ExportCommentSummaryCommand.CanExecute(null));
+            model.IsWorkspaceBusy = false;
+            Assert.True(model.ExportCommentSummaryCommand.CanExecute(null));
+            Assert.Equal(2, changes);
+            return true;
+        }, CancellationToken.None);
+    }
+
     [Theory]
     [InlineData(960, false)]
     [InlineData(1280, true)]

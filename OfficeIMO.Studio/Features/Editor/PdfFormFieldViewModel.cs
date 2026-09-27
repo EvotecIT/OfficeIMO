@@ -91,6 +91,8 @@ public sealed partial class PdfFormFieldViewModel : ObservableObject {
 
     public bool IsSingleChoiceEditor { get; }
 
+    public bool IsFixedSingleChoiceEditor => IsSingleChoiceEditor && !IsEditableChoice;
+
     public bool IsMultipleChoiceEditor { get; }
 
     public bool IsEditableChoice { get; }

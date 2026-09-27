@@ -1,12 +1,35 @@
 using System.Globalization;
 using System.IO;
 using System.Text;
+using System.Threading;
 using OfficeIMO.Pdf;
 using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfImageEditorTests {
+    [Fact]
+    public void VisitingImagesStopsAfterCancellationWithoutRetainingTheRemainingPayloads() {
+        PdfDocument first = PdfDocument.Load(CreateTextPdf()).Images.Add(
+            new PdfPageRegion(1, 40D, 80D, 30D, 20D),
+            PdfPngTestImages.CreateRgbPng(255, 0, 0)).Document;
+        PdfDocument source = first.Images.Add(
+            new PdfPageRegion(1, 120D, 80D, 30D, 20D),
+            PdfPngTestImages.CreateRgbPng(0, 0, 255)).Document;
+        using var cancellation = new CancellationTokenSource();
+        int visited = 0;
+
+        Assert.Throws<OperationCanceledException>(() => source.Images.Visit(image => {
+            using var output = new MemoryStream();
+            image.CopyTo(output, cancellation.Token);
+            Assert.Equal(image.Bytes, output.ToArray());
+            visited++;
+            cancellation.Cancel();
+        }, cancellation.Token));
+
+        Assert.Equal(1, visited);
+    }
+
     [Fact]
     public void ImageEditBudgetFlowsThroughAddReplaceAndMoveRestamps() {
         byte[] image = PdfPngTestImages.CreateRgbPng(25, 50, 75);

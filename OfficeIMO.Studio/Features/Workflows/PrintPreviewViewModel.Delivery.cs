@@ -78,7 +78,7 @@ public sealed partial class PrintPreviewViewModel {
             await PaperSourceDiscovery.ConfigureAwait(true);
             if (printers.Count == 0) PrinterDiscoveryError = T("NoPrinters", "No printer queues are installed.");
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) { }
-        catch (Exception error) { if (!_disposed) PrinterDiscoveryError = error.Message; }
+        catch (Exception error) { if (!_disposed) PrinterDiscoveryError = Infrastructure.StudioMessages.Describe(error); }
         finally {
             if (ReferenceEquals(_discoveryCancellation, operation)) _discoveryCancellation = null;
             IsDiscoveringPrinters = false;
@@ -116,13 +116,13 @@ public sealed partial class PrintPreviewViewModel {
             if (!string.IsNullOrWhiteSpace(receipt.CleanupWarning)) Status += " " + receipt.CleanupWarning;
             job?.Complete(OfficeWorkflowStatus.Completed, null, Status);
         } catch (PdfPrintDeliveryException error) {
-            Status = error.Message;
+            Status = Infrastructure.StudioMessages.Describe(error);
             job?.Complete(OfficeWorkflowStatus.Unconfirmed, null, Status);
         } catch (OperationCanceledException) when (operation.IsCancellationRequested) {
             Status = T("DeliveryCancelled", "Printing cancelled before submission.");
             job?.Complete(OfficeWorkflowStatus.Cancelled, null, Status);
         } catch (Exception error) {
-            Status = error.Message;
+            Status = Infrastructure.StudioMessages.Describe(error);
             job?.Complete(OfficeWorkflowStatus.Failed, null, Status);
         } finally {
             _delivering = false;

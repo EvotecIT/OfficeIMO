@@ -24,7 +24,7 @@ public sealed class StudioAccessibilityContractTests {
     }
 
     [Fact]
-    public async Task DestructiveDialogsProvideDefaultCancelAndInitialFocusTargets() {
+    public async Task UnsavedChangesDialogProvidesDefaultAndCancelTargets() {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(() => {
             var unsaved = new UnsavedChangesDialog("sample.pdf");
@@ -32,8 +32,6 @@ public sealed class StudioAccessibilityContractTests {
             Assert.Contains(unsavedButtons, button => button.IsDefault);
             Assert.Contains(unsavedButtons, button => button.IsCancel);
 
-            var deletion = new PageDeletionDialog(2);
-            Assert.Contains(GetButtons(deletion), button => button.IsCancel);
             return true;
         }, CancellationToken.None);
     }

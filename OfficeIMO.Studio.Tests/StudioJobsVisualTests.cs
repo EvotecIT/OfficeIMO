@@ -72,6 +72,10 @@ public sealed class StudioJobsVisualTests {
                     .Single(button => ReferenceEquals(button.CommandParameter, assemblyEntry) && ReferenceEquals(button.Command, jobs.OpenOutputCommand));
                 Assert.True(open.IsEffectivelyEnabled);
                 CheckBounds(window, open);
+                Button reveal = jobsView.GetVisualDescendants().OfType<Button>()
+                    .Single(button => ReferenceEquals(button.CommandParameter, assemblyEntry) && ReferenceEquals(button.Command, jobs.RevealOutputCommand));
+                Assert.True(reveal.IsEffectivelyEnabled);
+                CheckBounds(window, reveal);
                 Capture(window, width, dark, "output-action");
                 open.Command!.Execute(assemblyEntry);
                 await jobs.OpenOutputCommand.ExecutionTask!;

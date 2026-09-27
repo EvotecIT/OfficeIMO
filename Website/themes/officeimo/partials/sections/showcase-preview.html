@@ -16,7 +16,7 @@
       <article class="imo-showcase-card" role="listitem">
         {{ if card.image }}
         <a class="imo-showcase-card__media" href="{{ card.image }}" data-pf-media data-pf-media-caption="{{ card.title | html.escape }}" aria-label="Open preview: {{ card.title | html.escape }}">
-          <img src="{{ card.image }}" alt="{{ card.image_alt ?? card.title }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
+          <img sizes="(max-width: 767px) 92vw, (max-width: 1023px) 45vw, 260px" src="{{ card.image }}" alt="{{ card.image_alt ?? card.title }}" width="{{ card.image_width }}" height="{{ card.image_height }}" loading="lazy" decoding="async" />
         </a>
         {{ end }}
         <div class="imo-showcase-card__body">

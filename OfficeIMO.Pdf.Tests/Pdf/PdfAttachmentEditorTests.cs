@@ -152,6 +152,26 @@ public class PdfAttachmentEditorTests {
     }
 
     [Fact]
+    public void SelectedAttachmentUsesObjectIdentityForExtractionAndRemoval() {
+        byte[] source = PdfAssociatedFileTestSupport.BuildDuplicateNamedFileAttachmentAnnotationsPdf();
+        PdfDocument document = PdfDocument.Load(source);
+        PdfAttachmentInfo[] matches = document.Inspect().Attachments
+            .Where(static attachment => attachment.FileName == "duplicate.txt").ToArray();
+        Assert.Equal(2, matches.Length);
+
+        PdfExtractedAttachment selected = document.Attachments.Extract(matches[1], 64);
+        Assert.Equal("SECOND-DUPLICATE-PAYLOAD", Encoding.ASCII.GetString(selected.Bytes));
+
+        byte[] output = document.Attachments.Remove(matches[1]).ToBytes();
+        PdfExtractedAttachment remaining = Assert.Single(PdfReadDocument.Open(output).ExtractAttachments());
+        Assert.Equal("FIRST-DUPLICATE-PAYLOAD", Encoding.ASCII.GetString(remaining.Bytes));
+        var (objects, _) = PdfSyntax.ParseObjects(output);
+        PdfDictionary annotation = Assert.Single(objects.Values.Select(static item => item.Value as PdfDictionary),
+            static item => string.Equals(item?.Get<PdfName>("Subtype")?.Name, "FileAttachment", StringComparison.Ordinal))!;
+        Assert.Equal("FIRST-DUPLICATE-PAYLOAD", ReadAnnotationPayload(objects, annotation));
+    }
+
+    [Fact]
     public void Edit_ReconnectsAnnotationThroughSharedEmbeddedFileIdentity() {
         byte[] source = PdfAssociatedFileTestSupport.BuildAliasedFileAttachmentAnnotationPdf();
 

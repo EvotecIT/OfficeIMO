@@ -128,6 +128,9 @@ public sealed partial class MainWindowViewModel {
     partial void OnSelectedSigningCertificateChanged(PdfSigningCertificateViewModel? value) =>
         OnPropertyChanged(nameof(CanApplyCertificateSignature));
 
+    [ObservableProperty]
+    private string? _signingCertificateStatus;
+
     [RelayCommand]
     private void RefreshSigningCertificates() {
         string? selectedThumbprint = SelectedSigningCertificate?.Thumbprint;
@@ -151,11 +154,11 @@ public sealed partial class MainWindowViewModel {
             SelectedSigningCertificate = SigningCertificates.FirstOrDefault(certificate =>
                 string.Equals(certificate.Thumbprint, selectedThumbprint, StringComparison.OrdinalIgnoreCase))
                 ?? SigningCertificates.FirstOrDefault();
-            OperationStatus = SigningCertificates.Count == 0
-                ? "No signing certificates with private keys were found"
-                : $"Found {SigningCertificates.Count} signing certificate(s)";
+            SigningCertificateStatus = SigningCertificates.Count == 0
+                ? UiText("Signing.NoCertificates")
+                : SigningCertificates.Count == 1 ? UiText("Signing.OneCertificate") : UiFormat("Signing.CertificateCount", SigningCertificates.Count);
         } catch (Exception ex) {
-            ErrorMessage = "The certificate store could not be read: " + ex.Message;
+            ErrorMessage = UiFormat("Signing.StoreUnreadable", ex.Message);
         }
     }
 

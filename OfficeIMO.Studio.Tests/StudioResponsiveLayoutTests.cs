@@ -160,7 +160,8 @@ public sealed class StudioResponsiveLayoutTests {
                             Assert.True(card.Bounds.Bottom <= panel.Bounds.Height + 1);
                             foreach (var text in card.GetVisualDescendants().OfType<TextBlock>()) {
                                 Point origin = text.TranslatePoint(default, card)!.Value;
-                                Assert.True(origin.X >= 0 && origin.X + text.Bounds.Width <= card.Bounds.Width + 1);
+                                Assert.True(origin.X >= 0 && origin.X + text.Bounds.Width <= card.Bounds.Width + 1,
+                                    $"Text {text.Text}: {origin}, {text.Bounds}, card {card.Bounds}, panel {panel.Bounds}");
                                 Assert.True(origin.Y >= 0 && origin.Y + text.Bounds.Height <= card.Bounds.Height + 1, $"Text {text.Text}: {origin}, {text.Bounds}, card {card.Bounds}");
                                 foreach (var icon in card.GetVisualDescendants().OfType<PathIcon>()) {
                                     Point iconOrigin = icon.TranslatePoint(default, card)!.Value;

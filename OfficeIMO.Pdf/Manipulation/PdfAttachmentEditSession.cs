@@ -73,13 +73,35 @@ public sealed class PdfAttachmentEditSession {
         return RemoveAt(index);
     }
 
+    /// <summary>Removes one source attachment by its file-spec and embedded-stream identity.</summary>
+    public PdfAttachmentEditSession Remove(PdfAttachmentInfo attachment) {
+        Guard.NotNull(attachment, nameof(attachment));
+        bool hasObjectIdentity = attachment.FileSpecObjectNumber != 0 || attachment.EmbeddedFileObjectNumber != 0;
+        int matched = -1;
+        for (int index = 0; index < _attachments.Count; index++) {
+            PdfAttachmentSourceIdentity source = _sourceIdentities[index];
+            bool matches = hasObjectIdentity
+                ? source.FileSpecObjectNumber == attachment.FileSpecObjectNumber &&
+                  source.EmbeddedFileObjectNumber == attachment.EmbeddedFileObjectNumber &&
+                  string.Equals(_attachments[index].FileName, attachment.FileName, StringComparison.Ordinal)
+                : source.FileSpecObjectNumber == 0 && source.EmbeddedFileObjectNumber == 0 &&
+                  string.Equals(_attachments[index].FileName, attachment.FileName, StringComparison.Ordinal);
+            if (!matches) continue;
+            if (matched >= 0) throw new InvalidOperationException("The selected PDF attachment identity is ambiguous.");
+            matched = index;
+        }
+        if (matched < 0) throw new KeyNotFoundException("The selected PDF attachment is no longer present.");
+        return RemoveAt(matched);
+    }
+
     internal PdfAttachmentEditSession RemoveAt(int index) {
         if (index < 0 || index >= _attachments.Count) throw new ArgumentOutOfRangeException(nameof(index));
         string fileName = _attachments[index].FileName;
         _attachments.RemoveAt(index);
         _sourceIdentities.RemoveAt(index);
         string? originalName = _retainedOriginalNames.FirstOrDefault(pair => string.Equals(pair.Value, fileName, StringComparison.Ordinal)).Key;
-        if (originalName != null) _retainedOriginalNames.Remove(originalName);
+        if (originalName != null && !_attachments.Any(file => string.Equals(file.FileName, fileName, StringComparison.Ordinal)))
+            _retainedOriginalNames.Remove(originalName);
         return this;
     }
 

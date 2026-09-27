@@ -7,8 +7,9 @@ public sealed class OdsColumnRun {
     internal OdsColumnRun(OdsDocument document, XElement element, long startColumn, long repeatCount) {
         _document = document; _element = element;
         StartColumn = startColumn; RepeatCount = repeatCount;
-        Hidden = (string?)element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
+        Hidden = new OdsColumn(document, element).Hidden;
         StyleName = (string?)element.Attribute(OdfNamespaces.Table + "style-name");
+        DefaultCellStyleName = (string?)element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
     }
     /// <summary>Zero-based first logical column.</summary>
     public long StartColumn { get; }
@@ -18,6 +19,8 @@ public sealed class OdsColumnRun {
     public bool Hidden { get; }
     /// <summary>Referenced column style name.</summary>
     public string? StyleName { get; }
+    /// <summary>Default cell style for cells without a row or explicit cell style in this column run.</summary>
+    public string? DefaultCellStyleName { get; }
     /// <summary>Explicit prototype column width.</summary>
     public OdfLength? Width => new OdsColumn(_document, _element).Width;
 }
@@ -29,13 +32,27 @@ public sealed class OdsColumn {
     internal OdsColumn(OdsDocument document, XElement element) { _document = document; _element = element; }
     /// <summary>Whether this column is hidden.</summary>
     public bool Hidden {
-        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") == "collapse";
-        set { _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null); Dirty(); }
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "visibility") is "collapse" or "filter" ||
+            HiddenByGroup;
+        set {
+            if (!value && HiddenByGroup)
+                throw new InvalidOperationException("Expand the owning column group before unhiding this column.");
+            _element.SetAttributeValue(OdfNamespaces.Table + "visibility", value ? "collapse" : null);
+            Dirty();
+        }
     }
+    private bool HiddenByGroup => _element.Ancestors(OdfNamespaces.Table + "table-column-group").Any(group =>
+        OdfBoolean.TryParseXml((string?)group.Attribute(OdfNamespaces.Table + "display"), out bool displayed)
+        && !displayed);
     /// <summary>Referenced column style name.</summary>
     public string? StyleName {
         get => (string?)_element.Attribute(OdfNamespaces.Table + "style-name");
         set { _element.SetAttributeValue(OdfNamespaces.Table + "style-name", value); Dirty(); }
+    }
+    /// <summary>Default table-cell style used when neither cell nor row supplies one.</summary>
+    public string? DefaultCellStyleName {
+        get => (string?)_element.Attribute(OdfNamespaces.Table + "default-cell-style-name");
+        set { _element.SetAttributeValue(OdfNamespaces.Table + "default-cell-style-name", value); Dirty(); }
     }
     /// <summary>Explicit column width.</summary>
     public OdfLength? Width {

@@ -23,7 +23,10 @@ public sealed class ConversionRouteChoice {
     public string Label => Localize("Label", Route.Label);
     public string Description => Localize("Description", Route.Description);
     public string Engine => Route.Engine;
-    public string Fidelity => Localize("Fidelity", Route.Fidelity) + " · " + Localize("SupportLevel", Route.SupportLevel);
+    public string Fidelity => Localize("Fidelity", Shared("Conversion.Fidelity." + Route.Fidelity, Route.Fidelity)) + " · " +
+        Localize("SupportLevel", Shared("Conversion.SupportLevel." + Route.SupportLevel, Route.SupportLevel));
+
+    private string Shared(string key, string value) => _localizer?.GetOrDefault(key, Infrastructure.StudioMessages.Humanize(value)) ?? Infrastructure.StudioMessages.Humanize(value);
     public string KnownLimitations => Localize("KnownLimitations", Route.KnownLimitations);
 
     private string Localize(string property, string fallback) =>

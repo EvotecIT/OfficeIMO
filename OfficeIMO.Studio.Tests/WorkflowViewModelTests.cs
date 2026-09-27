@@ -118,7 +118,12 @@ public sealed class WorkflowViewModelTests {
         await pageExport.ExportCommand.ExecuteAsync(null);
 
         Assert.True(pageExport.HasOutput);
+        Assert.True(pageExport.HasBrowsableOutput);
         Assert.Single(Directory.GetFiles(pageExport.PublishedDirectory!, "*.png"));
+
+        pageExport.PublishedDirectory = "content://provider/exported-pages";
+        Assert.True(pageExport.HasOutput);
+        Assert.False(pageExport.HasBrowsableOutput);
 
         using var assembly = new PdfAssemblyViewModel(
             _ => Task.FromResult<IReadOnlyList<string>>([first, second]),
@@ -227,6 +232,39 @@ public sealed class WorkflowViewModelTests {
         viewModel.DismissUnmatchedInputsCommand.Execute(null);
         Assert.False(viewModel.HasUnmatchedInputs);
         Assert.Empty(viewModel.Jobs);
+    }
+
+    [Fact]
+    public void DroppedConvertibleInputsUseTheirExecutableRoutes() {
+        using var scope = new TestDirectory();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>([]),
+            _ => Task.FromResult<string?>(scope.Path));
+        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
+        string html = Path.Combine(scope.Path, "page.html");
+        string text = Path.Combine(scope.Path, "notes.txt");
+
+        Assert.True(viewModel.AddDroppedPaths([html, text]));
+
+        Assert.Equal(2, viewModel.Jobs.Count);
+        Assert.All(viewModel.Jobs, job => Assert.Contains(
+            Path.GetExtension(job.InputPath), job.Route.Route.SourceExtensions, StringComparer.OrdinalIgnoreCase));
+        Assert.False(viewModel.HasUnmatchedInputs);
+    }
+
+    [Fact]
+    public void AmbiguousDroppedPdfWaitsForAnExplicitRouteChoice() {
+        using var scope = new TestDirectory();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>([]),
+            _ => Task.FromResult<string?>(scope.Path));
+        viewModel.SelectedRoute = viewModel.Routes.Single(route => route.Route.Id == "docx-pdf");
+
+        Assert.True(viewModel.AddDroppedPaths([Path.Combine(scope.Path, "report.pdf")]));
+
+        Assert.Empty(viewModel.Jobs);
+        Assert.True(viewModel.HasUnmatchedInputs);
+        Assert.Contains(viewModel.MatchingInputRoutes, choice => choice.Route.Id == "pdf-docx");
     }
 
     [Fact]

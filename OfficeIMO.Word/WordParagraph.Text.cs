@@ -361,7 +361,7 @@ namespace OfficeIMO.Word {
             return resultRuns.Count > 0 ? resultRuns : runs;
         }
 
-        private static string ReadVisibleText(OpenXmlElement element) {
+        internal static string ReadVisibleText(OpenXmlElement element) {
             if (element is Text text) {
                 return text.Text;
             }

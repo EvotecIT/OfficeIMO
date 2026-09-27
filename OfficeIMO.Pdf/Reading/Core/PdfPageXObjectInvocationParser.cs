@@ -1530,6 +1530,10 @@ internal static class PdfPageXObjectInvocationParser {
                 return false;
             }
 
+            if (!PdfRectanglePathGeometry.IsRectangle(_pathCommands, allowImplicitClose: false, tolerance: 0.001D)) {
+                return false;
+            }
+
             double left = _path.Min(point => point.X);
             double right = _path.Max(point => point.X);
             double top = _path.Min(point => ToTop(point.Y));

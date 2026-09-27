@@ -8,6 +8,7 @@ public sealed partial class WatermarkDialog : Window {
 
     public WatermarkDialog(WatermarkPreviewViewModel model) : this() {
         DataContext = model;
+        model.AutoPreview = true;
         Opened += async (_, _) => {
             if (Owner is { } owner) {
                 Width = Math.Max(MinWidth, Math.Min(Width, owner.Bounds.Width - 40));

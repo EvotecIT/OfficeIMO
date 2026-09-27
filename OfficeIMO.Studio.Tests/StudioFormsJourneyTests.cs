@@ -11,6 +11,37 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioFormsJourneyTests {
     [Fact]
+    public async Task SharedTextFieldWidgetsStayInTheSidePane() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj", "<< /Type /Catalog /Pages 2 0 R /AcroForm << /Fields [5 0 R] >> >>", "endobj",
+            "2 0 obj", "<< /Type /Pages /Count 1 /Kids [3 0 R] >>", "endobj",
+            "3 0 obj", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Annots [6 0 R 7 0 R] >>", "endobj",
+            "5 0 obj", "<< /FT /Tx /T (Shared) /V (Value) /Kids [6 0 R 7 0 R] >>", "endobj",
+            "6 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [20 20 100 40] /P 3 0 R /F 4 >>", "endobj",
+            "7 0 obj", "<< /Type /Annot /Subtype /Widget /Parent 5 0 R /Rect [120 20 220 40] /P 3 0 R /F 4 >>", "endobj",
+            "trailer", "<< /Root 1 0 R /Size 8 >>", "%%EOF"
+        }) + "\n";
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "shared-widgets.pdf");
+            File.WriteAllBytes(source, System.Text.Encoding.ASCII.GetBytes(pdf));
+            Assert.Equal(2, Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Widgets.Count);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            await model.OpenDocumentAsync(source);
+            model.ShowFormsModeCommand.Execute(null);
+            model.SelectedFormField = Assert.Single(model.FormFields);
+            await model.SelectedPage!.EnsureRenderedAsync();
+
+            Assert.Null(model.SelectedPage.InlineFormField);
+            Assert.False(model.SelectedPage.HasInlineFormEditor);
+            return true;
+        }, CancellationToken.None);
+    }
+
+    [Fact]
     public async Task DefinitionEditingProtectsDraftsPreservesFlagsAndSavesPageTabOrder() {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-form-definition-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -113,6 +144,60 @@ public sealed class StudioFormsJourneyTests {
             Assert.Equal(2, prompts);
             Assert.Equal("AB", Assert.Single(PdfDocument.Load(source).Inspect().FormFields).Value);
             Assert.False(model.IsDirty);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public async Task FieldsAreFilledOnThePageAndTabMovesInFieldOrder() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-form-inline-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        string source = Path.Combine(root, "form.pdf");
+        try {
+            PdfDocument.Create(compose => compose.Page(page => page.Content(content => {
+                content.Item(item => item.TextField("First", value: "On", style: new PdfFormFieldStyle { MaxLength = 2 }));
+                content.Item(item => item.TextField("Second", value: "Two"));
+                content.Item(item => item.TextField("Third", value: "Three"));
+            }))).Save(source);
+            using var session = TestAppBuilder.StartSession();
+            await session.Dispatch(async () => {
+                using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null));
+                await model.OpenDocumentAsync(source);
+                model.ShowFormsModeCommand.Execute(null);
+                var page = model.Pages[0];
+                page.AttachToViewport();
+                using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                while (page.Scene is null) await Task.Delay(10, timeout.Token);
+
+                model.SelectedFormField = model.FormFields.Single(field => field.Name == "First");
+                Assert.True(page.HasInlineFormEditor);
+                Assert.Same(model.SelectedFormField, page.InlineFormField);
+                Assert.True(page.InlineFormWidth > 0 && page.InlineFormHeight > 0);
+
+                int repeatedFocusRequests = 0;
+                page.PropertyChanged += (_, change) => {
+                    if (change.PropertyName == nameof(page.FocusInlineFormEditorRequested)) repeatedFocusRequests++;
+                };
+                page.FocusInlineFormEditorRequested = false; // The page view consumed the first focus request.
+                page.ShowInlineFormField(model.SelectedFormField, focus: true);
+                Assert.Equal(1, repeatedFocusRequests);
+                Assert.True(page.FocusInlineFormEditorRequested);
+
+                model.SelectedFormField.TextValue = "TOO LONG";
+                Assert.False(model.CanFillForms);
+                Assert.True(page.HasInlineFormEditor);
+                page.RequestInlineFormNavigation(1);
+                Assert.Equal("Second", model.SelectedFormField?.Name);
+                Assert.Same(model.SelectedFormField, page.InlineFormField);
+                Assert.True(page.FocusInlineFormEditorRequested);
+
+                page.InlineFormField!.TextValue = "Typed on the page";
+                Assert.True(model.HasFormDrafts);
+
+                page.RequestInlineFormNavigation(-1);
+                page.RequestInlineFormNavigation(-1);
+                Assert.Equal("Third", model.SelectedFormField?.Name);
+                return true;
+            }, CancellationToken.None);
         } finally { Directory.Delete(root, recursive: true); }
     }
 

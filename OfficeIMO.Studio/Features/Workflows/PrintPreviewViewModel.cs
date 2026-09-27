@@ -205,7 +205,7 @@ public sealed partial class PrintPreviewViewModel : ObservableObject, IDisposabl
             Summary = T("Summary.None", "No preview");
         } catch (Exception ex) {
             ClearPreview();
-            Status = _localizer.FormatOrDefault("PrintPreview.Status.Failed", "Print preview failed: {0}", ex.Message);
+            Status = _localizer.FormatOrDefault("PrintPreview.Status.Failed", "Print preview failed: {0}", Infrastructure.StudioMessages.Describe(ex));
             Summary = T("Summary.Unavailable", "Preview unavailable");
         } finally {
             IsBusy = false;

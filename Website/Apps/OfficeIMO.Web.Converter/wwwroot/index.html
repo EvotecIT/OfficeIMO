@@ -14,7 +14,7 @@
     <link rel="alternate" hreflang="en" href="https://officeimo.com/apps/officeimo-converter/" />
     <link rel="alternate" hreflang="x-default" href="https://officeimo.com/apps/officeimo-converter/" />
     <link rel="preload" id="webassembly" />
-    <script>(function(){function a(){var t=localStorage.getItem('imo-theme');if(t!=='light'&&t!=='dark'){t='light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}window.officeimoConverterShell={toggleTheme:function(){var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';localStorage.setItem('imo-theme',t);a();}};a();if(new URLSearchParams(location.search).get('embedded')==='1'){document.documentElement.classList.add('ocx-embedded');}addEventListener('storage',function(e){if(e.key==='imo-theme'){a();}});})();</script>
+    <script>(function(){function a(){var t=null;try{t=localStorage.getItem('imo-theme');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);document.documentElement.style.colorScheme=t;}window.officeimoConverterShell={toggleTheme:function(){var t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';try{localStorage.setItem('imo-theme',t);}catch(e){}a();}};a();if(new URLSearchParams(location.search).get('embedded')==='1'){document.documentElement.classList.add('ocx-embedded');}addEventListener('storage',function(e){if(e.key==='imo-theme'){a();}});})();</script>
     <link rel="stylesheet" href="converter.css" />
     <link rel="stylesheet" href="OfficeIMO.Web.Converter.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />

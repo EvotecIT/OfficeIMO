@@ -42,7 +42,8 @@ public sealed partial class OfficeWorkflowRunner {
             PdfDocument document = await PdfDocument.LoadAsync(captured, loadOptions, cancellationToken).ConfigureAwait(false);
             int pageCount = document.Inspect(loadOptions, cancellationToken).PageCount;
             if (pageCount < 1) throw new InvalidDataException("The source PDF has no pages.");
-            PdfSplitPlan plan = PdfSplitPlan.Create(pageCount, pagesPerPart, maximumParts);
+            PdfSplitPlan plan = request.Plan ?? PdfSplitPlan.Create(pageCount, pagesPerPart, maximumParts);
+            plan.Validate(pageCount, maximumParts);
             int count = plan.Parts.Count;
             cancellationToken.ThrowIfCancellationRequested();
             if (directory is null) {

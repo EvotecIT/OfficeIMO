@@ -11,7 +11,8 @@ internal static class OdfFeatureInspector {
         XNamespace.Xml.NamespaceName, XNamespace.Xmlns.NamespaceName, string.Empty
     };
 
-    internal static OdfFeatureReport Inspect(OdfPackage package) {
+    internal static OdfFeatureReport Inspect(OdfDocument source) {
+        OdfPackage package = source.Package;
         var findings = new List<OdfFeatureFinding>();
         var diagnostics = new List<OdfFeatureDiagnostic>();
         foreach (OdfPackageEntry entry in package.Entries.Where(entry => entry.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))) {
@@ -48,11 +49,36 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "database-range", "spreadsheet-database-ranges", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "filter", "spreadsheet-filters", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] dataPilots = document.Descendants(OdfNamespaces.Table + "data-pilot-table").ToArray();
+            int editableDataPilots = dataPilots.Count(pivot =>
+                source is OdsDocument spreadsheet && OdsDataPilotTable.IsEditableElement(spreadsheet, pivot));
+            if (editableDataPilots > 0) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Editable, entry.Name, editableDataPilots));
+            if (dataPilots.Length > editableDataPilots) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Inspected, entry.Name,
+                dataPilots.Length - editableDataPilots));
             AddElementFinding(document, OdfNamespaces.Table + "named-range", "spreadsheet-named-ranges", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "detective", "spreadsheet-detective", OdfFeatureSupport.Preserved, entry.Name, findings);
-            AddElementFinding(document, OdfNamespaces.Text + "note", "text-notes", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] textFields = document.Descendants()
+                .Where(element => OdtField.TryGetKind(element.Name, out _)).ToArray();
+            int basicTextFields = textFields.Count(element =>
+                OdtField.IsBasicElement(element) && IsEditableOdtField(package.Kind, entry.Name, element));
+            if (basicTextFields > 0) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Editable, entry.Name, basicTextFields));
+            if (textFields.Length > basicTextFields) findings.Add(new OdfFeatureFinding(
+                "text-fields", OdfFeatureSupport.Inspected, entry.Name, textFields.Length - basicTextFields));
+            XElement[] notes = document.Descendants(OdfNamespaces.Text + "note").ToArray();
+            int editableNotes = notes.Count(note =>
+                !note.Ancestors(OdfNamespaces.Text + "tracked-changes").Any() &&
+                ((string?)note.Attribute(OdfNamespaces.Text + "note-class") is "footnote" or "endnote") &&
+                note.Element(OdfNamespaces.Text + "note-body") is XElement body &&
+                body.Elements().All(child => child.Name == OdfNamespaces.Text + "p"));
+            if (editableNotes > 0) findings.Add(new OdfFeatureFinding(
+                "text-notes", OdfFeatureSupport.Editable, entry.Name, editableNotes));
+            if (notes.Length > editableNotes) findings.Add(new OdfFeatureFinding(
+                "text-notes", OdfFeatureSupport.Inspected, entry.Name, notes.Length - editableNotes));
             int bookmarks = document.Descendants(OdfNamespaces.Text + "bookmark").Count()
                 + document.Descendants(OdfNamespaces.Text + "bookmark-start").Count();
             if (bookmarks > 0) findings.Add(new OdfFeatureFinding("text-bookmarks", OdfFeatureSupport.Editable, entry.Name, bookmarks));
@@ -68,7 +94,11 @@ internal static class OdfFeatureInspector {
             int transitions = document.Descendants(OdfNamespaces.Style + "drawing-page-properties")
                 .Count(element => element.Attribute(OdfNamespaces.Presentation + "transition-type") != null || element.Attribute(OdfNamespaces.Presentation + "transition-style") != null);
             if (transitions > 0) findings.Add(new OdfFeatureFinding("presentation-transitions", OdfFeatureSupport.Editable, entry.Name, transitions));
-            int animations = document.Descendants(OdfNamespaces.Anim + "animate").Count();
+            int animations = document.Descendants().Count(element =>
+                element.Name.Namespace == OdfNamespaces.Anim &&
+                element.Name.LocalName is not ("par" or "seq" or "iterate"));
+            int legacyAnimations = document.Descendants(OdfNamespaces.Presentation + "animations").Count();
+            if (legacyAnimations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Preserved, entry.Name, legacyAnimations));
             if (animations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Editable, entry.Name, animations));
 
             var foreign = document.Root.DescendantsAndSelf()
@@ -95,6 +125,50 @@ internal static class OdfFeatureInspector {
         string partPath, List<OdfFeatureFinding> findings) {
         int count = document.Descendants(elementName).Count();
         if (count > 0) findings.Add(new OdfFeatureFinding(featureName, support, partPath, count));
+    }
+
+    internal static bool IsEditableOdtField(OdfDocumentKind kind, string partPath, XElement element) {
+        if (kind != OdfDocumentKind.Text ||
+            element.Ancestors().Any(ancestor => ancestor.Name == OdfNamespaces.Text + "tracked-changes" ||
+                ancestor.Name == OdfNamespaces.Text + "note" ||
+                ancestor.Name == OdfNamespaces.Office + "annotation")) return false;
+        XElement? paragraph = element.Ancestors().FirstOrDefault(ancestor =>
+            ancestor.Name == OdfNamespaces.Text + "p" || ancestor.Name == OdfNamespaces.Text + "h");
+        if (paragraph == null) return false;
+        for (XElement? inline = element.Parent; inline != null && !ReferenceEquals(inline, paragraph);
+            inline = inline.Parent) {
+            if (inline.Name != OdfNamespaces.Text + "span" && inline.Name != OdfNamespaces.Text + "a")
+                return false;
+        }
+        if (partPath == "styles.xml") {
+            if (paragraph.Parent?.Name != OdfNamespaces.Style + "header" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "header-first" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer-first" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "header-left" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer-left") return false;
+            XElement? firstMaster = element.Document?.Root?
+                .Element(OdfNamespaces.Office + "master-styles")?
+                .Elements(OdfNamespaces.Style + "master-page").FirstOrDefault();
+            return ReferenceEquals(paragraph.Parent.Parent, firstMaster);
+        }
+        if (partPath != "content.xml") return false;
+        int tableDepth = 0;
+        for (XElement? container = paragraph.Parent; container != null; container = container.Parent) {
+            if (container.Name == OdfNamespaces.Office + "text") return true;
+            if (container.Name == OdfNamespaces.Table + "table" && ++tableDepth > 1) return false;
+            if (container.Name == OdfNamespaces.Table + "table-cell" &&
+                !ReferenceEquals(paragraph.Parent, container)) return false;
+            if (container.Name != OdfNamespaces.Text + "section" &&
+                container.Name != OdfNamespaces.Text + "list" &&
+                container.Name != OdfNamespaces.Text + "list-item" &&
+                container.Name != OdfNamespaces.Text + "list-header" &&
+                container.Name != OdfNamespaces.Table + "table" &&
+                container.Name != OdfNamespaces.Table + "table-header-rows" &&
+                container.Name != OdfNamespaces.Table + "table-row" &&
+                container.Name != OdfNamespaces.Table + "table-cell") return false;
+        }
+        return false;
     }
 
     private static int CountEditableStyleMaps(XDocument document, string partPath) {
