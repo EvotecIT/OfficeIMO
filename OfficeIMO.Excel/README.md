@@ -569,17 +569,18 @@ Console.WriteLine(result.OutputRange);
 ```
 
 Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
-and at most one ungrouped field on each axis. It writes a tabular view in
+and multiple ungrouped fields on each axis, with at most 256 source fields in total. It writes a tabular view in
 first-seen key order, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
 cached results; materialization does not calculate them.
-For multiple measures, the Values field appears on exactly one axis. Both Values-first
-and Values-last ordering are preserved, including views without real row or column
+For multiple measures, the Values field appears on exactly one axis. Values-first,
+intermediate and Values-last ordering are preserved, including views without real row or column
 fields. `AddPivotTable` creates this field on columns by default, or on rows when
 `dataOnRows` is true. Repeated native axis prefixes are expanded during saved-view lookup.
-Regeneration normalizes imported axis subtotal settings to match this view;
-custom intermediate subtotal layouts are not retained.
+Regeneration expands collapsed groups and normalizes compact and outline layouts to
+tabular output with subtotals below their children. Hidden subtotals stay hidden;
+custom subtotal functions become automatic subtotals using each measure's aggregation.
 
 The operation rejects destination collisions with unrelated values, formulas,
 source cells, other pivots, tables and merged ranges. It replaces a previous
@@ -587,12 +588,18 @@ materialized view and clears its stale tail while retaining existing cell styles
 Preparation and writing run under the workbook lock; the shared mutation owner
 rolls back interrupted writes or invalid generated metadata. Use
 `ExcelMutationPlanOptions` to lower source/output and rollback budgets. The source
-and affected output are each capped at one million cells, as are source rows times
-measure count. Fields and measures are capped at 256; distinct shared keys per field
-and observed aggregate states across measures are capped at 100,000. Saved axis
-items, including totals, are capped at 100,001.
+and affected output are each capped at one million cells. The measure-input budget is
+source records times measure count times the number of displayed input levels on each
+axis: the leaf level plus enabled intermediate subtotals. Grand totals add at most
+one level per axis, bounding actual aggregate updates at four times that budget.
+Fields and measures are capped at 256; distinct shared keys per field and observed
+leaf aggregate states across measures are capped at 100,000. All aggregate states,
+including subtotals and grand totals, must fit the output budget. Saved axis items,
+including totals, are capped at 100,001. On each axis, the sum of saved field items
+and shared keys must also fit the configured budget, so all generated criteria
+combinations remain within the saved-lookup indexing limit.
 
-Multiple real fields per axis, grouping, date/error item keys,
+Grouping, date/error item keys,
 filters, page fields, calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

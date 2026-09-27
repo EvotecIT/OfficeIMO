@@ -1,91 +1,96 @@
-using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private void FillMaterializedPivot(PivotMaterializationPlan plan, ExcelSheet source, int firstRow, int firstColumn, int lastRow,
-            IReadOnlyList<PivotFieldValues> maps, int rowField, int columnField, int measureField, ExcelPivotDataFunction function,
-            bool rowTotal, bool columnTotal, int dataRow, int dataColumn, CancellationToken token) {
-            int rows = rowField < 0 ? 1 : maps[rowField].Items.Count;
-            int columns = columnField < 0 ? 1 : maps[columnField].Items.Count;
-            var rowIndices = rowField < 0 ? null : IndexPivotMaterializationKeys(maps[rowField]);
-            var columnIndices = columnField < 0 ? null : IndexPivotMaterializationKeys(maps[columnField]);
-            var groups = new Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator>();
-            var rowTotals = Enumerable.Range(0, rows).Select(_ => new ExcelPivotAggregateAccumulator()).ToArray();
-            var columnTotals = Enumerable.Range(0, columns).Select(_ => new ExcelPivotAggregateAccumulator()).ToArray();
-            var grandTotal = new ExcelPivotAggregateAccumulator();
-            for (int row = firstRow + 1; row <= lastRow; row++) {
-                token.ThrowIfCancellationRequested();
-                int rowKey = rowIndices == null ? 0 : rowIndices[source.GetPivotFieldValue(row, firstColumn + rowField, null)];
-                int columnKey = columnIndices == null ? 0 : columnIndices[source.GetPivotFieldValue(row, firstColumn + columnField, null)];
-                if (!groups.TryGetValue((rowKey, columnKey), out var group)) {
-                    if (groups.Count >= 100_000) throw new InvalidOperationException("The pivot exceeds 100,000 observed aggregate groups.");
-                    groups.Add((rowKey, columnKey), group = new ExcelPivotAggregateAccumulator());
-                }
-                var cell = source.TryGetExistingCell(row, firstColumn + measureField);
-                var value = source.GetCellValueSnapshot(cell);
-                bool error = cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
-                group.Add(value.Value, error);
-                rowTotals[rowKey].Add(value.Value, error);
-                columnTotals[columnKey].Add(value.Value, error);
-                grandTotal.Add(value.Value, error);
-            }
+        private static void FillMaterializedHierarchy(PivotMaterializationPlan plan, IReadOnlyList<PivotFieldValues> maps,
+            PivotHierarchyAxis rows, PivotHierarchyAxis columns, DataField[] measures, int dataRow, int dataColumn,
+            Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups, CancellationToken token) {
             var definition = plan.Definition;
-            string caption = definition.DataFields!.Elements<DataField>().Single().Name?.Value ?? "Values";
-            string totalCaption = definition.GrandTotalCaption?.Value ?? "Grand Total";
+            var fields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             var values = new ExcelCellData?[plan.Bottom - plan.Top + 1, plan.Right - plan.Left + 1];
-            if (columnField >= 0) {
-                if (rowField >= 0) values[0, 0] = PivotMaterializedText(caption);
-                values[0, dataColumn] = PivotMaterializedText(definition.ColumnHeaderCaption?.Value
-                    ?? plan.Cache.CacheFields!.Elements<CacheField>().ElementAt(columnField).Name?.Value ?? "");
-                if (rowField < 0) values[dataRow, 0] = PivotMaterializedText(caption);
-                for (int column = 0; column < columns; column++) values[1, dataColumn + column] = PivotMaterializedKey(maps[columnField].Items[column]);
-                if (columnTotal) values[1, dataColumn + columns] = PivotMaterializedText(totalCaption);
-            } else values[0, dataColumn] = PivotMaterializedText(caption);
-            if (rowField >= 0) {
-                values[dataRow - 1, 0] = PivotMaterializedText(plan.Cache.CacheFields!.Elements<CacheField>().ElementAt(rowField).Name?.Value ?? "");
-                for (int row = 0; row < rows; row++) values[dataRow + row, 0] = PivotMaterializedKey(maps[rowField].Items[row]);
-                if (rowTotal) values[dataRow + rows, 0] = PivotMaterializedText(totalCaption);
+            string caption = measures.Length == 1 ? measures[0].Name?.Value ?? "Values" : definition.DataCaption?.Value ?? "Values";
+            string totalCaption = definition.GrandTotalCaption?.Value ?? "Grand Total";
+            for (int level = 0; level < rows.Layout.Fields.Length; level++) {
+                int field = rows.Layout.Fields[level];
+                values[dataRow - 1, level] = PivotMaterializedText(field == -2 ? definition.DataCaption?.Value ?? "Values" : fields[field].Name?.Value ?? "");
             }
-            for (int row = 0; row < rows; row++) {
-                token.ThrowIfCancellationRequested();
-                for (int column = 0; column < columns; column++) {
-                    values[dataRow + row, dataColumn + column] = groups.TryGetValue((row, column), out var group)
-                        ? group.GetValue(function) : new ExcelCellData(ExcelCellDataKind.Number, 0d);
+            if (columns.Layout.RealFields.Length > 0) {
+                values[0, dataColumn] = PivotMaterializedText(definition.ColumnHeaderCaption?.Value ?? fields[columns.Layout.RealFields[0]].Name?.Value ?? "");
+                if (measures.Length == 1) {
+                    if (rows.Layout.RealFields.Length > 0) values[0, 0] = PivotMaterializedText(caption);
+                    else values[dataRow, 0] = PivotMaterializedText(caption);
                 }
-                if (columnTotal) values[dataRow + row, dataColumn + columns] = rowTotals[row].GetValue(function);
+            } else if (columns.Layout.Fields.Length == 0) values[dataRow - 1, dataColumn] = PivotMaterializedText(caption);
+            void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, Action<int, ExcelCellData> put) {
+                int[] keys = MaterializedHierarchyKeys(entry.Node);
+                int depth = 0;
+                bool grandLabel = false;
+                for (int level = 0; level < axis.Layout.Fields.Length; level++) {
+                    int field = axis.Layout.Fields[level];
+                    if (field == -2) { put(level, PivotMaterializedText(measures[entry.Measure].Name?.Value ?? "")); continue; }
+                    if (entry.Type == ItemValues.Grand) {
+                        if (!grandLabel) { put(level, PivotMaterializedText(totalCaption)); grandLabel = true; }
+                    } else if (depth < keys.Length) {
+                        var key = maps[field].Items[keys[depth++]];
+                        var label = PivotMaterializedKey(key);
+                        if (entry.Type == ItemValues.Default && depth == keys.Length) {
+                            string text = key.Kind == PivotFieldValueKind.Blank ? "(blank)"
+                                : key.Kind == PivotFieldValueKind.Boolean ? key.Boolean == true ? "TRUE" : "FALSE" : key.Text;
+                            label = PivotMaterializedText(text + " Total");
+                        }
+                        put(level, label);
+                    }
+                }
             }
-            if (rowTotal) {
-                for (int column = 0; column < columns; column++) values[dataRow + rows, dataColumn + column] = columnTotals[column].GetValue(function);
-                if (columnTotal) values[dataRow + rows, dataColumn + columns] = grandTotal.GetValue(function);
+            for (int row = 0; row < rows.Entries.Count; row++) {
+                token.ThrowIfCancellationRequested();
+                int position = dataRow + row;
+                Labels(rows, rows.Entries[row], (level, value) => values[position, level] = value);
+            }
+            for (int column = 0; column < columns.Entries.Count; column++) {
+                int position = dataColumn + column;
+                int offset = columns.Layout.RealFields.Length > 0 ? 1 : 0;
+                Labels(columns, columns.Entries[column], (level, value) => values[level + offset, position] = value);
+            }
+            var functions = measures.Select(measure => (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum()).ToArray();
+            for (int row = 0; row < rows.Entries.Count; row++) {
+                token.ThrowIfCancellationRequested();
+                var rowEntry = rows.Entries[row];
+                for (int column = 0; column < columns.Entries.Count; column++) {
+                    var columnEntry = columns.Entries[column];
+                    int measure = rows.Layout.HasValues ? rowEntry.Measure : columnEntry.Measure;
+                    values[dataRow + row, dataColumn + column] = groups.TryGetValue((rowEntry.Node.Id, columnEntry.Node.Id), out var aggregate)
+                        ? aggregate[measure].GetValue(functions[measure]) : new ExcelCellData(ExcelCellDataKind.Number, 0d);
+                }
             }
             plan.Values = values;
             definition.Location = new Location { Reference = $"{A1.CellReference(plan.Top, plan.Left)}:{A1.CellReference(plan.Bottom, plan.Right)}",
-                FirstHeaderRow = 1U, FirstDataRow = (uint)dataRow, FirstDataColumn = (uint)dataColumn };
+                FirstHeaderRow = columns.Layout.RealFields.Length > 0 || !columns.Layout.HasValues ? 1U : 0U,
+                FirstDataRow = (uint)dataRow, FirstDataColumn = (uint)dataColumn };
+            definition.Compact = false;
             definition.CompactData = false;
             definition.OutlineData = false;
-            definition.DataOnRows = false;
-            NormalizeMaterializedPivotFields(definition, maps, rowField, columnField);
-            definition.RowItems = new RowItems { Count = (uint)(rows + (rowTotal ? 1 : 0)) };
-            definition.ColumnItems = new ColumnItems { Count = (uint)(columns + (columnTotal ? 1 : 0)) };
-            for (int row = 0; row < rows; row++) definition.RowItems.AppendChild(CreateMaterializedPivotAxisItem(row, hasField: rowField >= 0));
-            if (rowTotal) definition.RowItems.AppendChild(CreateMaterializedPivotAxisItem(0, true));
-            for (int column = 0; column < columns; column++) definition.ColumnItems.AppendChild(CreateMaterializedPivotAxisItem(column, hasField: columnField >= 0));
-            if (columnTotal) definition.ColumnItems.AppendChild(CreateMaterializedPivotAxisItem(0, true));
+            definition.DataOnRows = rows.Layout.HasValues;
+            NormalizeMaterializedPivotFields(definition, maps, rows);
+            NormalizeMaterializedPivotFields(definition, maps, columns);
+            definition.RowItems = new RowItems { Count = (uint)rows.Entries.Count };
+            definition.ColumnItems = new ColumnItems { Count = (uint)columns.Entries.Count };
+            foreach (var entry in rows.Entries) definition.RowItems.AppendChild(CreateMaterializedHierarchyItem(rows, entry));
+            foreach (var entry in columns.Entries) definition.ColumnItems.AppendChild(CreateMaterializedHierarchyItem(columns, entry));
         }
 
-        private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps, int rowField, int columnField) {
+        private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps, PivotHierarchyAxis axis) {
             var fields = definition.PivotFields!.Elements<PivotField>().ToArray();
-            foreach (int field in new[] { rowField, columnField }.Where(f => f >= 0)) {
-                var items = new Items { Count = (uint)(maps[field].Items.Count + 1) };
+            for (int depth = 0; depth < axis.Layout.RealFields.Length; depth++) {
+                int field = axis.Layout.RealFields[depth];
+                bool subtotal = axis.Subtotals[depth];
+                var items = new Items { Count = (uint)(maps[field].Items.Count + (subtotal ? 1 : 0)) };
                 for (int index = 0; index < maps[field].Items.Count; index++) items.AppendChild(new Item { Index = (uint)index });
-                items.AppendChild(new Item { ItemType = ItemValues.Default });
+                if (subtotal) items.AppendChild(new Item { ItemType = ItemValues.Default });
                 fields[field].Items = items;
-                // The saved default item requires the matching subtotal setting.
-                // With one field per axis there are no intermediate subtotal rows.
-                fields[field].DefaultSubtotal = true;
+                fields[field].DefaultSubtotal = subtotal;
                 fields[field].SumSubtotal = false;
                 fields[field].CountASubtotal = false;
                 fields[field].AverageSubTotal = false;
@@ -99,15 +104,9 @@ namespace OfficeIMO.Excel {
                 fields[field].ApplyVariancePInSubtotal = false;
                 fields[field].Compact = false;
                 fields[field].Outline = false;
+                fields[field].SubtotalTop = false;
                 fields[field].SortType = FieldSortValues.Manual;
             }
-        }
-
-        private static RowItem CreateMaterializedPivotAxisItem(int index, bool grand = false, bool hasField = true) {
-            var item = new RowItem();
-            if (hasField) item.AppendChild(new MemberPropertyIndex { Val = index });
-            if (grand) item.ItemType = ItemValues.Grand;
-            return item;
         }
 
         private static Dictionary<PivotFieldValue, int> IndexPivotMaterializationKeys(PivotFieldValues values) {
