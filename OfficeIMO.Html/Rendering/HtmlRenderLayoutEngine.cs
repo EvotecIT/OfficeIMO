@@ -291,7 +291,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? RenderPaged(blocks)
             : RenderContinuous(blocks);
         CheckCancellation();
-        return rendered;
+        return CompletePrintLayout(rendered);
     }
 
     private IReadOnlyList<HtmlRenderFlowBlock> BuildRootBlocks(
@@ -1285,6 +1285,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         effectGroup.Source,
                         Math.Max(start, effectGroup.LayoutY) - start));
                 }
+                continue;
+            }
+
+            if (visual is HtmlRenderLayoutBox layoutBox) {
+                fragment.Add(new HtmlRenderLayoutBox(layoutBox.X,
+                    layoutBox.Y + intersectionTop - layoutBox.LayoutY - start,
+                    layoutBox.Width, Math.Max(0.01D, intersectionBottom - intersectionTop),
+                    fragment.Count, layoutBox.Source, intersectionTop - start));
                 continue;
             }
 

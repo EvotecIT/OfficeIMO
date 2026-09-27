@@ -24,7 +24,16 @@ internal static class HtmlCssPrintFitResolver {
             HtmlRenderBoxStyle bodyStyle = resolver.Resolve(body, contentWidth, rootStyle);
             width = Math.Max(width, FixedMinimumWidth(body, bodyStyle, styles));
         }
-        if (width <= contentWidth + 0.5D || width > options.MaxSurfaceWidth) return false;
+        return TryApplyWidth(width, pageRules, options);
+    }
+
+    /// <summary>Expands a uniform print layout while retaining its original CSS media context.</summary>
+    internal static bool TryApplyWidth(double width, HtmlCssPageRuleSet pageRules, HtmlRenderOptions options) {
+        double contentWidth = options.PageWidth - options.Margins.Left - options.Margins.Right;
+        if (!options.AutoFitWidePrintRoot || options.Mode != HtmlRenderMode.Paged
+            || !options.HonorCssPageRules || pageRules.HasPageSpecificRules || contentWidth <= 0D
+            || double.IsNaN(width) || double.IsInfinity(width)
+            || width <= contentWidth + 0.5D || width > options.MaxSurfaceWidth) return false;
 
         double expansion = width / contentWidth;
         if (options.PageWidth * expansion > options.MaxSurfaceWidth
@@ -35,6 +44,8 @@ internal static class HtmlCssPrintFitResolver {
         options.CssMediaWidthOverride = options.CssMediaWidth;
         options.CssMediaHeightOverride = options.CssMediaHeight;
         options.PrintFitContentWidth = width;
+        // Geometry is resolved from the original sheet, not the preceding fitted pass.
+        options.PrintFitScale = null;
         pageRules.ApplyGenericGeometry(options);
         return true;
     }

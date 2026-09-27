@@ -67,8 +67,10 @@ public sealed class HtmlToPdfOptions : HtmlRenderOptions {
     public bool InteractiveFormControls { get; set; } = true;
 
     /// <summary>
-    /// Fits an authored fixed minimum width on the HTML root or body into a uniform CSS
-    /// print page when it would otherwise overflow. Named and page-specific rules require
+    /// Fits visible layout overflow, including fixed-width descendants and tables, into a
+    /// uniform CSS print page. Clipped descendants and paint-only shadows do not widen the
+    /// layout. Fitting retains the physical CSS media context and uses bounded reflow.
+    /// Named and page-specific rules require
     /// an explicit fitting width. Set to false to retain unscaled print layout. An explicit
     /// <see cref="PrintLayoutWidthCssPixels"/> takes precedence.
     /// </summary>

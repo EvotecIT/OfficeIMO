@@ -945,7 +945,9 @@ public sealed class HtmlPdfTests {
     public void HtmlToPdf_FullyOffPageNestedPaintDoesNotCreateEmptyCanvasContainers() {
         const string html = "<main><p>Retained paragraph</p><p style='position:absolute;left:10000px;top:20px'>Outside paragraph</p></main>";
 
-        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes();
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            AutoFitWidePrintContent = false
+        });
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
 
         Assert.Contains("Retained paragraph", text, StringComparison.Ordinal);

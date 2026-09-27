@@ -16,7 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var outside = new List<HtmlRenderVisual>();
         var content = new List<HtmlRenderVisual>();
         foreach (HtmlRenderVisual visual in block.Visuals) {
-            if (visual is HtmlRenderShape
+            if ((visual is HtmlRenderShape || visual is HtmlRenderLayoutBox)
                 && string.Equals(visual.Source, source, StringComparison.Ordinal)
                 && Math.Abs(visual.X - style.MarginLeft) <= 0.0001D
                 && Math.Abs(visual.Y - style.MarginTop) <= 0.0001D

@@ -75,6 +75,9 @@ public sealed class HtmlRenderPage {
 
     internal HtmlCssRunningStringPageContext? RunningStrings => _runningStrings;
 
+    internal HtmlRenderPage WithScene(IEnumerable<HtmlRenderVisual> scene) =>
+        new(PageNumber, Width, Height, scene, PageName, _fonts, _runningStrings, Margins, PrintProduction);
+
     /// <summary>Creates a dependency-free drawing snapshot for PNG or SVG rendering.</summary>
     public OfficeDrawing CreateDrawing() => CreateDrawing(CancellationToken.None);
 

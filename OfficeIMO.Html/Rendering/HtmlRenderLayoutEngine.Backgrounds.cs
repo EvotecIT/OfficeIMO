@@ -14,6 +14,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double height,
         IElement source,
         bool paintBorders = true) {
+        // Record the finalized border box even when it has no background or border paint.
+        // Descendant geometry then follows the normal overflow/effect/fragmentation path.
+        if (CapturePrintLayoutBoxes && width > 0.0001D && height > 0.0001D) {
+            visuals.Add(new HtmlRenderLayoutBox(x, y, width, height, visuals.Count,
+                HtmlRenderStyleResolver.DescribeSource(source)));
+        }
         if (!style.PaintVisible || width <= 0.0001D || height <= 0.0001D) return;
         string sourceDescription = HtmlRenderStyleResolver.DescribeSource(source);
         HtmlResolvedBorderRadii radii = ResolveBoxRadii(style, width, height, source, sourceDescription);
