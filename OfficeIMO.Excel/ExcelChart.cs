@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
             (int anchorWidthPixels, int anchorHeightPixels) = GetAnchorSizePixels(geometry);
             OfficeIMO.Drawing.OfficeChartRadialLayout radialLayout;
             try { radialLayout = RadialLayout; }
-            catch (ArgumentOutOfRangeException) { snapshot = null!; return false; }
+            catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is FormatException || exception is OverflowException) { snapshot = null!; return false; }
             snapshot = new ExcelChartSnapshot(
                 Name,
                 Title,

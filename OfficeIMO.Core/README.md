@@ -600,6 +600,24 @@ The renderer clips hatches to slice, bar, and marker geometry and styles categor
 swatches with the same appearance. Per-point area styling is not applied by static rendering;
 `RenderWithQuality` reports `UnsupportedAppearance` and retains the series fill.
 
+### Pie and doughnut geometry
+
+Pass an `OfficeChartRadialLayout` as the final argument to the style/layout snapshot
+constructor to set the first slice boundary and doughnut hole. Rotation is clockwise
+from the top, from 0 through 360 degrees; hole size is an inner-to-outer diameter
+percentage from 10 through 90, with a default of 50.
+
+```csharp
+var radial = new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70);
+var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartKind.Doughnut,
+    data, 400, 300, null, new OfficeChartLayout(showLegend: false), radial);
+OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+```
+
+Multiple doughnut series form contiguous rings, starting with the first series at the
+inside. Value-label anchors sit at each ring's midpoint. Collision handling, outside
+labels and leader lines require additional layout support.
+
 ### Load first-party font programs for renderers
 
 ```csharp

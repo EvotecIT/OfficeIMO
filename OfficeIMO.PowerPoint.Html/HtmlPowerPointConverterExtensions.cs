@@ -264,6 +264,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                 return;
             }
             bool showLegend = true;
+            bool isRadial = chartKind.Equals("Pie", StringComparison.OrdinalIgnoreCase) || chartKind.Equals("Doughnut", StringComparison.OrdinalIgnoreCase);
+            OfficeChartRadialLayout radialLayout = OfficeChartRadialLayout.Default;
+            if (isRadial && !OfficeHtmlChartRadialLayout.TryRead(item, out radialLayout)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item contained invalid radial geometry and was not imported.",
+                    lossKind: OfficeConversionLossKind.Omission);
+                return;
+            }
             OfficeChartLegendPosition legendPosition =
                 OfficeChartLegendPosition.Bottom;
             bool overlayLegend = false;
@@ -310,6 +318,7 @@ public static partial class HtmlPowerPointConverterExtensions {
 
             reservation.Commit();
             chart.ApplyPointStyles(data);
+            if (isRadial) chart.SetRadialLayout(radialLayout);
             if (isBubble) {
                 chart.SetBubbleSizing(bubbleScale, bubbleSizeMode);
                 if (showLegend) {

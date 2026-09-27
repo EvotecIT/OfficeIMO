@@ -473,6 +473,7 @@ var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, n
 });
 WordChart chart = document.AddChart(OfficeChartKind.Doughnut, data, "Status", width: 360, height: 240);
 chart.Name = "Status distribution";
+chart.SetRadialLayout(new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70));
 chart.AltText = "Eight passed, two could not be evaluated, and one failed.";
 document.Save("status.docx");
 ```
@@ -481,6 +482,11 @@ Omitting point styles preserves existing native overrides during a data update; 
 explicit array containing null entries to clear those points' fill and outline overrides.
 Native authoring is separate from static export support: Word's current snapshot and PDF
 routes do not project bubble or combination charts. Use the native DOCX for those families.
+
+`RadialLayout` reads native pie rotation and doughnut hole size. `SetRadialLayout(...)`
+updates an existing two-dimensional pie or doughnut chart. These settings survive
+save/reopen, data updates, snapshots, managed images, PDF, and chart projections to Markdown.
+Rotation is clockwise from the top (0–360 degrees); hole size is 10–90 percent.
 
 ## Native doughnut charts
 
