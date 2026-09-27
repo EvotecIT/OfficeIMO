@@ -889,6 +889,7 @@ namespace OfficeIMO.PowerPoint {
                 series.Add(new PowerPointChartSeries(name, values, null, chartKind,
                     ReadSeriesColor(seriesElement, chartKind, colorScheme), ReadSeriesStrokeWidth(seriesElement),
                     axisGroup) {
+                    PointColors = ReadPointColors(seriesElement, values.Count, colorScheme),
                     SourceIndex = seriesElement.GetFirstChild<C.Index>()?.Val?.Value
                 });
             }
@@ -928,6 +929,7 @@ namespace OfficeIMO.PowerPoint {
                     PowerPointChartSnapshotKind.Scatter,
                     ReadSeriesColor(seriesElement, PowerPointChartSnapshotKind.Scatter, colorScheme),
                     ReadSeriesStrokeWidth(seriesElement)) {
+                    PointColors = ReadPointColors(seriesElement, values.Count, colorScheme),
                     SourceIndex = seriesElement.GetFirstChild<C.Index>()?.Val?.Value
                 });
             }

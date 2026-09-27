@@ -140,38 +140,14 @@ namespace OfficeIMO.PowerPoint {
                 snapshot = null!;
                 return false;
             }
-            OfficeChartKind kind = MapKind(powerPointSnapshot.ChartKind);
-            var series = new List<OfficeChartSeries>(powerPointSnapshot.Data.Series.Count);
-            for (int seriesIndex = 0; seriesIndex < powerPointSnapshot.Data.Series.Count; seriesIndex++) {
-                PowerPointChartSeries item = powerPointSnapshot.Data.Series[seriesIndex];
-                if (item.BubbleSizes != null) {
-                    if (item.XValues == null || item.BubbleSizes.Any(size =>
-                            double.IsNaN(size) || double.IsInfinity(size) || size < 0D)) {
-                        snapshot = null!;
-                        return false;
-                    }
-                    series.Add(OfficeChartSeries.CreateBubble(item.Name, item.XValues!,
-                        item.Values, item.BubbleSizes, item.Color, item.PointColors,
-                        showInLegend: item.ShowInLegend,
-                        markerOutlineColor: item.StrokeColor ?? item.Color,
-                        markerOutlineWidth: item.StrokeWidth,
-                        showMarkerOutline: item.ShowStroke));
-                } else {
-                    series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                        pointColors: null, showMarkers: true,
-                        showInLegend: item.ShowInLegend, connectLine: true,
-                        strokeWidth: item.StrokeWidth,
-                        renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
-                        axisGroup: item.AxisGroup));
-                }
+            if (powerPointSnapshot.Data.Series.Any(item => item.BubbleSizes != null &&
+                (item.XValues == null || item.BubbleSizes.Any(size =>
+                    double.IsNaN(size) || double.IsInfinity(size) || size < 0D)))) {
+                snapshot = null!;
+                return false;
             }
-            var data = new OfficeChartData(powerPointSnapshot.Data.Categories, series);
-            snapshot = new OfficeChartSnapshot(powerPointSnapshot.Name, powerPointSnapshot.Title, kind, data,
-                powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints,
-                style: powerPointSnapshot.Style,
-                layout: powerPointSnapshot.Layout,
-                bubbleScalePercent: powerPointSnapshot.BubbleScalePercent,
-                bubbleSizeMode: powerPointSnapshot.BubbleSizeMode);
+            snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
+                powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
             return true;
         }
 
@@ -425,27 +401,7 @@ namespace OfficeIMO.PowerPoint {
         private static string CleanSummaryValue(string? value) =>
             (value ?? string.Empty).Replace('\t', ' ').Replace('\r', ' ').Replace('\n', ' ');
 
-        private static OfficeChartKind MapKind(PowerPointChartSnapshotKind kind) {
-            switch (kind) {
-                case PowerPointChartSnapshotKind.ClusteredColumn: return OfficeChartKind.ColumnClustered;
-                case PowerPointChartSnapshotKind.StackedColumn: return OfficeChartKind.ColumnStacked;
-                case PowerPointChartSnapshotKind.StackedColumn100: return OfficeChartKind.ColumnStacked100;
-                case PowerPointChartSnapshotKind.ClusteredBar: return OfficeChartKind.BarClustered;
-                case PowerPointChartSnapshotKind.StackedBar: return OfficeChartKind.BarStacked;
-                case PowerPointChartSnapshotKind.StackedBar100: return OfficeChartKind.BarStacked100;
-                case PowerPointChartSnapshotKind.Line: return OfficeChartKind.Line;
-                case PowerPointChartSnapshotKind.StackedLine: return OfficeChartKind.LineStacked;
-                case PowerPointChartSnapshotKind.StackedLine100: return OfficeChartKind.LineStacked100;
-                case PowerPointChartSnapshotKind.Area: return OfficeChartKind.Area;
-                case PowerPointChartSnapshotKind.StackedArea: return OfficeChartKind.AreaStacked;
-                case PowerPointChartSnapshotKind.StackedArea100: return OfficeChartKind.AreaStacked100;
-                case PowerPointChartSnapshotKind.Scatter: return OfficeChartKind.Scatter;
-                case PowerPointChartSnapshotKind.Bubble: return OfficeChartKind.Bubble;
-                case PowerPointChartSnapshotKind.Radar: return OfficeChartKind.Radar;
-                case PowerPointChartSnapshotKind.Pie: return OfficeChartKind.Pie;
-                case PowerPointChartSnapshotKind.Doughnut: return OfficeChartKind.Doughnut;
-                default: return OfficeChartKind.ColumnClustered;
-            }
-        }
+        private static OfficeChartKind MapKind(PowerPointChartSnapshotKind kind) =>
+            PowerPointChartSnapshotMapper.MapKind(kind);
     }
 }

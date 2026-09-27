@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using OfficeIMO.Drawing;
 using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;
@@ -80,73 +79,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Maps the native PowerPoint snapshot into the shared chart contract used by PDF rendering.
     /// </summary>
-    internal static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointToPdfOptions options) {
-        var series = snapshot.Data.Series
-            .Select(item => item.BubbleSizes != null
-                ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
-                    item.BubbleSizes, item.Color, item.PointColors,
-                    showInLegend: item.ShowInLegend,
-                    markerOutlineColor: item.StrokeColor ?? item.Color,
-                    markerOutlineWidth: item.StrokeWidth,
-                    showMarkerOutline: item.ShowStroke)
-                : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                    pointColors: null, showMarkers: true,
-                    showInLegend: item.ShowInLegend, strokeWidth: item.StrokeWidth,
-                    renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
-                    axisGroup: item.AxisGroup))
-            .ToList();
-        var data = new OfficeChartData(snapshot.Data.Categories, series);
-        return new OfficeChartSnapshot(
-            snapshot.Name,
-            snapshot.Title,
-            MapChartKind(snapshot.ChartKind),
-            data,
-            width,
-            height,
-            options.ChartStyle,
-            options.ChartLayout ?? snapshot.Layout,
-            bubbleScalePercent: snapshot.BubbleScalePercent,
-            bubbleSizeMode: snapshot.BubbleSizeMode);
-    }
-
-    private static OfficeChartKind MapChartKind(PptCore.PowerPointChartSnapshotKind kind) {
-        switch (kind) {
-            case PptCore.PowerPointChartSnapshotKind.ClusteredColumn:
-                return OfficeChartKind.ColumnClustered;
-            case PptCore.PowerPointChartSnapshotKind.StackedColumn:
-                return OfficeChartKind.ColumnStacked;
-            case PptCore.PowerPointChartSnapshotKind.StackedColumn100:
-                return OfficeChartKind.ColumnStacked100;
-            case PptCore.PowerPointChartSnapshotKind.ClusteredBar:
-                return OfficeChartKind.BarClustered;
-            case PptCore.PowerPointChartSnapshotKind.StackedBar:
-                return OfficeChartKind.BarStacked;
-            case PptCore.PowerPointChartSnapshotKind.StackedBar100:
-                return OfficeChartKind.BarStacked100;
-            case PptCore.PowerPointChartSnapshotKind.Line:
-                return OfficeChartKind.Line;
-            case PptCore.PowerPointChartSnapshotKind.StackedLine:
-                return OfficeChartKind.LineStacked;
-            case PptCore.PowerPointChartSnapshotKind.StackedLine100:
-                return OfficeChartKind.LineStacked100;
-            case PptCore.PowerPointChartSnapshotKind.Area:
-                return OfficeChartKind.Area;
-            case PptCore.PowerPointChartSnapshotKind.StackedArea:
-                return OfficeChartKind.AreaStacked;
-            case PptCore.PowerPointChartSnapshotKind.StackedArea100:
-                return OfficeChartKind.AreaStacked100;
-            case PptCore.PowerPointChartSnapshotKind.Radar:
-                return OfficeChartKind.Radar;
-            case PptCore.PowerPointChartSnapshotKind.Scatter:
-                return OfficeChartKind.Scatter;
-            case PptCore.PowerPointChartSnapshotKind.Bubble:
-                return OfficeChartKind.Bubble;
-            case PptCore.PowerPointChartSnapshotKind.Pie:
-                return OfficeChartKind.Pie;
-            case PptCore.PowerPointChartSnapshotKind.Doughnut:
-                return OfficeChartKind.Doughnut;
-            default:
-                throw new NotSupportedException("PowerPoint chart kind '" + kind + "' is not supported by the shared PDF chart renderer.");
-        }
-    }
+    internal static OfficeChartSnapshot CreateOfficeChartSnapshot(PptCore.PowerPointChartSnapshot snapshot, double width, double height, PowerPointToPdfOptions options) =>
+        PptCore.PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, width, height,
+            options.ChartStyle, options.ChartLayout);
 }

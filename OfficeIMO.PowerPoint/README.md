@@ -319,6 +319,12 @@ Use `OfficeChartData` when the same categories and series should drive PowerPoin
 or image workflows. A series can choose its own chart kind and primary or secondary value axis without a
 PowerPoint-only chart model.
 
+`OfficeChartSeries.PointColors` assigns solid colours by point index. Native chart snapshots preserve
+these overrides, including sparse and theme-based fills, so saved and reopened pie, doughnut, and column
+charts retain their colours in managed image and PDF exports. A null entry inherits the chart's normal
+colour selection. Point outlines, no-fill slices, and pattern fills are not represented by this property.
+PDF export uses the native chart style unless `PowerPointToPdfOptions.ChartStyle` supplies an override.
+
 ```csharp
 using OfficeIMO.Drawing;
 
