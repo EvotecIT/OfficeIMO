@@ -1,0 +1,433 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "76baff0c720e0bb47f0260c3d59c26a1b9c1800e",
+  "sdk": "10.0.112",
+  "fixtures": [
+    {
+      "id": "table-flow-1200",
+      "htmlSha256": "5fad8851bcc3806eda5eb63dc8d14604c98c2727bb87a0b19759000bb336779d",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "04cc01cffbef184806621b37d7824f9cacd3f8502dbd06d8916221ba152ea173",
+        "markers": {
+          "FLOWLEFT": {
+            "xMin": 0.0,
+            "yMin": 8.757813,
+            "xMax": 42.66797,
+            "yMax": 17.695313
+          },
+          "FLOWRIGHT": {
+            "xMin": 300.000011,
+            "yMin": 8.757813,
+            "xMax": 347.996107,
+            "yMax": 17.695313
+          }
+        },
+        "pointsPerCssPixel": 0.5000000183333333
+      },
+      "officeimo": {
+        "pdfSha256": "9f739caa821db96ee68883b4cd22f687e7e1530f27566e52fbf2005110652c06",
+        "markers": {
+          "FLOWLEFT": {
+            "xMin": 2.25,
+            "yMin": 20.034,
+            "xMax": 66.258,
+            "yMax": 31.134
+          },
+          "FLOWRIGHT": {
+            "xMin": 452.25,
+            "yMin": 20.034,
+            "xMax": 524.25,
+            "yMax": 31.134
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "normal-720",
+      "htmlSha256": "779d35642b73869f6a0fd3dd3027344c494ceeeea9ab2cb10988ca8f4b0388d3",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "1c143c52cc56c9dfd7130af2c3883a96ccb993d230a48b1bd87b6b1d48781093",
+        "markers": {
+          "MARK100": {
+            "xMin": 74.999997,
+            "yMin": 28.136718,
+            "xMax": 129.691401,
+            "yMax": 41.542967
+          },
+          "MARK700": {
+            "xMin": 524.999978,
+            "yMin": 50.636717,
+            "xMax": 579.691382,
+            "yMax": 64.042966
+          }
+        },
+        "pointsPerCssPixel": 0.7499999683333334
+      },
+      "officeimo": {
+        "pdfSha256": "2485a281f236ba529091c9c4fae37c4fdc5e63879bb890d0e72b7d54377da7e8",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "root-min-1200",
+      "htmlSha256": "93341416f7f7892e020122a4bc636f7f1cdf39124524a58078cc740c04cd8575",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "b0ea8d53ca713b3e7a460dc66af0d35bba66e5939349131563fb12df640cc2a6",
+        "markers": {
+          "MARK100": {
+            "xMin": 50.000002,
+            "yMin": 18.757813,
+            "xMax": 86.460941,
+            "yMax": 27.695314
+          },
+          "MARK700": {
+            "xMin": 350.000013,
+            "yMin": 33.757814,
+            "xMax": 386.460952,
+            "yMax": 42.695314
+          }
+        },
+        "pointsPerCssPixel": 0.5000000183333334
+      },
+      "officeimo": {
+        "pdfSha256": "d6df37d7f11d8e9ad5e2115504759231af56ce59af5d4df94dd32fb5178288c0",
+        "markers": {
+          "MARK100": {
+            "xMin": 49.606275,
+            "yMin": 21.684247,
+            "xMax": 85.775202,
+            "yMax": 29.025975
+          },
+          "MARK700": {
+            "xMin": 347.243925,
+            "yMin": 36.566129,
+            "xMax": 383.412852,
+            "yMax": 43.907858
+          }
+        },
+        "pointsPerCssPixel": 0.49606275
+      }
+    },
+    {
+      "id": "child-width-1000",
+      "htmlSha256": "79c51030d3219783cab048fe901873514962d3687c5a65cfeb5b5e1e82c119b3",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "ce944623253aa48bc5766169e335787c1f4ea2be18b563830039a1e3b7e07594",
+        "markers": {
+          "MARK100": {
+            "xMin": 59.549998,
+            "yMin": 22.340554,
+            "xMax": 102.974972,
+            "yMax": 32.985116
+          },
+          "MARK700": {
+            "xMin": 416.849983,
+            "yMin": 40.205553,
+            "xMax": 460.274957,
+            "yMax": 50.850115
+          }
+        },
+        "pointsPerCssPixel": 0.595499975
+      },
+      "officeimo": {
+        "pdfSha256": "d01228ec813d83d6b2b390188125a02156d61a9e445b90009f5d6f4d252153bc",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "child-width-1200",
+      "htmlSha256": "a7a042ce348887ed4809682c76f516f913c993365e2b71d916bdb929ac9a6a52",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "b0ea8d53ca713b3e7a460dc66af0d35bba66e5939349131563fb12df640cc2a6",
+        "markers": {
+          "MARK100": {
+            "xMin": 50.000002,
+            "yMin": 18.757813,
+            "xMax": 86.460941,
+            "yMax": 27.695314
+          },
+          "MARK700": {
+            "xMin": 350.000013,
+            "yMin": 33.757814,
+            "xMax": 386.460952,
+            "yMax": 42.695314
+          }
+        },
+        "pointsPerCssPixel": 0.5000000183333334
+      },
+      "officeimo": {
+        "pdfSha256": "21278572e4d7b43b1f8d6701fcfa568aaa30a90f7dfa7bbd0c0ce76fed0a849a",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "child-min-1200",
+      "htmlSha256": "222b51ccf0589140a7903de74956d0450bca080da8a47efabb6e24748ba4045f",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "b0ea8d53ca713b3e7a460dc66af0d35bba66e5939349131563fb12df640cc2a6",
+        "markers": {
+          "MARK100": {
+            "xMin": 50.000002,
+            "yMin": 18.757813,
+            "xMax": 86.460941,
+            "yMax": 27.695314
+          },
+          "MARK700": {
+            "xMin": 350.000013,
+            "yMin": 33.757814,
+            "xMax": 386.460952,
+            "yMax": 42.695314
+          }
+        },
+        "pointsPerCssPixel": 0.5000000183333334
+      },
+      "officeimo": {
+        "pdfSha256": "21278572e4d7b43b1f8d6701fcfa568aaa30a90f7dfa7bbd0c0ce76fed0a849a",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "table-width-1200",
+      "htmlSha256": "6aeea2f6ce8488db66e628def6aec3297d9da9bfa7afddd900192bcf07c0d373",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "36eaf8e8be84e15943e1699ea79fb2db104fd7532ab616c9b509f46059521f57",
+        "markers": {
+          "MARK100": {
+            "xMin": 50.000002,
+            "yMin": 18.757813,
+            "xMax": 86.460941,
+            "yMax": 27.695314
+          },
+          "MARK700": {
+            "xMin": 350.000013,
+            "yMin": 33.757814,
+            "xMax": 386.460952,
+            "yMax": 42.695314
+          }
+        },
+        "pointsPerCssPixel": 0.5000000183333334
+      },
+      "officeimo": {
+        "pdfSha256": "7d78d1a354e35d20c26b2e9769be2980d225beab4a423e1d4f1f715eb78b4422",
+        "markers": {},
+        "pointsPerCssPixel": null
+      }
+    },
+    {
+      "id": "scroll-clip-1200",
+      "htmlSha256": "cdd82ecb64f990793d489e12ff7d3956f2442fa193b6828104512e184d69287d",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "4ca2aa12c434618b128acd40211198e166761b06665195671df2459041ba9fb0",
+        "markers": {
+          "MARK100": {
+            "xMin": 74.999997,
+            "yMin": 28.136718,
+            "xMax": 129.691401,
+            "yMax": 41.542967
+          }
+        },
+        "pointsPerCssPixel": null
+      },
+      "officeimo": {
+        "pdfSha256": "4a1acfe563507eab58a0431b11574c3dd91917876ccfb24dc7897fec095fe8ab",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "hidden-clip-1200",
+      "htmlSha256": "8564de0fd2344d7117af08b32da6cad291e0ffb5c630f31d6262561e9764eee4",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "3b7503eaca44a5d796b48bbf04596db1d573a5aad624853d64fe37cad2130fea",
+        "markers": {
+          "MARK100": {
+            "xMin": 74.999997,
+            "yMin": 28.136718,
+            "xMax": 129.691401,
+            "yMax": 41.542967
+          }
+        },
+        "pointsPerCssPixel": null
+      },
+      "officeimo": {
+        "pdfSha256": "4a1acfe563507eab58a0431b11574c3dd91917876ccfb24dc7897fec095fe8ab",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    },
+    {
+      "id": "oversized-child-2400",
+      "htmlSha256": "c0bb7d9380fbfcfb96548d219d922a4aa18e1c6a0b52762c7ed9fac8ecf01fb9",
+      "managedPages": 1,
+      "chromium": {
+        "pdfSha256": "d060ca8f6b6aee082c1084bef35abd77bd89d2f389ffdeb285a3017c97d213c6",
+        "markers": {
+          "MARK100": {
+            "xMin": 50.000002,
+            "yMin": 18.757813,
+            "xMax": 86.460941,
+            "yMax": 27.695314
+          },
+          "MARK700": {
+            "xMin": 350.000013,
+            "yMin": 33.757814,
+            "xMax": 386.460952,
+            "yMax": 42.695314
+          }
+        },
+        "pointsPerCssPixel": 0.5000000183333334
+      },
+      "officeimo": {
+        "pdfSha256": "8a6e7bedc442cc632f164f9693b1d917e21c6f3714fe4925f395eb357c0f23b5",
+        "markers": {
+          "MARK100": {
+            "xMin": 75.0,
+            "yMin": 32.784,
+            "xMax": 129.684,
+            "yMax": 43.884
+          },
+          "MARK700": {
+            "xMin": 525.0,
+            "yMin": 55.284,
+            "xMax": 579.684,
+            "yMax": 66.384
+          }
+        },
+        "pointsPerCssPixel": 0.75
+      }
+    }
+  ],
+  "configuration": {
+    "browserViewportCssPixels": 816,
+    "media": "print",
+    "page": "A4",
+    "margins": 0,
+    "officeimoAutoFitWidePrintContent": true,
+    "interactiveFormControls": false,
+    "browserOffline": true
+  },
+  "visualInspection": {
+    "cases": [
+      "normal-720",
+      "child-width-1200",
+      "hidden-clip-1200",
+      "scroll-clip-1200",
+      "table-flow-1200"
+    ],
+    "clipPaint": "MARK700 is visually absent in both engines for hidden and scroll clips; managed PDF extraction still contains it",
+    "fitting": "Visible descendant and normal-flow table remain at 0.75 points per CSS pixel in OfficeIMO; native reference shrinks",
+    "tablePositionedContent": "Original table-width-1200 omits positioned marker text in OfficeIMO; separate unresolved path, not table fitting evidence"
+  },
+  "nasaEmulatedPrintOverflow": {
+    "viewport": 795,
+    "rootScrollWidth": 795,
+    "elements": []
+  },
+  "referenceAlgorithm": {
+    "revision": "9ac9e1044de400849af3353f9a9c87a8df8df455",
+    "source": "https://github.com/chromium/chromium/blob/9ac9e1044de400849af3353f9a9c87a8df8df455/third_party/blink/renderer/core/layout/pagination_utils.cc",
+    "function": "CalculateOverflowShrinkForPrinting",
+    "measurement": "Maximum inline-axis ScrollableOverflow relative to page area, measured on paginated fragments; bounded by maximum shrink factor",
+    "boundary": "This is reference behavior, not an adopted OfficeIMO cap or proof of NASA native fragment overflow"
+  },
+  "artifactDirectory": "Ignore/HtmlUnknownPageQualification/h10-printfit-independent-76baff0c7",
+  "acceptancePassed": false,
+  "remaining": [
+    "Canonical layout overflow measurement for visible descendants and tables, including clips and transforms",
+    "Determine native paginated NASA overflow cause",
+    "Preserve captured media context, page-specific geometry and resource budgets during fit",
+    "Focused implementation and rendered regression proof, then NASA/H4 and platform-budget qualification"
+  ]
+}
