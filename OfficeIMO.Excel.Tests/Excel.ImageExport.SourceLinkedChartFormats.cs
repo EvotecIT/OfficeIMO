@@ -9,6 +9,23 @@ namespace OfficeIMO.Tests;
 
 public class ExcelSourceLinkedChartFormatTests {
     [Theory]
+    [InlineData(23U)]
+    [InlineData(165U)]
+    public void ChartAxis_PreservesDeclaredFallbackForUnknownSourceFormats(uint id) {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        var sheet = document.AddWorksheet("Unknown");
+        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
+        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
+        var chart = sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+        chart.SetValueAxisNumberFormat("0%", sourceLinked: true);
+        document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>().Last().NumberFormatId = id;
+        var snapshot = sheet.Range("A1:J12").CreateVisualSnapshot();
+        Assert.Equal("0%", Assert.Single(snapshot.Charts).Snapshot.Layout!.VerticalAxisNumberFormat);
+        var result = sheet.Range("A1:J12").ExportImage(OfficeImageExportFormat.Svg);
+        Assert.Contains(result.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisNumberFormatApproximation);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ChartAxis_ReportsOverflowingSourceNumberFormatIds(bool custom) {

@@ -138,7 +138,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static bool HasUnsupportedOutlineFill(Outline? outline) =>
             outline != null &&
-            (outline.CapType?.Value is LineCapValues cap &&
+            (outline.Width?.Value == 0 && outline.GetFirstChild<NoFill>() == null ||
+             outline.CapType?.Value is LineCapValues cap &&
              cap != LineCapValues.Flat ||
              outline.Alignment?.Value is PenAlignmentValues alignment &&
              alignment != PenAlignmentValues.Center ||

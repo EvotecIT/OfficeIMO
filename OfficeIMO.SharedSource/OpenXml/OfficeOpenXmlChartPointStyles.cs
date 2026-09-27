@@ -36,6 +36,7 @@ internal static class OfficeOpenXmlChartPointStyles {
                 continue;
             }
             if (child is A.Outline outline) {
+                if (outline.Width?.Value == 0 && outline.GetFirstChild<A.NoFill>() == null) return false;
                 if (outline.Width?.Value < 0 || outline.Width?.Value > 20116800 ||
                     outline.CapType != null || outline.Alignment != null || outline.CompoundLineType != null) return false;
                 foreach (OpenXmlElement lineChild in outline.ChildElements) {
