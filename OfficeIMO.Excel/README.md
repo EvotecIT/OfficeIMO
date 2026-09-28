@@ -734,10 +734,12 @@ metadata. Zero-sized `SEQUENCE` dimensions produce `#CALC!`; negative
 dimensions produce `#VALUE!`. The checked-in Excel-produced array corpus
 verifies cached results through save and reopen.
 
-For a workbook loaded with existing spill caches, shrinking the spill can leave
-old child cells whose ownership cannot be distinguished from values edited
-outside the sheet API. In that case calculation reports `#SPILL!` and keeps
-those cells. Clear and re-author the array only when you own the old range.
+Loaded dynamic arrays can resize when their saved child caches still match the
+worksheet's original content. If old cells were edited outside the sheet API,
+the saved source changed before calculation, the raw Open XML package was
+accessed before the sheet, or the source exceeds the bounded ownership scan,
+calculation reports `#SPILL!` and keeps ambiguous cells. Clear and re-author the
+array only when you own the old range.
 
 Cached reads resolve native rich-value `#CALC!` and `#SPILL!` errors across the
 object model, range reads, and forward-only data readers. Unknown or unresolved

@@ -223,6 +223,216 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DynamicArrays_LoadedUnchangedChildrenCanShrink() {
+            string path = Path.Combine(_directoryWithFiles, "LoadedDynamicShrink.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                sheet.CellValue(1, 1, 1);
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCellText(1, 7, out var anchor));
+                Assert.Equal("1", anchor);
+                Assert.False(sheet.TryGetCellText(2, 8, out _));
+                Assert.Equal("G1:H1", Assert.Single(sheet.InspectFormulas().Formulas).Array!.Range);
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+                Assert.Empty(document.ValidateOpenXml());
+            }
+            AssertWorkbookOpensViaExcelComWhenAvailable(path,
+                "An unchanged loaded spill must shrink without retaining old child values.",
+                new Dictionary<string, string> { ["G1"] = "1", ["H1"] = "2" });
+        }
+
+        [Fact]
+        public void DynamicArrays_UnrelatedWorkbookEditBeforeSheetAccessDoesNotBlockShrink() {
+            string path = Path.Combine(_directoryWithFiles, "WorkbookPropertyBeforeDynamicShrink.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                document.BuiltinDocumentProperties.Title = "Updated workbook title";
+                var sheet = document["Data"];
+                sheet.CellValue(1, 1, 1);
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCellText(1, 8, out var value));
+                Assert.Equal("2", value);
+                Assert.False(sheet.TryGetCellText(2, 8, out _));
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void DynamicArrays_ManyLoadedOwnersShrinkIndependently() {
+            string path = Path.Combine(_directoryWithFiles, "ManyLoadedDynamicShrinks.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                for (int index = 0; index < 100; index++) {
+                    int row = index * 4 + 1;
+                    sheet.CellValue(row, 1, 2);
+                    sheet.SetDynamicArrayFormula($"G{row}", $"SEQUENCE(A{row},2)");
+                }
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                for (int index = 0; index < 100; index++)
+                    sheet.CellValue(index * 4 + 1, 1, 1);
+                document.RecalculateSupportedFormulas();
+                for (int index = 0; index < 100; index++) {
+                    int row = index * 4 + 1;
+                    Assert.True(sheet.TryGetCellText(row, 8, out var value));
+                    Assert.Equal("2", value);
+                    Assert.False(sheet.TryGetCellText(row + 1, 8, out _));
+                }
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void DynamicArrays_ExcelProducedCachedSpillShrinksAfterLoad() {
+            string source = Path.Combine(_directoryDocuments, "ExcelFormulaCorpus", "dynamic-shrink-source.xlsx");
+            string path = Path.Combine(_directoryWithFiles, "CalculatedExcelShrink.xlsx");
+            File.Copy(source, path, overwrite: true);
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                Assert.True(sheet.TryGetCellText(2, 8, out var prior));
+                Assert.Equal("4", prior);
+                sheet.CellValue(1, 1, 1);
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCellText(1, 8, out var retained));
+                Assert.Equal("2", retained);
+                Assert.False(sheet.TryGetCellText(2, 8, out _));
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+                Assert.Empty(document.ValidateOpenXml());
+            }
+            AssertWorkbookOpensViaExcelComWhenAvailable(path,
+                "An Excel-produced dynamic spill must shrink safely after loading.",
+                new Dictionary<string, string> { ["G1"] = "1", ["H1"] = "2" });
+        }
+
+        [Fact]
+        public void DynamicArrays_LoadedChangedChildStillBlocksShrink() {
+            string path = Path.Combine(_directoryWithFiles, "LoadedChangedDynamicShrink.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                    cell => cell.CellReference?.Value == "H2");
+                child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+                sheet.CellValue(1, 1, 1);
+                using (var original = sheet.WorksheetPart.GetStream(FileMode.Open, FileAccess.Read)) {
+                    var xml = System.Xml.Linq.XDocument.Load(original);
+                    var savedCell = Assert.Single(xml.Descendants(), element => element.Name.LocalName == "c"
+                        && (string?)element.Attribute("r") == "H2");
+                    Assert.Equal("4", Assert.Single(savedCell.Elements(), element => element.Name.LocalName == "v").Value);
+                }
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
+                Assert.Equal("#SPILL!", error);
+                Assert.True(sheet.TryGetCellText(2, 8, out var retained));
+                Assert.Equal("99", retained);
+            }
+        }
+
+        [Fact]
+        public void DynamicArrays_LoadedFilterCanReplaceUnchangedOldCaches() {
+            string path = Path.Combine(_directoryWithFiles, "LoadedDynamicFilter.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "alpha");
+                sheet.CellValue(2, 1, "beta");
+                sheet.CellValue(3, 1, "gamma");
+                sheet.CellValue(1, 2, 1);
+                sheet.CellValue(2, 2, 1);
+                sheet.CellValue(3, 2, 0);
+                sheet.SetDynamicArrayFormula("G1", "FILTER(A1:A3,B1:B3)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                sheet.CellValue(1, 2, 0);
+                sheet.CellValue(3, 2, 1);
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCellText(1, 7, out var first));
+                Assert.Equal("beta", first);
+                Assert.True(sheet.TryGetCellText(2, 7, out var second));
+                Assert.Equal("gamma", second);
+                document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        public void DynamicArrays_SavedExternalChangeCannotBecomeOwnershipBaseline() {
+            string path = Path.Combine(_directoryWithFiles, "SavedExternalDynamicChild.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var sheet = document["Data"];
+                var child = Assert.Single(sheet.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                    cell => cell.CellReference?.Value == "H2");
+                child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+                sheet.WorksheetPart.Worksheet.Save();
+                sheet.CellValue(1, 1, 1);
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
+                Assert.Equal("#SPILL!", error);
+                Assert.True(sheet.TryGetCellText(2, 8, out var retained));
+                Assert.Equal("99", retained);
+            }
+        }
+
+        [Fact]
+        public void DynamicArrays_ExternalEditBeforeSheetAccessCannotBecomeOwnershipBaseline() {
+            string path = Path.Combine(_directoryWithFiles, "ExternalEditBeforeDynamicSheetAccess.xlsx");
+            using (var document = ExcelDocument.Create(path)) {
+                var sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                document.RecalculateSupportedFormulas();
+                document.Save();
+            }
+            using (var document = ExcelDocument.Load(path)) {
+                var part = Assert.Single(document.OpenXmlDocument.WorkbookPart!.WorksheetParts);
+                var child = Assert.Single(part.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                    cell => cell.CellReference?.Value == "H2");
+                child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+                part.Worksheet.Save();
+                var sheet = document["Data"];
+                sheet.CellValue(1, 1, 1);
+                document.RecalculateSupportedFormulas();
+                Assert.True(sheet.TryGetCachedFormulaValue(1, 7, out var error));
+                Assert.Equal("#SPILL!", error);
+                Assert.True(sheet.TryGetCellText(2, 8, out var retained));
+                Assert.Equal("99", retained);
+            }
+        }
+
+        [Fact]
         public void DynamicArrays_OwnershipSurvivesNewSheetWrappers() {
             using var document = ExcelDocument.Create();
             document.SheetCachingEnabled = false;

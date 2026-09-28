@@ -29,10 +29,10 @@ namespace OfficeIMO.Excel {
         private readonly WorksheetPart _worksheetPart;
         internal WorksheetPart WorksheetPart {
             get {
+                CaptureOriginalDynamicSpillFingerprintIfSafe();
                 if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                     MaterializeDeferredDataSetImportIfNeeded();
                 }
-
                 return _worksheetPart;
             }
         }

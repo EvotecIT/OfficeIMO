@@ -13,6 +13,10 @@ namespace OfficeIMO.Excel {
             internal bool WriteIndexInitialized;
             internal readonly List<(int Top, int Left, int Bottom, int Right)> WriteRanges =
                 new List<(int Top, int Left, int Bottom, int Right)>();
+            internal bool OriginalFingerprintAttempted;
+            internal byte[]? OriginalFingerprint;
+            internal bool OriginalScanAttempted;
+            internal readonly HashSet<long> WrittenOwners = new HashSet<long>();
         }
 
         private DynamicSpillOwnership SpillOwnership => DynamicSpillOwnerships.GetOrCreateValue(_worksheetPart);
@@ -107,6 +111,7 @@ namespace OfficeIMO.Excel {
 
         private void WriteDynamicArrayFormulaCache(DynamicArrayPlan plan) {
             Cell anchor = plan.Owner.Cell;
+            SpillOwnership.WrittenOwners.Add(DynamicCellKey(plan.Owner.Top, plan.Owner.Left));
             string? previousReference = anchor.CellFormula?.Reference?.Value;
             if (plan.ErrorSubtype != 0) {
                 anchor.CellFormula!.Reference = anchor.CellReference!.Value!;
@@ -148,6 +153,7 @@ namespace OfficeIMO.Excel {
             out FormulaArgumentValue result) {
             var context = ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache!);
             var index = GetFixedArraySheetIndex();
+            TryCaptureOriginalDynamicSpillCaches();
             int top = owner.Top, left = owner.Left;
             long bottom = (long)top + array.Rows - 1, right = (long)left + array.Columns - 1;
             var plan = new DynamicArrayPlan {
