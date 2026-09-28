@@ -3,11 +3,42 @@ using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartSecondaryAxisLayoutTests {
+    [Theory]
+    [InlineData("color")]
+    [InlineData("size")]
+    [InlineData("bold")]
+    [InlineData("italic")]
+    [InlineData("shape")]
+    public void SecondaryTitle_RejectsUnprojectedAppearance(string appearance) {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var title = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
+        if (appearance == "shape") title.AddChild(new C.ChartShapeProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = "FFFF00" })), true);
+        else {
+            var properties = new A.RunProperties();
+            if (appearance == "color") properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }));
+            else if (appearance == "size") properties.FontSize = 1800;
+            else if (appearance == "bold") properties.Bold = true;
+            else properties.Italic = true;
+            title.Descendants<A.Run>().Single().AddChild(properties, true);
+        }
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Fact]
     public void SecondaryAxisTitleDoesNotReplacePrimaryTitleWhenAxisElementsAreReordered() {
         using var presentation = PowerPointPresentation.Create();
@@ -97,6 +128,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("reversed")]
     [InlineData("displayUnits")]
     [InlineData("sourceLinked")]
+    [InlineData("deleted")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
         using var presentation = PowerPointPresentation.Create();
         var slide = presentation.AddSlide();
@@ -108,7 +140,8 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
         var secondary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
-        if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+        if (setting == "deleted") secondary.AddChild(new C.Delete { Val = true }, true);
+        else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
         else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
         else if (setting == "sourceLinked") secondary.NumberingFormat!.SourceLinked = true;
         else secondary.AddChild(new C.DisplayUnits(new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);

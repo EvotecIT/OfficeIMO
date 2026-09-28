@@ -43,6 +43,26 @@ public sealed class WordChartOfficeSnapshotTests {
     }
 
     [Fact]
+    public void OfficeSnapshot_RejectsMultiPointSecondaryTitleCache() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        var title = secondary.GetFirstChild<C.Title>()!;
+        title.RemoveAllChildren<C.ChartText>();
+        title.AddChild(new C.ChartText(new C.StringReference(new C.Formula("Sheet1!$A$1:$A$2"),
+            new C.StringCache(new C.PointCount { Val = 2 },
+                new C.StringPoint(new C.NumericValue("Revenue")) { Index = 0 },
+                new C.StringPoint(new C.NumericValue("Percent")) { Index = 1 }))), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void SecondaryAxisScaleUpdatePreservesTitleUntilExplicitlyCleared() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
