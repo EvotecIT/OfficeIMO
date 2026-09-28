@@ -108,7 +108,9 @@ public static partial class OfficeChartDrawingRenderer {
         double? valueAxisMajorUnit = GetValueAxisMajorUnit(layout, horizontal: barChart);
         IReadOnlyList<double> valueAxisMajorTicks = GetValueAxisMajorTicks(axisRange, valueAxisMajorUnit);
         double? valueAxisMinorUnit = GetValueAxisMinorUnit(layout, horizontal: barChart);
-        IReadOnlyList<double> valueAxisMinorTicks = GetValueAxisMinorTicks(axisRange, valueAxisMinorUnit, valueAxisMajorTicks);
+        IReadOnlyList<double> valueAxisMinorTicks = GetValueAxisMinorTicks(axisRange, valueAxisMinorUnit, valueAxisMajorTicks,
+            barChart ? layout.HorizontalAxisMinorTickMark != OfficeChartAxisTickMark.None :
+                layout.VerticalAxisMinorTickMark != OfficeChartAxisTickMark.None);
         bool valueAxisUsesPercentDefaults =
             IsPercentStackedBarOrColumnChart(snapshot.ChartKind) ||
             IsPercentStackedLineChart(snapshot.ChartKind) ||

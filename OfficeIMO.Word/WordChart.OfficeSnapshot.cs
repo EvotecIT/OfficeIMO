@@ -73,6 +73,10 @@ public partial class WordChart {
         OfficeChartLayout layout = snapshot.Layout;
         foreach (OfficeChartSeries series in snapshot.Data.Series) {
             OfficeChartKind kind = series.RenderKind ?? snapshot.ChartKind;
+            double? minimum = series.AxisGroup == OfficeChartAxisGroup.Secondary
+                ? layout.SecondaryValueAxis?.Minimum : layout.VerticalAxisMinimum;
+            double? maximum = series.AxisGroup == OfficeChartAxisGroup.Secondary
+                ? layout.SecondaryValueAxis?.Maximum : layout.VerticalAxisMaximum;
             bool lineOrArea = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
                 OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
             bool numericPoints = kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble;
@@ -81,11 +85,11 @@ public partial class WordChart {
             // can cross a bound through its cumulative value even when each source value fits.
             if (kind is OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
                 OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100 &&
-                (layout.VerticalAxisMinimum.HasValue || layout.VerticalAxisMaximum.HasValue)) return true;
+                (minimum.HasValue || maximum.HasValue)) return true;
             // An unstacked area also paints the polygon down to zero. Without clipping,
             // an explicit range that excludes zero lets its baseline escape the plot.
-            if (kind == OfficeChartKind.Area && IsOutside(0d, layout.VerticalAxisMinimum, layout.VerticalAxisMaximum)) return true;
-            if (series.Values.Any(value => IsOutside(value, layout.VerticalAxisMinimum, layout.VerticalAxisMaximum))) return true;
+            if (kind == OfficeChartKind.Area && IsOutside(0d, minimum, maximum)) return true;
+            if (series.Values.Any(value => IsOutside(value, minimum, maximum))) return true;
             if (numericPoints && (layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue) &&
                 (series.XValues == null || series.XValues.Any(value => IsOutside(value, layout.HorizontalAxisMinimum, layout.HorizontalAxisMaximum)))) return true;
         }

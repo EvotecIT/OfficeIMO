@@ -61,6 +61,25 @@ public sealed class DrawingChartSecondaryScaleTests {
         Assert.Single(ticks.Select(tick => tick.X).Distinct());
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.BarClustered)]
+    public void SecondaryAxis_RendersAutomaticMinorTicksWhenVisible(OfficeChartKind kind) {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Primary", new[] { 100d, 200d }),
+            new OfficeChartSeries("Secondary", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: kind, axisGroup: OfficeChartAxisGroup.Secondary) });
+        int ShapeCount(OfficeChartAxisTickMark mark) {
+            var layout = new OfficeChartLayout(showLegend: false).WithSecondaryValueAxis(
+                new OfficeChartValueAxisLayout(minimum: 0, maximum: 4, majorUnit: 1,
+                    minorTickMark: mark));
+            return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null, kind,
+                data, 360, 240, layout: layout)).Shapes.Count;
+        }
+        Assert.Equal(ShapeCount(OfficeChartAxisTickMark.None) + 16,
+            ShapeCount(OfficeChartAxisTickMark.Outside));
+    }
+
     [Fact]
     public void SecondaryScaleAndFormatRemainIndependentOfPrimaryAxis() {
         var primaryLayout = new OfficeChartLayout(showLegend: false, verticalAxisMinimum: 0,

@@ -37,9 +37,14 @@ public sealed class WordChartOfficeSnapshotTests {
                 renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
         var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
-        secondary.AddChild(new C.MajorTickMark { Val = C.TickMarkValues.Cross }, true);
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(
+            majorTickMark: OfficeChartAxisTickMark.Cross,
+            minorTickMark: OfficeChartAxisTickMark.Outside));
+        Assert.Single(secondary.Elements<C.MajorTickMark>());
+        Assert.Single(secondary.Elements<C.MinorTickMark>());
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(OfficeChartAxisTickMark.Cross, snapshot.Layout.SecondaryValueAxis!.MajorTickMark);
+        Assert.Equal(OfficeChartAxisTickMark.Outside, snapshot.Layout.SecondaryValueAxis.MinorTickMark);
     }
 
     [Fact]
@@ -70,6 +75,18 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Equal(0.25, imported.Layout.SecondaryValueAxis.MinorUnit);
         Assert.Equal(OfficeChartAxisTickMark.Cross, imported.Layout.SecondaryValueAxis.MajorTickMark);
         Assert.Equal(OfficeChartAxisTickMark.Outside, imported.Layout.SecondaryValueAxis.MinorTickMark);
+    }
+
+    [Fact]
+    public void OfficeSnapshot_RejectsSecondaryLineOutsideExplicitBounds() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Count", new[] { 100d, 200d }),
+                new OfficeChartSeries("Ratio", new[] { 1d, 3d }, null, null, null, true,
+                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 2));
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
     [Fact]
     public void OfficeSnapshot_PreservesInheritedTextFontsAndRejectsConflictingBodyFonts() {

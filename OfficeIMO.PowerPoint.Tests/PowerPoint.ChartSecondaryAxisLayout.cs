@@ -12,6 +12,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("logarithmic")]
     [InlineData("reversed")]
     [InlineData("displayUnits")]
+    [InlineData("sourceLinked")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
         using var presentation = PowerPointPresentation.Create();
         var slide = presentation.AddSlide();
@@ -25,6 +26,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
         else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
+        else if (setting == "sourceLinked") secondary.NumberingFormat!.SourceLinked = true;
         else secondary.AddChild(new C.DisplayUnits(new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
         string Appearance(C.ValueAxis axis) {
             var copy = (C.ValueAxis)axis.CloneNode(true);

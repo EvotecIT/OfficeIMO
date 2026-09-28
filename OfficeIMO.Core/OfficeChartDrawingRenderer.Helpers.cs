@@ -407,7 +407,12 @@ public static partial class OfficeChartDrawingRenderer {
     private static IReadOnlyList<double> GetValueAxisLabelTicks(ValueRange range, double? majorUnit) =>
         GetValueAxisMajorTicks(range, majorUnit);
 
-    private static IReadOnlyList<double> GetValueAxisMinorTicks(ValueRange range, double? minorUnit, IReadOnlyList<double> majorTicks) {
+    private static IReadOnlyList<double> GetValueAxisMinorTicks(ValueRange range, double? minorUnit,
+        IReadOnlyList<double> majorTicks, bool automaticWhenVisible = false) {
+        if (!minorUnit.HasValue && automaticWhenVisible && majorTicks.Count >= 2) {
+            double interval = majorTicks[1] - majorTicks[0];
+            if (interval > 0D && !double.IsInfinity(interval)) minorUnit = interval / 5D;
+        }
         if (!minorUnit.HasValue || minorUnit.Value <= 0D) {
             return Array.Empty<double>();
         }

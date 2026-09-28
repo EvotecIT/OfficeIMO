@@ -20,7 +20,9 @@ public static partial class OfficeChartDrawingRenderer {
         internal ValueRange Range { get; }
         internal IReadOnlyList<double> MajorTicks { get; }
         internal IReadOnlyList<double> MinorTicks => GetValueAxisMinorTicks(Range,
-            Layout.VerticalAxisMinorUnit, MajorTicks);
+            Layout.VerticalAxisMinorUnit, MajorTicks,
+            Layout.VerticalAxisMinorTickMark != OfficeChartAxisTickMark.None ||
+            Layout.HorizontalAxisMinorTickMark != OfficeChartAxisTickMark.None);
         internal bool UsesPercentDefaults { get; }
         internal double LabelBandWidth { get; }
         internal OfficeChartLayout Layout { get; }
