@@ -356,11 +356,7 @@ public static partial class WordIWorkConverter {
                 && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
             return "Pages contains a table-cell hyperlink that cannot be represented by the DOCX owner.";
         }
-        if (projection.Body.Paragraphs
-                .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
-                .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
-                    .Concat(projection.Sections.SelectMany(section => section.FooterContents))
-                    .SelectMany(content => content.Paragraphs))
+        if (AllPagesText(projection).SelectMany(content => content.Paragraphs)
                 .Any(paragraph => paragraph.ListLevel > 8)) {
             return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
