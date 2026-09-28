@@ -145,7 +145,7 @@ internal sealed partial class IWorkReadProjection {
             LengthBytes = source.Length,
             SourceObjectId = source.PackagePath,
             PayloadBytes = _options.IncludeImagePayloads ? source.GetBytes() : null,
-            Location = Location(page),
+            Location = Location(page, sourceKind: "image", anchor: id),
             Region = Region(source.Geometry)
         };
         _assets.Add(asset);
@@ -156,7 +156,8 @@ internal sealed partial class IWorkReadProjection {
                 markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length)),
                 region: asset.Region);
         }
-        if (source.Hyperlink != null) AddLink(page, source.Hyperlink, asset.Location);
+        if (source.Hyperlink != null) AddLink(page, source.Hyperlink, asset.Location,
+            region: asset.Region);
         if (source.HasMask) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
@@ -176,13 +177,14 @@ internal sealed partial class IWorkReadProjection {
     }
 
     private void AddLink(OfficeDocumentPage page, string target, ReaderLocation location,
-        string? text = null) {
+        string? text = null, OfficeDocumentRegion? region = null) {
         var link = new OfficeDocumentLink {
             Id = "iwork-l" + (_links.Count + 1).ToString("D6", CultureInfo.InvariantCulture),
             Kind = "uri",
             Uri = target,
             Text = text,
-            Location = location
+            Location = location,
+            Region = region
         };
         _links.Add(link);
         _pageLinks[page].Add(link);

@@ -315,6 +315,52 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_READER_TABLE_BUDGET_EXCEEDED");
     }
 
+    [Fact]
+    public void Reader_links_retain_image_identity_and_empty_text_box_geometry() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
+        var emptyText = new IWorkTextContent(Array.Empty<IWorkTextParagraph>(), true, true);
+        var firstBox = new IWorkTextBox(emptyText, new IWorkGeometry(10, 20, 30, 40, 0),
+            "https://example.com/box-one", null);
+        var secondBox = new IWorkTextBox(emptyText, new IWorkGeometry(50, 60, 30, 40, 0),
+            "https://example.com/box-two", null);
+        byte[] imageBytes = ValidPreviewPng();
+        var firstImage = new IWorkImageAsset("first.png", "Data/first.png", "image/png",
+            imageBytes, 1, 1, new IWorkGeometry(100, 20, 30, 40, 0), false,
+            "https://example.com/image-one", null);
+        var secondImage = new IWorkImageAsset("second.png", "Data/second.png", "image/png",
+            imageBytes, 1, 1, new IWorkGeometry(150, 20, 30, 40, 0), false,
+            "https://example.com/image-two", null);
+        var pages = new IWorkPagesProjection(source, emptyText,
+            Array.Empty<IWorkPagesSection>(), new[] { firstBox, secondBox },
+            new[] { firstImage, secondImage }, Array.Empty<IWorkTable>(),
+            new IWorkPagesDrawable[] {
+                new(firstBox), new(secondBox), new(firstImage), new(secondImage)
+            }, null, Array.Empty<IWorkDiagnostic>(), true);
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "sample.pages",
+            new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
+
+        projection.AddPages(pages);
+        projection.Complete(source);
+
+        Assert.Equal(4, result.Links.Count);
+        Assert.Equal(4, result.Links.Select(link => link.Location.BlockAnchor)
+            .Distinct(StringComparer.Ordinal).Count());
+        Assert.Equal(new double[] { 10, 50 }, result.Links.Take(2)
+            .Select(link => link.Region!.X));
+        Assert.All(result.Links.Take(2), link => {
+            Assert.Equal("text-box", link.Location.SourceBlockKind);
+            Assert.StartsWith("iwork-shape-", link.Location.BlockAnchor);
+        });
+        foreach (OfficeDocumentAsset asset in result.Assets) {
+            OfficeDocumentLink link = Assert.Single(result.Links,
+                item => item.Location.BlockAnchor == asset.Id);
+            Assert.Equal("image", link.Location.SourceBlockKind);
+            Assert.Equal(asset.Region!.X, link.Region!.X);
+        }
+    }
+
     private static void AssertValidUnicode(string value) {
         for (int index = 0; index < value.Length; index++) {
             if (char.IsHighSurrogate(value[index])) {

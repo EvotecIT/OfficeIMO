@@ -200,8 +200,11 @@ internal sealed partial class IWorkReadProjection {
         if (!string.IsNullOrWhiteSpace(textBox.Hyperlink)) {
             OfficeDocumentBlock? anchor = _blocks.Skip(firstBlockIndex)
                 .FirstOrDefault(block => !string.IsNullOrWhiteSpace(block.Text));
-            AddLink(page, textBox.Hyperlink!, anchor?.Location
-                ?? (_blocks.Count > firstBlockIndex ? _blocks[firstBlockIndex].Location : Location(page)));
+            ReaderLocation linkLocation = anchor?.Location
+                ?? (_blocks.Count > firstBlockIndex ? _blocks[firstBlockIndex].Location
+                    : Location(page, sourceKind: sourceKind,
+                        anchor: "iwork-shape-" + (_links.Count + 1).ToString("D6", CultureInfo.InvariantCulture)));
+            AddLink(page, textBox.Hyperlink!, linkLocation, region: region);
         }
     }
 
