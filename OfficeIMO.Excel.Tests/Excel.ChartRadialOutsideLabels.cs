@@ -7,6 +7,28 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartRadialOutsideLabelsTests {
+    [Fact]
+    public void OuterRingOnlyLabelsKeepTheirSeriesSelectionAndLeaders() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Inner", new[] { 3d, 2d }),
+                new OfficeChartSeries("Outer", new[] { 4d, 1d })
+            }), 1, 1);
+        C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.DoughnutChart>().Single();
+        native.Elements<C.PieChartSeries>().Last().AddChild(new C.DataLabels(
+            new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd },
+            new C.ShowCategoryName { Val = true },
+            new C.ShowLeaderLines { Val = true }), true);
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(new[] { 1 }, snapshot.Layout!.DataLabelSeriesIndexes);
+        Assert.True(snapshot.Layout.ShowDataLabelLeaderLines);
+        Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

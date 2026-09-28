@@ -5,6 +5,31 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartRadialLayoutTests {
     [Theory]
+    [InlineData(OfficeChartKind.Pie, false)]
+    [InlineData(OfficeChartKind.Pie, true)]
+    [InlineData(OfficeChartKind.Doughnut, false)]
+    [InlineData(OfficeChartKind.Doughnut, true)]
+    public void EmptyOutsideLabelSelectionKeepsCompactRadialGeometry(
+        OfficeChartKind kind, bool filtered) {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 2d, 1d })
+        });
+        var plain = new OfficeChartSnapshot("", null, kind, data, 140, 120,
+            layout: new OfficeChartLayout(showLegend: false));
+        var emptyOutside = new OfficeChartSnapshot("", null, kind, data, 140, 120,
+            layout: new OfficeChartLayout(showLegend: false, showDataLabels: true,
+                showDataLabelCategoryNames: filtered,
+                dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd,
+                dataLabelSeriesIndexes: filtered ? Array.Empty<int>() : null));
+        OfficeDrawing expected = OfficeChartDrawingRenderer.Render(plain);
+        OfficeDrawing actual = OfficeChartDrawingRenderer.Render(emptyOutside);
+        Assert.Equal(expected.Shapes.Select(shape => (shape.X, shape.Y,
+                shape.Shape.Width, shape.Shape.Height)),
+            actual.Shapes.Select(shape => (shape.X, shape.Y,
+                shape.Shape.Width, shape.Shape.Height)));
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
     public void FiniteExtremeSlicesKeepGeometryAndPercentLabels(OfficeChartKind kind) {
