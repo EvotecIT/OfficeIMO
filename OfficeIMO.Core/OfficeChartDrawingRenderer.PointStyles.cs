@@ -118,7 +118,7 @@ public static partial class OfficeChartDrawingRenderer {
         var strokes = new OfficeDrawing(width, height);
         // Keep cost bounded for large chart frames while maintaining a readable normal-size hatch.
         double step = Math.Max(6, (width + height) / 512);
-        if (hatch == OfficeChartHatchPattern.WideForwardDiagonal) step *= 2;
+        if (hatch == OfficeChartHatchPattern.WideForwardDiagonal) step = Math.Max(7D, step);
         void Line(double x1, double y1, double x2, double y2) =>
             AddShape(strokes, OfficeShape.Line(x1, y1, x2, y2), Math.Min(x1, x2), Math.Min(y1, y2), null, color, 0.75);
         if (hatch == OfficeChartHatchPattern.Horizontal || hatch == OfficeChartHatchPattern.Cross)

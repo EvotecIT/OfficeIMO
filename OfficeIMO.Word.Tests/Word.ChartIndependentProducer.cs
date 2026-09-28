@@ -37,6 +37,8 @@ public sealed class WordChartIndependentProducerTests {
         Assert.True(CountColour(actual!, "#228844") > 1000);
         Assert.True(CountWarmHatch(reference!) > 50);
         Assert.True(CountWarmHatch(actual!) > 50);
+        Assert.Equal(7, GetWarmHatchSpacing(reference!));
+        Assert.InRange(GetWarmHatchSpacing(actual!), 6, 8);
         Assert.True(CountColour(reference!, "#445566") > 50);
         Assert.True(CountColour(actual!, "#445566") > 50);
         Assert.Equal(nativeXml, chart.ChartPart.ChartSpace.OuterXml);
@@ -68,5 +70,28 @@ public sealed class WordChartIndependentProducerTests {
                     pixel.G > pixel.B + 20) count++;
             }
         return count;
+    }
+
+    private static int GetWarmHatchSpacing(OfficeRasterImage image) {
+        var gapCounts = new int[21];
+        for (int y = 175; y < Math.Min(270, image.Height); y += 5) {
+            int lastStart = -1;
+            bool inStroke = false;
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                bool warm = pixel.R > 190 && pixel.R > pixel.G + 20 && pixel.G > 80 &&
+                    pixel.G > pixel.B + 20;
+                if (warm && !inStroke) {
+                    int gap = x - lastStart;
+                    if (lastStart >= 0 && gap >= 4 && gap < gapCounts.Length) gapCounts[gap]++;
+                    lastStart = x;
+                }
+                inStroke = warm;
+            }
+        }
+        int mostFrequentGap = 0;
+        for (int gap = 4; gap < gapCounts.Length; gap++)
+            if (gapCounts[gap] > gapCounts[mostFrequentGap]) mostFrequentGap = gap;
+        return mostFrequentGap;
     }
 }
