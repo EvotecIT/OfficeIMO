@@ -201,7 +201,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value);
             OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
             bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
-                (point.GetFirstChild<C.Marker>() != null || point.ChartShapeProperties != null &&
+                (OfficeOpenXmlChartPointStyles.HasUnsupportedPointContent(point) || point.ChartShapeProperties != null &&
                     !OfficeOpenXmlChartPointStyles.IsSupported(point.ChartShapeProperties, scheme, flatThreeDimensional)));
             unsupported |= unsupportedPoints;
             // Unsupported appearance blocks static export, but update-only readers still need

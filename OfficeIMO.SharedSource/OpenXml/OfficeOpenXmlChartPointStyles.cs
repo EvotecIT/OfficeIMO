@@ -62,6 +62,13 @@ internal static class OfficeOpenXmlChartPointStyles {
         outline.Alignment != null && outline.Alignment.Value != A.PenAlignmentValues.Center ||
         outline.CompoundLineType != null && outline.CompoundLineType.Value != A.CompoundLineValues.Single;
 
+    internal static bool HasUnsupportedPointContent(C.DataPoint point) =>
+        point.ChildElements.Any(child => child is not C.Index and not C.ChartShapeProperties &&
+            !(child is C.Explosion && point.Parent is C.PieChartSeries) &&
+            !(child is C.Marker marker && !marker.HasAttributes &&
+              marker.ChildElements.All(markerChild => markerChild is C.ChartShapeProperties) &&
+              (marker.ChartShapeProperties == null || point.ChartShapeProperties?.HasChildren != true)));
+
     internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) =>
         Read(GetBoundedPoints(series), count, scheme, series.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);
 
@@ -70,13 +77,9 @@ internal static class OfficeOpenXmlChartPointStyles {
         foreach (C.DataPoint point in points) {
             uint? index = point.Index?.Val?.Value;
             if (!index.HasValue || index.Value >= (uint)count) continue;
-            C.Marker? pointMarker = point.GetFirstChild<C.Marker>();
-            if (pointMarker != null && (pointMarker.HasAttributes ||
-                pointMarker.ChildElements.Any(child => child is not C.ChartShapeProperties) ||
-                pointMarker.ChartShapeProperties != null &&
-                point.GetFirstChild<C.ChartShapeProperties>()?.HasChildren == true))
-                throw new System.IO.InvalidDataException("The native point marker has an unprojected appearance.");
-            C.ChartShapeProperties? properties = pointMarker?.ChartShapeProperties ??
+            if (HasUnsupportedPointContent(point))
+                throw new System.IO.InvalidDataException("The native point record contains unsupported appearance or behavior.");
+            C.ChartShapeProperties? properties = point.GetFirstChild<C.Marker>()?.ChartShapeProperties ??
                 point.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) continue;
             if (!IsSupported(properties, scheme, flattenThreeDimensional))

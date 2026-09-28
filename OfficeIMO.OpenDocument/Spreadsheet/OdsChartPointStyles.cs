@@ -7,30 +7,33 @@ namespace OfficeIMO.OpenDocument;
 internal static class OdsChartPointStyles {
     private const int MaximumPoints = 4096;
 
-    internal static IReadOnlyList<OfficeChartPointStyle?>? Read(XElement series,
+    internal static bool TryRead(XElement series,
         Func<string?, XElement?> findStyle, XElement? defaultStyle,
-        IReadOnlyDictionary<string, XElement> hatches) {
+        IReadOnlyDictionary<string, XElement> hatches,
+        out IReadOnlyList<OfficeChartPointStyle?>? styles) {
+        styles = null;
         XName dataPointName = OdfNamespaces.Chart + "data-point";
         XElement[] points = series.Elements(dataPointName).Take(MaximumPoints + 1).ToArray();
-        if (points.Length > MaximumPoints) return null;
+        if (points.Length > MaximumPoints) return false;
         if (!TryGetPointCount((string?)series.Attribute(OdfNamespaces.Chart + "values-cell-range-address"),
-                out int pointCount)) return null;
+                out int pointCount)) return false;
         var result = new List<OfficeChartPointStyle?>();
         foreach (XElement point in points) {
             string? repeatedText = (string?)point.Attribute(OdfNamespaces.Chart + "repeated");
             int count = 1;
             if (repeatedText != null && (!int.TryParse(repeatedText, NumberStyles.None,
-                    CultureInfo.InvariantCulture, out count) || count < 1)) return null;
-            if (count > MaximumPoints - result.Count) return null;
-            if (count > pointCount - result.Count) return null;
+                    CultureInfo.InvariantCulture, out count) || count < 1)) return false;
+            if (count > MaximumPoints - result.Count) return false;
+            if (count > pointCount - result.Count) return false;
             string? name = (string?)point.Attribute(OdfNamespaces.Chart + "style-name");
             OfficeChartPointStyle? appearance = null;
             if (name != null && !TryReadStyle(name, series, findStyle, defaultStyle, hatches,
-                    out appearance)) return null;
+                    out appearance)) return false;
             for (int index = 0; index < count; index++) result.Add(appearance);
         }
         while (result.Count < pointCount) result.Add(null);
-        return result.Any(style => style != null) ? result.AsReadOnly() : null;
+        styles = result.Any(style => style != null) ? result.AsReadOnly() : null;
+        return true;
     }
 
     private static bool TryGetPointCount(string? address, out int count) {
@@ -143,7 +146,10 @@ internal static class OdsChartPointStyles {
     }
 
     internal static bool HasUnprojectedSeriesPieOffset(XElement series,
-        Func<string?, XElement?> findStyle) {
+        Func<string?, XElement?> findStyle, XElement? defaultStyle) {
+        string? defaultOffset = (string?)defaultStyle?.Element(OdfNamespaces.Style + "chart-properties")?
+            .Attribute(OdfNamespaces.Chart + "pie-offset");
+        if (defaultOffset != null && defaultOffset != "0") return true;
         string? name = (string?)series.Attribute(OdfNamespaces.Chart + "style-name");
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrEmpty(name)) {
