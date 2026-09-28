@@ -97,8 +97,12 @@ public static partial class OfficeChartDrawingRenderer {
             if (!label.HasSlice || !layout.ShowDataLabelLeaderLines) continue;
             double targetX = label.RightSide ? label.X : label.X + label.Width;
             double targetY = label.Y + label.Height / 2D;
+            double elbowX = label.RightSide
+                ? Math.Max(label.AnchorX, Math.Min(targetX, centerX + edgeRadius + 5D))
+                : Math.Min(label.AnchorX, Math.Max(targetX, centerX - edgeRadius - 5D));
             AddPointLine(drawing, new[] {
                 new OfficePoint(label.AnchorX, label.AnchorY),
+                new OfficePoint(elbowX, label.AnchorY),
                 new OfficePoint(targetX, targetY)
             }, lineColor, 0.5D);
         }

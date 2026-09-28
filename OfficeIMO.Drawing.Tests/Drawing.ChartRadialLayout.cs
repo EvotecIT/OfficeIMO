@@ -64,8 +64,10 @@ public sealed class DrawingChartRadialLayoutTests {
         OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>()
             .Where(text => text.Text.StartsWith("Cat", StringComparison.Ordinal)).ToArray();
         Assert.Equal(categories.Length, labels.Length);
-        Assert.Equal(categories.Length, drawing.Shapes.Count(shape =>
+        Assert.Equal(categories.Length * 2, drawing.Shapes.Count(shape =>
             shape.Shape.Kind == OfficeShapeKind.Line));
+        Assert.True(drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.Height < .01D) >= categories.Length);
         foreach (OfficeDrawingText label in labels) {
             Assert.InRange(label.X, 0, drawing.Width - label.Width);
             Assert.InRange(label.Y, 0, drawing.Height - label.Height);
@@ -139,7 +141,7 @@ public sealed class DrawingChartRadialLayoutTests {
             dataLabelSeriesIndexes: new[] { 1 });
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
             OfficeChartKind.Doughnut, data, 420, 300, layout: layout));
-        Assert.Equal(2, drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line));
+        Assert.Equal(4, drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line));
     }
 
     [Fact]

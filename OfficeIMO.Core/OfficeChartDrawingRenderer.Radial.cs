@@ -192,7 +192,10 @@ public static partial class OfficeChartDrawingRenderer {
             renderableSeries.Take(renderableSeries.Count - 1).Any(item =>
                 Enumerable.Range(0, categories.Count).Any(index =>
                     TryGetSeriesValue(item.Series, index, out double value) && value > 0D &&
-                    ShouldShowDataLabel(layout, item.SourceIndex, index))))
+                    ShouldShowDataLabel(layout, item.SourceIndex, index) &&
+                    (layout.ShowDataLabelValues || layout.ShowDataLabelPercentages ||
+                     layout.ShowDataLabelCategoryNames && !string.IsNullOrWhiteSpace(categories[index]) ||
+                     layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(item.Series.Name)))))
             throw new NotSupportedException("Outside leader lines cannot cross the outer ring of a multi-series doughnut.");
         GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
             leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,

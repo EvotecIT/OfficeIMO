@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel {
                 if (labeled.Length > 0 && labeled.Length < nativeSeries.Length)
                     radialLabelSeriesIndexes = labeled;
             }
-            if (visibleLabels.Any(labels => IsEnabled(labels.GetFirstChild<C.ShowLeaderLines>()) !=
+            if (radialChart != null && visibleLabels.Any(labels => IsEnabled(labels.GetFirstChild<C.ShowLeaderLines>()) !=
                 IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>())))
                 throw new NotSupportedException("Conflicting chart data-label leader-line settings cannot be projected.");
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
