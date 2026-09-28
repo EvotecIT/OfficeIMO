@@ -140,20 +140,38 @@ namespace OfficeIMO.Tests {
             AssertMultiFieldPivotLookups(sheet, expectedLookups);
         }
 
-        [Fact]
-        public void Test_PivotMultiFieldValue_ColumnHierarchyMatchesExcelLookups() {
+        [Theory]
+        [InlineData("column-inner", "A4:H7", "E4:L7", 150d)]
+        [InlineData("column-inner-less", "A4:H7", "E4:L7", 35d)]
+        [InlineData("column-inner-between", "A4:E7", "E4:I7", 60d)]
+        [InlineData("column-inner-top1", "A4:H7", "E4:L7", 150d)]
+        [InlineData("column-inner-bottom1", "A4:H7", "E4:L7", 35d)]
+        [InlineData("column-inner-top50pct", "A4:H7", "E4:L7", 150d)]
+        [InlineData("column-inner-bottomsum15", "A4:J7", "E4:N7", 145d)]
+        [InlineData("column-inner-notbetween", "A4:H7", "E4:L7", 125d)]
+        [InlineData("column-inner-bottom25pct", "A4:J7", "E4:N7", 145d)]
+        [InlineData("column-outer-equal", "A4:H7", "E4:L7", 120d)]
+        [InlineData("column-outer-top2", "A4:K7", "E4:O7", 185d)]
+        [InlineData("column-outer-bottom1", "A4:H7", "E4:L7", 120d)]
+        [InlineData("column-outer-top30pct", "A4:E7", "E4:I7", 65d)]
+        [InlineData("column-outer-topsum60", "A4:E7", "E4:I7", 65d)]
+        [InlineData("column-outer-notbetween", "A4:H7", "E4:L7", 120d)]
+        [InlineData("column-outer-bottom50pct", "A4:H7", "E4:L7", 120d)]
+        [InlineData("column-outer-bottomsum65", "A4:H7", "E4:L7", 120d)]
+        public void Test_PivotMultiFieldValue_ColumnHierarchyMatchesExcelLookups(
+            string kind, string oracleRange, string authoredRange, double total) {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus",
-                "pivot-value-multifield-column-inner-conformance.xlsx");
+                $"pivot-value-multifield-{kind}-conformance.xlsx");
             AssertPivotMultiFieldFixtureHash(path);
             using var oracle = ExcelDocumentReader.Open(path);
-            var expectedView = oracle.GetSheet("Grouped").ReadRange("A4:H7");
+            var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B7");
-            string importedOutput = Path.Combine(_directoryWithFiles, "Column.Imported.xlsx");
+            string importedOutput = Path.Combine(_directoryWithFiles, $"Column.{kind}.Imported.xlsx");
             using (var document = ExcelDocument.Load(path)) {
                 var grouped = document.GetSheet("Grouped");
-                Assert.Equal(150d, grouped.GetPivotData("ValuePivot", "Metric").Value);
+                Assert.Equal(total, grouped.GetPivotData("ValuePivot", "Metric").Value);
                 var result = grouped.MaterializePivotTable("ValuePivot");
-                Assert.Equal("A4:H7", result.OutputRange);
+                Assert.Equal(oracleRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
                 var lookups = document.GetSheet("Lookups");
                 lookups.ClearCachedFormulaResults();
@@ -161,32 +179,52 @@ namespace OfficeIMO.Tests {
                 document.Save(importedOutput);
             }
             using (var reopened = ExcelDocumentReader.Open(importedOutput)) {
-                var actualView = reopened.GetSheet("Grouped").ReadRange("A4:H7");
+                var actualView = reopened.GetSheet("Grouped").ReadRange(oracleRange);
                 AssertPivotColumnGridMatchesExcel(expectedView, actualView);
                 var actualLookups = reopened.GetSheet("Lookups").ReadRange("B1:B7");
                 for (int row = 0; row < 7; row++)
                     AssertPivotLookupOracleValue(expectedLookups[row, 0], actualLookups[row, 0]);
             }
 
-            string authoredOutput = Path.Combine(_directoryWithFiles, "Column.Authored.xlsx");
+            string authoredOutput = Path.Combine(_directoryWithFiles, $"Column.{kind}.Authored.xlsx");
             using (var document = ExcelDocument.Create()) {
                 var source = document.AddWorksheet("Source");
                 PopulateMultiFieldPivotSource(source);
+                var filter = kind switch {
+                    "column-inner" => ExcelPivotFilter.ValueGreaterThan("Product", "Metric", 30d),
+                    "column-inner-less" => ExcelPivotFilter.ValueLessThan("Product", "Metric", 30d),
+                    "column-inner-between" => ExcelPivotFilter.ValueBetween("Product", "Metric", 15d, 45d),
+                    "column-inner-top1" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
+                    "column-inner-bottom1" => ExcelPivotFilter.BottomCount("Product", "Metric", 1),
+                    "column-inner-top50pct" => ExcelPivotFilter.TopPercent("Product", "Metric", 50),
+                    "column-inner-bottomsum15" => ExcelPivotFilter.BottomSum("Product", "Metric", 15d),
+                    "column-inner-notbetween" => ExcelPivotFilter.ValueNotBetween("Product", "Metric", 15d, 45d),
+                    "column-inner-bottom25pct" => ExcelPivotFilter.BottomPercent("Product", "Metric", 25),
+                    "column-outer-equal" => ExcelPivotFilter.ValueEquals("Region", "Metric", 60d),
+                    "column-outer-top2" => ExcelPivotFilter.TopCount("Region", "Metric", 2),
+                    "column-outer-bottom1" => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
+                    "column-outer-top30pct" => ExcelPivotFilter.TopPercent("Region", "Metric", 30),
+                    "column-outer-topsum60" => ExcelPivotFilter.TopSum("Region", "Metric", 60d),
+                    "column-outer-notbetween" => ExcelPivotFilter.ValueNotBetween("Region", "Metric", 61d, 65d),
+                    "column-outer-bottom50pct" => ExcelPivotFilter.BottomPercent("Region", "Metric", 50),
+                    "column-outer-bottomsum65" => ExcelPivotFilter.BottomSum("Region", "Metric", 65d),
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
+                };
                 source.Pivot("A1:C7").Columns("Region", "Product").Sum("Sales", "Metric")
-                    .Filter(ExcelPivotFilter.ValueGreaterThan("Product", "Metric", 30d))
+                    .Filter(filter)
                     .At("E4", "ValuePivot");
                 var result = source.MaterializePivotTable("ValuePivot");
-                Assert.Equal("E4:L7", result.OutputRange);
+                Assert.Equal(authoredRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
                 document.Save(authoredOutput);
             }
             using var authored = ExcelDocument.Load(authoredOutput);
             Assert.Empty(authored.ValidateOpenXml());
             var sheet = authored.GetSheet("Source");
-            Assert.Equal(150d, sheet.GetPivotData("ValuePivot", "Metric").Value);
+            Assert.Equal(total, sheet.GetPivotData("ValuePivot", "Metric").Value);
             AssertMultiFieldPivotLookups(sheet, expectedLookups);
             using var authoredView = ExcelDocumentReader.Open(authoredOutput);
-            AssertPivotColumnGridMatchesExcel(expectedView, authoredView.GetSheet("Source").ReadRange("E4:L7"));
+            AssertPivotColumnGridMatchesExcel(expectedView, authoredView.GetSheet("Source").ReadRange(authoredRange));
         }
 
         [Theory]
@@ -470,19 +508,31 @@ namespace OfficeIMO.Tests {
         private static void AssertPivotColumnGridMatchesExcel(object?[,] expected, object?[,] actual) {
             // Excel uses "Column Labels" and caption order; OfficeIMO uses the field name
             // and source order. Compare every displayed child, subtotal, and grand-total cell.
+            Assert.Equal(expected.GetLength(0), actual.GetLength(0));
+            Assert.Equal(expected.GetLength(1), actual.GetLength(1));
+            int width = expected.GetLength(1);
             Assert.Equal("Column Labels", expected[0, 1]);
             Assert.Equal("Region", actual[0, 1]);
             for (int row = 0; row < 4; row++) {
                 AssertPivotLookupOracleValue(expected[row, 0], actual[row, 0]);
-                if (row > 0) AssertPivotLookupOracleValue(expected[row, 7], actual[row, 7]);
+                if (row > 0) AssertPivotLookupOracleValue(expected[row, width - 1], actual[row, width - 1]);
             }
-            for (int column = 2; column < 8; column++)
+            for (int column = 2; column < width; column++)
                 AssertPivotLookupOracleValue(expected[0, column], actual[0, column]);
-            string[] Groups(object?[,] view) => Enumerable.Range(0, 3).Select(index => {
-                int column = 1 + 2 * index;
-                return JsonSerializer.Serialize(Enumerable.Range(1, 3).Select(row =>
-                    new[] { view[row, column], view[row, column + 1] }).ToArray());
-            }).OrderBy(group => group, StringComparer.Ordinal).ToArray();
+            string[] Groups(object?[,] view) {
+                var groups = new List<string>();
+                int start = 1;
+                for (int column = 1; column < width - 1; column++) {
+                    if (view[1, column]?.ToString()?.EndsWith(" Total", StringComparison.Ordinal) != true)
+                        continue;
+                    groups.Add(JsonSerializer.Serialize(Enumerable.Range(start, column - start + 1)
+                        .Select(index => Enumerable.Range(1, 3).Select(row => view[row, index]).ToArray())
+                        .ToArray()));
+                    start = column + 1;
+                }
+                Assert.Equal(width - 1, start);
+                return groups.OrderBy(group => group, StringComparer.Ordinal).ToArray();
+            }
             Assert.Equal(Groups(expected), Groups(actual));
         }
 

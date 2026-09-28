@@ -181,10 +181,7 @@ namespace OfficeIMO.Excel {
                         || !TryFinitePivotThreshold(custom.Val?.Value, out first))
                         throw new NotSupportedException("The value filter does not have a qualified finite comparison threshold.");
                 }
-                if (axisFields.Count > 1
-                    && (axisFields.Count != 2 || measures.Length != 1
-                        || !IsQualifiedMultiFieldPivotValueFilter(type,
-                            rowAxisFields, columnAxisFields)))
+                if (axisFields.Count > 1 && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified two-field axis rule.");
                 var measure = measures[filter.MeasureField.Value];
                 ApplyMaterializedPivotValueFilter(source, visibility.IncludedRows, fieldPrefix, measure,
@@ -395,14 +392,6 @@ namespace OfficeIMO.Excel {
                 || (filter.StringValue2 != null && (!TryFinitePivotThreshold(filter.StringValue2.Value, out double savedSecond) || savedSecond != second)))
                 throw new NotSupportedException("The value range filter has no qualified finite bounds.");
             return (first, second);
-        }
-
-        private static bool IsQualifiedMultiFieldPivotValueFilter(
-            PivotFilterValues type, int[] rowAxisFields, int[] columnAxisFields) {
-            if (rowAxisFields.Length == 2
-                || (rowAxisFields.Length == 1 && columnAxisFields.Length == 1))
-                return true;
-            return columnAxisFields.Length == 2 && type == PivotFilterValues.ValueGreaterThan;
         }
 
         private static Top10 QualifiedPivotRankingFilter(PivotFilter filter) {

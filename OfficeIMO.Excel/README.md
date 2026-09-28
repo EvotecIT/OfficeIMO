@@ -712,10 +712,11 @@ With two ordinary row fields, no column field, and one measure,
 materialization supports the same value comparisons and ranges on either
 field and top/bottom count, percent, and sum on either field. The inner field's
 aggregate is compared or ranked within each parent; the outer field uses its
-aggregate across its children. Two column fields support greater-than on either
-field. With one row and one column field, the same value comparisons, ranges,
+aggregate across its children. Two column fields support the same comparisons,
+ranges, and top/bottom count, percent, and sum filters on either field. With
+one row and one column field, the same value comparisons, ranges,
 and top/bottom count, percent, and sum filters can target either field. Other
-multi-field value rules,
+three-or-more-field value rules,
 deeper hierarchies, and multi-measure filter interactions remain outside this
 qualified profile. Signed and zero child aggregates, nonpositive outer-field
 totals, three siblings per parent, mixed numeric/error ranking, and classic
