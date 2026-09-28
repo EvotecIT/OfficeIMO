@@ -706,6 +706,12 @@ classic errors, top/bottom count filters rank by Excel error-code order and
 include ties at the cutoff. All-error percent and sum ranking, newer error
 values, and ranking with neither numeric nor qualified error aggregates remain
 deferred.
+With two ordinary fields on one row or column axis and one measure, materialization
+also supports value greater-than on either field and top-one count on the inner
+field. The inner field's aggregate is compared or ranked within each parent;
+the outer field uses its aggregate across its children. Other multi-field value
+rules and mixed row/column value-filter layouts remain outside this qualified
+profile.
 Label and value filters can share that field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
 filter definition remains available for Excel refresh, and filtered items are
@@ -742,7 +748,7 @@ and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
 Other date levels and layouts, custom non-text grouping, formatted date and broader numeric label filters,
-localized label range ordering, explicit show-all empty item combinations, other label/value pivot filter types and multi-field value filtering,
+localized label range ordering, explicit show-all empty item combinations, other label/value pivot filter types and broader multi-field value filtering,
 calculated fields, incompatible shared-cache groupings, and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

@@ -1,0 +1,147 @@
+<#
+.SYNOPSIS
+Creates Microsoft Excel pivot value-filter fixtures with two row or column fields.
+#>
+[CmdletBinding()]
+param([string[]] $Kinds = @(), [string] $OutputDirectory)
+$ErrorActionPreference = 'Stop'
+$repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$directory = if ($OutputDirectory) { $OutputDirectory }
+    else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus' }
+New-Item -ItemType Directory -Path $directory -Force | Out-Null
+$directory = (Resolve-Path -LiteralPath $directory).Path
+if (-not ('OfficeIMOExcelPivotOracleProcess' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class OfficeIMOExcelPivotOracleProcess {
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+}
+'@
+}
+$mutex = [Threading.Mutex]::new($false, 'Local\OfficeIMO.Excel.Tests.DesktopCom')
+$acquired = $false
+$existingExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue | ForEach-Object Id)
+$application = $null
+$workbook = $null
+$isolated = $false
+try {
+    $acquired = $mutex.WaitOne([TimeSpan]::FromMinutes(5))
+    if (-not $acquired) { throw 'Excel COM lock timed out.' }
+    $application = New-Object -ComObject Excel.Application
+    [uint32]$excelProcessId = 0
+    [void][OfficeIMOExcelPivotOracleProcess]::GetWindowThreadProcessId(
+        [IntPtr][long]$application.Hwnd, [ref]$excelProcessId)
+    if ($excelProcessId -eq 0 -or $existingExcelIds -contains [int]$excelProcessId) {
+        throw 'Could not prove isolated Excel instance.'
+    }
+    $isolated = $true
+    $application.Visible = $false
+    $application.DisplayAlerts = $false
+    $application.AutomationSecurity = 3
+    $cases = @(
+        [pscustomobject]@{ Key = 'outer'; Field = 'Region'; Type = 9; Threshold = 62.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'inner'; Field = 'Product'; Type = 9; Threshold = 30.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'inner-top1'; Field = 'Product'; Type = 1; Threshold = 1.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'column-inner'; Field = 'Product'; Type = 9; Threshold = 30.0; Axis = 'Column'; Range = 'A4:H7'; Grand = 150.0 }
+    )
+    if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
+        throw "Unknown pivot value fixture kind: $($Kinds -join ', ')"
+    }
+    foreach ($case in $cases) {
+        if ($Kinds.Count -gt 0 -and $Kinds -notcontains $case.Key) { continue }
+        $workbook = $application.Workbooks.Add()
+        $source = $workbook.Worksheets.Item(1)
+        $source.Name = 'Source'
+        @('Region', 'Product', 'Sales') | ForEach-Object -Begin { $column = 1 } -Process {
+            $source.Cells.Item(1, $column).Value2 = $_
+            $column++
+        }
+        $rows = @(
+            @('East', 'A', 10.0), @('East', 'B', 50.0),
+            @('West', 'A', 40.0), @('West', 'B', 20.0),
+            @('South', 'A', 5.0), @('South', 'B', 60.0)
+        )
+        for ($index = 0; $index -lt $rows.Count; $index++) {
+            for ($column = 0; $column -lt 3; $column++) {
+                if ($column -eq 2) {
+                    $source.Cells.Item($index + 2, $column + 1).Value2 = [double]$rows[$index][$column]
+                } else {
+                    $source.Cells.Item($index + 2, $column + 1).Value2 = [string]$rows[$index][$column]
+                }
+            }
+        }
+        $view = $workbook.Worksheets.Add()
+        $view.Name = 'Grouped'
+        $cache = $workbook.PivotCaches().Create(1, "'Source'!R1C1:R7C3", 6)
+        $pivot = $cache.CreatePivotTable($view.Range('A4'), 'ValuePivot')
+        $region = $pivot.PivotFields('Region')
+        $region.Orientation = if ($case.Axis -eq 'Column') { 2 } else { 1 }
+        $region.Position = 1
+        $product = $pivot.PivotFields('Product')
+        $product.Orientation = if ($case.Axis -eq 'Column') { 2 } else { 1 }
+        $product.Position = 2
+        $metric = $pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
+        if ($case.Axis -eq 'Row') { $pivot.RowAxisLayout(1) }
+        [void]$pivot.RefreshTable()
+        $target = $pivot.PivotFields($case.Field)
+        [void]$target.PivotFilters.Add2($case.Type, $metric, $case.Threshold)
+        $lookups = $workbook.Worksheets.Add()
+        $lookups.Name = 'Lookups'
+        $lookups.Cells.Item(1, 2).Formula = '=GETPIVOTDATA("Metric",Grouped!$A$4)'
+        $lookupRows = @(
+            @('East', 'A'), @('East', 'B'), @('West', 'A'),
+            @('West', 'B'), @('South', 'A'), @('South', 'B')
+        )
+        for ($index = 0; $index -lt $lookupRows.Count; $index++) {
+            $regionName = $lookupRows[$index][0]
+            $productName = $lookupRows[$index][1]
+            $lookups.Cells.Item($index + 2, 2).Formula =
+                '=GETPIVOTDATA("Metric",Grouped!$A$4,"Region","' + $regionName +
+                '","Product","' + $productName + '")'
+        }
+        $application.CalculateFullRebuild()
+        $range = $pivot.TableRange1.Address($false, $false)
+        $grand = [double]$pivot.GetPivotData('Metric').Value2
+        if (($case.Range -and $range -ne $case.Range) -or $grand -ne $case.Grand) {
+            throw "Excel pivot oracle changed: $($case.Key) saved $range and $grand."
+        }
+        $file = "pivot-value-multifield-$($case.Key)-conformance.xlsx"
+        $path = Join-Path $directory $file
+        $workbook.SaveAs($path, 51)
+        try { $workbook.Close($false) }
+        finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook); $workbook = $null }
+        [ordered]@{
+            producer = 'Microsoft Excel'; version = $application.Version; build = $application.Build
+            producerUiLanguageId = [int]$application.LanguageSettings.LanguageID(2)
+            producerDecimalSeparator = [string]$application.International(3)
+            producerThousandsSeparator = [string]$application.International(4)
+            hostCulture = [Globalization.CultureInfo]::CurrentCulture.Name
+            generatedUtc = [DateTime]::UtcNow.ToString('o')
+            regeneration = 'Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1'
+            file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
+            sourceRange = 'Source!A1:C7'; filteredField = $case.Field; axis = $case.Axis
+            filterType = $case.Type; threshold = $case.Threshold
+            outputRange = $range; grandTotal = $grand
+        } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory "pivot-value-multifield-$($case.Key)-conformance.provenance.json") -Encoding utf8
+        [pscustomobject]@{ File = $file; Range = $range; Grand = $grand }
+    }
+} finally {
+    try {
+        if ($null -ne $workbook) {
+            try { $workbook.Close($false) }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook) }
+        }
+    } finally {
+        try {
+            if ($null -ne $application) {
+                try { if ($isolated) { $application.Quit() } }
+                finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($application) }
+            }
+        } finally {
+            if ($acquired) { $mutex.ReleaseMutex() }
+            $mutex.Dispose()
+        }
+    }
+}

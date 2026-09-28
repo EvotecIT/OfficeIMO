@@ -323,7 +323,8 @@ namespace OfficeIMO.Excel {
             var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
                 displayMaps, realFields, groupings, dateGroupings, manualGroupings, r1, r2, c1, limit, token);
             ApplyMaterializedPivotFilters(sourceSheet, definition, fields, displayMaps, captions, measures,
-                realFields, groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit,
+                realFields, rowAxis.RealFields, columnAxis.RealFields,
+                groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit,
                 referenceDate, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
             // possible criterion combination usable, rather than accepting an unreadable view.

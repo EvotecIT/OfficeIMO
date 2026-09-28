@@ -11,6 +11,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<PivotFieldValues> maps,
             IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             DataField[] measures, IReadOnlyList<int> axisFields,
+            int[] rowAxisFields, int[] columnAxisFields,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
             IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
@@ -160,8 +161,12 @@ namespace OfficeIMO.Excel {
 
             foreach (var filter in filters.Where(IsMaterializedPivotValueFilter)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
-                if (axisFields.Count != 1 || filter.MeasureField == null || filter.MeasureField.Value >= measures.Length)
-                    throw new NotSupportedException("Value-filter materialization requires one ordinary axis field and a saved measure.");
+                if (filter.MeasureField == null || filter.MeasureField.Value >= measures.Length)
+                    throw new NotSupportedException("Value-filter materialization requires a saved measure.");
+                int rowPosition = Array.IndexOf(rowAxisFields, field);
+                int[] fieldPrefix = rowPosition >= 0
+                    ? rowAxisFields.Take(rowPosition + 1).ToArray()
+                    : columnAxisFields.Take(Array.IndexOf(columnAxisFields, field) + 1).ToArray();
                 var type = filter.Type!.Value;
                 double first = 0, second = 0;
                 Top10? ranking = null;
@@ -176,48 +181,18 @@ namespace OfficeIMO.Excel {
                         || !TryFinitePivotThreshold(custom.Val?.Value, out first))
                         throw new NotSupportedException("The value filter does not have a qualified finite comparison threshold.");
                 }
+                if (axisFields.Count > 1
+                    && (axisFields.Count != 2 || measures.Length != 1
+                        || Math.Max(rowAxisFields.Length, columnAxisFields.Length) != 2
+                        || (type != PivotFilterValues.ValueGreaterThan
+                            && !(type == PivotFilterValues.Count && fieldPrefix.Length == 2
+                                && ranking?.Top?.Value != false
+                                && ranking?.Val?.Value == 1))))
+                    throw new NotSupportedException("Multi-field value filters require two fields on one axis and a qualified greater-than or top-one rule.");
                 var measure = measures[filter.MeasureField.Value];
-                int measureColumn = firstColumn + (int)measure.Field!.Value;
-                var aggregates = new Dictionary<PivotFieldValue, ExcelPivotAggregateAccumulator>();
-                for (int row = firstRow + 1; row <= lastRow; row++) {
-                    token.ThrowIfCancellationRequested();
-                    if (!visibility.IncludedRows[row - firstRow - 1]) continue;
-                    var key = MaterializedPivotAxisKey(source, row, firstColumn + field, field,
-                        groupings, dateGroupings, manualGroupings);
-                    if (!aggregates.TryGetValue(key, out var aggregate)) {
-                        if (aggregates.Count >= 100_000 || aggregates.Count >= limit)
-                            throw new InvalidOperationException("The value filter exceeds the pivot aggregate budget.");
-                        aggregate = new ExcelPivotAggregateAccumulator();
-                        aggregates.Add(key, aggregate);
-                    }
-                    var cell = source.TryGetExistingCell(row, measureColumn);
-                    aggregate.Add(source.GetCellValueSnapshot(cell).Value,
-                        cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error);
-                }
-                var function = (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum();
-                var values = aggregates.Select(pair => (pair.Key, Value: pair.Value.GetValue(function).Value))
-                    .Where(pair => pair.Value is double).Select(pair => (pair.Key, Value: (double)pair.Value!)).ToArray();
-                HashSet<PivotFieldValue> included;
-                if (ranking != null) {
-                    if (aggregates.Count != 0 && values.Length == 0) {
-                        var results = aggregates.Select(pair => (pair.Key, Result: pair.Value.GetValue(function))).ToArray();
-                        if (results.Any(pair => pair.Result.Kind != ExcelCellDataKind.Error || pair.Result.Value is not string))
-                            throw new NotSupportedException("Top/bottom ranking with no numeric or error aggregate is not qualified for materialization.");
-                        if (type != PivotFilterValues.Count)
-                            throw new NotSupportedException("Top/bottom percent and sum ranking over only error aggregates is not qualified for materialization.");
-                        included = RankMaterializedPivotErrorValues(results, ranking);
-                    } else {
-                        included = RankMaterializedPivotValues(values, type, ranking);
-                    }
-                } else {
-                    included = new HashSet<PivotFieldValue>(values.Where(pair =>
-                        type == PivotFilterValues.ValueBetween ? pair.Value >= first && pair.Value <= second
-                        : type == PivotFilterValues.ValueNotBetween ? pair.Value < first || pair.Value > second
-                        : MatchesMaterializedPivotValueComparison(pair.Value, first, ResolveSingleFilterOperator(type)))
-                        .Select(pair => pair.Key));
-                }
-                FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
-                    groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
+                ApplyMaterializedPivotValueFilter(source, visibility.IncludedRows, fieldPrefix, measure,
+                    type, first, second, ranking, groupings, dateGroupings, manualGroupings,
+                    firstRow, lastRow, firstColumn, limit, token);
             }
 
             if (filters.Any(filter => !IsMaterializedPivotFixedDateFilter(filter)
