@@ -508,39 +508,45 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            var parts = new List<(PowerPointChartSnapshotKind Kind, PowerPointChartData Data)>();
+            var parts = new List<(PowerPointChartSnapshotKind Kind, PowerPointChartData Data, bool HasSourceCategories)>();
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ValidatePlotBudget(plotArea, PowerPointUtils.MaximumSharedChartPoints);
             var axisGroups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
             var projectionBudget = new OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ProjectionBudget();
             foreach (OpenXmlElement element in plotArea.ChildElements) {
                 if (element is C.BarChart barChart) {
                     PowerPointChartSnapshotKind kind = GetBarChartSnapshotKind(barChart);
+                    OpenXmlCompositeElement[] sourceSeries = barChart.Elements<C.BarChartSeries>()
+                        .Cast<OpenXmlCompositeElement>().ToArray();
                     PowerPointChartData? data = ReadCategorySeriesData(
-                        barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
+                        sourceSeries, kind, colorScheme,
                         axisGroups.Read(barChart), validatePlot: false, projectionBudget: projectionBudget);
                     if (data != null) {
-                        parts.Add((kind, data));
+                        parts.Add((kind, data, HasSourceCategoryPoints(sourceSeries)));
                     }
                 } else if (element is C.LineChart lineChart) {
                     PowerPointChartSnapshotKind kind = GetLineChartSnapshotKind(lineChart);
+                    OpenXmlCompositeElement[] sourceSeries = lineChart.Elements<C.LineChartSeries>()
+                        .Cast<OpenXmlCompositeElement>().ToArray();
                     PowerPointChartData? data = ReadCategorySeriesData(
-                        lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
+                        sourceSeries, kind, colorScheme,
                         axisGroups.Read(lineChart), validatePlot: false, projectionBudget: projectionBudget);
                     if (data != null) {
-                        parts.Add((kind, data));
+                        parts.Add((kind, data, HasSourceCategoryPoints(sourceSeries)));
                     }
                 } else if (element is C.AreaChart areaChart) {
                     PowerPointChartSnapshotKind kind = GetAreaChartSnapshotKind(areaChart);
+                    OpenXmlCompositeElement[] sourceSeries = areaChart.Elements<C.AreaChartSeries>()
+                        .Cast<OpenXmlCompositeElement>().ToArray();
                     PowerPointChartData? data = ReadCategorySeriesData(
-                        areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme,
+                        sourceSeries, kind, colorScheme,
                         axisGroups.Read(areaChart), validatePlot: false, projectionBudget: projectionBudget);
                     if (data != null) {
-                        parts.Add((kind, data));
+                        parts.Add((kind, data, HasSourceCategoryPoints(sourceSeries)));
                     }
                 } else if (element is C.ScatterChart scatterChart) {
                     PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme, validatePlot: false, projectionBudget: projectionBudget);
                     if (data != null) {
-                        parts.Add((PowerPointChartSnapshotKind.Scatter, data));
+                        parts.Add((PowerPointChartSnapshotKind.Scatter, data, false));
                     }
                 }
             }
@@ -559,9 +565,11 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            IReadOnlyList<string> categories = parts[0].Data.Categories;
+            int sourceCategoryPart = parts.FindIndex(part => part.HasSourceCategories);
+            IReadOnlyList<string> categories = parts[sourceCategoryPart >= 0 ? sourceCategoryPart : 0].Data.Categories;
             if (parts[0].Kind != PowerPointChartSnapshotKind.Scatter &&
-                parts.Any(part => !part.Data.Categories.SequenceEqual(categories, StringComparer.Ordinal))) return false;
+                parts.Any(part => part.HasSourceCategories &&
+                    !part.Data.Categories.SequenceEqual(categories, StringComparer.Ordinal))) return false;
             var series = new List<PowerPointChartSeries>();
             foreach (var part in parts) {
                 foreach (PowerPointChartSeries item in part.Data.Series) {
@@ -584,6 +592,10 @@ namespace OfficeIMO.PowerPoint {
             series.XValues != null &&
             series.XValues.Count == series.Values.Count &&
             series.Values.Count > 0;
+
+        private static bool HasSourceCategoryPoints(IEnumerable<OpenXmlCompositeElement> series) =>
+            series.Any(item => item.GetFirstChild<C.CategoryAxisData>() is { } categories &&
+                categories.Descendants().Any(point => point is C.StringPoint or C.NumericPoint));
 
         private static bool IsHorizontalBarKind(PowerPointChartSnapshotKind kind) =>
             kind == PowerPointChartSnapshotKind.ClusteredBar ||

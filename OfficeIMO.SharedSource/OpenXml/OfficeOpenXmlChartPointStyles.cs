@@ -38,7 +38,7 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (child is A.Outline outline) {
                 if (outline.Width?.Value == 0 && outline.GetFirstChild<A.NoFill>() == null) return false;
                 if (outline.Width?.Value < 0 || outline.Width?.Value > 20116800 ||
-                    outline.CapType != null || outline.Alignment != null || outline.CompoundLineType != null) return false;
+                    HasUnsupportedLineAttributes(outline)) return false;
                 foreach (OpenXmlElement lineChild in outline.ChildElements) {
                     if (lineChild is A.NoFill) continue;
                     if (lineChild is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
@@ -50,6 +50,11 @@ internal static class OfficeOpenXmlChartPointStyles {
         }
         return true;
     }
+
+    internal static bool HasUnsupportedLineAttributes(A.Outline outline) =>
+        outline.CapType != null && outline.CapType.Value != A.LineCapValues.Flat ||
+        outline.Alignment != null && outline.Alignment.Value != A.PenAlignmentValues.Center ||
+        outline.CompoundLineType != null && outline.CompoundLineType.Value != A.CompoundLineValues.Single;
 
     internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) =>
         Read(GetBoundedPoints(series), count, scheme, series.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);

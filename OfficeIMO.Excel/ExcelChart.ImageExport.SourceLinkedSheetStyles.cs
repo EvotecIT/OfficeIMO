@@ -38,20 +38,38 @@ public sealed partial class ExcelChart {
         }
         var data = worksheet.GetFirstChild<S.SheetData>();
         if (data == null) return null;
+        int previousRow = 0;
         foreach (var row in data.Elements<S.Row>()) {
             if (--remainingRecords < 0) return null;
+            int rowIndex;
+            if (row.RowIndex?.Value is uint declaredRow) {
+                if (declaredRow == 0 || declaredRow > 1048576) return null;
+                rowIndex = (int)declaredRow;
+            } else {
+                if (previousRow >= 1048576) return null;
+                rowIndex = previousRow + 1;
+            }
+            previousRow = rowIndex;
             string? customFormat = row.CustomFormat?.InnerText;
             if (customFormat != null && customFormat != "true" && customFormat != "1" && customFormat != "false" && customFormat != "0") return null;
             if (customFormat == "true" || customFormat == "1") {
                 if (!TryStyleIndex(row.StyleIndex?.InnerText, out uint rowStyle) ||
-                    !int.TryParse(row.RowIndex?.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out int index) ||
-                    index <= 0 || index > 1048576 || result.Rows.ContainsKey(index)) return null;
-                result.Rows.Add(index, rowStyle);
+                    result.Rows.ContainsKey(rowIndex)) return null;
+                result.Rows.Add(rowIndex, rowStyle);
             }
+            int previousColumn = 0;
             foreach (var cell in row.Elements<S.Cell>()) {
                 if (--remainingRecords < 0) return null;
                 string? reference = cell.CellReference?.Value;
-                if (reference == null) continue;
+                if (reference == null) {
+                    if (previousColumn >= 16384) return null;
+                    previousColumn++;
+                    reference = A1.ColumnIndexToLetters(previousColumn) + rowIndex.ToString(CultureInfo.InvariantCulture);
+                } else {
+                    if (!A1.TryParseCellReferenceFast(reference, out int cellRow, out int column) ||
+                        cellRow != rowIndex || column < 1 || column > 16384) return null;
+                    previousColumn = column;
+                }
                 uint? style = null;
                 if (cell.StyleIndex != null) {
                     if (!TryStyleIndex(cell.StyleIndex.InnerText, out uint explicitStyle)) return null;

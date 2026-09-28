@@ -32,7 +32,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             // effect. Filled series still use the outline around their geometry.
             if (!filled && !connectLine) continue;
             if (outline.Width?.Value == 0 && outline.GetFirstChild<A.NoFill>() == null) return false;
-            if (outline.CapType != null || outline.Alignment != null || outline.CompoundLineType != null || outline.Width?.Value < 0) return false;
+            if (OfficeOpenXmlChartPointStyles.HasUnsupportedLineAttributes(outline) || outline.Width?.Value < 0) return false;
             foreach (var lineChild in outline.ChildElements) {
                 if (lineChild is A.NoFill) continue;
                 if (lineChild is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;

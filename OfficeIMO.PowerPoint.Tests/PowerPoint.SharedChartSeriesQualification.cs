@@ -129,4 +129,40 @@ public class PowerPointSharedChartSeriesQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
         Assert.Equal(before, native.OuterXml);
     }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line, false)]
+    [InlineData(OfficeChartKind.Line, true)]
+    [InlineData(OfficeChartKind.Pie, false)]
+    [InlineData(OfficeChartKind.Pie, true)]
+    public void Snapshot_AcceptsDefaultNativeOutlineAttributes(OfficeChartKind kind, bool pointOrMarker) {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        var chart = presentation.AddSlide().AddChart(kind,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants()
+            .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
+        A.Outline outline;
+        if (kind == OfficeChartKind.Pie && pointOrMarker) {
+            outline = new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" }));
+            series.AddChild(new C.DataPoint(new C.Index { Val = 0 }, new C.ChartShapeProperties(outline)), true);
+        } else if (kind == OfficeChartKind.Line && pointOrMarker) {
+            outline = new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" }));
+            series.GetFirstChild<C.Marker>()!.AddChild(new C.ChartShapeProperties(outline), true);
+        } else {
+            var properties = series.GetFirstChild<C.ChartShapeProperties>();
+            if (properties == null) {
+                properties = new C.ChartShapeProperties();
+                series.AddChild(properties, true);
+            }
+            outline = properties.GetFirstChild<A.Outline>()!;
+            if (outline == null) {
+                outline = new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" }));
+                properties.AddChild(outline, true);
+            }
+        }
+        outline.CapType = A.LineCapValues.Flat;
+        outline.Alignment = A.PenAlignmentValues.Center;
+        outline.CompoundLineType = A.CompoundLineValues.Single;
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
 }

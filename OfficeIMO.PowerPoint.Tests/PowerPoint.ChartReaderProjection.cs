@@ -66,6 +66,29 @@ public sealed class PowerPointChartReaderProjectionTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void MixedSnapshot_UsesTheRealCategoryCacheWhenAnotherLayerOmitsIt(bool firstLayerMissing) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "North", "South" }, new[] {
+                new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, true,
+                    renderKind: OfficeChartKind.ColumnClustered),
+                new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, true,
+                    renderKind: OfficeChartKind.Line)
+            }));
+        C.ChartSpace native = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!;
+        if (firstLayerMissing)
+            native.Descendants<C.BarChartSeries>().Single().GetFirstChild<C.CategoryAxisData>()!.Remove();
+        else
+            native.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.CategoryAxisData>()!.Remove();
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(new[] { "North", "South" }, snapshot.Data.Categories);
+        Assert.Equal(2, snapshot.Data.Series.Count);
+    }
+
     [Fact]
     public void Snapshot_UsesLaterCategoryCacheWithoutTruncatingSeries() {
         using var document = PowerPointPresentation.Create();
