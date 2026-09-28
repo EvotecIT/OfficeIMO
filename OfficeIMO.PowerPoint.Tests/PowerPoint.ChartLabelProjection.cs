@@ -1,6 +1,8 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
+using System.IO;
+using System.Xml.Linq;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -8,6 +10,54 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartLabelProjectionTests {
+    [Fact]
+    public void StyledLabelBodyRotationIsNotSilentlyDiscarded() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Values", new[] { 3d })
+            })).SetDataLabels(showValue: true);
+        ChartStylePart stylePart = slide.SlidePart.ChartParts.Single()
+            .GetPartsOfType<ChartStylePart>().Single();
+        XDocument style;
+        using (Stream stream = stylePart.GetStream()) style = XDocument.Load(stream);
+        XNamespace cs = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
+        style.Root!.Element(cs + "dataLabel")!.Add(new XElement(cs + "bodyPr", new XAttribute("rot", "5400000")));
+        using (Stream stream = stylePart.GetStream(FileMode.Create, FileAccess.Write)) style.Save(stream);
+
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void StyledLabelTextUsesChartLocalTextColorMapping() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        PowerPointChart chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Values", new[] { 3d })
+            })).SetDataLabels(showValue: true);
+        ChartPart part = slide.SlidePart.ChartParts.Single();
+        part.ChartSpace!.AddChild(new C.ColorMapOverride {
+            Background1 = A.ColorSchemeIndexValues.Light1,
+            Text1 = A.ColorSchemeIndexValues.Light1,
+            Background2 = A.ColorSchemeIndexValues.Light2,
+            Text2 = A.ColorSchemeIndexValues.Dark2,
+            Accent1 = A.ColorSchemeIndexValues.Accent1,
+            Accent2 = A.ColorSchemeIndexValues.Accent2,
+            Accent3 = A.ColorSchemeIndexValues.Accent3,
+            Accent4 = A.ColorSchemeIndexValues.Accent4,
+            Accent5 = A.ColorSchemeIndexValues.Accent5,
+            Accent6 = A.ColorSchemeIndexValues.Accent6,
+            Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
+            FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
+        }, true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeColor.White, snapshot.Style.DataLabelTextColor);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.ColumnClustered)]
     [InlineData(OfficeChartKind.Line)]
