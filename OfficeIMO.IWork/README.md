@@ -67,7 +67,7 @@ Each adapter README owns its conversion API and example. The source reader remai
 
 This is extended semantic reconstruction rather than plain-text extraction:
 
-- Pages recovers rich paragraphs, source-proven list levels mapped to native Word numbering, page layout, section-specific headers/footers, positioned and sized accessible rich-text boxes, images, tables, and merges for editable Word projection.
+- Pages recovers rich paragraphs, source-proven list levels mapped to native Word numbering, page layout, section-specific headers/footers, positioned and sized accessible rich-text boxes, images, tables with plain text from rich-text cells, and merges for editable Word projection.
 - Numbers recovers sparse typed cells, supported formulas with cached values, merges, table metadata, and default sizing for editable Excel projection. Each source table receives its own worksheet so table-local formulas and column sizing remain stable; sheet-level text receives a separate worksheet when present.
 - Keynote recovers slide size, order and names, positioned rich text with explicit inline breaks and source-proven list labels and levels, shape/run and presenter-note hyperlinks, notes, images, positioned and rotated tables, and merges for editable PowerPoint projection.
 
