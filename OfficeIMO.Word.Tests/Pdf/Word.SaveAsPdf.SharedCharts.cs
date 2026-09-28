@@ -17,6 +17,7 @@ public sealed class WordSharedChartPdfTests {
     [InlineData("empty")]
     [InlineData("noFill")]
     [InlineData("noFillOutline")]
+    [InlineData("emptyEffectList")]
     public void DefaultLegendShapeDoesNotDisableSingleChartPdfWithDataTable(string appearance) {
         using var document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartKind.ColumnClustered,
@@ -27,6 +28,7 @@ public sealed class WordSharedChartPdfTests {
         var properties = new C.ChartShapeProperties();
         if (appearance != "empty") properties.Append(new A.NoFill());
         if (appearance == "noFillOutline") properties.Append(new A.Outline(new A.NoFill()));
+        if (appearance == "emptyEffectList") properties.Append(new A.EffectList());
         legend.AddChild(properties, true);
 
         MethodInfo factory = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot",
