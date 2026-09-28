@@ -112,6 +112,8 @@ namespace OfficeIMO.Word {
                             if (overlap.Parent == null) barChart.AddChild(overlap, true);
                         } else {
                             barChart.BarGrouping = null;
+                            if (barChart.GetFirstChild<Overlap>() is Overlap overlap)
+                                overlap.Val = new DocumentFormat.OpenXml.SByteValue((sbyte)0);
                         }
                     }
                 }
