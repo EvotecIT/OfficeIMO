@@ -40,11 +40,37 @@ try {
     $application.Visible = $false
     $application.DisplayAlerts = $false
     $application.AutomationSecurity = 3
+    # Type IDs are Excel XlPivotFilterType values:
+    # https://learn.microsoft.com/en-us/dotnet/api/microsoft.office.interop.excel.xlpivotfiltertype
     $cases = @(
         [pscustomobject]@{ Key = 'outer'; Field = 'Region'; Type = 9; Threshold = 62.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 65.0 },
         [pscustomobject]@{ Key = 'inner'; Field = 'Product'; Type = 9; Threshold = 30.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
         [pscustomobject]@{ Key = 'inner-top1'; Field = 'Product'; Type = 1; Threshold = 1.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
-        [pscustomobject]@{ Key = 'column-inner'; Field = 'Product'; Type = 9; Threshold = 30.0; Axis = 'Column'; Range = 'A4:H7'; Grand = 150.0 }
+        [pscustomobject]@{ Key = 'column-inner'; Field = 'Product'; Type = 9; Threshold = 30.0; Axis = 'Column'; Range = 'A4:H7'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'inner-less'; Field = 'Product'; Type = 11; Threshold = 30.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 35.0 },
+        [pscustomobject]@{ Key = 'inner-between'; Field = 'Product'; Type = 13; Threshold = 15.0; Threshold2 = 45.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 60.0 },
+        [pscustomobject]@{ Key = 'inner-notbetween'; Field = 'Product'; Type = 14; Threshold = 15.0; Threshold2 = 45.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 125.0 },
+        [pscustomobject]@{ Key = 'inner-bottom1'; Field = 'Product'; Type = 2; Threshold = 1.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 35.0 },
+        [pscustomobject]@{ Key = 'inner-top50pct'; Field = 'Product'; Type = 3; Threshold = 50.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'inner-topsum30'; Field = 'Product'; Type = 5; Threshold = 30.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'outer-bottom1'; Field = 'Region'; Type = 2; Threshold = 1.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'mixed-column'; Field = 'Product'; Type = 9; Threshold = 100.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 130.0 },
+        [pscustomobject]@{ Key = 'mixed-row'; Field = 'Region'; Type = 9; Threshold = 62.0; Axis = 'Mixed'; Range = 'A4:D7'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'mixed-column-top1'; Field = 'Product'; Type = 1; Threshold = 1.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 130.0 },
+        [pscustomobject]@{ Key = 'inner-equal'; Field = 'Product'; Type = 7; Threshold = 40.0; Axis = 'Row'; Range = 'A4:C7'; Grand = 40.0 },
+        [pscustomobject]@{ Key = 'inner-notequal'; Field = 'Product'; Type = 8; Threshold = 40.0; Axis = 'Row'; Range = 'A4:C13'; Grand = 145.0 },
+        [pscustomobject]@{ Key = 'inner-greater-equal'; Field = 'Product'; Type = 10; Threshold = 40.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'inner-less-equal'; Field = 'Product'; Type = 12; Threshold = 20.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 35.0 },
+        [pscustomobject]@{ Key = 'inner-bottom25pct'; Field = 'Product'; Type = 4; Threshold = 25.0; Axis = 'Row'; Range = 'A4:C13'; Grand = 145.0 },
+        [pscustomobject]@{ Key = 'inner-bottomsum15'; Field = 'Product'; Type = 6; Threshold = 15.0; Axis = 'Row'; Range = 'A4:C13'; Grand = 145.0 },
+        [pscustomobject]@{ Key = 'outer-top2'; Field = 'Region'; Type = 1; Threshold = 2.0; Axis = 'Row'; Range = 'A4:C14'; Grand = 185.0 },
+        [pscustomobject]@{ Key = 'outer-equal'; Field = 'Region'; Type = 7; Threshold = 60.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'outer-notequal'; Field = 'Region'; Type = 8; Threshold = 60.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'outer-greater-equal'; Field = 'Region'; Type = 10; Threshold = 65.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'outer-less'; Field = 'Region'; Type = 11; Threshold = 65.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'outer-less-equal'; Field = 'Region'; Type = 12; Threshold = 60.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'outer-between'; Field = 'Region'; Type = 13; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'outer-notbetween'; Field = 'Region'; Type = 14; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 }
     )
     if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
         throw "Unknown pivot value fixture kind: $($Kinds -join ', ')"
@@ -80,13 +106,17 @@ try {
         $region.Orientation = if ($case.Axis -eq 'Column') { 2 } else { 1 }
         $region.Position = 1
         $product = $pivot.PivotFields('Product')
-        $product.Orientation = if ($case.Axis -eq 'Column') { 2 } else { 1 }
-        $product.Position = 2
+        $product.Orientation = if ($case.Axis -eq 'Column' -or $case.Axis -eq 'Mixed') { 2 } else { 1 }
+        $product.Position = if ($case.Axis -eq 'Mixed') { 1 } else { 2 }
         $metric = $pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
-        if ($case.Axis -eq 'Row') { $pivot.RowAxisLayout(1) }
+        if ($case.Axis -ne 'Column') { $pivot.RowAxisLayout(1) }
         [void]$pivot.RefreshTable()
         $target = $pivot.PivotFields($case.Field)
-        [void]$target.PivotFilters.Add2($case.Type, $metric, $case.Threshold)
+        if ($null -ne $case.Threshold2) {
+            [void]$target.PivotFilters.Add2($case.Type, $metric, $case.Threshold, $case.Threshold2)
+        } else {
+            [void]$target.PivotFilters.Add2($case.Type, $metric, $case.Threshold)
+        }
         $lookups = $workbook.Worksheets.Add()
         $lookups.Name = 'Lookups'
         $lookups.Cells.Item(1, 2).Formula = '=GETPIVOTDATA("Metric",Grouped!$A$4)'
@@ -104,7 +134,7 @@ try {
         $application.CalculateFullRebuild()
         $range = $pivot.TableRange1.Address($false, $false)
         $grand = [double]$pivot.GetPivotData('Metric').Value2
-        if (($case.Range -and $range -ne $case.Range) -or $grand -ne $case.Grand) {
+        if ($range -ne $case.Range -or $grand -ne $case.Grand) {
             throw "Excel pivot oracle changed: $($case.Key) saved $range and $grand."
         }
         $file = "pivot-value-multifield-$($case.Key)-conformance.xlsx"
@@ -122,7 +152,7 @@ try {
             regeneration = 'Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1'
             file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
             sourceRange = 'Source!A1:C7'; filteredField = $case.Field; axis = $case.Axis
-            filterType = $case.Type; threshold = $case.Threshold
+            filterType = $case.Type; threshold = $case.Threshold; threshold2 = $case.Threshold2
             outputRange = $range; grandTotal = $grand
         } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory "pivot-value-multifield-$($case.Key)-conformance.provenance.json") -Encoding utf8
         [pscustomobject]@{ File = $file; Range = $range; Grand = $grand }

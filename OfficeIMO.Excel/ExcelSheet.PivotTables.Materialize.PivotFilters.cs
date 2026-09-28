@@ -183,12 +183,9 @@ namespace OfficeIMO.Excel {
                 }
                 if (axisFields.Count > 1
                     && (axisFields.Count != 2 || measures.Length != 1
-                        || Math.Max(rowAxisFields.Length, columnAxisFields.Length) != 2
-                        || (type != PivotFilterValues.ValueGreaterThan
-                            && !(type == PivotFilterValues.Count && fieldPrefix.Length == 2
-                                && ranking?.Top?.Value != false
-                                && ranking?.Val?.Value == 1))))
-                    throw new NotSupportedException("Multi-field value filters require two fields on one axis and a qualified greater-than or top-one rule.");
+                        || !IsQualifiedMultiFieldPivotValueFilter(type, ranking, field,
+                            rowAxisFields, columnAxisFields, fieldPrefix.Length)))
+                    throw new NotSupportedException("The multi-field value filter has no qualified two-field axis rule.");
                 var measure = measures[filter.MeasureField.Value];
                 ApplyMaterializedPivotValueFilter(source, visibility.IncludedRows, fieldPrefix, measure,
                     type, first, second, ranking, groupings, dateGroupings, manualGroupings,
@@ -398,6 +395,25 @@ namespace OfficeIMO.Excel {
                 || (filter.StringValue2 != null && (!TryFinitePivotThreshold(filter.StringValue2.Value, out double savedSecond) || savedSecond != second)))
                 throw new NotSupportedException("The value range filter has no qualified finite bounds.");
             return (first, second);
+        }
+
+        private static bool IsQualifiedMultiFieldPivotValueFilter(
+            PivotFilterValues type, Top10? ranking, int field,
+            int[] rowAxisFields, int[] columnAxisFields, int prefixLength) {
+            if (rowAxisFields.Length == 1 && columnAxisFields.Length == 1)
+                return type == PivotFilterValues.ValueGreaterThan
+                    || (field == columnAxisFields[0] && type == PivotFilterValues.Count
+                        && ranking?.Val?.Value == 1 && ranking?.Top?.Value != false);
+            if (Math.Max(rowAxisFields.Length, columnAxisFields.Length) != 2) return false;
+            if (type == PivotFilterValues.ValueGreaterThan) return true;
+            if (rowAxisFields.Length != 2) return false;
+            if (type == PivotFilterValues.ValueEqual || type == PivotFilterValues.ValueNotEqual
+                || type == PivotFilterValues.ValueGreaterThanOrEqual
+                || type == PivotFilterValues.ValueLessThan || type == PivotFilterValues.ValueLessThanOrEqual
+                || type == PivotFilterValues.ValueBetween || type == PivotFilterValues.ValueNotBetween)
+                return true;
+            return type == PivotFilterValues.Count
+                || (prefixLength == 2 && (type == PivotFilterValues.Percent || type == PivotFilterValues.Sum));
         }
 
         private static Top10 QualifiedPivotRankingFilter(PivotFilter filter) {
