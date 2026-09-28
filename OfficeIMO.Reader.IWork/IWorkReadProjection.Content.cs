@@ -43,8 +43,10 @@ internal sealed partial class IWorkReadProjection {
         _tables.Add(table);
         _pageTables[page].Add(table);
         string markdown = table.ToMarkdownTable();
-        AddBlock(page, "table", markdown, markdown, null, null, table,
-            markdownPart: (offset, length) => markdown.Substring(offset, length));
+        string text = DocumentReaderEngine.BuildRichTableText(table);
+        ReaderLocation tableBlockLocation = AddBlock(page, "table", text, markdown, null, null, table,
+            splitMarkdownIndependently: true);
+        tableBlockLocation.TableIndex = tableIndex;
         if (truncated) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Limit,
@@ -68,7 +70,7 @@ internal sealed partial class IWorkReadProjection {
                 || (cell.Row > materializedHeaderRows && cell.Row <= headerRows)
                 || cell.RichText == null) continue;
             foreach (IWorkTextParagraph paragraph in cell.RichText.Paragraphs) {
-                AddRunLinks(page, paragraph.Runs, location);
+                AddRunLinks(page, paragraph.Runs, tableBlockLocation);
             }
         }
     }

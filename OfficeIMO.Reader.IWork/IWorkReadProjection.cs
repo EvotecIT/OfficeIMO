@@ -164,24 +164,43 @@ internal sealed partial class IWorkReadProjection {
     }
 
     private void AddRichContent(OfficeDocumentPage page, IWorkTextContent content,
-        string sourceKind) {
+        string sourceKind, OfficeDocumentRegion? region = null) {
         foreach (IWorkTextParagraph paragraph in content.Paragraphs) {
-            AddParagraph(page, paragraph, sourceKind);
+            AddParagraph(page, paragraph, sourceKind, region);
         }
     }
 
     private void AddTextBox(OfficeDocumentPage page, IWorkTextBox textBox,
         string sourceKind) {
-        AddRichContent(page, textBox.Content, sourceKind);
+        OfficeDocumentRegion? region = textBox.Geometry == null ? null : new OfficeDocumentRegion {
+            X = textBox.Geometry.LeftPoints,
+            Y = textBox.Geometry.TopPoints,
+            Width = textBox.Geometry.WidthPoints,
+            Height = textBox.Geometry.HeightPoints
+        };
+        int firstBlockIndex = _blocks.Count;
+        AddRichContent(page, textBox.Content, sourceKind, region);
+        if (!textBox.Content.Paragraphs.Any(paragraph => paragraph.Text.Length > 0)
+            && !string.IsNullOrWhiteSpace(textBox.AccessibilityDescription)) {
+            string description = textBox.AccessibilityDescription!;
+            AddBlock(page, "text-box", description, EscapeMarkdown(description), null, null,
+                markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length)),
+                sourceKind: sourceKind, region: region);
+        }
         if (!string.IsNullOrWhiteSpace(textBox.Hyperlink)) {
-            AddLink(page, textBox.Hyperlink!, Location(page));
+            AddLink(page, textBox.Hyperlink!, _blocks.Count > firstBlockIndex
+                ? _blocks[firstBlockIndex].Location : Location(page));
         }
     }
 
     private void AddParagraph(OfficeDocumentPage page, IWorkTextParagraph paragraph,
-        string sourceKind) {
+        string sourceKind, OfficeDocumentRegion? region = null) {
         string text = paragraph.Text;
-        if (text.Length == 0) return;
+        if (text.Length == 0) {
+            AddBlock(page, "paragraph", string.Empty, "\n", null, null,
+                sourceKind: sourceKind, region: region);
+            return;
+        }
         if (paragraph.ListLevel > MaximumMarkdownListLevel && !_reportedMarkdownListDepthLimit) {
             _reportedMarkdownListDepthLimit = true;
             _diagnostics.Add(new OfficeDocumentDiagnostic {
@@ -192,14 +211,18 @@ internal sealed partial class IWorkReadProjection {
                 Location = Location(page)
             });
         }
-        string markdown = RichTextMarkdown(paragraph);
+        bool heading = paragraph.ListLevel < 0 && sourceKind == "title";
+        string markdown = (heading ? "# " : string.Empty) + RichTextMarkdown(paragraph);
         string kind = paragraph.ListLevel >= 0 ? "list-item" :
             sourceKind == "title" ? "heading" : "paragraph";
-        AddBlock(page, kind, text, markdown,
+        ReaderLocation blockLocation = AddBlock(page, kind, text, markdown,
             paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
             paragraph.ListLabel,
-            markdownPart: (offset, length) => RichTextMarkdown(paragraph, offset, length));
-        AddRunLinks(page, paragraph.Runs);
+            markdownPart: (offset, length) =>
+                (heading && offset == 0 ? "# " : string.Empty)
+                + RichTextMarkdown(paragraph, offset, length),
+            sourceKind: sourceKind, region: region);
+        AddRunLinks(page, paragraph.Runs, blockLocation);
     }
 
     private void AddPlainText(OfficeDocumentPage page, string text, string sourceKind) {
@@ -208,35 +231,45 @@ internal sealed partial class IWorkReadProjection {
             markdownPart: (offset, length) => EscapeMarkdown(text.Substring(offset, length)));
     }
 
-    private void AddBlock(OfficeDocumentPage page, string kind, string text,
+    private ReaderLocation AddBlock(OfficeDocumentPage page, string kind, string text,
         string markdown, int? level, string? marker,
         ReaderTable? table = null,
-        Func<int, int, string>? markdownPart = null) {
+        Func<int, int, string>? markdownPart = null,
+        string? sourceKind = null, OfficeDocumentRegion? region = null,
+        bool splitMarkdownIndependently = false) {
         _cancellationToken.ThrowIfCancellationRequested();
         string id = "iwork-b" + (_blocks.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
-        ReaderLocation location = Location(page);
+        ReaderLocation location = Location(page, sourceKind: sourceKind ?? kind, anchor: id);
         var block = new OfficeDocumentBlock {
             Id = id,
             Kind = kind,
             Text = text,
             Level = level,
             Marker = marker,
-            Location = location
+            Location = location,
+            Region = region
         };
         _blocks.Add(block);
         _pageBlocks[page].Add(block);
         int maxChars = Math.Max(1, _readerOptions.MaxChars);
         int partIndex = 0;
-        for (int offset = 0; offset < text.Length || offset == 0; offset += maxChars) {
-            int length = Math.Min(maxChars, text.Length - offset);
-            bool split = text.Length > maxChars;
-            string part = text.Substring(offset, length);
+        int extent = splitMarkdownIndependently
+            ? Math.Max(text.Length, markdown.Length) : text.Length;
+        for (int offset = 0; offset < extent || offset == 0; offset += maxChars) {
+            int length = Math.Min(maxChars, Math.Max(0, text.Length - offset));
+            bool split = extent > maxChars;
+            string part = length == 0 ? string.Empty : text.Substring(offset, length);
+            int markdownLength = splitMarkdownIndependently
+                ? Math.Min(maxChars, Math.Max(0, markdown.Length - offset)) : 0;
             _chunks.Add(new ReaderChunk {
                 Id = id + "-" + partIndex.ToString("D3", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.IWork,
-                Location = Location(page, _chunks.Count, kind, id),
+                Location = Location(page, _chunks.Count, sourceKind ?? kind, id),
                 Text = part,
-                Markdown = split
+                Markdown = splitMarkdownIndependently
+                    ? markdownLength == 0 ? string.Empty
+                        : markdown.Substring(offset, markdownLength)
+                    : split
                     ? markdownPart?.Invoke(offset, length) ?? (partIndex == 0 ? markdown : string.Empty)
                     : markdown,
                 ContinuesPreviousChunk = partIndex > 0,
@@ -244,8 +277,9 @@ internal sealed partial class IWorkReadProjection {
                 Warnings = split ? new[] { "Content was split at ReaderOptions.MaxChars." } : null
             });
             partIndex++;
-            if (text.Length == 0) break;
+            if (extent == 0) break;
         }
+        return location;
     }
 
     private ReaderLocation Location(OfficeDocumentPage page, int? blockIndex = null,
@@ -272,8 +306,25 @@ internal sealed partial class IWorkReadProjection {
                 Code = diagnostic.Code,
                 Message = diagnostic.Message,
                 Source = "OfficeIMO.IWork",
-                Location = new ReaderLocation { Path = _path }
+                Location = new ReaderLocation {
+                    Path = diagnostic.EntryPath == null
+                        ? _path : _path + "!/" + diagnostic.EntryPath,
+                    SourceBlockKind = diagnostic.RecordIdentifier.HasValue
+                        ? "iwa-record" : null
+                },
+                Attributes = DiagnosticAttributes(diagnostic)
             });
         }
+    }
+
+    private static IReadOnlyDictionary<string, string> DiagnosticAttributes(
+        IWorkDiagnostic diagnostic) {
+        var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (diagnostic.EntryPath != null) attributes.Add("entryPath", diagnostic.EntryPath);
+        if (diagnostic.RecordIdentifier.HasValue) {
+            attributes.Add("recordIdentifier", diagnostic.RecordIdentifier.Value.ToString(
+                CultureInfo.InvariantCulture));
+        }
+        return attributes;
     }
 }

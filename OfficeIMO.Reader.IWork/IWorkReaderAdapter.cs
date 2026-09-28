@@ -13,10 +13,11 @@ internal static class IWorkReaderAdapter {
         } catch (NotSupportedException) {
             return false;
         }
-        long maximumPackageBytes = Math.Min(options.ReadOptions?.MaximumPackageBytes
-            ?? new IWorkReadOptions().MaximumPackageBytes,
-            readerOptions.MaxInputBytes ?? 64L * 1024 * 1024);
-        return IWorkContainerProbe.HasModernIndex(stream, maximumPackageBytes);
+        IWorkReadOptions readOptions = options.ReadOptions ?? new IWorkReadOptions();
+        long maximumPackageBytes = Math.Min(readOptions.MaximumPackageBytes,
+            readerOptions.MaxInputBytes ?? readOptions.MaximumPackageBytes);
+        return IWorkContainerProbe.HasModernIndex(stream, maximumPackageBytes,
+            readOptions.MaximumEntryCount, cancellationToken);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions,

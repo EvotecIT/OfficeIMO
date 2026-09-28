@@ -64,6 +64,10 @@ public sealed class ReaderIWorkTests {
         Assert.Null(image.PayloadBytes);
         Assert.Contains(document.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED");
+        OfficeDocumentBlock tableBlock = Assert.Single(document.Blocks,
+            block => block.Kind == "table" && block.Text.Contains("Feature", StringComparison.Ordinal));
+        Assert.Equal(DocumentReaderEngine.BuildRichTableText(document.Tables[0]), tableBlock.Text);
+        Assert.NotEqual(document.Tables[0].ToMarkdownTable(), tableBlock.Text);
     }
 
     [Fact]
@@ -80,6 +84,8 @@ public sealed class ReaderIWorkTests {
 
         Assert.Equal(2, notes.Pages.Count);
         Assert.Contains("note text here", notes.Markdown, StringComparison.Ordinal);
+        Assert.Contains(notes.Blocks, block => block.Location.SourceBlockKind == "presenter-notes"
+            && block.Text.Contains("note text here", StringComparison.Ordinal));
         Assert.Equal("Product", Assert.Single(table.Tables).Columns[0]);
         Assert.NotEmpty(Assert.Single(image.Assets).PayloadBytes!);
     }

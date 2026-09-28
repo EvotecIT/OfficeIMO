@@ -12,7 +12,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Structural_probe_recognizes_modern_packages_without_consuming_them(string name) {
         using FileStream stream = File.OpenRead(Fixture(name));
 
-        Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length));
+        Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+            8192, CancellationToken.None));
         Assert.Equal(0, stream.Position);
     }
 
@@ -25,7 +26,24 @@ public sealed partial class IWorkBoundaryTests {
         }
         stream.Position = 0;
 
-        Assert.False(IWorkContainerProbe.HasModernIndex(stream, stream.Length));
+        Assert.False(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+            8192, CancellationToken.None));
+        Assert.Equal(0, stream.Position);
+    }
+
+    [Fact]
+    public void Structural_probe_enforces_entry_limit_before_materializing_archive() {
+        using var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+            using (Stream entry = archive.CreateEntry("metadata.txt").Open()) entry.WriteByte(1);
+            using (Stream entry = archive.CreateEntry("Index/Document.iwa").Open()) entry.WriteByte(1);
+        }
+        stream.Position = 0;
+
+        Assert.False(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+            1, CancellationToken.None));
+        Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
+            2, CancellationToken.None));
         Assert.Equal(0, stream.Position);
     }
 
