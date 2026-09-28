@@ -7,17 +7,18 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal;
 
 internal static partial class OfficeOpenXmlChartSeriesReader {
-    private sealed class LabelLayout {
-        internal bool Values, Categories, SeriesNames, Percentages;
+    internal sealed class LabelLayout {
+        internal bool Values, Categories, SeriesNames, Percentages, LeaderLines;
         internal bool Visible => Values || Categories || SeriesNames || Percentages;
         internal string? Separator, NumberFormat;
         internal OfficeChartDataLabelPosition Position;
         internal bool SameAs(LabelLayout other) => Values == other.Values && Categories == other.Categories &&
             SeriesNames == other.SeriesNames && Percentages == other.Percentages && Separator == other.Separator &&
-            NumberFormat == other.NumberFormat && Position == other.Position;
+            NumberFormat == other.NumberFormat && Position == other.Position &&
+            LeaderLines == other.LeaderLines;
     }
 
-    private static LabelLayout ReadLabels(C.Chart chart) {
+    internal static LabelLayout ReadLabels(C.Chart chart) {
         LabelLayout? selected = null;
         foreach (var layer in chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) ?? Enumerable.Empty<OpenXmlCompositeElement>()) {
@@ -27,6 +28,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             var current = new LabelLayout {
                 Values = LabelFlag<C.ShowValue>(labels), Categories = LabelFlag<C.ShowCategoryName>(labels),
                 SeriesNames = LabelFlag<C.ShowSeriesName>(labels), Percentages = LabelFlag<C.ShowPercent>(labels),
+                LeaderLines = LabelFlag<C.ShowLeaderLines>(labels),
                 Separator = labels?.GetFirstChild<C.Separator>()?.Text,
                 NumberFormat = labels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
                 Position = labels?.GetFirstChild<C.DataLabelPosition>()?.Val?.InnerText switch {
@@ -51,11 +53,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 current.Separator = null;
                 current.NumberFormat = null;
                 current.Position = OfficeChartDataLabelPosition.BestFit;
+                current.LeaderLines = false;
             }
             if (current.Visible && (labels?.Elements<C.DataLabel>().Any() == true || LabelFlag<C.ShowLegendKey>(labels) ||
                 LabelFlag<C.ShowBubbleSize>(labels) ||
-                (LabelFlag<C.ShowLeaderLines>(labels) && layer is C.PieChart or C.DoughnutChart && current.Position == OfficeChartDataLabelPosition.BestFit) ||
-                (LabelFlag<C.ShowLeaderLines>(labels) && current.Position is not OfficeChartDataLabelPosition.BestFit and
+                (current.LeaderLines && layer is C.PieChart or C.DoughnutChart && current.Position == OfficeChartDataLabelPosition.BestFit) ||
+                (current.LeaderLines && !(layer is C.PieChart or C.DoughnutChart && current.Position == OfficeChartDataLabelPosition.OutsideEnd) &&
+                    current.Position is not OfficeChartDataLabelPosition.BestFit and
                     not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd)))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {

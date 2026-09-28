@@ -55,10 +55,15 @@ public static partial class OfficeChartDrawingRenderer {
             : bottomLegendHeight;
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
+        bool outsideLabels = layout.ShowDataLabels && layout.DataLabelPosition == OfficeChartDataLabelPosition.OutsideEnd;
         GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
-            leftLegend, 48D, 36D, out double centerX, out double centerY, out double radius,
+            leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,
+            out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
-        radius /= 1D + GetMaximumRenderableExplosion(values, categories.Count) / 100D;
+        if (outsideLabels) radius = ReserveOutsideRadialLabelGutters(radius, visualWidth);
+        int maximumExplosion = GetMaximumRenderableExplosion(values, categories.Count);
+        radius /= 1D + maximumExplosion / 100D;
+        var outside = new List<RadialOutsideLabel>();
         double start = GetFirstSliceAngle(snapshot.RadialLayout);
         int zeroLabelIndex = 0;
         OfficeColor zeroLabelColor = GetPointDataLabelColor(style, values,
@@ -91,15 +96,25 @@ public static partial class OfficeChartDrawingRenderer {
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddStyledPointPolygon(drawing, points, sliceColor, GetPointStyle(values, i), OfficeColor.White, 0.5D);
                 if (ShouldShowDataLabel(layout, 0, i)) {
-                    AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null, percentageRatio: ratio);
+                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                        value, total, sliceCenterX, sliceCenterY, radius, middle, hasSlice: true,
+                        percentageRatio: ratio);
+                    else AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null, percentageRatio: ratio);
                 }
 
                 start = end;
             } else if (ShouldShowDataLabel(layout, 0, i)) {
-                AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, radius * 0.9D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
+                if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                    0D, total, centerX, centerY, radius, GetFirstSliceAngle(snapshot.RadialLayout), hasSlice: false,
+                    percentageRatio: 0D);
+                else AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, radius * 0.9D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
                 zeroLabelIndex++;
             }
         }
+        if (outsideLabels) AddRadialOutsideLabels(drawing, outside, layout, style,
+            leftLegend ? legendWidth : 0D, leftLegend ? width : width - legendWidth,
+            contentTop, height - categoryBottomLegendHeight, centerX,
+            radius * (1D + maximumExplosion / 100D));
 
         if (layout.OverlayLegend) {
             AddOverlayCategoryLegend(drawing, categories, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, categoryPointColors, values.PointStyles);
@@ -151,13 +166,17 @@ public static partial class OfficeChartDrawingRenderer {
             : bottomLegendHeight;
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
+        bool outsideLabels = layout.ShowDataLabels && layout.DataLabelPosition == OfficeChartDataLabelPosition.OutsideEnd;
         GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
-            leftLegend, 48D, 36D, out double centerX, out double centerY, out double radius,
+            leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,
+            out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
+        if (outsideLabels) radius = ReserveOutsideRadialLabelGutters(radius, visualWidth);
 
         int maximumExplosion = renderableSeries.Max(item =>
             GetMaximumRenderableExplosion(item.Series, categories.Count));
         radius /= 1D + maximumExplosion / 100D;
+        var outside = new List<RadialOutsideLabel>();
         double holeRadius = radius * snapshot.RadialLayout.DoughnutHolePercent / 100D;
         double ringThickness = (radius - holeRadius) / renderableSeries.Count;
         for (int s = 0; s < renderableSeries.Count; s++) {
@@ -187,16 +206,26 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeColor sliceColor = GetPointColor(style, values, i);
                     AddDoughnutSlice(drawing, sliceCenterX, sliceCenterY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
                     if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                        AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, (innerRadius + outerRadius) / 2D, middle, zeroLabelIndex: null, percentageRatio: ratio);
+                        if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                            value, total, sliceCenterX, sliceCenterY, outerRadius, middle, hasSlice: true,
+                            percentageRatio: ratio);
+                        else AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, (innerRadius + outerRadius) / 2D, middle, zeroLabelIndex: null, percentageRatio: ratio);
                     }
 
                     start = end;
                 } else if (s == 0 && ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                    AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, (innerRadius + outerRadius) / 2D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
+                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                        0D, total, centerX, centerY, outerRadius, GetFirstSliceAngle(snapshot.RadialLayout), hasSlice: false,
+                        percentageRatio: 0D);
+                    else AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, (innerRadius + outerRadius) / 2D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
                     zeroLabelIndex++;
                 }
             }
         }
+        if (outsideLabels) AddRadialOutsideLabels(drawing, outside, layout, style,
+            leftLegend ? legendWidth : 0D, leftLegend ? width : width - legendWidth,
+            contentTop, height - categoryBottomLegendHeight, centerX,
+            radius * (1D + maximumExplosion / 100D));
 
         if (layout.OverlayLegend) {
             AddOverlayCategoryLegend(drawing, categories, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout, legendPointColors, legendPointStyles);
