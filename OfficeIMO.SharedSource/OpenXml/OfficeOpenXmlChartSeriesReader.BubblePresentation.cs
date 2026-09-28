@@ -209,9 +209,10 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool HasUnsupportedSharedAxisNumberFormat(
             OpenXmlCompositeElement axis) {
             C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
-            // A linked format can differ from formatCode according to the workbook cell styles.
-            // The shared snapshot has no resolved workbook format, so it cannot claim fidelity.
-            if (numbering?.SourceLinked?.Value == true) return true;
+            // A linked format can differ from formatCode only when the chart has a workbook.
+            // Cache-only producer charts have no source cell style to resolve.
+            if (numbering?.SourceLinked?.Value == true &&
+                axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null) return true;
             string? format = numbering?.FormatCode?.Value;
             if (string.IsNullOrWhiteSpace(format)) return false;
             if (string.Equals(format, "General",

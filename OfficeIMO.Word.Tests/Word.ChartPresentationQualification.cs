@@ -308,6 +308,18 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_AllowsGeneralSourceLinkedFormatWithoutWorkbook() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Line);
+        C.ChartSpace space = chart.ChartPart!.ChartSpace!;
+        space.GetFirstChild<C.ExternalData>()?.Remove();
+        C.ValueAxis axis = space.Descendants<C.ValueAxis>().Single();
+        axis.NumberingFormat!.SourceLinked = true;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeChartKind.Line, snapshot.ChartKind);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
