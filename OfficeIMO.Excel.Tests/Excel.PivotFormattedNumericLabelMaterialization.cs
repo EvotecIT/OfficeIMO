@@ -19,6 +19,10 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-three", "A4:B6", 3, 4, 10d)]
         [InlineData("currency-positive", "A4:B6", 3, 3, 10d)]
         [InlineData("currency-negative", "A4:B6", 3, 3, 10d)]
+        [InlineData("grouped-two-decimal", "A4:B6", 3, 3, 10d)]
+        [InlineData("percent-two-decimal", "A4:B6", 3, 3, 10d)]
+        [InlineData("currency-zero-decimal", "A4:B6", 3, 3, 10d)]
+        [InlineData("parenthesized-negative", "A4:B6", 3, 3, 10d)]
         [InlineData("duplicate-caption-unfiltered", "A4:B8", 5, 4, 60d)]
         [InlineData("duplicate-caption-equals", "A4:B7", 4, 4, 30d)]
         public void Test_PivotFormattedNumericLabel_ImportedViewAndLookupMatchExcel(
@@ -44,7 +48,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(result.Mutation.PackageIsValid,
                     string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 if (NumericLabelFormat(kind) is string format)
-                    Assert.Equal(kind.StartsWith("currency-", StringComparison.Ordinal) ? "\\" + format : format,
+                    Assert.Equal(kind.StartsWith("currency-", StringComparison.Ordinal) ? "\\" + format
+                            : kind == "parenthesized-negative" ? "#,##0.00;\\(#,##0.00\\)" : format,
                         grouped.GetCellStyle(5, 1).NumberFormatCode);
                 if (kind.StartsWith("duplicate-caption-", StringComparison.Ordinal))
                     Assert.Equal("0.0", grouped.GetCellStyle(6, 1).NumberFormatCode);
@@ -76,6 +81,10 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-three", 10d)]
         [InlineData("currency-positive", 10d)]
         [InlineData("currency-negative", 10d)]
+        [InlineData("grouped-two-decimal", 10d)]
+        [InlineData("percent-two-decimal", 10d)]
+        [InlineData("currency-zero-decimal", 10d)]
+        [InlineData("parenthesized-negative", 10d)]
         public void Test_PivotFormattedNumericLabel_TemplateFreePublicApi(string kind, double total) {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-number-{kind}.Authored.xlsx");
             ExcelPivotFilter filter = kind switch {
@@ -90,6 +99,10 @@ namespace OfficeIMO.Tests {
                 "decimal-three" => ExcelPivotFilter.LabelEquals("Item", "1.234"),
                 "currency-positive" => ExcelPivotFilter.LabelEquals("Item", "$1,000.00"),
                 "currency-negative" => ExcelPivotFilter.LabelEquals("Item", "-$1,000.00"),
+                "grouped-two-decimal" => ExcelPivotFilter.LabelEquals("Item", "1,234.50"),
+                "percent-two-decimal" => ExcelPivotFilter.LabelEquals("Item", "12.50%"),
+                "currency-zero-decimal" => ExcelPivotFilter.LabelEquals("Item", "$1,235"),
+                "parenthesized-negative" => ExcelPivotFilter.LabelEquals("Item", "(1,234.50)"),
                 _ => ExcelPivotFilter.LabelNotEquals("Item", "1,000")
             };
             using (var document = ExcelDocument.Create()) {
@@ -104,6 +117,10 @@ namespace OfficeIMO.Tests {
                     : kind == "decimal-three" ? new[] { 1.2344d, 1.2346d, 2.5d }
                     : kind == "currency-positive" ? new[] { 1000d, 2000d }
                     : kind == "currency-negative" ? new[] { -1000d, 2000d }
+                    : kind == "grouped-two-decimal" ? new[] { 1234.5d, 2000d }
+                    : kind == "percent-two-decimal" ? new[] { 0.125d, 0.25d }
+                    : kind == "currency-zero-decimal" ? new[] { 1234.5d, 2000d }
+                    : kind == "parenthesized-negative" ? new[] { -1234.5d, 2000d }
                     : new[] { 10d, 1000d, 2000d };
                 for (int index = 0; index < keys.Length; index++) {
                     source.CellValue(index + 2, 1, keys[index]);
@@ -122,7 +139,8 @@ namespace OfficeIMO.Tests {
                 Assert.False(pivot.PivotFields!.Elements<PivotField>().First().ShowAll!.Value);
                 if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative"
                     or "decimal-two" or "percent-one" or "decimal-midpoint" or "decimal-three"
-                    or "currency-positive" or "currency-negative") {
+                    or "currency-positive" or "currency-negative" or "grouped-two-decimal"
+                    or "percent-two-decimal" or "currency-zero-decimal" or "parenthesized-negative") {
                     var column = pivot.PivotFilters!.Elements<PivotFilter>().Single().AutoFilter!
                         .Elements<FilterColumn>().Single();
                     Assert.Null(column.GetFirstChild<CustomFilters>());
@@ -144,6 +162,10 @@ namespace OfficeIMO.Tests {
             "decimal-midpoint" => "0.0",
             "decimal-three" => "0.000",
             "currency-positive" or "currency-negative" => "$#,##0.00",
+            "grouped-two-decimal" => "#,##0.00",
+            "percent-two-decimal" => "0.00%",
+            "currency-zero-decimal" => "$#,##0",
+            "parenthesized-negative" => "#,##0.00;(#,##0.00)",
             "duplicate-caption-unfiltered" or "duplicate-caption-equals" => "0.0",
             _ => "#,##0"
         };
