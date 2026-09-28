@@ -7,6 +7,10 @@ sets the Complete slice explosion to 25 percent and Pending to zero.
 Both native chart parts contain a point-level `c:explosion val="25"` record.
 The PNGs were exported by Excel from those charts and show the selected
 slice moved away from the center.
+The workbook uses classic chart style 2 with `c:varyColors`; its theme defines
+accent 1 as `156082` and accent 2 as `E97132`. The two reference images show
+those colors on Complete and Pending without explicit point fills in the chart
+parts.
 
 | File | Role | SHA-256 |
 | --- | --- | --- |

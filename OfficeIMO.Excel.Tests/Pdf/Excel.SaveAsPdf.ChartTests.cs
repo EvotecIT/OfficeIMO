@@ -198,6 +198,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPieDoughnutCharts.xlsx");
 
         byte[] bytes;
+        OfficeColor[] sliceColors;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Category");
@@ -218,6 +219,8 @@ public partial class Excel {
             Assert.All(charts, chart => Assert.True(chart.TryGetSnapshot(out _)));
             Assert.Equal(ExcelChartType.Pie, charts[0].ChartType);
             Assert.Equal(ExcelChartType.Doughnut, charts[1].ChartType);
+            Assert.True(charts[0].TryGetSnapshot(out ExcelChartSnapshot pieSnapshot));
+            sliceColors = pieSnapshot.Style!.Palette.Take(3).ToArray();
 
             document.Save();
 
@@ -237,9 +240,11 @@ public partial class Excel {
         Assert.Contains("Non-compliant", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.722 0.353 0.137 rg", rawPdf, StringComparison.Ordinal);
+        foreach (OfficeColor color in sliceColors) {
+            string operation = string.Format(CultureInfo.InvariantCulture, "{0:0.###} {1:0.###} {2:0.###} rg",
+                color.R / 255d, color.G / 255d, color.B / 255d);
+            Assert.Contains(operation, rawPdf, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

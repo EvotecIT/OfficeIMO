@@ -8,6 +8,7 @@ namespace OfficeIMO.Drawing;
 /// Reusable chart style metadata shared by OfficeIMO chart renderers and format exporters.
 /// </summary>
 public sealed class OfficeChartStyle {
+    private IReadOnlyList<OfficeColor> _palette = Array.Empty<OfficeColor>();
     private static readonly OfficeColor[] DefaultPaletteValues = new[] {
         OfficeColor.FromRgb(31, 78, 121),
         OfficeColor.FromRgb(47, 111, 62),
@@ -502,7 +503,7 @@ public sealed class OfficeChartStyle {
             colors.AddRange(DefaultPaletteValues);
         }
 
-        Palette = new ReadOnlyCollection<OfficeColor>(colors);
+        _palette = new ReadOnlyCollection<OfficeColor>(colors);
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Aptos" : fontFamily!;
         BackgroundColor = backgroundColor ?? OfficeColor.FromRgb(250, 252, 255);
         BorderColor = borderColor ?? OfficeColor.FromRgb(183, 194, 207);
@@ -565,7 +566,17 @@ public sealed class OfficeChartStyle {
     public static OfficeChartStyle Default => DefaultStyle;
 
     /// <summary>Series and slice palette.</summary>
-    public IReadOnlyList<OfficeColor> Palette { get; }
+    public IReadOnlyList<OfficeColor> Palette => _palette;
+
+    /// <summary>Returns a style with a replacement series and slice palette.</summary>
+    public OfficeChartStyle WithPalette(IEnumerable<OfficeColor> palette) {
+        if (palette == null) throw new ArgumentNullException(nameof(palette));
+        var colors = new List<OfficeColor>(palette);
+        if (colors.Count == 0) throw new ArgumentException("Palette cannot be empty.", nameof(palette));
+        var copy = (OfficeChartStyle)MemberwiseClone();
+        copy._palette = new ReadOnlyCollection<OfficeColor>(colors);
+        return copy;
+    }
 
     /// <summary>Chart text font family.</summary>
     public string FontFamily { get; }

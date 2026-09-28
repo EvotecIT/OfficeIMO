@@ -7,7 +7,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartStyle ReadStyle(C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null) {
+        internal static OfficeChartStyle ReadStyle(DocumentFormat.OpenXml.Packaging.ChartPart chartPart, C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null,
+            int radialPointCount = 0) {
             if (chart.Parent?.GetFirstChild<C.RoundedCorners>()?.Val?.Value == true)
                 throw new NotSupportedException("Rounded native chart frames cannot be projected.");
             if (chart.GetFirstChild<C.Legend>()?.Elements<C.LegendEntry>().Any(entry => entry.GetFirstChild<C.TextProperties>() != null) == true)
@@ -51,7 +52,12 @@ namespace OfficeIMO.OpenXml.Internal {
             var valueGrid = ReadSurface(valueMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
             var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
             var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
-            return new OfficeChartStyle(fontFamily: textStyle?.FontFamily, titleFontFamily: textStyle?.TitleFontFamily,
+            C.PieChartSeries? radialSeries = kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
+                ? plot?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
+            OfficeColor[]? radialPalette = radialSeries == null ? null :
+                OfficeOpenXmlThemeColorResolver.ReadRadialPalette(chartPart, radialSeries, radialPointCount, scheme);
+            return new OfficeChartStyle(palette: radialPalette,
+                fontFamily: textStyle?.FontFamily, titleFontFamily: textStyle?.TitleFontFamily,
                 titleFontSize: titleText.Size, titleFontStyle: titleText.Style, titleColor: titleText.Color,
                 legendTextColor: legendText.Color, mutedTextColor: axisText.Color, axisTitleColor: axisTitleText.Color,
                 legendBackgroundColor: legendSurface.NoFill ? null : legendSurface.Fill,

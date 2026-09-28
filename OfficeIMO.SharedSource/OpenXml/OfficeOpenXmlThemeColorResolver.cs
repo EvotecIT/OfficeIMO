@@ -1,7 +1,12 @@
 using System;
+using System.Linq;
+using System.Xml;
+using System.Xml.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal;
 
@@ -14,6 +19,64 @@ internal static class OfficeOpenXmlThemeColorResolver {
         "FFFFFF", "000000", "EEECE1", "1F497D", "4F81BD", "C0504D",
         "9BBB59", "8064A2", "4BACC6", "F79646", "0000FF", "800080"
     };
+
+    /// <summary>Reads a bounded radial palette from a modern color style or classic style 2.</summary>
+    internal static OfficeColor[]? ReadRadialPalette(ChartPart chartPart, OpenXmlCompositeElement series,
+        int pointCount, A.ColorScheme? scheme) {
+        if (scheme == null || pointCount < 1 || pointCount > 6 ||
+            series.Parent is not C.PieChart and not C.DoughnutChart ||
+            series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
+            varyColors.Val?.Value == false)
+            return null;
+        ChartColorStylePart? colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault();
+        if (colorStylePart != null)
+            return ReadModernRadialPalette(colorStylePart, pointCount, scheme);
+        if (chartPart.GetPartsOfType<ChartStylePart>().Any()) return null;
+        C.Style? style = series.Ancestors<C.ChartSpace>().FirstOrDefault()?
+            .Descendants<C.Style>().FirstOrDefault();
+        if (style != null && style.Val?.Value != 2)
+            return null;
+        var colors = new OfficeColor[pointCount];
+        for (int index = 0; index < pointCount; index++) {
+            OfficeColor? color = ResolveSchemeColor(scheme, "accent" + (index + 1));
+            if (!color.HasValue) return null;
+            colors[index] = color.Value;
+        }
+        return colors;
+    }
+
+    private static OfficeColor[]? ReadModernRadialPalette(ChartColorStylePart part,
+        int pointCount, A.ColorScheme scheme) {
+        const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
+        const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
+        try {
+            using var stream = part.GetStream();
+            using var reader = XmlReader.Create(stream, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 131072
+            });
+            XElement? root = XDocument.Load(reader).Root;
+            if (root?.Name != XName.Get("colorStyle", chartStyleNamespace) ||
+                (string?)root.Attribute("meth") != "cycle") return null;
+            XElement? firstVariation = root.Elements(XName.Get("variation", chartStyleNamespace)).FirstOrDefault();
+            if (firstVariation is { HasElements: true }) return null;
+            XElement[] entries = root.Elements().Where(element => element.Name.NamespaceName == drawingNamespace)
+                .Take(pointCount + 1).ToArray();
+            if (entries.Length < pointCount) return null;
+            var colors = new OfficeColor[pointCount];
+            for (int index = 0; index < pointCount; index++) {
+                XElement entry = entries[index];
+                if (entry.Name != XName.Get("schemeClr", drawingNamespace) || entry.HasElements) return null;
+                OfficeColor? color = ResolveSchemeColor(scheme, (string?)entry.Attribute("val"));
+                if (!color.HasValue) return null;
+                colors[index] = color.Value;
+            }
+            return colors;
+        } catch (XmlException) {
+            return null;
+        }
+    }
 
     internal static OfficeColor? ResolveColor(
         OpenXmlElement? container,

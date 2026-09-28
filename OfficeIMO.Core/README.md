@@ -660,6 +660,11 @@ outer ring. Disable leaders if labeled inner rings would send lines through oute
 Imported Word, PowerPoint and Excel charts retain that native line setting in
 their static chart snapshots. A frame too narrow or short to fit every outside
 label reports an unsupported layout instead of overlapping or dropping labels.
+For imported pie and doughnut charts, the first six `varyColors` points use
+the document theme colors from a direct, untransformed modern chart color
+style, or theme accents for an unstyled/classic style 2 chart. Native point
+fills take precedence. Transformed color styles and longer sequences still
+need producer-specific proof.
 
 ### Load first-party font programs for renderers
 

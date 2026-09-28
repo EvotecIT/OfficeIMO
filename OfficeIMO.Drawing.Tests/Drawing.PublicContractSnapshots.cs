@@ -59,6 +59,19 @@ public sealed class DrawingPublicContractSnapshotTests {
     }
 
     [Fact]
+    public void ChartStylePaletteCopyPreservesOtherAppearanceAndDoesNotMutateSource() {
+        var original = new OfficeChartStyle(fontFamily: "Arial", showBorder: false);
+        var colors = new[] { OfficeColor.Red, OfficeColor.Blue };
+        OfficeChartStyle copy = original.WithPalette(colors);
+        colors[0] = OfficeColor.Black;
+        Assert.Equal(OfficeColor.Red, copy.Palette[0]);
+        Assert.Equal(OfficeChartStyle.Default.Palette, original.Palette);
+        Assert.False(typeof(OfficeChartStyle).GetProperty(nameof(OfficeChartStyle.Palette))!.CanWrite);
+        Assert.Equal("Arial", copy.FontFamily);
+        Assert.False(copy.ShowBorder);
+    }
+
+    [Fact]
     public void ChartAppearanceRetainsCompiledConstructorSignatures() {
         Assert.Contains(typeof(OfficeChartPointStyle).GetConstructors(), ctor => ctor.GetParameters().Length == 7);
         Assert.Contains(typeof(OfficeChartStyle).GetConstructors(), ctor => ctor.GetParameters().Length == 53);

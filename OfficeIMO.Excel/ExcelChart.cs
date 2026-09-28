@@ -151,7 +151,7 @@ namespace OfficeIMO.Excel {
                     GetAnchorOffsetYPixels(),
                     anchorWidthPixels,
                     anchorHeightPixels,
-                    CreateImageExportStyle(),
+                    CreateImageExportStyle(data.Categories.Count),
                     CreateImageExportLayout(),
                     CreateImageExportDiagnostics(),
                     RadialLayout);

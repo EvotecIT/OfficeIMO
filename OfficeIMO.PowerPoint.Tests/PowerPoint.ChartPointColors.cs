@@ -184,6 +184,25 @@ namespace OfficeIMO.Tests {
         [Theory]
         [InlineData(OfficeChartKind.Pie)]
         [InlineData(OfficeChartKind.Doughnut)]
+        public void ModernRadialChartProjectsDirectThemeColorStyle(OfficeChartKind kind) {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(kind,
+                new OfficeChartData(new[] { "A", "B" }, new[] {
+                    new OfficeChartSeries("Values", new[] { 3d, 2d })
+                }), 1, 1, 20, 10);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            string first = presentation.OpenXmlDocument.PresentationPart.ThemePart!.Theme.ThemeElements!
+                .ColorScheme!.GetFirstChild<A.Accent1Color>()!.GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!;
+            string second = presentation.OpenXmlDocument.PresentationPart.ThemePart.Theme.ThemeElements
+                .ColorScheme.GetFirstChild<A.Accent2Color>()!.GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!;
+            OfficeColor[] expected = new[] { first, second }.Select(OfficeColor.Parse).ToArray();
+            Assert.Equal(expected, snapshot.Style.Palette.Take(2));
+            Assert.Null(snapshot.Data.Series.Single().PointColors);
+        }
+
+        [Theory]
+        [InlineData(OfficeChartKind.Pie)]
+        [InlineData(OfficeChartKind.Doughnut)]
         [InlineData(OfficeChartKind.ColumnClustered)]
         public void PointColors_AppearInSlidePngAndRenderedPdf(OfficeChartKind kind) {
             using PowerPointPresentation authored = PowerPointPresentation.Create();

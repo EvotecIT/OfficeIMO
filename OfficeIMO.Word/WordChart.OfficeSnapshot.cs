@@ -42,7 +42,8 @@ public partial class WordChart {
                 !textReader.TryReadAxisTitleTypeface(chart, OfficeOpenXmlChartTextReader.ReadChartDefaultTypeface(chart), out var axisTitleFont)) return false;
             OfficeChartData officeData = data.ToData();
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, GetWidthPoints(), GetHeightPoints(),
-                OfficeOpenXmlChartSeriesReader.ReadStyle(chart, kind, scheme, textStyle), OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
+                OfficeOpenXmlChartSeriesReader.ReadStyle(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
+                OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
             return true;
         } catch {
