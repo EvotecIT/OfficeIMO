@@ -156,15 +156,19 @@ namespace OfficeIMO.PowerPoint {
             OfficeChartLayout layout = snapshot.Layout;
             foreach (OfficeChartSeries series in snapshot.Data.Series) {
                 OfficeChartKind kind = series.RenderKind ?? snapshot.ChartKind;
+                double? valueMinimum = series.AxisGroup == OfficeChartAxisGroup.Secondary
+                    ? layout.SecondaryValueAxis?.Minimum : layout.VerticalAxisMinimum;
+                double? valueMaximum = series.AxisGroup == OfficeChartAxisGroup.Secondary
+                    ? layout.SecondaryValueAxis?.Maximum : layout.VerticalAxisMaximum;
                 bool lineOrArea = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
                     OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
                 bool numericPoints = kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble;
                 if (!lineOrArea && !numericPoints) continue;
                 if (kind is OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
                     OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100 &&
-                    (layout.VerticalAxisMinimum.HasValue || layout.VerticalAxisMaximum.HasValue)) return true;
-                if (kind == OfficeChartKind.Area && IsOutside(0D, layout.VerticalAxisMinimum, layout.VerticalAxisMaximum)) return true;
-                if (series.Values.Any(value => IsOutside(value, layout.VerticalAxisMinimum, layout.VerticalAxisMaximum))) return true;
+                    (valueMinimum.HasValue || valueMaximum.HasValue)) return true;
+                if (kind == OfficeChartKind.Area && IsOutside(0D, valueMinimum, valueMaximum)) return true;
+                if (series.Values.Any(value => IsOutside(value, valueMinimum, valueMaximum))) return true;
                 if (numericPoints && (layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue) &&
                     (series.XValues == null || series.XValues.Any(value => IsOutside(value, layout.HorizontalAxisMinimum, layout.HorizontalAxisMaximum)))) return true;
             }

@@ -130,7 +130,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, kind, data);
+                    snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, kind, data);
+                    snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -154,7 +154,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, kind, data);
+                    snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -165,7 +165,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Radar, data);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Radar, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -176,7 +176,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Scatter, data);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Scatter, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -205,7 +205,7 @@ namespace OfficeIMO.PowerPoint {
                             ? OfficeChartBubbleSizeMode.Width
                             : OfficeChartBubbleSizeMode.Area;
                     snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Bubble, data,
-                        bubbleSizeMode, bubbleScale);
+                        bubbleSizeMode, bubbleScale, forDataUpdate);
                     return true;
                 }
 
@@ -216,7 +216,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -227,7 +227,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -267,7 +267,7 @@ namespace OfficeIMO.PowerPoint {
                 .ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(element => element.LocalName == "ser"), kind, colorScheme, forDataUpdate: forDataUpdate);
             if (data == null) return false;
-            snapshot = CreateSnapshot(chart, kind, data);
+            snapshot = CreateSnapshot(chart, kind, data, forDataUpdate: forDataUpdate);
             return true;
         }
 
@@ -389,7 +389,7 @@ namespace OfficeIMO.PowerPoint {
 
             if (series.Where(item => item.SourceOrder.HasValue).GroupBy(item => item.SourceOrder).Any(group => group.Count() > 1)) return false;
             snapshot = CreateSnapshot(chart, parts[0].Kind, new PowerPointChartData(categories,
-                series.OrderBy(item => item.SourceOrder ?? uint.MaxValue)));
+                series.OrderBy(item => item.SourceOrder ?? uint.MaxValue)), forDataUpdate: forDataUpdate);
             return true;
         }
 
@@ -410,7 +410,7 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,
             PowerPointChartSnapshotKind kind, PowerPointChartData data,
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
-            double bubbleScalePercent = 100D) {
+            double bubbleScalePercent = 100D, bool forDataUpdate = false) {
             HashSet<uint> hiddenLegendSeries = GetHiddenLegendSeriesIndexes(chart);
             bool hasLegend = chart.GetFirstChild<C.Legend>() != null;
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
@@ -432,13 +432,13 @@ namespace OfficeIMO.PowerPoint {
                 HeightPoints,
                 bubbleSizeMode,
                 bubbleScalePercent,
-                ReadChartLayout(chart, kind),
+                ReadChartLayout(chart, kind, forDataUpdate),
                 ReadSharedTextStyle(chart),
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 
         private OfficeChartLayout ReadChartLayout(
-            C.Chart chart, PowerPointChartSnapshotKind kind) {
+            C.Chart chart, PowerPointChartSnapshotKind kind, bool forDataUpdate) {
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.LegendPositionValues? nativePosition =
                 legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
@@ -569,7 +569,8 @@ namespace OfficeIMO.PowerPoint {
                 horizontalAxisMinorTickMark: horizontalMinorTickMark,
                 verticalAxisMinorTickMark: verticalMinorTickMark,
                 axisTitleFontFamily: axisTitleFont)
-                .WithSecondaryValueAxis(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea));
+                .WithSecondaryValueAxis(forDataUpdate ? null :
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea));
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(
