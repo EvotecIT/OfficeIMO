@@ -14,7 +14,7 @@ public partial class WordChart {
     }
 
     // Literal slice appends must use logical cache positions, not the number of stored points.
-    // A missing point is a gap, and category/value caches must describe the same positions.
+    // A missing point is a gap; category and value caches can omit different positions.
     private void PrepareLiteralSliceAppend(string category, bool doughnut) {
         _chart ??= _chartPart?.ChartSpace?.GetFirstChild<Chart>();
         if (_chart == null) {
@@ -44,10 +44,10 @@ public partial class WordChart {
         OpenXmlCompositeElement? categoryLiteral = (OpenXmlCompositeElement?)categories?.GetFirstChild<StringLiteral>() ??
             categories?.GetFirstChild<NumberLiteral>();
         NumberLiteral? valueLiteral = values?.GetFirstChild<NumberLiteral>();
-        (uint categoryLength, HashSet<uint> categoryIndexes) = ReadLiteralSlicePositions(categoryLiteral);
-        (uint valueLength, HashSet<uint> valueIndexes) = ReadLiteralSlicePositions(valueLiteral);
-        if (categoryLength != valueLength || !categoryIndexes.SetEquals(valueIndexes))
-            throw new InvalidOperationException("Slice category and value caches must have aligned logical positions.");
+        uint categoryLength = ReadLiteralSliceLength(categoryLiteral);
+        uint valueLength = ReadLiteralSliceLength(valueLiteral);
+        if (categoryLength != valueLength)
+            throw new InvalidOperationException("Slice category and value caches must have equal logical lengths.");
         if (categoryLength >= MaxCachedChartPoints)
             throw new InvalidOperationException("Slice caches must contain fewer than 10000 logical points before appending.");
         if (categoryLiteral is NumberLiteral && !IsNumericSliceCategory(category))
@@ -60,12 +60,12 @@ public partial class WordChart {
         double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
         !double.IsNaN(number) && !double.IsInfinity(number);
 
-    private static (uint Length, HashSet<uint> Indexes) ReadLiteralSlicePositions(OpenXmlCompositeElement? literal) {
+    private static uint ReadLiteralSliceLength(OpenXmlCompositeElement? literal) {
         var indexes = new HashSet<uint>();
         uint length = literal?.GetFirstChild<PointCount>()?.Val?.Value ?? 0U;
         if (length > MaxCachedChartPoints)
             throw new InvalidOperationException("Slice cache exceeds the supported logical point count.");
-        if (literal == null) return (length, indexes);
+        if (literal == null) return length;
         int stored = 0;
         foreach (OpenXmlElement point in literal.ChildElements) {
             if (!(point is StringPoint) && !(point is NumericPoint)) continue;
@@ -76,6 +76,6 @@ public partial class WordChart {
                 throw new InvalidOperationException("Slice cache contains an invalid or duplicate point index.");
             length = Math.Max(length, index.Value + 1U);
         }
-        return (length, indexes);
+        return length;
     }
 }
