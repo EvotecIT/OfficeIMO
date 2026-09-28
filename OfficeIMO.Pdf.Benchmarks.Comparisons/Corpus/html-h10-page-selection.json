@@ -315,7 +315,7 @@
     {
       "id": "nist-si-guide-chapter-4",
       "sourceClass": "long-scientific-tables",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-28",
       "url": "https://www.nist.gov/pml/special-publication-811/nist-guide-si-chapter-4-two-classes-si-units-and-si-prefixes",
       "rightsUrl": "https://www.nist.gov/copyrights-disclaimers",
@@ -334,7 +334,7 @@
         {"target": "RTF", "profile": "editable scientific chapter", "inspect": ["headings", "table rows and cells", "symbols and links", "saved and reopened content"]},
         {"target": "Markdown", "profile": "semantic text and tables", "inspect": ["section hierarchy", "five unit and prefix tables", "symbols and links", "serialized and reparsed content"]}
       ],
-      "reason": "An independently authored federal guide with multi-column scientific tables, symbols and long prose on a new publisher. Source content, reuse policy and HTTP 200 were checked before any OfficeIMO capture or output inspection."
+      "reason": "An independently authored federal guide with multi-column scientific tables, symbols and long prose on a new publisher. Source content, reuse policy and HTTP 200 were checked before any OfficeIMO capture or output inspection. Its first editable replay exposed and drove an OneNote native table fix, so it now serves as development evidence rather than a held-out acceptance page."
     },
     {
       "id": "noaa-nos-hydrography",
@@ -359,6 +359,30 @@
         {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and credits", "link destinations", "serialized and reparsed content"]}
       ],
       "reason": "A NOAA illustrated explanation on a new host with two credited media surfaces and substantial prose. Source content, reuse policy and HTTP 200 were checked before any OfficeIMO capture or output inspection."
+    },
+    {
+      "id": "nasa-solar-system-terrestrial-planets",
+      "sourceClass": "planetary-data-table",
+      "role": "held-out",
+      "selectionDate": "2026-09-28",
+      "url": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
+      "rightsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "rightsNotes": "NASA-authored text and media can generally be used under NASA's media guidelines; identify third-party credits, protect NASA identifiers, keep the full archive in ignored local evidence, and do not imply endorsement.",
+      "requiredVisibleMarkers": ["The Terrestrial Planets", "Mean distance from Sun", "Equatorial radius", "The Jovian Planets", "Satellites of the Jovian Planets"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["chapter and section order", "terrestrial planet data table with labels and values", "row and column integrity at page boundaries", "credited figures and links"]},
+        {"intent": "screen-media-pagination", "inspect": ["planet table width and cells", "section flow", "figure placement"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation and clipped content", "visible navigation and figures"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable science chapter", "inspect": ["section headings", "planet table labels and values", "figures and links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed planetary data table", "inspect": ["planet values in separate columns", "numeric and textual cell values", "saved and reopened cells"]},
+        {"target": "PowerPoint", "profile": "editable chapter slides", "inspect": ["ordered sections", "readable non-overlapping table", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic chapter", "inspect": ["section order", "table cells and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable science chapter", "inspect": ["headings", "table rows and cells", "figures and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text and table", "inspect": ["section hierarchy", "planet data rows and values", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "A NASA-hosted chapter with a five-column planetary comparison table, long science prose and credited figures. It was selected and given acceptance criteria after the NIST page became a development regression, before this page was captured or converted. The source and NASA media-guideline pages were reachable at selection."
     }
   ]
 }
