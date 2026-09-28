@@ -25,6 +25,13 @@ public enum OfficeChartHatchPattern {
 /// explicit no-fill and hidden outlines are distinct from inheritance.
 /// </summary>
 public sealed class OfficeChartPointStyle {
+    /// <summary>Creates a point style with the original fill, hatch, and outline options.</summary>
+    public OfficeChartPointStyle(OfficeColor? fillColor, bool noFill,
+        OfficeChartHatchPattern? hatch, OfficeColor? hatchColor,
+        OfficeColor? outlineColor, double? outlineWidth, bool? showOutline)
+        : this(fillColor, noFill, hatch, hatchColor, outlineColor, outlineWidth, showOutline, null) {
+    }
+
     /// <summary>Creates a point style with optional solid fill, hatch, or outline overrides.</summary>
     /// <param name="fillColor">Solid fill, or the hatch background. Null inherits the point colour for solid fills and uses white for hatches.</param>
     /// <param name="noFill">Suppress the fill instead of inheriting a colour.</param>

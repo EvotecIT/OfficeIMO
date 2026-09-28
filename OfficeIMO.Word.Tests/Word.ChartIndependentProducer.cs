@@ -28,11 +28,45 @@ public sealed class WordChartIndependentProducerTests {
         var rendered = document.ExportImage(OfficeImageExportFormat.Png,
             new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true, RequireNoFailures = true } });
         Assert.NotEmpty(rendered.Bytes);
+        string referencePath = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "LibreOffice", "status-pie-docx-reference.png");
+        Assert.True(OfficePngReader.TryDecode(File.ReadAllBytes(referencePath), out OfficeRasterImage? reference));
+        Assert.True(OfficePngReader.TryDecode(rendered.Bytes, out OfficeRasterImage? actual));
+        // Page placement differs between LibreOffice and OfficeIMO, so compare
+        // the distinctive colour and hatch evidence rather than raw page pixels.
+        Assert.True(CountColour(reference!, "#228844") > 1000);
+        Assert.True(CountColour(actual!, "#228844") > 1000);
+        Assert.True(CountWarmHatch(reference!) > 50);
+        Assert.True(CountWarmHatch(actual!) > 50);
+        Assert.True(CountColour(reference!, "#445566") > 50);
+        Assert.True(CountColour(actual!, "#445566") > 50);
         Assert.Equal(nativeXml, chart.ChartPart.ChartSpace.OuterXml);
 
         using var package = document.ToStream();
         using WordDocument reopened = WordDocument.Load(package);
         Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out var second));
         Assert.Equal(OfficeChartHatchPattern.WideForwardDiagonal, second.Data.Series[0].PointStyles![1]!.Hatch);
+    }
+
+    private static int CountColour(OfficeRasterImage image, string hex) {
+        OfficeColor target = OfficeColor.Parse(hex);
+        int count = 0;
+        for (int y = 0; y < image.Height; y++)
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                if (Math.Abs(pixel.R - target.R) <= 30 && Math.Abs(pixel.G - target.G) <= 30 &&
+                    Math.Abs(pixel.B - target.B) <= 30) count++;
+            }
+        return count;
+    }
+
+    private static int CountWarmHatch(OfficeRasterImage image) {
+        int count = 0;
+        for (int y = 0; y < image.Height; y++)
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                if (pixel.R > 190 && pixel.R > pixel.G + 20 && pixel.G > 80 &&
+                    pixel.G > pixel.B + 20) count++;
+            }
+        return count;
     }
 }

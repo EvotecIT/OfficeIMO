@@ -8,6 +8,23 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartPresentationQualificationTests {
+    [Fact]
+    public void Snapshot_AcceptsEmptyTitleShapeProperties() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.ColumnClustered);
+        chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.Title!.AddChild(new C.ChartShapeProperties(), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsUnrepresentedLegendOutlineJoin() {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.ColumnClustered);
+        chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.Legend!.AddChild(
+            new C.ChartShapeProperties(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "445566" }), new A.Round())), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Area)]

@@ -75,6 +75,7 @@ public class WordChartSeriesQualificationTests {
     [InlineData(true, "compound")]
     [InlineData(true, "customDash")]
     [InlineData(true, "marker")]
+    [InlineData(true, "miterLimit")]
     public void Snapshot_RejectsUnrepresentedNativeAppearance(bool point, string appearance) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(appearance == "marker" ? OfficeChartKind.Line : OfficeChartKind.ColumnClustered,
@@ -85,6 +86,7 @@ public class WordChartSeriesQualificationTests {
         if (appearance == "noFill") properties.Append(new A.NoFill());
         if (appearance == "compound") properties.Append(new A.Outline { CompoundLineType = A.CompoundLineValues.Double });
         if (appearance == "customDash") properties.Append(new A.Outline(new A.CustomDash()));
+        if (appearance == "miterLimit") properties.Append(new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "445566" }), new A.Miter { Limit = 500000 }));
         if (point) {
             var item = new C.DataPoint(new C.Index { Val = 0 });
             if (appearance == "marker") item.Append(new C.Marker(new C.Symbol { Val = C.MarkerStyleValues.Picture }));

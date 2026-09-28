@@ -12,6 +12,19 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartPointStylesTests {
     [Fact]
+    public void PointOutlineJoinSurvivesSemanticHtmlRoundTrip() {
+        var outline = new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black,
+            outlineWidth: 2, outlineJoin: OfficeStrokeLineJoin.Round);
+        using PowerPointPresentation authored = PowerPointPresentation.Create();
+        authored.AddSlide().AddChartPoints(OfficeChartKind.Pie,
+            Data(OfficeChartKind.Pie, new OfficeChartPointStyle?[] { outline, null, null }), 20, 20, 600, 320);
+        using PowerPointPresentation htmlReopened = OfficeIMO.Html.HtmlConversionDocument.Parse(authored.ToHtml())
+            .ToPowerPointPresentation();
+        Assert.True(htmlReopened.Slides.Single().Charts.Single().TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeStrokeLineJoin.Round, snapshot.Data.Series[0].PointStyles![0]!.OutlineJoin);
+    }
+
+    [Fact]
     public void PointStyles_WidthOnlyColumnOutlineMatchesDirectAndReopenedRendering() {
         var data = Data(OfficeChartKind.ColumnClustered, new OfficeChartPointStyle?[] {
             new(outlineWidth: 2), null, null });
