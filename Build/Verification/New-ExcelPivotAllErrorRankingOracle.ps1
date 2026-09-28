@@ -9,6 +9,7 @@ $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $targetDirectory = if ($OutputDirectory) { $OutputDirectory }
     else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus/AllErrorRanking' }
 New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
+$targetDirectory = (Resolve-Path -LiteralPath $targetDirectory).Path
 $mutex = [Threading.Mutex]::new($false, 'Local\OfficeIMO.Excel.Tests.DesktopCom')
 $acquired = $false
 $existingExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue | ForEach-Object Id)
