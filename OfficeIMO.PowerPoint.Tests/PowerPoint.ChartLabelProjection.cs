@@ -55,6 +55,12 @@ public sealed class PowerPointChartLabelProjectionTests {
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeColor.White, snapshot.Style.DataLabelTextColor);
+        part.ChartSpace.GetFirstChild<C.TextProperties>()?.Remove();
+        part.ChartSpace.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
+                new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Text1 }))))), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out snapshot));
+        Assert.Equal(OfficeColor.White, snapshot.Style.DataLabelTextColor);
         Assert.Empty(presentation.ValidateDocument());
     }
 

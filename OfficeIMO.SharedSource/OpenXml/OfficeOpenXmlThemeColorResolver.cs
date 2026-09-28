@@ -189,10 +189,11 @@ internal static class OfficeOpenXmlThemeColorResolver {
     internal static OfficeColor? ResolveColor(
         OpenXmlElement? container,
         A.ColorScheme? colorScheme,
-        OpenXmlElement? placeholderColor = null) {
+        OpenXmlElement? placeholderColor = null,
+        OpenXmlElement? colorMap = null) {
         OpenXmlElement? colorElement = FindColorElement(container);
         return ResolveColorElement(colorElement, colorScheme,
-            FindColorElement(placeholderColor));
+            FindColorElement(placeholderColor), colorMap);
     }
 
     internal static bool HasUnsupportedTransforms(OpenXmlElement? container) {
@@ -261,7 +262,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
     private static OfficeColor? ResolveColorElement(
         OpenXmlElement? colorElement,
         A.ColorScheme? colorScheme,
-        OpenXmlElement? placeholderColor) {
+        OpenXmlElement? placeholderColor,
+        OpenXmlElement? colorMap = null) {
         if (colorElement == null) {
             return null;
         }
@@ -278,9 +280,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
         } else if (colorElement is A.SchemeColor schemeColor) {
             string? scheme = GetSchemeValue(schemeColor);
             if (IsPlaceholderScheme(scheme)) {
-                color = ResolveColorElement(placeholderColor, colorScheme, null);
+                color = ResolveColorElement(placeholderColor, colorScheme, null, colorMap);
             } else {
-                color = ResolveSchemeColor(colorScheme, scheme);
+                color = ResolveSchemeColor(colorScheme, scheme == null ? null : MapSchemeColor(scheme, colorMap));
             }
         } else if (colorElement is A.PresetColor presetColor) {
             color = OfficeColor.TryParse(presetColor.Val?.Value.ToString(), out OfficeColor preset)
