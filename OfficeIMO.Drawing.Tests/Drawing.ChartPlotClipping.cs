@@ -7,6 +7,30 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPlotClippingTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void FiniteExtremeScatterKeepsConnectedLineFromUpperBoundary(bool reverse) {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        double[] x = reverse ? new[] { .5d, double.MaxValue } : new[] { double.MaxValue, .5d };
+        double[] y = reverse ? new[] { .5d, double.MaxValue } : new[] { double.MaxValue, .5d };
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", y, x, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 1);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
+            item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == ink));
+        OfficeDrawingShape line = Assert.Single(group.Drawing.Shapes,
+            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+        Assert.True(line.Shape.Width > group.ClipPath.Width * .45d);
+        Assert.True(line.Shape.Height > group.ClipPath.Height * .45d);
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Area)]
     [InlineData(OfficeChartKind.Scatter)]
