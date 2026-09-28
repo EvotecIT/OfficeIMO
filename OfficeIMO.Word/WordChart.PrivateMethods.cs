@@ -82,10 +82,12 @@ namespace OfficeIMO.Word {
             CategoryAxisData categoryAxis = InitializeCategoryAxisData();
 
             if (categoryAxis.GetFirstChild<NumberLiteral>() is NumberLiteral numericCategories) {
-                AppendLiteralSlicePoint(numericCategories, new NumericPoint {
+                var numericPoint = new NumericPoint {
                     Index = _currentIndexCategory,
                     NumericValue = new NumericValue { Text = category }
-                });
+                };
+                AppendLiteralSlicePoint(numericCategories, numericPoint);
+                _lastAppendedCategoryPoint = numericPoint;
                 PointCount? count = numericCategories.GetFirstChild<PointCount>();
                 if (count != null) count.Val = _currentIndexCategory + 1;
                 else numericCategories.AddChild(new PointCount { Val = _currentIndexCategory + 1 }, true);
@@ -98,7 +100,9 @@ namespace OfficeIMO.Word {
                 stringLiteral = new StringLiteral();
                 categoryAxis.Append(stringLiteral);
             }
-            AppendLiteralSlicePoint(stringLiteral, new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } });
+            var stringPoint = new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } };
+            AppendLiteralSlicePoint(stringLiteral, stringPoint);
+            _lastAppendedCategoryPoint = stringPoint;
             // Update the PointCount
             PointCount? pointCount = stringLiteral.GetFirstChild<PointCount>();
             if (pointCount != null) {
@@ -134,7 +138,9 @@ namespace OfficeIMO.Word {
                               data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
                               data?.ToString() ?? "0";
 
-            AppendLiteralSlicePoint(literal, new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
+            var valuePoint = new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } };
+            AppendLiteralSlicePoint(literal, valuePoint);
+            _lastAppendedValuePoint = valuePoint;
             // Update the PointCount
             PointCount? pointCount = literal.GetFirstChild<PointCount>();
             if (pointCount != null) {

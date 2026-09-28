@@ -13,6 +13,26 @@ public sealed class WordChartLiteralSliceTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
+    public void RepeatedSliceAppendsKeepAlignedNativeCaches(int family) {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        for (int index = 0; index < 256; index++)
+            Append(chart, family, index.ToString(), index + 1);
+
+        PieChartSeries series = chart.ChartPart!.ChartSpace.Descendants<PieChartSeries>().Single();
+        StringLiteral categories = series.GetFirstChild<CategoryAxisData>()!.GetFirstChild<StringLiteral>()!;
+        NumberLiteral values = series.GetFirstChild<Values>()!.GetFirstChild<NumberLiteral>()!;
+        Assert.Equal(256U, categories.GetFirstChild<PointCount>()!.Val!.Value);
+        Assert.Equal(256U, values.GetFirstChild<PointCount>()!.Val!.Value);
+        Assert.Equal(255U, categories.Elements<StringPoint>().Last().Index!.Value);
+        Assert.Equal(255U, values.Elements<NumericPoint>().Last().Index!.Value);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
     public void SliceAppend_CreatesMissingDataSourcesBeforeSeriesExtensions(int family) {
         using WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart();

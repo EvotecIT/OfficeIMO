@@ -6,11 +6,20 @@ using DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Word;
 
 public partial class WordChart {
+    private Chart? _validatedSliceChart;
+    private OpenXmlCompositeElement? _validatedSliceFamily;
+    private OpenXmlCompositeElement? _validatedCategoryLiteral;
+    private NumberLiteral? _validatedValueLiteral;
+    private OpenXmlElement? _lastAppendedCategoryPoint;
+    private NumericPoint? _lastAppendedValuePoint;
+    private bool _validatedDoughnutFamily;
+
     private static void AppendLiteralSlicePoint(OpenXmlCompositeElement literal, OpenXmlElement point) {
-        OpenXmlElement? extensions = literal.ChildElements.FirstOrDefault(element =>
-            element is ExtensionList || element is StrDataExtensionList);
-        if (extensions == null) literal.Append(point);
-        else literal.InsertBefore(point, extensions);
+        // The extension list is the final schema child. Checking the tail keeps
+        // each append constant-time even for large authored literal charts.
+        OpenXmlElement? last = literal.LastChild;
+        if (last is not ExtensionList && last is not StrDataExtensionList) literal.Append(point);
+        else literal.InsertBefore(point, last);
     }
 
     // Literal slice appends must use logical cache positions, not the number of stored points.
@@ -44,6 +53,20 @@ public partial class WordChart {
         OpenXmlCompositeElement? categoryLiteral = (OpenXmlCompositeElement?)categories?.GetFirstChild<StringLiteral>() ??
             categories?.GetFirstChild<NumberLiteral>();
         NumberLiteral? valueLiteral = values?.GetFirstChild<NumberLiteral>();
+        uint nextCategory = _currentIndexCategory;
+        if (nextCategory > 0U && nextCategory == _currentIndexValues &&
+            ReferenceEquals(_chart, _validatedSliceChart) &&
+            ReferenceEquals(family, _validatedSliceFamily) &&
+            ReferenceEquals(categoryLiteral, _validatedCategoryLiteral) &&
+            ReferenceEquals(valueLiteral, _validatedValueLiteral) &&
+            _validatedDoughnutFamily == doughnut &&
+            nextCategory < MaxCachedChartPoints &&
+            HasAppendedTail(categoryLiteral, _lastAppendedCategoryPoint, nextCategory) &&
+            HasAppendedTail(valueLiteral, _lastAppendedValuePoint, nextCategory)) {
+            if (categoryLiteral is NumberLiteral && !IsNumericSliceCategory(category))
+                throw new ArgumentException("A numeric category literal requires a finite invariant numeric category.", nameof(category));
+            return;
+        }
         uint categoryLength = ReadLiteralSliceLength(categoryLiteral);
         uint valueLength = ReadLiteralSliceLength(valueLiteral);
         if (categoryLength != valueLength)
@@ -54,7 +77,18 @@ public partial class WordChart {
             throw new ArgumentException("A numeric category literal requires a finite invariant numeric category.", nameof(category));
         _currentIndexCategory = categoryLength;
         _currentIndexValues = valueLength;
+        _validatedSliceChart = _chart;
+        _validatedSliceFamily = family;
+        _validatedCategoryLiteral = categoryLiteral;
+        _validatedValueLiteral = valueLiteral;
+        _validatedDoughnutFamily = doughnut;
     }
+
+    private static bool HasAppendedTail(OpenXmlCompositeElement? literal, OpenXmlElement? point,
+        uint nextIndex) =>
+        literal?.GetFirstChild<PointCount>()?.Val?.Value == nextIndex &&
+        point != null && ReferenceEquals(point.Parent, literal) &&
+        (point is StringPoint text ? text.Index?.Value : (point as NumericPoint)?.Index?.Value) == nextIndex - 1U;
 
     private static bool IsNumericSliceCategory(string category) =>
         double.TryParse(category, NumberStyles.Float, CultureInfo.InvariantCulture, out double number) &&
