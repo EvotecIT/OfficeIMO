@@ -11,6 +11,27 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartImportedPreservationTests {
     [Fact]
+    public void SharedUpdateKeepsNewAreaBehindRetainedLine() {
+        using var document = WordDocument.Create();
+        var categories = new[] { "A", "B" };
+        WordChart chart = document.AddChart(OfficeChartKind.Line,
+            new OfficeChartData(categories, new[] {
+                new OfficeChartSeries("Trend", new[] { 3d, 4d })
+            }));
+        chart.SetData(OfficeChartKind.Line, new OfficeChartData(categories, new[] {
+            new OfficeChartSeries("Fill", new[] { 2d, 3d }, null, null, null, true,
+                renderKind: OfficeChartKind.Area),
+            new OfficeChartSeries("Trend", new[] { 5d, 6d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line)
+        }));
+        C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        Assert.Equal(new[] { "areaChart", "lineChart" }, plot.ChildElements
+            .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal))
+            .Select(element => element.LocalName));
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Fact]
     public void SharedUpdate_ReversedCategoryReferencesPreserveAxisFormatting() {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) });
