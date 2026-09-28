@@ -17,6 +17,7 @@ namespace OfficeIMO.Tests {
         [InlineData("percent-one", "A4:B6", 3, 3, 10d)]
         [InlineData("decimal-midpoint", "A4:B6", 3, 3, 10d)]
         [InlineData("decimal-three", "A4:B6", 3, 4, 10d)]
+        [InlineData("grouped-three-decimal", "A4:B6", 3, 4, 10d)]
         [InlineData("currency-positive", "A4:B6", 3, 3, 10d)]
         [InlineData("currency-negative", "A4:B6", 3, 3, 10d)]
         [InlineData("grouped-two-decimal", "A4:B6", 3, 3, 10d)]
@@ -79,6 +80,7 @@ namespace OfficeIMO.Tests {
         [InlineData("percent-one", 10d)]
         [InlineData("decimal-midpoint", 10d)]
         [InlineData("decimal-three", 10d)]
+        [InlineData("grouped-three-decimal", 10d)]
         [InlineData("currency-positive", 10d)]
         [InlineData("currency-negative", 10d)]
         [InlineData("grouped-two-decimal", 10d)]
@@ -97,6 +99,7 @@ namespace OfficeIMO.Tests {
                 "percent-one" => ExcelPivotFilter.LabelEquals("Item", "12.5%"),
                 "decimal-midpoint" => ExcelPivotFilter.LabelEquals("Item", "1.3"),
                 "decimal-three" => ExcelPivotFilter.LabelEquals("Item", "1.234"),
+                "grouped-three-decimal" => ExcelPivotFilter.LabelEquals("Item", "1,234.567"),
                 "currency-positive" => ExcelPivotFilter.LabelEquals("Item", "$1,000.00"),
                 "currency-negative" => ExcelPivotFilter.LabelEquals("Item", "-$1,000.00"),
                 "grouped-two-decimal" => ExcelPivotFilter.LabelEquals("Item", "1,234.50"),
@@ -115,6 +118,7 @@ namespace OfficeIMO.Tests {
                     : kind == "percent-one" ? new[] { 0.125d, 0.25d }
                     : kind == "decimal-midpoint" ? new[] { 1.25d, 2.25d }
                     : kind == "decimal-three" ? new[] { 1.2344d, 1.2346d, 2.5d }
+                    : kind == "grouped-three-decimal" ? new[] { 1234.5674d, 1234.5676d, 2000d }
                     : kind == "currency-positive" ? new[] { 1000d, 2000d }
                     : kind == "currency-negative" ? new[] { -1000d, 2000d }
                     : kind == "grouped-two-decimal" ? new[] { 1234.5d, 2000d }
@@ -139,6 +143,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(pivot.PivotFields!.Elements<PivotField>().First().ShowAll!.Value);
                 if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative"
                     or "decimal-two" or "percent-one" or "decimal-midpoint" or "decimal-three"
+                    or "grouped-three-decimal"
                     or "currency-positive" or "currency-negative" or "grouped-two-decimal"
                     or "percent-two-decimal" or "currency-zero-decimal" or "parenthesized-negative") {
                     var column = pivot.PivotFilters!.Elements<PivotFilter>().Single().AutoFilter!
@@ -161,6 +166,7 @@ namespace OfficeIMO.Tests {
             "percent-one" => "0.0%",
             "decimal-midpoint" => "0.0",
             "decimal-three" => "0.000",
+            "grouped-three-decimal" => "#,##0.000",
             "currency-positive" or "currency-negative" => "$#,##0.00",
             "grouped-two-decimal" => "#,##0.00",
             "percent-two-decimal" => "0.00%",
