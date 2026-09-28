@@ -47,6 +47,7 @@ public static partial class OfficeChartDrawingRenderer {
             style.ShowBorder ? style.ChartBorderWidth ?? 0.75D : 0D,
             style.ChartBorderDashStyle ?? OfficeStrokeDashStyle.Solid);
         double contentTop = 0D;
+        Action? drawOverlayTitle = null;
         if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
             double defaultTitleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
             string titleFontFamily = style.TitleFontFamily ?? style.FontFamily;
@@ -54,16 +55,20 @@ public static partial class OfficeChartDrawingRenderer {
             double titleHeight = Math.Min(height, Math.Max(defaultTitleHeight, titleFontSize * 1.25D + 4D));
             double titleTop = Math.Min(layout.TitleTopPadding, Math.Max(0D, height - titleHeight));
             OfficeFontStyle titleFontStyle = style.TitleFontStyle ?? OfficeFontStyle.Bold;
-            AddChartText(drawing, snapshot.Title!, 8D, titleTop, Math.Max(1D, width - 16D),
+            Action drawTitle = () => AddChartText(drawing, snapshot.Title!, 8D, titleTop, Math.Max(1D, width - 16D),
                 Math.Max(1D, titleHeight - 4D), titleFontSize, style.TitleColor,
                 OfficeTextAlignment.Center, style, titleFontFamily, titleFontStyle);
-            if (!layout.OverlayTitle) {
+            if (layout.OverlayTitle) {
+                drawOverlayTitle = drawTitle;
+            } else {
+                drawTitle();
                 contentTop = titleHeight + Math.Max(0D, titleTop - 5D);
             }
         }
 
         if (IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind)) {
             AddPieSeries(drawing, snapshot, width, height, contentTop, 0D, IsDoughnutChart(snapshot.ChartKind), style, layout);
+            drawOverlayTitle?.Invoke();
             return drawing;
         }
 
@@ -80,6 +85,7 @@ public static partial class OfficeChartDrawingRenderer {
 
         if (IsRadarChart(snapshot.ChartKind)) {
             AddRadarSeries(drawing, snapshot, width, height, contentTop + topLegendHeight, bottomLegendHeight, style, layout);
+            drawOverlayTitle?.Invoke();
             return drawing;
         }
 
@@ -548,6 +554,7 @@ public static partial class OfficeChartDrawingRenderer {
             AddSeriesLegendBand(drawing, legendSeries, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
         }
 
+        drawOverlayTitle?.Invoke();
         return drawing;
     }
 
