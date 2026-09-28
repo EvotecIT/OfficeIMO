@@ -128,10 +128,10 @@ public static partial class OfficeChartDrawingRenderer {
             end = reversedStart;
             return true;
         }
-        double x0 = (from.X - xRange.Min) / (xRange.Max - xRange.Min);
-        double y0 = (from.Y - yRange.Min) / (yRange.Max - yRange.Min);
-        double x1 = (to.X - xRange.Min) / (xRange.Max - xRange.Min);
-        double y1 = (to.Y - yRange.Min) / (yRange.Max - yRange.Min);
+        double x0 = GetUnclampedPlotRatio(from.X, xRange.Min, xRange.Max);
+        double y0 = GetUnclampedPlotRatio(from.Y, yRange.Min, yRange.Max);
+        double x1 = GetUnclampedPlotRatio(to.X, xRange.Min, xRange.Max);
+        double y1 = GetUnclampedPlotRatio(to.Y, yRange.Min, yRange.Max);
         if (double.IsNaN(x0) || double.IsNaN(y0) || double.IsNaN(x1) || double.IsNaN(y1) ||
             double.IsInfinity(x0) || double.IsInfinity(y0) || double.IsInfinity(x1) || double.IsInfinity(y1))
             return false;
