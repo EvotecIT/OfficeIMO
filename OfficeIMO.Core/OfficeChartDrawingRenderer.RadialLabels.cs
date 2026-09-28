@@ -88,8 +88,11 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
         OfficeColor lineColor = style.MutedTextColor;
+        OfficeColor canvasBackground = style.ShowBackground
+            ? CompositeLabelFill(style.BackgroundColor, OfficeColor.White)
+            : OfficeColor.White;
         OfficeColor textColor = GetReadableDataLabelColor(
-            style.DataLabelFillColor ?? style.PlotAreaBackgroundColor ?? style.BackgroundColor);
+            CompositeLabelFill(style.DataLabelFillColor ?? canvasBackground, canvasBackground));
         foreach (RadialOutsideLabel label in labels) {
             if (!label.HasSlice || !layout.ShowDataLabelLeaderLines) continue;
             double targetX = label.RightSide ? label.X : label.X + label.Width;

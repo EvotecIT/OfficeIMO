@@ -167,6 +167,8 @@ public static partial class OfficeChartDrawingRenderer {
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
         bool outsideLabels = layout.ShowDataLabels && layout.DataLabelPosition == OfficeChartDataLabelPosition.OutsideEnd;
+        if (outsideLabels && layout.ShowDataLabelLeaderLines && renderableSeries.Count > 1)
+            throw new NotSupportedException("Outside leader lines cannot cross the outer ring of a multi-series doughnut.");
         GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
             leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,
             out double centerX, out double centerY, out double radius,

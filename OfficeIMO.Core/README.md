@@ -654,7 +654,9 @@ frame and moves their value-label anchors with them. For outside labels, set
 `showDataLabels: true`, select the label contents, and use
 `dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd` in `OfficeChartLayout`.
 The renderer reserves side gutters, separates labels on each side and connects
-them to visible slices. Set `showDataLabelLeaderLines: false` to omit the lines.
+them to visible slices. Call `layout.WithDataLabelLeaderLines(false)` to omit the lines.
+For multi-series doughnuts, disable leaders before rendering outside labels because a line
+from an inner ring would pass through the outer ring.
 Imported Word, PowerPoint and Excel charts retain that native line setting in
 their static chart snapshots. A frame too narrow or short to fit every outside
 label reports an unsupported layout instead of overlapping or dropping labels.

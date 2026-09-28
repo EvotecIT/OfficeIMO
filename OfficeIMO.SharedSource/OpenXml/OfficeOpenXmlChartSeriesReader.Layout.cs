@@ -106,7 +106,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 showDataLabels: labels.Visible, showDataLabelValues: labels.Values, showDataLabelCategoryNames: labels.Categories,
                 showDataLabelSeriesNames: labels.SeriesNames, showDataLabelPercentages: labels.Percentages,
                 dataLabelSeparator: labels.Separator, dataLabelNumberFormat: labels.NumberFormat, dataLabelPosition: labels.Position,
-                showDataLabelLeaderLines: labels.LeaderLines,
                 fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
                 categoryAxisTitle: ReadLayoutTitle(categoryAxis), valueAxisTitle: ReadLayoutTitle(valueAxis), axisTitleFontFamily: axisTitleFont,
                 categoryAxisNumberFormat: categoryAxis is C.ValueAxis ? null : ReadLayoutFormat(categoryAxis, IsClearlyTextualCategoryCache(plot)),
@@ -132,7 +131,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 verticalAxisMinorTickMark: ReadLayoutTick(vertical?.GetFirstChild<C.MinorTickMark>()?.Val?.Value),
                 reverseCategoryAxis: categoryAxis is not C.ValueAxis && categoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin,
                 categoryAxisOrientationSpecified: categoryAxis is not C.ValueAxis && categoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null)
-                .WithSecondaryValueAxis(OfficeOpenXmlChartSecondaryAxis.Read(plot));
+                .WithSecondaryValueAxis(OfficeOpenXmlChartSecondaryAxis.Read(plot))
+                .WithDataLabelLeaderLines(labels.LeaderLines);
         }
 
         private static void QualifySecondaryLayout(C.PlotArea? plot) {
