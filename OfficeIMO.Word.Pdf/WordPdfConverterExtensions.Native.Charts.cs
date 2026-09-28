@@ -275,7 +275,7 @@ namespace OfficeIMO.Word.Pdf {
                     seriesColor = pieLikeSeriesColor;
                 }
 
-                series.Add(new OfficeChartSeries(
+                OfficeChartSeries projected = new OfficeChartSeries(
                     GetNativeWordChartSeriesName(seriesElement, seriesIndex),
                     values,
                     xValues,
@@ -284,7 +284,15 @@ namespace OfficeIMO.Word.Pdf {
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
                     !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()))
-                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, pointColorScheme)));
+                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, pointColorScheme));
+                if (IsNativeWordPieLikeChart(chartKind)) {
+                    if (!OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartExplosions.TryRead(
+                            (OpenXmlCompositeElement)seriesElement, seriesElement.Elements<DataPoint>().ToList(), values.Count,
+                            out int[]? explosions))
+                        throw new NativeWordChartLimitException("Word chart contains unsupported slice explosion metadata.");
+                    projected = projected.WithPointExplosions(explosions);
+                }
+                series.Add(projected);
                 seriesIndex++;
             }
 

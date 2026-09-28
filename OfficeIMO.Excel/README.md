@@ -508,6 +508,9 @@ two-dimensional pie or doughnut chart. Rotation runs clockwise from the top (0â€
 the doughnut hole is an inner-to-outer diameter percentage (10â€“90). `chart.RadialLayout`
 reads the native settings. Save/reopen, data updates, snapshots, managed chart images and
 workbook PDF exports and semantic HTML round trips preserve them.
+For an individual pie or doughnut slice, `chart.SetDataPointExplosion(seriesIndex, pointIndex, percent)`
+sets an outward offset from 0 to 400 percent without replacing the chart. Pass zero to explicitly
+remove that slice's offset, or null to restore an inherited series offset.
 
 ### Pivot tables and pivot-backed charts
 

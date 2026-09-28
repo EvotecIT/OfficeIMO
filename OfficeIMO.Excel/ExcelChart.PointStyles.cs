@@ -31,4 +31,13 @@ public sealed partial class ExcelChart {
         Save();
         return this;
     }
+
+    /// <summary>Sets one pie or doughnut slice's outward offset as a percentage of its radius. Null restores the series offset; zero explicitly removes the slice offset.</summary>
+    public ExcelChart SetDataPointExplosion(int seriesIndex, uint pointIndex, int? percent) {
+        if (seriesIndex < 0) throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+        if (!ApplySeriesByIndex(seriesIndex, series => OfficeOpenXmlChartExplosions.ApplyPoint(series, pointIndex, percent)))
+            throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+        Save();
+        return this;
+    }
 }
