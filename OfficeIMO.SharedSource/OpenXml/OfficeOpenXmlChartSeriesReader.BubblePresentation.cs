@@ -208,7 +208,11 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasUnsupportedSharedAxisNumberFormat(
             OpenXmlCompositeElement axis) {
-            string? format = axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+            C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
+            // A linked format can differ from formatCode according to the workbook cell styles.
+            // The shared snapshot has no resolved workbook format, so it cannot claim fidelity.
+            if (numbering?.SourceLinked?.Value == true) return true;
+            string? format = numbering?.FormatCode?.Value;
             if (string.IsNullOrWhiteSpace(format)) return false;
             if (string.Equals(format, "General",
                     StringComparison.OrdinalIgnoreCase)) {

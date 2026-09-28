@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.Markdown {
 
             try {
                 OfficeChartSnapshot officeSnapshot = snapshot;
-                OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot);
+                OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot, useMinimumCanvas: false);
                 if (rendering.QualityReport.HasIssues) {
                     options.OnWarning?.Invoke("Rendered Word chart '" + GetChartDisplayName(snapshot) + "' with shared drawing quality warnings: " + FormatQualityIssues(rendering.QualityReport));
                 }
