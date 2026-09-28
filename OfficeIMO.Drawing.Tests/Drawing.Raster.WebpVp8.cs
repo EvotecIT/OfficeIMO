@@ -8,6 +8,16 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingWebpVp8Tests {
     [Fact]
+    public void ArithmeticReadFailsOnTheSymbolThatExhaustsPadding() {
+        var decoder = new OfficeVp8BoolDecoder(new OfficeByteView(new byte[] { 0, 0 }));
+        for (int index = 0; index < 16; index++) {
+            Assert.True(decoder.TryReadBool(128, out _));
+        }
+
+        Assert.False(decoder.TryReadBool(128, out _));
+    }
+
+    [Fact]
     public void ZeroBaseFilterLevelStillAppliesPositiveReferenceDelta() {
         var loopFilter = new OfficeVp8LoopFilter(
             filterType: 1, level: 0, sharpness: 0, deltaEnabled: true, deltaUpdate: true,
@@ -48,6 +58,25 @@ public sealed class DrawingWebpVp8Tests {
 
         Assert.Equal((byte)60, predicted[2 * 4 + 3]);
         Assert.Equal((byte)70, predicted[3 * 4 + 3]);
+    }
+
+    [Theory]
+    [InlineData(20)]
+    [InlineData(24)]
+    [InlineData(28)]
+    public void RightEdgeSubblocksReuseTopRightPixelsAboveMacroblock(int y) {
+        // RFC 6386 section 12.3: blocks 7, 11, and 15 reuse block 3's
+        // top-right pixels from the row above the entire macroblock.
+        byte[] plane = new byte[32 * 32];
+        plane[15 * 32 + 16] = 50;
+        plane[15 * 32 + 17] = 60;
+        plane[(y - 1) * 32 + 15] = 40;
+        plane[(y - 1) * 32 + 16] = 200; // Not yet reconstructed.
+        byte[] predicted = new byte[16];
+
+        OfficeVp8Prediction.PredictSubblock(plane, 32, 32, 12, y, 4, predicted, new OfficeVp8DecodeScratch());
+
+        Assert.Equal((byte)50, predicted[3]);
     }
 
     // Independently encoded and decoded with Pillow/libwebp (quality 80, method 6).

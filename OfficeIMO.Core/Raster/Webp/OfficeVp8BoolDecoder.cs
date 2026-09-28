@@ -86,6 +86,14 @@ internal sealed class OfficeVp8BoolDecoder
             }
         }
 
+        // A second synthetic byte means this very symbol crossed the partition
+        // boundary. Do not let a final header field or coefficient pass as valid.
+        if (_exhausted)
+        {
+            bit = false;
+            return false;
+        }
+
         return true;
     }
 
