@@ -26,6 +26,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("The legend border dash cannot be projected.");
             var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme);
             var defaultText = ReadNativeText(chart, chart, scheme);
+            var labelText = ReadLabels(chart, scheme);
             var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
             var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
             var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
@@ -63,7 +64,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 legendBackgroundColor: legendSurface.NoFill ? null : legendSurface.Fill,
                 legendBorderColor: legendSurface.NoOutline ? null : legendSurface.Stroke,
                 legendBorderWidth: legendSurface.Width,
-                textColor: defaultText.Color, dataLabelTextColor: defaultText.Color,
+                textColor: defaultText.Color, dataLabelTextColor: labelText.TextColor ?? defaultText.Color,
                 showBackground: !area.NoFill, backgroundColor: area.Fill,
                 showBorder: !area.NoOutline, borderColor: area.Stroke, chartBorderWidth: area.Width, chartBorderDashStyle: area.Dash,
                 plotAreaBackgroundColor: plotStyle.NoFill ? null : plotStyle.Fill,

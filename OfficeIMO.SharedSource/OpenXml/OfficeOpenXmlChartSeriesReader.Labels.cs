@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal;
@@ -9,16 +10,20 @@ namespace OfficeIMO.OpenXml.Internal;
 internal static partial class OfficeOpenXmlChartSeriesReader {
     internal sealed class LabelLayout {
         internal bool Values, Categories, SeriesNames, Percentages, LeaderLines;
+        internal double? FontSize;
+        internal OfficeFontStyle? FontStyle;
+        internal OfficeColor? TextColor;
         internal bool Visible => Values || Categories || SeriesNames || Percentages;
         internal string? Separator, NumberFormat;
         internal OfficeChartDataLabelPosition Position;
         internal bool SameAs(LabelLayout other) => Values == other.Values && Categories == other.Categories &&
             SeriesNames == other.SeriesNames && Percentages == other.Percentages && Separator == other.Separator &&
             NumberFormat == other.NumberFormat && Position == other.Position &&
-            LeaderLines == other.LeaderLines;
+            LeaderLines == other.LeaderLines && FontSize == other.FontSize &&
+            FontStyle == other.FontStyle && Nullable.Equals(TextColor, other.TextColor);
     }
 
-    internal static LabelLayout ReadLabels(C.Chart chart) {
+    internal static LabelLayout ReadLabels(C.Chart chart, A.ColorScheme? scheme = null) {
         LabelLayout? selected = null;
         foreach (var layer in chart.PlotArea?.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) ?? Enumerable.Empty<OpenXmlCompositeElement>()) {
@@ -58,10 +63,14 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd)))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
+                NativeText text = ReadNativeText(chart, labels, scheme);
+                current.FontSize = text.Size;
+                current.FontStyle = text.Style;
+                current.TextColor = text.Color;
                 if (HasUnsupportedSharedAxisNumberFormat(labels))
                     throw new NotSupportedException("The native data label format cannot be projected.");
                 foreach (var child in labels.ChildElements) {
-                    if (child is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or
+                    if (child is C.TextProperties or C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or
                         C.ShowBubbleSize or C.ShowLeaderLines or C.Separator or C.NumberingFormat or C.DataLabelPosition) continue;
                     if (child is C.LeaderLines leader && !leader.HasChildren && !leader.HasAttributes) continue;
                     throw new NotSupportedException("The native data label appearance cannot be projected.");
