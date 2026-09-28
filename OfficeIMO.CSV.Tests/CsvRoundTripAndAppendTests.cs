@@ -123,7 +123,7 @@ public class CsvRoundTripAndAppendTests
     public void Default_Save_And_Readers_Retain_The_Complete_Delimiter(string delimiter)
     {
         string effectiveDelimiter = delimiter.Length == 0 ? "," : delimiter;
-        string text = "A" + effectiveDelimiter + "B\r\n東京" + effectiveDelimiter + "4\r\n";
+        string text = "A" + effectiveDelimiter + "B" + Environment.NewLine + "東京" + effectiveDelimiter + "4" + Environment.NewLine;
         CsvDocument document = CsvDocument.Parse(text, new CsvLoadOptions { DelimiterText = delimiter });
         Assert.Equal(effectiveDelimiter, document.DelimiterText);
         Assert.Equal(effectiveDelimiter[0], document.Delimiter);
@@ -135,7 +135,7 @@ public class CsvRoundTripAndAppendTests
         Assert.Equal(effectiveDelimiter, Assert.IsAssignableFrom<ICsvDataReaderDialectMetadata>(textReader).DelimiterText);
         Assert.True(reader.Read());
         Assert.Equal("4", reader.GetString(1));
-        Assert.Equal("A,B\r\n東京,4\r\n", document.WithDelimiter(',').ToString());
+        Assert.Equal($"A,B{Environment.NewLine}東京,4{Environment.NewLine}", document.WithDelimiter(',').ToString());
     }
 
     private static string TemporaryPath() => Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Append." + Guid.NewGuid().ToString("N") + ".csv");

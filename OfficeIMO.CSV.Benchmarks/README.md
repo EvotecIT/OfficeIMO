@@ -163,10 +163,10 @@ Windows, Linux, and macOS results independently.
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (30ms) | n/a | 1.18x (36ms) | n/a | 0.82x (25ms) | Fastest: Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Read every field | MeanMs | 1.00x (4ms) | n/a | n/a | 0.57x (2ms) | 0.73x (3ms) | Fastest: Sep |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (26ms) | 2.79x (74ms) | 1.12x (30ms) | n/a | n/a | Fastest: OfficeIMO.CSV |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Validate and write rows | MeanMs | 1.00x (7ms) | 3.55x (26ms) | 1.97x (14ms) | 3.47x (25ms) | 1.57x (12ms) | Fastest: OfficeIMO.CSV |
+| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (46ms) | n/a | 1.21x (56ms) | n/a | 0.78x (36ms) | Fastest: Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.22x (3ms) | 1.56x (4ms) | Fastest: OfficeIMO.CSV |
+| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (44ms) | 2.71x (119ms) | 1.12x (49ms) | n/a | n/a | Fastest: OfficeIMO.CSV |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Validate and write rows | MeanMs | 1.00x (13ms) | 2.84x (36ms) | 1.84x (23ms) | 2.42x (30ms) | 1.29x (16ms) | Fastest: OfficeIMO.CSV |
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Dated four-reader CSV snapshot (2026-08-31)

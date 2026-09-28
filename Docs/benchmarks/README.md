@@ -77,9 +77,11 @@ multiline shapes at 25,000 and 100,000 rows. Sequential and parallel OfficeIMO
 outputs are byte-identical.
 
 The [2026-09-28 wide CSV snapshot](officeimo.csv-wide-2026-09-28.md) refreshes
-the checked-in local read/write highlights with a fixed processor domain and
-validated 25,000-row output. Its span-read and DataReader-write observations
-remain follow-up measurements, not cross-platform performance budgets.
+the pre-dispatch local read/write highlights with a fixed processor domain and
+validated 25,000-row output. The subsequent [quote-free field-span dispatch
+measurement](officeimo.csv-wide-read-dispatch-2026-09-28.md) records the
+source-level read improvement on both processor groups. DataReader writing and
+portable regression budgets remain open work.
 
 ## Word Open XML SDK evidence
 

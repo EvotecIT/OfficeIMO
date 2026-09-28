@@ -27,7 +27,7 @@ public class CsvShortReadEncodingTests
         CsvDocument.Parse("Name,Notes\nAlpha,Zażółć\n").Save(bytes, new CsvSaveOptions { Encoding = encoding, CompressionType = compression });
         using var source = new ShortReadStream(bytes.ToArray());
         var document = CsvDocument.Load(source, new CsvLoadOptions { CompressionType = compression });
-        Assert.Equal("Name,Notes\r\nAlpha,Zażółć\r\n", document.ToString());
+        Assert.Equal($"Name,Notes{Environment.NewLine}Alpha,Zażółć{Environment.NewLine}", document.ToString());
         Assert.True(source.CanRead);
     }
 
