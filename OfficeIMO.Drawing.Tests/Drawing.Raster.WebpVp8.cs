@@ -181,6 +181,17 @@ public sealed class DrawingWebpVp8Tests {
     }
 
     [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OversizedContainerLengthReturnsFalseFromPublicDecoder(bool riffLength) {
+        byte[] encoded = ReadFixture("independent-vp8-pattern.webp");
+        int offset = riffLength ? 4 : 16;
+        for (int index = 0; index < 4; index++) encoded[offset + index] = 0xff;
+
+        Assert.False(OfficeWebpCodec.TryDecode(encoded, out _));
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void ExhaustedArithmeticPartitionCannotProduceAnImage(bool tokenPartition) {
