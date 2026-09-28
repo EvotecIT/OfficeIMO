@@ -10,8 +10,12 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeChartStyle style, OfficeChartLayout layout) {
         double fontSize = GetAxisTitleFontSize(layout);
         double height = Math.Max(10D, fontSize + 2D);
-        double y = Math.Max(0D, plotTop - height - (barChart ? 17D : 4D));
-        AddChartText(drawing, title, plotLeft + plotWidth / 2D, y, plotWidth / 2D,
+        bool hasPrimaryTopTitle = barChart
+            ? layout.ShowCategoryAxis && !string.IsNullOrWhiteSpace(layout.CategoryAxisTitle)
+            : layout.ShowValueAxis && !string.IsNullOrWhiteSpace(layout.ValueAxisTitle);
+        double y = Math.Max(0D, plotTop - height - (barChart ? 17D : 4D) -
+            (hasPrimaryTopTitle ? GetAxisTitleBandHeight(layout) : 0D));
+        AddChartText(drawing, title, plotLeft, y, plotWidth,
             height, fontSize, style.AxisTitleColor ?? style.MutedTextColor,
             OfficeTextAlignment.Right, style, layout.AxisTitleFontFamily ?? layout.AxisTextFontFamily,
             layout.AxisTitleFontStyle ?? layout.AxisTextFontStyle);

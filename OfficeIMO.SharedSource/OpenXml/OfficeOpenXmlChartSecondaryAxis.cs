@@ -72,6 +72,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
     internal static void QualifyLinearProjection(C.PlotArea? plot, bool resolveSourceLinkedFormats = false) {
         var axis = Resolve(plot);
         if (axis == null) return;
+        QualifyTitle(axis.GetFirstChild<C.Title>());
         var scaling = axis.GetFirstChild<C.Scaling>();
         if ((!resolveSourceLinkedFormats && axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) ||
             axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
@@ -80,6 +81,14 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
             axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
             throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
+    }
+
+    internal static void QualifyTitle(C.Title? title) {
+        if (title != null &&
+            (title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
+             title.GetFirstChild<C.Overlay>()?.Val?.Value == true ||
+             title.GetFirstChild<C.ChartText>() == null))
+            throw new NotSupportedException("The secondary axis title cannot be projected.");
     }
 
     private static OfficeChartAxisTickMark ReadTick(C.TickMarkValues? value) =>

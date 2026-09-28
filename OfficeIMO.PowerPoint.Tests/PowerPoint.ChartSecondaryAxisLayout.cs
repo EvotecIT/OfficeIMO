@@ -44,6 +44,25 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(bool overlay) {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var title = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
+        if (overlay) title.GetFirstChild<C.Overlay>()!.Val = true;
+        else title.GetFirstChild<C.Layout>()!.Append(new C.ManualLayout(new C.Left { Val = .3 }));
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
     [InlineData("logarithmic")]
     [InlineData("reversed")]
     [InlineData("displayUnits")]
