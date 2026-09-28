@@ -304,6 +304,7 @@ namespace OfficeIMO.Excel {
                 axisTitleFontFamily: axisTitleFontFamily,
                 axisTitleFontStyle: axisTitleFontStyle,
                 dataLabelPosition: MapDataLabelPosition(dataLabels?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value),
+                showDataLabelLeaderLines: IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()),
                 dataLabelNumberFormat: dataLabels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
                 categoryAxisTitle: categoryAxisTitle,
                 valueAxisTitle: valueAxisTitle,

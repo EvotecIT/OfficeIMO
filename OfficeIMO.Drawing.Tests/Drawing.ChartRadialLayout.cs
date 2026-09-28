@@ -27,6 +27,67 @@ public sealed class DrawingChartRadialLayoutTests {
     [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
+    public void OutsideLabelsUseLeadersAndDoNotOverlapOnEitherSide(OfficeChartKind kind) {
+        string[] categories = Enumerable.Range(0, 12).Select(index => $"Cat{index}").ToArray();
+        var data = new OfficeChartData(categories, new[] {
+            new OfficeChartSeries("Values", Enumerable.Repeat(1d, categories.Length).ToArray())
+        });
+        var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
+            showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, 420, 300, layout: layout));
+        OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>()
+            .Where(text => text.Text.StartsWith("Cat", StringComparison.Ordinal)).ToArray();
+        Assert.Equal(categories.Length, labels.Length);
+        Assert.Equal(categories.Length, drawing.Shapes.Count(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line));
+        foreach (OfficeDrawingText label in labels) {
+            Assert.InRange(label.X, 0, drawing.Width - label.Width);
+            Assert.InRange(label.Y, 0, drawing.Height - label.Height);
+        }
+        double centerX = drawing.Width / 2D;
+        foreach (OfficeDrawingText[] side in new[] {
+            labels.Where(label => label.X + label.Width / 2D < centerX).OrderBy(label => label.Y).ToArray(),
+            labels.Where(label => label.X + label.Width / 2D >= centerX).OrderBy(label => label.Y).ToArray()
+        })
+            for (int index = 1; index < side.Length; index++)
+                Assert.True(side[index].Y >= side[index - 1].Y + side[index - 1].Height + 1D);
+    }
+
+    [Fact]
+    public void OutsideLabelsShrinkPieBeforeEnteringLabelGutters() {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 1d })
+        });
+        var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
+            showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Pie, data, 200, 240, layout: layout));
+        OfficeDrawingText[] labels = drawing.Elements.OfType<OfficeDrawingText>()
+            .Where(text => text.Text is "A" or "B").ToArray();
+        Assert.Equal(2, labels.Length);
+        OfficeDrawingShape[] slices = drawing.Shapes.Where(shape => shape.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
+        double left = slices.SelectMany(slice => slice.Shape.Points.Select(point => slice.X + point.X)).Min();
+        double right = slices.SelectMany(slice => slice.Shape.Points.Select(point => slice.X + point.X)).Max();
+        Assert.Contains(labels, label => label.X + label.Width < left);
+        Assert.Contains(labels, label => label.X > right);
+    }
+
+    [Fact]
+    public void OutsideLabelsRejectCanvasThatCannotFitEveryLabel() {
+        string[] categories = Enumerable.Range(0, 30).Select(index => $"Item{index}").ToArray();
+        var data = new OfficeChartData(categories, new[] {
+            new OfficeChartSeries("Values", Enumerable.Repeat(1d, categories.Length).ToArray())
+        });
+        var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
+            showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd);
+        Assert.Throws<NotSupportedException>(() => OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot("", null, OfficeChartKind.Pie, data, 300, 100, layout: layout)));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
     [InlineData(OfficeChartKind.Radar)]
     public void SmallAuthoredCanvas_KeepsRadialGeometryInsideTheFrame(OfficeChartKind kind) {
         var data = new OfficeChartData(new[] { "A", "B", "C" },

@@ -650,8 +650,14 @@ inside. `WithPointExplosions` offsets selected pie or doughnut slices by a perce
 of their radius while preserving their native editable point records in Word,
 PowerPoint, and Excel. Supply one value per point, from 0 through 400; an explicit
 zero resets an earlier offset. The renderer keeps exploded slices within the chart
-frame and moves their value-label anchors with them. Collision handling, outside
-labels and leader lines require additional layout support.
+frame and moves their value-label anchors with them. For outside labels, set
+`showDataLabels: true`, select the label contents, and use
+`dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd` in `OfficeChartLayout`.
+The renderer reserves side gutters, separates labels on each side and connects
+them to visible slices. Set `showDataLabelLeaderLines: false` to omit the lines.
+Imported Word, PowerPoint and Excel charts retain that native line setting in
+their static chart snapshots. A frame too narrow or short to fit every outside
+label reports an unsupported layout instead of overlapping or dropping labels.
 
 ### Load first-party font programs for renderers
 

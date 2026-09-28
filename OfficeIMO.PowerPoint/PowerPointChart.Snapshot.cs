@@ -440,6 +440,10 @@ namespace OfficeIMO.PowerPoint {
 
         private OfficeChartLayout ReadChartLayout(
             C.Chart chart, PowerPointChartSnapshotKind kind) {
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels =
+                kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadLabels(chart)
+                    : null;
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.LegendPositionValues? nativePosition =
                 legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
@@ -556,6 +560,15 @@ namespace OfficeIMO.PowerPoint {
                 overlayTitle: overlayTitle,
                 showLegend: legend != null,
                 legendPosition: position,
+                showDataLabels: radialLabels?.Visible == true,
+                showDataLabelValues: radialLabels?.Values == true,
+                showDataLabelCategoryNames: radialLabels?.Categories == true,
+                showDataLabelSeriesNames: radialLabels?.SeriesNames == true,
+                showDataLabelPercentages: radialLabels?.Percentages == true,
+                dataLabelSeparator: radialLabels?.Separator,
+                dataLabelNumberFormat: radialLabels?.NumberFormat,
+                dataLabelPosition: radialLabels?.Position ?? OfficeChartDataLabelPosition.BestFit,
+                showDataLabelLeaderLines: radialLabels?.LeaderLines == true,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
