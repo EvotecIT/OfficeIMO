@@ -72,6 +72,23 @@ internal static class IWorkTextReader {
         return new IWorkTextContent(paragraphs, complete, textComplete);
     }
 
+    /// <summary>Reads table-cell text without traversing formatting references.</summary>
+    internal static string ReadPlainText(IWorkWireMessage storage,
+        IWorkProjectionBudget projectionBudget, out bool isComplete) {
+        bool complete = true;
+        string text = ReadText(storage, projectionBudget, ref complete);
+        var paragraphs = new List<string>();
+        foreach (TextSpan paragraph in ParagraphSpans(text)) {
+            projectionBudget.AddTextItem();
+            string value = NormalizeInlineText(text.Substring(paragraph.Start,
+                paragraph.End - paragraph.Start), projectionBudget, ref complete);
+            if (value.Length > 0) projectionBudget.AddTextItem();
+            paragraphs.Add(value);
+        }
+        isComplete = complete;
+        return string.Join("\n", paragraphs);
+    }
+
     private static string ReadText(IWorkWireMessage message, IWorkProjectionBudget projectionBudget,
         ref bool complete) {
         var parts = new List<string>();

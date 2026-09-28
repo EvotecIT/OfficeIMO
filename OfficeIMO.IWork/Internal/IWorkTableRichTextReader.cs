@@ -58,14 +58,16 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            if (!TryReadRecord(index, storage, options, out _)) {
+            if (!TryReadRecord(index, storage, options, out IWorkWireMessage? storageMessage)
+                || storageMessage == null) {
                 fullyReconstructed = false;
                 continue;
             }
-            IWorkTextContent content = IWorkTextReader.Read(index, storage, projectionBudget);
-            if (!content.IsTextComplete) fullyReconstructed = false;
-            if (!content.IsTextComplete && content.PlainText.Length == 0) continue;
-            strings.Add(normalizedKey, content.PlainText);
+            string text = IWorkTextReader.ReadPlainText(storageMessage, projectionBudget,
+                out bool textComplete);
+            if (!textComplete) fullyReconstructed = false;
+            if (!textComplete && text.Length == 0) continue;
+            strings.Add(normalizedKey, text);
         }
         return strings;
     }

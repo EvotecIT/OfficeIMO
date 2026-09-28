@@ -74,4 +74,40 @@ public sealed partial class IWorkBoundaryTests {
             new(id, type, Array.Empty<uint>(), Array.Empty<ulong>(),
                 Array.Empty<ulong>(), "Index/Tables/Test.iwa", 0, payload);
     }
+
+    [Fact]
+    public void Plain_text_cell_does_not_traverse_style_inheritance() {
+        var options = new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 2 };
+        const ulong listId = 1;
+        const ulong wrapperId = 2;
+        const ulong storageId = 3;
+        const ulong styleId = 10;
+        byte[] storagePayload = Message(
+            StringField(3, "Value"),
+            BytesField(5, Message(BytesField(1, Message(
+                VarintField(1, 0), ReferenceField(2, styleId))))));
+        var records = new[] {
+            Record(listId, 6005, Message(BytesField(3, Message(
+                VarintField(1, 1), ReferenceField(9, wrapperId))))),
+            Record(wrapperId, 6218, Message(ReferenceField(1, storageId))),
+            Record(storageId, 2001, storagePayload),
+            Record(styleId, 2022, Message(BytesField(1, Message(ReferenceField(3, styleId + 1))))),
+            Record(styleId + 1, 2022, Message(BytesField(1, Message(ReferenceField(3, styleId + 2))))),
+            Record(styleId + 2, 2022, Message())
+        };
+        var index = new IWorkObjectIndex(records, options);
+        IWorkWireMessage store = IWorkProtobuf.Parse(
+            Message(ReferenceField(17, listId)), options);
+
+        IReadOnlyDictionary<uint, string> strings = IWorkTableRichTextReader.Read(
+            index, store, new IWorkProjectionBudget(options), options,
+            options.MaximumTableCatalogEntries, out bool complete);
+
+        Assert.True(complete);
+        Assert.Equal("Value", strings[1]);
+
+        static IWorkArchiveRecord Record(ulong id, uint type, byte[] payload) =>
+            new(id, type, Array.Empty<uint>(), Array.Empty<ulong>(),
+                Array.Empty<ulong>(), "Index/Tables/Test.iwa", 0, payload);
+    }
 }
