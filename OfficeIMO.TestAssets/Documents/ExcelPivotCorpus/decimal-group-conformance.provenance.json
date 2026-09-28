@@ -1,0 +1,46 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T02:49:29.0243550Z",
+  "regeneration": "Build/Verification/New-ExcelPivotDecimalGroupOracle.ps1",
+  "file": "decimal-group-conformance.xlsx",
+  "sha256": "37592bd8f1fa27578e27b7932c53979d020714c0d6b1617b2ab81f74a23afee4",
+  "sourceRange": "Source!A1:B12",
+  "outputRange": "A4:B11",
+  "grouping": "Quantity:0.25-2.25 by 0.5",
+  "lookups": [
+    {
+      "name": "Grand",
+      "value": "66"
+    },
+    {
+      "name": "Below",
+      "value": "1"
+    },
+    {
+      "name": "First",
+      "value": "5"
+    },
+    {
+      "name": "Second",
+      "value": "9"
+    },
+    {
+      "name": "Third",
+      "value": "13"
+    },
+    {
+      "name": "Fourth",
+      "value": "27"
+    },
+    {
+      "name": "Above",
+      "value": "11"
+    },
+    {
+      "name": "Raw",
+      "value": "5"
+    }
+  ]
+}

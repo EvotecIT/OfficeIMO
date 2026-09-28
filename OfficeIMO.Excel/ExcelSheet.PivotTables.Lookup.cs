@@ -155,6 +155,8 @@ namespace OfficeIMO.Excel {
                             expected = year.ToString(CultureInfo.InvariantCulture);
                     } catch (Exception exception) when (exception is FormatException || exception is InvalidCastException || exception is OverflowException) { }
                 }
+                if (groupings[field]?.TryResolveBoundary(expected, out string? groupLabel) == true)
+                    expected = groupLabel;
                 criterionDepth = depth;
                 var savedItems = pivotFields[field].Items;
                 OpenXmlElement[] sharedItems = dateGroupings[field]?.SavedItems ?? groupings[field]?.SavedItems

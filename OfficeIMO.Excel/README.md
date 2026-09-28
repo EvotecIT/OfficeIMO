@@ -566,8 +566,9 @@ ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
 The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
 Both paths support saved hierarchies with multiple row and column
 fields, selected page items, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
-item keys. Integer-range numeric groups and Years/Months date hierarchies on row or column axes use their displayed
-group labels as criteria; raw source numbers do not select numeric groups. A year criterion accepts its displayed text
+item keys. Numeric range groups and Years/Months date hierarchies on row or column axes use their displayed
+group labels as criteria. A numeric criterion equal to a group's lower bound also selects that group; other raw source
+numbers do not. A year criterion accepts its displayed text
 or an integer year. Lookup follows saved tabular, compact and outline views, including
 subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
 leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
@@ -609,8 +610,10 @@ sheet.MaterializePivotTable("SalesByMonth");
 ```
 
 Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
-and multiple fields on each axis, with at most 256 cache fields in total. Integer-range numeric groups
-and Years/Months date hierarchies with saved group labels are supported on row and column axes; grouping on page fields is not.
+and multiple fields on each axis, with at most 256 cache fields in total. Numeric range groups with explicit finite
+bounds and intervals, including decimal intervals, are supported when each bound and interval is at most 9 × 10¹⁵
+in magnitude and the range has at most 99,998 buckets.
+Years/Months date hierarchies with saved group labels are also supported on row and column axes. Grouping on page fields is not.
 Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
 a non-English Excel locale. It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
