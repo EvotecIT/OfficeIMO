@@ -229,9 +229,10 @@ public static partial class HtmlComputedStyleEngine {
             ProviderDeclarationQuery providerQueries = budget.ProviderDeclarationQueries.For(styleRule.Style);
             foreach (string propertyName in SupportedProperties) {
                 if (declarations.ContainsKey(propertyName) || !providerQueries.CanHaveValue(propertyName)) continue;
-                // AngleSharp can synthesize `flex` from a longhand and `border` from
-                // `border-color`. Those shorthands must not compete with authored values.
-                if ((propertyName == "flex" || propertyName == "border")
+                // AngleSharp can synthesize shorthands from longhands (for
+                // example border-top from border-color). Such projections
+                // must not reset an earlier authored border width or style.
+                if ((propertyName is "flex" or "border" or "border-top" or "border-right" or "border-bottom" or "border-left")
                     && !HasAuthoredDeclaration(ownedRule, providerCssText ??= styleRule.CssText, propertyName)) continue;
                 string propertyValue = styleRule.Style.GetPropertyValue(propertyName);
                 if (string.IsNullOrWhiteSpace(propertyValue)) continue;

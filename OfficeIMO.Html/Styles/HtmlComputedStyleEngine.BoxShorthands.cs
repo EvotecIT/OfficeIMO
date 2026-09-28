@@ -3,7 +3,10 @@ namespace OfficeIMO.Html;
 public static partial class HtmlComputedStyleEngine {
     private static readonly string[] PhysicalBoxSides = { "top", "right", "bottom", "left" };
 
-    private static readonly string[] CascadeShorthands = { "margin", "padding", "border", "border-width", "border-style", "border-color", "text-decoration" };
+    private static readonly string[] CascadeShorthands = {
+        "margin", "padding", "border", "border-width", "border-style", "border-color",
+        "border-top", "border-right", "border-bottom", "border-left", "text-decoration"
+    };
     private static readonly string[] MarginLonghands = { "margin-top", "margin-right", "margin-bottom", "margin-left" };
     private static readonly string[] PaddingLonghands = { "padding-top", "padding-right", "padding-bottom", "padding-left" };
     private static readonly string[] BorderWidthLonghands = { "border-top-width", "border-right-width", "border-bottom-width", "border-left-width" };
@@ -32,6 +35,23 @@ public static partial class HtmlComputedStyleEngine {
                 border[index * 3 + 2] = new KeyValuePair<string, string>(BorderColorLonghands[index], color);
             }
             longhands = border;
+            return true;
+        }
+        int side = Array.IndexOf(PhysicalBoxSides, normalizedName.StartsWith("border-", StringComparison.Ordinal)
+            ? normalizedName.Substring("border-".Length) : string.Empty);
+        if (side >= 0) {
+            string width, style, color;
+            if (IsCssWideKeyword(value.Trim())) {
+                width = style = color = value;
+            } else if (!TryExpandBorderComponents(value, out width, out style, out color)) {
+                longhands = Array.Empty<KeyValuePair<string, string>>();
+                return false;
+            }
+            longhands = new[] {
+                new KeyValuePair<string, string>(BorderWidthLonghands[side], width),
+                new KeyValuePair<string, string>(BorderStyleLonghands[side], style),
+                new KeyValuePair<string, string>(BorderColorLonghands[side], color)
+            };
             return true;
         }
 
@@ -100,10 +120,11 @@ public static partial class HtmlComputedStyleEngine {
             }
 
             foreach (KeyValuePair<string, string> longhand in longhands) {
-                if (properties.ContainsKey(longhand.Key)
+                // A missing value can still have a winning cascade priority:
+                // CSS-wide keywords such as `initial` reset the longhand.
+                if (priorities.TryGetValue(longhand.Key, out HtmlCssCascadePriority existing)
                     && (!priorities.TryGetValue(shorthand, out HtmlCssCascadePriority candidate)
-                        || priorities.TryGetValue(longhand.Key, out HtmlCssCascadePriority existing)
-                        && !candidate.OutranksOrEquals(existing))) {
+                        || !candidate.OutranksOrEquals(existing))) {
                     continue;
                 }
 

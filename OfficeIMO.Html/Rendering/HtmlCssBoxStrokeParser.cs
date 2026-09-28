@@ -135,6 +135,7 @@ internal static class HtmlCssBoxStrokeParser {
 
             string sideWidth = computed.GetValue(SideProperties[index * 4 + 1]).Trim();
             if (sideWidth.Length > 0) {
+                if (sideWidth.Equals("initial", StringComparison.OrdinalIgnoreCase)) sideWidth = "medium";
                 if (!TryStrokeWidth(sideWidth, reference, fontSize, rootFontSize, viewportWidth, viewportHeight, containerWidth, containerHeight, out double width)) {
                     detail = prefix + "-width=" + sideWidth;
                     return false;
@@ -144,10 +145,15 @@ internal static class HtmlCssBoxStrokeParser {
                     sides[index] = sides[index].WithWidth(width);
                     widthSources[index] = property;
                 }
+            } else if (computed.IsResetValue(SideProperties[index * 4 + 1])
+                && CanOverride(computed, SideProperties[index * 4 + 1], widthSources[index])) {
+                sides[index] = sides[index].WithWidth(3D);
+                widthSources[index] = SideProperties[index * 4 + 1];
             }
 
             string sideStyle = computed.GetValue(SideProperties[index * 4 + 2]).Trim();
             if (sideStyle.Length > 0) {
+                if (sideStyle.Equals("initial", StringComparison.OrdinalIgnoreCase)) sideStyle = "none";
                 if (!TryStrokeStyle(sideStyle, out string parsedStyle)) {
                     detail = prefix + "-style=" + sideStyle;
                     return false;
@@ -157,10 +163,15 @@ internal static class HtmlCssBoxStrokeParser {
                     sides[index] = sides[index].WithStyle(parsedStyle);
                     styleSources[index] = property;
                 }
+            } else if (computed.IsResetValue(SideProperties[index * 4 + 2])
+                && CanOverride(computed, SideProperties[index * 4 + 2], styleSources[index])) {
+                sides[index] = sides[index].WithStyle("none");
+                styleSources[index] = SideProperties[index * 4 + 2];
             }
 
             string sideColor = computed.GetValue(SideProperties[index * 4 + 3]).Trim();
             if (sideColor.Length > 0) {
+                if (sideColor.Equals("initial", StringComparison.OrdinalIgnoreCase)) sideColor = "currentcolor";
                 if (!TryStrokeColor(sideColor, currentColor, out OfficeColor parsedColor)) {
                     detail = prefix + "-color=" + sideColor;
                     return false;
@@ -170,6 +181,10 @@ internal static class HtmlCssBoxStrokeParser {
                     sides[index] = sides[index].WithColor(parsedColor);
                     colorSources[index] = property;
                 }
+            } else if (computed.IsResetValue(SideProperties[index * 4 + 3])
+                && CanOverride(computed, SideProperties[index * 4 + 3], colorSources[index])) {
+                sides[index] = sides[index].WithColor(currentColor);
+                colorSources[index] = SideProperties[index * 4 + 3];
             }
         }
 
