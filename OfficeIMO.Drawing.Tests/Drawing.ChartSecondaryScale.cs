@@ -5,6 +5,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartSecondaryScaleTests {
     [Fact]
+    public void SecondaryOneSidedMaximumOutsideDataStillClipsItsLine() {
+        OfficeColor primary = OfficeColor.Parse("#2A9D8F");
+        OfficeColor secondary = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Primary", new[] { 1d, 2d }, null, primary),
+            new OfficeChartSeries("Secondary", new[] { 10d, 20d }, null, secondary, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        });
+        var layout = new OfficeChartLayout(showLegend: false, showMarkers: false)
+            .WithSecondaryValueAxis(new OfficeChartValueAxisLayout(maximum: 5));
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.ColumnClustered, data, 360, 240, layout: layout));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        for (int y = 0; y < raster.Height; y++)
+            for (int x = 0; x < raster.Width; x++)
+                Assert.NotEqual(secondary, raster.GetPixel(x, y));
+    }
+
+    [Fact]
     public void ValueAxisLayout_RejectsInvalidNumericAndTickSettings() {
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartValueAxisLayout(minimum: double.NaN));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeChartValueAxisLayout(maximum: double.PositiveInfinity));
