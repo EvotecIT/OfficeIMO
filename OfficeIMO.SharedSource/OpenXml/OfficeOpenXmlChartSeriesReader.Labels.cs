@@ -29,7 +29,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 throw new NotSupportedException("An empty native data label separator cannot be projected.");
             var current = new LabelLayout {
                 Values = LabelFlag<C.ShowValue>(labels), Categories = LabelFlag<C.ShowCategoryName>(labels),
-                SeriesNames = LabelFlag<C.ShowSeriesName>(labels), Percentages = LabelFlag<C.ShowPercent>(labels),
+                SeriesNames = LabelFlag<C.ShowSeriesName>(labels), Percentages = layer is C.PieChart or C.DoughnutChart && LabelFlag<C.ShowPercent>(labels),
                 Separator = labels?.GetFirstChild<C.Separator>()?.Text,
                 NumberFormat = labels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
                 Position = labels?.GetFirstChild<C.DataLabelPosition>()?.Val?.InnerText switch {
