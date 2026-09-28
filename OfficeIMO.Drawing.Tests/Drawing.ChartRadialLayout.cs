@@ -104,6 +104,20 @@ public sealed class DrawingChartRadialLayoutTests {
     }
 
     [Fact]
+    public void MultiRingOutsideLabelsAllowLeadersWhenOnlyOuterRingIsLabeled() {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Inner", new[] { 1d, 2d }),
+            new OfficeChartSeries("Outer", new[] { 2d, 1d })
+        });
+        var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
+            showDataLabelCategoryNames: true, dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd,
+            dataLabelSeriesIndexes: new[] { 1 });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Doughnut, data, 420, 300, layout: layout));
+        Assert.Equal(2, drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line));
+    }
+
+    [Fact]
     public void OutsideLabelsUsePaintedChartBackgroundForContrast() {
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Values", new[] { 1d, 1d })

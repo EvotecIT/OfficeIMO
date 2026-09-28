@@ -170,7 +170,12 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            C.DataLabels? dataLabels = plotArea.Descendants<C.DataLabels>().FirstOrDefault(HasAnyVisibleDataLabelPart);
+            C.DataLabels[] visibleLabels = plotArea.Descendants<C.DataLabels>()
+                .Where(HasAnyVisibleDataLabelPart).ToArray();
+            C.DataLabels? dataLabels = visibleLabels.FirstOrDefault();
+            if (visibleLabels.Any(labels => IsEnabled(labels.GetFirstChild<C.ShowLeaderLines>()) !=
+                IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>())))
+                throw new NotSupportedException("Conflicting chart data-label leader-line settings cannot be projected.");
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.Title? title = chart.GetFirstChild<C.Title>();
             OfficeChartValueAxisLayout? secondaryValueAxis = ReadImageExportSecondaryValueAxis(plotArea);
