@@ -698,7 +698,9 @@ equal, inclusive between, exclusive not-between, and top/bottom count,
 percent, and sum filters. Count filters include ties at the cutoff. Percent
 and sum filters select by cumulative signed measure value, including the item
 that crosses the threshold. Percent uses the current grand total; a zero
-grand total retains all items. Zero and negative item aggregates are supported.
+grand total retains all items. When a percent or sum cutoff splits equal
+aggregates, materialization reports an unsupported item order rather than
+writing a different filtered view. Zero and negative item aggregates are supported.
 An item whose selected aggregate is an error does not enter a ranking with numeric
 aggregates; Count and Count Numbers still rank their numeric results for
 error-valued source cells. When every selected aggregate is one of Excel's seven
@@ -711,8 +713,9 @@ materialization supports the same value comparisons and ranges on either
 field and top/bottom count, percent, and sum on either field. The inner field's
 aggregate is compared or ranked within each parent; the outer field uses its
 aggregate across its children. Two column fields support greater-than on either
-field. With one row and one column field, greater-than can target either field,
-and top-one count can target the column field. Other multi-field value rules,
+field. With one row and one column field, the same value comparisons, ranges,
+and top/bottom count, percent, and sum filters can target either field. Other
+multi-field value rules,
 deeper hierarchies, and multi-measure filter interactions remain outside this
 qualified profile. Signed and zero child aggregates, nonpositive outer-field
 totals, three siblings per parent, mixed numeric/error ranking, and classic

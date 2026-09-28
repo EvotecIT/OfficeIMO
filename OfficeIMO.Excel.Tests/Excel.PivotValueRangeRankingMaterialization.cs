@@ -119,6 +119,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Theory]
+        [InlineData("top-sum-tie")]
+        [InlineData("top-percent-tie")]
+        public void Test_PivotValueRanking_TiedCumulativeCutoffRejectsUnqualifiedExcelOrder(string kind) {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus",
+                $"pivot-value-{kind}-conformance.xlsx");
+            AssertPivotMultiFieldFixtureHash(path);
+            using var oracle = ExcelDocumentReader.Open(path);
+            AssertPivotLookupOracleValue(50d, oracle.GetSheet("Lookups").ReadRange("B1:B1")[0, 0]);
+            using (var imported = ExcelDocument.Load(path)) {
+                var grouped = imported.GetSheet("Grouped");
+                Assert.Equal(50d, grouped.GetPivotData("ValuePivot", "Metric").Value);
+                var error = Assert.Throws<NotSupportedException>(() => grouped.MaterializePivotTable("ValuePivot"));
+                Assert.Contains("tied cutoff", error.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Empty(imported.ValidateOpenXml());
+            }
+
+            using var authored = ExcelDocument.Create();
+            var source = authored.AddWorksheet("Source");
+            source.CellValue(1, 1, "Region");
+            source.CellValue(1, 2, "Sales");
+            var entries = new[] {
+                ("Alpha", 10d), ("Bravo", 20d), ("Charlie", 30d),
+                ("Delta", 40d), ("Echo", 50d), ("Foxtrot", 50d)
+            };
+            for (int index = 0; index < entries.Length; index++) {
+                source.CellValue(index + 2, 1, entries[index].Item1);
+                source.CellValue(index + 2, 2, entries[index].Item2);
+            }
+            ExcelPivotFilter filter = kind == "top-sum-tie"
+                ? ExcelPivotFilter.TopSum("Region", "Metric", 40d)
+                : ExcelPivotFilter.TopPercent("Region", "Metric", 10);
+            source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
+                .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "ValuePivot");
+            var authoredError = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
+            Assert.Contains("tied cutoff", authoredError.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(authored.ValidateOpenXml());
+        }
+
+        [Theory]
         [InlineData("zero-top-percent", 90d)]
         [InlineData("zero-bottom-percent", 60d)]
         [InlineData("zero-top-sum", 90d)]

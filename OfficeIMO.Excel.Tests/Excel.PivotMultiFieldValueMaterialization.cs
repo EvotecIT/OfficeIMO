@@ -193,6 +193,22 @@ namespace OfficeIMO.Tests {
         [InlineData("mixed-column", "A4:C9", "E4:G9", 6, 3, 130d)]
         [InlineData("mixed-row", "A4:D7", "E4:H7", 4, 4, 65d)]
         [InlineData("mixed-column-top1", "A4:C9", "E4:G9", 6, 3, 130d)]
+        [InlineData("mixed-column-less", "A4:C9", "E4:G9", 6, 3, 55d)]
+        [InlineData("mixed-column-equal", "A4:C9", "E4:G9", 6, 3, 55d)]
+        [InlineData("mixed-column-notequal", "A4:C9", "E4:G9", 6, 3, 130d)]
+        [InlineData("mixed-column-between", "A4:C9", "E4:G9", 6, 3, 55d)]
+        [InlineData("mixed-column-bottom1", "A4:C9", "E4:G9", 6, 3, 55d)]
+        [InlineData("mixed-column-top2", "A4:D9", "E4:H9", 6, 4, 185d)]
+        [InlineData("mixed-column-top50pct", "A4:C9", "E4:G9", 6, 3, 130d)]
+        [InlineData("mixed-column-bottomsum60", "A4:D9", "E4:H9", 6, 4, 185d)]
+        [InlineData("mixed-row-less", "A4:D8", "E4:H8", 5, 4, 120d)]
+        [InlineData("mixed-row-notequal", "A4:D7", "E4:H7", 4, 4, 65d)]
+        [InlineData("mixed-row-between", "A4:D7", "E4:H7", 4, 4, 65d)]
+        [InlineData("mixed-row-notbetween", "A4:D8", "E4:H8", 5, 4, 120d)]
+        [InlineData("mixed-row-bottom1", "A4:D8", "E4:H8", 5, 4, 120d)]
+        [InlineData("mixed-row-top2", "A4:D9", "E4:H9", 6, 4, 185d)]
+        [InlineData("mixed-row-top25pct", "A4:D7", "E4:H7", 4, 4, 65d)]
+        [InlineData("mixed-row-bottomsum70", "A4:D8", "E4:H8", 5, 4, 120d)]
         public void Test_PivotMultiFieldValue_MixedAxesMatchExcel(
             string kind, string expectedRange, string authoredRange, int height, int width, double total) {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus",
@@ -229,6 +245,22 @@ namespace OfficeIMO.Tests {
                     "mixed-column" => ExcelPivotFilter.ValueGreaterThan("Product", "Metric", 100d),
                     "mixed-row" => ExcelPivotFilter.ValueGreaterThan("Region", "Metric", 62d),
                     "mixed-column-top1" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
+                    "mixed-column-less" => ExcelPivotFilter.ValueLessThan("Product", "Metric", 100d),
+                    "mixed-column-equal" => ExcelPivotFilter.ValueEquals("Product", "Metric", 55d),
+                    "mixed-column-notequal" => ExcelPivotFilter.ValueNotEquals("Product", "Metric", 55d),
+                    "mixed-column-between" => ExcelPivotFilter.ValueBetween("Product", "Metric", 50d, 60d),
+                    "mixed-column-bottom1" => ExcelPivotFilter.BottomCount("Product", "Metric", 1),
+                    "mixed-column-top2" => ExcelPivotFilter.TopCount("Product", "Metric", 2),
+                    "mixed-column-top50pct" => ExcelPivotFilter.TopPercent("Product", "Metric", 50),
+                    "mixed-column-bottomsum60" => ExcelPivotFilter.BottomSum("Product", "Metric", 60d),
+                    "mixed-row-less" => ExcelPivotFilter.ValueLessThan("Region", "Metric", 62d),
+                    "mixed-row-notequal" => ExcelPivotFilter.ValueNotEquals("Region", "Metric", 60d),
+                    "mixed-row-between" => ExcelPivotFilter.ValueBetween("Region", "Metric", 61d, 65d),
+                    "mixed-row-notbetween" => ExcelPivotFilter.ValueNotBetween("Region", "Metric", 61d, 65d),
+                    "mixed-row-bottom1" => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
+                    "mixed-row-top2" => ExcelPivotFilter.TopCount("Region", "Metric", 2),
+                    "mixed-row-top25pct" => ExcelPivotFilter.TopPercent("Region", "Metric", 25),
+                    "mixed-row-bottomsum70" => ExcelPivotFilter.BottomSum("Region", "Metric", 70d),
                     _ => throw new ArgumentOutOfRangeException(nameof(kind))
                 };
                 source.Pivot("A1:C7").Rows("Region").Columns("Product").Sum("Sales", "Metric")
@@ -247,6 +279,43 @@ namespace OfficeIMO.Tests {
             using var authoredView = ExcelDocumentReader.Open(authoredOutput);
             AssertPivotMixedGridMatchesExcel(expectedView,
                 authoredView.GetSheet("Source").ReadRange(authoredRange), height, width);
+        }
+
+        [Theory]
+        [InlineData("mixed-row-bottomsum50", 60d)]
+        [InlineData("outer-tie-bottomsum50", 60d)]
+        [InlineData("outer-tie-top50pct", 125d)]
+        [InlineData("outer-tie-bottom25pct", 60d)]
+        [InlineData("outer-tie-bottomsum50-reversed", 60d)]
+        [InlineData("outer-tie-bottomsum50-three", 60d)]
+        public void Test_PivotMultiFieldValue_TiedPercentSumCutoffRejectsUnqualifiedItemOrder(
+            string kind, double excelTotal) {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus",
+                $"pivot-value-multifield-{kind}-conformance.xlsx");
+            AssertPivotMultiFieldFixtureHash(path);
+            using var oracle = ExcelDocumentReader.Open(path);
+            AssertPivotLookupOracleValue(excelTotal, oracle.GetSheet("Lookups").ReadRange("B1:B1")[0, 0]);
+            using var document = ExcelDocument.Load(path);
+            var grouped = document.GetSheet("Grouped");
+            Assert.Equal(excelTotal, grouped.GetPivotData("ValuePivot", "Metric").Value);
+            var error = Assert.Throws<NotSupportedException>(() => grouped.MaterializePivotTable("ValuePivot"));
+            Assert.Contains("tied cutoff", error.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(excelTotal, grouped.GetPivotData("ValuePivot", "Metric").Value);
+            Assert.Empty(document.ValidateOpenXml());
+        }
+
+        [Fact]
+        public void Test_PivotMultiFieldValue_TemplateFreeTiedSumFailsBeforeWritingView() {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet("Source");
+            PopulateMultiFieldPivotSource(source);
+            source.Pivot("A1:C7").Rows("Region").Columns("Product").Sum("Sales", "Metric")
+                .Layout(ExcelPivotLayout.Tabular)
+                .Filter(ExcelPivotFilter.BottomSum("Region", "Metric", 50d))
+                .At("E4", "ValuePivot");
+            var error = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
+            Assert.Contains("tied cutoff", error.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(document.ValidateOpenXml());
         }
 
         [Theory]
@@ -389,18 +458,13 @@ namespace OfficeIMO.Tests {
             int height, int width) {
             string Row(object?[,] view, int row) => JsonSerializer.Serialize(Enumerable.Range(0, width)
                 .Select(column => view[row, column]).ToArray());
-            if (width == 3) {
-                // Excel sorts row captions while OfficeIMO retains source order.
-                Assert.Equal(Row(expected, 0), Row(actual, 0));
-                Assert.Equal(Row(expected, 1), Row(actual, 1));
-                Assert.Equal(Row(expected, height - 1), Row(actual, height - 1));
-                string[] Body(object?[,] view) => Enumerable.Range(2, height - 3)
-                    .Select(row => Row(view, row)).OrderBy(row => row, StringComparer.Ordinal).ToArray();
-                Assert.Equal(Body(expected), Body(actual));
-            } else {
-                Assert.Equal(Enumerable.Range(0, height).Select(row => Row(expected, row)),
-                    Enumerable.Range(0, height).Select(row => Row(actual, row)));
-            }
+            // Excel sorts row captions while OfficeIMO retains source order.
+            Assert.Equal(Row(expected, 0), Row(actual, 0));
+            Assert.Equal(Row(expected, 1), Row(actual, 1));
+            Assert.Equal(Row(expected, height - 1), Row(actual, height - 1));
+            string[] Body(object?[,] view) => Enumerable.Range(2, height - 3)
+                .Select(row => Row(view, row)).OrderBy(row => row, StringComparer.Ordinal).ToArray();
+            Assert.Equal(Body(expected), Body(actual));
         }
 
         private static void AssertPivotColumnGridMatchesExcel(object?[,] expected, object?[,] actual) {

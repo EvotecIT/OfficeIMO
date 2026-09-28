@@ -3,18 +3,40 @@
 Creates independent Microsoft Excel value-range and top/bottom pivot fixtures.
 #>
 [CmdletBinding()]
-param()
+param([string[]] $Kinds = @(), [string] $OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$directory = Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus'
+$directory = if ($OutputDirectory) { $OutputDirectory }
+    else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus' }
+New-Item -ItemType Directory -Path $directory -Force | Out-Null
+$directory = (Resolve-Path -LiteralPath $directory).Path
+if (-not ('OfficeIMOExcelPivotOracleProcess' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class OfficeIMOExcelPivotOracleProcess {
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+}
+'@
+}
 $mutex = [Threading.Mutex]::new($false, 'Local\OfficeIMO.Excel.Tests.DesktopCom')
 $acquired = $false
+$existingExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue | ForEach-Object Id)
 $application = $null
 $workbook = $null
+$isolated = $false
 try {
     $acquired = $mutex.WaitOne([TimeSpan]::FromMinutes(5))
     if (-not $acquired) { throw 'Excel COM lock timed out.' }
     $application = New-Object -ComObject Excel.Application
+    [uint32]$excelProcessId = 0
+    [void][OfficeIMOExcelPivotOracleProcess]::GetWindowThreadProcessId(
+        [IntPtr][long]$application.Hwnd, [ref]$excelProcessId)
+    if ($excelProcessId -eq 0 -or $existingExcelIds -contains [int]$excelProcessId) {
+        throw 'Could not prove isolated Excel instance.'
+    }
+    $isolated = $true
     $application.Visible = $false
     $application.DisplayAlerts = $false
     $application.AutomationSecurity = 3
@@ -26,9 +48,15 @@ try {
         [pscustomobject]@{ Key = 'top-percent'; Type = 3; First = 40.0; Second = $null },
         [pscustomobject]@{ Key = 'bottom-percent'; Type = 4; First = 40.0; Second = $null },
         [pscustomobject]@{ Key = 'top-sum'; Type = 5; First = 90.0; Second = $null },
-        [pscustomobject]@{ Key = 'bottom-sum'; Type = 6; First = 35.0; Second = $null }
+        [pscustomobject]@{ Key = 'bottom-sum'; Type = 6; First = 35.0; Second = $null },
+        [pscustomobject]@{ Key = 'top-sum-tie'; Type = 5; First = 40.0; Second = $null; Range = 'A4:B6'; Grand = 50.0 },
+        [pscustomobject]@{ Key = 'top-percent-tie'; Type = 3; First = 10.0; Second = $null; Range = 'A4:B6'; Grand = 50.0 }
     )
+    if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
+        throw "Unknown pivot ranking fixture kind: $($Kinds -join ', ')"
+    }
     foreach ($case in $cases) {
+        if ($Kinds.Count -gt 0 -and $Kinds -notcontains $case.Key) { continue }
         $workbook = $application.Workbooks.Add()
         $source = $workbook.Worksheets.Item(1)
         $source.Name = 'Source'
@@ -67,6 +95,9 @@ try {
         $application.CalculateFullRebuild()
         $range = $pivot.TableRange1.Address($false, $false)
         $grand = $pivot.GetPivotData('Metric').Value2
+        if ($null -ne $case.Range -and ($range -ne $case.Range -or $grand -ne $case.Grand)) {
+            throw "Excel pivot ranking oracle changed: $($case.Key) saved $range and $grand."
+        }
         $file = "pivot-value-$($case.Key)-conformance.xlsx"
         $path = Join-Path $directory $file
         $workbook.SaveAs($path, 51)
@@ -86,7 +117,7 @@ try {
 } finally {
     if ($null -ne $workbook) { $workbook.Close($false) }
     if ($null -ne $application) {
-        $application.Quit()
+        if ($isolated) { $application.Quit() }
         [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($application)
     }
     if ($acquired) { $mutex.ReleaseMutex() }

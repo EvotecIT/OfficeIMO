@@ -88,7 +88,29 @@ try {
         [pscustomobject]@{ Key = 'outer-zero-top50pct'; Field = 'Region'; Type = 3; Threshold = 50.0; Axis = 'Row'; Profile = 'ZeroParents'; Range = 'A4:C9'; Grand = 40.0 },
         [pscustomobject]@{ Key = 'outer-zero-bottom50pct'; Field = 'Region'; Type = 4; Threshold = 50.0; Axis = 'Row'; Profile = 'ZeroParents'; Range = 'A4:C17'; Grand = 40.0 },
         [pscustomobject]@{ Key = 'inner-errorparent-top1'; Field = 'Product'; Type = 1; Threshold = 1.0; Axis = 'Row'; Profile = 'ErrorParent'; Range = 'A4:C11'; Grand = '#DIV/0!' },
-        [pscustomobject]@{ Key = 'inner-errorparent-bottom1'; Field = 'Product'; Type = 2; Threshold = 1.0; Axis = 'Row'; Profile = 'ErrorParent'; Range = 'A4:C11'; Grand = '#N/A' }
+        [pscustomobject]@{ Key = 'inner-errorparent-bottom1'; Field = 'Product'; Type = 2; Threshold = 1.0; Axis = 'Row'; Profile = 'ErrorParent'; Range = 'A4:C11'; Grand = '#N/A' },
+        [pscustomobject]@{ Key = 'mixed-column-less'; Field = 'Product'; Type = 11; Threshold = 100.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 55.0 },
+        [pscustomobject]@{ Key = 'mixed-column-equal'; Field = 'Product'; Type = 7; Threshold = 55.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 55.0 },
+        [pscustomobject]@{ Key = 'mixed-column-notequal'; Field = 'Product'; Type = 8; Threshold = 55.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 130.0 },
+        [pscustomobject]@{ Key = 'mixed-column-between'; Field = 'Product'; Type = 13; Threshold = 50.0; Threshold2 = 60.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 55.0 },
+        [pscustomobject]@{ Key = 'mixed-column-bottom1'; Field = 'Product'; Type = 2; Threshold = 1.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 55.0 },
+        [pscustomobject]@{ Key = 'mixed-column-top2'; Field = 'Product'; Type = 1; Threshold = 2.0; Axis = 'Mixed'; Range = 'A4:D9'; Grand = 185.0 },
+        [pscustomobject]@{ Key = 'mixed-column-top50pct'; Field = 'Product'; Type = 3; Threshold = 50.0; Axis = 'Mixed'; Range = 'A4:C9'; Grand = 130.0 },
+        [pscustomobject]@{ Key = 'mixed-column-bottomsum60'; Field = 'Product'; Type = 6; Threshold = 60.0; Axis = 'Mixed'; Range = 'A4:D9'; Grand = 185.0 },
+        [pscustomobject]@{ Key = 'mixed-row-less'; Field = 'Region'; Type = 11; Threshold = 62.0; Axis = 'Mixed'; Range = 'A4:D8'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'mixed-row-notequal'; Field = 'Region'; Type = 8; Threshold = 60.0; Axis = 'Mixed'; Range = 'A4:D7'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'mixed-row-between'; Field = 'Region'; Type = 13; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Mixed'; Range = 'A4:D7'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'mixed-row-notbetween'; Field = 'Region'; Type = 14; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Mixed'; Range = 'A4:D8'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'mixed-row-bottom1'; Field = 'Region'; Type = 2; Threshold = 1.0; Axis = 'Mixed'; Range = 'A4:D8'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'mixed-row-top2'; Field = 'Region'; Type = 1; Threshold = 2.0; Axis = 'Mixed'; Range = 'A4:D9'; Grand = 185.0 },
+        [pscustomobject]@{ Key = 'mixed-row-top25pct'; Field = 'Region'; Type = 3; Threshold = 25.0; Axis = 'Mixed'; Range = 'A4:D7'; Grand = 65.0 },
+        [pscustomobject]@{ Key = 'mixed-row-bottomsum50'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Mixed'; Range = 'A4:D7'; Grand = 60.0 },
+        [pscustomobject]@{ Key = 'mixed-row-bottomsum70'; Field = 'Region'; Type = 6; Threshold = 70.0; Axis = 'Mixed'; Range = 'A4:D8'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'outer-tie-bottomsum50'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 60.0 },
+        [pscustomobject]@{ Key = 'outer-tie-top50pct'; Field = 'Region'; Type = 3; Threshold = 50.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 125.0 },
+        [pscustomobject]@{ Key = 'outer-tie-bottom25pct'; Field = 'Region'; Type = 4; Threshold = 25.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 60.0 },
+        [pscustomobject]@{ Key = 'outer-tie-bottomsum50-reversed'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Row'; Profile = 'ReverseParents'; Range = 'A4:C8'; Grand = 60.0 },
+        [pscustomobject]@{ Key = 'outer-tie-bottomsum50-three'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Row'; Profile = 'ThreeTies'; Range = 'A4:C8'; Grand = 60.0 }
     )
     if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
         throw "Unknown pivot value fixture kind: $($Kinds -join ', ')"
@@ -126,6 +148,18 @@ try {
                 @('East', 'A', '=NA()'), @('East', 'B', '=1/0'), @('East', 'C', '=VALUE("bad")'),
                 @('West', 'A', 40.0), @('West', 'B', 20.0), @('West', 'C', 0.0),
                 @('South', 'A', 5.0), @('South', 'B', 60.0), @('South', 'C', 30.0)
+            )
+        } elseif ($case.Profile -eq 'ReverseParents') {
+            @(
+                @('South', 'A', 5.0), @('South', 'B', 60.0),
+                @('West', 'A', 40.0), @('West', 'B', 20.0),
+                @('East', 'A', 10.0), @('East', 'B', 50.0)
+            )
+        } elseif ($case.Profile -eq 'ThreeTies') {
+            @(
+                @('East', 'A', 10.0), @('East', 'B', 50.0),
+                @('West', 'A', 40.0), @('West', 'B', 20.0),
+                @('South', 'A', 5.0), @('South', 'B', 55.0)
             )
         } else {
             @(

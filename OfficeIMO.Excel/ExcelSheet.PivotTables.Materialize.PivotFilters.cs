@@ -183,7 +183,7 @@ namespace OfficeIMO.Excel {
                 }
                 if (axisFields.Count > 1
                     && (axisFields.Count != 2 || measures.Length != 1
-                        || !IsQualifiedMultiFieldPivotValueFilter(type, ranking, field,
+                        || !IsQualifiedMultiFieldPivotValueFilter(type,
                             rowAxisFields, columnAxisFields)))
                     throw new NotSupportedException("The multi-field value filter has no qualified two-field axis rule.");
                 var measure = measures[filter.MeasureField.Value];
@@ -398,22 +398,11 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool IsQualifiedMultiFieldPivotValueFilter(
-            PivotFilterValues type, Top10? ranking, int field,
-            int[] rowAxisFields, int[] columnAxisFields) {
-            if (rowAxisFields.Length == 1 && columnAxisFields.Length == 1)
-                return type == PivotFilterValues.ValueGreaterThan
-                    || (field == columnAxisFields[0] && type == PivotFilterValues.Count
-                        && ranking?.Val?.Value == 1 && ranking?.Top?.Value != false);
-            if (Math.Max(rowAxisFields.Length, columnAxisFields.Length) != 2) return false;
-            if (type == PivotFilterValues.ValueGreaterThan) return true;
-            if (rowAxisFields.Length != 2) return false;
-            if (type == PivotFilterValues.ValueEqual || type == PivotFilterValues.ValueNotEqual
-                || type == PivotFilterValues.ValueGreaterThanOrEqual
-                || type == PivotFilterValues.ValueLessThan || type == PivotFilterValues.ValueLessThanOrEqual
-                || type == PivotFilterValues.ValueBetween || type == PivotFilterValues.ValueNotBetween)
+            PivotFilterValues type, int[] rowAxisFields, int[] columnAxisFields) {
+            if (rowAxisFields.Length == 2
+                || (rowAxisFields.Length == 1 && columnAxisFields.Length == 1))
                 return true;
-            return type == PivotFilterValues.Count || type == PivotFilterValues.Percent
-                || type == PivotFilterValues.Sum;
+            return columnAxisFields.Length == 2 && type == PivotFilterValues.ValueGreaterThan;
         }
 
         private static Top10 QualifiedPivotRankingFilter(PivotFilter filter) {
@@ -455,6 +444,10 @@ namespace OfficeIMO.Excel {
                 }
             }
             double cutoff = values[cutoffIndex].Value;
+            if (type != PivotFilterValues.Count && cutoffIndex + 1 < values.Length
+                && values[cutoffIndex + 1].Value == cutoff)
+                throw new NotSupportedException(
+                    "Top/bottom percent and sum ranking with a tied cutoff has no qualified Excel item order.");
             return new HashSet<PivotFieldValue>(values.Where(pair => top
                 ? pair.Value >= cutoff : pair.Value <= cutoff).Select(pair => pair.Key));
         }
