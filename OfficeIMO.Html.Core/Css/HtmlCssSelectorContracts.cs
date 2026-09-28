@@ -311,8 +311,7 @@ internal sealed class HtmlCssSelectorMatchContext {
     private readonly Func<IHtmlCssSelectorElement, string, bool>? _providerMatcher;
     private readonly Dictionary<object, SiblingSet> _siblings =
         new Dictionary<object, SiblingSet>(ReferenceIdentityComparer.Instance);
-    private readonly Dictionary<HtmlCssSelector, Dictionary<HtmlCssSelector.MatchState, bool>> _matchResults =
-        new Dictionary<HtmlCssSelector, Dictionary<HtmlCssSelector.MatchState, bool>>();
+    private readonly Dictionary<CachedMatchState, bool> _matchResults = new Dictionary<CachedMatchState, bool>();
     private int _retainedMatchStates;
 
     internal HtmlCssSelectorMatchContext(Action? recordEvaluation, CancellationToken cancellationToken,
@@ -327,10 +326,7 @@ internal sealed class HtmlCssSelectorMatchContext {
     internal void RecordEvaluation() => _recordEvaluation?.Invoke();
     internal void ThrowIfCancellationRequested() => _cancellationToken.ThrowIfCancellationRequested();
     internal bool TryGetMatchResult(HtmlCssSelector selector, HtmlCssSelector.MatchState state, out bool result) {
-        if (_matchResults.TryGetValue(selector, out Dictionary<HtmlCssSelector.MatchState, bool>? matches))
-            return matches.TryGetValue(state, out result);
-        result = false;
-        return false;
+        return _matchResults.TryGetValue(new CachedMatchState(selector, state), out result);
     }
 
     internal void SetMatchResult(HtmlCssSelector selector, HtmlCssSelector.MatchState state, bool result) {
@@ -340,14 +336,29 @@ internal sealed class HtmlCssSelectorMatchContext {
             _matchResults.Clear();
             _retainedMatchStates = 0;
         }
-        if (!_matchResults.TryGetValue(selector, out Dictionary<HtmlCssSelector.MatchState, bool>? matches)) {
-            matches = new Dictionary<HtmlCssSelector.MatchState, bool>();
-            _matchResults.Add(selector, matches);
-        }
-        if (!matches.ContainsKey(state)) {
-            matches.Add(state, result);
+        var key = new CachedMatchState(selector, state);
+        if (!_matchResults.ContainsKey(key)) {
+            _matchResults.Add(key, result);
             _retainedMatchStates++;
         }
+    }
+
+    private readonly struct CachedMatchState : IEquatable<CachedMatchState> {
+        private readonly HtmlCssSelector _selector;
+        private readonly HtmlCssSelector.MatchState _state;
+
+        internal CachedMatchState(HtmlCssSelector selector, HtmlCssSelector.MatchState state) {
+            _selector = selector;
+            _state = state;
+        }
+
+        public bool Equals(CachedMatchState other) =>
+            ReferenceEquals(_selector, other._selector) && _state.Equals(other._state);
+
+        public override bool Equals(object? obj) => obj is CachedMatchState other && Equals(other);
+
+        public override int GetHashCode() =>
+            unchecked((System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(_selector) * 397) ^ _state.GetHashCode());
     }
     internal bool MatchesProviderSelector(IHtmlCssSelectorElement element, string selector) {
         ThrowIfCancellationRequested();
