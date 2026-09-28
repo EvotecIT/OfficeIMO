@@ -27,12 +27,21 @@ namespace OfficeIMO.OpenXml.Internal {
             if (!HasSupportedProjectionAxisGroups(layers, axisGroups)) return null;
             var projectionBudget = new ProjectionBudget();
             var series = new List<Series>();
+            var stackedLayers = new HashSet<(OfficeChartKind Kind, OfficeChartAxisGroup AxisGroup)>();
             IReadOnlyList<string>? categories = null;
             for (int index = 0; index < layers.Count; index++) {
                 var layer = layers[index];
                 if (layer is not C.BarChart && layer is not C.LineChart && layer is not C.AreaChart && layer is not C.RadarChart &&
                     layer is not C.ScatterChart && layer is not C.BubbleChart && layer is not C.PieChart && layer is not C.DoughnutChart) return null;
                 if (!TryReadKind(layer, out var layerKind)) return null;
+                // Separate native stacked layers have independent stacks. The flat
+                // chart model groups them by kind and axis, so it cannot preserve both.
+                if (layerKind is OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 or
+                    OfficeChartKind.ColumnStacked or OfficeChartKind.ColumnStacked100 or
+                    OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
+                    OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100) {
+                    if (!stackedLayers.Add((layerKind, axisGroups.Read(layer)))) return null;
+                }
                 if (HasUnsupportedLayerPresentation(layer)) return null;
                 if (HasIncompleteNumericProjectionCaches(layer, maximumPoints)) return null;
                 if (index == 0) kind = layerKind;

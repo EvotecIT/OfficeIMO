@@ -88,6 +88,43 @@ public sealed class WordChartProjectionQualificationTests {
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         Assert.Equal(C.AxisPositionValues.Bottom, plot.GetFirstChild<C.CategoryAxis>()!.AxisPosition!.Val!.Value);
         Assert.Equal(C.AxisPositionValues.Left, plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val!.Value);
+        chart.BarDirection = WordChartBarDirection.Bar;
+        chart.BarDirection = null;
+        Assert.True(chart.TryGetOfficeSnapshot(out var omitted));
+        Assert.Equal(OfficeChartKind.ColumnClustered, omitted.ChartKind);
+        Assert.Equal(C.AxisPositionValues.Bottom, plot.GetFirstChild<C.CategoryAxis>()!.AxisPosition!.Val!.Value);
+        Assert.Equal(C.AxisPositionValues.Left, plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val!.Value);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_RejectsFormulaLinkedTitleWithoutCachedText(bool axisTitle) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }), "Results");
+        if (axisTitle) chart.SetXAxisTitle("Units");
+        C.Title title = axisTitle
+            ? chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single().GetFirstChild<C.Title>()!
+            : chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.Title>()!;
+        title.RemoveAllChildren<C.ChartText>();
+        title.AddChild(new C.ChartText(new C.StringReference(new C.Formula("Sheet1!$A$1"))), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsSeparateStackedLayersSharingAnAxisPair() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnStacked,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("First", new[] { 2d, 3d }) }));
+        C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.BarChart second = (C.BarChart)plot.GetFirstChild<C.BarChart>()!.CloneNode(true);
+        C.BarChartSeries series = second.Elements<C.BarChartSeries>().Single();
+        series.GetFirstChild<C.Index>()!.Val = 1U;
+        series.GetFirstChild<C.Order>()!.Val = 1U;
+        plot.InsertAfter(second, plot.GetFirstChild<C.BarChart>());
+        Assert.Equal(2, plot.Elements<C.BarChart>().Count());
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Theory]

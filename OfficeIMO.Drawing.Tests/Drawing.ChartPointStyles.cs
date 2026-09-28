@@ -5,6 +5,26 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPointStylesTests {
     [Fact]
+    public void RadarHonorsIndependentGridlineAndCategoryLabelVisibility() {
+        OfficeColor categoryGrid = OfficeColor.Parse("#B900D0");
+        OfficeColor valueGrid = OfficeColor.Parse("#0077AA");
+        var series = new OfficeChartSeries("Values", new[] { 1d, 2d, 3d }, null, null, null,
+            showMarkers: false, connectLine: false);
+        OfficeChartSnapshot Snapshot(bool category, bool value, bool labels) => new("", null,
+            OfficeChartKind.Radar, new OfficeChartData(new[] { "A", "B", "C" }, new[] { series }), 320, 240,
+            style: new OfficeChartStyle(categoryGridLineColor: categoryGrid, valueGridLineColor: valueGrid,
+                showCategoryGridLines: category, showValueGridLines: value),
+            layout: new OfficeChartLayout(showLegend: false, showCategoryAxisLabels: labels));
+        OfficeDrawing hidden = OfficeChartDrawingRenderer.Render(Snapshot(false, false, false));
+        Assert.DoesNotContain(hidden.Shapes, shape => shape.Shape.StrokeColor == categoryGrid || shape.Shape.StrokeColor == valueGrid);
+        Assert.DoesNotContain(hidden.Elements.OfType<OfficeDrawingText>(), item => item.Text is "A" or "B" or "C");
+        OfficeDrawing visible = OfficeChartDrawingRenderer.Render(Snapshot(true, true, true));
+        Assert.Contains(visible.Shapes, shape => shape.Shape.StrokeColor == categoryGrid);
+        Assert.Contains(visible.Shapes, shape => shape.Shape.StrokeColor == valueGrid);
+        Assert.Contains(visible.Elements.OfType<OfficeDrawingText>(), item => item.Text == "A");
+    }
+
+    [Fact]
     public void DoughnutLegendUsesTheFirstRenderableRingWhenOnlyInnerRingHasPointStyles() {
         var outer = new OfficeChartSeries("Outer", new[] { 3d, 2d }, null, OfficeColor.Parse("#1845A3"));
         var inner = new OfficeChartSeries("Inner", new[] { 4d, 1d })
@@ -166,6 +186,23 @@ public sealed class DrawingChartPointStylesTests {
             }
         Assert.True(painted > 0, "The requested hatch direction must remain visible on a thin point. SVG has ink: " +
             OfficeDrawingSvgExporter.ToSvg(drawing).Contains("#B900D0", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartMarkerShape.Dash)]
+    [InlineData(OfficeChartMarkerShape.Plus)]
+    [InlineData(OfficeChartMarkerShape.X)]
+    public void PointStyles_LineOnlyScatterMarkersUseHatchForeground(OfficeChartMarkerShape markerShape) {
+        OfficeColor ink = OfficeColor.Parse("#B900D0");
+        var series = new OfficeChartSeries("Results", new[] { 4d }, new[] { 2d }, null, null,
+            showMarkers: true, connectLine: false, markerShape: markerShape)
+            .WithPointStyles(new OfficeChartPointStyle?[] {
+                new(hatch: OfficeChartHatchPattern.Cross, hatchColor: ink)
+            });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, new OfficeChartData(new[] { "2" }, new[] { series }), 320, 240,
+            layout: new OfficeChartLayout(showLegend: false)));
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
     }
 
     [Fact]

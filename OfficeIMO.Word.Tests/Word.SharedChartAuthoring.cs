@@ -17,6 +17,22 @@ public sealed class WordSharedChartAuthoringTests {
     public static IEnumerable<object[]> SupportedKinds() =>
         Enum.GetValues(typeof(OfficeChartKind)).Cast<OfficeChartKind>().Select(kind => new object[] { kind });
 
+    [Fact]
+    public void ScatterUpdateEnablesRequestedLinesAndMarkersOnImportedLayer() {
+        foreach (C.ScatterStyleValues importedStyle in new[] { C.ScatterStyleValues.Marker, C.ScatterStyleValues.Line }) {
+            using WordDocument document = WordDocument.Create();
+            var data = Data(OfficeChartKind.Scatter, 0);
+            WordChart chart = document.AddChart(OfficeChartKind.Scatter, data);
+            C.ScatterChart layer = chart.ChartPart!.ChartSpace!.Descendants<C.ScatterChart>().Single();
+            layer.ScatterStyle!.Val = importedStyle;
+
+            chart.SetData(OfficeChartKind.Scatter, data);
+
+            Assert.Equal(C.ScatterStyleValues.LineMarker, layer.ScatterStyle!.Val!.Value);
+            Assert.Empty(document.ValidateDocument());
+        }
+    }
+
     [Theory]
     [MemberData(nameof(SupportedKinds))]
     public void SharedChart_AuthorsReopensAndUpdatesNativeCachesAndEmbeddedWorkbook(OfficeChartKind kind) {
@@ -210,6 +226,20 @@ public sealed class WordSharedChartAuthoringTests {
                     axisGroup: OfficeChartAxisGroup.Secondary)
             })));
         Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
+    [Fact]
+    public void SharedChart_RejectsEmbeddedWorkbookTextBeyondExcelCellLimitBeforeInsertion() {
+        using WordDocument document = WordDocument.Create();
+        string longCategory = new string('A', 32768);
+        Assert.Throws<ArgumentException>(() => document.AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { longCategory }, new[] { new OfficeChartSeries("Status", new[] { 1d }) })));
+        string bubbleName = new string('B', 32763);
+        Assert.Throws<ArgumentException>(() => document.AddChart(OfficeChartKind.Bubble,
+            new OfficeChartData(new[] { "1" }, new[] {
+                OfficeChartSeries.CreateBubble(bubbleName, new[] { 1d }, new[] { 2d }, new[] { 3d })
+            })));
+        Assert.Empty(document.Charts);
     }
 
     private static OfficeChartData Data(OfficeChartKind kind, int offset) {

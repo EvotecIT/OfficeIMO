@@ -153,6 +153,8 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData("# ?/?")]
     [InlineData("0.00E+00")]
     [InlineData("[>=100]0;0")]
+    [InlineData(@"0\%")]
+    [InlineData("0\"%\"")]
     public void Snapshot_RejectsUnrepresentedAxisFormats(string format) {
         using var document = WordDocument.Create();
         var chart = Create(document, OfficeChartKind.Line);
