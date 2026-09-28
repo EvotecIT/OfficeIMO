@@ -88,6 +88,30 @@ public sealed class PowerPointChartLabelProjectionTests {
     }
 
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void StyledLabelRequiresBothFontFlagsToOverrideInheritedStyle(bool overrideItalic) {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }))
+            .SetDataLabels(showValue: true)
+            .SetDataLabelTextStyle(fontSizePoints: 9, bold: false,
+                italic: overrideItalic ? false : null, color: "172033", fontName: "Aptos");
+        ChartStylePart stylePart = presentation.Slides.Single().SlidePart.ChartParts.Single()
+            .GetPartsOfType<ChartStylePart>().Single();
+        XDocument style;
+        using (Stream stream = stylePart.GetStream()) style = XDocument.Load(stream);
+        XNamespace cs = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
+        XElement run = style.Root!.Element(cs + "dataLabel")!.Element(cs + "defRPr")!;
+        run.SetAttributeValue("b", "1");
+        run.SetAttributeValue("i", "1");
+        using (Stream stream = stylePart.GetStream(FileMode.Create, FileAccess.Write)) style.Save(stream);
+
+        Assert.Equal(overrideItalic, chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        if (overrideItalic) Assert.Equal(OfficeFontStyle.Regular, snapshot.Layout.DataLabelFontStyle);
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.ColumnClustered)]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Scatter)]

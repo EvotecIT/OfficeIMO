@@ -77,10 +77,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 NativeText styled = chartPart == null ? default : ReadChartStyleLabelText(chartPart, scheme);
                 if (labels.GetFirstChild<C.TextProperties>() is C.TextProperties explicitProperties &&
                     chartPart?.GetPartsOfType<ChartStylePart>().Any() == true) {
+                    OpenXmlElement? colorMap = OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
                     NativeText explicitText = ReadTextPropertyDefaults(default, explicitProperties, scheme,
-                        OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart));
+                        colorMap);
+                    NativeText inheritedText = ReadTextPropertyDefaults(styled, explicitProperties, scheme, colorMap);
                     if (styled.Size.HasValue && !explicitText.Size.HasValue ||
                         styled.Style.HasValue && !explicitText.Style.HasValue ||
+                        styled.Style.HasValue && inheritedText.Style != explicitText.Style ||
                         styled.Color.HasValue && !explicitText.Color.HasValue ||
                         styled.Family != null && explicitText.Family == null)
                         throw new NotSupportedException("Styled chart data-label text inheritance cannot be projected.");
