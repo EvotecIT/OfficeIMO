@@ -31,6 +31,8 @@ Pages content is projected as text, drawable tables and images, plus headers and
 
 `ReaderOptions.MaxTableRows` and `ReaderIWorkOptions.MaximumTableColumns` bound dense table materialization. `ReaderIWorkOptions.ReadOptions` controls source package and semantic limits. Image bytes are omitted by default; set `IncludeImagePayloads` when the caller needs them. Truncation and unsupported visual details are reported as diagnostics.
 
+Chunks keep Unicode surrogate pairs together. A chunk may exceed `ReaderOptions.MaxChars` by one UTF-16 code unit when that limit would split a character. Markdown preserves bold, italic, strikethrough, and safe links; diagnostics identify source paragraph and run formatting that Markdown cannot represent. Image asset filenames are unique within a result, including when an embedded image is reused.
+
 The Reader path accepts ZIP-form iWork packages as files or streams. It does not paginate Pages layouts or render Keynote slides. Its logical page labels represent a Pages document, Numbers sheet, or Keynote slide, not a rendered Pages page count.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License: MIT. Runtime dependencies are `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.

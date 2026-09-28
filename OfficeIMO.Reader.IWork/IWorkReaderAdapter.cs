@@ -36,9 +36,14 @@ internal static class IWorkReaderAdapter {
         string logicalName = string.IsNullOrWhiteSpace(sourceName)
             ? "document.pages" : sourceName!.Trim();
         IWorkDocumentKind expected = ExpectedKind(logicalName);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(stream, expected, options.ReadOptions,
-            cancellationToken);
-        return Project(source, logicalName, readerOptions, options, cancellationToken);
+        long originalPosition = stream.CanSeek ? stream.Position : 0;
+        try {
+            IWorkSourceDocument source = IWorkSourceDocument.Open(stream, expected, options.ReadOptions,
+                cancellationToken);
+            return Project(source, logicalName, readerOptions, options, cancellationToken);
+        } finally {
+            if (stream.CanSeek) stream.Position = originalPosition;
+        }
     }
 
     private static IWorkDocumentKind ExpectedKind(string name) =>

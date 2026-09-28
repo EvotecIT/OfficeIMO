@@ -65,6 +65,22 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
+        if (source.Cells.Any(cell => cell.RichText?.Paragraphs.Any(paragraph =>
+                HasUnrepresentedParagraphStyle(paragraph.Style)
+                || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
+                || paragraph.Runs.Any(run => run.Style.Bold == true
+                    || run.Style.Italic == true || run.Style.Underline == true
+                    || run.Style.Strikethrough == true || run.Style.FontSizePoints.HasValue
+                    || run.Style.FontName != null || run.Style.Color != null
+                    || run.Style.BackgroundColor != null)) == true)) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
+                Message = $"Table '{source.Name}' is projected as plain Reader table text; source rich-text cell formatting remains on the iWork source model.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = location
+            });
+        }
         foreach (IWorkTableCell cell in source.Cells) {
             if (cell.Row > headerRows + dataRows || cell.Column > columnCount
                 || (cell.Row > materializedHeaderRows && cell.Row <= headerRows)
@@ -88,7 +104,8 @@ internal sealed partial class IWorkReadProjection {
             Id = id,
             Kind = "image",
             MediaType = source.MediaType,
-            FileName = source.FileName,
+            FileName = OfficeDocumentAssetNaming.BuildFileName(id,
+                Path.GetExtension(source.FileName)),
             Extension = Path.GetExtension(source.FileName),
             AltText = source.AccessibilityDescription,
             Width = source.PixelWidth,
@@ -154,6 +171,7 @@ internal sealed partial class IWorkReadProjection {
             string value = EscapeMarkdown(run.Text.Substring(start - runStart, end - start));
             if (run.Style.Bold == true) value = "**" + value + "**";
             if (run.Style.Italic == true) value = "*" + value + "*";
+            if (run.Style.Strikethrough == true) value = "~~" + value + "~~";
             if (run.Hyperlink != null
                 && Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out Uri? uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps

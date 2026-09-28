@@ -18,6 +18,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
     private readonly List<OfficeDocumentMetadataEntry> _slideMetadata = new();
     private bool _reportedMarkdownListDepthLimit;
+    private bool _reportedUnsupportedTextStyles;
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentBlock>> _pageBlocks = new();
     private readonly Dictionary<OfficeDocumentPage, List<ReaderTable>> _pageTables = new();
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentAsset>> _pageAssets = new();
@@ -211,6 +212,19 @@ internal sealed partial class IWorkReadProjection {
     private void AddParagraph(OfficeDocumentPage page, IWorkTextParagraph paragraph,
         string sourceKind, OfficeDocumentRegion? region = null) {
         string text = paragraph.Text;
+        if (!_reportedUnsupportedTextStyles
+            && (HasUnrepresentedParagraphStyle(paragraph.Style)
+                || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
+                || paragraph.Runs.Any(run => HasUnrepresentedRunStyle(run.Style)))) {
+            _reportedUnsupportedTextStyles = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_TEXT_STYLE_PARTIAL",
+                Message = "Reader Markdown cannot represent all source paragraph, underline, font, or color formatting; the iWork source model retains those styles.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = Location(page)
+            });
+        }
         if (paragraph.ListLevel > MaximumMarkdownListLevel && !_reportedMarkdownListDepthLimit) {
             _reportedMarkdownListDepthLimit = true;
             _diagnostics.Add(new OfficeDocumentDiagnostic {
@@ -270,14 +284,17 @@ internal sealed partial class IWorkReadProjection {
         _pageBlocks[page].Add(block);
         int maxChars = Math.Max(1, _readerOptions.MaxChars);
         int partIndex = 0;
-        int extent = splitMarkdownIndependently
-            ? Math.Max(text.Length, markdown.Length) : text.Length;
-        for (int offset = 0; offset < extent || offset == 0; offset += maxChars) {
-            int length = Math.Min(maxChars, Math.Max(0, text.Length - offset));
-            bool split = extent > maxChars;
-            string part = length == 0 ? string.Empty : text.Substring(offset, length);
+        int textOffset = 0;
+        int markdownOffset = 0;
+        bool split = text.Length > maxChars
+            || splitMarkdownIndependently && markdown.Length > maxChars;
+        while (textOffset < text.Length
+            || splitMarkdownIndependently && markdownOffset < markdown.Length
+            || partIndex == 0) {
+            int length = ScalarSafeChunkLength(text, textOffset, maxChars);
+            string part = length == 0 ? string.Empty : text.Substring(textOffset, length);
             int markdownLength = splitMarkdownIndependently
-                ? Math.Min(maxChars, Math.Max(0, markdown.Length - offset)) : 0;
+                ? ScalarSafeChunkLength(markdown, markdownOffset, maxChars) : 0;
             _chunks.Add(new ReaderChunk {
                 Id = id + "-" + partIndex.ToString("D3", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.IWork,
@@ -285,19 +302,46 @@ internal sealed partial class IWorkReadProjection {
                 Text = part,
                 Markdown = splitMarkdownIndependently
                     ? markdownLength == 0 ? string.Empty
-                        : markdown.Substring(offset, markdownLength)
+                        : markdown.Substring(markdownOffset, markdownLength)
                     : split
-                    ? markdownPart?.Invoke(offset, length) ?? (partIndex == 0 ? markdown : string.Empty)
+                    ? markdownPart?.Invoke(textOffset, length) ?? (partIndex == 0 ? markdown : string.Empty)
                     : markdown,
                 ContinuesPreviousChunk = partIndex > 0,
                 Tables = partIndex == 0 && table != null ? new[] { table } : null,
                 Warnings = split ? new[] { "Content was split at ReaderOptions.MaxChars." } : null
             });
+            textOffset += length;
+            markdownOffset += markdownLength;
             partIndex++;
-            if (extent == 0) break;
         }
         return location;
     }
+
+    private static int ScalarSafeChunkLength(string value, int offset, int maximum) {
+        int length = Math.Min(maximum, Math.Max(0, value.Length - offset));
+        if (length > 0 && offset + length < value.Length
+            && char.IsHighSurrogate(value[offset + length - 1])
+            && char.IsLowSurrogate(value[offset + length])) {
+            length = length == 1 ? 2 : length - 1;
+        }
+        return length;
+    }
+
+    private static bool HasUnrepresentedParagraphStyle(IWorkParagraphStyle style) =>
+        style.Alignment is IWorkTextAlignment.Center or IWorkTextAlignment.Right
+            or IWorkTextAlignment.Justified
+        || style.FirstLineIndentPoints is not null and not 0d
+        || style.LeftIndentPoints is not null and not 0d
+        || style.RightIndentPoints is not null and not 0d
+        || style.SpaceBeforePoints is not null and not 0d
+        || style.SpaceAfterPoints is not null and not 0d
+        || style.PageBreakBefore == true || style.KeepWithNext == true
+        || style.KeepLinesTogether == true;
+
+    private static bool HasUnrepresentedRunStyle(IWorkTextStyle style) =>
+        style.Underline == true || style.FontSizePoints.HasValue
+        || style.FontName != null || style.Color != null
+        || style.BackgroundColor != null;
 
     private ReaderLocation Location(OfficeDocumentPage page, int? blockIndex = null,
         string? sourceKind = null, string? anchor = null) => new ReaderLocation {
