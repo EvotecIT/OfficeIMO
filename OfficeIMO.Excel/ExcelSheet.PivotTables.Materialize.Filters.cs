@@ -130,9 +130,11 @@ namespace OfficeIMO.Excel {
 
         private static Items CreateMaterializedFilteredItems(PivotFieldValues map,
             HashSet<PivotFieldValue>? hidden, bool includeDefault, bool subtotal,
-            IReadOnlyDictionary<PivotFieldValue, string>? captions = null) {
+            IReadOnlyDictionary<PivotFieldValue, string>? captions = null,
+            IReadOnlyList<int>? order = null) {
             var items = new Items { Count = (uint)(map.Items.Count + (includeDefault || subtotal ? 1 : 0)) };
-            for (int index = 0; index < map.Items.Count; index++) {
+            for (int position = 0; position < map.Items.Count; position++) {
+                int index = order == null ? position : order[position];
                 var item = new Item { Index = (uint)index };
                 if (hidden?.Contains(map.Items[index]) == true) item.Hidden = true;
                 if (captions?.TryGetValue(map.Items[index], out string? caption) == true)

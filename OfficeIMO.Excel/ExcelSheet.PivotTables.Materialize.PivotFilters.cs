@@ -49,6 +49,29 @@ namespace OfficeIMO.Excel {
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
+            foreach (var filter in filters.Where(IsMaterializedPivotCalendarFilter)) {
+                int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
+                if (!maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date)
+                    || maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Date && key.Kind != PivotFieldValueKind.Blank))
+                    throw new NotSupportedException("Calendar-period filter materialization requires a date-valued pivot field.");
+                PivotFilterValues type = filter.Type!.Value;
+                if (!TryMaterializedPivotCalendarMonths(type, out int firstMonth, out int lastMonth)
+                    || filter.MeasureField != null || filter.StringValue1 != null || filter.StringValue2 != null)
+                    throw new NotSupportedException("The calendar-period filter has no qualified saved predicate.");
+                var columns = filter.AutoFilter?.Elements<FilterColumn>().ToArray() ?? Array.Empty<FilterColumn>();
+                if (filter.AutoFilter?.ChildElements.Count != 1 || columns.Length != 1
+                    || columns[0].ColumnId?.Value != 0 || columns[0].ChildElements.Count != 1
+                    || columns[0].GetFirstChild<DynamicFilter>() is not DynamicFilter dynamic
+                    || dynamic.ChildElements.Count != 0 || dynamic.GetAttributes().Count != 1
+                    || dynamic.Type?.Value != ResolveDynamicFilterType(type))
+                    throw new NotSupportedException("The calendar-period filter has no qualified saved dynamic predicate.");
+                var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key =>
+                    key.Kind == PivotFieldValueKind.Date
+                    && key.Date!.Value.Month >= firstMonth && key.Date.Value.Month <= lastMonth));
+                FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
+                    groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
+            }
+
             foreach (var filter in filters.Where(IsMaterializedPivotLabelComparison)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
                 bool numericItems = maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Number);
@@ -169,6 +192,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (filters.Any(filter => !IsMaterializedPivotFixedDateFilter(filter)
+                && !IsMaterializedPivotCalendarFilter(filter)
                 && !IsMaterializedPivotLabelComparison(filter)
                 && !IsMaterializedPivotValueFilter(filter)))
                 throw new NotSupportedException("This pivot label or value filter is not qualified for materialization.");
@@ -193,6 +217,37 @@ namespace OfficeIMO.Excel {
                 || type == PivotFilterValues.DateNewerThan || type == PivotFilterValues.DateNewerThanOrEqual
                 || type == PivotFilterValues.DateOlderThan || type == PivotFilterValues.DateOlderThanOrEqual
                 || type == PivotFilterValues.DateBetween || type == PivotFilterValues.DateNotBetween;
+        }
+
+        private static readonly PivotFilterValues[] MaterializedPivotCalendarMonthTypes = {
+            PivotFilterValues.January, PivotFilterValues.February, PivotFilterValues.March,
+            PivotFilterValues.April, PivotFilterValues.May, PivotFilterValues.June,
+            PivotFilterValues.July, PivotFilterValues.August, PivotFilterValues.September,
+            PivotFilterValues.October, PivotFilterValues.November, PivotFilterValues.December
+        };
+
+        private static readonly PivotFilterValues[] MaterializedPivotCalendarQuarterTypes = {
+            PivotFilterValues.Quarter1, PivotFilterValues.Quarter2,
+            PivotFilterValues.Quarter3, PivotFilterValues.Quarter4
+        };
+
+        private static bool IsMaterializedPivotCalendarFilter(PivotFilter filter)
+            => filter.Type != null && TryMaterializedPivotCalendarMonths(filter.Type.Value, out _, out _);
+
+        private static bool TryMaterializedPivotCalendarMonths(PivotFilterValues type, out int first, out int last) {
+            int month = Array.FindIndex(MaterializedPivotCalendarMonthTypes, candidate => candidate == type);
+            if (month >= 0) {
+                first = last = month + 1;
+                return true;
+            }
+            int quarter = Array.FindIndex(MaterializedPivotCalendarQuarterTypes, candidate => candidate == type);
+            if (quarter >= 0) {
+                first = quarter * 3 + 1;
+                last = first + 2;
+                return true;
+            }
+            first = last = 0;
+            return false;
         }
 
         private static bool IsMaterializedPivotLabelRange(PivotFilterValues type)

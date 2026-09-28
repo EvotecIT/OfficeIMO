@@ -9,7 +9,8 @@ namespace OfficeIMO.Excel {
         private void FillMaterializedHierarchy(PivotMaterializationPlan plan, IReadOnlyList<PivotFieldValues> maps,
             IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             PivotHierarchyAxis rows, PivotHierarchyAxis columns, PivotMaterializationVisibility visibility,
-            DataField[] measures, int dataRow, int dataColumn,
+            DataField[] measures, IReadOnlyDictionary<int, int[]> fieldOrders,
+            int dataRow, int dataColumn,
             Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups,
             bool dateHierarchy, bool dateColumnHierarchy, bool manualRowHierarchy, bool manualColumnHierarchy, CancellationToken token) {
             var definition = plan.Definition;
@@ -181,8 +182,8 @@ namespace OfficeIMO.Excel {
             definition.CompactData = false;
             definition.OutlineData = false;
             definition.DataOnRows = rows.Layout.HasValues;
-            NormalizeMaterializedPivotFields(definition, maps, captions, rows, visibility);
-            NormalizeMaterializedPivotFields(definition, maps, captions, columns, visibility);
+            NormalizeMaterializedPivotFields(definition, maps, captions, rows, visibility, fieldOrders);
+            NormalizeMaterializedPivotFields(definition, maps, captions, columns, visibility, fieldOrders);
             NormalizeMaterializedPageFields(definition, maps, captions, visibility);
             definition.RowItems = new RowItems { Count = (uint)rows.Entries.Count };
             definition.ColumnItems = new ColumnItems { Count = (uint)columns.Entries.Count };
@@ -192,14 +193,16 @@ namespace OfficeIMO.Excel {
 
         private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps,
             IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
-            PivotHierarchyAxis axis, PivotMaterializationVisibility visibility) {
+            PivotHierarchyAxis axis, PivotMaterializationVisibility visibility,
+            IReadOnlyDictionary<int, int[]> fieldOrders) {
             var fields = definition.PivotFields!.Elements<PivotField>().ToArray();
             for (int depth = 0; depth < axis.Layout.RealFields.Length; depth++) {
                 int field = axis.Layout.RealFields[depth];
                 bool subtotal = axis.Subtotals[depth];
                 fields[field].Items = CreateMaterializedFilteredItems(maps[field],
                     visibility.Hidden.TryGetValue(field, out var hidden) ? hidden : null, false, subtotal,
-                    captions.TryGetValue(field, out var fieldCaptions) ? fieldCaptions : null);
+                    captions.TryGetValue(field, out var fieldCaptions) ? fieldCaptions : null,
+                    fieldOrders.TryGetValue(field, out int[]? order) ? order : null);
                 fields[field].DefaultSubtotal = subtotal;
                 fields[field].SumSubtotal = false;
                 fields[field].CountASubtotal = false;

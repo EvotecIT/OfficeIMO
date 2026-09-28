@@ -22,6 +22,7 @@ namespace OfficeIMO.Excel {
             internal PivotHierarchyNode Root = new() { Key = -1 };
             internal PivotHierarchyNode[]? Leaves;
             internal bool[] Subtotals = Array.Empty<bool>();
+            internal Dictionary<int, int[]> ItemPositions = new();
             internal bool GrandTotal;
             internal List<PivotHierarchyEntry> Entries = new();
             internal PivotHierarchyNode Leaf(int record) => Leaves == null ? Root : Leaves[record];
@@ -46,7 +47,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<PivotFieldValues> maps, PivotMaterializationAxis layout, PivotField[] fields,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
-            IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings, bool[] includedRows,
+            IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
+            IReadOnlyDictionary<int, int[]> fieldOrders, bool[] includedRows,
             int measures, bool total, CancellationToken token) {
             var result = new PivotHierarchyAxis { Layout = layout, GrandTotal = total,
                 Subtotals = layout.RealFields.Select(field => MaterializedAutomaticSubtotal(fields[field])).ToArray() };
@@ -74,10 +76,22 @@ namespace OfficeIMO.Excel {
                     result.Leaves[row - firstRow - 1] = node;
                 }
             }
+            var orderRanks = new Dictionary<int, int[]>();
+            foreach (int field in layout.RealFields) {
+                if (!fieldOrders.TryGetValue(field, out int[]? order)) continue;
+                if (order.Length != maps[field].Items.Count)
+                    throw new InvalidOperationException("A pivot field order does not match its saved cache keys.");
+                var ranks = new int[order.Length];
+                for (int position = 0; position < order.Length; position++) ranks[order[position]] = position;
+                orderRanks.Add(field, ranks);
+            }
+            result.ItemPositions = orderRanks;
             void Sort(PivotHierarchyNode node) {
                 token.ThrowIfCancellationRequested();
                 if (node.Children == null) return;
-                node.Children.Sort((left, right) => left.Key.CompareTo(right.Key));
+                int field = layout.RealFields[node.Depth];
+                node.Children.Sort((left, right) => orderRanks.TryGetValue(field, out int[]? ranks)
+                    ? ranks[left.Key].CompareTo(ranks[right.Key]) : left.Key.CompareTo(right.Key));
                 foreach (var child in node.Children) Sort(child);
                 node.ChildrenByKey = null;
             }
@@ -119,7 +133,14 @@ namespace OfficeIMO.Excel {
             int depth = 0;
             foreach (int field in axis.Layout.Fields) {
                 if (entry.Type == ItemValues.Default && depth == keys.Length) break;
-                item.AppendChild(new MemberPropertyIndex { Val = field == -2 ? entry.Measure : keys[depth++] });
+                if (field == -2) {
+                    item.AppendChild(new MemberPropertyIndex { Val = entry.Measure });
+                } else {
+                    int key = keys[depth++];
+                    item.AppendChild(new MemberPropertyIndex {
+                        Val = axis.ItemPositions.TryGetValue(field, out int[]? positions) ? positions[key] : key
+                    });
+                }
             }
             return item;
         }

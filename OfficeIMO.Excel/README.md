@@ -636,7 +636,8 @@ Years/Months and Years/Quarters/Months date hierarchies and manual text groups w
 Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
 a non-English Excel locale. Renamed item captions remain visible in the generated view; `GETPIVOTDATA`
 accepts both the displayed caption and the original cache key for a renamed ordinary item.
-It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
+It writes a tabular view in first-seen key order for ordinary fields, chronological
+order for default-sorted date fields with native date filters, and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
@@ -667,9 +668,13 @@ numeric `GetPivotData` criteria still address each key.
 Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,
 and not-between filters materialize on date-valued row or column fields.
 They compare complete date-time values in either workbook date system, so a
-midnight equality does not select a later time on the same day. Blank source
-dates do not match, including not-equals. Dynamic date filters and whole-day
-matching remain outside the qualified headless subset.
+midnight equality does not select a later time on the same day. All-years
+month and quarter selectors include matching dates from every year, including
+time-bearing values. Default-sorted date items selected by these filters are
+ordered chronologically in the saved cache and view. Views sharing that cache
+retain their own saved manual item order. Blank source dates do not match,
+including not-equals. Relative date filters, such as today and this month,
+and whole-day matching remain outside the qualified headless subset.
 
 On a single ordinary axis field, materialization also supports value equals,
 not equals, greater than, greater than or equal, less than, less than or

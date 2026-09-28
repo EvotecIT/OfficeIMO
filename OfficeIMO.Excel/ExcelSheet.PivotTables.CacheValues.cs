@@ -391,7 +391,12 @@ namespace OfficeIMO.Excel {
 
             public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, InvariantNumberText.Get(number), number: number);
 
-            public static PivotFieldValue FromDate(DateTime date) => new(PivotFieldValueKind.Date, date.ToString("O", CultureInfo.InvariantCulture), date: date);
+            public static PivotFieldValue FromDate(DateTime date) {
+                // Cache dates are Excel wall-clock values. Open XML can parse the same
+                // saved value with UTC Kind while worksheet serials have no Kind.
+                date = DateTime.SpecifyKind(date, DateTimeKind.Unspecified);
+                return new(PivotFieldValueKind.Date, date.ToString("O", CultureInfo.InvariantCulture), date: date);
+            }
         }
 
         private sealed class PivotFieldValues {

@@ -44,12 +44,18 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The combined pivot source work exceeds the materialization budget.");
                 int remainingInputVisits = Math.Min(1_000_000, effective.MaximumAffectedCells);
                 int remainingOutputCells = remainingInputVisits;
+                int[] dateFilterFields = views.SelectMany(view =>
+                        view.Part.PivotTableDefinition?.PivotFilters?.Elements<PivotFilter>()
+                            ?? Enumerable.Empty<PivotFilter>())
+                    .Where(filter => IsMaterializedPivotFixedDateFilter(filter) || IsMaterializedPivotCalendarFilter(filter))
+                    .Select(filter => filter.Field?.Value).Where(field => field.HasValue)
+                    .Select(field => (int)field!.Value).Distinct().ToArray();
                 var prepared = new List<(ExcelSheet Sheet, PivotMaterializationPlan Plan)>();
                 foreach (var view in views) {
                     PivotMaterializationPlan current = view.Sheet.PreparePivotMaterialization(
                         view.Part.PivotTableDefinition?.Name?.Value
                             ?? throw new InvalidOperationException("A shared pivot view has no name."),
-                        effective, remainingInputVisits, remainingOutputCells, cancellationToken);
+                        effective, remainingInputVisits, remainingOutputCells, dateFilterFields, cancellationToken);
                     prepared.Add((view.Sheet, current));
                     remainingInputVisits -= (int)current.MeasureInputVisits;
                     remainingOutputCells -= (current.AffectedBottom - current.Top + 1)
@@ -172,7 +178,8 @@ namespace OfficeIMO.Excel {
         }
 
         private PivotMaterializationPlan PreparePivotMaterialization(string name, ExcelMutationPlanOptions options,
-            int remainingInputVisits, int remainingOutputCells, CancellationToken token) {
+            int remainingInputVisits, int remainingOutputCells, IReadOnlyList<int> dateFilterFields,
+            CancellationToken token) {
             var part = _worksheetPart.PivotTableParts.FirstOrDefault(p => string.Equals(p.PivotTableDefinition?.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
                 ?? throw new ArgumentException("The pivot table was not found on this worksheet.", nameof(name));
             var definition = part.PivotTableDefinition ?? throw new InvalidOperationException("The pivot definition is missing.");
@@ -270,6 +277,34 @@ namespace OfficeIMO.Excel {
             var collect = Enumerable.Repeat(true, fieldCount).ToArray();
             var maps = sourceSheet.BuildPivotFieldValueMap(fieldCount, r1 + 1, r2, c1, grouping, collect);
             if (maps.Any(m => m.Items.Count > 100_000)) throw new InvalidOperationException("A pivot cache field exceeds 100,000 distinct items.");
+            // Shared-cache keys use one chronological order across every view. Each
+            // view can retain a different manual or descending axis order below.
+            foreach (int field in dateFilterFields) {
+                if (field >= fieldCount || fields[field].FieldGroup != null
+                    || sourceDateGroupings.ContainsKey(field)
+                    || !maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date)
+                    || maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Date && key.Kind != PivotFieldValueKind.Blank))
+                    continue;
+                var sorted = maps[field].Items.OrderBy(key => key.Kind == PivotFieldValueKind.Blank)
+                    .ThenBy(key => key.Date).ToArray();
+                maps[field] = new PivotFieldValues(sorted);
+            }
+            var dateFieldOrders = new Dictionary<int, int[]>();
+            foreach (int field in dateFilterFields) {
+                if (field >= fieldCount || !realFields.Contains(field)
+                    || maps[field].Items.Count == 0 || maps[field].Items.Any(key =>
+                        key.Kind != PivotFieldValueKind.Date && key.Kind != PivotFieldValueKind.Blank))
+                    continue;
+                var sort = pivotFields[field].SortType?.Value;
+                IReadOnlyList<PivotFieldValue> ordered = sort == FieldSortValues.Descending
+                    ? maps[field].Items.Where(key => key.Kind == PivotFieldValueKind.Date).Reverse()
+                            .Concat(maps[field].Items.Where(key => key.Kind == PivotFieldValueKind.Blank)).ToArray()
+                    : sort == FieldSortValues.Manual || HasSavedPivotDateOrder(pivotFields[field])
+                        ? OrderManualDateValues(maps[field], fields[field], pivotFields[field]).Items
+                        : maps[field].Items;
+                var index = IndexPivotMaterializationKeys(maps[field]);
+                dateFieldOrders.Add(field, ordered.Select(key => index[key]).ToArray());
+            }
             foreach (int sourceField in manualGroupings.Values.Select(g => g.SourceField).Distinct())
                 maps[sourceField] = OrderManualSourceValues(maps[sourceField], fields[sourceField], pivotFields[sourceField]);
             foreach (var manual in manualGroupings.Values) manual.IncludeSourceKeys(maps[manual.SourceField]);
@@ -293,9 +328,11 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The pivot criteria index exceeds the materialization budget.");
             }
             var rows = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, displayMaps, rowAxis, pivotFields,
-                groupings, dateGroupings, manualGroupings, visibility.IncludedRows, measures.Length, rowTotal, token);
+                groupings, dateGroupings, manualGroupings, dateFieldOrders,
+                visibility.IncludedRows, measures.Length, rowTotal, token);
             var columns = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, displayMaps, columnAxis, pivotFields,
-                groupings, dateGroupings, manualGroupings, visibility.IncludedRows, measures.Length, columnTotal, token);
+                groupings, dateGroupings, manualGroupings, dateFieldOrders,
+                visibility.IncludedRows, measures.Length, columnTotal, token);
             int dataRow = columnField >= 0 ? columnAxis.Fields.Length + 1 : 1;
             int dataColumn = rowAxis.Fields.Length > 0 ? rowAxis.Fields.Length : measures.Length == 1 && columnField >= 0 ? 1 : 0;
             int height = dataRow + rows.Entries.Count;
@@ -321,7 +358,8 @@ namespace OfficeIMO.Excel {
                 && rowManual.SourceField == rowAxis.RealFields[1];
             bool manualColumnHierarchy = columnAxis.RealFields.Length == 2 && manualGroupings.TryGetValue(columnAxis.RealFields[0], out var columnManual)
                 && columnManual.SourceField == columnAxis.RealFields[1];
-            FillMaterializedHierarchy(plan, displayMaps, captions, rows, columns, visibility, measures, dataRow, dataColumn, aggregates,
+            FillMaterializedHierarchy(plan, displayMaps, captions, rows, columns, visibility, measures, dateFieldOrders,
+                dataRow, dataColumn, aggregates,
                 dateRowHierarchy, dateColumnHierarchy, manualRowHierarchy, manualColumnHierarchy, token);
             var cacheFields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             var savedPivotFields = plan.Definition.PivotFields!.Elements<PivotField>().ToArray();
@@ -339,6 +377,30 @@ namespace OfficeIMO.Excel {
             plan.Cache.SaveData = true;
             plan.Cache.RefreshOnLoad = false;
             return plan;
+        }
+
+        private static PivotFieldValues OrderManualDateValues(PivotFieldValues current, CacheField source,
+            PivotField pivotField) {
+            var saved = source.SharedItems?.ChildElements.ToArray() ?? Array.Empty<OpenXmlElement>();
+            var available = new HashSet<PivotFieldValue>(current.Items);
+            var ordered = new List<PivotFieldValue>(current.Items.Count);
+            foreach (var item in pivotField.Items?.Elements<Item>() ?? Enumerable.Empty<Item>()) {
+                if (item.ItemType?.Value == ItemValues.Default) continue;
+                PivotFieldValue key = OriginalPivotMaterializationKey(item, saved, false);
+                if (available.Remove(key)) ordered.Add(key);
+            }
+            foreach (var value in current.Items) if (available.Remove(value)) ordered.Add(value);
+            return new PivotFieldValues(ordered);
+        }
+
+        private static bool HasSavedPivotDateOrder(PivotField field) {
+            int position = 0;
+            foreach (var item in field.Items?.Elements<Item>() ?? Enumerable.Empty<Item>()) {
+                if (item.ItemType?.Value == ItemValues.Default) continue;
+                if (item.Index?.Value != position) return true;
+                position++;
+            }
+            return false;
         }
 
         private sealed class PivotMaterializationAxis {
