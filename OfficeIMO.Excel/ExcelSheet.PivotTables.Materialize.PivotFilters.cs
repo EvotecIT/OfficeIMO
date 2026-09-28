@@ -14,7 +14,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
             IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
             PivotMaterializationVisibility visibility,
-            int firstRow, int lastRow, int firstColumn, int limit, CancellationToken token) {
+            int firstRow, int lastRow, int firstColumn, int limit,
+            DateTime referenceDate, CancellationToken token) {
             if (definition.PivotFilters == null) return;
             var filters = definition.PivotFilters.Elements<PivotFilter>().ToArray();
             if (filters.Length != definition.PivotFilters.ChildElements.Count || filters.Length > 256
@@ -68,6 +69,21 @@ namespace OfficeIMO.Excel {
                 var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key =>
                     key.Kind == PivotFieldValueKind.Date
                     && key.Date!.Value.Month >= firstMonth && key.Date.Value.Month <= lastMonth));
+                FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
+                    groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
+            }
+
+            foreach (var filter in filters.Where(IsMaterializedPivotRelativeDateFilter)) {
+                int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
+                if (!maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date)
+                    || maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Date && key.Kind != PivotFieldValueKind.Blank))
+                    throw new NotSupportedException("Relative-date filter materialization requires a date-valued pivot field.");
+                QualifiedMaterializedPivotRelativeDateFilter(filter);
+                if (!TryMaterializedPivotRelativeDateBounds(filter.Type!.Value, referenceDate,
+                    out DateTime start, out DateTime end))
+                    throw new NotSupportedException("The relative-date filter has no qualified calendar interval.");
+                var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key =>
+                    key.Kind == PivotFieldValueKind.Date && key.Date!.Value >= start && key.Date.Value < end));
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
@@ -193,6 +209,7 @@ namespace OfficeIMO.Excel {
 
             if (filters.Any(filter => !IsMaterializedPivotFixedDateFilter(filter)
                 && !IsMaterializedPivotCalendarFilter(filter)
+                && !IsMaterializedPivotRelativeDateFilter(filter)
                 && !IsMaterializedPivotLabelComparison(filter)
                 && !IsMaterializedPivotValueFilter(filter)))
                 throw new NotSupportedException("This pivot label or value filter is not qualified for materialization.");

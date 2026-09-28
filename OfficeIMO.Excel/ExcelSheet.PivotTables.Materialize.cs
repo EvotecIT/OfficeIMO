@@ -15,11 +15,14 @@ namespace OfficeIMO.Excel {
         /// <param name="pivotTableName">Pivot definition on this worksheet.</param>
         /// <param name="options">Source, measure-input, output and rollback limits. Each cell/work budget uses MaximumAffectedCells, capped at one million.</param>
         /// <param name="cancellationToken">Cancels preparation or rolls back an interrupted write.</param>
+        /// <param name="referenceDate">Local calendar date used for relative date filters. Defaults to today's date, captured once for all shared-cache views.</param>
         /// <exception cref="NotSupportedException">A cache view uses an unqualified grouping, filter, calculated field, measure layout, or incompatible cache representation.</exception>
         /// <exception cref="InvalidOperationException">A budget or destination collision prevents generation.</exception>
-        public ExcelPivotMaterializationResult MaterializePivotTable(string pivotTableName, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) {
+        public ExcelPivotMaterializationResult MaterializePivotTable(string pivotTableName, ExcelMutationPlanOptions? options = null,
+            CancellationToken cancellationToken = default, DateTime? referenceDate = null) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot table name is required.", nameof(pivotTableName));
             var effective = (options ?? new ExcelMutationPlanOptions()).CloneAndValidate();
+            DateTime pivotReferenceDate = DateTime.SpecifyKind((referenceDate ?? DateTime.Today).Date, DateTimeKind.Unspecified);
             ExcelPivotMaterializationResult? result = null;
             Batch(_ => {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -47,7 +50,8 @@ namespace OfficeIMO.Excel {
                 int[] dateFilterFields = views.SelectMany(view =>
                         view.Part.PivotTableDefinition?.PivotFilters?.Elements<PivotFilter>()
                             ?? Enumerable.Empty<PivotFilter>())
-                    .Where(filter => IsMaterializedPivotFixedDateFilter(filter) || IsMaterializedPivotCalendarFilter(filter))
+                    .Where(filter => IsMaterializedPivotFixedDateFilter(filter) || IsMaterializedPivotCalendarFilter(filter)
+                        || IsMaterializedPivotRelativeDateFilter(filter))
                     .Select(filter => filter.Field?.Value).Where(field => field.HasValue)
                     .Select(field => (int)field!.Value).Distinct().ToArray();
                 var prepared = new List<(ExcelSheet Sheet, PivotMaterializationPlan Plan)>();
@@ -55,7 +59,8 @@ namespace OfficeIMO.Excel {
                     PivotMaterializationPlan current = view.Sheet.PreparePivotMaterialization(
                         view.Part.PivotTableDefinition?.Name?.Value
                             ?? throw new InvalidOperationException("A shared pivot view has no name."),
-                        effective, remainingInputVisits, remainingOutputCells, dateFilterFields, cancellationToken);
+                        effective, remainingInputVisits, remainingOutputCells, dateFilterFields,
+                        pivotReferenceDate, cancellationToken);
                     prepared.Add((view.Sheet, current));
                     remainingInputVisits -= (int)current.MeasureInputVisits;
                     remainingOutputCells -= (current.AffectedBottom - current.Top + 1)
@@ -179,7 +184,7 @@ namespace OfficeIMO.Excel {
 
         private PivotMaterializationPlan PreparePivotMaterialization(string name, ExcelMutationPlanOptions options,
             int remainingInputVisits, int remainingOutputCells, IReadOnlyList<int> dateFilterFields,
-            CancellationToken token) {
+            DateTime referenceDate, CancellationToken token) {
             var part = _worksheetPart.PivotTableParts.FirstOrDefault(p => string.Equals(p.PivotTableDefinition?.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
                 ?? throw new ArgumentException("The pivot table was not found on this worksheet.", nameof(name));
             var definition = part.PivotTableDefinition ?? throw new InvalidOperationException("The pivot definition is missing.");
@@ -318,7 +323,8 @@ namespace OfficeIMO.Excel {
             var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
                 displayMaps, realFields, groupings, dateGroupings, manualGroupings, r1, r2, c1, limit, token);
             ApplyMaterializedPivotFilters(sourceSheet, definition, fields, displayMaps, captions, measures,
-                realFields, groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit, token);
+                realFields, groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit,
+                referenceDate, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
             // possible criterion combination usable, rather than accepting an unreadable view.
             foreach (var axis in new[] { rowAxis, columnAxis }) {
@@ -350,6 +356,7 @@ namespace OfficeIMO.Excel {
                 OldBottom = oldBottom, OldRight = oldRight, AffectedBottom = (int)affectedBottom, AffectedRight = (int)affectedRight, SourceRecords = r2 - r1,
                 SourceDateSystem = _excelDocument.DateSystem, SourceCellVisits = (long)(r2 - r1) * fieldCount,
                 MeasureInputVisits = visits };
+            UpdateMaterializedPivotRelativeDateBounds(plan.Definition, referenceDate, _excelDocument.DateSystem);
             var aggregates = AggregateMaterializedHierarchy(sourceSheet, r1, c1, r2, rows, columns,
                 visibility.IncludedRows, measures, limit, token);
             bool dateRowHierarchy = rowAxis.RealFields.Length > 1 && rowAxis.RealFields.All(dateGroupings.ContainsKey);

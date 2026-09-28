@@ -3,7 +3,7 @@
 Creates Excel-produced all-years month and quarter pivot-filter fixtures.
 #>
 [CmdletBinding()]
-param([string] $OutputDirectory, [string[]] $Kinds = @())
+param([string] $OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $targetDirectory = if ($OutputDirectory) { $OutputDirectory }
@@ -38,9 +38,6 @@ $cases = @(
     @{ Name = 'month-01-1904'; Type = 57; Month = 1; Date1904 = $true; Total = 114 }
     @{ Name = 'quarter-1-1904'; Type = 53; Quarter = 1; Date1904 = $true; Total = 148 }
 )
-if (@($Kinds | Where-Object { $_ -notin $cases.Name }).Count -gt 0) {
-    throw "Unknown calendar-period fixture kind: $($Kinds -join ', ')"
-}
 $results = @()
 try {
     $acquired = $mutex.WaitOne([TimeSpan]::FromMinutes(5))
@@ -57,7 +54,6 @@ try {
     $excel.DisplayAlerts = $false
     $excel.AutomationSecurity = 3
     foreach ($case in $cases) {
-        if ($Kinds.Count -gt 0 -and $Kinds -notcontains $case.Name) { continue }
         $workbook = $excel.Workbooks.Add()
         try {
             if ($case.Date1904) { $workbook.Date1904 = $true }

@@ -670,11 +670,17 @@ and not-between filters materialize on date-valued row or column fields.
 They compare complete date-time values in either workbook date system, so a
 midnight equality does not select a later time on the same day. All-years
 month and quarter selectors include matching dates from every year, including
-time-bearing values. Default-sorted date items selected by these filters are
+time-bearing values. Relative today/yesterday/tomorrow, week, month, quarter,
+year, and year-to-date filters use local calendar periods with half-open end
+bounds; weeks begin on Sunday, as in the qualified Excel-produced workbooks.
+The local date is captured once for every view sharing a cache. Pass
+`referenceDate: new DateTime(2026, 9, 28)` to `MaterializePivotTable` for a
+reproducible relative-date view; omitting it uses the current local date.
+Default-sorted date items selected by these filters are
 ordered chronologically in the saved cache and view. Views sharing that cache
 retain their own saved manual item order. Blank source dates do not match,
-including not-equals. Relative date filters, such as today and this month,
-and whole-day matching remain outside the qualified headless subset.
+including not-equals. Extension-based whole-day matching for fixed-date
+predicates remains outside the qualified headless subset.
 
 On a single ordinary axis field, materialization also supports value equals,
 not equals, greater than, greater than or equal, less than, less than or
