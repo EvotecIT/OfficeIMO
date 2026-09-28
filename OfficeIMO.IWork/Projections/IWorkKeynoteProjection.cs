@@ -545,7 +545,8 @@ internal static class IWorkKeynoteReader {
             }
         }
 
-        IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(), isComplete: true);
+        IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(),
+            isComplete: true, isTextComplete: true);
         bool hasNoteReference = message.HasField(27);
         IReadOnlyList<IWorkArchiveRecord> noteRecords = index.DereferenceAll(
             message, 27, out int unresolvedNoteCount);

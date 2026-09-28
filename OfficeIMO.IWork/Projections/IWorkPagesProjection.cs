@@ -144,7 +144,8 @@ internal static class IWorkPagesReader {
 
     internal static IWorkPagesProjection Read(IWorkSourceDocument source) {
         var diagnostics = new List<IWorkDiagnostic>();
-        IWorkTextContent bodyContent = new(Array.Empty<IWorkTextParagraph>(), isComplete: false);
+        IWorkTextContent bodyContent = new(Array.Empty<IWorkTextParagraph>(),
+            isComplete: false, isTextComplete: false);
         var sections = new List<IWorkPagesSection>();
         var textBoxes = new List<IWorkTextBox>();
         var images = new List<IWorkImageAsset>();

@@ -10,8 +10,9 @@ internal static class IWorkTextReader {
     internal static IWorkTextContent Read(IWorkObjectIndex index, IWorkArchiveRecord storage,
         IWorkProjectionBudget projectionBudget) {
         IWorkWireMessage message = index.Message(storage);
-        bool complete = true;
-        string text = ReadText(message, projectionBudget, ref complete);
+        bool textComplete = true;
+        string text = ReadText(message, projectionBudget, ref textComplete);
+        bool complete = textComplete;
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
             projectionBudget, ref complete);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
@@ -49,7 +50,8 @@ internal static class IWorkTextReader {
                 int end = ordered[runIndex + 1];
                 if (end <= start) continue;
                 string runText = NormalizeInlineText(text.Substring(start, end - start),
-                    projectionBudget, ref complete);
+                    projectionBudget, ref textComplete);
+                if (!textComplete) complete = false;
                 if (runText.Length == 0) continue;
                 projectionBudget.AddTextItem();
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
@@ -67,7 +69,7 @@ internal static class IWorkTextReader {
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
                 listLevel, listLabel, paragraph.BreakKind));
         }
-        return new IWorkTextContent(paragraphs, complete);
+        return new IWorkTextContent(paragraphs, complete, textComplete);
     }
 
     private static string ReadText(IWorkWireMessage message, IWorkProjectionBudget projectionBudget,
