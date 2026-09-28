@@ -37,7 +37,7 @@ Open any screenshot at full size to inspect the workspace. For immediate use wit
 
 Download a signed MSI installer or portable ZIP for [Windows](/downloads/#studio-downloads), or a Debian package or portable ZIP for [Linux](/downloads/#studio-linux-downloads). Both platforms offer x64 and Arm64 packages and include the .NET runtime. Use the [source build guide](https://github.com/EvotecIT/OfficeIMO/tree/master/OfficeIMO.Studio#readme) for macOS or development builds.
 
-For Studio 0.1.9765, the x64 packages have been installed and launched on Windows and Linux. Arm64 packages are available, but installation and runtime testing on Arm64 hardware is pending. See the [release notes](https://github.com/EvotecIT/OfficeIMO/releases/tag/Studio-v0.1.9765) for qualification details.
+Windows and Linux x64 installation and launch were verified for the initial direct release. Arm64 packages are available, with installation and runtime testing on matching hardware still pending. Release notes and checksums are linked beside the current downloads.
 
 ## Prefer a command or an API?
 

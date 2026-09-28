@@ -70,7 +70,7 @@
         { "label": "Studio workflows and screenshots", "url": "/studio/" },
         { "label": "Windows and Linux downloads", "url": "/downloads/#studio-downloads" }
       ],
-      "boundary": "Windows and Linux packages are available for x64 and Arm64. Arm64 installation and runtime testing for version 0.1.9765 is pending. macOS requires a source build. Check the Studio guide for optional OCR providers and printing requirements."
+      "boundary": "Windows and Linux packages are available for x64 and Arm64. Arm64 installation and runtime testing is pending. macOS requires a source build. Check the Studio guide for optional OCR providers and printing requirements."
     }
   ]
 }
