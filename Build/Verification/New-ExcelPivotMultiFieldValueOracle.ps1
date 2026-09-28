@@ -79,7 +79,16 @@ try {
         [pscustomobject]@{ Key = 'outer-wide-top50pct'; Field = 'Region'; Type = 3; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 155.0 },
         [pscustomobject]@{ Key = 'outer-wide-bottom50pct'; Field = 'Region'; Type = 4; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 100.0 },
         [pscustomobject]@{ Key = 'outer-wide-topsum50'; Field = 'Region'; Type = 5; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C9'; Grand = 95.0 },
-        [pscustomobject]@{ Key = 'outer-wide-bottomsum50'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 100.0 }
+        [pscustomobject]@{ Key = 'outer-wide-bottomsum50'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 100.0 },
+        [pscustomobject]@{ Key = 'outer-negative-top40pct'; Field = 'Region'; Type = 3; Threshold = 40.0; Axis = 'Row'; Profile = 'NegativeParents'; Range = 'A4:C13'; Grand = -90.0 },
+        [pscustomobject]@{ Key = 'outer-negative-bottom40pct'; Field = 'Region'; Type = 4; Threshold = 40.0; Axis = 'Row'; Profile = 'NegativeParents'; Range = 'A4:C9'; Grand = -60.0 },
+        [pscustomobject]@{ Key = 'outer-negative-topsum30'; Field = 'Region'; Type = 5; Threshold = 30.0; Axis = 'Row'; Profile = 'NegativeParents'; Range = 'A4:C17'; Grand = -150.0 },
+        [pscustomobject]@{ Key = 'outer-negative-bottomsum30'; Field = 'Region'; Type = 6; Threshold = 30.0; Axis = 'Row'; Profile = 'NegativeParents'; Range = 'A4:C17'; Grand = -150.0 },
+        [pscustomobject]@{ Key = 'outer-zero-bottom1'; Field = 'Region'; Type = 2; Threshold = 1.0; Axis = 'Row'; Profile = 'ZeroParents'; Range = 'A4:C13'; Grand = 0.0 },
+        [pscustomobject]@{ Key = 'outer-zero-top50pct'; Field = 'Region'; Type = 3; Threshold = 50.0; Axis = 'Row'; Profile = 'ZeroParents'; Range = 'A4:C9'; Grand = 40.0 },
+        [pscustomobject]@{ Key = 'outer-zero-bottom50pct'; Field = 'Region'; Type = 4; Threshold = 50.0; Axis = 'Row'; Profile = 'ZeroParents'; Range = 'A4:C17'; Grand = 40.0 },
+        [pscustomobject]@{ Key = 'inner-errorparent-top1'; Field = 'Product'; Type = 1; Threshold = 1.0; Axis = 'Row'; Profile = 'ErrorParent'; Range = 'A4:C11'; Grand = '#DIV/0!' },
+        [pscustomobject]@{ Key = 'inner-errorparent-bottom1'; Field = 'Product'; Type = 2; Threshold = 1.0; Axis = 'Row'; Profile = 'ErrorParent'; Range = 'A4:C11'; Grand = '#N/A' }
     )
     if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
         throw "Unknown pivot value fixture kind: $($Kinds -join ', ')"
@@ -97,6 +106,24 @@ try {
             @(
                 @('East', 'A', 10.0), @('East', 'B', 50.0),
                 @('East', 'C', $(if ($case.Profile -eq 'WideMixedError') { '=NA()' } else { -20.0 })),
+                @('West', 'A', 40.0), @('West', 'B', 20.0), @('West', 'C', 0.0),
+                @('South', 'A', 5.0), @('South', 'B', 60.0), @('South', 'C', 30.0)
+            )
+        } elseif ($case.Profile -eq 'NegativeParents') {
+            @(
+                @('East', 'A', -30.0), @('East', 'B', -30.0), @('East', 'C', 0.0),
+                @('West', 'A', -30.0), @('West', 'B', -20.0), @('West', 'C', 0.0),
+                @('South', 'A', -20.0), @('South', 'B', -20.0), @('South', 'C', 0.0)
+            )
+        } elseif ($case.Profile -eq 'ZeroParents') {
+            @(
+                @('East', 'A', -10.0), @('East', 'B', 10.0), @('East', 'C', 0.0),
+                @('West', 'A', -5.0), @('West', 'B', 5.0), @('West', 'C', 0.0),
+                @('South', 'A', 20.0), @('South', 'B', 20.0), @('South', 'C', 0.0)
+            )
+        } elseif ($case.Profile -eq 'ErrorParent') {
+            @(
+                @('East', 'A', '=NA()'), @('East', 'B', '=1/0'), @('East', 'C', '=VALUE("bad")'),
                 @('West', 'A', 40.0), @('West', 'B', 20.0), @('West', 'C', 0.0),
                 @('South', 'A', 5.0), @('South', 'B', 60.0), @('South', 'C', 30.0)
             )
@@ -120,7 +147,9 @@ try {
                 }
             }
         }
-        if ($case.Profile -eq 'WideMixedError') { $application.CalculateFullRebuild() }
+        if ($case.Profile -eq 'WideMixedError' -or $case.Profile -eq 'ErrorParent') {
+            $application.CalculateFullRebuild()
+        }
         $view = $workbook.Worksheets.Add()
         $view.Name = 'Grouped'
         $sourceRange = "'Source'!R1C1:R$($rows.Count + 1)C3"
@@ -154,7 +183,11 @@ try {
         }
         $application.CalculateFullRebuild()
         $range = $pivot.TableRange1.Address($false, $false)
-        $grand = [double]$pivot.GetPivotData('Metric').Value2
+        $grand = if ($case.Grand -is [string]) {
+            [string]$pivot.GetPivotData('Metric').Text
+        } else {
+            [double]$pivot.GetPivotData('Metric').Value2
+        }
         if ($range -ne $case.Range -or $grand -ne $case.Grand) {
             throw "Excel pivot oracle changed: $($case.Key) saved $range and $grand."
         }

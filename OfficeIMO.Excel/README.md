@@ -714,9 +714,10 @@ aggregate across its children. Two column fields support greater-than on either
 field. With one row and one column field, greater-than can target either field,
 and top-one count can target the column field. Other multi-field value rules,
 deeper hierarchies, and multi-measure filter interactions remain outside this
-qualified profile. Signed and zero child aggregates, three siblings per parent, and
-mixed numeric/error ranking have Excel-produced examples; all-error parent
-groups, nonpositive outer-field totals, and broader sign/error mixes still need
+qualified profile. Signed and zero child aggregates, nonpositive outer-field
+totals, three siblings per parent, mixed numeric/error ranking, and classic
+all-error parent top/bottom count ranking have Excel-produced examples.
+All-error parent percent/sum ranking and broader sign/error mixes still need
 independent evidence.
 Label and value filters can share that field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The

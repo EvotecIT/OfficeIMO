@@ -259,8 +259,17 @@ namespace OfficeIMO.Tests {
         [InlineData("outer-wide-bottom50pct", "A4:C13", "E4:G13", 100d)]
         [InlineData("outer-wide-topsum50", "A4:C9", "E4:G9", 95d)]
         [InlineData("outer-wide-bottomsum50", "A4:C13", "E4:G13", 100d)]
-        public void Test_PivotMultiFieldValue_WideSignedRankingMatchesExcel(
-            string kind, string oracleRange, string authoredRange, double total) {
+        [InlineData("outer-negative-top40pct", "A4:C13", "E4:G13", -90d)]
+        [InlineData("outer-negative-bottom40pct", "A4:C9", "E4:G9", -60d)]
+        [InlineData("outer-negative-topsum30", "A4:C17", "E4:G17", -150d)]
+        [InlineData("outer-negative-bottomsum30", "A4:C17", "E4:G17", -150d)]
+        [InlineData("outer-zero-bottom1", "A4:C13", "E4:G13", 0d)]
+        [InlineData("outer-zero-top50pct", "A4:C9", "E4:G9", 40d)]
+        [InlineData("outer-zero-bottom50pct", "A4:C17", "E4:G17", 40d)]
+        [InlineData("inner-errorparent-top1", "A4:C11", "E4:G11", "#DIV/0!")]
+        [InlineData("inner-errorparent-bottom1", "A4:C11", "E4:G11", "#N/A")]
+        public void Test_PivotMultiFieldValue_WideRankingMatchesExcel(
+            string kind, string oracleRange, string authoredRange, object total) {
             string file = $"pivot-value-multifield-{kind}-conformance.xlsx";
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
             AssertPivotMultiFieldFixtureHash(path);
@@ -272,7 +281,7 @@ namespace OfficeIMO.Tests {
             string importedOutput = Path.Combine(_directoryWithFiles, "Imported." + file);
             using (var document = ExcelDocument.Load(path)) {
                 var grouped = document.GetSheet("Grouped");
-                Assert.Equal(total, grouped.GetPivotData("ValuePivot", "Metric").Value);
+                AssertPivotLookupOracleValue(total, grouped.GetPivotData("ValuePivot", "Metric").Value);
                 var result = grouped.MaterializePivotTable("ValuePivot");
                 Assert.Equal(oracleRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid,
@@ -292,7 +301,7 @@ namespace OfficeIMO.Tests {
             string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
             using (var document = ExcelDocument.Create()) {
                 var source = document.AddWorksheet("Source");
-                PopulateWideSignedPivotSource(source, kind == "inner-wide-error-top2");
+                PopulateWidePivotSource(source, kind);
                 var filter = kind switch {
                     "inner-wide-top2" => ExcelPivotFilter.TopCount("Product", "Metric", 2),
                     "inner-wide-bottom2" => ExcelPivotFilter.BottomCount("Product", "Metric", 2),
@@ -303,6 +312,15 @@ namespace OfficeIMO.Tests {
                     "outer-wide-bottom50pct" => ExcelPivotFilter.BottomPercent("Region", "Metric", 50),
                     "outer-wide-topsum50" => ExcelPivotFilter.TopSum("Region", "Metric", 50d),
                     "outer-wide-bottomsum50" => ExcelPivotFilter.BottomSum("Region", "Metric", 50d),
+                    "outer-negative-top40pct" => ExcelPivotFilter.TopPercent("Region", "Metric", 40),
+                    "outer-negative-bottom40pct" => ExcelPivotFilter.BottomPercent("Region", "Metric", 40),
+                    "outer-negative-topsum30" => ExcelPivotFilter.TopSum("Region", "Metric", 30d),
+                    "outer-negative-bottomsum30" => ExcelPivotFilter.BottomSum("Region", "Metric", 30d),
+                    "outer-zero-bottom1" => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
+                    "outer-zero-top50pct" => ExcelPivotFilter.TopPercent("Region", "Metric", 50),
+                    "outer-zero-bottom50pct" => ExcelPivotFilter.BottomPercent("Region", "Metric", 50),
+                    "inner-errorparent-top1" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
+                    "inner-errorparent-bottom1" => ExcelPivotFilter.BottomCount("Product", "Metric", 1),
                     _ => throw new ArgumentOutOfRangeException(nameof(kind))
                 };
                 source.Pivot("A1:C10").Rows("Region", "Product").Sum("Sales", "Metric")
@@ -316,7 +334,7 @@ namespace OfficeIMO.Tests {
             using (var reopened = ExcelDocument.Load(authoredOutput)) {
                 Assert.Empty(reopened.ValidateOpenXml());
                 var sheet = reopened.GetSheet("Source");
-                Assert.Equal(total, sheet.GetPivotData("ValuePivot", "Metric").Value);
+                AssertPivotLookupOracleValue(total, sheet.GetPivotData("ValuePivot", "Metric").Value);
                 AssertWideMultiFieldPivotLookups(sheet, expectedLookups);
             }
             using var authoredView = ExcelDocumentReader.Open(authoredOutput);
@@ -334,20 +352,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(Rows(expected), Rows(actual));
         }
 
-        private static void PopulateWideSignedPivotSource(ExcelSheet source, bool error) {
+        private static void PopulateWidePivotSource(ExcelSheet source, string kind) {
             source.CellValue(1, 1, "Region");
             source.CellValue(1, 2, "Product");
             source.CellValue(1, 3, "Sales");
-            var rows = new[] {
-                ("East", "A", 10d), ("East", "B", 50d), ("East", "C", -20d),
-                ("West", "A", 40d), ("West", "B", 20d), ("West", "C", 0d),
-                ("South", "A", 5d), ("South", "B", 60d), ("South", "C", 30d)
-            };
-            for (int index = 0; index < rows.Length; index++) {
-                source.CellValue(index + 2, 1, rows[index].Item1);
-                source.CellValue(index + 2, 2, rows[index].Item2);
-                if (error && index == 2) source.CellError(index + 2, 3, "#N/A");
-                else source.CellValue(index + 2, 3, rows[index].Item3);
+            string[] regions = { "East", "East", "East", "West", "West", "West", "South", "South", "South" };
+            string[] products = { "A", "B", "C", "A", "B", "C", "A", "B", "C" };
+            double[] amounts = kind.StartsWith("outer-negative-", StringComparison.Ordinal)
+                ? new[] { -30d, -30d, 0d, -30d, -20d, 0d, -20d, -20d, 0d }
+                : kind.StartsWith("outer-zero-", StringComparison.Ordinal)
+                    ? new[] { -10d, 10d, 0d, -5d, 5d, 0d, 20d, 20d, 0d }
+                    : new[] { 10d, 50d, -20d, 40d, 20d, 0d, 5d, 60d, 30d };
+            for (int index = 0; index < amounts.Length; index++) {
+                source.CellValue(index + 2, 1, regions[index]);
+                source.CellValue(index + 2, 2, products[index]);
+                if (kind.StartsWith("inner-errorparent-", StringComparison.Ordinal) && index < 3) {
+                    string[] errors = { "#N/A", "#DIV/0!", "#VALUE!" };
+                    source.CellError(index + 2, 3, errors[index]);
+                } else if (kind == "inner-wide-error-top2" && index == 2)
+                    source.CellError(index + 2, 3, "#N/A");
+                else source.CellValue(index + 2, 3, amounts[index]);
             }
         }
 
