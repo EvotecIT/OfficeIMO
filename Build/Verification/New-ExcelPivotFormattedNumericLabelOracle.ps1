@@ -52,6 +52,12 @@ try {
         [pscustomobject]@{ Key = 'decimal-midpoint'; Type = 15; Criterion = '1.3'; Format = '0.0'; Values = @('=5/4', '=9/4'); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'decimal-three'; Type = 15; Criterion = '1.234'; Format = '0.000'; Values = @(1.2344, 1.2346, 2.5); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'grouped-three-decimal'; Type = 15; Criterion = '1,234.567'; Format = '#,##0.000'; Values = @(1234.5674, 1234.5676, 2000.0); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'range-general-greater'; Type = 23; Criterion = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 40.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'range-general-greater-equal'; Type = 24; Criterion = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 60.0; Range = 'A4:B7' },
+        [pscustomobject]@{ Key = 'range-general-less'; Type = 25; Criterion = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 40.0; Range = 'A4:B7' },
+        [pscustomobject]@{ Key = 'range-general-less-equal'; Type = 26; Criterion = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 60.0; Range = 'A4:B8' },
+        [pscustomobject]@{ Key = 'range-general-not-between'; Type = 28; Criterion = '1'; Criterion2 = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 40.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'range-grouped-between'; Type = 27; Criterion = '1,000'; Criterion2 = '2,000'; Format = '#,##0'; Values = @(900.0, 1000.0, 1500.0, 2000.0, 3000.0); Total = 90.0; Range = 'A4:B8' },
         [pscustomobject]@{ Key = 'currency-positive'; Type = 15; Criterion = '$1,000.00'; Format = '$#,##0.00'; Values = @(1000, 2000); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'currency-negative'; Type = 15; Criterion = '-$1,000.00'; Format = '$#,##0.00'; Values = @(-1000, 2000); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'grouped-two-decimal'; Type = 15; Criterion = '1,234.50'; Format = '#,##0.00'; Values = @(1234.5, 2000.0); Total = 10.0; Range = 'A4:B6' },
@@ -93,7 +99,10 @@ try {
         [void]$pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
         $pivot.RowAxisLayout(1)
         [void]$pivot.RefreshTable()
-        if ($null -ne $case.Type) { [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.Criterion) }
+        if ($null -ne $case.Type) {
+            if ($case.Criterion2) { [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.Criterion, $case.Criterion2) }
+            else { [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.Criterion) }
+        }
         $lookups = $workbook.Worksheets.Add()
         $lookups.Name = 'Lookups'
         $lookups.Cells.Item(1, 2).Formula = '=GETPIVOTDATA("Metric",Grouped!$A$4)'
@@ -120,7 +129,7 @@ try {
             regeneration = 'Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1'
             file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
             sourceRange = "Source!A1:B$lastSourceRow"; numberFormat = $case.Format
-            filterType = $case.Type; criterion = $case.Criterion
+            filterType = $case.Type; criterion = $case.Criterion; criterion2 = $case.Criterion2
             outputRange = $range; grandTotal = $grand
         } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory "pivot-label-number-$($case.Key)-conformance.provenance.json") -Encoding utf8
         [pscustomobject]@{ File = $file; Range = $range; Grand = $grand }

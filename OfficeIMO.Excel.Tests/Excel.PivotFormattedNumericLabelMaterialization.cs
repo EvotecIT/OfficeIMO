@@ -18,6 +18,12 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-midpoint", "A4:B6", 3, 3, 10d)]
         [InlineData("decimal-three", "A4:B6", 3, 4, 10d)]
         [InlineData("grouped-three-decimal", "A4:B6", 3, 4, 10d)]
+        [InlineData("range-general-greater", "A4:B6", 3, 5, 40d)]
+        [InlineData("range-general-greater-equal", "A4:B7", 4, 5, 60d)]
+        [InlineData("range-general-less", "A4:B7", 4, 5, 40d)]
+        [InlineData("range-general-less-equal", "A4:B8", 5, 5, 60d)]
+        [InlineData("range-general-not-between", "A4:B6", 3, 5, 40d)]
+        [InlineData("range-grouped-between", "A4:B8", 5, 6, 90d)]
         [InlineData("currency-positive", "A4:B6", 3, 3, 10d)]
         [InlineData("currency-negative", "A4:B6", 3, 3, 10d)]
         [InlineData("grouped-two-decimal", "A4:B6", 3, 3, 10d)]
@@ -81,6 +87,12 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-midpoint", 10d)]
         [InlineData("decimal-three", 10d)]
         [InlineData("grouped-three-decimal", 10d)]
+        [InlineData("range-general-greater", 40d)]
+        [InlineData("range-general-greater-equal", 60d)]
+        [InlineData("range-general-less", 40d)]
+        [InlineData("range-general-less-equal", 60d)]
+        [InlineData("range-general-not-between", 40d)]
+        [InlineData("range-grouped-between", 90d)]
         [InlineData("currency-positive", 10d)]
         [InlineData("currency-negative", 10d)]
         [InlineData("grouped-two-decimal", 10d)]
@@ -100,6 +112,12 @@ namespace OfficeIMO.Tests {
                 "decimal-midpoint" => ExcelPivotFilter.LabelEquals("Item", "1.3"),
                 "decimal-three" => ExcelPivotFilter.LabelEquals("Item", "1.234"),
                 "grouped-three-decimal" => ExcelPivotFilter.LabelEquals("Item", "1,234.567"),
+                "range-general-greater" => ExcelPivotFilter.LabelGreaterThan("Item", "2"),
+                "range-general-greater-equal" => ExcelPivotFilter.LabelGreaterThanOrEqual("Item", "2"),
+                "range-general-less" => ExcelPivotFilter.LabelLessThan("Item", "2"),
+                "range-general-less-equal" => ExcelPivotFilter.LabelLessThanOrEqual("Item", "2"),
+                "range-general-not-between" => ExcelPivotFilter.LabelNotBetween("Item", "1", "2"),
+                "range-grouped-between" => ExcelPivotFilter.LabelBetween("Item", "1,000", "2,000"),
                 "currency-positive" => ExcelPivotFilter.LabelEquals("Item", "$1,000.00"),
                 "currency-negative" => ExcelPivotFilter.LabelEquals("Item", "-$1,000.00"),
                 "grouped-two-decimal" => ExcelPivotFilter.LabelEquals("Item", "1,234.50"),
@@ -119,6 +137,8 @@ namespace OfficeIMO.Tests {
                     : kind == "decimal-midpoint" ? new[] { 1.25d, 2.25d }
                     : kind == "decimal-three" ? new[] { 1.2344d, 1.2346d, 2.5d }
                     : kind == "grouped-three-decimal" ? new[] { 1234.5674d, 1234.5676d, 2000d }
+                    : kind.StartsWith("range-general-", StringComparison.Ordinal) ? new[] { 1d, 2d, 10d, 20d }
+                    : kind == "range-grouped-between" ? new[] { 900d, 1000d, 1500d, 2000d, 3000d }
                     : kind == "currency-positive" ? new[] { 1000d, 2000d }
                     : kind == "currency-negative" ? new[] { -1000d, 2000d }
                     : kind == "grouped-two-decimal" ? new[] { 1234.5d, 2000d }
@@ -161,7 +181,8 @@ namespace OfficeIMO.Tests {
         }
 
         private static string? NumericLabelFormat(string kind) => kind switch {
-            "general-contains-one" => null,
+            "general-contains-one" or "range-general-greater" or "range-general-greater-equal"
+                or "range-general-less" or "range-general-less-equal" or "range-general-not-between" => null,
             "decimal-two" => "0.00",
             "percent-one" => "0.0%",
             "decimal-midpoint" => "0.0",
@@ -175,6 +196,28 @@ namespace OfficeIMO.Tests {
             "duplicate-caption-unfiltered" or "duplicate-caption-equals" => "0.0",
             _ => "#,##0"
         };
+
+        [Fact]
+        public void Test_PivotNumericLabelRange_RejectsUnqualifiedDecimalCaptionBeforeWriting() {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet("Source");
+            source.CellValue(1, 1, "Item");
+            source.CellValue(1, 2, "Sales");
+            source.CellValue(2, 1, 1.2d);
+            source.CellValue(2, 2, 10d);
+            source.CellValue(3, 1, 2.3d);
+            source.CellValue(3, 2, 20d);
+            source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric")
+                .FieldNumberFormat("Item", "0.0").Layout(ExcelPivotLayout.Tabular)
+                .Filter(ExcelPivotFilter.LabelGreaterThan("Item", "1.2"))
+                .At("D4", "FilteredPivot");
+            var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
+            string beforeView = source.WorksheetPart.Worksheet.OuterXml;
+            string beforePivot = pivot.OuterXml;
+            Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("FilteredPivot"));
+            Assert.Equal(beforeView, source.WorksheetPart.Worksheet.OuterXml);
+            Assert.Equal(beforePivot, pivot.OuterXml);
+        }
 
         [Theory]
         [InlineData("duplicate-caption-unfiltered", 60d, 8)]

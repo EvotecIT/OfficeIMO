@@ -127,11 +127,16 @@ namespace OfficeIMO.Excel {
                 var type = filter.Type!.Value;
                 HashSet<PivotFieldValue> included;
                 if (IsMaterializedPivotLabelRange(type)) {
-                    if (numericItems)
-                        throw new NotSupportedException("Numeric label ordering is not qualified for materialization.");
                     string? second = filter.StringValue2?.Value;
                     ValidateMaterializedPivotLabelRangePredicate(filter, needle, second);
-                    if (!IsQualifiedPivotLabelOrderingText(needle)
+                    if (numericItems) {
+                        if (maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Number)
+                            || (numberFormatId != 0 && numberFormatCode != "#,##0")
+                            || !IsQualifiedPivotNumericLabelOrderingText(needle)
+                            || (second != null && !IsQualifiedPivotNumericLabelOrderingText(second))
+                            || maps[field].Items.Any(key => !IsQualifiedPivotNumericLabelOrderingText(DisplayCaption(key))))
+                            throw new NotSupportedException("Numeric label range materialization requires plain or grouped nonnegative integer captions and criteria.");
+                    } else if (!IsQualifiedPivotLabelOrderingText(needle)
                         || (second != null && !IsQualifiedPivotLabelOrderingText(second))
                         || maps[field].Items.Any(key => !IsQualifiedPivotLabelOrderingText(DisplayCaption(key))))
                         throw new NotSupportedException("Label range materialization requires ASCII alphabetic captions and criteria; localized text ordering is not qualified.");
@@ -296,6 +301,11 @@ namespace OfficeIMO.Excel {
 
         private static bool IsQualifiedPivotLabelOrderingText(string text)
             => text.Length > 0 && text.All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
+
+        private static bool IsQualifiedPivotNumericLabelOrderingText(string text)
+            => text.Length is > 0 and <= 64
+                && Regex.IsMatch(text, @"\A(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)\z",
+                    RegexOptions.CultureInvariant, FormulaRegexTimeout);
 
         private static void ValidateMaterializedPivotLabelRangePredicate(PivotFilter filter, string first, string? second) {
             PivotFilterValues type = filter.Type!.Value;

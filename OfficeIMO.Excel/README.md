@@ -657,12 +657,14 @@ error, or numeric captions. Numeric captions use General, `#,##0`,
 `#,##0.00`, `#,##0.000`, `0.0`, `0.00`, `0.000`, `0.0%`, `0.00%`, `$#,##0`,
 `$#,##0.00`, or `#,##0.00;(#,##0.00)` pivot-field formatting; other numeric
 formats and date captions remain unqualified. It also supports label
-greater/less comparisons and inclusive
-between or exclusive not-between ranges when every caption and criterion uses
-ASCII letters. Other text is rejected because Excel's localized ordering can
-select different items. Qualified label comparisons use the current process
-culture, matching Excel's locale-dependent ordering when run under the same
-locale. Distinct numeric cache keys remain separate when the format gives them
+greater/less comparisons and inclusive between or exclusive not-between
+ranges when every caption and criterion uses ASCII letters. Numeric label
+ranges also support nonnegative integer captions in General or `#,##0`
+format, using caption order rather than numeric magnitude. Other text and
+numeric formats are rejected because Excel's localized ordering or display
+format can select different items. Qualified label comparisons use the current
+process culture, matching Excel's locale-dependent ordering when run under
+the same locale. Distinct numeric cache keys remain separate when the format gives them
 the same displayed caption: a label filter can select both rows, while typed
 numeric `GetPivotData` criteria still address each key.
 
