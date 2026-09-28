@@ -3,10 +3,11 @@
 Creates Excel-produced all-error pivot ranking cases and saved-cache provenance.
 #>
 [CmdletBinding()]
-param()
+param([string] $OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$targetDirectory = Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus/AllErrorRanking'
+$targetDirectory = if ($OutputDirectory) { $OutputDirectory }
+    else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus/AllErrorRanking' }
 New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
 $mutex = [Threading.Mutex]::new($false, 'Local\OfficeIMO.Excel.Tests.DesktopCom')
 $acquired = $false
@@ -24,7 +25,11 @@ $cases = @(
     @{ Name = 'top-count-same'; Type = 1; Value = 1.0; SameError = $true },
     @{ Name = 'bottom-count-same'; Type = 2; Value = 1.0; SameError = $true },
     @{ Name = 'top-average'; Type = 1; Value = 1.0; Function = -4106 },
-    @{ Name = 'bottom-average'; Type = 2; Value = 1.0; Function = -4106 }
+    @{ Name = 'bottom-average'; Type = 2; Value = 1.0; Function = -4106 },
+    @{ Name = 'top-grouped'; Type = 1; Value = 1.0; GroupedErrors = $true },
+    @{ Name = 'bottom-grouped'; Type = 2; Value = 1.0; GroupedErrors = $true },
+    @{ Name = 'top-grouped-reversed'; Type = 1; Value = 1.0; GroupedErrors = $true; ReverseSource = $true },
+    @{ Name = 'bottom-grouped-reversed'; Type = 2; Value = 1.0; GroupedErrors = $true; ReverseSource = $true }
 )
 for ($count = 1; $count -le 7; $count++) {
     $cases += @{ Name = "top-full-$count"; Type = 1; Value = [double]$count; FullErrors = $true }
@@ -51,6 +56,13 @@ try {
             $source.Range('A1').Value2 = 'Region'
             $source.Range('B1').Value2 = 'Sales'
             $items = @(@('Alpha','=NA()'),@('Bravo','=1/0'),@('Charlie','=VALUE("bad")'))
+            if ($case.GroupedErrors) {
+                $items = @(
+                    @('Alpha','=NA()'),@('Alpha','=1/0'),
+                    @('Bravo','=VALUE("bad")'),@('Bravo','=INDIRECT("XFE1")'),
+                    @('Charlie','=SQRT(-1)'),@('Charlie','=SUM(A1:A2 B1:B2)')
+                )
+            }
             if ($case.FullErrors) {
                 $items = @(
                     @('Alpha','=NA()'),@('Bravo','=1/0'),@('Charlie','=VALUE("bad")'),

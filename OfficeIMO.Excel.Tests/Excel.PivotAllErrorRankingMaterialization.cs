@@ -67,9 +67,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(actualRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid,
                     string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(expected[expected.GetLength(0) - 1, 1],
+                    source.GetPivotData("AllErrorPivot", "Metric").Value);
                 document.Save(new ExcelSaveOptions { ValidateOpenXml = true });
             }
 
+            using (var reopened = ExcelDocument.Load(output)) {
+                Assert.Equal(expected[expected.GetLength(0) - 1, 1],
+                    reopened.GetSheet("Source").GetPivotData("AllErrorPivot", "Metric").Value);
+            }
             using var actualDocument = ExcelDocumentReader.Open(output);
             object?[,] actual = actualDocument.GetSheet("Source").ReadRange(actualRange);
             for (int row = 0; row < expected.GetLength(0); row++) {
