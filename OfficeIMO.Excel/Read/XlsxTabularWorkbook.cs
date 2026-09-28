@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
     /// Owns the minimal validated package state needed by the forward-only XLSX reader.
     /// Unsupported package shapes route back to <see cref="ExcelDocumentReader"/>.
     /// </summary>
-    internal sealed class XlsxTabularWorkbook : IDisposable {
+    internal sealed partial class XlsxTabularWorkbook : IDisposable {
         private const string PackageRelationshipsNamespace =
             "http://schemas.openxmlformats.org/package/2006/relationships";
         private const string PackageContentTypesNamespace =
@@ -294,54 +294,6 @@ namespace OfficeIMO.Excel {
             return workbookPartName;
         }
 
-        private (Dictionary<string, string> Overrides, Dictionary<string, string> Defaults)
-            ReadContentTypes() {
-            XDocument contentTypes = ReadXmlPart("[Content_Types].xml", _options.MaxMetadataPartBytes);
-            XNamespace ns = PackageContentTypesNamespace;
-            if (contentTypes.Root?.Name != ns + "Types") {
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "The package content-type manifest namespace is not supported by the native path.");
-            }
-
-            var overrides = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            var defaults = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (XElement element in contentTypes.Root.Elements()) {
-                _options.CancellationToken.ThrowIfCancellationRequested();
-                if (element.Name == ns + "Override") {
-                    string? rawPartName = (string?)element.Attribute("PartName");
-                    string? contentType = (string?)element.Attribute("ContentType");
-                    string normalizedPartName = NormalizeContentTypePartName(rawPartName);
-                    if (normalizedPartName.Length == 0
-                        || rawPartName![0] != '/'
-                        || !IsValidContentType(contentType)
-                        || overrides.ContainsKey(normalizedPartName)) {
-                        throw new XlsxTabularFastPathNotSupportedException(
-                            "The package content-type overrides require the Open XML SDK fallback path.");
-                    }
-                    overrides.Add(normalizedPartName, contentType!);
-                    continue;
-                }
-
-                if (element.Name == ns + "Default") {
-                    string? extension = (string?)element.Attribute("Extension");
-                    string? contentType = (string?)element.Attribute("ContentType");
-                    if (!IsValidContentTypeExtension(extension)
-                        || !IsValidContentType(contentType)
-                        || defaults.ContainsKey(extension!)) {
-                        throw new XlsxTabularFastPathNotSupportedException(
-                            "The package content-type defaults require the Open XML SDK fallback path.");
-                    }
-                    defaults.Add(extension!, contentType!);
-                    continue;
-                }
-
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "The package content-type manifest requires the Open XML SDK fallback path.");
-            }
-
-            return (overrides, defaults);
-        }
-
         private void ValidatePartContentType(
             string partName,
             ISet<string> supportedContentTypes,
@@ -377,50 +329,6 @@ namespace OfficeIMO.Excel {
             return _contentTypeDefaults.TryGetValue(extension, out contentType)
                 ? contentType
                 : null;
-        }
-
-        private IReadOnlyDictionary<string, PackageRelationship> ReadRelationships(
-            string sourcePartName) {
-            string relationshipPartName = GetRelationshipPartName(sourcePartName);
-            XDocument relationships = ReadXmlPart(
-                relationshipPartName,
-                _options.MaxMetadataPartBytes);
-            XNamespace ns = PackageRelationshipsNamespace;
-            if (relationships.Root?.Name != ns + "Relationships") {
-                throw new XlsxTabularFastPathNotSupportedException(
-                    "The package relationship namespace is not supported by the native path.");
-            }
-
-            var result = new Dictionary<string, PackageRelationship>(StringComparer.Ordinal);
-            foreach (XElement element in relationships.Root.Elements()) {
-                _options.CancellationToken.ThrowIfCancellationRequested();
-                if (element.Name != ns + "Relationship") {
-                    throw new XlsxTabularFastPathNotSupportedException(
-                        "The package relationships require the Open XML SDK fallback path.");
-                }
-
-                string? id = (string?)element.Attribute("Id");
-                string? type = (string?)element.Attribute("Type");
-                string? target = (string?)element.Attribute("Target");
-                if (string.IsNullOrWhiteSpace(id)
-                    || string.IsNullOrWhiteSpace(type)
-                    || string.IsNullOrWhiteSpace(target)
-                    || !IsValidRelationshipId(id!)
-                    || !Uri.TryCreate(target, UriKind.RelativeOrAbsolute, out _)
-                    || result.ContainsKey(id!)) {
-                    throw new XlsxTabularFastPathNotSupportedException(
-                        "The package relationships require the Open XML SDK fallback path.");
-                }
-
-                result.Add(
-                    id!,
-                    new PackageRelationship(
-                        type!,
-                        target!,
-                        ReadRelationshipTargetMode(element)));
-            }
-
-            return result;
         }
 
         private (XlsxTabularSheet[] Sheets, ExcelDateSystem DateSystem) ReadWorkbook(
@@ -574,6 +482,10 @@ namespace OfficeIMO.Excel {
         }
 
         private XDocument ReadXmlPart(string partName, int maximumBytes) {
+            return ReadXmlPart(partName, maximumBytes, static reader => XDocument.Load(reader, LoadOptions.None));
+        }
+
+        private TResult ReadXmlPart<TResult>(string partName, int maximumBytes, Func<XmlReader, TResult> parse) {
             try {
                 using Stream stream = _parts.OpenPart(partName, maximumBytes, _options.CancellationToken);
                 using XmlReader reader = XmlReader.Create(stream, new XmlReaderSettings {
@@ -583,9 +495,12 @@ namespace OfficeIMO.Excel {
                     CloseInput = false,
                     MaxCharactersInDocument = maximumBytes
                 });
-                XDocument document = XDocument.Load(reader, LoadOptions.None);
+                TResult result = parse(reader);
+                while (reader.Read()) {
+                    _options.CancellationToken.ThrowIfCancellationRequested();
+                }
                 _options.CancellationToken.ThrowIfCancellationRequested();
-                return document;
+                return result;
             } catch (XmlException exception) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     $"Package part '{partName}' requires the Open XML SDK fallback path.",
@@ -761,12 +676,11 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static bool ReadRelationshipTargetMode(XElement relationship) {
-            XAttribute? attribute = relationship.Attribute("TargetMode");
-            if (attribute == null || attribute.Value == "Internal") {
+        private static bool ReadRelationshipTargetMode(string? targetMode) {
+            if (targetMode == null || targetMode == "Internal") {
                 return false;
             }
-            if (attribute.Value == "External") {
+            if (targetMode == "External") {
                 return true;
             }
 
