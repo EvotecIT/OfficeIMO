@@ -388,7 +388,8 @@ namespace OfficeIMO.Word {
             element is FootnoteReference ||
             element is EndnoteReference ||
             element is CommentReference ||
-            element is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
+            element is DocumentFormat.OpenXml.Wordprocessing.Drawing drawing &&
+                !drawing.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
             element is DocumentFormat.OpenXml.Vml.ImageData;
 
         private static bool HasSupportedSdtArtifact(SdtRun sdtRun) =>
