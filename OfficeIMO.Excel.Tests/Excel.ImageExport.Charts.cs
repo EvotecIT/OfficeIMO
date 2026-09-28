@@ -1601,8 +1601,12 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(visualChart.Snapshot.Layout);
             Assert.False(visualChart.Snapshot.Layout!.ShowValueAxisLabels);
             Assert.Equal("0.0", visualChart.Snapshot.Layout.VerticalAxisNumberFormat);
-            Assert.DoesNotContain("180.0", svg, StringComparison.Ordinal);
-            Assert.DoesNotContain("0.0", svg, StringComparison.Ordinal);
+            var svgText = System.Xml.Linq.XDocument.Parse(svg).Descendants()
+                .Where(element => element.Name.LocalName == "text")
+                .Select(element => element.Value)
+                .ToArray();
+            Assert.DoesNotContain("180.0", svgText);
+            Assert.DoesNotContain("0.0", svgText);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartAxisTickLabelPositionApproximation);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
         }

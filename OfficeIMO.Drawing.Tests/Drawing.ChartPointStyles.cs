@@ -154,6 +154,23 @@ public sealed class DrawingChartPointStylesTests {
             OfficeDrawingSvgExporter.ToSvg(drawing).Contains("#B900D0", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Theory]
+    [InlineData(OfficeChartMarkerShape.Dash)]
+    [InlineData(OfficeChartMarkerShape.Plus)]
+    [InlineData(OfficeChartMarkerShape.X)]
+    public void PointStyles_LineOnlyScatterMarkersUseHatchForeground(OfficeChartMarkerShape markerShape) {
+        OfficeColor ink = OfficeColor.Parse("#B900D0");
+        var series = new OfficeChartSeries("Results", new[] { 4d }, new[] { 2d }, null, null,
+            showMarkers: true, connectLine: false, markerShape: markerShape)
+            .WithPointStyles(new OfficeChartPointStyle?[] {
+                new(hatch: OfficeChartHatchPattern.Cross, hatchColor: ink)
+            });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, new OfficeChartData(new[] { "2" }, new[] { series }), 320, 240,
+            layout: new OfficeChartLayout(showLegend: false)));
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+    }
+
     [Fact]
     public void PointStyles_EnableBubbleOutlineOverDisabledSeriesOutline() {
         var series = OfficeChartSeries.CreateBubble("Results", new[] { 1d }, new[] { 2d }, new[] { 3d },

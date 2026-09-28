@@ -156,7 +156,7 @@ internal static class OfficeOpenXmlChartPointStyles {
             : point.GetFirstChild<C.ChartShapeProperties>();
         if (competing != null) {
             ClearPointAppearance(competing);
-            if (!competing.HasChildren) competing.Remove();
+            if (!competing.HasChildren && !competing.HasAttributes) competing.Remove();
         }
         ClearPointAppearance(properties);
         if (style?.NoFill == true) properties.AddChild(new A.NoFill(), true);
@@ -174,8 +174,8 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (style.OutlineColor is OfficeColor line) outline.Append(new A.SolidFill(CreateColor(line)));
             properties.AddChild(outline, true);
         }
-        if (properties.Parent == null && properties.HasChildren) styleOwner.AddChild(properties, true);
-        else if (!properties.HasChildren && properties.Parent != null) properties.Remove();
+        if (properties.Parent == null && (properties.HasChildren || properties.HasAttributes)) styleOwner.AddChild(properties, true);
+        else if (!properties.HasChildren && !properties.HasAttributes && properties.Parent != null) properties.Remove();
     }
 
     private static void ClearPointAppearance(C.ChartShapeProperties properties) {
