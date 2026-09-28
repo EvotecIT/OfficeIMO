@@ -44,7 +44,8 @@ namespace OfficeIMO.Excel {
 
         private static PivotHierarchyAxis BuildMaterializedHierarchyAxis(ExcelSheet source, int firstRow, int lastRow, int firstColumn,
             IReadOnlyList<PivotFieldValues> maps, PivotMaterializationAxis layout, PivotField[] fields,
-            IReadOnlyDictionary<int, PivotNumericGrouping> groupings, bool[] includedRows,
+            IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
+            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings, bool[] includedRows,
             int measures, bool total, CancellationToken token) {
             var result = new PivotHierarchyAxis { Layout = layout, GrandTotal = total,
                 Subtotals = layout.RealFields.Select(field => MaterializedAutomaticSubtotal(fields[field])).ToArray() };
@@ -58,7 +59,8 @@ namespace OfficeIMO.Excel {
                     var node = result.Root;
                     for (int depth = 0; depth < layout.RealFields.Length; depth++) {
                         int field = layout.RealFields[depth];
-                        int key = indices[depth][MaterializedPivotAxisKey(source, row, firstColumn + field, field, groupings)];
+                        int sourceField = dateGroupings.TryGetValue(field, out var date) ? date.SourceField : field;
+                        int key = indices[depth][MaterializedPivotAxisKey(source, row, firstColumn + sourceField, field, groupings, dateGroupings)];
                         node.ChildrenByKey ??= new Dictionary<int, PivotHierarchyNode>();
                         if (!node.ChildrenByKey.TryGetValue(key, out var child)) {
                             child = new PivotHierarchyNode { Id = ++nodeId, Key = key, Depth = depth + 1, Parent = node };

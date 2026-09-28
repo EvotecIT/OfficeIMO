@@ -76,7 +76,10 @@ namespace OfficeIMO.Excel {
             && number == Math.Truncate(number);
 
         private static PivotFieldValue MaterializedPivotAxisKey(ExcelSheet source, int row, int column, int field,
-            IReadOnlyDictionary<int, PivotNumericGrouping> groupings) {
+            IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
+            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings) {
+            if (dateGroupings.TryGetValue(field, out var dateGrouping))
+                return dateGrouping.Group(source.GetPivotFieldValue(row, column, null));
             if (groupings.TryGetValue(field, out var grouping))
                 return grouping.Group(source.GetPivotFieldValue(row, column, grouping.SourceGrouping));
             return source.GetPivotFieldValue(row, column, null);

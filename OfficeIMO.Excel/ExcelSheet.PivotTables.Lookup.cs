@@ -82,8 +82,14 @@ namespace OfficeIMO.Excel {
                 || realFields.Concat(pageFields.Select(f => f.Field!.Value)).Distinct().Count() != realFields.Length + pageFields.Length)
                 throw new NotSupportedException("Pivot lookup requires distinct source axis and page fields.");
             var groupings = new PivotNumericGrouping?[fields.Length];
-            foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0))
-                groupings[field] = ReadPivotNumericGrouping(fields[field], field);
+            var dateGroupings = new PivotDateGrouping?[fields.Length];
+            int sourceFieldCount = part.PivotTableCacheDefinitionPart?.PivotCacheDefinition?.CacheSource?.WorksheetSource is WorksheetSource sourceRange
+                && A1.TryParseRange(sourceRange.Reference?.Value ?? "", out _, out int firstSourceColumn, out _, out int lastSourceColumn)
+                    ? lastSourceColumn - firstSourceColumn + 1 : fields.Length;
+            foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0)) {
+                if (IsDerivedDateGroup(fields[field])) dateGroupings[field] = ReadPivotDateGrouping(fields, field, sourceFieldCount);
+                else groupings[field] = ReadPivotNumericGrouping(fields[field], field);
+            }
             foreach (PageField page in pageFields) {
                 int field = page.Field!.Value;
                 if (fields[field].FieldGroup != null)
@@ -108,8 +114,8 @@ namespace OfficeIMO.Excel {
             }
             var visibleFields = new HashSet<string>(rowFields.Concat(columnFields).Where(f => f >= 0).Select(f => fields[f].Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase);
             if (criteria.Keys.Any(key => !visibleFields.Contains(key))) return PivotLookupReferenceError();
-            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, groupings, measure, criteria, _excelDocument.DateSystem);
-            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, groupings, measure, criteria, _excelDocument.DateSystem);
+            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, groupings, dateGroupings, measure, criteria, _excelDocument.DateSystem);
+            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, groupings, dateGroupings, measure, criteria, _excelDocument.DateSystem);
             if (row < 0 || column < 0) return PivotLookupReferenceError();
             long outputRow = (long)top + location.FirstDataRow.Value + row;
             long outputColumn = (long)left + location.FirstDataColumn.Value + column;
@@ -123,7 +129,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int FindSavedPivotAxisItem(OpenXmlCompositeElement? axis, int[] axisFields, CacheField[] fields, PivotField[] pivotFields,
-            PivotNumericGrouping?[] groupings, int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
+            PivotNumericGrouping?[] groupings, PivotDateGrouping?[] dateGroupings, int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
             if (axis == null || axis.ChildElements.Count == 0) throw new NotSupportedException("The pivot view has no saved axis items. Refresh or materialize the view first.");
             // One additional item accommodates the grand total for 100,000 real keys.
             if (axis.ChildElements.Count > 100_001) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
@@ -140,9 +146,18 @@ namespace OfficeIMO.Excel {
                 if (field < 0) continue;
                 depth++;
                 if (!criteria.TryGetValue(fields[field].Name?.Value ?? "", out object? expected)) continue;
+                if (dateGroupings[field]?.GroupBy == ExcelPivotGroupBy.Years
+                    && expected is IConvertible && expected is not string && expected is not bool
+                    && expected is not DateTime) {
+                    try {
+                        double year = Convert.ToDouble(expected, CultureInfo.InvariantCulture);
+                        if (year >= 1 && year <= 9999 && year == Math.Truncate(year))
+                            expected = year.ToString(CultureInfo.InvariantCulture);
+                    } catch (Exception exception) when (exception is FormatException || exception is InvalidCastException || exception is OverflowException) { }
+                }
                 criterionDepth = depth;
                 var savedItems = pivotFields[field].Items;
-                OpenXmlElement[] sharedItems = groupings[field]?.SavedItems
+                OpenXmlElement[] sharedItems = dateGroupings[field]?.SavedItems ?? groupings[field]?.SavedItems
                     ?? fields[field].SharedItems?.ChildElements.ToArray() ?? Array.Empty<OpenXmlElement>();
                 if (savedItems == null || sharedItems.Length == 0) return -1;
                 if (savedItems.ChildElements.Count > 100_001 || sharedItems.Length > 100_000)

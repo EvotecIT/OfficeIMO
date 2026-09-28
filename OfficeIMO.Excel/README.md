@@ -566,8 +566,9 @@ ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
 The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
 Both paths support saved hierarchies with multiple row and column
 fields, selected page items, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
-item keys. Integer-range numeric groups on row or column axes use their displayed group labels as criteria;
-raw source numbers do not select those groups. Lookup follows saved tabular, compact and outline views, including
+item keys. Integer-range numeric groups and Years/Months date hierarchies on row or column axes use their displayed
+group labels as criteria; raw source numbers do not select numeric groups. A year criterion accepts its displayed text
+or an integer year. Lookup follows saved tabular, compact and outline views, including
 subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
 leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
 or measures return typed errors; a blank intersection of existing items returns
@@ -598,10 +599,20 @@ ExcelPivotMaterializationResult result = sheet.MaterializePivotTable("SalesPivot
 Console.WriteLine(result.OutputRange);
 ```
 
+For a typed `OrderDate` column, build and populate a year/month view in the same workbook:
+
+```csharp
+sheet.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
+    .DateHierarchy("OrderDate", ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Months)
+    .Layout(ExcelPivotLayout.Tabular).At("D4", "SalesByMonth");
+sheet.MaterializePivotTable("SalesByMonth");
+```
+
 Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
-and multiple fields on each axis, with at most 256 source fields in total. Integer-range numeric groups
-with saved group labels are supported on row and column axes; grouping on page fields is not.
-It writes a tabular view in first-seen key order for ordinary fields and group-label order for numeric groups,
+and multiple fields on each axis, with at most 256 cache fields in total. Integer-range numeric groups
+and Years/Months date hierarchies with saved group labels are supported on row and column axes; grouping on page fields is not.
+Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
+a non-English Excel locale. It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
@@ -639,7 +650,7 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Date, noninteger-range, and manually defined grouping, grouped item filters, label/value pivot filters,
+Other date levels and grouped layouts, noninteger-range and manually defined grouping, grouped item filters, label/value pivot filters,
 calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

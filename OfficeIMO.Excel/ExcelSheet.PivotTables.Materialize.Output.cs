@@ -7,10 +7,13 @@ namespace OfficeIMO.Excel {
         private static void FillMaterializedHierarchy(PivotMaterializationPlan plan, IReadOnlyList<PivotFieldValues> maps,
             PivotHierarchyAxis rows, PivotHierarchyAxis columns, PivotMaterializationVisibility visibility,
             DataField[] measures, int dataRow, int dataColumn,
-            Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups, CancellationToken token) {
+            Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups,
+            bool dateHierarchy, bool dateColumnHierarchy, CancellationToken token) {
             var definition = plan.Definition;
             var fields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             var values = new ExcelCellData?[plan.Bottom - plan.Top + 1, plan.Right - plan.Left + 1];
+            bool dateRowValues = dateHierarchy && rows.Layout.HasValues;
+            int rowValuesPosition = Array.IndexOf(rows.Layout.Fields, -2);
             string caption = measures.Length == 1 ? measures[0].Name?.Value ?? "Values" : definition.DataCaption?.Value ?? "Values";
             string totalCaption = definition.GrandTotalCaption?.Value ?? "Grand Total";
             for (int level = 0; level < rows.Layout.Fields.Length; level++) {
@@ -19,18 +22,32 @@ namespace OfficeIMO.Excel {
             }
             if (columns.Layout.RealFields.Length > 0) {
                 values[0, dataColumn] = PivotMaterializedText(definition.ColumnHeaderCaption?.Value ?? fields[columns.Layout.RealFields[0]].Name?.Value ?? "");
+                if (dateColumnHierarchy) {
+                    for (int level = 1; level < columns.Layout.RealFields.Length; level++)
+                        values[0, dataColumn + level] = PivotMaterializedText(fields[columns.Layout.RealFields[level]].Name?.Value ?? "");
+                }
                 if (measures.Length == 1) {
                     if (rows.Layout.RealFields.Length > 0) values[0, 0] = PivotMaterializedText(caption);
                     else values[dataRow, 0] = PivotMaterializedText(caption);
                 }
-            } else if (columns.Layout.Fields.Length == 0) values[dataRow - 1, dataColumn] = PivotMaterializedText(caption);
-            void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, Action<int, ExcelCellData, bool> put) {
-                int[] keys = MaterializedHierarchyKeys(entry.Node);
+            } else if (columns.Layout.Fields.Length == 0 && !dateRowValues) values[dataRow - 1, dataColumn] = PivotMaterializedText(caption);
+            void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, int[]? rowKeys, bool dateRowLayout, bool firstMeasureRow,
+                Action<int, ExcelCellData, bool> put) {
+                if (dateRowLayout && axis.Layout.HasValues && entry.Type == ItemValues.Grand) {
+                    put(0, PivotMaterializedText("Total " + (measures[entry.Measure].Name?.Value ?? "")), false);
+                    return;
+                }
+                int[] keys = rowKeys ?? MaterializedHierarchyKeys(entry.Node);
                 int depth = 0;
                 bool grandLabel = false;
                 for (int level = 0; level < axis.Layout.Fields.Length; level++) {
                     int field = axis.Layout.Fields[level];
-                    if (field == -2) { put(level, PivotMaterializedText(measures[entry.Measure].Name?.Value ?? ""), false); continue; }
+                    if (field == -2) {
+                        string measureCaption = measures[entry.Measure].Name?.Value ?? "";
+                        if (!dateRowLayout || entry.Type == ItemValues.Data && firstMeasureRow)
+                            put(level, PivotMaterializedText(measureCaption), false);
+                        continue;
+                    }
                     if (entry.Type == ItemValues.Grand) {
                         if (!grandLabel) { put(level, PivotMaterializedText(totalCaption), false); grandLabel = true; }
                     } else if (depth < keys.Length) {
@@ -41,27 +58,65 @@ namespace OfficeIMO.Excel {
                             string text = key.Kind == PivotFieldValueKind.Blank ? "(blank)"
                                 : key.Kind == PivotFieldValueKind.Boolean ? key.Boolean == true ? "TRUE" : "FALSE"
                                 : key.Kind == PivotFieldValueKind.Date ? PivotMaterializedDateCaption(key, plan.SourceDateSystem) : key.Text;
-                            label = PivotMaterializedText(text + " Total");
+                            label = PivotMaterializedText(dateRowLayout && axis.Layout.HasValues && rowValuesPosition > 0
+                                ? text + " " + (measures[entry.Measure].Name?.Value ?? "") : text + " Total");
                         }
                         put(level, label, key.Kind == PivotFieldValueKind.Date && !subtotalLabel);
                     }
                 }
             }
+            var rowRealDepths = new int[rows.Layout.Fields.Length];
+            for (int level = 0, depth = 0; level < rowRealDepths.Length; level++) {
+                if (rows.Layout.Fields[level] >= 0) depth++;
+                rowRealDepths[level] = depth;
+            }
+            PivotHierarchyEntry? previousDataEntry = null;
+            int[]? previousDataKeys = null, previousRowKeys = null;
             for (int row = 0; row < rows.Entries.Count; row++) {
                 token.ThrowIfCancellationRequested();
                 int position = dataRow + row;
-                Labels(rows, rows.Entries[row], (level, value, date) => {
+                var entry = rows.Entries[row];
+                int[] rowKeys = MaterializedHierarchyKeys(entry.Node);
+                bool firstMeasureRow = previousDataEntry == null || previousDataEntry.Value.Measure != entry.Measure
+                    || rowValuesPosition > 0 && !MaterializedKeyPrefixEquals(previousDataKeys!, rowKeys, rowValuesPosition);
+                Labels(rows, entry, rowKeys, dateHierarchy, firstMeasureRow, (level, value, date) => {
+                    int realDepth = rowRealDepths[level];
+                    if (dateHierarchy && rows.Layout.Fields[level] >= 0
+                        && (realDepth < rows.Layout.RealFields.Length || rowValuesPosition > level)
+                        && rows.Entries[row].Type == ItemValues.Data && row > 0
+                        && rows.Entries[row - 1].Type == ItemValues.Data
+                        && MaterializedKeyPrefixEquals(previousRowKeys!, rowKeys, realDepth)) return;
                     values[position, level] = value;
                     if (date) plan.DateCells.Add((position, level));
                 });
+                previousRowKeys = rowKeys;
+                if (entry.Type == ItemValues.Data) {
+                    previousDataEntry = entry;
+                    previousDataKeys = rowKeys;
+                }
             }
+            var columnRealDepths = new int[columns.Layout.Fields.Length];
+            for (int level = 0, depth = 0; level < columnRealDepths.Length; level++) {
+                if (columns.Layout.Fields[level] >= 0) depth++;
+                columnRealDepths[level] = depth;
+            }
+            int[]? previousColumnKeys = null;
             for (int column = 0; column < columns.Entries.Count; column++) {
                 int position = dataColumn + column;
                 int offset = columns.Layout.RealFields.Length > 0 ? 1 : 0;
-                Labels(columns, columns.Entries[column], (level, value, date) => {
+                var entry = columns.Entries[column];
+                int[] columnKeys = MaterializedHierarchyKeys(entry.Node);
+                Labels(columns, entry, columnKeys, false, true, (level, value, date) => {
+                    int realDepth = columnRealDepths[level];
+                    if (dateColumnHierarchy && columns.Layout.Fields[level] >= 0
+                        && realDepth < columns.Layout.RealFields.Length
+                        && entry.Type == ItemValues.Data && column > 0
+                        && columns.Entries[column - 1].Type == ItemValues.Data
+                        && MaterializedKeyPrefixEquals(previousColumnKeys!, columnKeys, realDepth)) return;
                     values[level + offset, position] = value;
                     if (date) plan.DateCells.Add((level + offset, position));
                 });
+                previousColumnKeys = columnKeys;
             }
             var functions = measures.Select(measure => (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum()).ToArray();
             for (int row = 0; row < rows.Entries.Count; row++) {
@@ -125,6 +180,12 @@ namespace OfficeIMO.Excel {
             var result = new Dictionary<PivotFieldValue, int>(values.Items.Count);
             for (int index = 0; index < values.Items.Count; index++) result.Add(values.Items[index], index);
             return result;
+        }
+
+        private static bool MaterializedKeyPrefixEquals(int[] left, int[] right, int count) {
+            if (left.Length < count || right.Length < count) return false;
+            for (int index = 0; index < count; index++) if (left[index] != right[index]) return false;
+            return true;
         }
 
         private static ExcelCellData PivotMaterializedText(string text) => new(ExcelCellDataKind.Text, text);
