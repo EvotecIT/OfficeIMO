@@ -10,6 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         List<FlexItem> items,
         IReadOnlyList<HtmlCssRunningStringAssignment> runningElementAssignments,
+        PagedFloatBoundary? pageBoundary,
         out HtmlRenderFlowBlock block) {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -52,24 +53,64 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         double crossGap = lines.Count > 1 ? style.ColumnGap : 0D;
         ResolveFlexLineOffsets(lines, style, contentWidth, crossGap, source);
-        foreach (FlexLine line in lines) {
-            CheckCancellation();
-            ResolveFlexMainOffsets(line.Items, style, contentHeight, mainGap, style.FlexDirection == "column-reverse", vertical: true, source: source);
-            foreach (FlexItem item in line.Items) {
-                string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
-                double targetCrossSize = alignment == "stretch" && !item.HasExplicitCrossSize && !HasColumnFlexCrossAutoMargin(item.Style) ? line.CrossSize : item.CrossBasis;
-                bool mainSizeWasDefinite = item.Style.ExplicitHeight.HasValue;
-                bool canReuseInitialLayout = Math.Abs(targetCrossSize - item.InitialCrossSize) <= 0.0001D
-                    && Math.Abs(line.CrossSize - item.InitialCrossSize) <= 0.0001D
-                    && Math.Abs(item.MainSize - item.Block!.Height) <= 0.0001D
-                    && (!hasDefiniteHeight || mainSizeWasDefinite);
-                ApplyColumnFlexCrossSize(item, targetCrossSize);
-                ApplyColumnFlexMainSize(item);
-                if (!canReuseInitialLayout) item.Block = LayoutFlexItem(item, Math.Max(1D, line.CrossSize), style, depth + 1);
-                item.CrossOffset = ResolveColumnFlexCrossOffset(item, style, line.CrossSize);
+        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        bool pagedAutoColumn = pageBoundary.HasValue && !hasDefiniteHeight && lines.Count == 1;
+        int layoutPasses = pagedAutoColumn ? Math.Min(8, orderedItems.Count + 2) : 1;
+        for (int pass = 0; pass < layoutPasses; pass++) {
+            bool grew = false;
+            foreach (FlexLine line in lines) {
+                CheckCancellation();
+                ResolveFlexMainOffsets(line.Items, style, contentHeight, mainGap, style.FlexDirection == "column-reverse", vertical: true, source: source);
+                foreach (FlexItem item in line.Items) {
+                    string alignment = ResolveFlexAlignment(item.Style.AlignSelf, style.AlignItems);
+                    double targetCrossSize = alignment == "stretch" && !item.HasExplicitCrossSize && !HasColumnFlexCrossAutoMargin(item.Style) ? line.CrossSize : item.CrossBasis;
+                    bool mainSizeWasDefinite = item.Style.ExplicitHeight.HasValue;
+                    bool canReuseInitialLayout = Math.Abs(targetCrossSize - item.InitialCrossSize) <= 0.0001D
+                        && Math.Abs(line.CrossSize - item.InitialCrossSize) <= 0.0001D
+                        && Math.Abs(item.MainSize - item.Block!.Height) <= 0.0001D
+                        && (!hasDefiniteHeight || mainSizeWasDefinite);
+                    ApplyColumnFlexCrossSize(item, targetCrossSize);
+                    if (!pageBoundary.HasValue || hasDefiniteHeight || item.Style.ExplicitHeight.HasValue) ApplyColumnFlexMainSize(item);
+                    if (!canReuseInitialLayout || pageBoundary.HasValue) {
+                        PagedFloatBoundary? itemBoundary = pageBoundary?.Shift(contentY + item.MainOffset);
+                        if (itemBoundary.HasValue && item.Element != null
+                            && item.MainOffset > 0.0001D
+                            && item.Block!.Height > itemBoundary.Value.RemainingHeight + 0.0001D
+                            && itemBoundary.Value.RemainingHeight > 0.0001D
+                            && FindFragmentEnd(item.Block, 0D, itemBoundary.Value.RemainingHeight,
+                                fullPageHeight: itemBoundary.Value.PageHeight) <= 0.0001D
+                            && ContainsFloatingDescendant(item.Element, line.CrossSize, item.Style, depth + 1)) {
+                            // Pagination will carry the whole item to the next page.
+                            // Layout its floats at that page's origin, not at the
+                            // abandoned remainder of the preceding page.
+                            itemBoundary = new PagedFloatBoundary(itemBoundary.Value.PageHeight, itemBoundary.Value.PageHeight);
+                            _pagedFloatDeferredInRelayout = true;
+                        }
+                        item.Block = LayoutFlexItem(item, Math.Max(1D, line.CrossSize), style, depth + 1,
+                            itemBoundary);
+                    }
+                    if (pagedAutoColumn && !mainSizeWasDefinite && item.Style.FlexBasis == "auto"
+                        && item.Block!.Height > item.MainSize + 0.0001D) {
+                        item.MainSize = item.Block.Height;
+                        contentHeight = line.Items.Sum(candidate => candidate.MainSize)
+                            + mainGap * Math.Max(0, line.Items.Count - 1);
+                        ResolveFlexMainOffsets(line.Items, style, contentHeight, mainGap,
+                            style.FlexDirection == "column-reverse", vertical: true, source: source);
+                        grew = true;
+                    }
+                    item.CrossOffset = ResolveColumnFlexCrossOffset(item, style, line.CrossSize);
+                }
             }
+            if (!grew) break;
         }
 
+        if (pageBoundary.HasValue && !hasDefiniteHeight && lines.Count == 1) {
+            double usedContentHeight = lines[0].Items.Count == 0
+                ? 0D
+                : lines[0].Items.Max(item => item.MainOffset + item.Block!.Height);
+            contentHeight = usedContentHeight;
+            boxHeight = ResolveBoxHeight(contentHeight, boxWidth, style);
+        }
         double outerHeight = Math.Max(0.01D, style.MarginTop + boxHeight + style.MarginBottom);
         var visuals = new List<HtmlRenderVisual>();
         var positionedRunningStringAssignments = new List<HtmlCssRunningStringAssignment>();
@@ -84,7 +125,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             visuals,
             positionedRunningStringAssignments);
         double contentX = style.MarginLeft + style.BorderLeftWidth + style.PaddingLeft;
-        double contentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
         var itemPaintLayers = new List<FlowPaintLayer>();
         foreach (FlexLine line in lines) {
             CheckCancellation();

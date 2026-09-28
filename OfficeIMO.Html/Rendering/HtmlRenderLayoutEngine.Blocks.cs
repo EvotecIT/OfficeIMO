@@ -338,7 +338,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (IsFormControlElement(tag)) return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutFormControl(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "table") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutTable(element, containingWidth, style, depth, continuationTarget), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         if (tag == "hr") return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(ApplySpecializedElementSemantics(LayoutHorizontalRule(element, containingWidth, style), element, style), style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
-        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, out HtmlRenderFlowBlock flexBlock)) {
+        if (style.Display == "flex" && TryLayoutFlexContainer(element, containingWidth, style, depth, continuationTarget, pageBoundary, out HtmlRenderFlowBlock flexBlock)) {
             flexBlock = ApplyElementSemantics(flexBlock, element, style);
             return StampViewport(AttachElementMargins(ApplyElementPositioning(ApplyOverflowToSpecializedBlock(flexBlock, style, element, containingWidth), style, containingWidth, containingHeight, element), style, element));
         }
@@ -643,6 +643,19 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        if (style.ExplicitHeight == null && contentHeight > 0.0001D
+            && style.PaddingBottom + style.BorderBottomWidth > 0.0001D) {
+            double finalContentStart = contentBreakOffsets
+                .Where(offset => offset < contentHeight - 0.0001D)
+                .DefaultIfEmpty(0D)
+                .Max();
+            double trailingBoxEnd = outerHeight - style.MarginBottom - contentYForBreaks;
+            if (trailingBoxEnd > finalContentStart + 0.0001D) {
+                // A page break after the final content fragment but before its
+                // bottom padding or border strands the decoration on an empty page.
+                contentAvoidBreakRanges.Add(new HtmlRenderAvoidBreakRange(finalContentStart, trailingBoxEnd));
+            }
+        }
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);

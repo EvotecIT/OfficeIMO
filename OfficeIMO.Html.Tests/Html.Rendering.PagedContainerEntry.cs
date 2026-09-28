@@ -5,6 +5,24 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Theory]
+    [InlineData(0, 1)]
+    [InlineData(20, 2)]
+    public void PagedRendererKeepsFinalContentWithBottomPadding(int bottomPadding, int expectedPages) {
+        string html = "<style>@page{size:100px 100px;margin:0}html,body{margin:0;padding:0}"
+            + "#lead{height:70px}#footer{font:10px/10px Arial;background:#ddd;padding:5px 0 "
+            + bottomPadding + "px}</style><div id='lead'>Lead</div><div id='footer'>Footer</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true });
+
+        Assert.Equal(expectedPages, rendered.Pages.Count);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Footer", StringComparison.Ordinal) && bottomPadding > 0);
+        Assert.Contains(rendered.Pages[^1].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Footer", StringComparison.Ordinal));
+    }
+
+    [Theory]
     [InlineData(39)]
     [InlineData(64)]
     public void PagedRendererKeepsBorderedFlexContentWithItsFirstLine(int leadHeight) {

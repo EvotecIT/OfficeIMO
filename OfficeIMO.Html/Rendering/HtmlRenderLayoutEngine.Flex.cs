@@ -9,6 +9,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style,
         int depth,
         IElement? continuationTarget,
+        PagedFloatBoundary? pageBoundary,
         out HtmlRenderFlowBlock block) {
         block = null!;
         if (style.FlexWrap != "nowrap" && style.FlexWrap != "wrap" && style.FlexWrap != "wrap-reverse") {
@@ -22,9 +23,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
         if (!TryCollectFlexItems(element, contentWidth, style, depth, captureRunningElements: true, out List<FlexItem> items, out List<HtmlCssRunningStringAssignment> runningElementAssignments)) return false;
-        if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, out block);
+        if (column) return TryLayoutColumnFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, pageBoundary, out block);
 
-        return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, continuationTarget, out block);
+        return TryLayoutRowFlexContainer(element, containingWidth, style, depth, items, runningElementAssignments, continuationTarget, pageBoundary, out block);
     }
 
     private bool TryCollectFlexItems(
@@ -57,6 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         List<FlexItem> items,
         IReadOnlyList<HtmlCssRunningStringAssignment> runningElementAssignments,
         IElement? continuationTarget,
+        PagedFloatBoundary? pageBoundary,
         out HtmlRenderFlowBlock block) {
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
@@ -75,6 +77,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         double gap = orderedItems.Count > 1 ? style.ColumnGap : 0D;
         foreach (FlexItem item in orderedItems) {
+            item.HasExplicitCrossSize = item.Style.ExplicitHeight.HasValue;
             item.Basis = ResolveFlexBasis(item, contentWidth);
             item.AutomaticMinimumMainSize = ResolveFlexAutomaticMinimumWidth(item, contentWidth);
         }
@@ -99,6 +102,43 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ResolveFlexMainOffsets(line.Items, style, contentWidth, gap, style.FlexDirection == "row-reverse", vertical: false, source: HtmlRenderStyleResolver.DescribeSource(element));
             foreach (FlexItem item in line.Items) {
                 item.CrossOffset = ResolveFlexCrossOffset(item, style, line.CrossSize);
+            }
+        }
+
+        if (pageBoundary.HasValue) {
+            double contentYForBoundary = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+            for (int pass = 0; pass < Math.Min(8, lines.Count + 2); pass++) {
+                double[] previousLineOffsets = lines.Select(line => line.CrossOffset).ToArray();
+                double[] previousLineSizes = lines.Select(line => line.CrossSize).ToArray();
+                double[] previousItemOffsets = lines.SelectMany(line => line.Items.Select(item => item.CrossOffset)).ToArray();
+                foreach (FlexLine line in lines) {
+                    foreach (FlexItem item in line.Items) {
+                        if (item.Element == null || !ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1)) continue;
+                        if (!style.ExplicitHeight.HasValue && !item.HasExplicitCrossSize && item.Style.ExplicitHeight.HasValue) {
+                            HtmlRenderBoxStyle autoHeight = item.Style.Clone();
+                            autoHeight.ExplicitHeight = null;
+                            item.Style = autoHeight;
+                        }
+                        item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), style, depth + 1,
+                            pageBoundary.Value.Shift(contentYForBoundary + line.CrossOffset + item.CrossOffset));
+                    }
+                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+                    RestretchRowFlexSiblings(line.Items, style, line.CrossSize, depth,
+                        pageBoundary.Value.Shift(contentYForBoundary + line.CrossOffset));
+                    line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
+                }
+                naturalCrossSize = lines.Sum(line => line.CrossSize) + rowGap * Math.Max(0, lines.Count - 1);
+                crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
+                ResolveFlexLineOffsets(lines, style, crossSize, rowGap, HtmlRenderStyleResolver.DescribeSource(element));
+                foreach (FlexLine line in lines) {
+                    foreach (FlexItem item in line.Items) item.CrossOffset = ResolveFlexCrossOffset(item, style, line.CrossSize);
+                }
+                bool lineGeometryStable = lines.Select((line, index) => Math.Abs(line.CrossOffset - previousLineOffsets[index])
+                        + Math.Abs(line.CrossSize - previousLineSizes[index]))
+                    .All(change => change <= 0.0001D);
+                double[] currentItemOffsets = lines.SelectMany(line => line.Items.Select(item => item.CrossOffset)).ToArray();
+                if (lineGeometryStable && currentItemOffsets.Select((offset, index) =>
+                        Math.Abs(offset - previousItemOffsets[index])).All(change => change <= 0.0001D)) break;
             }
         }
 
@@ -442,6 +482,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
             item.Style = stretchedStyle;
             item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), containerStyle, depth + 1);
+        }
+    }
+
+    private void RestretchRowFlexSiblings(IReadOnlyList<FlexItem> items, HtmlRenderBoxStyle containerStyle,
+        double crossSize, int depth, PagedFloatBoundary lineBoundary) {
+        foreach (FlexItem item in items) {
+            if (item.HasExplicitCrossSize || item.Element == null
+                || item.Style.MarginTopAuto || item.Style.MarginBottomAuto
+                || ResolveFlexAlignment(item.Style.AlignSelf, containerStyle.AlignItems) != "stretch"
+                || Math.Abs(item.Block!.Height - crossSize) <= 0.0001D) continue;
+            double targetBoxHeight = Math.Max(0.01D, crossSize - item.Style.MarginTop - item.Style.MarginBottom);
+            HtmlRenderBoxStyle stretchedStyle = item.Style.Clone();
+            stretchedStyle.ExplicitHeight = stretchedStyle.BorderBox
+                ? targetBoxHeight
+                : Math.Max(0.01D, targetBoxHeight - stretchedStyle.VerticalInsets);
+            item.Style = stretchedStyle;
+            PagedFloatBoundary? siblingBoundary = ContainsFloatingDescendant(item.Element, item.MainSize,
+                item.Style, depth + 1) ? lineBoundary.Shift(item.CrossOffset) : null;
+            item.Block = LayoutFlexItem(item, Math.Max(1D, item.MainSize), containerStyle, depth + 1,
+                siblingBoundary);
         }
     }
 

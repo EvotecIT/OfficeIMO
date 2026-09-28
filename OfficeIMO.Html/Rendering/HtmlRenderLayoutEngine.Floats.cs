@@ -768,7 +768,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal double RemainingHeight { get; }
-        private double PageHeight { get; }
+        internal double PageHeight { get; }
 
         internal PagedFloatBoundary Shift(double offset) => new PagedFloatBoundary(RemainingHeight - offset, PageHeight);
 

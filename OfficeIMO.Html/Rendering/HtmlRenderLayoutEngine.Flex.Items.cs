@@ -92,9 +92,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             paintAnonymousBox: true));
     }
 
-    private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth) {
+    private HtmlRenderFlowBlock LayoutFlexItem(FlexItem item, double containingWidth, HtmlRenderBoxStyle parentStyle, int depth,
+        PagedFloatBoundary? pageBoundary = null) {
         HtmlRenderFlowBlock block = item.Element != null
-            ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth)
+            ? LayoutElement(item.Element, containingWidth, item.Style, parentStyle, depth, pageBoundary: pageBoundary)
             : LayoutAnonymousFlexItem(item, containingWidth, parentStyle);
         foreach (FlattenedSemanticPlacement placement in item.FlattenedSemanticPlacements) {
             block = ApplyFlattenedSemanticBoundary(block, placement.Boundary, placement.FirstFragment);
