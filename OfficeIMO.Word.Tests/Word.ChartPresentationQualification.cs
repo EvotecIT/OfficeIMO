@@ -26,6 +26,19 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Theory]
+    [InlineData("legend")]
+    [InlineData("chart")]
+    public void Snapshot_RejectsVisibleSurfaceOutlineWithUnresolvedColour(string surface) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.ColumnClustered);
+        var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        if (surface == "legend") native.Legend!.AddChild(
+            new C.ChartShapeProperties(new A.Outline { Width = 25400 }), true);
+        else chart.ChartPart.ChartSpace.AddChild(new C.ShapeProperties(new A.Outline { Width = 25400 }), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Area)]
     [InlineData(OfficeChartKind.Scatter)]
