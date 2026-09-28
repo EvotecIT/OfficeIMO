@@ -23,6 +23,8 @@ public sealed partial class OdsSheet {
             if (item.LabelAddress != null) ValidateChartRange(item.LabelAddress, nameof(series), singleCell: true);
             if (item.PointStyles != null && item.PointStyles.Count != pointCount)
                 throw new ArgumentException("Point-style count must match the category count.", nameof(series));
+            if (type == OdsChartType.Line && item.PointStyles?.Any(style => style != null) == true)
+                throw new NotSupportedException("Native line chart point styles require visible point symbols.");
             OdsChartPointStyles.Validate(item.PointStyles);
         }
         if (!bounds.X.TryToPoints(out double x) || !bounds.Y.TryToPoints(out double y) ||

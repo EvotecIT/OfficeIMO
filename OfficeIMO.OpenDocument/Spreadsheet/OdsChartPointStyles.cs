@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using OfficeIMO.Spreadsheet;
 
 namespace OfficeIMO.OpenDocument;
 
@@ -12,6 +13,8 @@ internal static class OdsChartPointStyles {
         XName dataPointName = OdfNamespaces.Chart + "data-point";
         XElement[] points = series.Elements(dataPointName).Take(MaximumPoints + 1).ToArray();
         if (points.Length > MaximumPoints) return null;
+        if (!TryGetPointCount((string?)series.Attribute(OdfNamespaces.Chart + "values-cell-range-address"),
+                out int pointCount)) return null;
         var result = new List<OfficeChartPointStyle?>();
         foreach (XElement point in points) {
             string? repeatedText = (string?)point.Attribute(OdfNamespaces.Chart + "repeated");
@@ -19,13 +22,32 @@ internal static class OdsChartPointStyles {
             if (repeatedText != null && (!int.TryParse(repeatedText, NumberStyles.None,
                     CultureInfo.InvariantCulture, out count) || count < 1)) return null;
             if (count > MaximumPoints - result.Count) return null;
+            if (count > pointCount - result.Count) return null;
             string? name = (string?)point.Attribute(OdfNamespaces.Chart + "style-name");
             OfficeChartPointStyle? appearance = null;
             if (name != null && !TryReadStyle(name, series, findStyle, defaultStyle, hatches,
                     out appearance)) return null;
             for (int index = 0; index < count; index++) result.Add(appearance);
         }
+        while (result.Count < pointCount) result.Add(null);
         return result.Any(style => style != null) ? result.AsReadOnly() : null;
+    }
+
+    private static bool TryGetPointCount(string? address, out int count) {
+        count = 0;
+        if (!SpreadsheetRangeReference.TryParse(address, SpreadsheetAddressDialect.OpenDocument,
+                out SpreadsheetRangeReference? range) || !range!.Start.IsCell) return false;
+        SpreadsheetCellReference start = range.Start;
+        SpreadsheetCellReference end = range.End ?? start;
+        if (!end.IsCell || start.SheetName != end.SheetName && end.SheetName != null ||
+            start.Row!.Value > end.Row!.Value || start.Column!.Value > end.Column!.Value ||
+            start.Row.Value != end.Row.Value && start.Column.Value != end.Column.Value) return false;
+        long length = start.Row.Value == end.Row.Value
+            ? (long)end.Column.Value - start.Column.Value + 1
+            : end.Row.Value - start.Row.Value + 1;
+        if (length < 1 || length > MaximumPoints) return false;
+        count = (int)length;
+        return true;
     }
 
     private static bool TryReadStyle(string name, XElement series,
@@ -56,10 +78,16 @@ internal static class OdsChartPointStyles {
             !AddChain((string?)series.Parent?.Attribute(OdfNamespaces.Chart + "style-name"))) return false;
         if (defaultStyle != null) AddAttributes(defaultStyle);
         string? Get(XName key) => attributes.TryGetValue(key, out string? value) ? value : null;
-        if (Get(OdfNamespaces.Draw + "fill-opacity") != null ||
-            Get(OdfNamespaces.Draw + "fill-transparency") != null ||
-            Get(OdfNamespaces.Svg + "stroke-opacity") != null ||
-            Get(OdfNamespaces.Draw + "stroke-dash") != null) return false;
+        foreach (XName key in attributes.Keys) {
+            if (key != OdfNamespaces.Draw + "fill" &&
+                key != OdfNamespaces.Draw + "fill-color" &&
+                key != OdfNamespaces.Draw + "fill-hatch-name" &&
+                key != OdfNamespaces.Draw + "fill-hatch-solid" &&
+                key != OdfNamespaces.Draw + "stroke" &&
+                key != OdfNamespaces.Draw + "stroke-linejoin" &&
+                key != OdfNamespaces.Svg + "stroke-color" &&
+                key != OdfNamespaces.Svg + "stroke-width") return false;
+        }
         string? fillMode = Get(OdfNamespaces.Draw + "fill");
         OfficeColor? fill = null;
         bool noFill = fillMode == "none";
@@ -69,7 +97,7 @@ internal static class OdsChartPointStyles {
         string? fillText = Get(OdfNamespaces.Draw + "fill-color");
         if (fillText != null && !OfficeColor.TryParseHex(fillText, out _)) return false;
         if (fillMode == "hatch") {
-            if (Get(OdfNamespaces.Draw + "fill-hatch-solid") != "true" ||
+            if (!OdfBoolean.TryParseXml(Get(OdfNamespaces.Draw + "fill-hatch-solid"), out bool solid) || !solid ||
                 !OfficeColor.TryParseHex(fillText, out OfficeColor background) ||
                 !TryReadHatch(Get(OdfNamespaces.Draw + "fill-hatch-name"), hatches,
                     out OfficeChartHatchPattern pattern, out OfficeColor ink)) return false;
@@ -212,6 +240,9 @@ internal static class OdsChartPointStyles {
             foreach (OfficeColor? color in new[] { style.FillColor, style.HatchColor, style.OutlineColor })
                 if (color.HasValue && color.Value.A != 255)
                     throw new NotSupportedException("ODF chart point colors require opaque RGB values.");
+            if (style.OutlineWidth.HasValue &&
+                (!OdfLength.Points(style.OutlineWidth.Value).TryToPoints(out double emittedWidth) || emittedWidth <= 0))
+                throw new NotSupportedException("ODF chart point outline width is too small to serialize.");
         }
     }
 
