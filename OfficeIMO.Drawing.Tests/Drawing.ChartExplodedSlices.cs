@@ -38,6 +38,27 @@ public sealed class DrawingChartExplodedSlicesTests {
     }
 
     [Fact]
+    public void InnerDoughnutRing_ExplosionUsesItsOwnRadius() {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Inner", new[] { 5d, 5d }).WithPointExplosions(new[] { 25, 0 }),
+            new OfficeChartSeries("Outer", new[] { 5d, 5d })
+        });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot("", null, OfficeChartKind.Doughnut, data, 320, 240,
+                null, new OfficeChartLayout(showLegend: false)), false);
+        OfficeDrawingShape[] slices = drawing.Shapes
+            .Where(item => item.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
+        Assert.Equal(4, slices.Length);
+        double explodedFirstX = slices[0].X + slices[0].Shape.Points[0].X;
+        double innerSecondX = slices[1].X + slices[1].Shape.Points[0].X;
+        double outerFirstY = slices[2].Y + slices[2].Shape.Points[0].Y;
+        double outerSecondY = slices[3].Y + slices[3].Shape.Points[0].Y;
+        double centerY = (outerFirstY + outerSecondY) / 2D;
+        double innerOuterRadius = slices[1].Y + slices[1].Shape.Points[0].Y - centerY;
+        Assert.Equal(innerOuterRadius * 0.25D, explodedFirstX - innerSecondX, 7);
+    }
+
+    [Fact]
     public void ExplosionValues_AreAlignedBoundedAndRetainedAcrossSeriesCopies() {
         var series = new OfficeChartSeries("Status", new[] { 5d, 5d })
             .WithPointExplosions(new[] { 25, 0 })

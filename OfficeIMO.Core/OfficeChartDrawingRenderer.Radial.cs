@@ -231,8 +231,8 @@ public static partial class OfficeChartDrawingRenderer {
                     double end = start + sweep;
                     double middle = start + sweep / 2D;
                     int explosion = values.PointExplosions?[i] ?? 0;
-                    double sliceCenterX = centerX + Math.Cos(middle) * radius * explosion / 100D;
-                    double sliceCenterY = centerY + Math.Sin(middle) * radius * explosion / 100D;
+                    double sliceCenterX = centerX + Math.Cos(middle) * outerRadius * explosion / 100D;
+                    double sliceCenterY = centerY + Math.Sin(middle) * outerRadius * explosion / 100D;
                     OfficeColor sliceColor = GetPointColor(style, values, i);
                     AddDoughnutSlice(drawing, sliceCenterX, sliceCenterY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
                     if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {

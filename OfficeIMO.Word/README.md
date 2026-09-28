@@ -499,8 +499,9 @@ Snapshots preserve chart and plot surfaces, primary axes and gridlines, radial g
 uniform body fonts, separate chart-title and axis-title fonts, uniform text size, style and
 colour for titles, legends and axes, and basic data-label content,
 separator, number format, and position. Mixed body fonts, per-point or series-specific labels,
-outside or best-fit radial leader lines, unsupported effects, and unrepresented outlines return false
+best-fit radial leader lines, unsupported radial label positions, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
+Outside-end radial leader lines are supported when they can be placed without crossing another doughnut ring.
 Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
 axis crossing are preserved where the renderer supports them; automatic zero crossing through a negative
 value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements,
