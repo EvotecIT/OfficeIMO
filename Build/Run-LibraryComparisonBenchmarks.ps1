@@ -8,6 +8,7 @@ param(
         'csv',
         'csvwrite',
         'csvasyncread',
+        'csvwideasyncread',
         'csvlargefirstrow',
         'xls',
         'xlsx',
@@ -168,6 +169,24 @@ $definitions = [ordered]@{
                         foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
                             "$scenario|Operation=$operation&RowCount=$rowCount&Shape=$shape"
                         }
+                    }
+                }
+            }
+        )
+    }
+    csvwideasyncread = [pscustomobject]@{
+        Project = 'OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj'
+        Filter = '*CsvWideAsyncReadBenchmarks*'
+        ComparisonId = "csv-wide-async-read-$Framework"
+        Suite = 'OfficeIMO.CSV.WideAsyncRead'
+        CatalogEligible = $false
+        FullRunArguments = @('--warmupCount', '6', '--iterationCount', '12', '--outliers', 'DontRemove')
+        IdentityVariables = @('operation', 'rowcount')
+        ExpectedCases = @(
+            foreach ($operation in @('FirstRow', 'AllRows')) {
+                foreach ($rowCount in @(5000, 25000)) {
+                    foreach ($scenario in @('OfficeIMO_Snapshot', 'OfficeIMO_Incremental')) {
+                        "$scenario|Operation=$operation&RowCount=$rowCount"
                     }
                 }
             }

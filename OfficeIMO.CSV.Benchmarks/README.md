@@ -33,6 +33,16 @@ declaration and records its actual affinity and priority in the log. Repeat
 the complete matrix on each discovered processor domain before interpreting
 relative timings, and retain the raw samples when background load is present.
 
+`CsvWideAsyncReadBenchmarks` uses 32 columns and 5,000 or 25,000 rows with a
+distinct value in every field. It measures the same snapshot and incremental
+first-row and full-traversal contracts, validates every field before timing,
+and returns the same row, cell, character, and signature totals from both
+readers. Run the eight-case lane with `-Workload csvwideasyncread`. It follows
+the same full-run warmup, measurement, affinity, and outlier policy as
+`csvasyncread`. The fixture is generated outside timing and reads use the
+warmed operating-system cache. This lane is for field-materializing public
+readers; it does not compare a span-only scan with a string-returning API.
+
 `CsvLargeFirstRowBenchmarks` repeats the same validated three-field FirstRow
 contract against one million rows. Run its four-case lane with
 `-Workload csvlargefirstrow`; full mode retains six warmups and twelve measured
