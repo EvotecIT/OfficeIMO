@@ -1160,6 +1160,7 @@ internal static class IWorkNumbersReader {
                         return hasFormula
                             ? Formula(row, column, formulaIdentifier, formulas, options,
                                 projectionBudget, text, IWorkCellKind.Text,
+                                cachedValueIsComplete: richText.IsTextComplete,
                                 richText: richText)
                             : new IWorkTableCell(row, column, IWorkCellKind.Text, text,
                                 richText: richText);

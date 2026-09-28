@@ -11,6 +11,8 @@ internal static class IWorkTableRichTextReader {
         IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed) {
         var strings = new Dictionary<uint, IWorkTextContent>();
         var seenIdentifiers = new HashSet<uint>();
+        var recordMessages = new Dictionary<ulong, IWorkWireMessage?>();
+        var storageContents = new Dictionary<ulong, IWorkTextContent?>();
         fullyReconstructed = true;
         if (!store.HasField(17)) return strings;
         IWorkArchiveRecord? list = index.Dereference(store, 17);
@@ -47,7 +49,8 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            if (!TryReadRecord(index, wrapper, options, out IWorkWireMessage? wrapperMessage)
+            if (!TryReadRecord(index, wrapper, options, recordMessages,
+                    out IWorkWireMessage? wrapperMessage)
                 || wrapperMessage == null) {
                 fullyReconstructed = false;
                 continue;
@@ -58,13 +61,20 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            if (!TryReadRecord(index, storage, options, out IWorkWireMessage? storageMessage)
-                || storageMessage == null) {
+            if (!storageContents.TryGetValue(storage.Identifier, out IWorkTextContent? content)) {
+                content = TryReadRecord(index, storage, options, recordMessages,
+                        out IWorkWireMessage? storageMessage) && storageMessage != null
+                    ? IWorkTextReader.Read(index, storage, projectionBudget,
+                        tolerateStyleDepth: true)
+                    : null;
+                storageContents.Add(storage.Identifier, content);
+            } else if (content != null) {
+                projectionBudget.AddTextContentUse(content, includeCharacters: true);
+            }
+            if (content == null) {
                 fullyReconstructed = false;
                 continue;
             }
-            IWorkTextContent content = IWorkTextReader.Read(index, storage, projectionBudget,
-                tolerateStyleDepth: true);
             if (!content.IsTextComplete) fullyReconstructed = false;
             if (!content.IsTextComplete && content.PlainText.Length == 0) continue;
             strings.Add(normalizedKey, content);
@@ -73,15 +83,19 @@ internal static class IWorkTableRichTextReader {
     }
 
     private static bool TryReadRecord(IWorkObjectIndex index, IWorkArchiveRecord record,
-        IWorkReadOptions options, out IWorkWireMessage? message) {
+        IWorkReadOptions options, Dictionary<ulong, IWorkWireMessage?> cache,
+        out IWorkWireMessage? message) {
+        if (cache.TryGetValue(record.Identifier, out message)) return message != null;
         message = null;
         try {
             // Count first so configured field limits remain fatal even when the record is malformed.
             IWorkProtobuf.CountFields(record.Payload, 1, options.MaximumProtobufFieldCount);
             message = index.Message(record);
+            cache.Add(record.Identifier, message);
             return true;
         } catch (InvalidDataException exception)
             when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            cache.Add(record.Identifier, null);
             return false;
         }
     }

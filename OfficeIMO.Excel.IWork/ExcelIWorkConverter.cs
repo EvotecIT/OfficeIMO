@@ -35,11 +35,13 @@ public static partial class ExcelIWorkConverter {
                  && UniformCellHyperlink(cell.RichText) == null
                  || cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
                      .Any(run => run.Style.BackgroundColor != null
-                         || run.Style.Color is { Alpha: < byte.MaxValue })))) {
+                         || run.Style.Color is { Alpha: < byte.MaxValue })
+                 || cell.RichText.Paragraphs.Any(paragraph =>
+                     paragraph.ListLevel >= 0 || !string.IsNullOrEmpty(paragraph.ListLabel))))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
-                    "Some formula-cell rich text, run links, highlights, or transparent colors cannot be represented in XLSX; source runs remain available on the iWork projection.")
+                    "Some formula-cell rich text, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
