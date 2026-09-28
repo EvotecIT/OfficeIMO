@@ -212,27 +212,26 @@ public static partial class OfficeChartDrawingRenderer {
     private static bool IsFiniteChartValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
     private static double ToPlotY(double value, double min, double max, double plotTop, double plotHeight) {
-        double range = max - min;
-        double ratio = range <= 0D ? 0.5D : (value - min) / range;
-        if (ratio < 0D) {
-            ratio = 0D;
-        } else if (ratio > 1D) {
-            ratio = 1D;
-        }
-
+        double ratio = GetPlotRatio(value, min, max);
         return plotTop + plotHeight - plotHeight * ratio;
     }
 
     private static double ToPlotX(double value, double min, double max, double plotLeft, double plotWidth) {
+        double ratio = GetPlotRatio(value, min, max);
+        return plotLeft + plotWidth * ratio;
+    }
+
+    private static double GetPlotRatio(double value, double min, double max) {
         double range = max - min;
-        double ratio = range <= 0D ? 0.5D : (value - min) / range;
+        double ratio = range <= 0D ? 0.5D : double.IsInfinity(range)
+            ? (value * 0.5D - min * 0.5D) / (max * 0.5D - min * 0.5D)
+            : (value - min) / range;
         if (ratio < 0D) {
             ratio = 0D;
         } else if (ratio > 1D) {
             ratio = 1D;
         }
-
-        return plotLeft + plotWidth * ratio;
+        return ratio;
     }
 
     private static IReadOnlyList<double> GetScatterXValues(IReadOnlyList<string> categories) {
@@ -380,9 +379,9 @@ public static partial class OfficeChartDrawingRenderer {
         if (!majorUnit.HasValue || majorUnit.Value <= 0D) {
             return new[] {
                 range.Min,
-                range.Min + (range.Max - range.Min) * 0.25D,
-                range.Min + (range.Max - range.Min) * 0.5D,
-                range.Min + (range.Max - range.Min) * 0.75D,
+                range.Min * 0.75D + range.Max * 0.25D,
+                range.Min * 0.5D + range.Max * 0.5D,
+                range.Min * 0.25D + range.Max * 0.75D,
                 range.Max
             };
         }
