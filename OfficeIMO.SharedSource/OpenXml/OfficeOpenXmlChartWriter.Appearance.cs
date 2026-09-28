@@ -72,6 +72,10 @@ namespace OfficeIMO.OpenXml.Internal {
             if (series.StrokeDashStyle.HasValue) {
                 outline.RemoveAllChildren<A.PresetDash>();
                 outline.AddChild(new A.PresetDash { Val = MapDash(series.StrokeDashStyle.Value) }, true);
+            } else if (reenableConnectingLine || reenableBubbleOutline) {
+                // A hidden imported outline can retain an unsupported dash. Re-enabling it
+                // without an explicit shared dash means a solid native outline.
+                outline.RemoveAllChildren<A.PresetDash>();
             }
             if (outline.Parent == null) properties.AddChild(outline, true);
             if (properties.Parent == null) InsertSharedSeriesProperties(seriesElement, properties);
