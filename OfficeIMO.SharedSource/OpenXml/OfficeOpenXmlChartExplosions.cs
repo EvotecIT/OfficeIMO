@@ -22,8 +22,11 @@ internal static class OfficeOpenXmlChartExplosions {
             C.Explosion? pointExplosion = point.GetFirstChild<C.Explosion>();
             if (pointExplosion == null) continue;
             uint? index = point.Index?.Val?.Value;
-            if (!index.HasValue || index.Value >= count || !seen.Add(index.Value) ||
-                !TryValue(pointExplosion, out int value))
+            if (!index.HasValue) return false;
+            // A data update can shorten the series while native point formatting remains.
+            // The stale point has no visible slice to project.
+            if (index.Value >= count) continue;
+            if (!seen.Add(index.Value) || !TryValue(pointExplosion, out int value))
                 return false;
             explosions ??= new int[count];
             explosions[(int)index.Value] = value;

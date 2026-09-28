@@ -63,4 +63,22 @@ public sealed class ExcelChartExplodedSlicesTests {
         Assert.False(chart.TryGetSnapshot(out _));
         Assert.Equal((uint)401, native.GetFirstChild<C.Explosion>()!.Val!.Value);
     }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartKind kind) {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(kind,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
+            }), 1, 1);
+        chart.UpdateData(new ExcelChartData(new[] { "A" }, new[] {
+            new ExcelChartSeries("Status", new[] { 8d })
+        }));
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Null(snapshot.Data.Series.Single().PointExplosions);
+        Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
+        Assert.Empty(document.ValidateDocument());
+    }
 }
