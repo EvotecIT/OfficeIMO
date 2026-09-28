@@ -31,6 +31,7 @@
 
   <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\Charts\LibreOffice\status-pie.odt" Link="ChartProducerReferences\status-pie.odt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
