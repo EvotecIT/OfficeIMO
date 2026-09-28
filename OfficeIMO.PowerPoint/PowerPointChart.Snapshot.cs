@@ -430,7 +430,7 @@ namespace OfficeIMO.PowerPoint {
 
             OfficeChartStyle style = ReadSharedTextStyle(chart) ?? OfficeChartStyle.Default;
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels =
-                !forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)
+                !forDataUpdate && kind != PowerPointChartSnapshotKind.Bubble
                     ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadLabels(chart, colorScheme)
                     : null;
             if (radialLabels?.TextColor is OfficeColor labelColor)

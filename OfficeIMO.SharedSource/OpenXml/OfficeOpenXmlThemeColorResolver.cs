@@ -23,7 +23,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
     /// <summary>Reads a bounded radial palette from a modern color style or classic style 2.</summary>
     internal static OfficeColor[]? ReadRadialPalette(ChartPart chartPart, OpenXmlCompositeElement series,
         int pointCount, A.ColorScheme? scheme) {
-        if (scheme == null || pointCount < 1 || pointCount > 6 ||
+        if (scheme == null || pointCount < 1 ||
             series.Parent is not C.PieChart and not C.DoughnutChart ||
             series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
             varyColors.Val?.Value == false)
@@ -32,6 +32,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
         // An unsupported inherited palette is immaterial when every rendered ring has
         // an explicit appearance for every category.
         if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
+        if (pointCount > 6)
+            throw new NotSupportedException("A native radial palette with more than six inherited point colours cannot be projected.");
         OpenXmlElement? colorMap = ResolveChartColorMap(chartPart);
         ChartColorStylePart? colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault();
         if (colorStylePart != null) {
@@ -119,7 +121,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         };
         string? mapped = colorMap.GetAttributes()
             .FirstOrDefault(item => item.LocalName == attribute).Value;
-        return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped;
+        return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped!;
     }
 
     private static bool HasAutomaticDataPointFill(ChartStylePart part) {

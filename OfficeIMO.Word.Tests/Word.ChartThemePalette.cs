@@ -11,6 +11,17 @@ public sealed class WordChartThemePaletteTests {
     [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
+    public void UnstyledRadialChartBeyondQualifiedThemePaletteFailsClosed(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        WordChart chart = document.AddChart(kind, new OfficeChartData(
+            new[] { "A", "B", "C", "D", "E", "F", "G" },
+            new[] { new OfficeChartSeries("Values", new[] { 1d, 2d, 3d, 4d, 5d, 6d, 7d }) }));
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
     public void UnstyledRadialChartProjectsThemeAccentColors(OfficeChartKind kind) {
         using var document = WordDocument.Create();
         WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {

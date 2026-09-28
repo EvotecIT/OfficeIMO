@@ -200,6 +200,18 @@ namespace OfficeIMO.Tests {
             Assert.Null(snapshot.Data.Series.Single().PointColors);
         }
 
+        [Theory]
+        [InlineData(OfficeChartKind.Pie)]
+        [InlineData(OfficeChartKind.Doughnut)]
+        public void UnstyledRadialChartBeyondQualifiedThemePaletteFailsClosed(OfficeChartKind kind) {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(kind,
+                new OfficeChartData(new[] { "A", "B", "C", "D", "E", "F", "G" }, new[] {
+                    new OfficeChartSeries("Values", new[] { 1d, 2d, 3d, 4d, 5d, 6d, 7d })
+                }), 1, 1, 20, 10);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
+
         [Fact]
         public void MultiRingDoughnutCanUpdateDataWithoutProjectingItsPalette() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
