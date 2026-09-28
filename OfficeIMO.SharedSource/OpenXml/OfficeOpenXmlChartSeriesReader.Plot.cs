@@ -71,10 +71,9 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Select(entry => entry.GetFirstChild<C.Index>()?.Val?.Value)
                 .Where(value => value.HasValue).Select(value => value!.Value) ?? Enumerable.Empty<uint>());
             bool categoryLegend = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut;
-            bool bubbleLegend = kind == OfficeChartKind.Bubble;
             series = series.Select((item, index) => new Series(item.SourceIndex,
                 item.Data.WithLegendVisibility(legend != null && (categoryLegend ||
-                    !hidden.Contains(bubbleLegend ? (uint)index : item.SourceIndex))), item.HasUnsupportedAppearance, item.SourceOrder)).ToList();
+                    !hidden.Contains((uint)index))), item.HasUnsupportedAppearance, item.SourceOrder)).ToList();
             var result = new Result(categories, series);
             // The same authoring contract declares supported family/axis combinations.
             OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);
@@ -130,7 +129,8 @@ namespace OfficeIMO.OpenXml.Internal {
             // a right/top secondary pair. Other native arrangements need independent
             // axis identity and placement metadata instead of guessing from a side.
             if (groups.Read(categoryLayers[0]) != OfficeChartAxisGroup.Primary) return false;
-            uint? primaryValueId = null;
+            uint? primaryCategoryId = null, primaryValueId = null;
+            uint? secondaryCategoryId = null, secondaryValueId = null;
             foreach (var layer in categoryLayers) {
                 var axes = layer.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
                 if (axes.Length != 2 || axes.Any(axis => axis == null)) return false;
@@ -144,9 +144,19 @@ namespace OfficeIMO.OpenXml.Internal {
                 var expectedValue = secondary ? C.AxisPositionValues.Right : horizontal ? C.AxisPositionValues.Bottom : C.AxisPositionValues.Left;
                 if (category.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedCategory || value.GetFirstChild<C.AxisPosition>()?.Val?.Value != expectedValue) return false;
                 if (!secondary) {
+                    uint? categoryId = category.GetFirstChild<C.AxisId>()?.Val?.Value;
                     uint? valueId = value.GetFirstChild<C.AxisId>()?.Val?.Value;
+                    if (primaryCategoryId.HasValue && categoryId != primaryCategoryId) return false;
                     if (primaryValueId.HasValue && valueId != primaryValueId) return false;
+                    primaryCategoryId = categoryId;
                     primaryValueId = valueId;
+                } else {
+                    uint? categoryId = category.GetFirstChild<C.AxisId>()?.Val?.Value;
+                    uint? valueId = value.GetFirstChild<C.AxisId>()?.Val?.Value;
+                    if (secondaryCategoryId.HasValue && categoryId != secondaryCategoryId) return false;
+                    if (secondaryValueId.HasValue && valueId != secondaryValueId) return false;
+                    secondaryCategoryId = categoryId;
+                    secondaryValueId = valueId;
                 }
             }
             return true;

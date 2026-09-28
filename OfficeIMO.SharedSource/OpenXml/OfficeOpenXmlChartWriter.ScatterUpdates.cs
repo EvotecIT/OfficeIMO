@@ -18,9 +18,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
 
                 int currentLayerSize = Math.Max(1, scatterChart.Elements<C.ScatterChartSeries>().Count());
+                int reservedForLaterLayers = Math.Min(scatterCharts.Count - layerIndex - 1, remainingSeries - 1);
                 int seriesCount = layerIndex == scatterCharts.Count - 1
                     ? remainingSeries
-                    : Math.Min(currentLayerSize, remainingSeries);
+                    : Math.Min(currentLayerSize, remainingSeries - reservedForLaterLayers);
                 UpdateScatterChartSeries(scatterChart, data, seriesOffset, seriesCount);
                 seriesOffset += seriesCount;
             }
