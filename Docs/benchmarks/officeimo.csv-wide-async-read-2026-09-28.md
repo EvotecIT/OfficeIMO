@@ -33,7 +33,32 @@ on the other, while the 25,000-row result is 4–9% faster. The small 25,000-row
 time lead is within run variation and does not justify a parser change by
 itself. This run does not establish a portable throughput ranking, peak
 resident memory, cold-disk behavior, or a cross-platform regression budget.
-The existing [sustained-read evidence](officeimo.csv-sustained-read-2026-09-27.md)
+An Ubuntu 24.04.3 run under WSL on the same host and source commit `9fc03dd74`
+measured the same eight cases with .NET 10.0.12. It used `taskset` to pin the
+parent process to logical processors 0–15 or 16–31; benchmark setup checked
+the inherited worker mask and every generated field. Workers ran at Normal
+priority. Six warmups, twelve measured iterations, and retained outliers
+matched the Windows measurement policy. The table reports means and managed
+allocation per operation; the two domains were measured in A-then-B order.
+
+| WSL affinity | Rows | Operation | Snapshot time | Incremental time | Snapshot allocation | Incremental allocation |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
+| `0xFFFF` | 5,000 | FirstRow | 12.572 ms | 0.082 ms | 22,305 KiB | 32.4 KiB |
+| `0xFFFF` | 5,000 | AllRows | 9.927 ms | 10.272 ms | 22,305 KiB | 13,641 KiB |
+| `0xFFFF` | 25,000 | FirstRow | 104.554 ms | 0.128 ms | 106,218 KiB | 32.4 KiB |
+| `0xFFFF` | 25,000 | AllRows | 80.090 ms | 38.821 ms | 106,219 KiB | 68,084 KiB |
+| `0xFFFF0000` | 5,000 | FirstRow | 12.988 ms | 0.056 ms | 22,306 KiB | 32.4 KiB |
+| `0xFFFF0000` | 5,000 | AllRows | 11.067 ms | 11.498 ms | 22,305 KiB | 13,640 KiB |
+| `0xFFFF0000` | 25,000 | FirstRow | 84.900 ms | 0.094 ms | 106,219 KiB | 32.4 KiB |
+| `0xFFFF0000` | 25,000 | AllRows | 83.036 ms | 37.358 ms | 106,218 KiB | 68,086 KiB |
+
+First-row allocation and the 36–39% complete-traversal allocation reduction
+replicate the Windows pattern. Complete-traversal time is mixed at 5,000 rows
+and lower for the incremental reader at 25,000 rows. Timing variation is
+material: the 5,000-row incremental AllRows 99.9% interval half-width is
+6.2 ms on A and 6.1 ms on B. WSL uses the Windows-backed worktree here, so
+these are cross-runtime observations rather than native-Linux throughput or
+portable latency budgets. The existing [sustained-read evidence](officeimo.csv-sustained-read-2026-09-27.md)
 covers other reader and projection shapes; rotated comparisons and native
 Linux/macOS qualification remain open in the [roadmap](../ROADMAP.md).
 
@@ -47,3 +72,20 @@ The runner commands were:
 Raw logs, all measured samples, and normalized provenance results are retained
 locally under `Ignore/Benchmarks/CsvWideAsync` for this active goal. The lane is
 opt-in and does not update the website evidence catalog.
+
+The WSL sample logs and BenchmarkDotNet reports are in the
+`wsl-ubuntu2404-20260928-domain-a` and `wsl-ubuntu2404-20260928-domain-b`
+subdirectories of that same ignored folder. From a WSL shell in the repository
+root, this reproduces the lane; use CPU range `16-31`, mask `0xFFFF0000`, and
+the domain-b output suffix for the second domain:
+
+```sh
+dotnet build -c Release -f net10.0 \
+  OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj
+taskset -c 0-15 env OFFICEIMO_EXPECTED_BENCHMARK_AFFINITY=0xFFFF \
+  dotnet run -c Release -f net10.0 --no-build \
+  --project OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj -- \
+  --filter '*CsvWideAsyncReadBenchmarks*' \
+  --artifacts Ignore/Benchmarks/CsvWideAsync/wsl-ubuntu2404-20260928-domain-a \
+  --warmupCount 6 --iterationCount 12 --outliers DontRemove
+```

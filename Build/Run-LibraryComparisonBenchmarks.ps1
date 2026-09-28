@@ -107,10 +107,13 @@ if ($usesHtmlTinkerX -and -not [string]::IsNullOrWhiteSpace($HtmlTinkerXRoot)) {
 $affinityLabel = if ($AffinityMask -ne 0) { '0x{0:X}' -f $AffinityMask } else { $null }
 $isWindowsBenchmarkPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
     [System.Runtime.InteropServices.OSPlatform]::Windows)
-$affinityApplication = if ($AffinityMask -ne 0 -and $isWindowsBenchmarkPlatform) {
+$isLinuxBenchmarkPlatform = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
+    [System.Runtime.InteropServices.OSPlatform]::Linux)
+$canInheritAffinity = $isWindowsBenchmarkPlatform -or $isLinuxBenchmarkPlatform
+$affinityApplication = if ($AffinityMask -ne 0 -and $canInheritAffinity) {
     # BenchmarkDotNet 0.15.x parses --affinity as a signed 32-bit value. Real
-    # runs pin the coordinator so masks such as 0xFFFF0000 remain exact and are
-    # inherited by restore, build, and benchmark worker processes.
+    # runs pin the coordinator so masks such as 0xFFFF0000 remain exact and
+    # are inherited by benchmark worker processes.
     'inherited-parent-process'
 } else {
     $null
@@ -860,16 +863,54 @@ if ($PlanOnly) {
     return
 }
 
+function Get-LinuxThreadAffinityMasks {
+    param([string] $TasksetPath, [int] $ProcessId)
+
+    $output = @(& $TasksetPath -ap $ProcessId 2>&1)
+    if ($LASTEXITCODE -ne 0 -or $output.Count -eq 0) {
+        throw "Unable to read Linux thread affinity: $($output -join '; ')"
+    }
+    foreach ($line in $output) {
+        $match = [regex]::Match([string] $line, '([0-9a-fA-F]+)\s*$')
+        if (-not $match.Success) {
+            throw "Unable to parse Linux thread affinity: $line"
+        }
+        [Convert]::ToUInt64($match.Groups[1].Value, 16)
+    }
+}
+
 $benchmarkHost = $null
 $originalProcessorAffinity = $null
+$originalLinuxAffinity = $null
+$linuxTaskset = $null
 try {
-if ($AffinityMask -ne 0 -and $isWindowsBenchmarkPlatform) {
-    $benchmarkHost = [System.Diagnostics.Process]::GetCurrentProcess()
-    $originalProcessorAffinity = $benchmarkHost.ProcessorAffinity
-    $benchmarkHost.ProcessorAffinity = [IntPtr]([long] $AffinityMask)
-    $observedAffinity = [UInt64] $benchmarkHost.ProcessorAffinity.ToInt64()
-    if ($observedAffinity -ne $AffinityMask) {
-        throw "Requested affinity mask $affinityLabel, but Windows applied $('0x{0:X}' -f $observedAffinity)."
+if ($AffinityMask -ne 0 -and $canInheritAffinity) {
+    if ($isLinuxBenchmarkPlatform) {
+        # Linux affinity is per thread. Process.ProcessorAffinity only pins the
+        # calling thread, so a child launched by another PowerShell thread can
+        # inherit the old mask. Pin every current thread before starting work.
+        $linuxTaskset = (Get-Command taskset -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
+        $initialMasks = @(Get-LinuxThreadAffinityMasks -TasksetPath $linuxTaskset -ProcessId $PID)
+        if (@($initialMasks | Where-Object { $_ -ne $initialMasks[0] }).Count -ne 0) {
+            throw 'The benchmark runner requires a uniform initial Linux thread affinity.'
+        }
+        $originalLinuxAffinity = '0x{0:X}' -f $initialMasks[0]
+        $placementOutput = @(& $linuxTaskset -ap $affinityLabel $PID 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to apply Linux affinity $affinityLabel`: $($placementOutput -join '; ')"
+        }
+        $appliedMasks = @(Get-LinuxThreadAffinityMasks -TasksetPath $linuxTaskset -ProcessId $PID)
+        if (@($appliedMasks | Where-Object { $_ -ne $AffinityMask }).Count -ne 0) {
+            throw "Requested Linux affinity $affinityLabel was not applied to every thread."
+        }
+    } else {
+        $benchmarkHost = [System.Diagnostics.Process]::GetCurrentProcess()
+        $originalProcessorAffinity = $benchmarkHost.ProcessorAffinity
+        $benchmarkHost.ProcessorAffinity = [IntPtr]([long] $AffinityMask)
+        $observedAffinity = [UInt64] $benchmarkHost.ProcessorAffinity.ToInt64()
+        if ($observedAffinity -ne $AffinityMask) {
+            throw "Requested affinity mask $affinityLabel, but Windows applied $('0x{0:X}' -f $observedAffinity)."
+        }
     }
 }
 
@@ -1149,7 +1190,17 @@ $outputs = foreach ($measurement in $measurements) {
 
 $outputs
 } finally {
-    if ($null -ne $benchmarkHost -and $null -ne $originalProcessorAffinity) {
+    if ($null -ne $linuxTaskset -and $null -ne $originalLinuxAffinity) {
+        $restoreOutput = @(& $linuxTaskset -ap $originalLinuxAffinity $PID 2>&1)
+        if ($LASTEXITCODE -ne 0) {
+            throw "The benchmark runner could not restore Linux affinity: $($restoreOutput -join '; ')"
+        }
+        $restoredMasks = @(Get-LinuxThreadAffinityMasks -TasksetPath $linuxTaskset -ProcessId $PID)
+        $expectedRestoreMask = [Convert]::ToUInt64($originalLinuxAffinity.Substring(2), 16)
+        if (@($restoredMasks | Where-Object { $_ -ne $expectedRestoreMask }).Count -ne 0) {
+            throw 'The benchmark runner could not restore every Linux thread affinity.'
+        }
+    } elseif ($null -ne $benchmarkHost -and $null -ne $originalProcessorAffinity) {
         $benchmarkHost.ProcessorAffinity = $originalProcessorAffinity
         if ($benchmarkHost.ProcessorAffinity.ToInt64() -ne $originalProcessorAffinity.ToInt64()) {
             throw 'The benchmark runner could not restore the invoking process affinity.'
