@@ -20,7 +20,9 @@ internal static class OfficeOpenXmlChartAxisNumberFormats {
             workbook.WorkbookPart.WorkbookStylesPart?.Stylesheet?.CellFormats?.Elements<S.CellFormat>()
                 .FirstOrDefault()?.NumberFormatId?.Value is uint defaultFormat && defaultFormat != 0 ||
             workbook.WorkbookPart.WorksheetParts.Any(part => part.Worksheet == null ||
-                part.Worksheet.Descendants<S.Cell>().Any(cell => cell.StyleIndex?.Value is uint index && index != 0)))
+                part.Worksheet.Descendants<S.Cell>().Any(cell => cell.StyleIndex?.Value is uint index && index != 0) ||
+                part.Worksheet.Descendants<S.Row>().Any(row => row.StyleIndex?.Value is uint index && index != 0) ||
+                part.Worksheet.Descendants<S.Column>().Any(column => column.Style?.Value is uint index && index != 0)))
             throw new NotSupportedException("The source-linked chart axis requires workbook number-format projection.");
         return "General";
     }

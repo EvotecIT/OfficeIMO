@@ -217,6 +217,34 @@ namespace OfficeIMO.Tests {
             Assert.Null(snapshot.Data.Series.Single().PointColors);
         }
 
+        [Theory]
+        [InlineData(OfficeChartKind.Pie)]
+        [InlineData(OfficeChartKind.Doughnut)]
+        public void UnsupportedClassicRadialStyleRejectsStaticPaletteButAllowsDataUpdate(OfficeChartKind kind) {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(kind,
+                new OfficeChartData(new[] { "A", "B" }, new[] {
+                    new OfficeChartSeries("Values", new[] { 3d, 2d })
+                }), 1, 1, 20, 10);
+            ChartPart part = presentation.Slides.Single().SlidePart.ChartParts.Single();
+            C.Style style = part.ChartSpace!.GetFirstChild<C.Style>() ?? new C.Style();
+            style.Val = (byte)3;
+            if (style.Parent == null) part.ChartSpace.AddChild(style, true);
+            foreach (C.PieChartSeries series in part.ChartSpace.Descendants<C.PieChartSeries>())
+                series.RemoveAllChildren<C.DataPoint>();
+            part.ChartSpace.Descendants<C.VaryColors>().Single().Val = true;
+            foreach (ChartColorStylePart colorStyle in part.GetPartsOfType<ChartColorStylePart>().ToArray())
+                part.DeletePart(colorStyle);
+            foreach (ChartStylePart modernStyle in part.GetPartsOfType<ChartStylePart>().ToArray())
+                part.DeletePart(modernStyle);
+
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            chart.UpdateData(new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Values", new[] { 4d, 1d })
+            }));
+            Assert.Equal((byte)3, part.ChartSpace.GetFirstChild<C.Style>()!.Val!.Value);
+        }
+
         [Fact]
         public void RadialPaletteUsesChartLocalColorMapBeforeSlideMapping() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();

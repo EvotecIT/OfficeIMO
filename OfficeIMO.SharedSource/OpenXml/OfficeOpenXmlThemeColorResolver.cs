@@ -23,7 +23,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
     /// <summary>Reads a bounded radial palette from a modern color style or classic style 2.</summary>
     internal static OfficeColor[]? ReadRadialPalette(ChartPart chartPart, OpenXmlCompositeElement series,
         int pointCount, A.ColorScheme? scheme) {
-        if (scheme == null || pointCount < 1 ||
+        if (pointCount < 1 ||
             series.Parent is not C.PieChart and not C.DoughnutChart ||
             series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
             varyColors.Val?.Value == false)
@@ -32,6 +32,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
         // An unsupported inherited palette is immaterial when every rendered ring has
         // an explicit appearance for every category.
         if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
+        if (scheme == null)
+            throw new NotSupportedException("The inherited native radial palette has no qualified theme colors.");
         if (pointCount > 6)
             throw new NotSupportedException("A native radial palette with more than six inherited point colours cannot be projected.");
         OpenXmlElement? colorMap = ResolveChartColorMap(chartPart);
@@ -44,16 +46,18 @@ internal static class OfficeOpenXmlThemeColorResolver {
             return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings, colorMap)
                 ?? throw new NotSupportedException("The modern radial color style cannot be projected.");
         }
-        if (chartPart.GetPartsOfType<ChartStylePart>().Any()) return null;
+        if (chartPart.GetPartsOfType<ChartStylePart>().Any())
+            throw new NotSupportedException("The modern chart style has no qualified radial color palette.");
         C.Style? style = series.Ancestors<C.ChartSpace>().FirstOrDefault()?
             .Descendants<C.Style>().FirstOrDefault();
         if (style != null && style.Val?.Value != 2)
-            return null;
+            throw new NotSupportedException("The classic chart style has no qualified radial color palette.");
         var colors = new OfficeColor[pointCount];
         for (int index = 0; index < pointCount; index++) {
             OfficeColor? color = ResolveSchemeColor(scheme,
                 MapSchemeColor("accent" + (index + 1), colorMap));
-            if (!color.HasValue) return null;
+            if (!color.HasValue)
+                throw new NotSupportedException("The native radial palette contains an unresolved theme color.");
             colors[index] = color.Value;
         }
         return colors;
