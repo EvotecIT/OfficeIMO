@@ -10,6 +10,16 @@ $directory = if ($OutputDirectory) { $OutputDirectory }
     else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus' }
 New-Item -ItemType Directory -Path $directory -Force | Out-Null
 $directory = (Resolve-Path -LiteralPath $directory).Path
+if (-not ('OfficeIMOExcelPivotOracleProcess' -as [type])) {
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class OfficeIMOExcelPivotOracleProcess {
+    [DllImport("user32.dll")]
+    public static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+}
+'@
+}
 $mutex = [Threading.Mutex]::new($false, 'Local\OfficeIMO.Excel.Tests.DesktopCom')
 $acquired = $false
 $existingExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue | ForEach-Object Id)
@@ -20,10 +30,12 @@ try {
     $acquired = $mutex.WaitOne([TimeSpan]::FromMinutes(5))
     if (-not $acquired) { throw 'Excel COM lock timed out.' }
     $application = New-Object -ComObject Excel.Application
-    Start-Sleep -Milliseconds 500
-    $newExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue |
-        Where-Object { $existingExcelIds -notcontains $_.Id } | ForEach-Object Id)
-    if ($newExcelIds.Count -ne 1) { throw 'Could not prove isolated Excel instance.' }
+    [uint32]$excelProcessId = 0
+    [void][OfficeIMOExcelPivotOracleProcess]::GetWindowThreadProcessId(
+        [IntPtr][long]$application.Hwnd, [ref]$excelProcessId)
+    if ($excelProcessId -eq 0 -or $existingExcelIds -contains [int]$excelProcessId) {
+        throw 'Could not prove isolated Excel instance.'
+    }
     $isolated = $true
     $application.Visible = $false
     $application.DisplayAlerts = $false
