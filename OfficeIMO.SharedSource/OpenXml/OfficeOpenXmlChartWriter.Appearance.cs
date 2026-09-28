@@ -27,15 +27,17 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeChartSeries series, OfficeChartKind kind,
             OfficeColor? fallbackFillColor) {
             OfficeColor? fillColor = series.Color ?? fallbackFillColor;
-            OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
-                ? series.MarkerOutlineColor ?? fillColor
-                : fillColor;
-            double? outlineWidth = kind == OfficeChartKind.Bubble
-                ? series.MarkerOutlineWidth ?? series.StrokeWidth
-                : series.StrokeWidth;
             C.ChartShapeProperties properties =
                 seriesElement.GetFirstChild<C.ChartShapeProperties>() ??
                 new C.ChartShapeProperties();
+            OfficeColor? existingOutlineColor = OfficeOpenXmlThemeColorResolver.ResolveColor(
+                properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null);
+            OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
+                ? series.MarkerOutlineColor ?? existingOutlineColor ?? fillColor
+                : IsFilledSharedKind(kind) ? series.Color : fillColor;
+            double? outlineWidth = kind == OfficeChartKind.Bubble
+                ? series.MarkerOutlineWidth ?? series.StrokeWidth
+                : series.StrokeWidth;
             bool reenableBubbleOutline = kind == OfficeChartKind.Bubble &&
                 series.ShowMarkerOutline &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
@@ -46,7 +48,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 series.StrokeDashStyle == null &&
                 (series.ConnectLine || IsFilledSharedKind(kind)) &&
                 !reenableBubbleOutline && !reenableConnectingLine) return;
-            if (fillColor.HasValue && IsFilledSharedKind(kind)) {
+            if (fillColor.HasValue && (IsFilledSharedKind(kind) || kind == OfficeChartKind.Line)) {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();
                 properties.RemoveAllChildren<A.GradientFill>();
