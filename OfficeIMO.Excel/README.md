@@ -822,7 +822,7 @@ mixed keys, both directions, and sorting rows or columns. Numbers precede text a
 Booleans in ascending order; descending order reverses those nonblank groups.
 Blanks remain last in either direction and their output cells contain zero, as
 in Excel's cached results. Text compares without ASCII case and equal keys keep
-their input order. Sort keys backed only by an unevaluated formula cache remain
+their input order. Sort inputs dependent on an unevaluated formula cache remain
 deferred. Locale-dependent, punctuation, Unicode, and error-key collation remains
 deferred. `UNIQUE` preserves the first
 occurrence of distinct rows or columns and supports `exactly_once`. These

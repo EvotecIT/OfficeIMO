@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
                 int index = 0;
                 for (int r = r1; r <= r2; r++) {
                     for (int c = c1; c <= c2; c++) {
-                        FormulaArgumentValue value = sheet.ResolveCellArgument(r, c);
+                        FormulaArgumentValue value = ResolveFormulaDependency(sheet, r, c);
                         if (value.IsUnresolvedFormula) return false;
                         values[index++] = value;
                     }
@@ -291,6 +291,8 @@ namespace OfficeIMO.Excel {
             if (args.Count > 4 || !TryArrayNumber(args, 1, 1, out double index)
                 || !TryArrayNumber(args, 2, 1, out double order)
                 || !TryArrayFlag(args, 3, out bool byColumns)) return false;
+            if (_formulaEvaluationDepthFrames?.Count > 0
+                && _formulaEvaluationDepthFrames.Peek().UsedUnevaluatedFormulaCache) return false;
             int keyCount = byColumns ? input.Rows : input.Columns;
             index = Math.Truncate(index);
             if (index < 1 || index > keyCount || (order != 1 && order != -1)) {

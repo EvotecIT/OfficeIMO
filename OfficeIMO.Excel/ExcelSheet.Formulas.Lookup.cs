@@ -40,11 +40,11 @@ namespace OfficeIMO.Excel {
 
                 int resultColumn = c1 + resultIndex - 1;
                 for (int row = r1; row <= r2; row++) {
-                    if (!FormulaValuesEqual(rangeSheet.ResolveCellArgument(row, c1), lookupValue)) {
+                    if (!FormulaValuesEqual(ResolveFormulaDependency(rangeSheet, row, c1), lookupValue)) {
                         continue;
                     }
 
-                    result = rangeSheet.ResolveCellArgument(row, resultColumn);
+                    result = ResolveFormulaDependency(rangeSheet, row, resultColumn);
                     return result.HasValue;
                 }
 
@@ -58,11 +58,11 @@ namespace OfficeIMO.Excel {
 
             int resultRow = r1 + resultIndex - 1;
             for (int column = c1; column <= c2; column++) {
-                if (!FormulaValuesEqual(rangeSheet.ResolveCellArgument(r1, column), lookupValue)) {
+                if (!FormulaValuesEqual(ResolveFormulaDependency(rangeSheet, r1, column), lookupValue)) {
                     continue;
                 }
 
-                result = rangeSheet.ResolveCellArgument(resultRow, column);
+                result = ResolveFormulaDependency(rangeSheet, resultRow, column);
                 return result.HasValue;
             }
 

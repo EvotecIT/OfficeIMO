@@ -137,6 +137,46 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, document.Calculate());
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_ArrayCalculation_DerivedUnsupportedFormulaCacheIsNotSortKey(bool crossSheet) {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet(crossSheet ? "Inputs" : "Sort");
+            source.CellFormula(1, 1, "UNSUPPORTED()");
+            var sheet = crossSheet ? document.AddWorksheet("Sort") : source;
+            sheet.CellFormula(1, 2, crossSheet ? "Inputs!A1+1" : "A1+1");
+            sheet.CellValue(2, 2, 2d);
+            var cachedSource = document.WorkbookPartRoot.WorksheetParts
+                .SelectMany(part => part.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>())
+                .Single(cell => cell.CellFormula?.Text == "UNSUPPORTED()");
+            cachedSource.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("12");
+            cachedSource.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            sheet.SetArrayFormula("G1:G2", "SORT(B1:B2)");
+
+            Assert.Equal(1, document.Calculate());
+            var formulas = sheet.InspectFormulas().Formulas;
+            Assert.Equal("13", formulas.Single(formula => formula.CellReference == "B1").CachedValue);
+            Assert.Null(formulas.Single(formula => formula.CellReference == "G1").CachedValue);
+        }
+
+        [Fact]
+        public void Test_ArrayCalculation_ComparedUnsupportedFormulaCacheIsNotSortKey() {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Sort");
+            sheet.CellFormula(1, 1, "UNSUPPORTED()");
+            sheet.CellValue(2, 1, 2d);
+            var cachedSource = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet
+                .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
+                .Single(cell => cell.CellReference == "A1");
+            cachedSource.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("12");
+            cachedSource.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            sheet.SetArrayFormula("G1:G2", "SORT(A1:A2>5)");
+
+            Assert.Equal(0, document.Calculate());
+            Assert.Null(sheet.InspectFormulas().Formulas.Single(formula => formula.CellReference == "G1").CachedValue);
+        }
+
         [Fact]
         public void Test_ArrayCalculation_UnsupportedFormulaErrorLookingTextReopensAsText() {
             string path = Path.Combine(_directoryWithFiles, "ArrayTextCache.xlsx");

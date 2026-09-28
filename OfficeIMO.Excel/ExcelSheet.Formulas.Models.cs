@@ -26,6 +26,10 @@ namespace OfficeIMO.Excel {
             internal string? ErrorCode => IsError ? Text : null;
             internal bool HasValue => Number.HasValue || Text != null || IsError;
 
+            internal FormulaArgumentValue WithUnevaluatedFormulaCache() =>
+                new FormulaArgumentValue(Number, Text, IsUnresolvedFormula, IsError, IsBoolean,
+                    isUnevaluatedFormulaCache: true);
+
             internal static FormulaArgumentValue UnresolvedFormula() {
                 return new FormulaArgumentValue(null, null, isUnresolvedFormula: true);
             }

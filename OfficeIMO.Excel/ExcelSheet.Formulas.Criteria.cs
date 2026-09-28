@@ -305,7 +305,7 @@ namespace OfficeIMO.Excel {
             values = new List<FormulaArgumentValue>(cellCount);
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
-                    values.Add(sheet.ResolveCellArgument(row, column));
+                    values.Add(ResolveFormulaDependency(sheet, row, column));
                 }
             }
 

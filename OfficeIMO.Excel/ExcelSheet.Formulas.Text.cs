@@ -420,7 +420,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            result = rangeSheet.ResolveCellArgument(r1 + rowIndex - 1, c1 + columnIndex - 1);
+            result = ResolveFormulaDependency(rangeSheet, r1 + rowIndex - 1, c1 + columnIndex - 1);
             return result.HasValue;
         }
 

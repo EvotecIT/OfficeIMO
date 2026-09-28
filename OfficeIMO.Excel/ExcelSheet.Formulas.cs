@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel {
         private sealed class FormulaEvaluationDepthFrame {
             internal int MaximumChildDepth { get; private set; }
             internal bool DependencyGuardBlocked { get; private set; }
+            internal bool UsedUnevaluatedFormulaCache { get; private set; }
 
             internal void IncludeChild(int depth) {
                 if (depth > MaximumChildDepth) {
@@ -33,6 +34,10 @@ namespace OfficeIMO.Excel {
 
             internal void BlockByDependencyGuard() {
                 DependencyGuardBlocked = true;
+            }
+
+            internal void MarkUnevaluatedFormulaCache() {
+                UsedUnevaluatedFormulaCache = true;
             }
         }
 
@@ -216,6 +221,8 @@ namespace OfficeIMO.Excel {
 
                     if (_formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().IncludeChild(cachedDepth);
+                        if (cachedResult.IsUnevaluatedFormulaCache)
+                            _formulaEvaluationDepthFrames.Peek().MarkUnevaluatedFormulaCache();
                     }
 
                     result = cachedResult;
@@ -246,6 +253,9 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    if (depthFrame.UsedUnevaluatedFormulaCache)
+                        result = result.WithUnevaluatedFormulaCache();
+
                     evaluationDepth = depthFrame.MaximumChildDepth + 1;
                     _formulaEvaluationCache[cacheKey] = result;
                     _formulaEvaluationDepthCache[cacheKey] = evaluationDepth;
@@ -256,6 +266,8 @@ namespace OfficeIMO.Excel {
                     _formulaEvaluationStack.Remove(cacheKey);
                     if (evaluated && _formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().IncludeChild(evaluationDepth);
+                        if (result.IsUnevaluatedFormulaCache)
+                            _formulaEvaluationDepthFrames.Peek().MarkUnevaluatedFormulaCache();
                     } else if (depthFrame.DependencyGuardBlocked && _formulaEvaluationDepthFrames.Count > 0) {
                         _formulaEvaluationDepthFrames.Peek().BlockByDependencyGuard();
                     }

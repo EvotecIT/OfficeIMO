@@ -109,14 +109,14 @@ namespace OfficeIMO.Excel {
             }
 
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
-                value = sheet.ResolveCellArgument(row, column);
+                value = ResolveFormulaDependency(sheet, row, column);
                 return true;
             }
 
             if (TryResolveFormulaRangeReference(trimmed, out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)
                 && r1 == r2
                 && c1 == c2) {
-                value = rangeSheet.ResolveCellArgument(r1, c1);
+                value = ResolveFormulaDependency(rangeSheet, r1, c1);
                 return true;
             }
 
@@ -160,7 +160,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheetReference, out int cellRow, out int cellColumn)) {
-                    values.Add(sheetReference.ResolveCellArgument(cellRow, cellColumn));
+                    values.Add(ResolveFormulaDependency(sheetReference, cellRow, cellColumn));
                     continue;
                 }
 
@@ -309,7 +309,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var argument = sheet.ResolveCellArgument(row, column);
+            var argument = ResolveFormulaDependency(sheet, row, column);
             if (argument.Number.HasValue) {
                 value = argument.Number.Value;
                 return true;
@@ -350,7 +350,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            value = sheet.ResolveCellArgument(row, column);
+            value = ResolveFormulaDependency(sheet, row, column);
             return value.HasValue && !value.IsUnresolvedFormula;
         }
 
@@ -969,6 +969,13 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
+        private FormulaArgumentValue ResolveFormulaDependency(ExcelSheet sheet, int row, int column) {
+            FormulaArgumentValue value = sheet.ResolveCellArgument(row, column);
+            if (value.IsUnevaluatedFormulaCache && _formulaEvaluationDepthFrames?.Count > 0)
+                _formulaEvaluationDepthFrames.Peek().MarkUnevaluatedFormulaCache();
+            return value;
+        }
+
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
             var cell = TryGetExistingCell(row, column);
             bool unresolvedFormula = false;
@@ -986,12 +993,16 @@ namespace OfficeIMO.Excel {
                 unresolvedFormula = true;
             }
 
-            return ResolveFormulaArgumentSnapshot(row, column, unresolvedFormula, cell?.CellFormula == null);
+            bool unevaluatedFormulaCache = unresolvedFormula
+                || (cell?.CellFormula != null && _formulaEvaluationCache == null);
+            return ResolveFormulaArgumentSnapshot(row, column, unresolvedFormula,
+                cell?.CellFormula == null, unevaluatedFormulaCache);
         }
 
         // Keep snapshot decoding and array-child lookup out of the recursive
         // formula dependency frame. Their locals are needed only at a leaf.
-        private FormulaArgumentValue ResolveFormulaArgumentSnapshot(int row, int column, bool unresolvedFormula, bool withoutFormula) {
+        private FormulaArgumentValue ResolveFormulaArgumentSnapshot(int row, int column, bool unresolvedFormula,
+            bool withoutFormula, bool unevaluatedFormulaCache) {
             if (withoutFormula && _formulaEvaluationCache != null
                 && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue;
             var value = GetCellValueSnapshot(row, column);
@@ -1015,12 +1026,12 @@ namespace OfficeIMO.Excel {
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
                 return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty,
-                    isUnevaluatedFormulaCache: unresolvedFormula);
+                    isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (value.Value is bool boolean) {
                 return new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "1" : "0", isBoolean: true,
-                    isUnevaluatedFormulaCache: unresolvedFormula);
+                    isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (TryParseFormulaErrorLiteral(value.CachedText ?? value.Value?.ToString() ?? string.Empty, out string errorCode)) {
@@ -1028,15 +1039,15 @@ namespace OfficeIMO.Excel {
             }
 
             if (value.Value is double d) {
-                return new FormulaArgumentValue(d, value.CachedText, isUnevaluatedFormulaCache: unresolvedFormula);
+                return new FormulaArgumentValue(d, value.CachedText, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (double.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
-                return new FormulaArgumentValue(parsed, value.CachedText, isUnevaluatedFormulaCache: unresolvedFormula);
+                return new FormulaArgumentValue(parsed, value.CachedText, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             return new FormulaArgumentValue(null, value.Value?.ToString(),
-                isUnevaluatedFormulaCache: unresolvedFormula);
+                isUnevaluatedFormulaCache: unevaluatedFormulaCache);
         }
 
         private static string? NormalizeFormulaCellReference(string? reference) {
