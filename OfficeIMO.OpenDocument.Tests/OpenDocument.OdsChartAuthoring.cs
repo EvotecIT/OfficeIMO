@@ -107,6 +107,52 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void ImportedPointAppearanceDoesNotInheritPlotBackgroundGraphics() {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement plot = Assert.Single(content.Descendants(OdfNamespaces.Chart + "plot-area"));
+            var style = new XElement(OdfNamespaces.Style + "style",
+                new XAttribute(OdfNamespaces.Style + "name", "PlotBackgroundProbe"),
+                new XAttribute(OdfNamespaces.Style + "family", "chart"),
+                new XElement(OdfNamespaces.Style + "graphic-properties",
+                    new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                    new XAttribute(OdfNamespaces.Draw + "fill-color", "#EE11CC"),
+                    new XAttribute(OdfNamespaces.Draw + "stroke", "solid"),
+                    new XAttribute(OdfNamespaces.Svg + "stroke-color", "#FF0000")));
+            content.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(style);
+            plot.SetAttributeValue(OdfNamespaces.Chart + "style-name", "PlotBackgroundProbe");
+        });
+
+        OfficeChartPointStyle?[] points = Assert.Single(chart.Series).PointStyles!.ToArray();
+        Assert.Equal(OfficeColor.Parse("#228844"), points[0]!.FillColor);
+        Assert.All(points, point => Assert.NotEqual(OfficeColor.Parse("#FF0000"), point?.OutlineColor));
+    }
+
+    [Fact]
+    public void ImportedRepeatedPointStylesHaveAnAggregateSeriesBound() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetNumber(1);
+        sheet.AddChart(OdsChartType.Pie, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1").WithPointStyles(
+                new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Parse("#228844")) }) },
+            4, 2, OdfRect.FromCentimeters(1, 1, 10, 6));
+        Assert.Single(sheet.Charts);
+        const string partPath = "Object 1/content.xml";
+        XDocument xml = document.Package.GetXml(partPath);
+        XElement plot = Assert.Single(xml.Descendants(OdfNamespaces.Chart + "plot-area"));
+        XElement series = Assert.Single(plot.Elements(OdfNamespaces.Chart + "series"));
+        series.SetAttributeValue(OdfNamespaces.Chart + "values-cell-range-address", "Data.$B$1:.$B$4096");
+        Assert.Single(series.Elements(OdfNamespaces.Chart + "data-point"))
+            .SetAttributeValue(OdfNamespaces.Chart + "repeated", "4096");
+        for (int index = 1; index <= 256; index++) plot.Add(new XElement(series));
+        document.Package.AddOrReplaceEntry(partPath,
+            Encoding.UTF8.GetBytes(xml.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        Assert.Empty(sheet.Charts);
+    }
+
+    [Fact]
     public void UnsupportedProducerHatchSpacingRemainsUnprojected() {
         OdsChart chart = ReadProducerChart(styles => {
             Assert.Single(styles.Descendants(OdfNamespaces.Draw + "hatch"))
