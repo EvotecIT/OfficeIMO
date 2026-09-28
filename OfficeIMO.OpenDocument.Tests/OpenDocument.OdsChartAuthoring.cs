@@ -117,6 +117,82 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void ImportedPointStylesIncludeImplicitTrailingPoints() {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
+            foreach (XElement point in series.Elements(OdfNamespaces.Chart + "data-point").Skip(1).ToArray())
+                point.Remove();
+        });
+
+        OfficeChartPointStyle?[] points = Assert.Single(chart.Series).PointStyles!.ToArray();
+        Assert.Equal(3, points.Length);
+        Assert.Equal(OfficeColor.Parse("#228844"), points[0]!.FillColor);
+        Assert.Null(points[1]);
+        Assert.Null(points[2]);
+    }
+
+    [Theory]
+    [InlineData("shadow", "visible")]
+    [InlineData("opacity", "50%")]
+    public void UnsupportedPointEffectsRemainUnprojected(string attribute, string value) {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
+            XElement point = series.Element(OdfNamespaces.Chart + "data-point")!;
+            string name = (string)point.Attribute(OdfNamespaces.Chart + "style-name")!;
+            XElement definition = Assert.Single(content.Descendants(OdfNamespaces.Style + "style"),
+                item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+            definition.Element(OdfNamespaces.Style + "graphic-properties")!
+                .SetAttributeValue(OdfNamespaces.Draw + attribute, value);
+        });
+
+        Assert.Null(Assert.Single(chart.Series).PointStyles);
+    }
+
+    [Fact]
+    public void ImportedSolidHatchAcceptsXmlBooleanOne() {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
+            XElement point = series.Elements(OdfNamespaces.Chart + "data-point").Skip(1).First();
+            string name = (string)point.Attribute(OdfNamespaces.Chart + "style-name")!;
+            XElement definition = Assert.Single(content.Descendants(OdfNamespaces.Style + "style"),
+                item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+            definition.Element(OdfNamespaces.Style + "graphic-properties")!
+                .SetAttributeValue(OdfNamespaces.Draw + "fill-hatch-solid", "1");
+        });
+
+        Assert.Equal(OfficeChartHatchPattern.ForwardDiagonal,
+            Assert.Single(chart.Series).PointStyles![1]!.Hatch);
+    }
+
+    [Fact]
+    public void SubMillipointOutlineIsRejectedBeforeWritingChart() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetNumber(1);
+        Assert.Throws<NotSupportedException>(() => sheet.AddChart(OdsChartType.Pie, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1").WithPointStyles(
+                new OfficeChartPointStyle?[] {
+                    new(outlineColor: OfficeColor.Parse("#445566"), outlineWidth: 0.0004,
+                        showOutline: true)
+                }) }, 0, 2, OdfRect.FromCentimeters(0, 0, 10, 6)));
+        Assert.Empty(sheet.Charts);
+    }
+
+    [Fact]
+    public void StyledLineChartRequiresVisiblePointSymbols() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetNumber(1);
+        Assert.Throws<NotSupportedException>(() => sheet.AddChart(OdsChartType.Line, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1").WithPointStyles(
+                new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Parse("#228844")) }) },
+            0, 2, OdfRect.FromCentimeters(0, 0, 10, 6)));
+        Assert.Empty(sheet.Charts);
+    }
+
+    [Fact]
     public void OutlineOnlyPointDoesNotInheritChartBackgroundNoFill() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
