@@ -226,6 +226,105 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_WidthAutoShrinksToPreferredColumnsWithinContainingBlock() {
+        const string html = "<style>body{margin:0}main{width:596px}table{margin:0;border-collapse:collapse;font-size:16px;line-height:24px}"
+            + "th,td{border:1px solid black;padding:8px 16px}</style>"
+            + "<main><table id='grid'><tr><th>Contaminant</th><th>Secondary Standard</th></tr>"
+            + "<tr><td>Total Dissolved Solids</td><td>500 mg/L</td></tr>"
+            + "<tr><td>Odor</td><td>3 threshold odor number</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 350D, 450D);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoRespectsCaptionMinimumAndCentersAutoMargins() {
+        const string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto;border-collapse:collapse;font-size:20px}"
+            + "td{border:1px solid black;padding:4px}</style><main><table>"
+            + "<caption>UnbreakableCaptionMinimumWidth</caption><tr><td>A</td><td>B</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        // Chromium's default-serif control uses a 294.7px caption minimum in 596px.
+        Assert.InRange(table.Width, 275D, 330D);
+        Assert.InRange(table.X, 133D, 161D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoRespectsNoWrapCaptionLine() {
+        const string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto;font-size:20px}"
+            + "caption{white-space:nowrap}</style><main><table>"
+            + "<caption>Alpha beta gamma delta</caption><tr><td>A</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 190D, 350D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoMeasuresCaptionChildImageAndGeneratedCellImage() {
+        string captionImage = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(120, 10));
+        string cellImage = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(200, 10));
+        string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto}"
+            + "caption span{font-size:40px}td::before{content:url('data:image/png;base64," + cellImage + "')}"
+            + "</style><main><table><caption><span>Wide</span><img src='data:image/png;base64,"
+            + captionImage + "'></caption><tr><td></td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 200D, 350D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), image => image.Width == 200D);
+    }
+
+    [Fact]
+    public void HtmlTables_WidthAutoMeasuresGeneratedCaptionImage() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(220, 10));
+        string html = "<style>body{margin:0}main{width:596px}table{margin:0 auto}"
+            + "caption::before{content:url('data:image/png;base64," + image + "')}"
+            + "</style><main><table><caption></caption><tr><td>A</td></tr></table></main>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 620D,
+            ViewportHeight = 400D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderSemanticGroup table = Assert.Single(EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.InRange(table.Width, 220D, 260D);
+        Assert.Equal((596D - table.Width) / 2D, table.X, 1);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), visual => visual.Width == 220D);
+    }
+
+    [Fact]
     public void HtmlTables_AutoLayoutMeasuresQuotedTabTextWithEmbeddedFont() {
         string? installedFamily = new[] { "Trebuchet MS", "Arial", "Calibri", "Liberation Sans", "DejaVu Sans" }
             .FirstOrDefault(candidate => PdfCore.PdfEmbeddedFontFamily.TryFromSystem(candidate, out _));

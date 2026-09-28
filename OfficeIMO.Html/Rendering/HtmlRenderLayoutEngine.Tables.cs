@@ -19,11 +19,6 @@ internal sealed partial class HtmlRenderLayoutEngine {
             tableWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
         }
         double contentWidth = Math.Max(1D, tableWidth - style.HorizontalInsets);
-        TableCaptionLayout? caption = LayoutTableCaption(table, tableWidth, style, depth);
-        if (continuationTarget != null && caption != null && caption.Side == "top") caption = null;
-        double topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;
-        double bottomCaptionHeight = caption != null && caption.Side == "bottom" ? caption.Height : 0D;
-        double tableY = style.MarginTop + topCaptionHeight;
         ReportUnsupportedTableValues(table, style);
         List<IElement> sourceRows = table.QuerySelectorAll("tr").Where(row => BelongsToTable(row, table)).ToList();
         if (sourceRows.Count > _options.MaxTableRows) {
@@ -82,7 +77,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
         rows.AddRange(bodyRows);
         rows.AddRange(footerRows);
         int rowColumnCount = DetermineColumnCount(rows, table);
+        TableCaptionLayout? caption;
+        double topCaptionHeight;
+        double bottomCaptionHeight;
+        double tableY;
         if (rowColumnCount == 0) {
+            caption = LayoutTableCaption(table, tableWidth, style, depth);
+            if (continuationTarget != null && caption != null && caption.Side == "top") caption = null;
+            topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;
+            bottomCaptionHeight = caption != null && caption.Side == "bottom" ? caption.Height : 0D;
+            tableY = style.MarginTop + topCaptionHeight;
             _diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.EmptyTable, "A table contained no renderable rows or cells.", HtmlDiagnosticSeverity.Info, source);
             double emptyTableHeight = Math.Max(1D, style.VerticalInsets);
             var emptyVisuals = new List<HtmlRenderVisual>();
@@ -109,7 +113,31 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double horizontalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingX;
         double verticalSpacing = style.BorderCollapse == "collapse" ? 0D : style.BorderSpacingY;
         double trackWidth = Math.Max(0.01D, contentWidth - horizontalSpacing * (columnCount + 1));
-        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, table, columnCount, trackWidth, style, depth);
+        double captionMinimumWidth = Math.Max(0D,
+            MeasureTableCaptionMinimumWidth(table, contentWidth, style)
+            - style.HorizontalInsets - horizontalSpacing * (columnCount + 1));
+        IReadOnlyList<double> columnWidths = ResolveTableColumnWidths(rows, rowStyles, table, columnCount, trackWidth, captionMinimumWidth, style, depth, out double usedTrackWidth);
+        if (!style.ExplicitWidth.HasValue && style.TableLayout != "fixed") {
+            contentWidth = usedTrackWidth + horizontalSpacing * (columnCount + 1);
+            tableWidth = contentWidth + style.HorizontalInsets;
+            if (style.MarginLeftAuto || style.MarginRightAuto) {
+                double freeSpace = Math.Max(0D, containingWidth - style.MarginLeft - style.MarginRight - tableWidth);
+                if (style.MarginLeftAuto && style.MarginRightAuto) {
+                    style.MarginLeft += freeSpace / 2D;
+                    style.MarginRight += freeSpace / 2D;
+                } else if (style.MarginLeftAuto) {
+                    style.MarginLeft += freeSpace;
+                } else {
+                    style.MarginRight += freeSpace;
+                }
+                _layoutStyles[table] = style.Clone();
+            }
+        }
+        caption = LayoutTableCaption(table, tableWidth, style, depth);
+        if (continuationTarget != null && caption != null && caption.Side == "top") caption = null;
+        topCaptionHeight = caption != null && caption.Side == "top" ? caption.Height : 0D;
+        bottomCaptionHeight = caption != null && caption.Side == "bottom" ? caption.Height : 0D;
+        tableY = style.MarginTop + topCaptionHeight;
         double[] columnOffsets = CreateColumnOffsets(columnWidths);
         var rowLayouts = new List<TableRowLayout>();
         var occupiedColumns = new int[columnCount];
@@ -136,17 +164,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, rowStyle);
-                if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
-                    cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
-                }
-
-                if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
-                    cellStyle.Borders = style.BorderCollapse == "collapse" && style.HasBorderLayout
-                        ? HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color)
-                        : style.HasBorderLayout
-                            ? style.Borders
-                            : HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(160, 160, 160));
-                }
+                ApplyTableCellFallbackInsets(cellStyle, style);
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
                 HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, cellStyle, depth + 1);
@@ -406,6 +424,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
             forcedBreaks: forcedBreaks);
+    }
+
+    private static void ApplyTableCellFallbackInsets(HtmlRenderBoxStyle cellStyle, HtmlRenderBoxStyle tableStyle) {
+        if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
+            cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
+        }
+
+        if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
+            cellStyle.Borders = tableStyle.BorderCollapse == "collapse" && tableStyle.HasBorderLayout
+                ? HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color)
+                : tableStyle.HasBorderLayout
+                    ? tableStyle.Borders
+                    : HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(160, 160, 160));
+        }
     }
 
     private static IElement? FindOwningTableRow(IElement table, IElement? target) {

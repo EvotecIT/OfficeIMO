@@ -564,16 +564,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         double availableSize,
         ICollection<GridIntrinsicTextRun> result) {
-        if (!_generatedContent.TryGet(element, kind, out string content)
-            || content.Length == 0
+        if (!_generatedContent.TryGetContent(element, kind, out _)
             || !_styleResolver.TryResolvePseudo(element, kind, availableSize, parentStyle, out HtmlRenderBoxStyle style)
             || style.Display == "none"
             || style.Position == "absolute"
-            || style.Position == "fixed"
-            || style.Font.Size <= 0D) return;
+            || style.Position == "fixed") return;
         bool establishesLineBoundary = style.Display == "block" || style.Display == "flow-root" || style.Display == "list-item" || style.Display == "table" || style.Display == "flex" || style.Display == "grid";
         if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
-        result.Add(new GridIntrinsicTextRun(content, style));
+        var inlineRuns = new List<HtmlInlineRun>();
+        AddGeneratedInlineRun(element, kind, availableSize, null, parentStyle, null, 0D, 0D, inlineRuns);
+        foreach (HtmlInlineRun run in inlineRuns) {
+            if (run.AtomicBlock != null) {
+                result.Add(GridIntrinsicTextRun.Replaced(run.AtomicBlock.Width, run.Style));
+            } else if (run.Text.Length > 0) {
+                result.Add(new GridIntrinsicTextRun(run.Text, run.Style));
+            }
+        }
         if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(style));
     }
 

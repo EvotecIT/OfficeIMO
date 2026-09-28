@@ -824,6 +824,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderBoxStyle ResolveNormalFlowHorizontalAutoMargins(IElement element, HtmlRenderBoxStyle style, double containingWidth) {
         if (!style.MarginLeftAuto && !style.MarginRightAuto) return style;
+        if (element.LocalName.Equals("table", StringComparison.OrdinalIgnoreCase) && !style.ExplicitWidth.HasValue) {
+            // An auto-width table needs its intrinsic columns before its free space is known.
+            return style;
+        }
 
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = IsReplacedImageElement(element)

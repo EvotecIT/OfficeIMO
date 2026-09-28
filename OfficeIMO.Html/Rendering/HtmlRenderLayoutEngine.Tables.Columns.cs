@@ -3,11 +3,12 @@ using AngleSharp.Dom;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<IElement> rows, IElement table, int columnCount, double contentWidth, HtmlRenderBoxStyle tableStyle, int depth) {
+    private IReadOnlyList<double> ResolveTableColumnWidths(IReadOnlyList<IElement> rows, IReadOnlyDictionary<IElement, HtmlRenderBoxStyle> rowStyles, IElement table, int columnCount, double contentWidth, double captionMinimumWidth, HtmlRenderBoxStyle tableStyle, int depth, out double usedWidth) {
         if (tableStyle.TableLayout == "fixed") {
             var fixedWidths = new double[columnCount];
             ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, fixedWidths, fixedWidths);
             ApplyFirstRowAuthoredWidths(rows, tableStyle, fixedWidths, contentWidth);
+            usedWidth = contentWidth;
             return AllocateFixedColumnWidths(fixedWidths, contentWidth);
         }
 
@@ -22,7 +23,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 column = FindAvailableColumn(occupancy, column, requestedSpan);
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
-                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, tableStyle);
+                HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, rowStyles[rows[rowIndex]]);
+                ApplyTableCellFallbackInsets(cellStyle, tableStyle);
                 ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth, out double minimum, out double maximum);
                 ApplySpanningWidth(minimums, column, span, minimum);
                 ApplySpanningWidth(preferred, column, span, maximum);
@@ -32,7 +34,28 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             DecrementOccupancy(occupancy);
         }
-        return AllocateAutoColumnWidths(minimums, preferred, contentWidth);
+        double minimumAllowed = tableStyle.MinWidth.HasValue
+            ? Math.Max(0.01D, tableStyle.MinWidth.Value - (tableStyle.BorderBox ? tableStyle.HorizontalInsets : 0D))
+            : 0.01D;
+        minimumAllowed = Math.Max(minimumAllowed, captionMinimumWidth);
+        usedWidth = tableStyle.ExplicitWidth.HasValue
+            ? contentWidth
+            : Math.Min(contentWidth, Math.Max(minimumAllowed, preferred.Sum()));
+        return AllocateAutoColumnWidths(minimums, preferred, usedWidth);
+    }
+
+    private double MeasureTableCaptionMinimumWidth(IElement table, double containingWidth, HtmlRenderBoxStyle tableStyle) {
+        IElement? caption = table.Children.FirstOrDefault(child => string.Equals(child.TagName, "caption", StringComparison.OrdinalIgnoreCase));
+        if (caption == null) return 0D;
+        HtmlRenderBoxStyle captionStyle = _styleResolver.Resolve(caption, containingWidth, tableStyle);
+        if (captionStyle.Display == "none") return 0D;
+        IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(new FlexItem(caption, captionStyle, 0), containingWidth);
+        double minimum = MeasureGridMinContentRuns(runs) + captionStyle.HorizontalInsets;
+        if (captionStyle.ExplicitWidth.HasValue && !captionStyle.ExplicitWidthUsesPercentage) {
+            minimum = Math.Max(minimum, captionStyle.ExplicitWidth.Value
+                + (captionStyle.BorderBox ? 0D : captionStyle.HorizontalInsets));
+        }
+        return minimum + captionStyle.MarginLeft + captionStyle.MarginRight;
     }
 
     private void ApplyFirstRowAuthoredWidths(IReadOnlyList<IElement> rows, HtmlRenderBoxStyle tableStyle, double[] widths, double contentWidth) {
@@ -79,12 +102,40 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double insets = style.HorizontalInsets;
         minimum = tokens.Count == 0 ? insets + 1D : tokens.Max(token => MeasureInlineText(token, style)) + insets;
         preferred = Math.Max(minimum, MeasureInlineText(normalized, style) + insets);
+        if (text.IndexOf('\t') >= 0) {
+            preferred = Math.Max(preferred, MeasureTabExpandedText(text, style, 0D) + insets);
+        }
+        // Generated cell text participates in the same inline line as the cell's
+        // authored text. An auto-width table cannot size from TextContent alone.
+        double generatedPreferred = 0D;
+        double generatedMinimum = 0D;
+        MeasureTableCellGeneratedContent(cell, HtmlPseudoElementKind.Before, style, containingWidth, ref generatedMinimum, ref generatedPreferred);
+        MeasureTableCellGeneratedContent(cell, HtmlPseudoElementKind.After, style, containingWidth, ref generatedMinimum, ref generatedPreferred);
+        minimum = Math.Max(minimum, generatedMinimum + insets);
+        preferred += generatedPreferred;
         if (style.ExplicitWidth.HasValue) {
             double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : insets);
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
         ResolveTableDescendantIntrinsicWidths(cell, style, containingWidth, depth, insets, ref minimum, ref preferred);
+    }
+
+    private void MeasureTableCellGeneratedContent(IElement cell, HtmlPseudoElementKind kind, HtmlRenderBoxStyle cellStyle,
+        double containingWidth, ref double minimum, ref double preferred) {
+        var runs = new List<HtmlInlineRun>();
+        AddGeneratedInlineRun(cell, kind, containingWidth, null, cellStyle, null, 0D, 0D, runs);
+        foreach (HtmlInlineRun run in runs) {
+            if (run.AtomicBlock != null) {
+                minimum = Math.Max(minimum, run.AtomicBlock.Width);
+                preferred += run.AtomicBlock.Width;
+                continue;
+            }
+            if (run.Text.Length == 0) continue;
+            string[] tokens = run.Text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+            if (tokens.Length > 0) minimum = Math.Max(minimum, tokens.Max(token => MeasureInlineText(token, run.Style)));
+            preferred += MeasureInlineText(run.Text, run.Style);
+        }
     }
 
     private void ResolveTableDescendantIntrinsicWidths(
