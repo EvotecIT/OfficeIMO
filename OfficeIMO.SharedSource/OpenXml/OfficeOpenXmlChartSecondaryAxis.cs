@@ -99,7 +99,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         var richText = title?.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
         var cache = title?.GetFirstChild<C.ChartText>()?.GetFirstChild<C.StringReference>()?.StringCache;
         if (cache != null) {
-            C.StringPoint[] points = cache.Elements<C.StringPoint>().ToArray();
+            C.StringPoint[] points = cache.Elements<C.StringPoint>().Take(2).ToArray();
             if (points.Length != 1 || string.IsNullOrWhiteSpace(points[0].NumericValue?.Text))
                 throw new NotSupportedException("The secondary axis title cache must contain one text value.");
         }
@@ -131,7 +131,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             if (properties.GetAttributes().Any(attribute => attribute.LocalName is not
                     ("lang" or "altLang" or "dirty" or "smtClean" or "smtId") &&
                 !(attribute.LocalName == "spc" && attribute.Value == "-1")) ||
-                properties.ChildElements.Any(child => child is not A.LatinFont and not A.EastAsianFont and not A.ComplexScriptFont))
+                properties.ChildElements.Any(child => child is not A.LatinFont))
                 throw new NotSupportedException("The secondary axis title text appearance cannot be projected.");
         }
     }

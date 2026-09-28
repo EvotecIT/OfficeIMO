@@ -18,6 +18,8 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("rotation")]
     [InlineData("vertical")]
     [InlineData("alignment")]
+    [InlineData("eastAsianFont")]
+    [InlineData("complexScriptFont")]
     public void SecondaryTitle_RejectsUnprojectedAppearance(string appearance) {
         using var presentation = PowerPointPresentation.Create();
         var slide = presentation.AddSlide();
@@ -40,6 +42,8 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
             if (appearance == "color") properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }));
             else if (appearance == "size") properties.FontSize = 1800;
             else if (appearance == "bold") properties.Bold = true;
+            else if (appearance == "eastAsianFont") properties.Append(new A.EastAsianFont { Typeface = "MS Gothic" });
+            else if (appearance == "complexScriptFont") properties.Append(new A.ComplexScriptFont { Typeface = "Arial" });
             else properties.Italic = true;
             title.Descendants<A.Run>().Single().AddChild(properties, true);
         }
