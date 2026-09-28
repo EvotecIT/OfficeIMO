@@ -36,6 +36,16 @@ public sealed class OfficeChartValueAxisLayout {
     /// <summary>Minor tick appearance, or the shared layout setting when absent.</summary>
     public OfficeChartAxisTickMark? MinorTickMark { get; }
 
+    /// <summary>Independent secondary value-axis title, when set.</summary>
+    public string? Title { get; private set; }
+
+    /// <summary>Returns a copy with the secondary value-axis title.</summary>
+    public OfficeChartValueAxisLayout WithTitle(string? title) {
+        var copy = (OfficeChartValueAxisLayout)MemberwiseClone();
+        copy.Title = string.IsNullOrWhiteSpace(title) ? null : title;
+        return copy;
+    }
+
     private static OfficeChartAxisTickMark? ValidateTickMark(OfficeChartAxisTickMark? value, string name) {
         if (value.HasValue && !Enum.IsDefined(typeof(OfficeChartAxisTickMark), value.Value))
             throw new ArgumentOutOfRangeException(name);

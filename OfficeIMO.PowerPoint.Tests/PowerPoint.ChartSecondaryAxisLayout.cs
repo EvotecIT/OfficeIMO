@@ -91,7 +91,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 4, majorUnit: 1,
             minorUnit: 0.5, numberFormat: "0%", majorTickMark: OfficeChartAxisTickMark.Cross,
-            minorTickMark: OfficeChartAxisTickMark.Outside));
+            minorTickMark: OfficeChartAxisTickMark.Outside).WithTitle("Secondary ratio"));
         var primary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Left);
         primary.Scaling!.AddChild(new C.MaxAxisValue { Val = 200 }, true);
@@ -102,6 +102,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal("0.0", snapshot.Layout.VerticalAxisNumberFormat);
         Assert.Equal(4, snapshot.Layout.SecondaryValueAxis!.Maximum);
         Assert.Equal("0%", snapshot.Layout.SecondaryValueAxis.NumberFormat);
+        Assert.Equal("Secondary ratio", snapshot.Layout.SecondaryValueAxis.Title);
         Assert.Empty(presentation.ValidateDocument());
         using var persistedBytes = new MemoryStream(presentation.ToBytes());
         using var reopened = PowerPointPresentation.Load(persistedBytes);
@@ -109,5 +110,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal(0.5, persisted.Layout.SecondaryValueAxis!.MinorUnit);
         Assert.Equal(OfficeChartAxisTickMark.Cross, persisted.Layout.SecondaryValueAxis.MajorTickMark);
         Assert.Equal(OfficeChartAxisTickMark.Outside, persisted.Layout.SecondaryValueAxis.MinorTickMark);
+        Assert.Equal("Secondary ratio", persisted.Layout.SecondaryValueAxis.Title);
     }
 }

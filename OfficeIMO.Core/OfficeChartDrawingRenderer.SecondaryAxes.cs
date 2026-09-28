@@ -5,6 +5,18 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
+    private static void AddSecondaryAxisTitle(OfficeDrawing drawing, string title,
+        double plotLeft, double plotTop, double plotWidth, bool barChart,
+        OfficeChartStyle style, OfficeChartLayout layout) {
+        double fontSize = GetAxisTitleFontSize(layout);
+        double height = Math.Max(10D, fontSize + 2D);
+        double y = Math.Max(0D, plotTop - height - (barChart ? 17D : 4D));
+        AddChartText(drawing, title, plotLeft + plotWidth / 2D, y, plotWidth / 2D,
+            height, fontSize, style.AxisTitleColor ?? style.MutedTextColor,
+            OfficeTextAlignment.Right, style, layout.AxisTitleFontFamily ?? layout.AxisTextFontFamily,
+            layout.AxisTitleFontStyle ?? layout.AxisTextFontStyle);
+    }
+
     private readonly struct SecondaryAxisRenderContext {
         internal SecondaryAxisRenderContext(bool hasSeries, ValueRange range,
             IReadOnlyList<double> majorTicks, bool usesPercentDefaults, double labelBandWidth, OfficeChartLayout axisLayout) {

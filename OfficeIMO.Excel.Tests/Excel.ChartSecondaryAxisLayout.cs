@@ -51,7 +51,8 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
             .SetValueAxisNumberFormat("0%", false, OfficeChartAxisGroup.Secondary);
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 4,
             majorUnit: 1, minorUnit: 0.5, numberFormat: "0%",
-            majorTickMark: OfficeChartAxisTickMark.Cross, minorTickMark: OfficeChartAxisTickMark.Outside));
+            majorTickMark: OfficeChartAxisTickMark.Cross, minorTickMark: OfficeChartAxisTickMark.Outside)
+            .WithTitle("Secondary ratio"));
         using var bytes = new MemoryStream(document.ToBytes());
         using var reopened = ExcelDocument.Load(bytes);
         Assert.Empty(reopened.ValidateDocument());
@@ -65,6 +66,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         Assert.Equal(0.5, snapshot.Layout.SecondaryValueAxis.MinorUnit);
         Assert.Equal(OfficeChartAxisTickMark.Cross, snapshot.Layout.SecondaryValueAxis.MajorTickMark);
         Assert.Equal(OfficeChartAxisTickMark.Outside, snapshot.Layout.SecondaryValueAxis.MinorTickMark);
+        Assert.Equal("Secondary ratio", snapshot.Layout.SecondaryValueAxis.Title);
     }
 
     [Fact]

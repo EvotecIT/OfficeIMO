@@ -352,9 +352,9 @@ chart.SaveDataSummary("quarterly-chart.txt");
 ```
 
 Use `chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 40,
-majorUnit: 10, numberFormat: "0"))` to give the secondary value axis an independent linear
+majorUnit: 10, numberFormat: "0").WithTitle("Margin"))` to give the secondary value axis an independent linear
 scale. Native data updates preserve these settings, and snapshots carry its bounds, tick units,
-tick appearance, and number format separately from the primary axis. Use the optional
+tick appearance, number format, and title separately from the primary axis. Use the optional
 `majorTickMark` and `minorTickMark` settings for independent inside, outside, or crossing ticks.
 Static snapshots reject secondary logarithmic or reversed scales, display units, and explicit
 numeric crossing values. Native data updates preserve these settings.
