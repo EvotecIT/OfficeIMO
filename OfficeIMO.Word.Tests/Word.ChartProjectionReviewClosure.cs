@@ -50,7 +50,7 @@ public sealed class WordChartProjectionReviewClosureTests {
     }
 
     [Fact]
-    public void Snapshot_RejectsSecondaryTickSettingsNotRenderedBySharedAxis() {
+    public void Snapshot_PreservesIndependentSecondaryTickSettings() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -62,10 +62,13 @@ public sealed class WordChartProjectionReviewClosureTests {
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         secondary.GetFirstChild<C.MajorTickMark>()!.Val = C.TickMarkValues.Inside;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot majorSnapshot));
+        Assert.Equal(OfficeChartAxisTickMark.Inside, majorSnapshot.Layout.SecondaryValueAxis!.MajorTickMark);
         secondary.GetFirstChild<C.MajorTickMark>()!.Val = C.TickMarkValues.Outside;
         secondary.GetFirstChild<C.MinorTickMark>()!.Val = C.TickMarkValues.Inside;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot minorSnapshot));
+        Assert.Equal(OfficeChartAxisTickMark.Outside, minorSnapshot.Layout.SecondaryValueAxis!.MajorTickMark);
+        Assert.Equal(OfficeChartAxisTickMark.Inside, minorSnapshot.Layout.SecondaryValueAxis.MinorTickMark);
     }
 
     [Fact]

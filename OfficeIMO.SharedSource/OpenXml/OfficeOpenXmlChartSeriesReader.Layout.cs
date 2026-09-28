@@ -76,7 +76,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 vertical?.GetFirstChild<C.Crosses>()?.Val?.Value != C.CrossesValues.Minimum &&
                 (ReadLayoutMinimum(vertical) < 0D || data.Series.Any(series => series.Values.Any(value => value < 0D))))
                 throw new NotSupportedException("A horizontal bar axis crossing through negative values cannot be projected.");
-            QualifySecondaryLayout(plot, vertical);
+            QualifySecondaryLayout(plot);
             // Titles, visibility and category direction describe logical roles;
             // scales and tick marks describe the physical horizontal/vertical axes.
             var categoryAxis = horizontal;
@@ -123,7 +123,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 .WithSecondaryValueAxis(OfficeOpenXmlChartSecondaryAxis.Read(plot));
         }
 
-        private static void QualifySecondaryLayout(C.PlotArea? plot, OpenXmlCompositeElement? primaryValueAxis) {
+        private static void QualifySecondaryLayout(C.PlotArea? plot) {
             if (plot == null) return;
             var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
             var secondaryLayers = plot.ChildElements.OfType<OpenXmlCompositeElement>().Where(element =>
@@ -141,10 +141,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value is C.TickLabelPositionValues tickPosition && tickPosition != C.TickLabelPositionValues.NextTo))
                     throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
                 if (axis is C.ValueAxis) {
-                    if (ReadLayoutTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value) !=
-                            ReadLayoutTick(primaryValueAxis?.GetFirstChild<C.MajorTickMark>()?.Val?.Value) ||
-                        ReadLayoutTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value) != OfficeChartAxisTickMark.None)
-                        throw new NotSupportedException("Independent secondary-axis tick marks cannot be projected.");
                     var scaling = axis.GetFirstChild<C.Scaling>();
                     if (scaling?.GetFirstChild<C.LogBase>() != null ||
                         scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
