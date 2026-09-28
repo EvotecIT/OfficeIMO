@@ -168,5 +168,40 @@ namespace OfficeIMO.Tests {
             Assert.Equal(7d, view[2, 1]);
             Assert.Equal(10d, view[3, 1]);
         }
+
+        [Fact]
+        public void Test_PivotDecimalGroup_PreservesAdjacentLargeIntegerKeys() {
+            const double start = 8_999_999_999_999_998d;
+            const double next = 8_999_999_999_999_999d;
+            const double end = 9_000_000_000_000_000d;
+            string output = Path.Combine(_directoryWithFiles, "NumericGroup.LargeIntegers.xlsx");
+            using (var document = ExcelDocument.Create(output)) {
+                var sheet = document.AddWorksheet("Source");
+                sheet.CellValue(1, 1, "Quantity");
+                sheet.CellValue(1, 2, "Sales");
+                sheet.CellValue(2, 1, start);
+                sheet.CellValue(2, 2, 1d);
+                sheet.CellValue(3, 1, next);
+                sheet.CellValue(3, 2, 2d);
+                sheet.CellValue(4, 1, end);
+                sheet.CellValue(4, 2, 3d);
+                sheet.Pivot("A1:B4").Rows("Quantity").Sum("Sales", "Metric")
+                    .NumberGroup("Quantity", 1, start, end).Layout(ExcelPivotLayout.Tabular)
+                    .At("D4", "PivotLargeIntegers");
+                Assert.True(sheet.MaterializePivotTable("PivotLargeIntegers").Mutation.PackageIsValid);
+                Assert.Equal(1d, sheet.GetPivotData("PivotLargeIntegers", "Metric",
+                    new Dictionary<string, object?> { ["Quantity"] = start }).Value);
+                Assert.Equal(5d, sheet.GetPivotData("PivotLargeIntegers", "Metric",
+                    new Dictionary<string, object?> { ["Quantity"] = next }).Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocumentReader.Open(output);
+            var view = reopened.GetSheet("Source").ReadRange("D5:E7");
+            Assert.Equal("8999999999999998-8999999999999998", view[0, 0]);
+            Assert.Equal(1d, view[0, 1]);
+            Assert.Equal("8999999999999999-9000000000000000", view[1, 0]);
+            Assert.Equal(5d, view[1, 1]);
+            Assert.Equal(6d, view[2, 1]);
+        }
     }
 }
