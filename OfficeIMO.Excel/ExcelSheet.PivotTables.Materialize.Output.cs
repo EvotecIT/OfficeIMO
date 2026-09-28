@@ -86,11 +86,14 @@ namespace OfficeIMO.Excel {
                     || rowValuesPosition > 0 && !MaterializedKeyPrefixEquals(previousDataKeys!, rowKeys, rowValuesPosition);
                 Labels(rows, entry, rowKeys, dateHierarchy, firstMeasureRow, (level, value, date) => {
                     int realDepth = rowRealDepths[level];
-                    if ((dateHierarchy || manualRowHierarchy) && rows.Layout.Fields[level] >= 0
+                    bool groupPrefix = rows.Layout.Fields[level] >= 0
                         && (realDepth < rows.Layout.RealFields.Length || rowValuesPosition > level)
-                        && rows.Entries[row].Type == ItemValues.Data && row > 0
-                        && rows.Entries[row - 1].Type == ItemValues.Data
-                        && MaterializedKeyPrefixEquals(previousRowKeys!, rowKeys, realDepth)) return;
+                        && row > 0 && MaterializedKeyPrefixEquals(previousRowKeys!, rowKeys, realDepth);
+                    bool dateRepeat = dateHierarchy && groupPrefix && entry.Type != ItemValues.Grand
+                        && !(entry.Type == ItemValues.Default && realDepth == rowKeys.Length);
+                    bool manualRepeat = manualRowHierarchy && groupPrefix && entry.Type == ItemValues.Data
+                        && rows.Entries[row - 1].Type == ItemValues.Data;
+                    if (dateRepeat || manualRepeat) return;
                     values[position, level] = value;
                     if (date) plan.DateCells.Add((position, level));
                 });
@@ -113,11 +116,14 @@ namespace OfficeIMO.Excel {
                 int[] columnKeys = MaterializedHierarchyKeys(entry.Node);
                 Labels(columns, entry, columnKeys, false, true, (level, value, date) => {
                     int realDepth = columnRealDepths[level];
-                    if ((dateColumnHierarchy || manualColumnHierarchy) && columns.Layout.Fields[level] >= 0
-                        && realDepth < columns.Layout.RealFields.Length
-                        && entry.Type == ItemValues.Data && column > 0
-                        && columns.Entries[column - 1].Type == ItemValues.Data
-                        && MaterializedKeyPrefixEquals(previousColumnKeys!, columnKeys, realDepth)) return;
+                    bool groupPrefix = columns.Layout.Fields[level] >= 0
+                        && realDepth < columns.Layout.RealFields.Length && column > 0
+                        && MaterializedKeyPrefixEquals(previousColumnKeys!, columnKeys, realDepth);
+                    bool dateRepeat = dateColumnHierarchy && groupPrefix && entry.Type != ItemValues.Grand
+                        && !(entry.Type == ItemValues.Default && realDepth == columnKeys.Length);
+                    bool manualRepeat = manualColumnHierarchy && groupPrefix && entry.Type == ItemValues.Data
+                        && columns.Entries[column - 1].Type == ItemValues.Data;
+                    if (dateRepeat || manualRepeat) return;
                     values[level + offset, position] = value;
                     if (date) plan.DateCells.Add((level + offset, position));
                 });

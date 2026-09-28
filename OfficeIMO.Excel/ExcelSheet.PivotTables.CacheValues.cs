@@ -153,6 +153,13 @@ namespace OfficeIMO.Excel {
                 : PivotFieldValue.FromText(text);
         }
 
+        private PivotFieldValue GetGeneratedPivotDateFieldValue(int row, int column, GeneratedPivotGroupingField field) {
+            if (field.NativeGrouping == null)
+                return GetGeneratedPivotDateFieldValue(row, column, field.GroupBy);
+            var source = GetPivotFieldValue(row, column, field.Grouping);
+            return source.Kind == PivotFieldValueKind.Blank ? source : field.NativeGrouping.Group(source);
+        }
+
         private bool TryGetPivotDateValue(int row, int column, string text, out DateTime date) {
             var snapshot = GetCellValueSnapshot(row, column);
             if (snapshot.Value is double serial) {
@@ -432,6 +439,8 @@ namespace OfficeIMO.Excel {
             public ExcelPivotGroupBy GroupBy { get; }
 
             public ExcelPivotGrouping Grouping { get; }
+
+            public NativePivotDateGrouping? NativeGrouping { get; set; }
         }
     }
 }

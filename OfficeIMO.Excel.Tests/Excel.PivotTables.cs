@@ -1284,9 +1284,10 @@ namespace OfficeIMO.Tests {
                 Assert.Null(cacheFields[3].FieldGroup!.ParentId);
                 Assert.Equal(3U, cacheFields[4].FieldGroup!.ParentId!.Value);
                 Assert.Equal(4U, cacheFields[5].FieldGroup!.ParentId!.Value);
-                Assert.Equal(2U, cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
-                Assert.Equal(3U, cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
-                Assert.Equal(3U, cacheFields[5].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
+                Assert.Equal(3U, cacheFields[0].FieldGroup!.ParentId!.Value);
+                Assert.Equal(4U, cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
+                Assert.Equal(6U, cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
+                Assert.Equal(14U, cacheFields[5].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
                 Assert.Contains(cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "2026");
                 Assert.Contains(cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "Q2");
                 Assert.Contains(cacheFields[5].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "April");
@@ -1368,7 +1369,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(yearsField.Compact!.Value);
                 Assert.True(yearsField.Outline!.Value);
                 var hiddenYear = Assert.Single(yearsField.Items!.Elements<Item>(), item => item.Hidden?.Value == true);
-                Assert.Equal(0U, hiddenYear.Index!.Value);
+                Assert.Equal(1U, hiddenYear.Index!.Value);
 
                 var monthsField = pivotFields[4];
                 Assert.Equal(FieldSortValues.Descending, monthsField.SortType!.Value);
@@ -1381,7 +1382,7 @@ namespace OfficeIMO.Tests {
                 var pageFields = filterPivotPart.PivotTableDefinition!.PageFields!.Elements<PageField>().ToList();
                 Assert.Equal(2, pageFields.Count);
                 Assert.Equal(3, pageFields[0].Field!.Value);
-                Assert.Equal(1U, pageFields[0].Item!.Value);
+                Assert.Equal(2U, pageFields[0].Item!.Value);
                 Assert.Equal(4, pageFields[1].Field!.Value);
                 Assert.Null(pageFields[1].Item);
 

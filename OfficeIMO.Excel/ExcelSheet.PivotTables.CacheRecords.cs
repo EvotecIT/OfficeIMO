@@ -128,11 +128,15 @@ namespace OfficeIMO.Excel {
             int firstColumn) {
             var maps = new List<PivotFieldValues>(generatedFields.Count);
             foreach (var generatedField in generatedFields) {
+                if (generatedField.NativeGrouping != null) {
+                    maps.Add(generatedField.NativeGrouping.Labels);
+                    continue;
+                }
                 var values = new List<PivotFieldValue>();
                 var seen = new HashSet<PivotFieldValue>();
                 int column = firstColumn + generatedField.SourceIndex;
                 for (int row = firstDataRow; row <= lastDataRow; row++) {
-                    var value = GetGeneratedPivotDateFieldValue(row, column, generatedField.GroupBy);
+                    var value = GetGeneratedPivotDateFieldValue(row, column, generatedField);
                     if (seen.Add(value)) {
                         values.Add(value);
                     }
@@ -328,7 +332,7 @@ namespace OfficeIMO.Excel {
             int firstColumn) {
             for (int i = 0; i < generatedFields.Count; i++) {
                 var generatedField = generatedFields[i];
-                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField.GroupBy);
+                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField);
                 record.Append(CreatePivotCacheRecordItem(value, generatedLookups[i]));
             }
         }
@@ -347,7 +351,7 @@ namespace OfficeIMO.Excel {
             int firstColumn) {
             for (int i = 0; i < generatedFields.Count; i++) {
                 var generatedField = generatedFields[i];
-                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField.GroupBy);
+                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField);
                 writer.WriteElement(CreatePivotCacheRecordItem(value, generatedLookups[i]));
             }
         }
@@ -366,7 +370,7 @@ namespace OfficeIMO.Excel {
             int firstColumn) {
             for (int i = 0; i < generatedFields.Count; i++) {
                 var generatedField = generatedFields[i];
-                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField.GroupBy);
+                var value = GetGeneratedPivotDateFieldValue(row, firstColumn + generatedField.SourceIndex, generatedField);
                 WritePivotCacheRecordItemXml(writer, value, generatedLookups[i]);
             }
         }

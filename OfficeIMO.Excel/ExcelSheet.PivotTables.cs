@@ -370,6 +370,7 @@ namespace OfficeIMO.Excel {
                 var fieldValueMap = canUseDeferredPivotValues
                     ? BuildPivotFieldValueMap(deferredPivotSource!, headers.Count, r1 + 1, r2, c1, sourceSharedItemRequirements)
                     : BuildPivotFieldValueMap(headers.Count, r1 + 1, r2, c1, groupingMap, sourceSharedItemRequirements);
+                PrepareNativeDateGroupingFields(generatedGroupingFields, fieldValueMap);
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
                 ReportPivotTiming("AddPivotTable.BuildFieldValueMap");
                 if (deferredPivotSource != null && canUseDeferredPivotValues) {
@@ -409,8 +410,11 @@ namespace OfficeIMO.Excel {
                     groupingMap.TryGetValue(i, out var grouping);
                     cacheField.SharedItems = BuildSharedItems(fieldValueMap[i], grouping, sourceSharedItemRequirements[i]);
                     if (grouping != null) {
-                        cacheField.FieldGroup = CreatePivotFieldGroup(grouping, fieldValueMap[i],
-                            grouping.GroupBy == ExcelPivotGroupBy.Range ? (uint)i : null);
+                        cacheField.FieldGroup = generatedFieldsBySource.TryGetValue(i, out var dateFields)
+                            && generatedGroupingFields.Where(field => field.SourceIndex == i).All(field => field.NativeGrouping != null)
+                            ? new FieldGroup { ParentId = (uint)dateFields[0] }
+                            : CreatePivotFieldGroup(grouping, fieldValueMap[i],
+                                grouping.GroupBy == ExcelPivotGroupBy.Range ? (uint)i : null);
                     }
                     cacheDef.CacheFields.Append(cacheField);
                 }
@@ -423,7 +427,7 @@ namespace OfficeIMO.Excel {
                     };
                     cacheField.SharedItems = BuildSharedItems(generatedFieldValueMap[i], generatedField.Grouping);
                     cacheField.FieldGroup = CreatePivotFieldGroup(
-                        generatedField.Grouping,
+                        generatedField.NativeGrouping?.Grouping ?? generatedField.Grouping,
                         generatedFieldValueMap[i],
                         (uint)generatedField.SourceIndex,
                         generatedField.ParentFieldIndex.HasValue ? (uint)generatedField.ParentFieldIndex.Value : null);
@@ -496,7 +500,9 @@ namespace OfficeIMO.Excel {
                         fieldOptionMap.TryGetValue(i, out options);
                     }
 
-                    var pivotField = new PivotField { ShowAll = options?.ShowAll ?? true };
+                    var pivotField = new PivotField {
+                        ShowAll = options?.ShowAll ?? !generatedGroupingFields.Any(field => field.FieldIndex == i && field.NativeGrouping != null)
+                    };
                     if (pageFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisPage;
                     if (rowFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisRow;
                     if (columnFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisColumn;
