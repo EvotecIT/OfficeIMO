@@ -70,21 +70,28 @@ public static partial class HtmlPowerPointConverterExtensions {
                 if (layoutIndex >= layoutCells.Count) return;
                 PowerPointHtmlTableCell layoutCell = layoutCells[layoutIndex++];
                 PptCore.PowerPointTableCell targetCell = target.GetCell(layoutCell.Row, layoutCell.Column);
-                if (RequiresSemanticTableRunProjection(cell.Runs)) {
-                    ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs, hyperlinkPolicy);
-                }
-                if (cell.IsHeader) {
-                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
-                }
-                string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
-                if (fill.Length > 0) targetCell.FillColor = fill;
-                string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
-                if (color.Length > 0) {
-                    foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
-                }
-                ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
+                ApplySemanticTableCellFormatting(targetCell, cell, hyperlinkPolicy);
             }
         }
+    }
+
+    private static void ApplySemanticTableCellFormatting(
+        PptCore.PowerPointTableCell targetCell,
+        HtmlSemanticTableCell cell,
+        HtmlUrlPolicy hyperlinkPolicy) {
+        if (RequiresSemanticTableRunProjection(cell.Runs)) {
+            ApplySemanticRuns(targetCell.Paragraphs[0], cell.Runs, hyperlinkPolicy);
+        }
+        if (cell.IsHeader) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
+        }
+        string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
+        if (fill.Length > 0) targetCell.FillColor = fill;
+        string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
+        if (color.Length > 0) {
+            foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = color;
+        }
+        ApplySemanticTableAlignment(targetCell, cell.Style?.GetValue("text-align"));
     }
 
     private static bool RequiresSemanticTableRunProjection(IReadOnlyList<HtmlSemanticRun> runs) =>

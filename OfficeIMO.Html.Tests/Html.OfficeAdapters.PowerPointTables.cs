@@ -97,7 +97,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
     }
 
     [Fact]
-    public void PowerPointHtml_ReportsAndPaginatesTableTooTallForOneSlide() {
+    public void PowerPointHtml_PaginatesTallTableAsEditableRowGroups() {
         string rows = string.Concat(Enumerable.Range(0, 15).Select(index =>
             "<div role='row'><div role='cell'>Term " + index + "</div><div role='cell'>"
             + string.Join(" ", Enumerable.Repeat("A long but editable definition.", 4)) + "</div></div>"));
@@ -107,14 +107,137 @@ public class HtmlOfficeAdaptersPowerPointTables {
             .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
         using PowerPointPresentation presentation = result.RequireValue();
 
-        Assert.Empty(presentation.Slides.SelectMany(slide => slide.Tables));
+        PowerPointTable[] tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
+        Assert.InRange(tables.Length, 2, 15);
+        Assert.Equal(15, tables.Sum(table => table.Rows));
+        Assert.Equal("Term 14", tables.Last().GetCell(tables.Last().Rows - 1, 0).Text);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
-            && diagnostic.Message.Contains("too tall for one slide", StringComparison.Ordinal));
+            && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
+        Assert.All(tables, table =>
+            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D));
+    }
+
+    [Fact]
+    public void PowerPointHtml_KeepsTallCaptionAndRepeatsNativeTableHeader() {
+        string rows = string.Concat(Enumerable.Range(1, 15).Select(index =>
+            $"<tr><td>Contaminant {index}</td><td>{index} mg/L</td></tr>"));
+        string html = "<table><caption>List of National Secondary Drinking Water Regulations</caption>"
+            + "<thead><tr><th>Contaminant</th><th>Secondary Standard</th></tr></thead>"
+            + "<tbody>" + rows + "</tbody></table>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointSlide[] tableSlides = presentation.Slides.Where(slide => slide.Tables.Any()).ToArray();
+        Assert.InRange(tableSlides.Length, 2, 5);
+        Assert.Contains(tableSlides[0].TextBoxes, box =>
+            box.Text == "List of National Secondary Drinking Water Regulations");
+        Assert.Equal(16, tableSlides.Sum(slide => slide.Tables.Single().Rows) - tableSlides.Length + 1);
+        Assert.All(tableSlides, slide => {
+            PowerPointTable table = Assert.Single(slide.Tables);
+            Assert.Equal("Contaminant", table.GetCell(0, 0).Text);
+            Assert.Equal("Secondary Standard", table.GetCell(0, 1).Text);
+            Assert.True(table.TopPoints + table.HeightPoints <= presentation.SlideSize.HeightPoints - 30D);
+        });
+        PowerPointTable lastTable = tableSlides.Last().Tables.Single();
+        Assert.Equal("Contaminant 15", lastTable.GetCell(lastTable.Rows - 1, 0).Text);
+
+        using var stream = new MemoryStream();
+        presentation.Save(stream);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()));
+        Assert.Equal(tableSlides.Length, reopened.Slides.Sum(slide => slide.Tables.Count()));
+        PowerPointTable reopenedLast = reopened.Slides.Last(slide => slide.Tables.Any()).Tables.Single();
+        Assert.Equal("Contaminant 15", reopenedLast.GetCell(reopenedLast.Rows - 1, 0).Text);
+    }
+
+    [Fact]
+    public void PowerPointHtml_TableLimitOmitsRemainingRowsWithoutDroppingLaterContent() {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
+            $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        string html = "<table><tr><th>Term</th><th>Standard</th></tr>" + rows
+            + "</table><p>Content after the limited table</p>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using PowerPointPresentation presentation = result.RequireValue();
+
+        Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
-            box.Text.Contains("Term 14", StringComparison.Ordinal));
-        Assert.All(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
-            Assert.True(box.TopPoints + box.HeightPoints <= presentation.SlideSize.HeightPoints));
+            box.Text == "Content after the limited table");
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+            && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void PowerPointHtml_TableLimitDoesNotAppendAnEmptyContinuationSlide() {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
+            $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
+                "<table><tr><th>Term</th><th>Standard</th></tr>" + rows + "</table>")
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        using PowerPointPresentation presentation = result.RequireValue();
+
+        Assert.Single(presentation.Slides);
+        Assert.Single(presentation.Slides[0].Tables);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+            && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void PowerPointHtml_PagedTablesKeepColumnSpansAndLinkedCellRuns() {
+        string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
+            index == 20
+                ? "<tr><td>Term 20</td><td><a href='https://example.test/standard'>Final standard</a></td></tr>"
+                : $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        string html = "<table><tr><th colspan='2'>Standards</th></tr>" + rows + "</table>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using var stream = new MemoryStream();
+        using (PowerPointPresentation presentation = result.RequireValue()) presentation.Save(stream);
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(new MemoryStream(stream.ToArray()));
+        PowerPointTable[] tables = reopened.Slides.SelectMany(slide => slide.Tables).ToArray();
+
+        Assert.True(tables.Length > 1);
+        Assert.All(tables, table => Assert.Equal((1, 2), table.GetCell(0, 0).Merge));
+        PowerPointTable lastTable = tables.Last();
+        Assert.Equal("Term 20", lastTable.GetCell(lastTable.Rows - 1, 0).Text);
+        Assert.Contains(lastTable.GetCell(lastTable.Rows - 1, 1).Runs, run =>
+            run.Text == "Final standard" && run.Hyperlink?.OriginalString == "https://example.test/standard");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PowerPointHtml_DoesNotStrandTableHeaderBeforeFirstDataRow(bool includeCaption) {
+        string longValue = string.Join(" ", Enumerable.Repeat("Long description that wraps within the table cell.", 6));
+        string rows = "<tr><td>First data row</td><td>" + longValue + "</td></tr>"
+            + string.Concat(Enumerable.Range(2, 14).Select(index =>
+                $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
+        string caption = includeCaption ? "<caption>Water quality standards</caption>" : string.Empty;
+        string html = "<p data-officeimo-height='320'>Prior content</p><table>" + caption
+            + "<tr><th>Term</th><th>Standard</th></tr>" + rows + "</table>";
+
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
+            .ToPowerPointPresentationResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        using PowerPointPresentation presentation = result.RequireValue();
+        PowerPointSlide firstTableSlide = presentation.Slides.First(slide => slide.Tables.Any());
+        PowerPointTable firstTable = Assert.Single(firstTableSlide.Tables);
+
+        Assert.True(firstTable.Rows >= 2);
+        Assert.Equal("Term", firstTable.GetCell(0, 0).Text);
+        Assert.Equal("First data row", firstTable.GetCell(1, 0).Text);
+        if (includeCaption) {
+            Assert.Contains(firstTableSlide.TextBoxes, box => box.Text == "Water quality standards");
+        }
     }
 
     [Fact]

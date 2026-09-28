@@ -69,8 +69,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                     bool captionAndTableTooTall = caption.Length > 0 && !singleCellText && !tooTallForSlide
                         && !authoredTableGeometry
                         && captionHeight + tableHeight > slideBottom - 30D;
+                    PowerPointHtmlTableGrid? pagedGrid = null;
+                    if (!singleCellText && (tooTallForSlide || captionAndTableTooTall)) {
+                        TryCreatePagedGenericTableGrid(block, rowHeights, slideBottom, budget, result, out pagedGrid);
+                    }
                     if (caption.Length > 0) {
                         double minimumFollowingHeight = authoredTableGeometry ? 0D
+                            : pagedGrid != null ? Math.Max(90D, rowHeights[0]
+                                + (HasGenericTableHeaderRow(block.Table!) ? rowHeights[1] : 0D)) + 20D
                             : (singleCellText || tooTallForSlide || captionAndTableTooTall ? 130D : tableHeight);
                         if (NeedsGenericContinuation(contentTop, captionHeight + minimumFollowingHeight, slideBottom)) {
                             if (!TryAddGenericSlide(presentation, result, budget, out slide)) {
@@ -94,7 +100,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                                 detail: "projection=precedingTextBox");
                         }
                     }
-                    if (singleCellText || tooTallForSlide || captionAndTableTooTall) {
+                    if (pagedGrid != null) {
+                        if (!TryImportPagedGenericTable(block, pagedGrid, rowHeights, tableWidth,
+                                presentation, options, result, budget, ref slide, ref contentTop,
+                                ref pictureTop, slideBottom)) {
+                            slideLimitReached = true;
+                            break;
+                        }
+                    } else if (singleCellText || tooTallForSlide || captionAndTableTooTall) {
                         long tableTextLength = singleCellText ? tableText.Length
                             : block.Table!.Rows.Sum(row => row.Cells.Sum(cell => (long)cell.Text.Length));
                         AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,

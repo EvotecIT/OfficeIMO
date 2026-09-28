@@ -125,10 +125,12 @@ public partial class HtmlOfficeAdapters {
         using PowerPointPresentation presentation = result.RequireValue();
         PowerPointSlide captionSlide = Assert.Single(presentation.Slides,
             slide => slide.TextBoxes.Any(box => box.Text == RegulatoryTableCaption));
-        Assert.Contains(captionSlide.TextBoxes, box => box.Text.Contains("Row 1, cell 1", StringComparison.Ordinal));
+        PowerPointTable firstTable = Assert.Single(captionSlide.Tables);
+        Assert.Equal("Row 1", firstTable.GetCell(0, 0).Text);
+        Assert.Equal("Standard 1", firstTable.GetCell(0, 1).Text);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
-            && diagnostic.Message.Contains("table and its caption", StringComparison.OrdinalIgnoreCase));
+            && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
     }
 
     [Fact]
