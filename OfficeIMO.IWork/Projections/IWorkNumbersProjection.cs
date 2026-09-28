@@ -1156,7 +1156,7 @@ internal static class IWorkNumbersReader {
                 if (hasRichString) {
                     if (richStrings.TryGetValue(richStringIdentifier, out IWorkTextContent? richText)) {
                         string text = richText.PlainText;
-                        projectionBudget.AddTextCharacters(text.Length);
+                        projectionBudget.AddTextContentUse(richText, includeCharacters: true);
                         return hasFormula
                             ? Formula(row, column, formulaIdentifier, formulas, options,
                                 projectionBudget, text, IWorkCellKind.Text,

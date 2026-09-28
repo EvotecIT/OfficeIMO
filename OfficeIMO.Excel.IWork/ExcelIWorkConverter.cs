@@ -122,7 +122,10 @@ public static partial class ExcelIWorkConverter {
                                     sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
                                         display: null, style: false);
                                 }
-                                targetCell.SetRichText(ToExcelRichTextRuns(richText));
+                                bool headerCell = cell.Row <= table.HeaderRowCount
+                                    || cell.Column <= table.HeaderColumnCount
+                                    || cell.Row > table.RowCount - table.FooterRowCount;
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell));
                             }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
@@ -170,13 +173,18 @@ public static partial class ExcelIWorkConverter {
             ? cell.CachedDisplayText
             : cell.DisplayText;
 
-    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content) {
+    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold) {
         var runs = new List<ExcelRichTextRun>();
         for (int paragraphIndex = 0; paragraphIndex < content.Paragraphs.Count; paragraphIndex++) {
-            if (paragraphIndex > 0) runs.Add(new ExcelRichTextRun("\n"));
+            if (paragraphIndex > 0) {
+                var separator = new ExcelRichTextRun("\n");
+                if (forceBold) separator.Bold = true;
+                runs.Add(separator);
+            }
             foreach (IWorkTextRun source in content.Paragraphs[paragraphIndex].Runs) {
                 var run = new ExcelRichTextRun(source.Text);
-                if (source.Style.Bold.HasValue) run.Bold = source.Style.Bold.Value;
+                if (forceBold) run.Bold = true;
+                else if (source.Style.Bold.HasValue) run.Bold = source.Style.Bold.Value;
                 if (source.Style.Italic.HasValue) run.Italic = source.Style.Italic.Value;
                 if (source.Style.Underline.HasValue) run.Underline = source.Style.Underline.Value;
                 if (source.Style.Strikethrough.HasValue) run.Strikethrough = source.Style.Strikethrough.Value;
@@ -253,6 +261,12 @@ public static partial class ExcelIWorkConverter {
                     }
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
+                    if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
+                        && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                            .Any(run => run.Style.FontSizePoints is double size
+                                && (!IsFinite(size) || size < 1d || size > 409d))) {
+                        return $"Numbers table '{table.Name}' contains a rich-text font size outside the XLSX-supported range of 1 to 409 points.";
+                    }
                     string? text = cell.Kind == IWorkCellKind.Error
                         ? cell.DisplayText
                         : cell.Value as string ?? (cell.Kind == IWorkCellKind.Formula ? cell.DisplayText : null);
