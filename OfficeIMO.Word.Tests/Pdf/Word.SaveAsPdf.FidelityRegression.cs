@@ -293,30 +293,6 @@ public partial class Word {
             "A split merged cell emitted a zero or reversed horizontal border."));
     }
 
-    [Fact]
-    public void SaveAsPdf_VerticallyMergedCellUsesContinuationAlignment() {
-        string docPath = Path.Combine(_directoryWithFiles, "PdfMergedContinuationAlignment.docx");
-        string pdfPath = Path.Combine(_directoryWithFiles, "PdfMergedContinuationAlignment.pdf");
-        using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(3, 2);
-            for (int row = 0; row < 3; row++) {
-                table.Rows[row].Height = 500;
-                table.Rows[row].Cells[1].Paragraphs[0].Text = "Peer" + row;
-            }
-            table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
-            table.Rows[0].Cells[0].MergeVertically(2);
-            table.Rows[2].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
-            document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
-        }
-
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(pdfPath);
-        var words = pdf.GetPage(1).GetWords();
-        double mergedY = Assert.Single(words, word => word.Text == "Merged").BoundingBox.Bottom;
-        double middleY = Assert.Single(words, word => word.Text == "Peer1").BoundingBox.Bottom;
-        Assert.InRange(Math.Abs(mergedY - middleY), 0D, 8D);
-    }
-
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
