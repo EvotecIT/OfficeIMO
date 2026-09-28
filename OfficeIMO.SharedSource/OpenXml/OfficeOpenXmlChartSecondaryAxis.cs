@@ -74,6 +74,15 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         var axis = Resolve(plot);
         if (axis == null) return;
         QualifyTitle(axis.GetFirstChild<C.Title>());
+        var groups = OfficeOpenXmlChartAxisGroups.Create(plot!);
+        var primaryLayer = plot!.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(layer =>
+            layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+            groups.Read(layer) == OfficeChartAxisGroup.Primary);
+        var primaryValueAxis = primaryLayer?.Elements<C.AxisId>()
+            .Select(reference => groups.Resolve(reference.Val?.Value)).OfType<C.ValueAxis>().SingleOrDefault();
+        if ((primaryValueAxis?.GetFirstChild<C.Delete>() is C.Delete deletion && deletion.Val?.Value != false) ||
+            primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
+            throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");
         var scaling = axis.GetFirstChild<C.Scaling>();
         if ((!resolveSourceLinkedFormats && axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) ||
             axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
@@ -85,9 +94,12 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
     }
 
     internal static void QualifyTitle(C.Title? title) {
+        var richText = title?.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
         if (title != null &&
             (title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-             title.GetFirstChild<C.Overlay>()?.Val?.Value == true ||
+             title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false ||
+             richText?.Elements<A.Paragraph>().Skip(1).Any() == true ||
+             richText?.Descendants<A.Break>().Any() == true ||
              ReadTitle(title) == null))
             throw new NotSupportedException("The secondary axis title cannot be projected.");
     }

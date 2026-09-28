@@ -9,9 +9,10 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartSecondaryAxisLayoutTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(bool overlay) {
+    [InlineData("manual")]
+    [InlineData("overlay")]
+    [InlineData("implicitOverlay")]
+    public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(string placement) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddWorksheet("Results");
         var chart = sheet.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
@@ -22,7 +23,8 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
         var title = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
-        if (overlay) title.GetFirstChild<C.Overlay>()!.Val = true;
+        if (placement == "overlay") title.GetFirstChild<C.Overlay>()!.Val = true;
+        else if (placement == "implicitOverlay") title.GetFirstChild<C.Overlay>()!.Val = null;
         else title.GetFirstChild<C.Layout>()!.Append(new C.ManualLayout(new C.Left { Val = .3 }));
         Assert.False(chart.TryGetSnapshot(out _));
     }

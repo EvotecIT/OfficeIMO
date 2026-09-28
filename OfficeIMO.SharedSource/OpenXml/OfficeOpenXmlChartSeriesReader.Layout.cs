@@ -94,6 +94,7 @@ namespace OfficeIMO.OpenXml.Internal {
                      series.Values.Any(value => value < 0D))))
                 throw new NotSupportedException("A zero-crossing category axis cannot be projected at the plot edge.");
             QualifySecondaryLayout(plot);
+            OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot);
             // Titles, visibility and category direction describe logical roles;
             // scales and tick marks describe the physical horizontal/vertical axes.
             var categoryAxis = horizontal;
