@@ -363,7 +363,7 @@
     {
       "id": "nasa-solar-system-terrestrial-planets",
       "sourceClass": "planetary-data-table",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-28",
       "url": "https://science.nasa.gov/learn/basics-of-space-flight/chapter1-2/",
       "rightsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
@@ -382,7 +382,31 @@
         {"target": "RTF", "profile": "editable science chapter", "inspect": ["headings", "table rows and cells", "figures and links", "saved and reopened content"]},
         {"target": "Markdown", "profile": "semantic text and table", "inspect": ["section hierarchy", "planet data rows and values", "links", "serialized and reparsed content"]}
       ],
-      "reason": "A NASA-hosted chapter with a five-column planetary comparison table, long science prose and credited figures. It was selected and given acceptance criteria after the NIST page became a development regression, before this page was captured or converted. The source and NASA media-guideline pages were reachable at selection."
+      "reason": "A NASA-hosted chapter with a five-column planetary comparison table, long science prose and credited figures. It was selected before capture as a NIST replacement, but its first PDF replay exposed severe prose/sidebar flex sizing and informed renderer work, so it now serves as development evidence rather than an untouched held-out page."
+    },
+    {
+      "id": "nasa-reference-systems",
+      "sourceClass": "illustrated-reference-chapter",
+      "role": "held-out",
+      "selectionDate": "2026-09-29",
+      "url": "https://science.nasa.gov/learn/basics-of-space-flight/chapter2-1/",
+      "rightsUrl": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+      "rightsNotes": "Keep the full archive in ignored local evidence, identify third-party media credits and NASA identifiers, and do not imply agency endorsement.",
+      "requiredVisibleMarkers": ["Chapter 2: Reference Systems", "Terrestrial Coordinates", "Rotation and Revolution", "Precession", "Epochs"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["chapter and section order", "coordinate illustrations and captions", "all-page prose flow", "links and figure placement"]},
+        {"intent": "screen-media-pagination", "inspect": ["section and figure flow", "sidebar and prose proportions", "page-boundary figure integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "illustration and heading visibility", "slice-boundary integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable illustrated chapter", "inspect": ["heading hierarchy", "figures and captions", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["section text and picture placement", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable chapter slides", "inspect": ["ordered sections", "editable non-overlapping text and pictures", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic chapter", "inspect": ["heading and paragraph flow", "images and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "figures and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and captions", "links", "serialized and reparsed content"]}
+      ],
+      "reason": "The official NASA chapter was selected from its published title, contents and reuse policy before local capture or OfficeIMO conversion, after the earlier planetary chapter became development evidence. Its acceptance criteria are fixed here before inspecting output."
     }
   ]
 }
