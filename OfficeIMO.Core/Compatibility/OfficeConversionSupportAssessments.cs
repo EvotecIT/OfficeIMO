@@ -58,8 +58,8 @@ internal static class OfficeConversionSupportAssessments {
             "Bounded RTF fixtures verify parsing, editable or semantic output, reopen behavior, and deterministic loss diagnostics.",
             "Unsupported destinations, fields, embedded objects, complex tables, and producer-specific RTF controls are simplified or reported."),
         "xlsx-html" => Established(
-            "Representative workbooks verify sheets, values, formulas, tables, and styles in deterministic review HTML.",
-            "Interactive workbook behavior, charts, pivots, macros, and exact print layout are not represented in semantic HTML."),
+            "Representative workbooks verify sheets, values, formulas, tables, styles, and semantic chart data in deterministic review HTML.",
+            "Interactive workbook behavior, chart rendering and unsupported chart styling, pivots, macros, and exact print layout are not represented in semantic HTML."),
         "pptx-html" => Established(
             "Representative presentations verify slide order, text, tables, images, and geometry hints in deterministic review HTML.",
             "The result is review HTML rather than a slide renderer; animations, media, SmartArt, and advanced effects are simplified."),

@@ -7445,10 +7445,10 @@
       "operation":"Convert",
       "state":"Supported",
       "publicApi":"ExcelDocument.Load(stream).ToHtmlResult(options)",
-      "evidence":"Representative workbooks verify sheets, values, formulas, tables, and styles in deterministic review HTML.",
+      "evidence":"Representative workbooks verify sheets, values, formulas, tables, styles, and semantic chart data in deterministic review HTML.",
       "sourceCatalog":"OfficeConversionCapabilityCatalog",
       "extensions":[".xlam",".xlsm",".xlsx",".xltm",".xltx"],
-      "limitation":"Interactive workbook behavior, charts, pivots, macros, and exact print layout are not represented in semantic HTML."
+      "limitation":"Interactive workbook behavior, chart rendering and unsupported chart styling, pivots, macros, and exact print layout are not represented in semantic HTML."
     },
     {
       "id":"conversion:numbers-xlsx",
