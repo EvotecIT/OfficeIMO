@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeVp8Decoder {
-    private static void ApplyLoopFilter(
+    internal static void ApplyLoopFilter(
         OfficeVp8LoopFilter loopFilter,
         OfficeVp8Segmentation segmentation,
         OfficeVp8MacroblockHeader[] macroblocks,
@@ -21,7 +21,8 @@ internal static partial class OfficeVp8Decoder {
         int chromaHeight,
         bool isKeyframe, CancellationToken cancellationToken) {
         if (macroblocks.Length == 0) return;
-        if (loopFilter.Level <= 0 && (!segmentation.Enabled || segmentation.FilterDeltas.Length == 0)) {
+        if (loopFilter.Level <= 0 && !loopFilter.DeltaEnabled
+            && (!segmentation.Enabled || segmentation.FilterDeltas.Length == 0)) {
             return;
         }
 

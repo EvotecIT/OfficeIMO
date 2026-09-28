@@ -8,6 +8,33 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingWebpVp8Tests {
     [Fact]
+    public void ZeroBaseFilterLevelStillAppliesPositiveReferenceDelta() {
+        var loopFilter = new OfficeVp8LoopFilter(
+            filterType: 1, level: 0, sharpness: 0, deltaEnabled: true, deltaUpdate: true,
+            refDeltas: new[] { 10, 0, 0, 0 }, refDeltasUpdated: new[] { true, false, false, false },
+            modeDeltas: new int[4], modeDeltasUpdated: new bool[4]);
+        var segmentation = new OfficeVp8Segmentation(
+            enabled: false, updateMap: false, updateData: false, absoluteDeltas: false,
+            quantizerDeltas: Array.Empty<int>(), filterDeltas: Array.Empty<int>(),
+            segmentProbabilities: Array.Empty<int>());
+        var macroblocks = new[] {
+            new OfficeVp8MacroblockHeader(0, 0, 0, 0, false, 0, 0, false, Array.Empty<int>()),
+            new OfficeVp8MacroblockHeader(1, 1, 0, 0, false, 0, 0, false, Array.Empty<int>())
+        };
+        byte[] luma = new byte[32 * 16];
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 32; x++) luma[y * 32 + x] = x < 16 ? (byte)100 : (byte)110;
+        }
+
+        OfficeVp8Decoder.ApplyLoopFilter(loopFilter, segmentation, macroblocks,
+            new[] { false, false }, 32, 16, luma, new byte[16 * 8], new byte[16 * 8],
+            16, 8, isKeyframe: true, cancellationToken: CancellationToken.None);
+
+        Assert.True(luma[15] > 100);
+        Assert.True(luma[16] < 110);
+    }
+
+    [Fact]
     public void VerticalLeftPredictionUsesSpecifiedLastTwoTopTriples() {
         // RFC 6386 section 12.3 assigns B[2][3] to A[4..6] and
         // B[3][3] to A[5..7]; the last two pixels break the diagonal pattern.
