@@ -565,7 +565,7 @@ ExcelCellData value = sheet.GetPivotData("SalesPivot", "Revenue",
 
 The lightweight evaluator also supports `GETPIVOTDATA("Revenue",Summary!A1,"Region","North")`.
 Both paths support saved, ungrouped hierarchies with multiple row and column
-fields, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
+fields, selected page items, multiple measures, default subtotals, and text, numeric, Boolean, date, error or blank
 item keys. Lookup follows saved tabular, compact and outline views, including
 subtotals displayed at the top and collapsed groups. A partial selection uses its displayed subtotal, or a single matching
 leaf when no subtotal is displayed. Ambiguous matches and unknown items, fields
@@ -574,8 +574,7 @@ zero. Lookup accepts at most 256 source fields, measures and criteria, one Value
 pseudo-field across the axes, 100,000 shared keys per field, 100,001 axis/field
 items (including totals or default items), and one million output cells. Each
 axis also has a one-million budget for field visits and indexed criterion items.
-Grouped views,
-page fields and views without saved axis items remain
+Grouped views and views without saved axis items remain
 unsupported. The public method throws `NotSupportedException` for those profiles;
 formula recalculation leaves them unsupported. `AddPivotTable` authors metadata
 and refresh-on-open settings; it does not populate an output view for lookup.
@@ -600,10 +599,14 @@ Console.WriteLine(result.OutputRange);
 
 Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
 and multiple ungrouped fields on each axis, with at most 256 source fields in total. It writes a tabular view in
-first-seen key order, optional grand totals, typed values/errors, source cache
+first-seen key order, selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
 cached results; materialization does not calculate them.
+Manual item filters retain their selected keys when source item order changes.
+New source keys remain excluded from a manually filtered field unless its
+`IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
+records is rejected before changing the saved view.
 For multiple measures, the Values field appears on exactly one axis. Values-first,
 intermediate and Values-last ordering are preserved, including views without real row or column
 fields. `AddPivotTable` creates this field on columns by default, or on rows when
@@ -632,8 +635,7 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Grouping,
-filters, page fields, calculated fields, shared caches and associated interaction
+Grouping, label/value pivot filters, calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.
 

@@ -5,13 +5,14 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> AggregateMaterializedHierarchy(
             ExcelSheet source, int firstRow, int firstColumn, int lastRow, PivotHierarchyAxis rows, PivotHierarchyAxis columns,
-            DataField[] measures, int limit, CancellationToken token) {
+            bool[] includedRows, DataField[] measures, int limit, CancellationToken token) {
             var groups = new Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]>();
             var values = new object?[measures.Length];
             var errors = new bool[measures.Length];
             int leafGroups = 0;
             for (int row = firstRow + 1; row <= lastRow; row++) {
                 token.ThrowIfCancellationRequested();
+                if (!includedRows[row - firstRow - 1]) continue;
                 for (int measure = 0; measure < measures.Length; measure++) {
                     var cell = source.TryGetExistingCell(row, firstColumn + (int)measures[measure].Field!.Value);
                     values[measure] = source.GetCellValueSnapshot(cell).Value;

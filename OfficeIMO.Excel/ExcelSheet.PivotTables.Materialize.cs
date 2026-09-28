@@ -8,13 +8,14 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Generates a saved pivot view and its source cache from current worksheet values.
-        /// Supports up to 256 measures and source fields across ungrouped axes, with deterministic
-        /// first-seen key order and optional grand totals. Source formulas use their saved typed caches.
+        /// Supports up to 256 measures and source fields across ungrouped axes, selected page items,
+        /// hidden row, column, or page items, deterministic first-seen key order, and optional grand totals.
+        /// Source formulas use their saved typed caches.
         /// </summary>
         /// <param name="pivotTableName">Pivot definition on this worksheet.</param>
         /// <param name="options">Source, measure-input, output and rollback limits. Each cell/work budget uses MaximumAffectedCells, capped at one million.</param>
         /// <param name="cancellationToken">Cancels preparation or rolls back an interrupted write.</param>
-        /// <exception cref="NotSupportedException">The pivot uses an unqualified grouping, filter, calculated field, shared cache or measure layout.</exception>
+        /// <exception cref="NotSupportedException">The pivot uses an unqualified grouping, label/value filter, calculated field, shared cache or measure layout.</exception>
         /// <exception cref="InvalidOperationException">A budget or destination collision prevents generation.</exception>
         public ExcelPivotMaterializationResult MaterializePivotTable(string pivotTableName, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot table name is required.", nameof(pivotTableName));
@@ -99,12 +100,13 @@ namespace OfficeIMO.Excel {
             var fields = cache.CacheFields?.Elements<CacheField>().Take(257).ToArray() ?? Array.Empty<CacheField>();
             var pivotFields = definition.PivotFields?.Elements<PivotField>().Take(257).ToArray() ?? Array.Empty<PivotField>();
             var measures = definition.DataFields?.Elements<DataField>().Take(257).ToArray() ?? Array.Empty<DataField>();
+            var pages = definition.PageFields?.Elements<PageField>().Take(257).ToArray() ?? Array.Empty<PageField>();
             if (fields.Length != fieldCount || pivotFields.Length != fieldCount || measures.Length == 0 || measures.Length > 256
                 || fields.Any(f => f.FieldGroup != null || f.Formula != null || f.DatabaseField?.Value == false)
-                || definition.PageFields?.ChildElements.Count > 0 || definition.PivotFilters?.ChildElements.Count > 0
-                || pivotFields.Any(f => f.Items?.Elements<Item>().Any(i => i.Hidden?.Value == true) == true)
+                || pages.Length > 256 || pages.Length != (definition.PageFields?.ChildElements.Count ?? 0)
+                || definition.PivotFilters?.ChildElements.Count > 0
                 || measures.Any(m => m.ShowDataAs?.Value is ShowDataAsValues mode && mode != ShowDataAsValues.Normal))
-                throw new NotSupportedException("Materialization requires ordinary measures, no calculated/grouped fields, and no filters or page fields.");
+                throw new NotSupportedException("Materialization requires ordinary measures, no calculated/grouped fields, and no label/value filters.");
             if (!sourceSheet.BuildPivotHeaders(r1, c1, c2).SequenceEqual(fields.Select(f => f.Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase))
                 throw new InvalidOperationException("The source headers no longer match the pivot cache fields.");
             var rowAxis = ResolveMaterializationAxis(definition.RowFields);
@@ -120,8 +122,13 @@ namespace OfficeIMO.Excel {
             if ((measures.Length > 1 && valuesAxes != 1) || (measures.Length == 1 && valuesAxes != 0))
                 throw new NotSupportedException("Multiple measures require exactly one Values axis; single measures use real axes only.");
             var realFields = rowAxis.RealFields.Concat(columnAxis.RealFields).ToArray();
-            if (realFields.Any(field => field >= fieldCount) || realFields.Distinct().Count() != realFields.Length)
-                throw new NotSupportedException("The pivot axes or measure do not match the source fields.");
+            var pageFields = pages.Select(page => page.Field?.Value ?? -1).ToArray();
+            if (realFields.Any(field => field >= fieldCount) || pageFields.Any(field => field < 0 || field >= fieldCount)
+                || realFields.Concat(pageFields).Distinct().Count() != realFields.Length + pageFields.Length)
+                throw new NotSupportedException("The pivot axes or page fields do not match distinct source fields.");
+            if (pivotFields.Where((field, index) => !realFields.Contains(index) && !pageFields.Contains(index))
+                .Any(field => field.Items?.Elements<Item>().Any(item => item.Hidden?.Value == true) == true))
+                throw new NotSupportedException("Hidden items outside the pivot axes and page fields cannot be materialized.");
             bool rowTotal = rowField >= 0 && definition.ColumnGrandTotals?.Value != false;
             bool columnTotal = columnField >= 0 && definition.RowGrandTotals?.Value != false;
             long visits = (long)(r2 - r1) * measures.Length * MaterializedInputLevels(rowAxis, pivotFields)
@@ -147,6 +154,8 @@ namespace OfficeIMO.Excel {
             var collect = Enumerable.Repeat(true, fieldCount).ToArray();
             var maps = sourceSheet.BuildPivotFieldValueMap(fieldCount, r1 + 1, r2, c1, grouping, collect);
             if (maps.Any(m => m.Items.Count > 100_000)) throw new InvalidOperationException("A pivot cache field exceeds 100,000 distinct items.");
+            var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
+                maps, realFields, r1, r2, c1, limit, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
             // possible criterion combination usable, rather than accepting an unreadable view.
             foreach (var axis in new[] { rowAxis, columnAxis }) {
@@ -155,8 +164,10 @@ namespace OfficeIMO.Excel {
                 if (indexedItems > limit)
                     throw new InvalidOperationException("The pivot criteria index exceeds the materialization budget.");
             }
-            var rows = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, maps, rowAxis, pivotFields, measures.Length, rowTotal, token);
-            var columns = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, maps, columnAxis, pivotFields, measures.Length, columnTotal, token);
+            var rows = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, maps, rowAxis, pivotFields,
+                visibility.IncludedRows, measures.Length, rowTotal, token);
+            var columns = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, maps, columnAxis, pivotFields,
+                visibility.IncludedRows, measures.Length, columnTotal, token);
             int dataRow = columnField >= 0 ? columnAxis.Fields.Length + 1 : 1;
             int dataColumn = rowAxis.Fields.Length > 0 ? rowAxis.Fields.Length : measures.Length == 1 && columnField >= 0 ? 1 : 0;
             int height = dataRow + rows.Entries.Count;
@@ -173,8 +184,9 @@ namespace OfficeIMO.Excel {
                 Cache = (PivotCacheDefinition)cache.CloneNode(true), Top = top, Left = left, Bottom = (int)bottom, Right = (int)right,
                 OldBottom = oldBottom, OldRight = oldRight, AffectedBottom = (int)affectedBottom, AffectedRight = (int)affectedRight, SourceRecords = r2 - r1,
                 SourceDateSystem = _excelDocument.DateSystem };
-            var aggregates = AggregateMaterializedHierarchy(sourceSheet, r1, c1, r2, rows, columns, measures, limit, token);
-            FillMaterializedHierarchy(plan, maps, rows, columns, measures, dataRow, dataColumn, aggregates, token);
+            var aggregates = AggregateMaterializedHierarchy(sourceSheet, r1, c1, r2, rows, columns,
+                visibility.IncludedRows, measures, limit, token);
+            FillMaterializedHierarchy(plan, maps, rows, columns, visibility, measures, dataRow, dataColumn, aggregates, token);
             var cacheFields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             for (int field = 0; field < fieldCount; field++) cacheFields[field].SharedItems = BuildSharedItems(maps[field], null);
             plan.Records = sourceSheet.BuildPivotCacheRecords(fieldCount, r1 + 1, r2, c1, grouping, maps, collect,

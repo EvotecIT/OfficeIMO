@@ -5,7 +5,8 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static void FillMaterializedHierarchy(PivotMaterializationPlan plan, IReadOnlyList<PivotFieldValues> maps,
-            PivotHierarchyAxis rows, PivotHierarchyAxis columns, DataField[] measures, int dataRow, int dataColumn,
+            PivotHierarchyAxis rows, PivotHierarchyAxis columns, PivotMaterializationVisibility visibility,
+            DataField[] measures, int dataRow, int dataColumn,
             Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups, CancellationToken token) {
             var definition = plan.Definition;
             var fields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
@@ -74,30 +75,33 @@ namespace OfficeIMO.Excel {
                 }
             }
             plan.Values = values;
-            definition.Location = new Location { Reference = $"{A1.CellReference(plan.Top, plan.Left)}:{A1.CellReference(plan.Bottom, plan.Right)}",
-                FirstHeaderRow = columns.Layout.RealFields.Length > 0 || !columns.Layout.HasValues ? 1U : 0U,
-                FirstDataRow = (uint)dataRow, FirstDataColumn = (uint)dataColumn };
+            Location location = definition.Location ?? new Location();
+            location.Reference = $"{A1.CellReference(plan.Top, plan.Left)}:{A1.CellReference(plan.Bottom, plan.Right)}";
+            location.FirstHeaderRow = columns.Layout.RealFields.Length > 0 || !columns.Layout.HasValues ? 1U : 0U;
+            location.FirstDataRow = (uint)dataRow;
+            location.FirstDataColumn = (uint)dataColumn;
+            definition.Location = location;
             definition.Compact = false;
             definition.CompactData = false;
             definition.OutlineData = false;
             definition.DataOnRows = rows.Layout.HasValues;
-            NormalizeMaterializedPivotFields(definition, maps, rows);
-            NormalizeMaterializedPivotFields(definition, maps, columns);
+            NormalizeMaterializedPivotFields(definition, maps, rows, visibility);
+            NormalizeMaterializedPivotFields(definition, maps, columns, visibility);
+            NormalizeMaterializedPageFields(definition, maps, visibility);
             definition.RowItems = new RowItems { Count = (uint)rows.Entries.Count };
             definition.ColumnItems = new ColumnItems { Count = (uint)columns.Entries.Count };
             foreach (var entry in rows.Entries) definition.RowItems.AppendChild(CreateMaterializedHierarchyItem(rows, entry));
             foreach (var entry in columns.Entries) definition.ColumnItems.AppendChild(CreateMaterializedHierarchyItem(columns, entry));
         }
 
-        private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps, PivotHierarchyAxis axis) {
+        private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps,
+            PivotHierarchyAxis axis, PivotMaterializationVisibility visibility) {
             var fields = definition.PivotFields!.Elements<PivotField>().ToArray();
             for (int depth = 0; depth < axis.Layout.RealFields.Length; depth++) {
                 int field = axis.Layout.RealFields[depth];
                 bool subtotal = axis.Subtotals[depth];
-                var items = new Items { Count = (uint)(maps[field].Items.Count + (subtotal ? 1 : 0)) };
-                for (int index = 0; index < maps[field].Items.Count; index++) items.AppendChild(new Item { Index = (uint)index });
-                if (subtotal) items.AppendChild(new Item { ItemType = ItemValues.Default });
-                fields[field].Items = items;
+                fields[field].Items = CreateMaterializedFilteredItems(maps[field],
+                    visibility.Hidden.TryGetValue(field, out var hidden) ? hidden : null, false, subtotal);
                 fields[field].DefaultSubtotal = subtotal;
                 fields[field].SumSubtotal = false;
                 fields[field].CountASubtotal = false;

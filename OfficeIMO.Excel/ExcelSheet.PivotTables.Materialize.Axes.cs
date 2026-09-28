@@ -43,7 +43,8 @@ namespace OfficeIMO.Excel {
             : 1 + axis.RealFields.Take(axis.RealFields.Length - 1).Count(field => MaterializedAutomaticSubtotal(fields[field]));
 
         private static PivotHierarchyAxis BuildMaterializedHierarchyAxis(ExcelSheet source, int firstRow, int lastRow, int firstColumn,
-            IReadOnlyList<PivotFieldValues> maps, PivotMaterializationAxis layout, PivotField[] fields, int measures, bool total, CancellationToken token) {
+            IReadOnlyList<PivotFieldValues> maps, PivotMaterializationAxis layout, PivotField[] fields,
+            bool[] includedRows, int measures, bool total, CancellationToken token) {
             var result = new PivotHierarchyAxis { Layout = layout, GrandTotal = total,
                 Subtotals = layout.RealFields.Select(field => MaterializedAutomaticSubtotal(fields[field])).ToArray() };
             if (layout.RealFields.Length > 0) {
@@ -52,6 +53,7 @@ namespace OfficeIMO.Excel {
                 int nodeId = 0;
                 for (int row = firstRow + 1; row <= lastRow; row++) {
                     token.ThrowIfCancellationRequested();
+                    if (!includedRows[row - firstRow - 1]) continue;
                     var node = result.Root;
                     for (int depth = 0; depth < layout.RealFields.Length; depth++) {
                         int key = indices[depth][source.GetPivotFieldValue(row, firstColumn + layout.RealFields[depth], null)];

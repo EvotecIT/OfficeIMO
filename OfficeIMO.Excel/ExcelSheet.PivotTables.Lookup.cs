@@ -45,6 +45,7 @@ namespace OfficeIMO.Excel {
             if (cacheFields.ChildElements.Count > 256 || definition.PivotFields?.ChildElements.Count > 256
                 || definition.DataFields?.ChildElements.Count > 256 || criteria.Count > 256
                 || definition.RowFields?.ChildElements.Count > 257 || definition.ColumnFields?.ChildElements.Count > 257
+                || definition.PageFields?.ChildElements.Count > 256
                 || (long)(bottom - top + 1) * (right - left + 1) > 1_000_000)
                 throw new NotSupportedException("The saved pivot exceeds lookup limits.");
             var fields = cacheFields.Elements<CacheField>().ToArray();
@@ -68,16 +69,40 @@ namespace OfficeIMO.Excel {
             if (measure < 0) return PivotLookupReferenceError();
             int[] rowFields = definition.RowFields?.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray() ?? Array.Empty<int>();
             int[] columnFields = definition.ColumnFields?.Elements<Field>().Select(f => f.Index?.Value ?? int.MinValue).ToArray() ?? Array.Empty<int>();
+            PageField[] pageFields = definition.PageFields?.Elements<PageField>().ToArray() ?? Array.Empty<PageField>();
             int valuesAxisCount = rowFields.Count(f => f == -2) + columnFields.Count(f => f == -2);
             if (valuesAxisCount > 1 || (measures.Length > 1 && valuesAxisCount != 1))
                 throw new NotSupportedException("Multiple pivot measures require exactly one Values axis.");
             var realFields = rowFields.Concat(columnFields).Where(f => f >= 0).ToArray();
             if (realFields.Distinct().Count() != realFields.Length
                 || rowFields.Length != (definition.RowFields?.ChildElements.Count ?? 0) || columnFields.Length != (definition.ColumnFields?.ChildElements.Count ?? 0)
-                || definition.PageFields?.ChildElements.Count > 0 || rowFields.Concat(columnFields).Any(f => f < -2 || f == -1 || f >= fields.Length || (f >= 0 && f >= pivotFields.Length)))
-                throw new NotSupportedException("Pivot lookup requires distinct source axis fields and no page fields.");
+                || pageFields.Length != (definition.PageFields?.ChildElements.Count ?? 0)
+                || rowFields.Concat(columnFields).Any(f => f < -2 || f == -1 || f >= fields.Length || (f >= 0 && f >= pivotFields.Length))
+                || pageFields.Any(f => f.Field == null || f.Field.Value < 0 || f.Field.Value >= fields.Length || f.Field.Value >= pivotFields.Length)
+                || realFields.Concat(pageFields.Select(f => f.Field!.Value)).Distinct().Count() != realFields.Length + pageFields.Length)
+                throw new NotSupportedException("Pivot lookup requires distinct source axis and page fields.");
             foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0)) {
                 if (fields[field].FieldGroup != null) throw new NotSupportedException("Grouped pivot lookup is not supported.");
+            }
+            foreach (PageField page in pageFields) {
+                int field = page.Field!.Value;
+                string name = fields[field].Name?.Value ?? "";
+                if (!criteria.TryGetValue(name, out object? requested)) continue;
+                if (page.Item == null) return PivotLookupReferenceError();
+                Item[] items = pivotFields[field].Items?.Elements<Item>().ToArray() ?? Array.Empty<Item>();
+                if (page.Item.Value >= items.Length) return PivotLookupReferenceError();
+                Item selected = items[page.Item.Value];
+                OpenXmlElement[] shared = fields[field].SharedItems?.ChildElements.ToArray() ?? Array.Empty<OpenXmlElement>();
+                if (selected.Index == null || selected.Index.Value >= shared.Length) return PivotLookupReferenceError();
+                OpenXmlElement key = shared[selected.Index.Value];
+                object? expected = ReadPivotLookupSharedItem(key, _excelDocument.DateSystem);
+                bool equal = key is MissingItem
+                    ? requested == null || requested is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
+                    : PivotLookupValuesEqual(expected, key is DateTimeItem && requested is DateTime date
+                        ? ExcelDateSystemConverter.ToSerial(date, _excelDocument.DateSystem) : requested);
+                if (!equal)
+                    return PivotLookupReferenceError();
+                criteria.Remove(name);
             }
             var visibleFields = new HashSet<string>(rowFields.Concat(columnFields).Where(f => f >= 0).Select(f => fields[f].Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase);
             if (criteria.Keys.Any(key => !visibleFields.Contains(key))) return PivotLookupReferenceError();

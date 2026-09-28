@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyPivotFieldItemFilters(PivotField pivotField, ExcelPivotFieldOptions options, IReadOnlyList<string> values) {
-            if (options.HiddenItems.Count == 0 && options.VisibleItems.Count == 0) return;
+            if (options.HiddenItems.Count == 0 && options.VisibleItems.Count == 0 && options.SelectedItem == null) return;
             if (values.Count == 0) {
                 throw new ArgumentException($"Field '{options.FieldName}' has no cache items to filter.", nameof(options));
             }
@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
                 foreach (string item in options.HiddenItems) {
                     hidden.Add(FindPivotItemIndex(item, values, options.FieldName, nameof(options.HiddenItems)));
                 }
-            } else {
+            } else if (options.VisibleItems.Count > 0) {
                 var visible = new HashSet<int>();
                 foreach (string item in options.VisibleItems) {
                     visible.Add(FindPivotItemIndex(item, values, options.FieldName, nameof(options.VisibleItems)));
