@@ -15,6 +15,9 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("bold")]
     [InlineData("italic")]
     [InlineData("shape")]
+    [InlineData("rotation")]
+    [InlineData("vertical")]
+    [InlineData("alignment")]
     public void SecondaryTitle_RejectsUnprojectedAppearance(string appearance) {
         using var presentation = PowerPointPresentation.Create();
         var slide = presentation.AddSlide();
@@ -28,6 +31,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
         if (appearance == "shape") title.AddChild(new C.ChartShapeProperties(
             new A.SolidFill(new A.RgbColorModelHex { Val = "FFFF00" })), true);
+        else if (appearance == "rotation") title.Descendants<A.BodyProperties>().Single().Rotation = 5400000;
+        else if (appearance == "vertical") title.Descendants<A.BodyProperties>().Single().Vertical = A.TextVerticalValues.Vertical;
+        else if (appearance == "alignment") title.Descendants<A.Paragraph>().Single()
+            .AddChild(new A.ParagraphProperties { Alignment = A.TextAlignmentTypeValues.Right }, true);
         else {
             var properties = new A.RunProperties();
             if (appearance == "color") properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }));

@@ -118,6 +118,14 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if (title.GetFirstChild<C.ChartShapeProperties>() is C.ChartShapeProperties shape &&
             (shape.HasChildren || shape.HasAttributes))
             throw new NotSupportedException("The secondary axis title shape cannot be projected.");
+        foreach (A.BodyProperties body in title.Descendants<A.BodyProperties>()) {
+            if (body.HasAttributes || body.HasChildren)
+                throw new NotSupportedException("The secondary axis title body appearance cannot be projected.");
+        }
+        foreach (A.ParagraphProperties paragraph in title.Descendants<A.ParagraphProperties>()) {
+            if (paragraph.HasAttributes || paragraph.ChildElements.Any(child => child is not A.DefaultRunProperties))
+                throw new NotSupportedException("The secondary axis title paragraph appearance cannot be projected.");
+        }
         foreach (OpenXmlElement properties in title.Descendants().Where(element =>
             element is A.RunProperties or A.DefaultRunProperties or A.EndParagraphRunProperties)) {
             if (properties.GetAttributes().Any(attribute => attribute.LocalName is not
