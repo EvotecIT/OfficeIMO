@@ -8,14 +8,6 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
-        private static OfficeColor? ReadDirectSeriesColor(OpenXmlCompositeElement seriesElement) {
-            var properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
-            var marker = seriesElement.GetFirstChild<C.Marker>()?.ChartShapeProperties;
-            return OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), null)
-                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null)
-                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(marker?.GetFirstChild<A.SolidFill>(), null);
-        }
-
         internal static void MaterializeDefaultSeriesColor(OpenXmlCompositeElement element,
             OfficeChartKind kind, int seriesIndex) {
             var appearance = new OfficeChartSeries(string.Empty, Array.Empty<double>(), null,
