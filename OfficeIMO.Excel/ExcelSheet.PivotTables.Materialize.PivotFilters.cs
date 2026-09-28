@@ -64,16 +64,24 @@ namespace OfficeIMO.Excel {
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
-            foreach (var filter in filters.Where(IsMaterializedPivotValueComparison)) {
+            foreach (var filter in filters.Where(IsMaterializedPivotValueFilter)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
                 if (axisFields.Count != 1 || filter.MeasureField == null || filter.MeasureField.Value >= measures.Length)
                     throw new NotSupportedException("Value-filter materialization requires one ordinary axis field and a saved measure.");
-                var custom = QualifiedPivotCustomFilter(filter);
-                var comparison = ResolveSingleFilterOperator(filter.Type!.Value);
-                if ((custom.Operator?.Value ?? FilterOperatorValues.Equal) != comparison
-                    || !double.TryParse(custom.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double threshold)
-                    || double.IsNaN(threshold) || double.IsInfinity(threshold))
-                    throw new NotSupportedException("The value filter does not have a qualified finite comparison threshold.");
+                var type = filter.Type!.Value;
+                double first = 0, second = 0;
+                Top10? ranking = null;
+                if (IsMaterializedPivotValueRanking(type)) {
+                    ranking = QualifiedPivotRankingFilter(filter);
+                } else if (type == PivotFilterValues.ValueBetween || type == PivotFilterValues.ValueNotBetween) {
+                    (first, second) = QualifiedPivotValueRange(filter);
+                } else {
+                    var custom = QualifiedPivotCustomFilter(filter);
+                    var comparison = ResolveSingleFilterOperator(type);
+                    if ((custom.Operator?.Value ?? FilterOperatorValues.Equal) != comparison
+                        || !TryFinitePivotThreshold(custom.Val?.Value, out first))
+                        throw new NotSupportedException("The value filter does not have a qualified finite comparison threshold.");
+                }
                 var measure = measures[filter.MeasureField.Value];
                 int measureColumn = firstColumn + (int)measure.Field!.Value;
                 var aggregates = new Dictionary<PivotFieldValue, ExcelPivotAggregateAccumulator>();
@@ -93,15 +101,26 @@ namespace OfficeIMO.Excel {
                         cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error);
                 }
                 var function = (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum();
-                var included = new HashSet<PivotFieldValue>(aggregates.Where(pair =>
-                    pair.Value.GetValue(function).Value is double value
-                    && MatchesMaterializedPivotValueComparison(value, threshold, comparison)).Select(pair => pair.Key));
+                var values = aggregates.Select(pair => (pair.Key, Value: pair.Value.GetValue(function).Value))
+                    .Where(pair => pair.Value is double).Select(pair => (pair.Key, Value: (double)pair.Value!)).ToArray();
+                HashSet<PivotFieldValue> included;
+                if (ranking != null) {
+                    if (values.Length != aggregates.Count)
+                        throw new NotSupportedException("Top/bottom value materialization requires numeric aggregate results for every item.");
+                    included = RankMaterializedPivotValues(values, type, ranking);
+                } else {
+                    included = new HashSet<PivotFieldValue>(values.Where(pair =>
+                        type == PivotFilterValues.ValueBetween ? pair.Value >= first && pair.Value <= second
+                        : type == PivotFilterValues.ValueNotBetween ? pair.Value < first || pair.Value > second
+                        : MatchesMaterializedPivotValueComparison(pair.Value, first, ResolveSingleFilterOperator(type)))
+                        .Select(pair => pair.Key));
+                }
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
             if (filters.Any(filter => !IsMaterializedPivotLabelComparison(filter)
-                && !IsMaterializedPivotValueComparison(filter)))
+                && !IsMaterializedPivotValueFilter(filter)))
                 throw new NotSupportedException("This pivot label or value filter is not qualified for materialization.");
             if (!visibility.IncludedRows.Any(include => include))
                 throw new NotSupportedException("The pivot filters select no source records for materialization.");
@@ -175,11 +194,81 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("The label filter does not have a qualified saved predicate.");
         }
 
-        private static bool IsMaterializedPivotValueComparison(PivotFilter filter) {
+        private static bool IsMaterializedPivotValueFilter(PivotFilter filter) {
             var type = filter.Type?.Value;
             return type == PivotFilterValues.ValueEqual || type == PivotFilterValues.ValueNotEqual
                 || type == PivotFilterValues.ValueGreaterThan || type == PivotFilterValues.ValueGreaterThanOrEqual
-                || type == PivotFilterValues.ValueLessThan || type == PivotFilterValues.ValueLessThanOrEqual;
+                || type == PivotFilterValues.ValueLessThan || type == PivotFilterValues.ValueLessThanOrEqual
+                || type == PivotFilterValues.ValueBetween || type == PivotFilterValues.ValueNotBetween
+                || type == PivotFilterValues.Count || type == PivotFilterValues.Percent || type == PivotFilterValues.Sum;
+        }
+
+        private static bool IsMaterializedPivotValueRanking(PivotFilterValues type)
+            => type == PivotFilterValues.Count || type == PivotFilterValues.Percent || type == PivotFilterValues.Sum;
+
+        private static bool TryFinitePivotThreshold(string? text, out double value)
+            => double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value)
+                && !double.IsNaN(value) && !double.IsInfinity(value);
+
+        private static (double First, double Second) QualifiedPivotValueRange(PivotFilter filter) {
+            PivotFilterValues type = filter.Type!.Value;
+            TryResolveBetweenFilter(type, out var firstOperator, out var secondOperator, out bool matchAll);
+            var columns = filter.AutoFilter?.Elements<FilterColumn>().ToArray() ?? Array.Empty<FilterColumn>();
+            if (columns.Length != 1 || columns[0].ColumnId?.Value != 0 || columns[0].ChildElements.Count != 1
+                || columns[0].GetFirstChild<CustomFilters>() is not CustomFilters custom
+                || (custom.And?.Value == true) != matchAll || custom.ChildElements.Count != 2)
+                throw new NotSupportedException("The value range filter has no qualified saved predicates.");
+            var predicates = custom.Elements<CustomFilter>().ToArray();
+            if (predicates.Length != 2 || (predicates[0].Operator?.Value ?? FilterOperatorValues.Equal) != firstOperator
+                || (predicates[1].Operator?.Value ?? FilterOperatorValues.Equal) != secondOperator
+                || !TryFinitePivotThreshold(predicates[0].Val?.Value, out double first)
+                || !TryFinitePivotThreshold(predicates[1].Val?.Value, out double second)
+                || first > second
+                || (filter.StringValue1 != null && (!TryFinitePivotThreshold(filter.StringValue1.Value, out double savedFirst) || savedFirst != first))
+                || (filter.StringValue2 != null && (!TryFinitePivotThreshold(filter.StringValue2.Value, out double savedSecond) || savedSecond != second)))
+                throw new NotSupportedException("The value range filter has no qualified finite bounds.");
+            return (first, second);
+        }
+
+        private static Top10 QualifiedPivotRankingFilter(PivotFilter filter) {
+            var columns = filter.AutoFilter?.Elements<FilterColumn>().ToArray() ?? Array.Empty<FilterColumn>();
+            if (columns.Length != 1 || columns[0].ColumnId?.Value != 0 || columns[0].ChildElements.Count != 1
+                || columns[0].GetFirstChild<Top10>() is not Top10 ranking
+                || !TryFinitePivotThreshold(ranking.Val?.Value.ToString(CultureInfo.InvariantCulture), out double threshold)
+                || threshold <= 0 || (filter.Type!.Value == PivotFilterValues.Count && (threshold != Math.Truncate(threshold) || threshold > 100_000))
+                || (filter.Type.Value == PivotFilterValues.Percent && (threshold > 100 || ranking.Percent?.Value != true))
+                || (filter.Type.Value != PivotFilterValues.Percent && ranking.Percent?.Value == true)
+                || (filter.StringValue1 != null && (!TryFinitePivotThreshold(filter.StringValue1.Value, out double saved) || saved != threshold)))
+                throw new NotSupportedException("The top/bottom value filter has no qualified saved ranking rule.");
+            return ranking;
+        }
+
+        private static HashSet<PivotFieldValue> RankMaterializedPivotValues(
+            (PivotFieldValue Key, double Value)[] values, PivotFilterValues type, Top10 ranking) {
+            if (values.Length == 0) return new HashSet<PivotFieldValue>();
+            bool top = ranking.Top?.Value != false;
+            if (type != PivotFilterValues.Count && values.Any(pair => pair.Value <= 0))
+                throw new NotSupportedException("Top/bottom sum and percent materialization requires positive numeric aggregates.");
+            Array.Sort(values, (left, right) => top
+                ? right.Value.CompareTo(left.Value) : left.Value.CompareTo(right.Value));
+            double requested = ranking.Val!.Value;
+            double target = type == PivotFilterValues.Percent
+                ? values.Sum(pair => pair.Value) * (requested / 100d) : requested;
+            if (double.IsNaN(target) || double.IsInfinity(target))
+                throw new NotSupportedException("The top/bottom percent total exceeds the qualified numeric range.");
+            int cutoffIndex = 0;
+            if (type == PivotFilterValues.Count) {
+                cutoffIndex = Math.Min(values.Length, (int)requested) - 1;
+            } else {
+                double accumulated = 0;
+                for (; cutoffIndex < values.Length - 1; cutoffIndex++) {
+                    accumulated += values[cutoffIndex].Value;
+                    if (accumulated >= target) break;
+                }
+            }
+            double cutoff = values[cutoffIndex].Value;
+            return new HashSet<PivotFieldValue>(values.Where(pair => top
+                ? pair.Value >= cutoff : pair.Value <= cutoff).Select(pair => pair.Key));
         }
 
         private static bool MatchesMaterializedPivotValueComparison(double value, double threshold,

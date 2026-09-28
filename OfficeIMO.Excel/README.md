@@ -658,9 +658,13 @@ ASCII letters. Other text is rejected because Excel's localized ordering can
 select different items. Qualified label comparisons use the current process
 culture, matching Excel's locale-dependent ordering when run under the same
 locale. On a single ordinary axis field, it supports value equals,
-not equals, greater than, greater than or equal, less than, and less than or
-equal. Label and value filters can share that field. Value filters use the
-selected measure's aggregation
+not equals, greater than, greater than or equal, less than, less than or
+equal, inclusive between, exclusive not-between, and top/bottom count,
+percent, and sum filters. Count filters include ties at the cutoff; percent
+filters select by cumulative measure value against the grand total, with the
+last item crossing the threshold included. Top/bottom sum and percent
+materialization requires positive numeric item aggregates. Label and value
+filters can share that field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
 filter definition remains available for Excel refresh, and filtered items are
 not converted into manually hidden items. Filter evaluation is bounded by the
