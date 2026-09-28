@@ -16,9 +16,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableSize, depth);
-        double replaced = ResolveDescendantReplacedGridContribution(item, availableSize);
-        double minimum = Math.Max(runs.Count == 0 ? 1D : MeasureGridMinContentRuns(runs), replaced);
-        double maximum = Math.Max(runs.Count == 0 ? 1D : MeasureGridMaxContentRuns(runs), replaced);
+        double minimum = Math.Max(runs.Count == 0 ? 1D : MeasureGridMinContentRuns(runs),
+            ResolveDescendantReplacedGridContribution(item, availableSize, minimum: true));
+        double maximum = Math.Max(runs.Count == 0 ? 1D : MeasureGridMaxContentRuns(runs),
+            ResolveDescendantReplacedGridContribution(item, availableSize));
         return new GridIntrinsicContributions(
             ResolveGridMeasuredContribution(style, minimum),
             ResolveGridMeasuredContribution(style, maximum));

@@ -133,6 +133,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal double? ExplicitHeight;
     internal double? MinWidth;
     internal double? MaxWidth;
+    internal bool MaxWidthUsesPercentage;
     internal double? MinHeight;
     internal double? MaxHeight;
     internal string ObjectFit = "fill";

@@ -363,7 +363,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         } else {
             IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth);
             double content = runs.Count == 0 ? 0D : MeasureGridMinContentRuns(runs);
-            content = Math.Max(content, ResolveDescendantReplacedGridContribution(item, availableWidth));
+            content = Math.Max(content, ResolveDescendantReplacedGridContribution(item, availableWidth, minimum: true));
             content = Math.Max(content, ResolveDescendantDefiniteFlexWidth(item, availableWidth));
             minimum = content + style.HorizontalInsets;
         }

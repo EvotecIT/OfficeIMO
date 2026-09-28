@@ -2,6 +2,7 @@ using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -176,6 +177,41 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(200D, FindFlexShape(rendered, "div#grow-two").Width, 3);
         Assert.Equal(150D, FindFlexShape(rendered, "div#shrink-one").Width, 3);
         Assert.Equal(150D, FindFlexShape(rendered, "div#shrink-two").Width, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_PercentageWidthImageUsesIntrinsicMaximumAndFlexibleMinimum() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(250, 100));
+        string html = "<style>body:not(.reference-template-default) .row{display:flex;gap:80px}</style><div class='row' style='width:600px'>"
+            + "<div id='prose' style='width:100%;background:#eeeeee'><p>Detailed explanatory text for a scientific article appears here and should have a readable line length beside its credited figure.</p></div>"
+            + "<div id='sidebar' style='background:#ddeeff'><figure style='margin:0'><img width='250' height='100' style='width:100%;max-width:100%;height:auto' src='data:image/png;base64," + image + "'><figcaption>Figure caption</figcaption></figure></div>"
+            + "</div>";
+
+        HtmlRenderDocument rendered = RenderFlex(html, 600D);
+        HtmlRenderShape prose = FindFlexShape(rendered, "div#prose");
+        HtmlRenderShape sidebar = FindFlexShape(rendered, "div#sidebar");
+        HtmlRenderImage renderedImage = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.Equal(367D, prose.Width, 0);
+        Assert.Equal(153D, sidebar.Width, 0);
+        Assert.Equal(prose.X + prose.Width + 80D, sidebar.X, 1);
+        Assert.Equal(sidebar.Width, renderedImage.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_IntrinsicImageMeasurementDoesNotEnforceRenderedSurfaceLimit() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1000, 100));
+        string html = "<div style='display:flex;width:600px;gap:80px'>"
+            + "<div style='width:100%'>Article text beside a figure.</div>"
+            + "<div><figure style='margin:0'><img src='data:image/png;base64," + image
+            + "' style='width:100%;max-width:100%;height:auto'><figcaption>Figure caption</figcaption></figure></div></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
+            ViewportWidth = 600D,
+            Margins = HtmlRenderMargins.All(0D),
+            MaxSurfaceWidth = 650
+        });
+        HtmlRenderImage renderedImage = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+        Assert.InRange(renderedImage.Width, 1D, 650D);
     }
 
     [Fact]

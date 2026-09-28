@@ -4,11 +4,11 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
-    private double ResolveReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style) {
+    private double ResolveReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style, bool validateSurface = true) {
         if (IsInlineFrameElement(element)) {
             ReplacedContentSize frameSize = ResolveReplacedContentSize(style, 300D, 150D, hasIntrinsicSize: true);
             double frameWidth = frameSize.Width + style.HorizontalInsets;
-            EnsureReplacedBoxSize(frameWidth, frameSize.Height + style.VerticalInsets);
+            if (validateSurface) EnsureReplacedBoxSize(frameWidth, frameSize.Height + style.VerticalInsets);
             return frameWidth;
         }
         byte[]? bytes;
@@ -56,8 +56,25 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ReplacedContentSize size = ResolveReplacedContentSize(style, intrinsicWidth, intrinsicHeight, hasIntrinsicSize);
         double boxWidth = size.Width + style.HorizontalInsets;
         double boxHeight = size.Height + style.VerticalInsets;
-        EnsureReplacedBoxSize(boxWidth, boxHeight);
+        if (validateSurface) EnsureReplacedBoxSize(boxWidth, boxHeight);
         return boxWidth;
+    }
+
+    private double ResolveIntrinsicReplacedImageBoxWidth(IElement element, HtmlRenderBoxStyle style) {
+        if (!style.ExplicitWidthUsesPercentage && !style.MaxWidthUsesPercentage)
+            return ResolveReplacedImageBoxWidth(element, style);
+        // The containing size is indefinite while measuring a parent's intrinsic width.
+        // Resolve percentage-sized descendants from their replaced content instead.
+        HtmlRenderBoxStyle intrinsicStyle = style.Clone();
+        if (intrinsicStyle.ExplicitWidthUsesPercentage) {
+            intrinsicStyle.ExplicitWidth = null;
+            intrinsicStyle.ExplicitWidthUsesPercentage = false;
+        }
+        if (intrinsicStyle.MaxWidthUsesPercentage) {
+            intrinsicStyle.MaxWidth = null;
+            intrinsicStyle.MaxWidthUsesPercentage = false;
+        }
+        return ResolveReplacedImageBoxWidth(element, intrinsicStyle, validateSurface: false);
     }
 
     private ReplacedContentSize ResolveReplacedContentSize(

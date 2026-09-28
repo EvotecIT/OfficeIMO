@@ -2,6 +2,7 @@ using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -539,6 +540,18 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(200D, wrapper.Width, 3);
         Assert.Equal(wrapper.X + wrapper.Width, after.X, 3);
+    }
+
+    [Fact]
+    public void HtmlGrid_PercentageMaximumDoesNotCapIntrinsicImageTrack() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(500, 100));
+        string html = "<div style='display:grid;width:200px;grid-template-columns:max-content 1fr'>"
+            + "<img src='data:image/png;base64," + image + "' style='width:100%;max-width:100%'>"
+            + "<span id='after' style='background:blue'>B</span></div>";
+
+        HtmlRenderDocument rendered = RenderGrid(html, 200D);
+        HtmlRenderShape after = FindGridShape(rendered, "span#after");
+        Assert.Equal(500D, after.X, 1);
     }
 
     [Fact]
