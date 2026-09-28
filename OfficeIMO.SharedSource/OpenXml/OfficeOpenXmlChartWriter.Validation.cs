@@ -45,6 +45,9 @@ namespace OfficeIMO.OpenXml.Internal {
             }
 
             List<SharedSeriesDescriptor> descriptors = DescribeSharedSeries(data, defaultKind);
+            if (descriptors.Any(item => item.Series.PointExplosions != null &&
+                    item.Kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut))
+                throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
             bool hasSecondary = descriptors.Any(item => item.AxisGroup == OfficeChartAxisGroup.Secondary);
             if (hasSecondary && descriptors.All(item => item.AxisGroup == OfficeChartAxisGroup.Secondary)) {
                 throw new NotSupportedException("A secondary-axis chart requires at least one primary-axis series.");

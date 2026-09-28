@@ -233,17 +233,6 @@ public sealed class WordChartPresentationQualificationTests {
     [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
-    public void Snapshot_RejectsExplodedSlices(OfficeChartKind kind) {
-        using var document = WordDocument.Create();
-        var chart = Create(document, kind);
-        chart.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Single().AddChild(
-            new C.DataPoint(new C.Index { Val = 0 }, new C.Explosion { Val = 25 }), true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
-    }
-
-    [Theory]
-    [InlineData(OfficeChartKind.Pie)]
-    [InlineData(OfficeChartKind.Doughnut)]
     public void Snapshot_RejectsUnrepresentedUniformRadialPalette(OfficeChartKind kind) {
         using var document = WordDocument.Create();
         var chart = Create(document, kind);

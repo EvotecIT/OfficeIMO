@@ -18,6 +18,7 @@ namespace OfficeIMO.Excel {
             chart.ApplyAuthoredSeriesStyles(excelData.Series,
                 data.Series.Select(series => series.ShowInLegend).ToList());
             chart.ApplySharedPointStyles(data.Series);
+            chart.ApplySharedPointExplosions(data.Series);
             return chart;
         }
 
@@ -25,6 +26,9 @@ namespace OfficeIMO.Excel {
             var series = new List<ExcelChartSeries>(data.Series.Count);
             foreach (OfficeChartSeries item in data.Series) {
                 ExcelChartType? chartType = MapChartKind(item.RenderKind ?? defaultKind);
+                if (item.PointExplosions != null &&
+                    chartType is not ExcelChartType.Pie and not ExcelChartType.Doughnut)
+                    throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
                 OfficeChartAxisGroup axisGroup = item.AxisGroup == OfficeChartAxisGroup.Secondary
                     ? OfficeChartAxisGroup.Secondary
                     : OfficeChartAxisGroup.Primary;

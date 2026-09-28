@@ -217,6 +217,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 markerOutlineColor: markerOutlineColor, markerOutlineWidth: markerOutlineWidth,
                 strokeWidth: width, strokeDashStyle: ReadDash(outline), renderKind: kind, axisGroup: axisGroup)
                 .WithPointStyles(styles);
+            if (kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+                if (OfficeOpenXmlChartExplosions.TryRead(element, pointOverrides, values.Count,
+                    out int[]? explosions))
+                    data = data.WithPointExplosions(explosions);
+                else unsupported = true;
+            }
             return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data, unsupported,
                 element.GetFirstChild<C.Order>()?.Val?.Value);
         }

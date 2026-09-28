@@ -63,6 +63,7 @@ public static partial class OfficeChartDrawingRenderer {
         GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
             leftLegend, 48D, 36D, out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
+        radius /= 1D + GetMaximumRenderableExplosion(values, categories.Count) / 100D;
         double start = GetFirstSliceAngle(snapshot.RadialLayout);
         int zeroLabelIndex = 0;
         OfficeColor zeroLabelColor = GetPointDataLabelColor(style, values,
@@ -76,21 +77,25 @@ public static partial class OfficeChartDrawingRenderer {
             double sweep = value / total * Math.PI * 2D;
             if (value > 0D) {
                 double end = start + sweep;
+                double middle = start + sweep / 2D;
+                int explosion = values.PointExplosions?[i] ?? 0;
+                double sliceCenterX = centerX + Math.Cos(middle) * radius * explosion / 100D;
+                double sliceCenterY = centerY + Math.Sin(middle) * radius * explosion / 100D;
                 var points = new List<OfficePoint> {
-                    new OfficePoint(centerX, centerY)
+                    new OfficePoint(sliceCenterX, sliceCenterY)
                 };
                 int segments = Math.Max(2, (int)Math.Ceiling(sweep / (Math.PI / 18D)));
                 for (int segment = 0; segment <= segments; segment++) {
                     double angle = start + sweep * segment / segments;
                     points.Add(new OfficePoint(
-                        centerX + Math.Cos(angle) * radius,
-                        centerY + Math.Sin(angle) * radius));
+                        sliceCenterX + Math.Cos(angle) * radius,
+                        sliceCenterY + Math.Sin(angle) * radius));
                 }
 
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddStyledPointPolygon(drawing, points, sliceColor, GetPointStyle(values, i), OfficeColor.White, 0.5D);
                 if (ShouldShowDataLabel(layout, 0, i)) {
-                    AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, centerX, centerY, radius * 0.58D, start + sweep / 2D, zeroLabelIndex: null);
+                    AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null);
                 }
 
                 start = end;
@@ -154,6 +159,9 @@ public static partial class OfficeChartDrawingRenderer {
             leftLegend, 48D, 36D, out double centerX, out double centerY, out double radius,
             out double visualWidth, out double contentHeight);
 
+        int maximumExplosion = renderableSeries.Max(item =>
+            GetMaximumRenderableExplosion(item.Series, categories.Count));
+        radius /= 1D + maximumExplosion / 100D;
         double holeRadius = radius * snapshot.RadialLayout.DoughnutHolePercent / 100D;
         double ringThickness = (radius - holeRadius) / renderableSeries.Count;
         for (int s = 0; s < renderableSeries.Count; s++) {
@@ -175,10 +183,14 @@ public static partial class OfficeChartDrawingRenderer {
                 double sweep = value / total * Math.PI * 2D;
                 if (value > 0D) {
                     double end = start + sweep;
+                    double middle = start + sweep / 2D;
+                    int explosion = values.PointExplosions?[i] ?? 0;
+                    double sliceCenterX = centerX + Math.Cos(middle) * radius * explosion / 100D;
+                    double sliceCenterY = centerY + Math.Sin(middle) * radius * explosion / 100D;
                     OfficeColor sliceColor = GetPointColor(style, values, i);
-                    AddDoughnutSlice(drawing, centerX, centerY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
+                    AddDoughnutSlice(drawing, sliceCenterX, sliceCenterY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
                     if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                        AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, centerX, centerY, (innerRadius + outerRadius) / 2D, start + sweep / 2D, zeroLabelIndex: null);
+                        AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, (innerRadius + outerRadius) / 2D, middle, zeroLabelIndex: null);
                     }
 
                     start = end;
@@ -260,6 +272,15 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return total;
+    }
+
+    private static int GetMaximumRenderableExplosion(OfficeChartSeries series, int categoryCount) {
+        if (series.PointExplosions == null) return 0;
+        int maximum = 0;
+        for (int index = 0; index < categoryCount; index++)
+            if (TryGetSeriesValue(series, index, out double value) && value > 0D)
+                maximum = Math.Max(maximum, series.PointExplosions[index]);
+        return maximum;
     }
 
     private static void AddPieSlice(OfficeDrawing drawing, double centerX, double centerY, double radius, double start, double sweep, OfficeColor color, OfficeChartPointStyle? pointStyle = null) {

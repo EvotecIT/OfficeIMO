@@ -14,6 +14,15 @@ public sealed partial class ExcelChart {
         Save();
     }
 
+    internal void ApplySharedPointExplosions(System.Collections.Generic.IReadOnlyList<OfficeChartSeries> series) {
+        for (int index = 0; index < series.Count; index++) {
+            OfficeChartSeries data = series[index];
+            if (data.PointExplosions != null)
+                ApplySeriesByIndex(index, native => OfficeOpenXmlChartExplosions.ApplySeries(native, data));
+        }
+        Save();
+    }
+
     /// <summary>Replaces a point's fill/outline overrides. Null restores series/theme inheritance.</summary>
     public ExcelChart SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeChartPointStyle? style) {
         if (seriesIndex < 0) throw new ArgumentOutOfRangeException(nameof(seriesIndex));

@@ -374,7 +374,8 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < data.Series.Count; i++) {
                 ExcelChartSeries current = data.Series[i];
                 if (styles.TryGetValue(i, out ImageExportSeriesStyle? style)) {
-                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth).WithPointStyles(style.PointStyles));
+                    series.Add(current.WithImageExportStyle(style.SeriesColorArgb, style.SeriesLineWidth, style.SeriesLineDashStyle, style.PointColorArgb, style.ShowMarkers, style.ConnectLine, style.MarkerSize, style.MarkerShape, style.MarkerOutlineColorArgb, style.MarkerOutlineWidth)
+                        .WithPointStyles(style.PointStyles).WithPointExplosions(style.PointExplosions));
                     changed = true;
                 } else {
                     series.Add(current);
@@ -417,8 +418,15 @@ namespace OfficeIMO.Excel {
                 style.MarkerOutlineWidth = GetImageExportMarkerOutlineWidth(marker);
                 string? markerFill = GetImageExportMarkerFillColor(marker, workbookPart);
                 style.PointColorArgb = GetImageExportPointColors(series, valueCount, markerFill, workbookPart);
-                style.PointStyles = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(series,
-                    valueCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(series);
+                style.PointStyles = OfficeOpenXmlChartPointStyles.Read(pointOverrides, valueCount,
+                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                if (series is C.PieChartSeries) {
+                    if (!OfficeOpenXmlChartExplosions.TryRead(series, pointOverrides, valueCount,
+                        out int[]? explosions))
+                        throw new NotSupportedException("The native pie or doughnut point explosion cannot be rendered.");
+                    style.PointExplosions = explosions;
+                }
 
                 if (style.HasAny && !styles.ContainsKey(index)) {
                     styles.Add(index, style);
@@ -1508,6 +1516,8 @@ namespace OfficeIMO.Excel {
 
             internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; set; }
 
+            internal IReadOnlyList<int>? PointExplosions { get; set; }
+
             internal bool ShowMarkers { get; set; } = true;
 
             internal bool? ConnectLine { get; set; }
@@ -1520,7 +1530,7 @@ namespace OfficeIMO.Excel {
 
             internal double? MarkerOutlineWidth { get; set; }
 
-            internal bool HasAny => PointStyles != null || SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
+            internal bool HasAny => PointStyles != null || PointExplosions != null || SeriesColorArgb != null || SeriesLineWidth != null || SeriesLineDashStyle != null || PointColorArgb != null || !ShowMarkers || ConnectLine.HasValue || MarkerSize != null || MarkerShape != null || MarkerOutlineColorArgb != null || MarkerOutlineWidth != null;
         }
     }
 }
