@@ -87,6 +87,44 @@ namespace OfficeIMO.Tests {
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
         }
 
+        [Theory]
+        [InlineData("boolean", "TRUE", 60d)]
+        [InlineData("wildcard", "E*st", 60d)]
+        [InlineData("escaped-wildcard", "E~*st", 20d)]
+        public void Test_PivotLabelContains_UsesDisplayedCaptionsAndExcelWildcards(
+            string kind, string criterion, double total) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Authored.xlsx");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Item");
+                source.CellValue(1, 2, "Sales");
+                if (kind == "boolean") {
+                    source.CellValue(2, 1, true);
+                    source.CellValue(3, 1, false);
+                    source.CellValue(4, 1, true);
+                } else {
+                    source.CellValue(2, 1, "E*st");
+                    source.CellValue(3, 1, "North");
+                    source.CellValue(4, 1, "East");
+                }
+                source.CellValue(2, 2, 20d);
+                source.CellValue(3, 2, 30d);
+                source.CellValue(4, 2, 40d);
+                source.Pivot("A1:B4").Rows("Item").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular)
+                    .Filter(ExcelPivotFilter.LabelContains("Item", criterion))
+                    .At("D4", "FilteredPivot");
+                var result = source.MaterializePivotTable("FilteredPivot");
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
         [Fact]
         public void Test_PivotLabelValueFilters_RefreshRequalifiesValueItem() {
             string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus");

@@ -60,9 +60,7 @@ namespace OfficeIMO.Excel {
                             : PivotMaterializedKey(key, plan.SourceDateSystem);
                         bool subtotalLabel = entry.Type == ItemValues.Default && depth == keys.Length;
                         if (subtotalLabel) {
-                            string text = renamed ? displayName! : key.Kind == PivotFieldValueKind.Blank ? "(blank)"
-                                : key.Kind == PivotFieldValueKind.Boolean ? key.Boolean == true ? "TRUE" : "FALSE"
-                                : key.Kind == PivotFieldValueKind.Date ? PivotMaterializedDateCaption(key, plan.SourceDateSystem) : key.Text;
+                            string text = renamed ? displayName! : PivotMaterializedCaption(key, plan.SourceDateSystem);
                             label = PivotMaterializedText(dateRowLayout && axis.Layout.HasValues && rowValuesPosition > 0
                                 ? text + " " + (measures[entry.Measure].Name?.Value ?? "") : text + " Total");
                         }
@@ -206,6 +204,12 @@ namespace OfficeIMO.Excel {
             double serial = ExcelPivotCacheDateCodec.ToSerial(key.Date!.Value, dateSystem);
             return FormatWorksheetDateText(serial, ExcelDateSystemConverter.FromSerial(serial, dateSystem), "yyyy-MM-dd HH:mm:ss", dateSystem);
         }
+        private static string PivotMaterializedCaption(PivotFieldValue key, ExcelDateSystem dateSystem) => key.Kind switch {
+            PivotFieldValueKind.Blank => "(blank)",
+            PivotFieldValueKind.Boolean => key.Boolean == true ? "TRUE" : "FALSE",
+            PivotFieldValueKind.Date => PivotMaterializedDateCaption(key, dateSystem),
+            _ => key.Text
+        };
         private static ExcelCellData PivotMaterializedKey(PivotFieldValue key, ExcelDateSystem dateSystem) => key.Kind switch {
             PivotFieldValueKind.Blank => PivotMaterializedText("(blank)"),
             PivotFieldValueKind.Boolean => new(ExcelCellDataKind.Boolean, key.Boolean),

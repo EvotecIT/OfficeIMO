@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace OfficeIMO.Excel {
@@ -28,10 +29,12 @@ namespace OfficeIMO.Excel {
                 if (custom.Operator != null && custom.Operator.Value != FilterOperatorValues.Equal
                     || !string.Equals(custom.Val?.Value, "*" + needle + "*", StringComparison.Ordinal))
                     throw new NotSupportedException("The label filter does not have a qualified contains predicate.");
+                var pattern = new Regex("\\A" + CreateFormulaWildcardPattern(custom.Val!.Value!) + "\\z",
+                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
                 var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
                     string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
-                        ? caption : key.Text;
-                    return label.IndexOf(needle, StringComparison.OrdinalIgnoreCase) >= 0;
+                        ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
+                    return pattern.IsMatch(label);
                 }));
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
