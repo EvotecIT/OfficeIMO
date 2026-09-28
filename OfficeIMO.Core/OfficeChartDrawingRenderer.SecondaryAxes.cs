@@ -68,9 +68,11 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange range = ApplyValueAxisScale(
             GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary), axisLayout,
             horizontal: barChart);
-        bool usesPercentDefaults = snapshot.Data.Series.Any(series =>
-            series.AxisGroup == OfficeChartAxisGroup.Secondary &&
-            IsPercentKind(GetEffectiveSeriesKind(snapshot, series)));
+        // A shared secondary scale may include ordinary and percent-stacked
+        // layers. Only use percent labels when every contributing layer is percent.
+        bool usesPercentDefaults = snapshot.Data.Series
+            .Where(series => series.AxisGroup == OfficeChartAxisGroup.Secondary)
+            .All(series => IsPercentKind(GetEffectiveSeriesKind(snapshot, series)));
         IReadOnlyList<double> majorTicks = GetValueAxisMajorTicks(range, axis?.MajorUnit);
         double labelBandWidth = showLabels
             ? MeasureValueAxisLabelBandWidth(range, majorTicks, axisLayout, usesPercentDefaults,

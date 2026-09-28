@@ -214,7 +214,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [InlineData("logarithmic")]
     [InlineData("reversed")]
     [InlineData("displayUnits")]
-    [InlineData("sourceLinked")]
     [InlineData("deleted")]
     public void SecondaryValueAxis_UnsupportedProjectionPreservesNativeUpdates(string setting) {
         using var presentation = PowerPointPresentation.Create();
@@ -230,7 +229,6 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         if (setting == "deleted") secondary.AddChild(new C.Delete { Val = true }, true);
         else if (setting == "logarithmic") secondary.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
         else if (setting == "reversed") secondary.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
-        else if (setting == "sourceLinked") secondary.NumberingFormat!.SourceLinked = true;
         else secondary.AddChild(new C.DisplayUnits(new C.BuiltInUnit { Val = C.BuiltInUnitValues.Thousands }), true);
         string Appearance(C.ValueAxis axis) {
             var copy = (C.ValueAxis)axis.CloneNode(true);
@@ -312,6 +310,25 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal(-2d, snapshot.Layout.VerticalAxisMinimum);
         Assert.Equal(8d, snapshot.Layout.VerticalAxisMaximum);
         Assert.Equal(2d, snapshot.Layout.VerticalAxisMajorUnit);
+    }
+
+    [Fact]
+    public void SecondaryValueAxis_SourceLinkedGeneralWorkbookUsesResolvedFormat() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d, 150d }),
+            new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        var secondary = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right);
+        secondary.NumberingFormat!.FormatCode = "$0.00";
+        secondary.NumberingFormat.SourceLinked = true;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("General", snapshot.Layout.SecondaryValueAxis!.NumberFormat);
+        chart.UpdateData(data);
+        Assert.True(secondary.NumberingFormat.SourceLinked.Value);
     }
 
     [Theory]

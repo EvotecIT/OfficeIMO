@@ -97,7 +97,8 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (!forDataUpdate) {
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea);
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea,
+                        resolveSourceLinkedFormats: true);
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyTypefaceOnlyTitleAppearance(plotArea);
                 }
 
@@ -622,7 +623,9 @@ namespace OfficeIMO.PowerPoint {
                 verticalAxisMinorTickMark: verticalMinorTickMark,
                 axisTitleFontFamily: axisTitleFont)
                 .WithSecondaryValueAxis(forDataUpdate ? null :
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea));
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
+                        () => OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
+                            .ResolveSourceLinkedGeneral(GetChartPart())));
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(

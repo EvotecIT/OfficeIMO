@@ -7,9 +7,11 @@ namespace OfficeIMO.PowerPoint {
     internal static class PowerPointChartSnapshotMapper {
         internal static OfficeChartSnapshot ToOfficeSnapshot(PowerPointChartSnapshot snapshot,
             double width, double height, OfficeChartStyle? style = null, OfficeChartLayout? layout = null) {
-            var series = snapshot.Data.Series.Select((item, index) => {
-                OfficeColor? color = style != null && item.Color == OfficeChartStyle.Default.GetSeriesColor(index)
-                    ? style.GetSeriesColor(index) : item.Color;
+            var series = snapshot.Data.Series.Select(item => {
+                // A native colour equal to the default palette may still be an
+                // intentional explicit fill. Preserve it unless provenance says
+                // the series is automatic; nullable colours inherit the style.
+                OfficeColor? color = item.Color;
                 return item.BubbleSizes != null
                 ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                     item.BubbleSizes, color, item.PointColors,
