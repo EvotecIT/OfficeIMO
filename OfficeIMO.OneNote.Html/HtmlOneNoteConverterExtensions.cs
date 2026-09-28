@@ -288,6 +288,14 @@ public static class HtmlOneNoteConverterExtensions {
         HtmlSemanticTable? sourceTable = source.Table;
         if (sourceTable == null || sourceTable.Rows.Count == 0) return;
 
+        if (!TryProjectTableGrid(sourceTable, budget.Limits.MaxTableCells,
+            out List<List<HtmlSemanticTableCell?>> grid, out int columns,
+            out bool approximatedGrid, out string gridLimit)) {
+            Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "The HTML table could not fit OneNote's rectangular native table limits.",
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission, gridLimit);
+            return;
+        }
         if (!budget.TryReserveTableWithShape(out string tableLimit)) {
             Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                 "An HTML table was omitted because the shared import limit was reached.",
@@ -296,36 +304,34 @@ public static class HtmlOneNoteConverterExtensions {
             return;
         }
         var table = new OneNoteTable { BordersVisible = true };
-        int cells = 0;
-        int maxTableCells = budget.Limits.MaxTableCells;
-        foreach (HtmlSemanticTableRow rowElement in sourceTable.Rows) {
+        foreach (List<HtmlSemanticTableCell?> gridRow in grid) {
             var row = new OneNoteTableRow();
-            foreach (HtmlSemanticTableCell cellElement in rowElement.Cells) {
-                if (++cells > maxTableCells) {
-                    Add(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                        "Remaining HTML table cells were omitted because the configured table limit was reached.",
-                        HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission,
-                        "limit=" + maxTableCells);
-                    break;
-                }
+            for (int column = 0; column < columns; column++) {
+                HtmlSemanticTableCell? cellElement = column < gridRow.Count ? gridRow[column] : null;
                 var cell = new OneNoteTableCell();
-                if (TryParseArgb(cellElement.Style?.GetValue("background-color"), out uint shading)) {
+                if (cellElement != null && TryParseArgb(cellElement.Style?.GetValue("background-color"), out uint shading)) {
                     cell.ShadingColorArgb = shading;
                 }
-                OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, cellElement.Style, result, budget);
-                if (paragraph != null) cell.Content.Add(paragraph);
-                if (options.ImportImages) {
+                if (cellElement != null) {
+                    OneNoteParagraph? paragraph = CreateParagraph(cellElement.Text, cellElement.Runs, 0, cellElement.Style, result, budget);
+                    if (paragraph != null) cell.Content.Add(paragraph);
+                }
+                if (cellElement != null && options.ImportImages) {
                     foreach (HtmlSemanticResource resource in cellElement.Resources.Where(item => item.Kind == HtmlResourceKind.Image)) {
                         ImportImage(resource, cell.Content, result, budget);
                     }
                 }
                 row.Cells.Add(cell);
             }
-            if (row.Cells.Count > 0) table.Rows.Add(row);
-            if (cells >= maxTableCells) break;
+            table.Rows.Add(row);
         }
-        if (table.Rows.Count == 0) return;
-        SetImportedTableColumnWidths(source, table, result);
+        if (approximatedGrid) {
+            Add(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "HTML spans or uneven rows were flattened to OneNote's rectangular editable table; merged-cell alignment is not retained.",
+                HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Approximation,
+                "columns=" + columns);
+        }
+        SetImportedTableColumnWidths(source, table, grid, result);
         string caption = string.Concat(sourceTable.CaptionRuns.Select(run => run.Text));
         if (caption.Length > 0) {
             OneNoteParagraph? captionParagraph = CreateParagraph(caption, sourceTable.CaptionRuns,
@@ -343,8 +349,75 @@ public static class HtmlOneNoteConverterExtensions {
         result.Tables++;
     }
 
+    private static bool TryProjectTableGrid(
+        HtmlSemanticTable source, int maxTableCells,
+        out List<List<HtmlSemanticTableCell?>> grid, out int columns,
+        out bool approximated, out string limit) {
+        grid = new List<List<HtmlSemanticTableCell?>>();
+        columns = 1;
+        approximated = false;
+        limit = string.Empty;
+        int rows = source.Rows.Count;
+        if (rows > maxTableCells) {
+            limit = "rows=" + rows + ";maxCells=" + maxTableCells;
+            return false;
+        }
+
+        // Occupancy preserves the column of cells following a rowspan. Only the
+        // anchor is materialized with content; covered positions stay editable blanks.
+        var occupiedUntilRow = new int[byte.MaxValue];
+        for (int column = 0; column < occupiedUntilRow.Length; column++) occupiedUntilRow[column] = -1;
+        for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+            var projected = new List<HtmlSemanticTableCell?>();
+            for (int column = 0; column < occupiedUntilRow.Length; column++) {
+                if (occupiedUntilRow[column] >= rowIndex) {
+                    while (projected.Count <= column) projected.Add(null);
+                }
+            }
+            int cursor = 0;
+            foreach (HtmlSemanticTableCell cell in source.Rows[rowIndex].Cells) {
+                int span = Math.Max(1, cell.ColumnSpan);
+                if (span > byte.MaxValue) {
+                    limit = "columns=" + span + ";maxColumns=" + byte.MaxValue;
+                    return false;
+                }
+                while (cursor + span <= byte.MaxValue) {
+                    bool free = true;
+                    for (int offset = 0; offset < span; offset++) {
+                        if (occupiedUntilRow[cursor + offset] >= rowIndex) {
+                            free = false;
+                            cursor += offset + 1;
+                            break;
+                        }
+                    }
+                    if (free) break;
+                }
+                if (cursor + span > byte.MaxValue) {
+                    limit = "columns>" + byte.MaxValue + ";maxColumns=" + byte.MaxValue;
+                    return false;
+                }
+                while (projected.Count < cursor + span) projected.Add(null);
+                projected[cursor] = cell;
+                int finalRow = (int)Math.Min(rows - 1L, rowIndex + (long)Math.Max(1, cell.RowSpan) - 1L);
+                for (int offset = 0; offset < span; offset++) occupiedUntilRow[cursor + offset] = finalRow;
+                approximated |= cell.RowSpan != 1 || cell.ColumnSpan != 1;
+                cursor += span;
+            }
+            columns = Math.Max(columns, projected.Count);
+            if ((long)columns * rows > maxTableCells) {
+                limit = "columns=" + columns + ";rows=" + rows + ";maxCells=" + maxTableCells;
+                return false;
+            }
+            grid.Add(projected);
+        }
+        int projectedColumns = columns;
+        approximated |= grid.Any(row => row.Count < projectedColumns);
+        return true;
+    }
+
     private static void SetImportedTableColumnWidths(
-        HtmlSemanticBlock source, OneNoteTable table, HtmlToOneNoteSectionResult result) {
+        HtmlSemanticBlock source, OneNoteTable table,
+        IReadOnlyList<List<HtmlSemanticTableCell?>> grid, HtmlToOneNoteSectionResult result) {
         int columns = table.Rows.Max(row => row.Cells.Count);
         if (columns == 0) return;
 
@@ -379,9 +452,9 @@ public static class HtmlOneNoteConverterExtensions {
         var reportedConflicts = new bool[columns];
         double explicitTotal = 0D;
         for (int row = 0; row < table.Rows.Count; row++) {
-            HtmlSemanticTableRow sourceRow = source.Table!.Rows[row];
-            for (int column = 0; column < Math.Min(columns, sourceRow.Cells.Count); column++) {
-                HtmlSemanticTableCell cell = sourceRow.Cells[column];
+            for (int column = 0; column < grid[row].Count; column++) {
+                HtmlSemanticTableCell? cell = grid[row][column];
+                if (cell == null) continue;
                 string? cellWidth = cell.Style?.GetValue("width");
                 if (!IsAuthoredWidth(cellWidth)) continue;
                 if (cell.ColumnSpan != 1 || !TryParseTableWidth(cellWidth, totalWidth, out double requestedColumnWidth)) {

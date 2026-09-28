@@ -39,6 +39,79 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void OneNoteHtml_ReportsFlattenedUnevenTableAndSavesRectangularNativeRows() {
+        const string html = "<table><tr><th colspan='2'>SI base units</th></tr>"
+            + "<tr><td>Length</td><td>meter</td></tr><tr><td>Time</td></tr></table>";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        OneNoteSection reopened = OneNoteSectionReader.Read(
+            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(3, table.Rows.Count);
+        Assert.All(table.Rows, row => Assert.Equal(2, row.Cells.Count));
+        Assert.Contains("SI base units", reopened.ToHtmlDocument(), StringComparison.Ordinal);
+        Assert.Contains("meter", reopened.ToHtmlDocument(), StringComparison.Ordinal);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+    }
+
+    [Fact]
+    public void OneNoteHtml_FlattenedSpansKeepFollowingCellsInTheirSourceColumns() {
+        const string html = "<table><tr><th colspan='2'>Service</th><th>Definition</th></tr>"
+            + "<tr><td rowspan='2'>Basic</td><td>30 minutes</td><td>Improved source</td></tr>"
+            + "<tr><td>Limited</td><td>Over 30 minutes</td></tr></table>";
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        OneNoteSection reopened = OneNoteSectionReader.Read(
+            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.All(table.Rows, row => Assert.Equal(3, row.Cells.Count));
+        Assert.Equal("Service", CellText(table.Rows[0].Cells[0]));
+        Assert.Equal(string.Empty, CellText(table.Rows[0].Cells[1]));
+        Assert.Equal("Definition", CellText(table.Rows[0].Cells[2]));
+        Assert.Equal("Basic", CellText(table.Rows[1].Cells[0]));
+        Assert.Equal("30 minutes", CellText(table.Rows[1].Cells[1]));
+        Assert.Equal("Improved source", CellText(table.Rows[1].Cells[2]));
+        Assert.Equal(string.Empty, CellText(table.Rows[2].Cells[0]));
+        Assert.Equal("Limited", CellText(table.Rows[2].Cells[1]));
+        Assert.Equal("Over 30 minutes", CellText(table.Rows[2].Cells[2]));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+
+        static string CellText(OneNoteTableCell cell) => string.Concat(cell.Content
+            .OfType<OneNoteParagraph>().SelectMany(paragraph => paragraph.Runs).Select(run => run.Text));
+    }
+
+    [Fact]
+    public void OneNoteHtml_OversizedTableLeavesBudgetForFollowingValidTable() {
+        const string html = "<table><tr><td>Too</td><td>many</td></tr><tr><td>cells</td><td>here</td></tr></table>"
+            + "<table><tr><td>Retained</td></tr></table>";
+        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        limits.MaxTables = 1;
+        limits.MaxTableCells = 3;
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult(
+            new HtmlToOneNoteOptions { Limits = limits });
+        OneNoteSection reopened = OneNoteSectionReader.Read(
+            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(1, result.Tables);
+        Assert.Equal("Retained", string.Concat(table.Rows[0].Cells[0].Content
+            .OfType<OneNoteParagraph>().SelectMany(paragraph => paragraph.Runs).Select(run => run.Text)));
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
+            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Fact]
     public void Rtf_ReportsUnsupportedAriaTableStructureAsApproximation() {
         const string html = "<div role='table'><p>Unstructured</p><div role='row'><div role='cell'>Value</div></div></div>";
 
