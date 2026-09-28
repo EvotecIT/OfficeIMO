@@ -89,6 +89,8 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [InlineData("boolean", "TRUE", 60d)]
+        [InlineData("blank", "(blank)", 30d)]
+        [InlineData("error", "#DIV/0!", 20d)]
         [InlineData("wildcard", "E*st", 60d)]
         [InlineData("escaped-wildcard", "E~*st", 20d)]
         public void Test_PivotLabelContains_UsesDisplayedCaptionsAndExcelWildcards(
@@ -102,6 +104,13 @@ namespace OfficeIMO.Tests {
                     source.CellValue(2, 1, true);
                     source.CellValue(3, 1, false);
                     source.CellValue(4, 1, true);
+                } else if (kind == "blank") {
+                    source.CellValue(2, 1, "East");
+                    source.CellValue(4, 1, "West");
+                } else if (kind == "error") {
+                    source.CellError(2, 1, "#DIV/0!");
+                    source.CellValue(3, 1, "North");
+                    source.CellValue(4, 1, "East");
                 } else {
                     source.CellValue(2, 1, "E*st");
                     source.CellValue(3, 1, "North");
@@ -123,6 +132,35 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
+        [Theory]
+        [InlineData("date")]
+        [InlineData("number")]
+        public void Test_PivotLabelContains_DoesNotMaterializeUnqualifiedFormattedCaptions(string kind) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Unqualified.xlsx");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Item");
+                source.CellValue(1, 2, "Sales");
+                if (kind == "date") {
+                    source.CellValue(2, 1, new DateTime(2025, 1, 1));
+                    source.CellValue(3, 1, new DateTime(2026, 1, 1));
+                } else {
+                    source.CellValue(2, 1, 1000d);
+                    source.CellValue(3, 1, 2000d);
+                }
+                source.CellValue(2, 2, 20d);
+                source.CellValue(3, 2, 30d);
+                source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular)
+                    .Filter(ExcelPivotFilter.LabelContains("Item", kind == "date" ? "2025" : "1"))
+                    .At("D4", "FilteredPivot");
+                Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("FilteredPivot"));
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
         }
 
         [Fact]

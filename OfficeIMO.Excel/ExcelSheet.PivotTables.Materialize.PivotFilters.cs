@@ -23,6 +23,9 @@ namespace OfficeIMO.Excel {
 
             foreach (var filter in filters.Where(filter => filter.Type?.Value == PivotFilterValues.CaptionContains)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
+                if (maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date
+                    || key.Kind == PivotFieldValueKind.Number))
+                    throw new NotSupportedException("Label-filter materialization has not qualified formatted date or numeric captions.");
                 string needle = filter.StringValue1?.Value
                     ?? throw new NotSupportedException("The label filter has no saved criterion.");
                 var custom = QualifiedPivotCustomFilter(filter);

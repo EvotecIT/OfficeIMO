@@ -645,7 +645,8 @@ Manual item filters retain their selected keys when source item order changes.
 New source keys remain excluded from a manually filtered field unless its
 `IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
 records is rejected before changing the saved view.
-Label-contains filters on ordinary row or column fields and value-greater-than
+Label-contains filters on ordinary row or column fields with text, Boolean,
+blank, or error captions and value-greater-than
 filters on a single ordinary axis field can be materialized, including both
 filters on the same field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
@@ -680,7 +681,8 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Other date levels and layouts, custom non-text grouping, other label/value pivot filter types and multi-field value filtering,
+Other date levels and layouts, custom non-text grouping, formatted date/numeric label filters,
+other label/value pivot filter types and multi-field value filtering,
 calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.
