@@ -13,14 +13,19 @@ public class WordChartSeriesQualificationTests {
     [InlineData(OfficeChartKind.Area)]
     [InlineData(OfficeChartKind.AreaStacked)]
     [InlineData(OfficeChartKind.AreaStacked100)]
-    public void Snapshot_RejectsHiddenAreaOutlinesThatTheRendererCannotRepresent(OfficeChartKind kind) {
+    public void Snapshot_MapsHiddenAreaOutlinesToFillOnlyGeometry(OfficeChartKind kind) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
         var outline = chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
         outline.RemoveAllChildren(); outline.Append(new A.NoFill());
-        Assert.False(chart.TryGetSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.False(Assert.Single(snapshot.Data.Series).ConnectLine);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        var area = Assert.Single(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Polygon &&
+            shape.Shape.FillColor == OfficeColor.Parse("#123456"));
+        Assert.Null(area.Shape.StrokeColor);
     }
     [Theory]
     [InlineData(OfficeChartKind.Line)]

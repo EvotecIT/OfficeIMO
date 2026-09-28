@@ -565,7 +565,9 @@ Passing null clears the point's fill and outline overrides.
 
 Native save/reopen, chart snapshots, managed images, PDF export, and Markdown SVG chart
 fallbacks carry supported point styles. Pie legend swatches follow their slices.
-Static area charts use the series fill and report unsupported per-point styling.
+Static area charts use the opaque series fill, honor an explicit no-outline series,
+and report unsupported per-point styling. Imported native point overrides remain
+in the editable chart package.
 See the [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
 
 ## Managed image export

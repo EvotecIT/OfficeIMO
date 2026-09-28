@@ -25,6 +25,20 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_RejectsMidpointCrossingInMixedAreaAndLinePlot() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Area, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Area", new[] { 3d, 4d }),
+            new OfficeChartSeries("Line", new[] { 5d, 6d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line,
+                axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Last()
+            .GetFirstChild<C.CrossBetween>()!.Val = C.CrossBetweenValues.MidpointCategory;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData("legend")]
     [InlineData("chart")]
@@ -143,6 +157,16 @@ public sealed class WordChartPresentationQualificationTests {
             native.GetFirstChild<C.Title>()!.AddChild(new C.ChartShapeProperties(
                 new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })), true);
         }
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsDateFormattingOnNumericCategoryLabels() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Area, new OfficeChartData(
+            new[] { "1", "2" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
+        var categoryAxis = chart.ChartPart!.ChartSpace!.Descendants<C.CategoryAxis>().Single();
+        categoryAxis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "m/d/yyyy";
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 

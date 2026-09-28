@@ -35,8 +35,14 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("Category-axis label and tick skipping cannot be projected.");
             if (plot?.Descendants<C.LabelAlignment>().Any(alignment => alignment.Val?.Value is C.LabelAlignmentValues value && value != C.LabelAlignmentValues.Center) == true)
                 throw new NotSupportedException("Non-centered category label alignment cannot be projected.");
+            bool area = kind is OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
+            var chartLayers = plot?.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
+            bool areaOnly = area && chartLayers?.Length > 0 &&
+                chartLayers.All(element => element.LocalName is "areaChart" or "area3DChart");
             if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true ||
-                plot?.Descendants<C.CrossBetween>().Any(crossing => crossing.Val?.Value is C.CrossBetweenValues value && value != C.CrossBetweenValues.Between) == true)
+                plot?.Descendants<C.CrossBetween>().Any(crossing => crossing.Val?.Value is C.CrossBetweenValues value &&
+                    value != C.CrossBetweenValues.Between && !(areaOnly && value == C.CrossBetweenValues.MidpointCategory)) == true)
                 throw new NotSupportedException("Independent category label offsets and cross-between geometry cannot be projected.");
             OpenXmlCompositeElement? horizontal = null, vertical = null;
             if (!radial && plot != null) {
@@ -97,7 +103,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 dataLabelSeparator: labels.Separator, dataLabelNumberFormat: labels.NumberFormat, dataLabelPosition: labels.Position,
                 fillRadarSeries: chart.PlotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value == C.RadarStyleValues.Filled,
                 categoryAxisTitle: ReadLayoutTitle(categoryAxis), valueAxisTitle: ReadLayoutTitle(valueAxis), axisTitleFontFamily: axisTitleFont,
-                categoryAxisNumberFormat: categoryAxis is C.ValueAxis ? null : ReadLayoutFormat(categoryAxis),
+                categoryAxisNumberFormat: categoryAxis is C.ValueAxis ? null : ReadLayoutFormat(categoryAxis, IsClearlyTextualCategoryCache(plot)),
                 horizontalAxisNumberFormat: horizontal is C.ValueAxis ? ReadLayoutFormat(horizontal) : null,
                 verticalAxisNumberFormat: ReadLayoutFormat(vertical),
                 horizontalAxisMinimum: ReadLayoutMinimum(horizontal), horizontalAxisMaximum: ReadLayoutMaximum(horizontal),
@@ -155,10 +161,25 @@ namespace OfficeIMO.OpenXml.Internal {
             var text = axis?.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>();
             return text?.GetFirstChild<C.RichText>()?.InnerText ?? text?.GetFirstChild<C.StringReference>()?.StringCache?.InnerText;
         }
-        private static string? ReadLayoutFormat(OpenXmlCompositeElement? axis) {
-            if (axis != null && HasUnsupportedSharedAxisNumberFormat(axis))
+        private static string? ReadLayoutFormat(OpenXmlCompositeElement? axis, bool textualCategories = false) {
+            if (axis != null && HasUnsupportedSharedAxisNumberFormat(axis)) {
+                // A string cache with nonnumeric labels has already materialized its display text;
+                // a number format on its category axis cannot change those labels.
+                if (textualCategories && axis is C.CategoryAxis) return null;
                 throw new NotSupportedException("The native axis format cannot be projected.");
+            }
             return axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        }
+
+        private static bool IsClearlyTextualCategoryCache(C.PlotArea? plot) {
+            C.CategoryAxisData[] caches = plot?.Descendants<C.CategoryAxisData>().ToArray() ?? Array.Empty<C.CategoryAxisData>();
+            return caches.Length > 0 && caches.All(category => {
+                C.StringPoint[] points = category.GetFirstChild<C.StringReference>()?.StringCache?.Elements<C.StringPoint>().ToArray()
+                    ?? Array.Empty<C.StringPoint>();
+                return points.Length > 0 && points.All(point =>
+                    !double.TryParse(point.NumericValue?.Text, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out _));
+            });
         }
         private static double? ReadLayoutMinimum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MinAxisValue>()?.Val?.Value;
         private static double? ReadLayoutMaximum(OpenXmlCompositeElement? axis) => axis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;

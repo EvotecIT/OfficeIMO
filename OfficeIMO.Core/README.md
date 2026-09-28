@@ -622,7 +622,8 @@ set `fillColor` to choose another background. Outline widths use points; joins c
 round, bevel, or miter. `showOutline: false` hides the outline explicitly.
 The renderer clips hatches to slice, bar, and marker geometry and styles category legend
 swatches with the same appearance. Per-point area styling is not applied by static rendering;
-`RenderWithQuality` reports `UnsupportedAppearance` and retains the series fill.
+`RenderWithQuality` reports `UnsupportedAppearance` and retains the opaque series fill.
+An area series with no native outline renders without a connecting line.
 
 ### Pie and doughnut geometry
 

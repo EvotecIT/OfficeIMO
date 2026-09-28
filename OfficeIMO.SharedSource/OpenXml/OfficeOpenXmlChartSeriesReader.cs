@@ -177,7 +177,6 @@ namespace OfficeIMO.OpenXml.Internal {
             bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
             bool flatThreeDimensional = element.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true;
             unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area, connectLine, flatThreeDimensional);
-            unsupported |= area && outline?.GetFirstChild<A.NoFill>() != null;
             unsupported |= showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true);
             // The shared model has one series colour and straight connecting lines.
             // Reject appearance that would otherwise be silently flattened in an export.
