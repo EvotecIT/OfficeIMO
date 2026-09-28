@@ -242,7 +242,8 @@ namespace OfficeIMO.Excel {
                     filter.Description?.Value,
                     top10?.Top?.Value,
                     top10?.Percent?.Value,
-                    FormatOpenXmlDouble(top10?.FilterValue?.Value)));
+                    FormatOpenXmlDouble(top10?.FilterValue?.Value),
+                    IsMaterializedPivotFixedDateFilter(filter) && QualifiedPivotWholeDay(filter)));
             }
 
             return list;

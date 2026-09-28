@@ -3,11 +3,12 @@
 Creates Excel-produced fixed-date pivot filter fixtures with saved-view provenance.
 #>
 [CmdletBinding()]
-param([string] $OutputDirectory)
+param([string] $OutputDirectory, [switch] $WholeDay)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$corpusName = if ($WholeDay) { 'WholeDayDateFilters' } else { 'FixedDateFilters' }
 $targetDirectory = if ($OutputDirectory) { $OutputDirectory }
-    else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus/FixedDateFilters' }
+    else { Join-Path $repositoryRoot "OfficeIMO.TestAssets/Documents/ExcelPivotCorpus/$corpusName" }
 New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
 $targetDirectory = (Resolve-Path -LiteralPath $targetDirectory).Path
 if (-not ('OfficeIMOExcelPivotDateOracleProcess' -as [type])) {
@@ -46,6 +47,21 @@ $cases = @(
     @{ Name = 'equal-blank'; Type = 29; First = $first; BlankSource = $true },
     @{ Name = 'not-equal-blank'; Type = 30; First = $first; BlankSource = $true }
 )
+if ($WholeDay) {
+    $cases = @(
+        @{ Name = 'equal-times'; Type = 29; First = $first; Times = $true; Total = 15.0 },
+        @{ Name = 'not-equal-times'; Type = 30; First = $first; Times = $true; Total = 50.0 },
+        @{ Name = 'before-times'; Type = 31; First = $last; Times = $true; Total = 35.0 },
+        @{ Name = 'before-equal-times'; Type = 32; First = $last; Times = $true; Total = 65.0 },
+        @{ Name = 'after-times'; Type = 33; First = $first; Times = $true; Total = 50.0 },
+        @{ Name = 'after-equal-times'; Type = 34; First = $first; Times = $true; Total = 65.0 },
+        @{ Name = 'between-times'; Type = 35; First = $first; Second = $middle; Times = $true; Total = 35.0 },
+        @{ Name = 'not-between-times'; Type = 36; First = $first; Second = $middle; Times = $true; Total = 30.0 },
+        @{ Name = 'equal-times-1904'; Type = 29; First = $first; Times = $true; Date1904 = $true; Total = 15.0 },
+        @{ Name = 'equal-blank'; Type = 29; First = $first; BlankSource = $true; Total = 10.0 },
+        @{ Name = 'not-equal-blank'; Type = 30; First = $first; BlankSource = $true; Total = 50.0 }
+    )
+}
 $results = @()
 try {
     $acquired = $mutex.WaitOne([TimeSpan]::FromMinutes(5))
@@ -103,7 +119,11 @@ try {
             [void]$pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
             $pivot.RowAxisLayout(1)
             [void]$pivot.RefreshTable()
-            if ($case.Second) {
+            if ($WholeDay) {
+                [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.First,
+                    $(if ($case.Second) { $case.Second } else { [Type]::Missing }),
+                    [Type]::Missing, [Type]::Missing, [Type]::Missing, [Type]::Missing, $true)
+            } elseif ($case.Second) {
                 [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.First, $case.Second)
             } else {
                 [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.First)
@@ -127,7 +147,7 @@ try {
             finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook); $workbook = $null }
         }
         $results += [ordered]@{
-            name = $case.Name; filterType = $case.Type; timedSource = [bool]$case.Times
+            name = $case.Name; filterType = $case.Type; wholeDay = [bool]$WholeDay; timedSource = [bool]$case.Times
             blankSource = [bool]$case.BlankSource; date1904 = [bool]$case.Date1904
             first = $case.First.ToString('o'); second = if ($case.Second) { $case.Second.ToString('o') } else { $null }
             sourceRange = 'Source!A1:B5'; sourceDateStyle = 'Excel automatic DateTime'
@@ -140,7 +160,8 @@ try {
         producer = 'Microsoft Excel'; version = $excel.Version; build = $excel.Build
         producerCulture = [Globalization.CultureInfo]::CurrentCulture.Name
         generatedUtc = [DateTime]::UtcNow.ToString('o')
-        regeneration = 'Build/Verification/New-ExcelPivotFixedDateFilterOracle.ps1'
+        regeneration = if ($WholeDay) { 'Build/Verification/New-ExcelPivotFixedDateFilterOracle.ps1 -WholeDay' }
+            else { 'Build/Verification/New-ExcelPivotFixedDateFilterOracle.ps1' }
         cases = $results
     }
     [IO.File]::WriteAllText((Join-Path $targetDirectory 'provenance.json'),

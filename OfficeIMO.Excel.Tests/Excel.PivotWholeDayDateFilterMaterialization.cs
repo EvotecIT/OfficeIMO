@@ -5,27 +5,28 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        public static IEnumerable<object[]> FixedDatePivotFilterCases() {
+        public static IEnumerable<object[]> WholeDayPivotFilterCases() {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                "Documents", "ExcelPivotCorpus", "FixedDateFilters", "provenance.json");
+                "Documents", "ExcelPivotCorpus", "WholeDayDateFilters", "provenance.json");
             using var manifest = JsonDocument.Parse(File.ReadAllText(path));
             foreach (JsonElement entry in manifest.RootElement.GetProperty("cases").EnumerateArray())
                 yield return new object[] { entry.GetProperty("name").GetString()! };
         }
 
         [Theory]
-        [MemberData(nameof(FixedDatePivotFilterCases))]
-        public void PivotFixedDateFilter_MatchesExcelSavedViewFromImportedAndAuthoredPivots(string caseName) {
+        [MemberData(nameof(WholeDayPivotFilterCases))]
+        public void PivotWholeDayDateFilter_MatchesExcelSavedViewFromImportedAndAuthoredPivots(string caseName) {
             string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
-                "Documents", "ExcelPivotCorpus", "FixedDateFilters");
+                "Documents", "ExcelPivotCorpus", "WholeDayDateFilters");
             using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(directory, "provenance.json")));
             JsonElement oracleCase = manifest.RootElement.GetProperty("cases").EnumerateArray()
                 .Single(entry => entry.GetProperty("name").GetString() == caseName);
+            Assert.True(oracleCase.GetProperty("wholeDay").GetBoolean());
             string oraclePath = Path.Combine(directory, oracleCase.GetProperty("file").GetString()!);
             using (var stream = File.OpenRead(oraclePath))
             using (var sha = SHA256.Create()) {
-                string actualHash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
-                Assert.Equal(oracleCase.GetProperty("sha256").GetString(), actualHash);
+                string hash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+                Assert.Equal(oracleCase.GetProperty("sha256").GetString(), hash);
             }
 
             string expectedRange = oracleCase.GetProperty("outputRange").GetString()!;
@@ -34,10 +35,10 @@ namespace OfficeIMO.Tests {
             using (var excel = ExcelDocumentReader.Open(oraclePath))
                 expected = excel.GetSheet("Grouped").ReadRange(expectedRange);
 
-            string importedOutput = Path.Combine(_directoryWithFiles, "PivotDateImported-" + caseName + ".xlsx");
+            string importedOutput = Path.Combine(_directoryWithFiles, "PivotWholeDayImported-" + caseName + ".xlsx");
             using (var document = ExcelDocument.Load(oraclePath)) {
                 var sheet = document.GetSheet("Grouped");
-                Assert.False(sheet.GetPivotTables().Single().Filters.Single().WholeDay);
+                Assert.True(sheet.GetPivotTables().Single().Filters.Single().WholeDay);
                 var result = sheet.MaterializePivotTable("DatePivot");
                 Assert.Equal(expectedRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
@@ -54,7 +55,7 @@ namespace OfficeIMO.Tests {
             bool date1904 = oracleCase.GetProperty("date1904").GetBoolean();
             DateTime[] keys = { first, timed ? first.AddHours(8).AddMinutes(30) : first,
                 timed ? middle.AddHours(12) : middle, last };
-            string authoredOutput = Path.Combine(_directoryWithFiles, "PivotDateAuthored-" + caseName + ".xlsx");
+            string authoredOutput = Path.Combine(_directoryWithFiles, "PivotWholeDayAuthored-" + caseName + ".xlsx");
             string actualRange = $"L4:M{expected.GetLength(0) + 3}";
             using (var document = ExcelDocument.Create()) {
                 if (date1904) document.DateSystem = ExcelDateSystem.NineteenFour;
@@ -71,18 +72,19 @@ namespace OfficeIMO.Tests {
                     source.CellValue(row, 2, sales[index]);
                 }
                 ExcelPivotFilter filter = caseName switch {
-                    "equal" or "equal-times" or "equal-1904" or "equal-blank"
-                        => ExcelPivotFilter.DateEquals("OrderDate", first),
-                    "not-equal" or "not-equal-blank" => ExcelPivotFilter.DateNotEquals("OrderDate", first),
-                    "before" => ExcelPivotFilter.DateOlderThan("OrderDate", last),
-                    "before-equal" => ExcelPivotFilter.DateOlderThanOrEqual("OrderDate", last),
-                    "after" or "after-times" => ExcelPivotFilter.DateNewerThan("OrderDate", first),
-                    "after-equal" => ExcelPivotFilter.DateNewerThanOrEqual("OrderDate", first),
-                    "between" or "between-times" or "between-1904"
-                        => ExcelPivotFilter.DateBetween("OrderDate", first, middle),
-                    "not-between" => ExcelPivotFilter.DateNotBetween("OrderDate", first, middle),
-                    _ => throw new InvalidOperationException("Unexpected Excel date-filter oracle case.")
+                    "equal-times" or "equal-times-1904" or "equal-blank"
+                        => ExcelPivotFilter.DateEquals("OrderDate", first, wholeDay: true),
+                    "not-equal-times" or "not-equal-blank"
+                        => ExcelPivotFilter.DateNotEquals("OrderDate", first, wholeDay: true),
+                    "before-times" => ExcelPivotFilter.DateOlderThan("OrderDate", last, wholeDay: true),
+                    "before-equal-times" => ExcelPivotFilter.DateOlderThanOrEqual("OrderDate", last, wholeDay: true),
+                    "after-times" => ExcelPivotFilter.DateNewerThan("OrderDate", first, wholeDay: true),
+                    "after-equal-times" => ExcelPivotFilter.DateNewerThanOrEqual("OrderDate", first, wholeDay: true),
+                    "between-times" => ExcelPivotFilter.DateBetween("OrderDate", first, middle, wholeDay: true),
+                    "not-between-times" => ExcelPivotFilter.DateNotBetween("OrderDate", first, middle, wholeDay: true),
+                    _ => throw new InvalidOperationException("Unexpected Excel whole-day oracle case.")
                 };
+                Assert.True(filter.WholeDay);
                 source.Pivot("A1:B5").Rows("OrderDate").Sum("Sales", "Metric")
                     .FieldNumberFormat("OrderDate", "yyyy-mm-dd")
                     .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("L4", "DatePivot");
@@ -93,32 +95,13 @@ namespace OfficeIMO.Tests {
                 document.Save(authoredOutput);
             }
             AssertDatePivotView(expected, authoredOutput, "Source", actualRange);
-        }
-
-        private static void AssertDatePivotView(object?[,] expected, string path, string sheet, string range) {
-            using var document = ExcelDocumentReader.Open(path);
-            object?[,] actual = document.GetSheet(sheet).ReadRange(range);
-            Assert.Equal(expected.GetLength(0), actual.GetLength(0));
-            Assert.Equal(expected.GetLength(1), actual.GetLength(1));
-            for (int row = 0; row < expected.GetLength(0); row++)
-                for (int column = 0; column < expected.GetLength(1); column++)
-                    AssertPivotLookupOracleValue(expected[row, column], actual[row, column]);
-        }
-
-        [Fact]
-        public void PivotFixedDateFilter_RejectsNumericFieldWithoutChangingSavedView() {
-            using var document = ExcelDocument.Create();
-            var sheet = document.AddWorksheet("Source");
-            sheet.CellValue(1, 1, "Item");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, 1d);
-            sheet.CellValue(2, 2, 10d);
-            sheet.Pivot("A1:B2").Rows("Item").Sum("Sales", "Metric")
-                .Filter(ExcelPivotFilter.DateEquals("Item", new DateTime(2025, 1, 15)))
-                .At("D4", "DatePivot");
-            string before = sheet.WorksheetPart.Worksheet.OuterXml;
-            Assert.Throws<NotSupportedException>(() => sheet.MaterializePivotTable("DatePivot"));
-            Assert.Equal(before, sheet.WorksheetPart.Worksheet.OuterXml);
+            using (var document = ExcelDocument.Load(authoredOutput)) {
+                var sheet = document.GetSheet("Source");
+                Assert.True(sheet.GetPivotTables().Single().Filters.Single().WholeDay);
+                var result = sheet.MaterializePivotTable("DatePivot");
+                Assert.Equal(actualRange, result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid);
+            }
         }
     }
 }

@@ -5,9 +5,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using X15 = DocumentFormat.OpenXml.Office2013.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+
+        private const string WholeDayPivotFilterExtensionUri = "{0605FD5F-26C8-4aeb-8148-2DB25E43C511}";
 
         private static PageField CreatePageField(int fieldIndex, ExcelPivotFieldOptions? options, IReadOnlyList<string> values) {
             var pageField = new PageField { Field = fieldIndex };
@@ -106,6 +109,12 @@ namespace OfficeIMO.Excel {
                 }
 
                 pivotFilter.AutoFilter = CreatePivotFilterAutoFilter(filter, dateSystem);
+                if (filter.WholeDay) {
+                    pivotFilter.Append(new PivotFilterExtensionList(
+                        new PivotFilterExtension(new X15.PivotFilter { UseWholeDay = true }) {
+                            Uri = WholeDayPivotFilterExtensionUri
+                        }));
+                }
                 pivotFilters.Append(pivotFilter);
             }
 

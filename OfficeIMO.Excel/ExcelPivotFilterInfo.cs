@@ -18,7 +18,8 @@ namespace OfficeIMO.Excel {
             string? description,
             bool? isTop = null,
             bool? isPercent = null,
-            string? filterValue = null) {
+            string? filterValue = null,
+            bool wholeDay = false) {
             FieldName = fieldName;
             Type = type;
             Value1 = value1;
@@ -29,6 +30,7 @@ namespace OfficeIMO.Excel {
             IsTop = isTop;
             IsPercent = isPercent;
             FilterValue = filterValue;
+            WholeDay = wholeDay;
         }
 
         /// <summary>Gets the source field name being filtered.</summary>
@@ -60,5 +62,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets the optional calculated top/bottom filter value threshold.</summary>
         public string? FilterValue { get; }
+
+        /// <summary>Gets whether a fixed-date filter matches the entire calendar day.</summary>
+        public bool WholeDay { get; }
     }
 }

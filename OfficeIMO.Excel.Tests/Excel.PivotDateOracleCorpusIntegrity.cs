@@ -5,6 +5,7 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
         [InlineData("FixedDateFilters", 15)]
+        [InlineData("WholeDayDateFilters", 11)]
         [InlineData("CalendarPeriods", 18)]
         [InlineData("RelativeDates", 17)]
         public void PivotDateOracleCorpus_ManifestCoversEveryFixture(string corpus, int expectedCases) {

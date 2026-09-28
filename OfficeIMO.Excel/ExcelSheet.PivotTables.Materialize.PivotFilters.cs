@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Threading;
+using X15 = DocumentFormat.OpenXml.Office2013.Excel;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -28,6 +29,7 @@ namespace OfficeIMO.Excel {
                     || maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Date && key.Kind != PivotFieldValueKind.Blank))
                     throw new NotSupportedException("Fixed-date filter materialization requires a date-valued pivot field.");
                 PivotFilterValues type = filter.Type!.Value;
+                bool wholeDay = QualifiedPivotWholeDay(filter);
                 double first, second = 0;
                 if (type == PivotFilterValues.DateBetween || type == PivotFilterValues.DateNotBetween) {
                     (first, second) = QualifiedPivotValueRange(filter);
@@ -39,12 +41,17 @@ namespace OfficeIMO.Excel {
                             || savedFirst != first)) || filter.StringValue2 != null)
                         throw new NotSupportedException("The fixed-date filter has no qualified saved predicate.");
                 }
+                double lower = wholeDay ? Math.Floor(first) : first;
+                double upper = wholeDay ? Math.Floor(second) : second;
                 var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
                     if (key.Kind != PivotFieldValueKind.Date) return false;
                     double serial = ExcelPivotCacheDateCodec.ToSerial(key.Date!.Value, _excelDocument.DateSystem);
-                    return type == PivotFilterValues.DateBetween ? serial >= first && serial <= second
-                        : type == PivotFilterValues.DateNotBetween ? serial < first || serial > second
-                        : MatchesMaterializedPivotValueComparison(serial, first, ResolveSingleFilterOperator(type));
+                    if (wholeDay) {
+                        serial = Math.Floor(serial);
+                    }
+                    return type == PivotFilterValues.DateBetween ? serial >= lower && serial <= upper
+                        : type == PivotFilterValues.DateNotBetween ? serial < lower || serial > upper
+                        : MatchesMaterializedPivotValueComparison(serial, lower, ResolveSingleFilterOperator(type));
                 }));
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
@@ -234,6 +241,19 @@ namespace OfficeIMO.Excel {
                 || type == PivotFilterValues.DateNewerThan || type == PivotFilterValues.DateNewerThanOrEqual
                 || type == PivotFilterValues.DateOlderThan || type == PivotFilterValues.DateOlderThanOrEqual
                 || type == PivotFilterValues.DateBetween || type == PivotFilterValues.DateNotBetween;
+        }
+
+        private static bool QualifiedPivotWholeDay(PivotFilter filter) {
+            var list = filter.GetFirstChild<PivotFilterExtensionList>();
+            if (list == null) return false;
+            var extensions = list.Elements<PivotFilterExtension>().ToArray();
+            if (list.ChildElements.Count != 1 || extensions.Length != 1
+                || extensions[0].Uri?.Value != WholeDayPivotFilterExtensionUri
+                || extensions[0].ChildElements.Count != 1
+                || extensions[0].GetFirstChild<X15.PivotFilter>() is not X15.PivotFilter setting
+                || setting.UseWholeDay == null)
+                throw new NotSupportedException("The fixed-date filter has an unsupported whole-day extension.");
+            return setting.UseWholeDay.Value;
         }
 
         private static readonly PivotFilterValues[] MaterializedPivotCalendarMonthTypes = {

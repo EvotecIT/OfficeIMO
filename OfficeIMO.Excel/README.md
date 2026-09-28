@@ -667,8 +667,14 @@ numeric `GetPivotData` criteria still address each key.
 
 Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,
 and not-between filters materialize on date-valued row or column fields.
-They compare complete date-time values in either workbook date system, so a
-midnight equality does not select a later time on the same day. All-years
+By default they compare complete date-time values in either workbook date
+system, so a midnight equality does not select a later time on the same day.
+Pass `wholeDay: true`, for example
+`ExcelPivotFilter.DateEquals("OrderDate", day, wholeDay: true)`, to include
+every time on the selected date. The same option applies to the other
+fixed-date predicates; it is saved in Excel's pivot-filter extension and
+survives a workbook reload. `GetPivotTables()` exposes the setting through
+each filter's `WholeDay` property. All-years
 month and quarter selectors include matching dates from every year, including
 time-bearing values. Relative today/yesterday/tomorrow, week, month, quarter,
 year, and year-to-date filters use local calendar periods with half-open end
@@ -679,8 +685,7 @@ reproducible relative-date view; omitting it uses the current local date.
 Default-sorted date items selected by these filters are
 ordered chronologically in the saved cache and view. Views sharing that cache
 retain their own saved manual item order. Blank source dates do not match,
-including not-equals. Extension-based whole-day matching for fixed-date
-predicates remains outside the qualified headless subset.
+including not-equals.
 
 On a single ordinary axis field, materialization also supports value equals,
 not equals, greater than, greater than or equal, less than, less than or
