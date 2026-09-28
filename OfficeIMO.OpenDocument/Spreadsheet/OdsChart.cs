@@ -18,6 +18,7 @@ public enum OdsChartType {
 
 /// <summary>One embedded ODS chart and its source-cell references. Unsupported styling remains preserved package XML.</summary>
 public sealed class OdsChart {
+    private const int MaximumImportedChartSeries = 256;
     private OdsChart(string name, string chartClass, string? title, string? titleCellRangeAddress,
         string? categoriesAddress,
         IReadOnlyList<OdsChartSeries> series, bool isStacked, bool isPercentage, bool isThreeDimensional,
@@ -94,7 +95,10 @@ public sealed class OdsChart {
                 .Select(axis => (string?)axis.Element(chart + "categories")?.Attribute(OdfNamespaces.Table + "cell-range-address"))
                 .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).ToArray();
             string? categories = categoryAddresses.Length == 1 ? categoryAddresses[0] : null;
-            XElement[] seriesElements = plot.Elements(chart + "series").ToArray();
+            // Bound native series before expanding compact repeated point styles.
+            XElement[] seriesElements = plot.Elements(chart + "series")
+                .Take(MaximumImportedChartSeries + 1).ToArray();
+            if (seriesElements.Length > MaximumImportedChartSeries) return null;
             XDocument? stylesPart = document.Package.ContainsEntry(directory + "styles.xml")
                 ? document.Package.GetXml(directory + "styles.xml") : null;
             Dictionary<string, XElement> chartStyles = IndexChartStyles(part, stylesPart);

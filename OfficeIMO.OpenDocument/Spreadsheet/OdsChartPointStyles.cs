@@ -77,8 +77,7 @@ internal static class OdsChartPointStyles {
             return true;
         }
         if (!AddChain(name, pointOrSeries: true) ||
-            !AddChain((string?)series.Attribute(OdfNamespaces.Chart + "style-name"), pointOrSeries: true) ||
-            !AddChain((string?)series.Parent?.Attribute(OdfNamespaces.Chart + "style-name"), pointOrSeries: false)) return false;
+            !AddChain((string?)series.Attribute(OdfNamespaces.Chart + "style-name"), pointOrSeries: true)) return false;
         if (defaultStyle != null) AddAttributes(defaultStyle, pointOrSeries: true);
         if (unsupportedChartProperties) return false;
         string? Get(XName key) => attributes.TryGetValue(key, out string? value) ? value : null;
