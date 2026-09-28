@@ -23,6 +23,10 @@ public class WordChartSeriesQualificationTests {
         Assert.True(chart.TryGetSnapshot(out _));
         chart.BarGrouping = WordChartBarGrouping.Clustered;
         Assert.Equal(0, native.GetFirstChild<C.Overlap>()!.Val!.Value);
+        chart.BarGrouping = grouping;
+        chart.BarGrouping = null;
+        Assert.Equal(0, native.GetFirstChild<C.Overlap>()!.Val!.Value);
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]
