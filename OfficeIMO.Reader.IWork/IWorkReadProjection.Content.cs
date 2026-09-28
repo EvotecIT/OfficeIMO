@@ -6,22 +6,26 @@ internal sealed partial class IWorkReadProjection {
     private void AddTable(OfficeDocumentPage page, IWorkTable source) {
         _cancellationToken.ThrowIfCancellationRequested();
         int tableIndex = _pageTables[page].Count;
-        int rowCount = Math.Min(source.RowCount, Math.Max(1, _readerOptions.MaxTableRows));
+        int headerRows = Math.Min(source.HeaderRowCount, source.RowCount);
+        int totalDataRows = source.RowCount - headerRows;
+        int dataRows = Math.Min(totalDataRows, Math.Max(1, _readerOptions.MaxTableRows));
         int columnCount = Math.Min(source.ColumnCount, _options.MaximumTableColumns);
-        if (rowCount == 0 || columnCount == 0) return;
-        bool hasHeader = source.HeaderRowCount > 0;
+        if (source.RowCount == 0 || columnCount == 0) return;
+        bool hasHeader = headerRows > 0;
         string[] columns = Enumerable.Range(1, columnCount)
             .Select(column => hasHeader
-                ? CellText(source.GetCell(1, column))
+                ? string.Join(" / ", Enumerable.Range(1, headerRows)
+                    .Select(row => CellText(source.GetCell(row, column)))
+                    .Where(value => value.Length > 0))
                 : "Column " + column.ToString(CultureInfo.InvariantCulture))
             .ToArray();
         var rows = new List<IReadOnlyList<string>>();
-        for (int row = hasHeader ? 2 : 1; row <= rowCount; row++) {
+        for (int row = headerRows + 1; row <= headerRows + dataRows; row++) {
             _cancellationToken.ThrowIfCancellationRequested();
             rows.Add(Enumerable.Range(1, columnCount)
                 .Select(column => CellText(source.GetCell(row, column))).ToArray());
         }
-        bool truncated = source.RowCount > rowCount || source.ColumnCount > columnCount;
+        bool truncated = totalDataRows > dataRows || source.ColumnCount > columnCount;
         var location = Location(page);
         location.TableIndex = tableIndex;
         var table = new ReaderTable {
@@ -30,7 +34,7 @@ internal sealed partial class IWorkReadProjection {
             Location = location,
             Columns = columns,
             Rows = rows,
-            TotalRowCount = source.RowCount,
+            TotalRowCount = totalDataRows,
             Truncated = truncated
         };
         _tables.Add(table);
@@ -56,7 +60,7 @@ internal sealed partial class IWorkReadProjection {
             });
         }
         foreach (IWorkTableCell cell in source.Cells) {
-            if (cell.Row > rowCount || cell.Column > columnCount || cell.RichText == null) continue;
+            if (cell.Row > headerRows + dataRows || cell.Column > columnCount || cell.RichText == null) continue;
             foreach (IWorkTextParagraph paragraph in cell.RichText.Paragraphs) {
                 AddRunLinks(page, paragraph.Runs, location);
             }
@@ -113,25 +117,36 @@ internal sealed partial class IWorkReadProjection {
     private void AddRunLinks(OfficeDocumentPage page,
         IEnumerable<IWorkTextRun> runs, ReaderLocation? location = null) {
         foreach (IWorkTextRun run in runs) {
-            if (run.Hyperlink != null) AddLink(page, run.Hyperlink, location ?? Location(page));
+            if (run.Hyperlink != null) AddLink(page, run.Hyperlink, location ?? Location(page), run.Text);
         }
     }
 
-    private void AddLink(OfficeDocumentPage page, string target, ReaderLocation location) {
+    private void AddLink(OfficeDocumentPage page, string target, ReaderLocation location,
+        string? text = null) {
         var link = new OfficeDocumentLink {
             Id = "iwork-l" + (_links.Count + 1).ToString("D6", CultureInfo.InvariantCulture),
             Kind = "uri",
             Uri = target,
+            Text = text,
             Location = location
         };
         _links.Add(link);
         _pageLinks[page].Add(link);
     }
 
-    private static string RichTextMarkdown(IWorkTextParagraph paragraph) {
+    private static string RichTextMarkdown(IWorkTextParagraph paragraph) =>
+        RichTextMarkdown(paragraph, 0, paragraph.Text.Length);
+
+    private static string RichTextMarkdown(IWorkTextParagraph paragraph, int offset, int length) {
         var builder = new StringBuilder();
+        int runOffset = 0;
         foreach (IWorkTextRun run in paragraph.Runs) {
-            string value = EscapeMarkdown(run.Text);
+            int runStart = runOffset;
+            runOffset += run.Text.Length;
+            int start = Math.Max(offset, runStart);
+            int end = Math.Min(offset + length, runOffset);
+            if (end <= start) continue;
+            string value = EscapeMarkdown(run.Text.Substring(start - runStart, end - start));
             if (run.Style.Bold == true) value = "**" + value + "**";
             if (run.Style.Italic == true) value = "*" + value + "*";
             if (run.Hyperlink != null
@@ -140,16 +155,19 @@ internal sealed partial class IWorkReadProjection {
             }
             builder.Append(value);
         }
-        if (paragraph.ListLevel >= 0) {
+        if (offset == 0 && paragraph.ListLevel >= 0) {
             return (string.IsNullOrWhiteSpace(paragraph.ListLabel) ? "-" : paragraph.ListLabel)
                 + " " + builder;
         }
         return builder.ToString();
     }
 
-    private static string EscapeMarkdown(string value) => value
-        .Replace("\\", "\\\\")
-        .Replace("[", "\\[")
-        .Replace("]", "\\]")
-        .Replace("*", "\\*");
+    private static string EscapeMarkdown(string value) {
+        var builder = new StringBuilder(value.Length);
+        foreach (char character in value) {
+            if ("\\`*_{}[]()#+-.!>|~".IndexOf(character) >= 0) builder.Append('\\');
+            builder.Append(character);
+        }
+        return builder.ToString();
+    }
 }

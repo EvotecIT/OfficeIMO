@@ -96,6 +96,25 @@ internal sealed partial class IWorkReadProjection {
 
     internal void Complete(IWorkSourceDocument source) {
         AddDiagnostics(source.Diagnostics);
+        string[] warnings = _diagnostics
+            .Where(diagnostic => diagnostic.Severity is OfficeDocumentDiagnosticSeverity.Warning
+                or OfficeDocumentDiagnosticSeverity.Error)
+            .Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)
+            .Distinct(StringComparer.Ordinal).ToArray();
+        if (warnings.Length > 0) {
+            if (_chunks.Count == 0) {
+                _chunks.Add(new ReaderChunk {
+                    Id = "iwork-diagnostic-000",
+                    Kind = ReaderInputKind.IWork,
+                    Location = new ReaderLocation { Path = _path },
+                    Warnings = warnings
+                });
+            } else {
+                ReaderChunk first = _chunks[0];
+                first.Warnings = (first.Warnings ?? Array.Empty<string>())
+                    .Concat(warnings).Distinct(StringComparer.Ordinal).ToArray();
+            }
+        }
         _result.Chunks = _chunks.ToArray();
         _result.Blocks = _blocks.ToArray();
         _result.Tables = _tables.ToArray();
@@ -109,8 +128,15 @@ internal sealed partial class IWorkReadProjection {
             page.Assets = _pageAssets[page].ToArray();
             page.Links = _pageLinks[page].ToArray();
         }
-        _result.Markdown = string.Join("\n\n", _chunks.Select(chunk => chunk.Markdown)
-            .Where(markdown => !string.IsNullOrEmpty(markdown)));
+        var documentMarkdown = new StringBuilder();
+        foreach (ReaderChunk chunk in _chunks) {
+            if (string.IsNullOrEmpty(chunk.Markdown)) continue;
+            if (documentMarkdown.Length > 0 && !chunk.ContinuesPreviousChunk) {
+                documentMarkdown.Append("\n\n");
+            }
+            documentMarkdown.Append(chunk.Markdown);
+        }
+        _result.Markdown = documentMarkdown.ToString();
         _result.Metadata = source.BuildVersions.Select((version, index) =>
             new OfficeDocumentMetadataEntry {
                 Id = "iwork-build-" + index.ToString("D4", CultureInfo.InvariantCulture),
@@ -159,18 +185,21 @@ internal sealed partial class IWorkReadProjection {
             sourceKind == "title" ? "heading" : "paragraph";
         AddBlock(page, kind, text, markdown,
             paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
-            paragraph.ListLabel);
+            paragraph.ListLabel,
+            markdownPart: (offset, length) => RichTextMarkdown(paragraph, offset, length));
         AddRunLinks(page, paragraph.Runs);
     }
 
     private void AddPlainText(OfficeDocumentPage page, string text, string sourceKind) {
         if (string.IsNullOrEmpty(text)) return;
-        AddBlock(page, sourceKind, text, text, null, null);
+        AddBlock(page, sourceKind, text, EscapeMarkdown(text), null, null,
+            markdownPart: (offset, length) => EscapeMarkdown(text.Substring(offset, length)));
     }
 
     private void AddBlock(OfficeDocumentPage page, string kind, string text,
         string markdown, int? level, string? marker,
-        ReaderTable? table = null) {
+        ReaderTable? table = null,
+        Func<int, int, string>? markdownPart = null) {
         _cancellationToken.ThrowIfCancellationRequested();
         string id = "iwork-b" + (_blocks.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         ReaderLocation location = Location(page);
@@ -195,7 +224,10 @@ internal sealed partial class IWorkReadProjection {
                 Kind = ReaderInputKind.IWork,
                 Location = Location(page, _chunks.Count, kind, id),
                 Text = part,
-                Markdown = split ? part : markdown,
+                Markdown = split
+                    ? markdownPart?.Invoke(offset, length) ?? (partIndex == 0 ? markdown : string.Empty)
+                    : markdown,
+                ContinuesPreviousChunk = partIndex > 0,
                 Tables = partIndex == 0 && table != null ? new[] { table } : null,
                 Warnings = split ? new[] { "Content was split at ReaderOptions.MaxChars." } : null
             });

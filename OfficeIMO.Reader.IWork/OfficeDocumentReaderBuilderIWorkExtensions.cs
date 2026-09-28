@@ -25,6 +25,8 @@ public static class OfficeDocumentReaderBuilderIWorkExtensions {
             Extensions = new[] { ".pages", ".numbers", ".key" },
             DefaultMaxInputBytes = maximumInputBytes,
             MaxInputBytesCeiling = maximumInputBytes,
+            ExtensionValidationProbeStream = (stream, sourceName, readerOptions, token) =>
+                IWorkReaderAdapter.Probe(stream, sourceName, readerOptions, registered.Clone(), token),
             ReadPath = (path, readerOptions, token) =>
                 IWorkReaderAdapter.ReadDocument(path, readerOptions, registered.Clone(), token).Chunks,
             ReadStream = (stream, sourceName, readerOptions, token) =>

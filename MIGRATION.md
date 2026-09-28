@@ -9,6 +9,15 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Reader document schema version 8
+
+`OfficeDocumentReadResult` now emits schema version 8. This version adds
+`ReaderInputKind.IWork` for Pages, Numbers, and Keynote input. Applications that
+validate `schemaVersion`, use the packaged JSON Schema, generate transport
+bindings, or switch exhaustively over `ReaderInputKind` must accept version 8
+and the new kind. Load the current schema through
+`OfficeDocumentReadResultSchema.GetJsonSchema()` rather than pinning version 7.
+
 ## Default PDF Latin ligatures
 
 `PdfOptions.TextShapingMode` now defaults to `OpenTypeLigatures`. Supported

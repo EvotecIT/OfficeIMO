@@ -95,6 +95,57 @@ public sealed class ReaderIWorkTests {
         Assert.Contains("officeimo.reader.iwork", result.CapabilitiesUsed);
     }
 
+    [Theory]
+    [InlineData("nim-iwork/simple.pages")]
+    [InlineData("nim-iwork/simple.numbers")]
+    [InlineData("nim-iwork/simple.key")]
+    public void PreferContentRetainsValidatedIWorkRoutes(string relativePath) {
+        string path = Fixture(relativePath);
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+        foreach (OfficeDocumentReader reader in new[] {
+                     new OfficeDocumentReaderBuilder().AddIWorkHandler().Build(),
+                     new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build()
+                 }) {
+            Assert.Equal(ReaderInputKind.IWork, reader.ReadDocument(path, options).Kind);
+            using FileStream input = File.OpenRead(path);
+            Assert.Equal(ReaderInputKind.IWork,
+                reader.ReadDocument(input, Path.GetFileName(path), options).Kind);
+        }
+    }
+
+    [Fact]
+    public void ChunkOnlyReadCarriesSourceWarnings() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        ReaderChunk[] chunks = reader.Read(Fixture("picodocs/sample-v14.4.pages")).ToArray();
+        Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
+            warning => warning.Contains("IWORK_PAGES_TEXT_UNSUPPORTED", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TableRowBudgetCountsDataRowsAfterHeaders() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        OfficeDocumentReadResult document = reader.ReadDocument(
+            Fixture("keynotekit/tabledeck-v15.2.1.key"),
+            new ReaderOptions { MaxTableRows = 1 });
+        ReaderTable table = document.Tables[0];
+        Assert.Single(table.Rows);
+        Assert.Equal("Product", table.Columns[0]);
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.True(table.Truncated);
+    }
+
+    [Fact]
+    public void SplitTextKeepsOneLogicalMarkdownBlock() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        OfficeDocumentReadResult document = reader.ReadDocument(
+            Fixture("picodocs/sample-v14.4.pages"), new ReaderOptions { MaxChars = 256 });
+
+        Assert.Contains(document.Chunks, chunk => chunk.ContinuesPreviousChunk);
+        string markdown = Assert.IsType<string>(document.Markdown);
+        Assert.Contains("Preserve reading order", markdown, StringComparison.Ordinal);
+        Assert.Equal(1, markdown.Split("Preserve reading order", StringSplitOptions.None).Length - 1);
+    }
+
     private static string Fixture(string relativePath) =>
         Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             relativePath.Replace('/', Path.DirectorySeparatorChar));
