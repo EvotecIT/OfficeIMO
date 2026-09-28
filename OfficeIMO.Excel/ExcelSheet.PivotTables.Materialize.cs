@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Generates a saved pivot view and its source cache from current worksheet values.
-        /// Supports up to 256 measures and fields across ordinary, integer-range numeric and derived date axes, selected page items,
+        /// Supports up to 256 measures and fields across ordinary, numeric-range, derived date and manual text group axes, selected page items,
         /// hidden row, column, or page items, deterministic first-seen key order, and optional grand totals.
         /// Source formulas use their saved typed caches.
         /// </summary>
@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel {
             var measures = definition.DataFields?.Elements<DataField>().Take(257).ToArray() ?? Array.Empty<DataField>();
             var pages = definition.PageFields?.Elements<PageField>().Take(257).ToArray() ?? Array.Empty<PageField>();
             if (fields.Length < fieldCount || fields.Length > 256 || pivotFields.Length != fields.Length || measures.Length == 0 || measures.Length > 256
-                || fields.Any(f => f.Formula != null || f.DatabaseField?.Value == false && !IsDerivedDateGroup(f))
+                || fields.Any(f => f.Formula != null || f.DatabaseField?.Value == false && !IsDerivedDateGroup(f) && !IsDerivedManualGroup(f))
                 || pages.Length > 256 || pages.Length != (definition.PageFields?.ChildElements.Count ?? 0)
                 || definition.PivotFilters?.ChildElements.Count > 0
                 || measures.Any(m => m.ShowDataAs?.Value is ShowDataAsValues mode && mode != ShowDataAsValues.Normal))
@@ -128,18 +128,24 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("The pivot axes or page fields do not match distinct source fields.");
             var groupings = new Dictionary<int, PivotNumericGrouping>();
             var dateGroupings = new Dictionary<int, PivotDateGrouping>();
+            var manualGroupings = new Dictionary<int, PivotManualGrouping>();
             var sourceDateGroupings = new Dictionary<int, ExcelPivotGrouping>();
             for (int field = fieldCount; field < fields.Length; field++) {
-                if (!IsDerivedDateGroup(fields[field]) || !realFields.Contains(field)
+                if (!realFields.Contains(field)
                     || pivotFields[field].Items?.Elements<Item>().Any(item => item.Hidden?.Value == true) == true)
-                    throw new NotSupportedException("Derived date fields require a visible row or column axis.");
-                var date = ReadPivotDateGrouping(fields, field, fieldCount);
-                dateGroupings.Add(field, date);
-                sourceDateGroupings[date.SourceField] = ExcelPivotGrouping.Date(fields[date.SourceField].Name?.Value ?? "", date.GroupBy);
+                    throw new NotSupportedException("Derived fields require a visible row or column axis.");
+                if (IsDerivedDateGroup(fields[field])) {
+                    var date = ReadPivotDateGrouping(fields, field, fieldCount);
+                    dateGroupings.Add(field, date);
+                    sourceDateGroupings[date.SourceField] = ExcelPivotGrouping.Date(fields[date.SourceField].Name?.Value ?? "", date.GroupBy);
+                } else if (IsDerivedManualGroup(fields[field])) {
+                    manualGroupings.Add(field, ReadPivotManualGrouping(fields, pivotFields, field, fieldCount));
+                } else throw new NotSupportedException("The derived pivot field is not qualified for materialization.");
             }
             for (int field = 0; field < fieldCount; field++) {
                 if (fields[field].FieldGroup == null) continue;
                 if (!realFields.Contains(field) && sourceDateGroupings.ContainsKey(field)) continue;
+                if (manualGroupings.Values.Any(group => group.SourceField == field)) continue;
                 if (!realFields.Contains(field) || pageFields.Contains(field)
                     || pivotFields[field].Items?.Elements<Item>().Any(item => item.Hidden?.Value == true) == true)
                     throw new NotSupportedException("Grouped fields require a visible row or column axis.");
@@ -174,9 +180,13 @@ namespace OfficeIMO.Excel {
             var collect = Enumerable.Repeat(true, fieldCount).ToArray();
             var maps = sourceSheet.BuildPivotFieldValueMap(fieldCount, r1 + 1, r2, c1, grouping, collect);
             if (maps.Any(m => m.Items.Count > 100_000)) throw new InvalidOperationException("A pivot cache field exceeds 100,000 distinct items.");
+            foreach (int sourceField in manualGroupings.Values.Select(g => g.SourceField).Distinct())
+                maps[sourceField] = OrderManualSourceValues(maps[sourceField], fields[sourceField], pivotFields[sourceField]);
+            foreach (var manual in manualGroupings.Values) manual.IncludeSourceKeys(maps[manual.SourceField]);
             var displayMaps = maps.ToList();
             foreach (var pair in groupings) displayMaps[pair.Key] = pair.Value.Labels;
-            for (int field = fieldCount; field < fields.Length; field++) displayMaps.Add(dateGroupings[field].Labels);
+            for (int field = fieldCount; field < fields.Length; field++)
+                displayMaps.Add(dateGroupings.TryGetValue(field, out var date) ? date.Labels : manualGroupings[field].Labels);
             var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
                 maps, realFields, r1, r2, c1, limit, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
@@ -188,9 +198,9 @@ namespace OfficeIMO.Excel {
                     throw new InvalidOperationException("The pivot criteria index exceeds the materialization budget.");
             }
             var rows = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, displayMaps, rowAxis, pivotFields,
-                groupings, dateGroupings, visibility.IncludedRows, measures.Length, rowTotal, token);
+                groupings, dateGroupings, manualGroupings, visibility.IncludedRows, measures.Length, rowTotal, token);
             var columns = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, displayMaps, columnAxis, pivotFields,
-                groupings, dateGroupings, visibility.IncludedRows, measures.Length, columnTotal, token);
+                groupings, dateGroupings, manualGroupings, visibility.IncludedRows, measures.Length, columnTotal, token);
             int dataRow = columnField >= 0 ? columnAxis.Fields.Length + 1 : 1;
             int dataColumn = rowAxis.Fields.Length > 0 ? rowAxis.Fields.Length : measures.Length == 1 && columnField >= 0 ? 1 : 0;
             int height = dataRow + rows.Entries.Count;
@@ -211,8 +221,12 @@ namespace OfficeIMO.Excel {
                 visibility.IncludedRows, measures, limit, token);
             bool dateRowHierarchy = rowAxis.RealFields.Length > 1 && rowAxis.RealFields.All(dateGroupings.ContainsKey);
             bool dateColumnHierarchy = columnAxis.RealFields.Length > 1 && columnAxis.RealFields.All(dateGroupings.ContainsKey);
+            bool manualRowHierarchy = rowAxis.RealFields.Length == 2 && manualGroupings.TryGetValue(rowAxis.RealFields[0], out var rowManual)
+                && rowManual.SourceField == rowAxis.RealFields[1];
+            bool manualColumnHierarchy = columnAxis.RealFields.Length == 2 && manualGroupings.TryGetValue(columnAxis.RealFields[0], out var columnManual)
+                && columnManual.SourceField == columnAxis.RealFields[1];
             FillMaterializedHierarchy(plan, displayMaps, rows, columns, visibility, measures, dataRow, dataColumn, aggregates,
-                dateRowHierarchy, dateColumnHierarchy, token);
+                dateRowHierarchy, dateColumnHierarchy, manualRowHierarchy, manualColumnHierarchy, token);
             var cacheFields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             var savedPivotFields = plan.Definition.PivotFields!.Elements<PivotField>().ToArray();
             for (int field = 0; field < fieldCount; field++) {
@@ -222,6 +236,7 @@ namespace OfficeIMO.Excel {
                 savedPivotFields[field].Items = CreateMaterializedFilteredItems(maps[field], null, hasDefault, false);
             }
             for (int field = 0; field < fieldCount; field++) cacheFields[field].SharedItems = BuildSharedItems(maps[field], null);
+            foreach (var pair in manualGroupings) pair.Value.RewriteCacheField(cacheFields[pair.Key], maps[pair.Value.SourceField]);
             plan.Records = sourceSheet.BuildPivotCacheRecords(fieldCount, r1 + 1, r2, c1, grouping, maps, collect,
                 Array.Empty<GeneratedPivotGroupingField>(), Array.Empty<PivotFieldValues>(), 0);
             plan.Cache.RecordCount = (uint)plan.SourceRecords;

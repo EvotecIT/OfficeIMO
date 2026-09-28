@@ -45,7 +45,8 @@ namespace OfficeIMO.Excel {
         private static PivotHierarchyAxis BuildMaterializedHierarchyAxis(ExcelSheet source, int firstRow, int lastRow, int firstColumn,
             IReadOnlyList<PivotFieldValues> maps, PivotMaterializationAxis layout, PivotField[] fields,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
-            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings, bool[] includedRows,
+            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
+            IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings, bool[] includedRows,
             int measures, bool total, CancellationToken token) {
             var result = new PivotHierarchyAxis { Layout = layout, GrandTotal = total,
                 Subtotals = layout.RealFields.Select(field => MaterializedAutomaticSubtotal(fields[field])).ToArray() };
@@ -59,8 +60,9 @@ namespace OfficeIMO.Excel {
                     var node = result.Root;
                     for (int depth = 0; depth < layout.RealFields.Length; depth++) {
                         int field = layout.RealFields[depth];
-                        int sourceField = dateGroupings.TryGetValue(field, out var date) ? date.SourceField : field;
-                        int key = indices[depth][MaterializedPivotAxisKey(source, row, firstColumn + sourceField, field, groupings, dateGroupings)];
+                        int sourceField = dateGroupings.TryGetValue(field, out var date) ? date.SourceField
+                            : manualGroupings.TryGetValue(field, out var manual) ? manual.SourceField : field;
+                        int key = indices[depth][MaterializedPivotAxisKey(source, row, firstColumn + sourceField, field, groupings, dateGroupings, manualGroupings)];
                         node.ChildrenByKey ??= new Dictionary<int, PivotHierarchyNode>();
                         if (!node.ChildrenByKey.TryGetValue(key, out var child)) {
                             child = new PivotHierarchyNode { Id = ++nodeId, Key = key, Depth = depth + 1, Parent = node };

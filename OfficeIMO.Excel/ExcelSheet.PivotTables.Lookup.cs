@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
         /// Reads a value from a saved pivot view, without refreshing its source or cache.
-        /// Supports saved ungrouped hierarchies, default subtotals, collapsed groups and multiple measures.
+        /// Supports saved hierarchies, qualified date, numeric and manual text groups, default subtotals, collapsed groups and multiple measures.
         /// Unknown fields, items, measures or pivots return a typed #REF! error.
         /// </summary>
         /// <param name="pivotTableName">Saved pivot definition on this worksheet.</param>
@@ -83,11 +83,14 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("Pivot lookup requires distinct source axis and page fields.");
             var groupings = new PivotNumericGrouping?[fields.Length];
             var dateGroupings = new PivotDateGrouping?[fields.Length];
+            var manualGroupings = new PivotManualGrouping?[fields.Length];
             int sourceFieldCount = part.PivotTableCacheDefinitionPart?.PivotCacheDefinition?.CacheSource?.WorksheetSource is WorksheetSource sourceRange
                 && A1.TryParseRange(sourceRange.Reference?.Value ?? "", out _, out int firstSourceColumn, out _, out int lastSourceColumn)
                     ? lastSourceColumn - firstSourceColumn + 1 : fields.Length;
             foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0)) {
                 if (IsDerivedDateGroup(fields[field])) dateGroupings[field] = ReadPivotDateGrouping(fields, field, sourceFieldCount);
+                else if (IsDerivedManualGroup(fields[field])) manualGroupings[field] = ReadPivotManualGrouping(fields, pivotFields, field, sourceFieldCount);
+                else if (fields[field].FieldGroup?.ParentId != null) continue;
                 else groupings[field] = ReadPivotNumericGrouping(fields[field], field);
             }
             foreach (PageField page in pageFields) {
@@ -114,8 +117,8 @@ namespace OfficeIMO.Excel {
             }
             var visibleFields = new HashSet<string>(rowFields.Concat(columnFields).Where(f => f >= 0).Select(f => fields[f].Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase);
             if (criteria.Keys.Any(key => !visibleFields.Contains(key))) return PivotLookupReferenceError();
-            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, groupings, dateGroupings, measure, criteria, _excelDocument.DateSystem);
-            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, groupings, dateGroupings, measure, criteria, _excelDocument.DateSystem);
+            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, groupings, dateGroupings, manualGroupings, measure, criteria, _excelDocument.DateSystem);
+            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, groupings, dateGroupings, manualGroupings, measure, criteria, _excelDocument.DateSystem);
             if (row < 0 || column < 0) return PivotLookupReferenceError();
             long outputRow = (long)top + location.FirstDataRow.Value + row;
             long outputColumn = (long)left + location.FirstDataColumn.Value + column;
@@ -129,7 +132,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static int FindSavedPivotAxisItem(OpenXmlCompositeElement? axis, int[] axisFields, CacheField[] fields, PivotField[] pivotFields,
-            PivotNumericGrouping?[] groupings, PivotDateGrouping?[] dateGroupings, int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
+            PivotNumericGrouping?[] groupings, PivotDateGrouping?[] dateGroupings, PivotManualGrouping?[] manualGroupings,
+            int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
             if (axis == null || axis.ChildElements.Count == 0) throw new NotSupportedException("The pivot view has no saved axis items. Refresh or materialize the view first.");
             // One additional item accommodates the grand total for 100,000 real keys.
             if (axis.ChildElements.Count > 100_001) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
@@ -159,7 +163,7 @@ namespace OfficeIMO.Excel {
                     expected = groupLabel;
                 criterionDepth = depth;
                 var savedItems = pivotFields[field].Items;
-                OpenXmlElement[] sharedItems = dateGroupings[field]?.SavedItems ?? groupings[field]?.SavedItems
+                OpenXmlElement[] sharedItems = dateGroupings[field]?.SavedItems ?? manualGroupings[field]?.SavedItems ?? groupings[field]?.SavedItems
                     ?? fields[field].SharedItems?.ChildElements.ToArray() ?? Array.Empty<OpenXmlElement>();
                 if (savedItems == null || sharedItems.Length == 0) return -1;
                 if (savedItems.ChildElements.Count > 100_001 || sharedItems.Length > 100_000)
@@ -175,10 +179,13 @@ namespace OfficeIMO.Excel {
                     if ((itemType.Length == 0 || itemType == "data")
                         && TryPivotLookupUnsigned(item, "x", uint.MaxValue, out uint sharedIndex) && sharedIndex < sharedItems.Length) {
                         var sharedItem = sharedItems[(int)sharedIndex];
-                        bool equal = sharedItem is MissingItem
-                            ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
-                            : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem, dateSystem),
-                                sharedItem is DateTimeItem && expected is DateTime date ? ExcelDateSystemConverter.ToSerial(date, dateSystem) : expected);
+                        string displayName = PivotLookupAttribute(item, "n");
+                        bool equal = displayName.Length > 0
+                            ? PivotLookupValuesEqual(displayName, expected)
+                            : sharedItem is MissingItem
+                                ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
+                                : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem, dateSystem),
+                                    sharedItem is DateTimeItem && expected is DateTime date ? ExcelDateSystemConverter.ToSerial(date, dateSystem) : expected);
                         if (equal) {
                             accepted.Add(itemIndex);
                             if (sharedItem is DateTimeItem) (acceptedDates ??= new HashSet<uint>()).Add(itemIndex);

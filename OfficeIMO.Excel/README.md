@@ -609,11 +609,30 @@ sheet.Pivot("A1:B6").Rows("OrderDate").Sum("Sales", "Metric")
 sheet.MaterializePivotTable("SalesByMonth");
 ```
 
+For a text `Product` column, create a named manual group in a derived field and
+materialize the resulting two-level row view:
+
+```csharp
+sheet.Pivot("A1:B6").Rows("Product").Sum("Sales", "Metric")
+    .Layout(ExcelPivotLayout.Tabular)
+    .ManualGroup("Product", "Product2", "Fruit", "Apple", "Pear")
+    .At("E4", "SalesByProductGroup");
+sheet.MaterializePivotTable("SalesByProductGroup");
+var fruit = sheet.GetPivotData("SalesByProductGroup", "Metric",
+    new Dictionary<string, object?> { ["Product2"] = "Fruit" });
+```
+
+Call `ManualGroup` again to add another named group to the same derived field.
+Each source item can belong to only one group; ungrouped text items remain
+individual entries. The source field must be on a row or column axis, and the
+pivot must have an explicit name. `AddPivotManualGrouping` adds a group field to
+an existing pivot using a dictionary of group labels and source item arrays.
+
 Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
 and multiple fields on each axis, with at most 256 cache fields in total. Numeric range groups with explicit finite
 bounds and intervals, including decimal intervals, are supported when each bound and interval is at most 9 × 10¹⁵
 in magnitude and the range has at most 99,998 buckets.
-Years/Months date hierarchies with saved group labels are also supported on row and column axes. Grouping on page fields is not.
+Years/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Grouping on page fields is not.
 Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
 a non-English Excel locale. It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache

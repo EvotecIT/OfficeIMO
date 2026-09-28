@@ -145,9 +145,12 @@ namespace OfficeIMO.Excel {
 
         private static PivotFieldValue MaterializedPivotAxisKey(ExcelSheet source, int row, int column, int field,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
-            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings) {
+            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
+            IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings) {
             if (dateGroupings.TryGetValue(field, out var dateGrouping))
                 return dateGrouping.Group(source.GetPivotFieldValue(row, column, null));
+            if (manualGroupings.TryGetValue(field, out var manualGrouping))
+                return manualGrouping.Group(source.GetPivotFieldValue(row, column, null));
             if (groupings.TryGetValue(field, out var grouping))
                 return grouping.Group(source.GetPivotFieldValue(row, column, grouping.SourceGrouping));
             return source.GetPivotFieldValue(row, column, null);

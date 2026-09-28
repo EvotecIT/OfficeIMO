@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
             PivotHierarchyAxis rows, PivotHierarchyAxis columns, PivotMaterializationVisibility visibility,
             DataField[] measures, int dataRow, int dataColumn,
             Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups,
-            bool dateHierarchy, bool dateColumnHierarchy, CancellationToken token) {
+            bool dateHierarchy, bool dateColumnHierarchy, bool manualRowHierarchy, bool manualColumnHierarchy, CancellationToken token) {
             var definition = plan.Definition;
             var fields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             var values = new ExcelCellData?[plan.Bottom - plan.Top + 1, plan.Right - plan.Left + 1];
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
                     || rowValuesPosition > 0 && !MaterializedKeyPrefixEquals(previousDataKeys!, rowKeys, rowValuesPosition);
                 Labels(rows, entry, rowKeys, dateHierarchy, firstMeasureRow, (level, value, date) => {
                     int realDepth = rowRealDepths[level];
-                    if (dateHierarchy && rows.Layout.Fields[level] >= 0
+                    if ((dateHierarchy || manualRowHierarchy) && rows.Layout.Fields[level] >= 0
                         && (realDepth < rows.Layout.RealFields.Length || rowValuesPosition > level)
                         && rows.Entries[row].Type == ItemValues.Data && row > 0
                         && rows.Entries[row - 1].Type == ItemValues.Data
@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel {
                 int[] columnKeys = MaterializedHierarchyKeys(entry.Node);
                 Labels(columns, entry, columnKeys, false, true, (level, value, date) => {
                     int realDepth = columnRealDepths[level];
-                    if (dateColumnHierarchy && columns.Layout.Fields[level] >= 0
+                    if ((dateColumnHierarchy || manualColumnHierarchy) && columns.Layout.Fields[level] >= 0
                         && realDepth < columns.Layout.RealFields.Length
                         && entry.Type == ItemValues.Data && column > 0
                         && columns.Entries[column - 1].Type == ItemValues.Data
