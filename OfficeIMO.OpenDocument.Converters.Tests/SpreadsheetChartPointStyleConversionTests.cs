@@ -149,6 +149,61 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     }
 
     [Fact]
+    public void ExplodedOdsPointWithSupportedFillReportsWholeChartLoss() {
+        OdsDocument source = CreateStyledOdsChart(OdsChartType.Pie);
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement point = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"))
+            .Element(OdfNamespaces.Chart + "data-point")!;
+        string name = (string)point.Attribute(OdfNamespaces.Chart + "style-name")!;
+        XElement definition = Assert.Single(part.Descendants(OdfNamespaces.Style + "style"),
+            item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+        definition.Add(new XElement(OdfNamespaces.Style + "chart-properties",
+            new XAttribute(OdfNamespaces.Chart + "pie-offset", "25")));
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void ExplodedOdsSeriesWithoutPointStylesReportsWholeChartLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$3",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$3") },
+            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement series = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"));
+        series.SetAttributeValue(OdfNamespaces.Chart + "style-name", "ExplodedSeries");
+        part.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(
+            new XElement(OdfNamespaces.Style + "style",
+                new XAttribute(OdfNamespaces.Style + "name", "ExplodedSeries"),
+                new XAttribute(OdfNamespaces.Style + "family", "chart"),
+                new XElement(OdfNamespaces.Style + "chart-properties",
+                    new XAttribute(OdfNamespaces.Chart + "pie-offset", "25"))));
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
     public void StyledOdsLineReportsWholeChartLoss() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");

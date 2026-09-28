@@ -110,13 +110,14 @@ public sealed class OdsChart {
             var series = seriesElements.Select(element => {
                 IReadOnlyList<OfficeChartPointStyle?>? pointStyles =
                     OdsChartPointStyles.Read(element, Style, defaultStyle, hatches);
-                bool unprojectedPointStyles = pointStyles == null && element.Elements(chart + "data-point")
-                    .Any(point => point.Attribute(chart + "style-name") != null);
+                bool unprojectedAppearance = pointStyles == null && element.Elements(chart + "data-point")
+                    .Any(point => point.Attribute(chart + "style-name") != null) ||
+                    OdsChartPointStyles.HasUnprojectedSeriesPieOffset(element, Style);
                 return new OdsChartSeries(
                     (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
                     (string?)element.Attribute(chart + "label-cell-address"),
                     NormalizeChartClass(element, (string?)element.Attribute(chart + "class")),
-                    pointStyles, unprojectedPointStyles);
+                    pointStyles, unprojectedAppearance);
             }).ToArray();
             var allProperties = new List<XElement>();
             bool AddStyleChain(string? name) {
@@ -227,12 +228,12 @@ public sealed class OdsChartSeries {
         : this(valuesAddress, labelAddress, null) { }
 
     internal OdsChartSeries(string valuesAddress, string? labelAddress, string? chartClass,
-        IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, bool hasUnprojectedPointStyles = false) {
+        IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, bool hasUnprojectedAppearance = false) {
         ValuesAddress = valuesAddress;
         LabelAddress = labelAddress;
         ChartClass = chartClass;
         PointStyles = pointStyles == null ? null : Array.AsReadOnly(pointStyles.ToArray());
-        HasUnprojectedPointStyles = hasUnprojectedPointStyles;
+        HasUnprojectedAppearance = hasUnprojectedAppearance;
     }
 
     /// <summary>ODF range containing the series values.</summary>
@@ -243,7 +244,7 @@ public sealed class OdsChartSeries {
     public string? ChartClass { get; }
     /// <summary>Supported native per-point fill, hatch, and outline overrides, when present.</summary>
     public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; }
-    internal bool HasUnprojectedPointStyles { get; }
+    internal bool HasUnprojectedAppearance { get; }
 
     /// <summary>Returns a series with native per-point appearance overrides.</summary>
     public OdsChartSeries WithPointStyles(IReadOnlyList<OfficeChartPointStyle?>? styles) =>

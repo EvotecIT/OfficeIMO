@@ -105,7 +105,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             OdsChartSeries sourceSeries = chart.Series[seriesIndex];
             string expectedSeriesClass = chart.ChartClass == "chart:ring" ? "chart:circle" : chart.ChartClass;
             if (sourceSeries.ChartClass != null && sourceSeries.ChartClass != expectedSeriesClass) return false;
-            if (sourceSeries.HasUnprojectedPointStyles ||
+            if (sourceSeries.HasUnprojectedAppearance ||
                 sourceSeries.PointStyles != null && sourceSeries.PointStyles.Count != labels.Length) return false;
             if (!TryReadChartCells(document, hostSheetName, sourceSeries.ValuesAddress, options, readers,
                 out OdsCellValue[] values, out bool valuesLimitExceeded)) {
