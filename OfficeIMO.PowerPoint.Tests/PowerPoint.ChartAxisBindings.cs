@@ -11,9 +11,11 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartAxisBindingsTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void CategoryGroups_FollowAxisPairsWhenPrimaryValueAxisMoves(bool top) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void CategoryGroups_FollowLayerReferencesWhenPrimaryAxisMovesOrXmlOrderChanges(bool top, bool reverseAxes) {
         using var document = PowerPointPresentation.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, false,
@@ -28,6 +30,11 @@ public sealed class PowerPointChartAxisBindingsTests {
         values[0].Scaling!.AddChild(new C.MaxAxisValue { Val = 100 }, true);
         values[1].AxisPosition!.Val = C.AxisPositionValues.Right;
         values[1].Scaling!.AddChild(new C.MaxAxisValue { Val = 200 }, true);
+        if (reverseAxes) {
+            values[1].Remove(); plot.InsertBefore(values[1], values[0]);
+            C.CategoryAxis[] categories = plot.Elements<C.CategoryAxis>().ToArray();
+            categories[1].Remove(); plot.InsertBefore(categories[1], categories[0]);
+        }
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
@@ -35,8 +42,12 @@ public sealed class PowerPointChartAxisBindingsTests {
         chart.UpdateData(snapshot.Data);
         plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         values = plot.Elements<C.ValueAxis>().ToArray();
-        Assert.Equal(100d, values[0].Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
-        Assert.Equal(200d, values[1].Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
+        uint primaryId = plot.GetFirstChild<C.BarChart>()!.Elements<C.AxisId>().Last().Val!.Value;
+        uint secondaryId = plot.GetFirstChild<C.LineChart>()!.Elements<C.AxisId>().Last().Val!.Value;
+        Assert.Equal(100d, plot.Elements<C.ValueAxis>().Single(axis => axis.AxisId!.Val!.Value == primaryId)
+            .Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
+        Assert.Equal(200d, plot.Elements<C.ValueAxis>().Single(axis => axis.AxisId!.Val!.Value == secondaryId)
+            .Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
         Assert.Empty(document.ValidateDocument());
     }
 

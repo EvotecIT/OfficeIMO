@@ -16,20 +16,28 @@ namespace OfficeIMO.OpenXml.Internal {
             var valueAxes = plotArea.Elements<C.ValueAxis>()
                 .Where(axis => axis.AxisId?.Val != null && allReferences.Contains(axis.AxisId.Val.Value)).ToList();
             if (valueAxes.Select(axis => axis.AxisId!.Val!.Value).Distinct().Count() <= 1) return OfficeChartAxisGroup.Primary;
-            // The category/value pairs, rather than their displayed sides, identify
-            // the primary and secondary groups. A primary value axis may be moved.
+            // The first category chart layer owns the primary pair. Axis XML order
+            // and displayed sides can both change without changing layer identity.
             var valueIds = new HashSet<uint>(valueAxes.Select(axis => axis.AxisId!.Val!.Value));
-            uint[] orderedPairs = plotArea.ChildElements.OfType<OpenXmlCompositeElement>()
+            uint[] pairedValues = plotArea.ChildElements.OfType<OpenXmlCompositeElement>()
                 .Where(axis => axis is C.CategoryAxis or C.DateAxis)
                 .Select(axis => axis.GetFirstChild<C.CrossingAxis>()?.Val?.Value)
                 .Where(id => id.HasValue && valueIds.Contains(id.Value))
                 .Select(id => id!.Value).Distinct().ToArray();
-            if (orderedPairs.Length != valueIds.Count || orderedPairs.Length > 2)
+            if (pairedValues.Length != valueIds.Count || pairedValues.Length != 2)
                 throw new NotSupportedException("The chart axis pairs cannot be classified safely.");
+            OpenXmlCompositeElement? firstLayer = plotArea.ChildElements.OfType<OpenXmlCompositeElement>()
+                .FirstOrDefault(axis => axis is C.BarChart or C.LineChart or C.AreaChart or C.RadarChart);
+            uint[] firstValues = firstLayer?.Elements<C.AxisId>()
+                .Where(axis => axis.Val != null && valueIds.Contains(axis.Val.Value))
+                .Select(axis => axis.Val!.Value).Distinct().ToArray() ?? Array.Empty<uint>();
+            if (firstValues.Length != 1)
+                throw new NotSupportedException("The primary chart axis pair cannot be classified safely.");
             var references = new HashSet<uint>(layer.Elements<C.AxisId>().Where(axis => axis.Val != null).Select(axis => axis.Val!.Value));
-            if (references.Contains(orderedPairs[0]) == references.Contains(orderedPairs[1]))
+            uint secondaryValue = pairedValues.Single(id => id != firstValues[0]);
+            if (references.Contains(firstValues[0]) == references.Contains(secondaryValue))
                 throw new NotSupportedException("A chart layer must reference one value-axis group.");
-            return references.Contains(orderedPairs[1])
+            return references.Contains(secondaryValue)
                 ? OfficeChartAxisGroup.Secondary : OfficeChartAxisGroup.Primary;
         }
     }
