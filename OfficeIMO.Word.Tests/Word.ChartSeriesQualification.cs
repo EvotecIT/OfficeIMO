@@ -116,7 +116,7 @@ public class WordChartSeriesQualificationTests {
             new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }, null, OfficeColor.Parse("#123456")) }));
         var series = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single();
         var outline = series.GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
-        outline.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "ABCDEF";
+        outline.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "ABCDEF" }), true);
         outline.Width = 25400;
         series.InsertBefore(new C.DataPoint(new C.Index { Val = 1 },
             new C.ChartShapeProperties(new A.NoFill(), new A.Outline(new A.NoFill()))), series.GetFirstChild<C.Values>());
