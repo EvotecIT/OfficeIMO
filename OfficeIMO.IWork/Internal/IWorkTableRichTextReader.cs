@@ -8,57 +8,75 @@ internal static class IWorkTableRichTextReader {
 
     internal static IReadOnlyDictionary<uint, IWorkTextContent> Read(IWorkObjectIndex index,
         IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
-        IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed) {
+        IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed) =>
+        Read(index, store, projectionBudget, options, maximumEntries,
+            out fullyReconstructed, out _);
+
+    internal static IReadOnlyDictionary<uint, IWorkTextContent> Read(IWorkObjectIndex index,
+        IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
+        IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed,
+        out bool catalogStructureComplete) {
         var strings = new Dictionary<uint, IWorkTextContent>();
         var seenIdentifiers = new HashSet<uint>();
         var recordMessages = new Dictionary<ulong, IWorkWireMessage?>();
         var storageContents = new Dictionary<ulong, IWorkTextContent?>();
         fullyReconstructed = true;
+        catalogStructureComplete = true;
         if (!store.HasField(17)) return strings;
         IWorkArchiveRecord? list = index.Dereference(store, 17);
         if (store.FieldCount(17) != 1 || list?.MessageType != DataListArchive) {
             fullyReconstructed = false;
+            catalogStructureComplete = false;
             return strings;
         }
         if (!IWorkNumbersReader.TryGetCatalogEntryCount(list, maximumEntries, options,
                 "rich-text", out int entryCount)) {
             fullyReconstructed = false;
+            catalogStructureComplete = false;
             return strings;
         }
         projectionBudget.AddTableCatalogEntries(entryCount);
         IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
             index.Message(list), 3, out bool malformedEntries);
-        if (malformedEntries) fullyReconstructed = false;
+        if (malformedEntries) {
+            fullyReconstructed = false;
+            catalogStructureComplete = false;
+        }
         foreach (IWorkWireMessage entry in entries) {
             ulong? key = entry.GetUnsigned(1);
             if (entry.FieldCount(1) != 1
                 || entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
                 || !key.HasValue || key.Value > uint.MaxValue) {
                 fullyReconstructed = false;
+                catalogStructureComplete = false;
                 continue;
             }
             uint normalizedKey = (uint)key.Value;
             if (!seenIdentifiers.Add(normalizedKey)) {
                 strings.Remove(normalizedKey);
                 fullyReconstructed = false;
+                catalogStructureComplete = false;
                 continue;
             }
             IWorkArchiveRecord? wrapper = index.Dereference(entry, 9);
             if (entry.FieldCount(9) != 1
                 || wrapper?.MessageType != RichTextWrapperArchive) {
                 fullyReconstructed = false;
+                catalogStructureComplete = false;
                 continue;
             }
             if (!TryReadRecord(index, wrapper, options, recordMessages,
                     out IWorkWireMessage? wrapperMessage)
                 || wrapperMessage == null) {
                 fullyReconstructed = false;
+                catalogStructureComplete = false;
                 continue;
             }
             IWorkArchiveRecord? storage = index.Dereference(wrapperMessage, 1);
             if (wrapperMessage.FieldCount(1) != 1
                 || storage?.MessageType != TextStorageArchive) {
                 fullyReconstructed = false;
+                catalogStructureComplete = false;
                 continue;
             }
             if (!storageContents.TryGetValue(storage.Identifier, out IWorkTextContent? content)) {
@@ -73,6 +91,7 @@ internal static class IWorkTableRichTextReader {
             }
             if (content == null) {
                 fullyReconstructed = false;
+                catalogStructureComplete = false;
                 continue;
             }
             if (!content.IsTextComplete) fullyReconstructed = false;
