@@ -87,6 +87,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             case "chart:ring": type = ExcelChartType.Doughnut; break;
             default: return false;
         }
+        if (type == ExcelChartType.Line && chart.Series.Any(series =>
+                series.PointStyles?.Any(style => style != null) == true)) return false;
         if (!TryReadChartCells(document, hostSheetName, chart.CategoriesAddress, options, readers,
             out OdsCellValue[] categories, out bool categoryLimitExceeded)) {
             sourceLimitExceeded = categoryLimitExceeded;
