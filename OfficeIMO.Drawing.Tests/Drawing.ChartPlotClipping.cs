@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using OfficeIMO.Drawing;
 using Xunit;
@@ -5,6 +6,68 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPlotClippingTests {
+    [Fact]
+    public void MixedBubblePaddingDoesNotExposeOffscaleScatterLine() {
+        OfficeColor lineInk = OfficeColor.Parse("#D900AA");
+        OfficeColor bubbleInk = OfficeColor.Parse("#2A9D8F");
+        var data = new OfficeChartData(new[] { "A", "B" }, new OfficeChartSeries[] {
+            new("Trend", new[] { 5d, 5d }, new[] { -2d, 5d }, lineInk),
+            OfficeChartSeries.CreateBubble("Bubbles", new[] { 0d, 10d },
+                new[] { 0d, 10d }, new[] { 100d, 100d }, bubbleInk)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: 0, horizontalAxisMaximum: 10,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 10);
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, data, 420, 260, layout: layout));
+
+        OfficeDrawingGroup[] groups = drawing.Elements.OfType<OfficeDrawingGroup>().ToArray();
+        OfficeDrawingGroup lineGroup = Assert.Single(groups,
+            group => group.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == lineInk));
+        OfficeDrawingGroup bubbleGroup = Assert.Single(groups,
+            group => group.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse &&
+                shape.Shape.FillColor == bubbleInk));
+        Assert.True(bubbleGroup.X < lineGroup.X, "Bubbles reserve an outer margin around the numeric plot.");
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        int marginInk = 0;
+        int plottedInk = 0;
+        for (int y = 0; y < raster.Height; y++)
+            for (int x = 0; x < raster.Width; x++) {
+                if (raster.GetPixel(x, y) != lineInk) continue;
+                if (x < lineGroup.X) marginInk++;
+                else plottedInk++;
+            }
+        Assert.Equal(0, marginInk);
+        Assert.True(plottedInk > 0, "The in-range part of the connected scatter line remains visible.");
+    }
+
+    [Fact]
+    public void BubbleAtExplicitAxisBoundRetainsPaintInReservedPlotMargin() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            OfficeChartSeries.CreateBubble("Bubbles", new[] { 0d, 10d },
+                new[] { 0d, 10d }, new[] { 100d, 100d }, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: 0, horizontalAxisMaximum: 10,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 10);
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Bubble, data, 420, 260, layout: layout));
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingShape firstBubble = group.Drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.FillColor == ink)
+            .OrderBy(shape => shape.X).First();
+        double centerX = firstBubble.X + firstBubble.Shape.Width / 2D;
+        Assert.True(firstBubble.X < centerX && firstBubble.X >= group.X);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        int leftInteriorX = (int)Math.Ceiling(firstBubble.X + firstBubble.Shape.Width * 0.25D);
+        int centerY = (int)Math.Round(firstBubble.Y + firstBubble.Shape.Height / 2D);
+        Assert.Equal(ink, raster.GetPixel(leftInteriorX, centerY));
+    }
+
     [Fact]
     public void InRangePointLabelCanExtendAboveClippedPlot() {
         var data = new OfficeChartData(new[] { "A", "B", "C" }, new[] {
@@ -44,7 +107,7 @@ public sealed class DrawingChartPlotClippingTests {
         var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
             kind, data, 360, 240, style, layout));
 
-        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingGroup group = drawing.Elements.OfType<OfficeDrawingGroup>().First();
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "5.00");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
         int inside = 0;

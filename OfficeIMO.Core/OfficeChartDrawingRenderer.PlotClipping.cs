@@ -41,9 +41,14 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddClippedPlotGeometry(OfficeDrawing drawing, OfficeDrawing geometry,
-        OfficeDrawing labels, ChartPlotBounds bounds) {
+        ChartPlotBounds bounds) {
         drawing.AddClippedDrawing(geometry, bounds.Left, bounds.Top,
             OfficeClipPath.Rectangle(bounds.Width, bounds.Height), -bounds.Left, -bounds.Top);
+    }
+
+    private static void AddClippedPlotGeometry(OfficeDrawing drawing, OfficeDrawing geometry,
+        OfficeDrawing labels, ChartPlotBounds bounds) {
+        AddClippedPlotGeometry(drawing, geometry, bounds);
         drawing.AddDrawing(labels, 0D, 0D);
     }
 }
