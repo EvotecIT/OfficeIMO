@@ -552,6 +552,76 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFloat_BlockSiblingDefersWithoutMovingFollowingParagraph() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div>"
+            + "<main><div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderText[] firstPageText = EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>().ToArray();
+
+        Assert.Contains(firstPageText, text => text.Text.Contains("Alpha", StringComparison.Ordinal));
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(), shape => shape.Source == "div#sidebar");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(), shape => shape.Source == "div#sidebar");
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFloat_NestedSiblingStillExcludesFollowingParagraph(bool displayContents) {
+        string wrapperStyle = displayContents ? " style='display:contents'" : string.Empty;
+        string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div><main>"
+            + "<div" + wrapperStyle + "><div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div></div>"
+            + "<p style='margin:0'>Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu.</p>"
+            + "</main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 61D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Alpha", StringComparison.Ordinal));
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+    }
+
+    [Fact]
+    public void HtmlFloat_AnonymousTextAfterBlockStillHonorsDeferredFloat() {
+        const string html = "<body style='margin:0;font:10px/10px Arial'><div style='height:40px'>Prelude</div><main>"
+            + "<div id='sidebar' style='float:right;width:30px;height:30px;background:red'></div>"
+            + "<p style='margin:0'>Alpha.</p>"
+            + "Beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma."
+            + "</main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(100D / HtmlRenderOptions.CssPixelsPerInch, 60D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+            shape => shape.Source == "div#sidebar" && shape.Y < 0.01D);
+        HtmlRenderText[] secondPageText = EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>().ToArray();
+        Assert.NotEmpty(secondPageText);
+        Assert.DoesNotContain(secondPageText,
+            text => text.Y < 29.99D && text.X + text.Width > 70.01D);
+    }
+
+    [Fact]
     public void HtmlFloat_WithoutLegalParagraphBreakMovesToNextPageAtItsTop() {
         const string html = "<body style='margin:0'><div style='height:40px'>Prelude</div>"
             + "<p style='overflow:auto;margin:0;font-size:10px;line-height:10px'>"

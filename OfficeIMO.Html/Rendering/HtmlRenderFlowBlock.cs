@@ -725,7 +725,8 @@ internal sealed class HtmlInlineLayout {
         IEnumerable<HtmlInlineBreakProgress>? breakProgress = null,
         bool supportsContinuationReflow = false,
         double? normalFlowHeight = null,
-        IEnumerable<double>? lineBreakOffsets = null) {
+        IEnumerable<double>? lineBreakOffsets = null,
+        IEnumerable<HtmlFloatExclusion>? floatExclusions = null) {
         Visuals = new List<HtmlRenderVisual>(visuals);
         Height = height;
         NormalFlowHeight = normalFlowHeight ?? height;
@@ -735,6 +736,7 @@ internal sealed class HtmlInlineLayout {
             runningStringAssignments ?? Array.Empty<HtmlCssRunningStringAssignment>()).AsReadOnly();
         BreakProgress = new List<HtmlInlineBreakProgress>(breakProgress ?? Array.Empty<HtmlInlineBreakProgress>()).AsReadOnly();
         SupportsContinuationReflow = supportsContinuationReflow;
+        FloatExclusions = new List<HtmlFloatExclusion>(floatExclusions ?? Array.Empty<HtmlFloatExclusion>()).AsReadOnly();
     }
 
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
@@ -747,6 +749,26 @@ internal sealed class HtmlInlineLayout {
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningStringAssignments { get; }
     internal IReadOnlyList<HtmlInlineBreakProgress> BreakProgress { get; }
     internal bool SupportsContinuationReflow { get; }
+    internal IReadOnlyList<HtmlFloatExclusion> FloatExclusions { get; }
+}
+
+internal readonly struct HtmlFloatExclusion {
+    internal HtmlFloatExclusion(double x, double y, double width, double height, string side) {
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+        Side = side;
+    }
+
+    internal double X { get; }
+    internal double Y { get; }
+    internal double Width { get; }
+    internal double Height { get; }
+    internal string Side { get; }
+    internal double Right => X + Width;
+    internal double Bottom => Y + Height;
+    internal HtmlFloatExclusion Shift(double x, double y) => new HtmlFloatExclusion(X + x, Y + y, Width, Height, Side);
 }
 
 internal readonly struct HtmlInlineBreakProgress {
