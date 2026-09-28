@@ -24,6 +24,18 @@ internal static class OfficeOpenXmlThemeColorResolver {
             FindColorElement(placeholderColor));
     }
 
+    internal static bool HasUnsupportedTransforms(OpenXmlElement? container) {
+        OpenXmlElement? color = FindColorElement(container);
+        if (color == null) return false;
+        foreach (OpenXmlElement transform in color.ChildElements) {
+            if (transform.LocalName is "comp" or "inv" or "gray") continue;
+            if (transform.LocalName is not ("alpha" or "alphaMod" or "alphaOff" or "tint" or "shade" or
+                "lumMod" or "lumOff" or "red" or "redMod" or "redOff" or "green" or "greenMod" or
+                "greenOff" or "blue" or "blueMod" or "blueOff") || !TryReadTransformValue(transform, out _)) return true;
+        }
+        return false;
+    }
+
     internal static OfficeColor? ResolveSchemeColor(A.ColorScheme? colorScheme, string? scheme) {
         if (colorScheme == null || string.IsNullOrWhiteSpace(scheme)) {
             return null;

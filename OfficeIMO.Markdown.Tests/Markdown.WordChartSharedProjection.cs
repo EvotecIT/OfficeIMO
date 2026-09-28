@@ -8,6 +8,23 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Markdown {
+        [Fact]
+        public void WordToMarkdown_VisualFallbackKeepsSmallAuthoredChartSize() {
+            using var document = WordDocument.Create();
+            var chart = document.AddChart(OfficeChartKind.Pie,
+                new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Share", new[] { 3d, 1d }) }));
+            chart.SetSize(200, 100);
+            Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+            string markdown = document.ToMarkdown(new WordToMarkdownOptions { VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri });
+            const string prefix = "data:image/svg+xml;base64,";
+            int start = markdown.IndexOf(prefix, StringComparison.Ordinal);
+            Assert.True(start >= 0, markdown);
+            start += prefix.Length;
+            string svg = Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(start, markdown.IndexOf(')', start) - start)));
+            Assert.Contains("viewBox=\"0 0 " + snapshot.WidthPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) + " " +
+                snapshot.HeightPoints.ToString(System.Globalization.CultureInfo.InvariantCulture) + "\"", svg);
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]
