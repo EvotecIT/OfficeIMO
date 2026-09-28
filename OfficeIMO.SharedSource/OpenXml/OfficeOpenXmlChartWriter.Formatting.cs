@@ -20,6 +20,12 @@ namespace OfficeIMO.OpenXml.Internal {
             ISet<uint> preservedSeriesIndexes, IDictionary<uint, uint> axisBindings) {
             List<OpenXmlCompositeElement> sourceLayers = source.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
+            var requestedSeries = replacement.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(IsSharedChartLayer)
+                .SelectMany(layer => layer.ChildElements.OfType<OpenXmlCompositeElement>()
+                    .Where(IsSharedSeriesElement)
+                    .Select(series => (LayerType: layer.GetType(), Index: series.GetFirstChild<C.Index>()?.Val?.Value)))
+                .Where(item => item.Index.HasValue).ToHashSet();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
             var sourceOrder = new Dictionary<OpenXmlCompositeElement, int>();
             var sourceGroups = OfficeOpenXmlChartAxisGroups.Create(source);
@@ -52,6 +58,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
                 generated.Remove();
             }
+            // A targeted series in a native sibling layer must not silently lose its
+            // distinct axis pair when the replacement has fewer axis groups.
+            if (sourceLayers.Where(layer => !usedLayers.Contains(layer)).Any(layer =>
+                layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement)
+                    .Any(series => requestedSeries.Contains((layer.GetType(), series.GetFirstChild<C.Index>()?.Val?.Value)))))
+                throw new NotSupportedException("A native chart layer with a distinct axis pair cannot be flattened during a shared data update.");
             // Retained layers keep their source-relative overlap order. Keep unmatched
             // generated layers in their original slots so a newly added area layer can
             // still sit behind an existing line rather than being moved to the end.
