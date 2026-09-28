@@ -101,12 +101,14 @@ public sealed partial class IWorkBoundaryTests {
         IWorkWireMessage store = IWorkProtobuf.Parse(
             Message(ReferenceField(17, listId)), options);
 
-        IReadOnlyDictionary<uint, string> strings = IWorkTableRichTextReader.Read(
+        IReadOnlyDictionary<uint, IWorkTextContent> strings = IWorkTableRichTextReader.Read(
             index, store, new IWorkProjectionBudget(options), options,
             options.MaximumTableCatalogEntries, out bool complete);
 
         Assert.True(complete);
-        Assert.Equal("Value", strings[1]);
+        Assert.Equal("Value", strings[1].PlainText);
+        Assert.True(strings[1].IsTextComplete);
+        Assert.False(strings[1].IsComplete);
 
         static IWorkArchiveRecord Record(ulong id, uint type, byte[] payload) =>
             new(id, type, Array.Empty<uint>(), Array.Empty<ulong>(),

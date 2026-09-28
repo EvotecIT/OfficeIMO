@@ -8,7 +8,7 @@ internal static class IWorkTextReader {
     private const uint HyperlinkArchive = 2032;
 
     internal static IWorkTextContent Read(IWorkObjectIndex index, IWorkArchiveRecord storage,
-        IWorkProjectionBudget projectionBudget) {
+        IWorkProjectionBudget projectionBudget, bool tolerateStyleDepth = false) {
         IWorkWireMessage message = index.Message(storage);
         bool textComplete = true;
         string text = ReadText(message, projectionBudget, ref textComplete);
@@ -32,10 +32,10 @@ internal static class IWorkTextReader {
             ulong? paragraphStyleId = ObjectAt(paragraphStyles, paragraph.Start, carryMissing: true);
             ulong? listStyleId = ObjectAt(listStyles, paragraph.Start, carryMissing: true);
             IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
-                projectionBudget, paragraphStyleCache, ref complete);
+                projectionBudget, paragraphStyleCache, tolerateStyleDepth, ref complete);
             (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
-                projectionBudget, listStyleCache, ref complete);
+                projectionBudget, listStyleCache, tolerateStyleDepth, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
@@ -57,7 +57,7 @@ internal static class IWorkTextReader {
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
                 IWorkTextStyle characterStyle = ResolveTextStyle(index, characterStyleId,
                     paragraphStyle.TextStyle, projectionBudget,
-                    textStyleCache, ref complete);
+                    textStyleCache, tolerateStyleDepth, ref complete);
                 if (characterStyle.FontName != null) {
                     projectionBudget.AddTextCharacters(characterStyle.FontName.Length);
                 }
@@ -211,6 +211,7 @@ internal static class IWorkTextReader {
     private static IWorkParagraphStyle ResolveParagraphStyle(IWorkObjectIndex index,
         ulong? identifier, IWorkProjectionBudget projectionBudget,
         Dictionary<ulong, Cached<IWorkParagraphStyle>> cache,
+        bool tolerateStyleDepth,
         ref bool complete) {
         if (!identifier.HasValue) return new ParagraphStyleData().ToPublic();
         if (cache.TryGetValue(identifier.Value, out Cached<IWorkParagraphStyle> cached)) {
@@ -221,7 +222,7 @@ internal static class IWorkTextReader {
         var data = new ParagraphStyleData();
         IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
-            type => type == ParagraphStyleArchive, ref resolvedCompletely);
+            type => type == ParagraphStyleArchive, tolerateStyleDepth, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
@@ -243,6 +244,7 @@ internal static class IWorkTextReader {
     private static IWorkTextStyle ResolveTextStyle(IWorkObjectIndex index, ulong? identifier,
         IWorkTextStyle inherited, IWorkProjectionBudget projectionBudget,
         Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>> cache,
+        bool tolerateStyleDepth,
         ref bool complete) {
         if (!identifier.HasValue) return inherited;
         var key = new TextStyleCacheKey(identifier.Value, inherited);
@@ -255,7 +257,7 @@ internal static class IWorkTextReader {
         IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
             type => type is CharacterStyleArchive or ParagraphStyleArchive,
-            ref resolvedCompletely);
+            tolerateStyleDepth, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
@@ -271,12 +273,17 @@ internal static class IWorkTextReader {
     }
 
     private static IReadOnlyList<IWorkWireMessage> ReadStyleChain(IWorkObjectIndex index,
-        ulong identifier, int maximumDepth, Func<uint, bool> allowedType, ref bool complete) {
+        ulong identifier, int maximumDepth, Func<uint, bool> allowedType,
+        bool tolerateStyleDepth, ref bool complete) {
         var chain = new List<IWorkWireMessage>();
         var seen = new HashSet<ulong>();
         ulong current = identifier;
         while (true) {
             if (chain.Count >= maximumDepth) {
+                if (tolerateStyleDepth) {
+                    complete = false;
+                    break;
+                }
                 throw new InvalidDataException(
                     $"iWork text style inheritance exceeds the configured depth of {maximumDepth}.");
             }
@@ -394,6 +401,7 @@ internal static class IWorkTextReader {
         ulong? identifier, double? paragraphLeftIndentPoints,
         IWorkProjectionBudget projectionBudget,
         Dictionary<(ulong Identifier, double? LeftIndentPoints), Cached<(int Level, string? Label)>> cache,
+        bool tolerateStyleDepth,
         ref bool complete) {
         if (!identifier.HasValue) return (-1, null);
         var cacheKey = (identifier.Value, paragraphLeftIndentPoints);
@@ -405,7 +413,7 @@ internal static class IWorkTextReader {
         var data = new ListStyleData();
         IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
-            type => type == ListStyleArchive, ref resolvedCompletely);
+            type => type == ListStyleArchive, tolerateStyleDepth, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);

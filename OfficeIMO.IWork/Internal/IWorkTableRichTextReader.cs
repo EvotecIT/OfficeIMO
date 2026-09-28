@@ -63,7 +63,8 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            IWorkTextContent content = IWorkTextReader.Read(index, storage, projectionBudget);
+            IWorkTextContent content = IWorkTextReader.Read(index, storage, projectionBudget,
+                tolerateStyleDepth: true);
             if (!content.IsTextComplete) fullyReconstructed = false;
             if (!content.IsTextComplete && content.PlainText.Length == 0) continue;
             strings.Add(normalizedKey, content);
