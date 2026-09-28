@@ -9,6 +9,23 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public class WordChartSeriesQualificationTests {
+    [Fact]
+    public void UpdatingAreaSeriesCanRestoreAnInheritedOutline() {
+        OfficeChartData Data(bool connectLine) => new(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Area", new[] { 1d, 2d }, null, null, null,
+                showMarkers: false, connectLine: connectLine)
+        });
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Area, Data(false));
+        A.Outline Outline() => chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
+            .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
+        Assert.NotNull(Outline().GetFirstChild<A.NoFill>());
+        chart.SetData(OfficeChartKind.Area, Data(true));
+        Assert.Null(Outline().GetFirstChild<A.NoFill>());
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.True(snapshot.Data.Series[0].ConnectLine);
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.Area)]
     [InlineData(OfficeChartKind.AreaStacked)]
