@@ -66,4 +66,33 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         Assert.Equal(OfficeChartAxisTickMark.Cross, snapshot.Layout.SecondaryValueAxis.MajorTickMark);
         Assert.Equal(OfficeChartAxisTickMark.Outside, snapshot.Layout.SecondaryValueAxis.MinorTickMark);
     }
+
+    [Fact]
+    public void SecondaryValueAxis_ResolvesLinkedNumberFormatFromItsWorksheetValues() {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Results");
+        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Count"); sheet.CellValue(1, 3, "Ratio");
+        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, 100); sheet.CellValue(2, 3, .5);
+        sheet.CellValue(3, 1, "South"); sheet.CellValue(3, 2, 200); sheet.CellValue(3, 3, .75);
+        sheet.CellAt(2, 3).Percent(0); sheet.CellAt(3, 3).Percent(0);
+        var chart = sheet.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "North", "South" }, new[] {
+                new OfficeChartSeries("Count", new[] { 100d, 200d }),
+                new OfficeChartSeries("Ratio", new[] { .5, .75 }, null, null, null, true,
+                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }), 1, 5);
+        var native = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!;
+        var secondary = native.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        secondary.NumberingFormat!.FormatCode = "General";
+        secondary.NumberingFormat.SourceLinked = true;
+        var values = native.Descendants<C.LineChartSeries>().Single().GetFirstChild<C.Values>()!;
+        values.RemoveAllChildren();
+        values.Append(new C.NumberReference(new C.Formula("Results!$C$2:$C$3"),
+            new C.NumberingCache(new C.FormatCode("General"), new C.PointCount { Val = 2 },
+                new C.NumericPoint(new C.NumericValue("0.5")) { Index = 0 },
+                new C.NumericPoint(new C.NumericValue("0.75")) { Index = 1 })));
+
+        Assert.True(chart.TryGetSnapshot(out var snapshot));
+        Assert.Equal("0%", snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
+    }
 }

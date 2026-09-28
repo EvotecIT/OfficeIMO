@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
             (int anchorWidthPixels, int anchorHeightPixels) = GetAnchorSizePixels(geometry);
             try {
                 var plot = GetChartPart().ChartSpace?.GetFirstChild<DocumentFormat.OpenXml.Drawing.Charts.Chart>()?.PlotArea;
-                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot);
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot, resolveSourceLinkedFormats: true);
                 snapshot = new ExcelChartSnapshot(
                     Name,
                     Title,

@@ -52,15 +52,22 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if (layout.MinorUnit.HasValue) axis.AddChild(new C.MinorUnit { Val = layout.MinorUnit.Value }, true);
         axis.RemoveAllChildren<C.NumberingFormat>();
         if (layout.NumberFormat != null) axis.AddChild(new C.NumberingFormat { FormatCode = layout.NumberFormat, SourceLinked = false }, true);
-        if (layout.MajorTickMark.HasValue) axis.AddChild(new C.MajorTickMark { Val = WriteTick(layout.MajorTickMark.Value) }, true);
-        if (layout.MinorTickMark.HasValue) axis.AddChild(new C.MinorTickMark { Val = WriteTick(layout.MinorTickMark.Value) }, true);
+        if (layout.MajorTickMark.HasValue) {
+            axis.RemoveAllChildren<C.MajorTickMark>();
+            axis.AddChild(new C.MajorTickMark { Val = WriteTick(layout.MajorTickMark.Value) }, true);
+        }
+        if (layout.MinorTickMark.HasValue) {
+            axis.RemoveAllChildren<C.MinorTickMark>();
+            axis.AddChild(new C.MinorTickMark { Val = WriteTick(layout.MinorTickMark.Value) }, true);
+        }
     }
 
-    internal static void QualifyLinearProjection(C.PlotArea? plot) {
+    internal static void QualifyLinearProjection(C.PlotArea? plot, bool resolveSourceLinkedFormats = false) {
         var axis = Resolve(plot);
         if (axis == null) return;
         var scaling = axis.GetFirstChild<C.Scaling>();
-        if (scaling?.GetFirstChild<C.LogBase>() != null ||
+        if ((!resolveSourceLinkedFormats && axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) ||
+            scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
             axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
             throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
