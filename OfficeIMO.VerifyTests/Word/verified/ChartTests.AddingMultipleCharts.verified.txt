@@ -11201,7 +11201,7 @@
           <c:orientation val="minMax" />
         </c:scaling>
         <c:delete val="0" />
-        <c:axPos val="l" />
+        <c:axPos val="b" />
         <c:majorTickMark val="out" />
         <c:minorTickMark val="none" />
         <c:tickLblPos val="nextTo" />
@@ -11218,7 +11218,7 @@
           <c:orientation val="minMax" />
         </c:scaling>
         <c:delete val="0" />
-        <c:axPos val="b" />
+        <c:axPos val="l" />
         <c:majorGridlines />
         <c:numFmt formatCode="General" sourceLinked="0" />
         <c:majorTickMark val="out" />
@@ -11355,6 +11355,7 @@
     <c:plotArea>
       <c:layout />
       <c:pieChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:varyColors val="1" />
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />

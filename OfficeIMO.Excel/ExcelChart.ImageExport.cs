@@ -1381,7 +1381,11 @@ namespace OfficeIMO.Excel {
             }
 
             C.ChartShapeProperties? properties = marker.GetFirstChild<C.ChartShapeProperties>();
-            return properties == null || IsSimpleSupportedMarkerShapeProperties(properties, workbookPart);
+            if (properties == null) return true;
+            return marker.Parent is C.DataPoint
+                ? OfficeOpenXmlChartPointStyles.IsSupported(properties,
+                    workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme)
+                : IsSimpleSupportedMarkerShapeProperties(properties, workbookPart);
         }
 
         private static bool IsSimpleSupportedMarkerShapeProperties(C.ChartShapeProperties properties, WorkbookPart workbookPart) {

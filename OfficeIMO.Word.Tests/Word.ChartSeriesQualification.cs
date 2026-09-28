@@ -9,6 +9,22 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public class WordChartSeriesQualificationTests {
+    [Theory]
+    [InlineData(WordChartBarGrouping.Stacked)]
+    [InlineData(WordChartBarGrouping.PercentStacked)]
+    public void AuthoredStackedBarsKeepOverlapAndRemainProjectable(WordChartBarGrouping grouping) {
+        using var document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        chart.AddCategories(new System.Collections.Generic.List<string> { "A", "B" });
+        chart.AddBar("Results", new[] { 1, 2 }, OfficeColor.Blue);
+        chart.BarGrouping = grouping;
+        C.BarChart native = chart.ChartPart!.ChartSpace!.Descendants<C.BarChart>().Single();
+        Assert.Equal(100, native.GetFirstChild<C.Overlap>()!.Val!.Value);
+        Assert.True(chart.TryGetSnapshot(out _));
+        chart.BarGrouping = WordChartBarGrouping.Clustered;
+        Assert.Equal(0, native.GetFirstChild<C.Overlap>()!.Val!.Value);
+    }
+
     [Fact]
     public void OfficeSnapshot_HidesLegendByPlottedOrdinal() {
         using var document = WordDocument.Create();

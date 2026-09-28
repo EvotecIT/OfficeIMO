@@ -106,6 +106,10 @@ namespace OfficeIMO.Word {
                     if (barChart != null) {
                         if (value.HasValue) {
                             (barChart.BarGrouping ??= new BarGrouping()).Val = value.Value.ToOpenXml();
+                            Overlap overlap = barChart.GetFirstChild<Overlap>() ?? new Overlap();
+                            overlap.Val = new DocumentFormat.OpenXml.SByteValue(
+                                value.Value is WordChartBarGrouping.Stacked or WordChartBarGrouping.PercentStacked ? (sbyte)100 : (sbyte)0);
+                            if (overlap.Parent == null) barChart.AddChild(overlap, true);
                         } else {
                             barChart.BarGrouping = null;
                         }

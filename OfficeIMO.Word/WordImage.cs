@@ -240,6 +240,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
+                if (_vmlShape != null) {
+                    WriteVmlDimension("width", value.Value);
+                    return;
+                }
                 double emuWidth = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                 if (_Image.Inline?.Extent != null) {
                     _Image.Inline.Extent.Cx = (long)emuWidth;
@@ -283,6 +287,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
+                if (_vmlShape != null) {
+                    WriteVmlDimension("height", value.Value);
+                    return;
+                }
                 if (_Image.Inline?.Extent != null) {
                     double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                     _Image.Inline.Extent.Cy = (Int64Value)emuHeight;

@@ -7,6 +7,31 @@ using V = DocumentFormat.OpenXml.Vml;
 namespace OfficeIMO.Tests;
 
 public sealed class WordImageVmlOwnershipTests {
+    [Fact]
+    public void VmlImageDimensionSettersPersistWithoutChangingOtherStyleDeclarations() {
+        using var document = WordDocument.Create();
+        var imagePart = document.MainDocumentPartRoot.AddImagePart(ImagePartType.Gif);
+        imagePart.FeedData(new MemoryStream(Convert.FromBase64String(
+            "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7")));
+        string id = document.MainDocumentPartRoot.GetIdOfPart(imagePart);
+        var shape = new V.Shape(new V.ImageData { RelationshipId = id }) {
+            Id = "Resizable", Style = "position:absolute;width:15pt;height:15pt;rotation:30"
+        };
+        var paragraph = document.AddParagraph("Image");
+        paragraph._run!.Append(new W.Picture(shape));
+        WordImage image = paragraph.Image!;
+        image.Width = 48;
+        image.Height = 32;
+        Assert.Equal(48, image.Width);
+        Assert.Equal(32, image.Height);
+        Assert.Contains("rotation:30", shape.Style!.Value);
+        using var bytes = document.ToStream();
+        using var reopened = WordDocument.Load(bytes);
+        WordImage persisted = reopened.Paragraphs.Single(item => item.IsImage).Image!;
+        Assert.Equal(48, persisted.Width);
+        Assert.Equal(32, persisted.Height);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

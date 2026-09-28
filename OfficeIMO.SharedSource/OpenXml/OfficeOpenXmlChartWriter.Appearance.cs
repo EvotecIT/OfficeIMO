@@ -119,7 +119,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.Values>() ??
                 (OpenXmlElement?)seriesElement.GetFirstChild<C.XValues>() ?? seriesElement.GetFirstChild<C.YValues>();
             var pointsByIndex = new Dictionary<uint, C.DataPoint>();
-            foreach (C.DataPoint existingPoint in seriesElement.Elements<C.DataPoint>()) {
+            foreach (C.DataPoint existingPoint in OfficeOpenXmlChartPointStyles.GetBoundedPoints(seriesElement)) {
                 uint? existingIndex = existingPoint.Index?.Val?.Value;
                 if (existingIndex.HasValue && !pointsByIndex.ContainsKey(existingIndex.Value)) {
                     pointsByIndex.Add(existingIndex.Value, existingPoint);
