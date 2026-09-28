@@ -4,6 +4,7 @@ using OfficeIMO.Word;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests;
 
@@ -108,6 +109,30 @@ public sealed class WordChartProjectionQualificationTests {
         Assert.Equal(!visibleOnly, chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_IgnoresHiddenRowsAndColumnsOutsideReferencedChartRanges() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) }));
+        var part = chart.ChartPart!;
+        part.ChartSpace!.GetFirstChild<C.Chart>()!.GetFirstChild<C.PlotVisibleOnly>()!.Val = true;
+        var embedded = part.GetPartsOfType<DocumentFormat.OpenXml.Packaging.EmbeddedPackagePart>().Single();
+        using var bytes = new MemoryStream();
+        using (var source = embedded.GetStream()) source.CopyTo(bytes);
+        bytes.Position = 0;
+        using (var workbook = DocumentFormat.OpenXml.Packaging.SpreadsheetDocument.Open(bytes, true)) {
+            S.Worksheet worksheet = workbook.WorkbookPart!.WorksheetParts.Single().Worksheet!;
+            worksheet.GetFirstChild<S.SheetData>()!.Append(new S.Row { RowIndex = 1000U, Hidden = true });
+            var columns = worksheet.GetFirstChild<S.Columns>() ?? new S.Columns();
+            columns.Append(new S.Column { Min = 20U, Max = 20U, Hidden = true });
+            if (columns.Parent == null) worksheet.AddChild(columns, true);
+            worksheet.Save();
+        }
+        bytes.Position = 0;
+        embedded.FeedData(bytes);
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData("trendline")]
     [InlineData("errorBars")]
@@ -140,11 +165,16 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("seriesLines")]
     [InlineData("userShapes")]
     [InlineData("radialLeaderLines")]
+    [InlineData("radialOutside")]
+    [InlineData("radialInsideEnd")]
+    [InlineData("radialNoVary")]
+    [InlineData("autoZeroNegative")]
     public void Snapshot_RejectsUnrepresentedNativeChartContent(string feature) {
         using var document = WordDocument.Create();
-        var kind = feature == "radialLeaderLines" ? OfficeChartKind.Pie :
+        var kind = feature.StartsWith("radial", StringComparison.Ordinal) ? OfficeChartKind.Pie :
             feature == "negative" || feature.StartsWith("bar", StringComparison.Ordinal) || feature == "seriesLines" ? OfficeChartKind.ColumnClustered : OfficeChartKind.Line;
-        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, -4d }) }), title: "Revenue");
+        var chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 3d, feature is "negative" or "autoZeroNegative" ? -4d : 4d }) }), title: "Revenue");
         if (feature == "secondaryCategory") chart.SetData(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Values", new[] { 3d, -4d }),
             new OfficeChartSeries("Secondary", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
@@ -199,6 +229,10 @@ public sealed class WordChartProjectionQualificationTests {
             space.Append(shapes);
         }
         else if (feature == "radialLeaderLines") layer.AddChild(new C.DataLabels(new C.DataLabelPosition { Val = C.DataLabelPositionValues.BestFit }, new C.ShowValue { Val = true }, new C.ShowLeaderLines { Val = true }), true);
+        else if (feature == "radialOutside" || feature == "radialInsideEnd") layer.AddChild(new C.DataLabels(
+            new C.DataLabelPosition { Val = feature == "radialOutside" ? C.DataLabelPositionValues.OutsideEnd : C.DataLabelPositionValues.InsideEnd },
+            new C.ShowValue { Val = true }), true);
+        else if (feature == "radialNoVary") layer.RemoveAllChildren<C.VaryColors>();
         else if (feature == "dateAxis") {
             var category = plot.GetFirstChild<C.CategoryAxis>()!;
             var replacement = new C.DateAxis();

@@ -500,15 +500,15 @@ separator, number format, and position. Mixed body fonts, per-point or series-sp
 outside or best-fit radial leader lines, unsupported effects, and unrepresented outlines return false
 without changing the native document. Native authoring remains available for these charts.
 Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
-axis crossing are preserved where the renderer supports them; maximum crossing on horizontal
-bars is rejected. Nonstandard axis arrangements, title or legend shape fills,
+axis crossing are preserved where the renderer supports them; automatic zero crossing through a negative
+value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements, title or legend shape fills,
 manual title layouts, unsupported numeric formats, exploded slices, and nondefault bar spacing
 require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
 multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
 category-label skipping, offsets or non-centered alignment, rounded chart frames, non-box bar shapes,
-bar connector lines, chart drawing overlays, and nondefault cross-between geometry also reject projection. Visible-only
-charts with hidden workbook source rows or columns reject projection; literal charts remain supported.
+bar connector lines, chart drawing overlays, nondefault cross-between geometry, and nonidentity Word color-scheme mappings also reject projection. Visible-only
+charts reject hidden rows or columns in their referenced workbook ranges; unrelated hidden cells do not affect the snapshot. Literal charts remain supported.
 Header and footer charts use relationships owned
 by their containing story, including when the same relationship ID exists in the document body.
 
