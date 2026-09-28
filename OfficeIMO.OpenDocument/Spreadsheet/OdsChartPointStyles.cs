@@ -142,14 +142,17 @@ internal static class OdsChartPointStyles {
         return true;
     }
 
-    internal static bool HasUnsupportedSeriesChartProperties(XElement series,
+    internal static bool HasUnprojectedSeriesPieOffset(XElement series,
         Func<string?, XElement?> findStyle) {
         string? name = (string?)series.Attribute(OdfNamespaces.Chart + "style-name");
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrEmpty(name)) {
             if (!visited.Add(name!) || visited.Count > 32) return true;
             XElement? definition = findStyle(name);
-            if (definition == null || HasUnsupportedChartProperties(definition)) return true;
+            if (definition == null) return true;
+            string? offset = (string?)definition.Element(OdfNamespaces.Style + "chart-properties")?
+                .Attribute(OdfNamespaces.Chart + "pie-offset");
+            if (offset != null && offset != "0") return true;
             name = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
         }
         return false;
