@@ -34,7 +34,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null);
             OfficeColor? outlineColor = kind == OfficeChartKind.Bubble
                 ? series.MarkerOutlineColor ?? existingOutlineColor ?? fillColor
-                : IsFilledSharedKind(kind) ? series.Color : fillColor;
+                : IsFilledSharedKind(kind) ? null : fillColor;
             double? outlineWidth = kind == OfficeChartKind.Bubble
                 ? series.MarkerOutlineWidth ?? series.StrokeWidth
                 : series.StrokeWidth;
