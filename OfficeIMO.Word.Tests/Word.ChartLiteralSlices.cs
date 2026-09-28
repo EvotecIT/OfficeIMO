@@ -136,6 +136,34 @@ public sealed class WordChartLiteralSliceTests {
     [InlineData(0)]
     [InlineData(1)]
     [InlineData(2)]
+    public void SliceAppend_AcceptsAValueOnlyGapAtAnExistingCategory(int family) {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart();
+        Append(chart, family, "A", 8);
+        Append(chart, family, "B", 2);
+        PieChartSeries series = chart.ChartPart!.ChartSpace.Descendants<PieChartSeries>().Single();
+        series.GetFirstChild<Values>()!.GetFirstChild<NumberLiteral>()!
+            .Elements<NumericPoint>().Single(point => point.Index!.Value == 1).Remove();
+
+        using var stream = new MemoryStream();
+        document.Save(stream);
+        stream.Position = 0;
+        using WordDocument reopened = WordDocument.Load(stream);
+        chart = reopened.Charts.Single();
+        Append(chart, family, "C", 3);
+
+        series = chart.ChartPart!.ChartSpace.Descendants<PieChartSeries>().Single();
+        Assert.Equal(new uint[] { 0, 1, 2 }, series.GetFirstChild<CategoryAxisData>()!
+            .Descendants<StringPoint>().Select(point => point.Index!.Value));
+        Assert.Equal(new uint[] { 0, 2 }, series.GetFirstChild<Values>()!
+            .Descendants<NumericPoint>().Select(point => point.Index!.Value));
+        Assert.Empty(reopened.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
     public void SliceAppend_RejectsMisalignedPositionsBeforeMutatingNativeData(int family) {
         using WordDocument document = WordDocument.Create();
         WordChart chart = document.AddChart();
