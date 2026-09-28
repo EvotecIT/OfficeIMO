@@ -104,7 +104,7 @@ function Add-ComparisonFamily(
     $runMode = Get-RecordedDimensionLabel $Document 'runMode' 'Run mode not recorded'
     $Lines.Add('<section class="imo-benchmark-family" id="' + (Encode-Html $Family) + '-evidence" data-benchmark-family="' + (Encode-Html $Family) + '">')
     $Lines.Add('<header class="imo-benchmark-family__header">')
-    $Lines.Add('<div><p class="imo-benchmark-eyebrow">Historical focused snapshot</p><h2>' + (Encode-Html $Title) + '</h2></div>')
+    $Lines.Add('<div><p class="imo-benchmark-eyebrow">Dated focused snapshot</p><h2>' + (Encode-Html $Title) + '</h2></div>')
     $Lines.Add('<p>' + (Encode-Html $Description) + '</p>')
     $Lines.Add('</header>')
     $Lines.Add('<div class="imo-benchmark-family__meta"><span>Snapshot ' + (Encode-Html $snapshot) + '</span><span>' + (Encode-Html $platform) + '</span><span>' + (Encode-Html $runMode) + '</span><span>25,000 rows</span><span>.NET 8</span><a href="' + (Encode-Html $EvidenceUrl) + '" target="_blank" rel="noopener">' + (Encode-Html $EvidenceLabel) + '</a></div>')

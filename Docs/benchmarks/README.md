@@ -61,6 +61,14 @@ with worst observed margins of 1.36× elapsed on Windows and 1.38× allocation o
 Linux. Three Windows lanes allocate less than ShapeCrawler; large create/save
 uses 0.62× its elapsed time and 0.25× its managed allocation.
 
+## Excel comparison snapshot
+
+The [28 September 2026 focused Excel comparison](officeimo.excel-readme-2026-09-28.md)
+records four validated 25,000-row operations with rotated Windows processor
+domains, all measured samples, and the provenance for the README and website
+snapshot. It refreshes those four highlights; the broader comparison matrix
+and portable performance budgets remain open roadmap work.
+
 ## CSV output size
 
 The validated SQL-shaped DataReader writer now records UTF-8 output size and

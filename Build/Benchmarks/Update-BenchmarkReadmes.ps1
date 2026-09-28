@@ -206,6 +206,28 @@ try {
         }
 
         $excel = Get-Content -LiteralPath $excelSource -Raw -Encoding UTF8 | ConvertFrom-Json
+        $excelManifestPath = Join-Path (Split-Path -Parent $excelSource) "officeimo.excel.comparison-suite-manifest.json"
+        $excelManifest = if ([System.IO.File]::Exists($excelManifestPath)) {
+            Get-Content -LiteralPath $excelManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        } else { $null }
+        $excelOperatingSystem = ""
+        $excelRunMode = ""
+        if ($null -ne $excelManifest) {
+            if ($excelManifest.WarmupIterations -ne $excel.WarmupIterations -or
+                $excelManifest.MeasuredIterations -ne $excel.MeasuredIterations) {
+                throw "Excel benchmark summary and suite manifest have different iteration counts."
+            }
+            if ($excelManifest.PSObject.Properties['OperatingSystem']) {
+                $excelOperatingSystem = [string] $excelManifest.OperatingSystem
+            }
+            $excelRunMode = "local"
+            if ($excelManifest.PSObject.Properties['ProcessorAffinity'] -and $excelManifest.ProcessorAffinity) {
+                $excelRunMode += ", affinity $($excelManifest.ProcessorAffinity)"
+            }
+            if ($excelManifest.PSObject.Properties['ProcessPriority'] -and $excelManifest.ProcessPriority) {
+                $excelRunMode += ", $($excelManifest.ProcessPriority) priority"
+            }
+        }
         $excelSelections = [ordered]@{
             "Feature-rich report to XLSX" = @{ Scenario = "realworld-report-all-in-one"; Operation = "Create"; Libraries = @("OfficeIMO.Excel", "EPPlus") }
             "Styled DataReader table to XLSX" = @{ Scenario = "write-datareader-table"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "EPPlus") }
@@ -221,6 +243,11 @@ try {
                 $_.Scenario -eq $selection.Value.Scenario -and
                 $_.Library -in $selection.Value.Libraries
             })
+            foreach ($library in $selection.Value.Libraries) {
+                if (@($sourceRows | Where-Object Library -eq $library).Count -ne 1) {
+                    throw "Excel benchmark summary requires exactly one '$library' result for '$($selection.Value.Scenario)'."
+                }
+            }
             $baselineRow = $sourceRows | Where-Object Library -eq "OfficeIMO.Excel" | Select-Object -First 1
             if ($null -eq $baselineRow) { throw "Excel baseline is missing for '$($selection.Value.Scenario)'." }
             foreach ($row in $sourceRows) {
@@ -235,16 +262,17 @@ try {
                 $excelRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
                     -Engine $row.Library -BaselineEngine "OfficeIMO.Excel" -Actual ([double] $row.MedianMilliseconds) `
                     -Baseline ([double] $baselineRow.MedianMilliseconds) -Metric "MedianMs" -RuntimeHost ".NET 8" `
-                    -Variables $variables))
+                    -Variables $variables -OperatingSystem $excelOperatingSystem -RunMode $excelRunMode))
             }
         }
 
         Write-ComparisonArtifact -Path $excelComparisonPath -Metadata ([ordered]@{
             generatedAtUtc = $excel.GeneratedAtUtc
             source = $ExcelSummaryPath
+            sourceSha256 = (Get-FileHash -LiteralPath $excelSource -Algorithm SHA256).Hash
             warmupIterations = $excel.WarmupIterations
             measuredIterations = $excel.MeasuredIterations
-            note = $excel.Notes
+            note = "Rows use per-library medians from the lightweight rotated local runner. The linked summary retains aggregate statistics and allocations; its raw speed artifact retains every measured sample. Results are engineering evidence rather than cross-machine performance guarantees."
         }) -Rows $excelRows.ToArray()
     }
 

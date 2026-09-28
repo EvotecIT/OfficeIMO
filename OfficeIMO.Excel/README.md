@@ -67,7 +67,7 @@ and the supported legacy `.xls` subset.
 
 Performance claims use validated outputs and record the workload, package versions, runtime, operating system, processor, warm-up, iterations, allocations, and source provenance. Windows, Linux, and macOS remain separate evidence lanes; missing platforms stay visible rather than being inferred from another operating system.
 
-Use the [benchmark website](https://officeimo.com/benchmarks/) for the current comparison matrix. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
+Use the [benchmark website](https://officeimo.com/benchmarks/) for dated comparison snapshots and their recorded environments. The [benchmark harness](../OfficeIMO.Excel.Benchmarks/README.md) documents reproducible local runs, workload validation, allocation evidence, and data publication. Benchmark-only libraries remain isolated from the `OfficeIMO.Excel` runtime package.
 
 ## Examples
 

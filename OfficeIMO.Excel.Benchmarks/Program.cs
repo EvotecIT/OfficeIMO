@@ -507,6 +507,8 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
     bool runHelloWorldSeparately = includeDenseHelloWorld && scenarioFilters.Length == 0;
     int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? ExcelLibraryComparisonRunner.DefaultWarmupIterations;
     int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? ExcelLibraryComparisonRunner.DefaultMeasuredIterations;
+    string? processorAffinity = ApplyProcessAffinityOption(args);
+    string? processPriority = ApplyProcessPriorityOption(args);
 
     Directory.CreateDirectory(outputDirectory);
     var artifacts = new List<ComparisonSuiteArtifact>();
@@ -519,7 +521,9 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
             includeLegacyEpPlus,
             scenarioFilters,
             warmupIterations,
-            measuredIterations);
+            measuredIterations,
+            processorAffinity: processorAffinity,
+            processPriority: processPriority);
         artifacts.Add(new ComparisonSuiteArtifact("speed-comparison", rowCount, writtenComparisonPath));
         Console.WriteLine($"Suite speed comparison written to '{writtenComparisonPath}'.");
 
@@ -545,7 +549,9 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
                 includeLegacyEpPlus: false,
                 helloWorldScenarios,
                 warmupIterations,
-                measuredIterations);
+                measuredIterations,
+                processorAffinity: processorAffinity,
+                processPriority: processPriority);
             artifacts.Add(new ComparisonSuiteArtifact("dense-helloworld-comparison", rowCount, writtenHelloWorldPath));
             Console.WriteLine($"Dense HelloWorld comparison written to '{writtenHelloWorldPath}'.");
         }
@@ -565,7 +571,10 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
     var manifest = new ComparisonSuiteManifest {
         GeneratedAtUtc = DateTime.UtcNow,
         Framework = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+        OperatingSystem = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
         MachineName = Environment.MachineName,
+        ProcessorAffinity = processorAffinity,
+        ProcessPriority = processPriority,
         RowCounts = rowCounts,
         WarmupIterations = warmupIterations,
         MeasuredIterations = measuredIterations,
@@ -623,7 +632,7 @@ static void WriteUsage() {
     Console.WriteLine("  --compare-markpflug65k-xls-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  --compare-markpflug65k-xlsb-paired [iterations] [affinity-mask] [priority]");
     Console.WriteLine("  anti-cheat-suite [output-dir] [--row-set 100,2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--warmup N] [--iterations N]");
-    Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N]");
+    Console.WriteLine("  comparison-suite [output-dir] [--row-set 2500,25000] [--scenario name] [--skip-legacy-epplus] [--skip-package-profile] [--skip-dense-helloworld] [--warmup N] [--iterations N] [--affinity mask] [--priority Normal]");
     Console.WriteLine();
     Console.WriteLine("Example:");
     Console.WriteLine("  compare .tmp\\officeimo.excel.library-comparison.json --rows 25000 --scenario write-dataset-tables --skip-legacy-epplus");
@@ -1038,7 +1047,10 @@ static double Percentile(double[] samples, double percentile) {
 internal sealed class ComparisonSuiteManifest {
     public DateTime GeneratedAtUtc { get; init; }
     public string Framework { get; init; } = string.Empty;
+    public string OperatingSystem { get; init; } = string.Empty;
     public string MachineName { get; init; } = string.Empty;
+    public string? ProcessorAffinity { get; init; }
+    public string? ProcessPriority { get; init; }
     public int[] RowCounts { get; init; } = [];
     public int WarmupIterations { get; init; }
     public int MeasuredIterations { get; init; }
