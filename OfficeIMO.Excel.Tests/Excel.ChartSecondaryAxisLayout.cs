@@ -9,6 +9,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartSecondaryAxisLayoutTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(bool overlay) {
+        using var document = ExcelDocument.Create();
+        var sheet = document.AddWorksheet("Results");
+        var chart = sheet.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }), 1, 1);
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var title = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
+        if (overlay) title.GetFirstChild<C.Overlay>()!.Val = true;
+        else title.GetFirstChild<C.Layout>()!.Append(new C.ManualLayout(new C.Left { Val = .3 }));
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Theory]
     [InlineData("zeroUnit")]
     [InlineData("invertedBounds")]
     [InlineData("malformedNumber")]

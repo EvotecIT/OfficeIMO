@@ -155,11 +155,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (axis.GetFirstChild<C.ChartShapeProperties>() != null ||
                     axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
                     throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
-                if (axis.GetFirstChild<C.Title>() is C.Title title &&
-                    (title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
-                     title.GetFirstChild<C.Overlay>()?.Val?.Value == true ||
-                     title.GetFirstChild<C.ChartText>() == null))
-                    throw new NotSupportedException("The secondary axis title cannot be projected.");
+                OfficeOpenXmlChartSecondaryAxis.QualifyTitle(axis.GetFirstChild<C.Title>());
                 if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value is C.TickLabelPositionValues tickPosition && tickPosition != C.TickLabelPositionValues.NextTo))
                     throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
                 if (axis is C.ValueAxis) {

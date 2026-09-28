@@ -127,8 +127,8 @@ public static partial class OfficeChartDrawingRenderer {
         double verticalAxisRightLabelWidth = Math.Max(
             showVerticalAxisLabels && verticalAxisLabelsHigh ? verticalAxisLabelBandWidth + 8D : 0D,
             !barChart && secondaryAxisLabelBandWidth > 0D ? secondaryAxisLabelBandWidth + 8D : 0D);
-        double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ||
-            (!barChart && hasSecondaryAxisTitle) ? GetAxisTitleBandHeight(layout) : 0D;
+        double verticalAxisTitleHeight = (HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D) +
+            (!barChart && hasSecondaryAxisTitle ? GetAxisTitleBandHeight(layout) : 0D);
         double secondaryHorizontalTitleHeight = barChart && hasSecondaryAxisTitle ? GetAxisTitleBandHeight(layout) : 0D;
         double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight +
             secondaryHorizontalTitleHeight + horizontalAxisTopLabelHeight;
