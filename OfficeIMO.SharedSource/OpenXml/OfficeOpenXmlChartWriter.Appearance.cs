@@ -24,7 +24,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool reenableBubbleOutline = kind == OfficeChartKind.Bubble &&
                 series.ShowMarkerOutline &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
-            bool reenableConnectingLine = !IsFilledSharedKind(kind) && series.ConnectLine &&
+            bool reenableConnectingLine = (!IsFilledSharedKind(kind) || IsAreaKind(kind)) && series.ConnectLine &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             bool hideAreaOutline = IsAreaKind(kind) && !series.ConnectLine;
             if (!fillColor.HasValue && !outlineColor.HasValue && outlineWidth == null &&
