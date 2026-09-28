@@ -881,9 +881,12 @@ public static partial class OfficeChartDrawingRenderer {
         double left = point.X - diameter / 2D;
         double top = point.Y - diameter / 2D;
         OfficeColor markerStroke = pointStyle?.OutlineColor ?? series.MarkerOutlineColor ?? color;
+        // Line-only markers have no area in which to draw a hatch. Use its visible
+        // foreground rather than the hatch background for their strokes.
+        OfficeColor lineMarkerStroke = pointStyle?.OutlineColor ?? pointStyle?.HatchColor ?? series.MarkerOutlineColor ?? color;
         double markerStrokeWidth = pointStyle?.ShowOutline == false ? 0 : pointStyle?.OutlineWidth ?? series.MarkerOutlineWidth ?? strokeWidth;
         if (series.MarkerShape == OfficeChartMarkerShape.Dash) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, lineMarkerStroke, markerStrokeWidth);
             return;
         }
 
@@ -896,14 +899,14 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (series.MarkerShape == OfficeChartMarkerShape.Plus) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, markerStroke, markerStrokeWidth);
-            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, diameter), point.X, top, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, lineMarkerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, diameter), point.X, top, null, lineMarkerStroke, markerStrokeWidth);
             return;
         }
 
         if (series.MarkerShape == OfficeChartMarkerShape.X) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, diameter), left, top, null, markerStroke, markerStrokeWidth);
-            AddShape(drawing, OfficeShape.Line(0D, diameter, diameter, 0D), left, top, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, diameter), left, top, null, lineMarkerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, diameter, diameter, 0D), left, top, null, lineMarkerStroke, markerStrokeWidth);
             return;
         }
 
@@ -1763,25 +1766,40 @@ public static partial class OfficeChartDrawingRenderer {
             out double visualWidth, out double contentHeight);
         ValueRange range = GetRadarValueRange(series);
 
-        for (int ring = 1; ring <= 4; ring++) {
-            double ringRadius = radius * ring / 4D;
-            IReadOnlyList<OfficePoint> ringPoints = CreateRadarPoints(categories.Count, centerX, centerY, ringRadius);
-            AddPolygonShape(drawing, ringPoints, null, style.GridLineColor, 0.5D);
+        if (GetShowValueGridLines(style)) {
+            for (int ring = 1; ring <= 4; ring++) {
+                double ringRadius = radius * ring / 4D;
+                IReadOnlyList<OfficePoint> ringPoints = CreateRadarPoints(categories.Count, centerX, centerY, ringRadius);
+                AddPolygonShape(drawing, ringPoints, null, GetValueGridLineColor(style), GetValueGridLineWidth(style));
+            }
+        }
+        if (layout.ShowValueAxisLabels) {
+            double labelHeight = GetAxisLabelBoxHeight(layout);
+            for (int ring = 1; ring <= 4; ring++) {
+                double tick = range.Min + (range.Max - range.Min) * ring / 4D;
+                double y = centerY - radius * ring / 4D - labelHeight / 2D;
+                AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat),
+                    centerX + 4D, y, 42D, labelHeight, layout.AxisLabelFontSize,
+                    style.MutedTextColor, OfficeTextAlignment.Left, style,
+                    layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            }
         }
 
-        IReadOnlyList<OfficePoint> outerPoints = CreateRadarPoints(categories.Count, centerX, centerY, radius);
-        for (int i = 0; i < outerPoints.Count; i++) {
-            OfficePoint point = outerPoints[i];
-            double minX = Math.Min(centerX, point.X);
-            double minY = Math.Min(centerY, point.Y);
-            AddShape(
-                drawing,
-                OfficeShape.Line(centerX - minX, centerY - minY, point.X - minX, point.Y - minY),
-                minX,
-                minY,
-                null,
-                style.GridLineColor,
-                0.5D);
+        if (GetShowCategoryGridLines(style)) {
+            IReadOnlyList<OfficePoint> outerPoints = CreateRadarPoints(categories.Count, centerX, centerY, radius);
+            for (int i = 0; i < outerPoints.Count; i++) {
+                OfficePoint point = outerPoints[i];
+                double minX = Math.Min(centerX, point.X);
+                double minY = Math.Min(centerY, point.Y);
+                AddShape(
+                    drawing,
+                    OfficeShape.Line(centerX - minX, centerY - minY, point.X - minX, point.Y - minY),
+                    minX,
+                    minY,
+                    null,
+                    GetCategoryGridLineColor(style),
+                    GetCategoryGridLineWidth(style));
+            }
         }
 
         for (int s = 0; s < series.Count; s++) {
@@ -1853,7 +1871,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
+        if (layout.ShowCategoryAxisLabels) AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
         if (layout.OverlayLegend) {
             AddOverlaySeriesLegend(drawing, series, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout);
         } else {

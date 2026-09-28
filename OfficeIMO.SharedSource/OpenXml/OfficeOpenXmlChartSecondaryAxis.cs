@@ -108,10 +108,17 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         bool sectionHasPlaceholder = false;
         for (int index = 0; index < format!.Length; index++) {
             char value = format[index];
-            if (escaped) { escaped = false; continue; }
+            if (escaped) {
+                if (value == '%') return true;
+                escaped = false;
+                continue;
+            }
             if (value == '\\') { escaped = true; continue; }
             if (value == '"') { inQuotedLiteral = !inQuotedLiteral; continue; }
-            if (inQuotedLiteral) continue;
+            if (inQuotedLiteral) {
+                if (value == '%') return true;
+                continue;
+            }
             if (value == '0' || value == '#' || value == '?') {
                 sectionHasPlaceholder = true;
                 continue;
