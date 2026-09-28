@@ -40,6 +40,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
             bool areaOnly = area && chartLayers?.Length > 0 &&
                 chartLayers.All(element => element.LocalName is "areaChart" or "area3DChart");
+            if (areaOnly && plot!.Elements<C.ValueAxis>()
+                .Select(axis => axis.GetFirstChild<C.CrossBetween>()?.Val?.Value ?? C.CrossBetweenValues.Between)
+                .Distinct().Skip(1).Any())
+                throw new NotSupportedException("Independent area-axis cross-between geometry cannot be projected.");
             if (plot?.Descendants<C.LabelOffset>().Any(offset => offset.Val?.Value is ushort value && value != 100) == true ||
                 plot?.Descendants<C.CrossBetween>().Any(crossing => crossing.Val?.Value is C.CrossBetweenValues value &&
                     value != C.CrossBetweenValues.Between && !(areaOnly && value == C.CrossBetweenValues.MidpointCategory)) == true)
