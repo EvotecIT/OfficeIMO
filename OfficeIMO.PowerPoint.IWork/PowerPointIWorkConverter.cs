@@ -156,8 +156,12 @@ public static partial class PowerPointIWorkConverter {
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
                     richText.Paragraphs.Select(_ => string.Empty));
+                var listState = new IWorkPowerPointListState();
                 for (int index = 0; index < paragraphs.Count; index++) {
-                    WriteParagraphContent(paragraphs[index], richText.Paragraphs[index]);
+                    IWorkTextParagraph sourceParagraph = richText.Paragraphs[index];
+                    ApplyParagraphStyle(paragraphs[index], sourceParagraph,
+                        listState.StartsAtSourceLabel(sourceParagraph));
+                    WriteParagraphContent(paragraphs[index], sourceParagraph);
                 }
                 if (sourceCell.Row <= source.HeaderRowCount
                     || sourceCell.Column <= source.HeaderColumnCount

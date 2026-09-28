@@ -101,7 +101,7 @@ public static partial class WordIWorkConverter {
                                     ? anchor
                                     : null;
                             WordTable? insertedTable = AddTable(document,
-                                sourceDrawable.Table!, pageHost, priorTable);
+                                sourceDrawable.Table!, nativeLists, pageHost, priorTable);
                             if (sourceDrawable.PageIndex.HasValue && insertedTable != null) {
                                 pageTableAnchors[sourceDrawable.PageIndex.Value] = insertedTable;
                             }
@@ -235,6 +235,7 @@ public static partial class WordIWorkConverter {
     }
 
     private static WordTable? AddTable(WordDocument document, IWorkTable source,
+        IWorkNativeListCatalog nativeLists,
         WordParagraph? pageHost = null, WordTable? tableHost = null) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         WordTable table = pageHost == null
@@ -257,16 +258,12 @@ public static partial class WordIWorkConverter {
                 || sourceCell.Row > source.RowCount - source.FooterRowCount;
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 bool first = true;
-                foreach (IWorkTextParagraph sourceParagraph in richText.Paragraphs) {
+                AddRichText(richText, _ => {
                     WordParagraph paragraph = target.AddParagraph(string.Empty,
                         removeExistingParagraphs: first);
                     first = false;
-                    ApplyParagraphStyle(paragraph, sourceParagraph);
-                    if (header) paragraph.Bold = true;
-                    foreach (IWorkTextRun run in sourceParagraph.Runs) {
-                        AddStyledTextRun(paragraph, run, forceBold: header);
-                    }
-                }
+                    return paragraph;
+                }, nativeLists, forceBold: header);
             } else {
                 WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
                     removeExistingParagraphs: true);
@@ -540,12 +537,14 @@ public static partial class WordIWorkConverter {
     private static void AddRichText(IWorkTextContent content, Func<string, WordParagraph> addParagraph,
         IWorkNativeListCatalog nativeLists,
         Func<WordParagraph>? addPageBreak = null,
-        Action<IWorkParagraphBreakKind>? addSectionBreak = null) {
+        Action<IWorkParagraphBreakKind>? addSectionBreak = null,
+        bool forceBold = false) {
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph);
+            if (forceBold) paragraph.Bold = true;
             if (sourceParagraph.ListLevel >= 0) {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
@@ -558,7 +557,7 @@ public static partial class WordIWorkConverter {
                 hasPreviousListParagraph = false;
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
-                AddStyledTextRun(paragraph, sourceRun);
+                AddStyledTextRun(paragraph, sourceRun, forceBold);
             }
             if (sourceParagraph.BreakKind == IWorkParagraphBreakKind.Page) addPageBreak?.Invoke();
             else if (sourceParagraph.BreakKind is IWorkParagraphBreakKind.Section
