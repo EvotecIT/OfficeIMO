@@ -73,11 +73,18 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
                 ChartPart? chartPart = (chart.Parent as C.ChartSpace)?.OpenXmlPart as ChartPart;
-                if (labels.GetFirstChild<C.TextProperties>() != null &&
-                    chartPart?.GetPartsOfType<ChartStylePart>().Any() == true)
-                    throw new NotSupportedException("Styled chart data-label text inheritance cannot be projected.");
                 NativeText text = ReadNativeText(chart, labels, scheme);
                 NativeText styled = chartPart == null ? default : ReadChartStyleLabelText(chartPart, scheme);
+                if (labels.GetFirstChild<C.TextProperties>() is C.TextProperties explicitProperties &&
+                    chartPart?.GetPartsOfType<ChartStylePart>().Any() == true) {
+                    NativeText explicitText = ReadTextPropertyDefaults(default, explicitProperties, scheme,
+                        OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart));
+                    if (styled.Size.HasValue && !explicitText.Size.HasValue ||
+                        styled.Style.HasValue && !explicitText.Style.HasValue ||
+                        styled.Color.HasValue && !explicitText.Color.HasValue ||
+                        styled.Family != null && explicitText.Family == null)
+                        throw new NotSupportedException("Styled chart data-label text inheritance cannot be projected.");
+                }
                 current.FontSize = text.Size ?? styled.Size;
                 current.FontFamily = text.Family ?? styled.Family;
                 current.FontStyle = text.Style ?? styled.Style;

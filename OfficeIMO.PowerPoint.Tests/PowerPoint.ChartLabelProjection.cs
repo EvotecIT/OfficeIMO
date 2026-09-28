@@ -64,6 +64,29 @@ public sealed class PowerPointChartLabelProjectionTests {
         Assert.Empty(presentation.ValidateDocument());
     }
 
+    [Fact]
+    public void ExplicitStyledLabelTextProjectsWithoutStyleInheritance() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }))
+            .SetDataLabels(showValue: true)
+            .SetDataLabelTextStyle(fontSizePoints: 9, bold: false, italic: false,
+                color: "172033", fontName: "Aptos");
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(9D, snapshot.Layout.DataLabelFontSize);
+        Assert.Equal(OfficeColor.Parse("#172033"), snapshot.Style.DataLabelTextColor);
+    }
+
+    [Fact]
+    public void PartialStyledLabelTextRemainsUnprojectable() {
+        using PowerPointPresentation presentation = PowerPointPresentation.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }))
+            .SetDataLabels(showValue: true)
+            .SetDataLabelTextStyle(color: "172033");
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.ColumnClustered)]
     [InlineData(OfficeChartKind.Line)]
