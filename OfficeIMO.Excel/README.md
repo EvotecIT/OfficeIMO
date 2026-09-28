@@ -641,6 +641,11 @@ with selected page items, hidden row/column items, optional grand totals, typed 
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
 cached results; materialization does not calculate them.
+When several pivot views share a cache, materializing any one of them regenerates
+every view of that cache in one transaction. All views must qualify for
+materialization and produce identical cache fields and records. The returned
+`AffectedPivotTables` names the refreshed views; `OutputRange` remains the range
+of the requested view.
 Manual item filters retain their selected keys when source item order changes.
 New source keys remain excluded from a manually filtered field unless its
 `IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
@@ -676,6 +681,8 @@ and affected output are each capped at one million cells. The measure-input budg
 source records times measure count times the number of displayed input levels on each
 axis: the leaf level plus enabled intermediate subtotals. Grand totals add at most
 one level per axis, bounding actual aggregate updates at four times that budget.
+For shared caches, source-cell visits, measure-input visits, and affected output
+cells are each summed across views against the configured budget.
 Fields and measures are capped at 256; distinct shared keys per field and observed
 leaf aggregate states across measures are capped at 100,000. All aggregate states,
 including subtotals and grand totals, must fit the output budget. Saved axis items,
@@ -685,7 +692,7 @@ combinations remain within the saved-lookup indexing limit.
 
 Other date levels and layouts, custom non-text grouping, formatted date/numeric label filters,
 other label/value pivot filter types and multi-field value filtering,
-calculated fields, shared caches and associated interaction
+calculated fields, incompatible shared-cache groupings, and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.
 

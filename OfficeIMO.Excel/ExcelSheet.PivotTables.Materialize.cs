@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
-        /// Generates a saved pivot view and its source cache from current worksheet values.
+        /// Generates saved pivot views and their shared source cache from current worksheet values.
         /// Supports up to 256 measures and fields across ordinary, numeric-range, derived date and manual text group axes, selected page items,
         /// hidden row, column, or page items, deterministic first-seen key order, and optional grand totals.
         /// Source formulas use their saved typed caches.
@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// <param name="pivotTableName">Pivot definition on this worksheet.</param>
         /// <param name="options">Source, measure-input, output and rollback limits. Each cell/work budget uses MaximumAffectedCells, capped at one million.</param>
         /// <param name="cancellationToken">Cancels preparation or rolls back an interrupted write.</param>
-        /// <exception cref="NotSupportedException">The pivot uses an unqualified grouping, label/value filter, calculated field, shared cache or measure layout.</exception>
+        /// <exception cref="NotSupportedException">A cache view uses an unqualified grouping, filter, calculated field, measure layout, or incompatible cache representation.</exception>
         /// <exception cref="InvalidOperationException">A budget or destination collision prevents generation.</exception>
         public ExcelPivotMaterializationResult MaterializePivotTable(string pivotTableName, ExcelMutationPlanOptions? options = null, CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot table name is required.", nameof(pivotTableName));
@@ -23,47 +23,60 @@ namespace OfficeIMO.Excel {
             ExcelPivotMaterializationResult? result = null;
             Batch(_ => {
                 cancellationToken.ThrowIfCancellationRequested();
-                var plan = PreparePivotMaterialization(pivotTableName, effective, cancellationToken);
-                var mutation = ApplyTransactionalMutation(token => {
-                    var recordPart = plan.CachePart.PivotTableCacheRecordsPart ?? plan.CachePart.AddNewPart<PivotTableCacheRecordsPart>();
-                    plan.Cache.Id = plan.CachePart.GetIdOfPart(recordPart);
-                    recordPart.PivotCacheRecords = plan.Records;
-                    ExcelDocument.MarkPivotCacheRecordsPartAsModelWritten(recordPart);
-                    plan.CachePart.PivotCacheDefinition = plan.Cache;
-                    plan.Part.PivotTableDefinition = plan.Definition;
-                    ClearExistingCellFieldsInRange((plan.Top, plan.Left, plan.AffectedBottom, plan.AffectedRight), ExcelClearOptions.Values);
-                    ClearHeaderCache();
-                    var dateStyles = new Dictionary<uint, uint>();
-                    var existingDateStyles = plan.DateCells.Count == 0 ? null : StylesCache.Build(_spreadSheetDocument);
-                    for (int row = plan.Top; row <= plan.AffectedBottom; row++) {
-                        token.ThrowIfCancellationRequested();
-                        for (int column = plan.Left; column <= plan.AffectedRight; column++) {
-                            if (row > plan.Bottom || column > plan.Right) {
-                                continue;
-                            }
-                            var value = plan.Values[row - plan.Top, column - plan.Left];
-                            if (value?.Kind == ExcelCellDataKind.Error) CellError(row, column, (string)value.Value!);
-                            else if (value != null) CellValue(row, column, value.Value);
-                            if (plan.DateCells.Contains((row - plan.Top, column - plan.Left))) {
-                                var cell = GetCell(row, column);
-                                uint style = cell.StyleIndex?.Value ?? 0U;
-                                if (existingDateStyles?.IsDateLike(style) != true) {
-                                    if (!dateStyles.TryGetValue(style, out uint dateStyle))
-                                        dateStyles.Add(style, dateStyle = GetOrCreateBuiltInNumberFormatStyleIndex(style, 22));
-                                    cell.StyleIndex = dateStyle;
-                                }
+                PivotTablePart requestedPart = _worksheetPart.PivotTableParts.FirstOrDefault(p =>
+                    string.Equals(p.PivotTableDefinition?.Name?.Value, pivotTableName, StringComparison.OrdinalIgnoreCase))
+                    ?? throw new ArgumentException("The pivot table was not found on this worksheet.", nameof(pivotTableName));
+                PivotTableCacheDefinitionPart cachePart = requestedPart.PivotTableCacheDefinitionPart
+                    ?? throw new InvalidOperationException("The pivot cache is missing.");
+                var views = _excelDocument.GetSheetsForLockedOperation()
+                    .SelectMany(sheet => sheet._worksheetPart.PivotTableParts
+                        .Where(part => ReferenceEquals(part.PivotTableCacheDefinitionPart, cachePart))
+                        .Select(part => (Sheet: sheet, Part: part)))
+                    .OrderBy(view => ReferenceEquals(view.Part, requestedPart) ? 0 : 1)
+                    .ThenBy(view => view.Sheet.Name, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(view => view.Part.PivotTableDefinition?.Name?.Value, StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+                var source = cachePart.PivotCacheDefinition?.CacheSource?.WorksheetSource;
+                if (views.Length > 1 && A1.TryParseRange(source?.Reference?.Value ?? "",
+                        out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)
+                    && (long)views.Length * (lastRow - firstRow) * (lastColumn - firstColumn + 1)
+                        > Math.Min(1_000_000, effective.MaximumAffectedCells))
+                    throw new InvalidOperationException("The combined pivot source work exceeds the materialization budget.");
+                var plans = views.Select(view => (view.Sheet, Plan: view.Sheet.PreparePivotMaterialization(
+                    view.Part.PivotTableDefinition?.Name?.Value
+                        ?? throw new InvalidOperationException("A shared pivot view has no name."), effective, cancellationToken)))
+                    .ToArray();
+                PivotMaterializationPlan plan = plans.Single(item => ReferenceEquals(item.Plan.Part, requestedPart)).Plan;
+                int affectedCells = ValidateCoordinatedPivotPlans(plans, effective);
+                ExcelMutationResult mutation;
+                try {
+                    mutation = ApplyTransactionalMutation(token => {
+                        var recordPart = cachePart.PivotTableCacheRecordsPart ?? cachePart.AddNewPart<PivotTableCacheRecordsPart>();
+                        plan.Cache.Id = cachePart.GetIdOfPart(recordPart);
+                        recordPart.PivotCacheRecords = plan.Records;
+                        ExcelDocument.MarkPivotCacheRecordsPartAsModelWritten(recordPart);
+                        cachePart.PivotCacheDefinition = plan.Cache;
+                        using (BeginNoLock()) {
+                            foreach (var item in plans) {
+                                token.ThrowIfCancellationRequested();
+                                item.Sheet.WritePivotMaterializationView(item.Plan, token);
                             }
                         }
-                    }
-                    var validator = new OpenXmlValidator(FileFormatVersions.Microsoft365) { MaxNumberOfErrors = 1 };
-                    foreach (var changed in new OpenXmlPart[] { _worksheetPart, plan.Part, plan.CachePart, recordPart }) {
-                        token.ThrowIfCancellationRequested();
-                        var error = validator.Validate(changed, token).FirstOrDefault();
-                        if (error != null) throw new InvalidOperationException("Generated pivot metadata is invalid: " + error.Description);
-                    }
-                    return (plan.AffectedBottom - plan.Top + 1) * (plan.AffectedRight - plan.Left + 1);
-                }, effective, cancellationToken);
-                result = new ExcelPivotMaterializationResult(plan.Definition.Name!.Value!, plan.Definition.Location!.Reference!.Value!, plan.SourceRecords, mutation);
+                        var validator = new OpenXmlValidator(FileFormatVersions.Microsoft365) { MaxNumberOfErrors = 1 };
+                        foreach (OpenXmlPart changed in plans.SelectMany(item => new OpenXmlPart[] {
+                            item.Sheet._worksheetPart, item.Plan.Part }).Concat(new OpenXmlPart[] { cachePart, recordPart }).Distinct()) {
+                            token.ThrowIfCancellationRequested();
+                            var error = validator.Validate(changed, token).FirstOrDefault();
+                            if (error != null) throw new InvalidOperationException("Generated pivot metadata is invalid: " + error.Description);
+                        }
+                        return affectedCells;
+                    }, effective, cancellationToken);
+                } catch {
+                    foreach (var item in plans) item.Sheet.ResetMutationCaches();
+                    throw;
+                }
+                result = new ExcelPivotMaterializationResult(plan.Definition.Name!.Value!, plan.Definition.Location!.Reference!.Value!,
+                    plan.SourceRecords, mutation, plans.Select(item => item.Plan.Definition.Name!.Value!).ToArray());
             });
             return result!;
         }
@@ -78,6 +91,66 @@ namespace OfficeIMO.Excel {
             internal ExcelDateSystem SourceDateSystem;
             internal HashSet<(int Row, int Column)> DateCells = new();
             internal int Top, Left, Bottom, Right, OldBottom, OldRight, AffectedBottom, AffectedRight, SourceRecords;
+            internal long SourceCellVisits, MeasureInputVisits;
+        }
+
+        private static int ValidateCoordinatedPivotPlans(
+            (ExcelSheet Sheet, PivotMaterializationPlan Plan)[] plans, ExcelMutationPlanOptions options) {
+            if (plans.Length == 0) throw new InvalidOperationException("The pivot cache has no views.");
+            PivotMaterializationPlan first = plans[0].Plan;
+            int limit = Math.Min(1_000_000, options.MaximumAffectedCells);
+            long totalCells = 0, sourceCellVisits = 0, measureInputVisits = 0;
+            foreach (var item in plans) {
+                PivotMaterializationPlan current = item.Plan;
+                if (plans.Length > 1 && !ReferenceEquals(current, first)
+                    && (!string.Equals(current.Cache.OuterXml, first.Cache.OuterXml, StringComparison.Ordinal)
+                        || !string.Equals(current.Records.OuterXml, first.Records.OuterXml, StringComparison.Ordinal)))
+                    throw new NotSupportedException("Shared pivot views require identical generated cache fields and records.");
+                totalCells += (long)(current.AffectedBottom - current.Top + 1) * (current.AffectedRight - current.Left + 1);
+                sourceCellVisits += current.SourceCellVisits;
+                measureInputVisits += current.MeasureInputVisits;
+                if (totalCells > limit) throw new InvalidOperationException("The combined pivot output exceeds the materialization budget.");
+                if (sourceCellVisits > limit || measureInputVisits > limit)
+                    throw new InvalidOperationException("The combined pivot source work exceeds the materialization budget.");
+            }
+            for (int left = 0; left < plans.Length; left++) {
+                for (int right = left + 1; right < plans.Length; right++) {
+                    if (!ReferenceEquals(plans[left].Sheet._worksheetPart, plans[right].Sheet._worksheetPart)) continue;
+                    PivotMaterializationPlan a = plans[left].Plan, b = plans[right].Plan;
+                    if (a.Top <= b.AffectedBottom && a.AffectedBottom >= b.Top
+                        && a.Left <= b.AffectedRight && a.AffectedRight >= b.Left)
+                        throw new InvalidOperationException("The materialized pivot views would overlap.");
+                }
+            }
+            return (int)totalCells;
+        }
+
+        private void WritePivotMaterializationView(PivotMaterializationPlan plan, CancellationToken token) {
+            plan.Part.PivotTableDefinition = plan.Definition;
+            ClearExistingCellFieldsInRange((plan.Top, plan.Left, plan.AffectedBottom, plan.AffectedRight), ExcelClearOptions.Values);
+            ClearHeaderCache();
+            var dateStyles = new Dictionary<uint, uint>();
+            var existingDateStyles = plan.DateCells.Count == 0 ? null : StylesCache.Build(_spreadSheetDocument);
+            for (int row = plan.Top; row <= plan.AffectedBottom; row++) {
+                token.ThrowIfCancellationRequested();
+                for (int column = plan.Left; column <= plan.AffectedRight; column++) {
+                    if (row > plan.Bottom || column > plan.Right) continue;
+                    var value = plan.Values[row - plan.Top, column - plan.Left];
+                    if (value?.Kind == ExcelCellDataKind.Error) CellError(row, column, (string)value.Value!);
+                    else if (value != null) CellValue(row, column, value.Value);
+                    if (plan.DateCells.Contains((row - plan.Top, column - plan.Left))) {
+                        var cell = GetCell(row, column);
+                        uint style = cell.StyleIndex?.Value ?? 0U;
+                        if (existingDateStyles?.IsDateLike(style) != true) {
+                            if (!dateStyles.TryGetValue(style, out uint dateStyle))
+                                dateStyles.Add(style, dateStyle = GetOrCreateBuiltInNumberFormatStyleIndex(style, 22));
+                            cell.StyleIndex = dateStyle;
+                        }
+                    }
+                }
+            }
+            WorksheetRoot.Save();
+            MarkRequiresSavePreparation();
         }
 
         private PivotMaterializationPlan PreparePivotMaterialization(string name, ExcelMutationPlanOptions options, CancellationToken token) {
@@ -156,8 +229,6 @@ namespace OfficeIMO.Excel {
             long visits = (long)(r2 - r1) * measures.Length * MaterializedInputLevels(rowAxis, pivotFields)
                 * MaterializedInputLevels(columnAxis, pivotFields);
             if (visits > limit) throw new InvalidOperationException("The pivot measure input visits, including intermediate subtotals, exceed the materialization budget.");
-            if (WorkbookPartRoot.WorksheetParts.SelectMany(p => p.PivotTableParts).Count(p => ReferenceEquals(p.PivotTableCacheDefinitionPart, cachePart)) != 1)
-                throw new NotSupportedException("Materialization of a shared pivot cache requires a coordinated refresh of all its views.");
             if (_excelDocument.GetWorkbookSlicerCaches().Concat(_excelDocument.GetWorkbookTimelineCaches())
                 .Any(c => string.IsNullOrEmpty(c.PivotTableName) || string.Equals(c.PivotTableName, definition.Name?.Value, StringComparison.OrdinalIgnoreCase)))
                 throw new NotSupportedException("Materialization of pivot interaction caches requires coordinated cache updates.");
@@ -218,7 +289,8 @@ namespace OfficeIMO.Excel {
             var plan = new PivotMaterializationPlan { Part = part, CachePart = cachePart, Definition = (PivotTableDefinition)definition.CloneNode(true),
                 Cache = (PivotCacheDefinition)cache.CloneNode(true), Top = top, Left = left, Bottom = (int)bottom, Right = (int)right,
                 OldBottom = oldBottom, OldRight = oldRight, AffectedBottom = (int)affectedBottom, AffectedRight = (int)affectedRight, SourceRecords = r2 - r1,
-                SourceDateSystem = _excelDocument.DateSystem };
+                SourceDateSystem = _excelDocument.DateSystem, SourceCellVisits = (long)(r2 - r1) * fieldCount,
+                MeasureInputVisits = visits };
             var aggregates = AggregateMaterializedHierarchy(sourceSheet, r1, c1, r2, rows, columns,
                 visibility.IncludedRows, measures, limit, token);
             bool dateRowHierarchy = rowAxis.RealFields.Length > 1 && rowAxis.RealFields.All(dateGroupings.ContainsKey);
