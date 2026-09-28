@@ -653,7 +653,7 @@ records is rejected before changing the saved view.
 Materialization supports label equals, begins with, ends with, contains, and
 their negations on ordinary row or column fields with text, Boolean, blank,
 error, or numeric captions. Numeric captions use General, `#,##0`, `0.0`,
-`0.00`, or `0.0%` pivot-field formatting; other numeric formats and date
+`0.00`, `0.000`, `0.0%`, or `$#,##0.00` pivot-field formatting; other numeric formats and date
 captions remain unqualified. It also
 supports label greater/less comparisons and inclusive
 between or exclusive not-between ranges when every caption and criterion uses

@@ -1,5 +1,7 @@
 using OfficeIMO.Excel;
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Security.Cryptography;
+using System.Text.Json;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -14,12 +16,21 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-two", "A4:B6", 3, 3, 10d)]
         [InlineData("percent-one", "A4:B6", 3, 3, 10d)]
         [InlineData("decimal-midpoint", "A4:B6", 3, 3, 10d)]
+        [InlineData("decimal-three", "A4:B6", 3, 4, 10d)]
+        [InlineData("currency-positive", "A4:B6", 3, 3, 10d)]
+        [InlineData("currency-negative", "A4:B6", 3, 3, 10d)]
         [InlineData("duplicate-caption-unfiltered", "A4:B8", 5, 4, 60d)]
         [InlineData("duplicate-caption-equals", "A4:B7", 4, 4, 30d)]
         public void Test_PivotFormattedNumericLabel_ImportedViewAndLookupMatchExcel(
             string kind, string range, int rows, int lookupRows, double total) {
             string file = $"pivot-label-number-{kind}-conformance.xlsx";
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
+            using (var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json")))) {
+                using var sha = SHA256.Create();
+                using var stream = File.OpenRead(path);
+                string actualHash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
+                Assert.Equal(provenance.RootElement.GetProperty("sha256").GetString(), actualHash);
+            }
             string output = Path.Combine(_directoryWithFiles, "Materialized." + file);
             using var oracle = ExcelDocumentReader.Open(path);
             var expectedView = oracle.GetSheet("Grouped").ReadRange(range);
@@ -33,7 +44,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(result.Mutation.PackageIsValid,
                     string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 if (NumericLabelFormat(kind) is string format)
-                    Assert.Equal(format, grouped.GetCellStyle(5, 1).NumberFormatCode);
+                    Assert.Equal(kind.StartsWith("currency-", StringComparison.Ordinal) ? "\\" + format : format,
+                        grouped.GetCellStyle(5, 1).NumberFormatCode);
                 if (kind.StartsWith("duplicate-caption-", StringComparison.Ordinal))
                     Assert.Equal("0.0", grouped.GetCellStyle(6, 1).NumberFormatCode);
                 var lookups = document.GetSheet("Lookups");
@@ -61,6 +73,9 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-two", 10d)]
         [InlineData("percent-one", 10d)]
         [InlineData("decimal-midpoint", 10d)]
+        [InlineData("decimal-three", 10d)]
+        [InlineData("currency-positive", 10d)]
+        [InlineData("currency-negative", 10d)]
         public void Test_PivotFormattedNumericLabel_TemplateFreePublicApi(string kind, double total) {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-number-{kind}.Authored.xlsx");
             ExcelPivotFilter filter = kind switch {
@@ -72,6 +87,9 @@ namespace OfficeIMO.Tests {
                 "decimal-two" => ExcelPivotFilter.LabelEquals("Item", "1.20"),
                 "percent-one" => ExcelPivotFilter.LabelEquals("Item", "12.5%"),
                 "decimal-midpoint" => ExcelPivotFilter.LabelEquals("Item", "1.3"),
+                "decimal-three" => ExcelPivotFilter.LabelEquals("Item", "1.234"),
+                "currency-positive" => ExcelPivotFilter.LabelEquals("Item", "$1,000.00"),
+                "currency-negative" => ExcelPivotFilter.LabelEquals("Item", "-$1,000.00"),
                 _ => ExcelPivotFilter.LabelNotEquals("Item", "1,000")
             };
             using (var document = ExcelDocument.Create()) {
@@ -83,6 +101,9 @@ namespace OfficeIMO.Tests {
                     : kind == "decimal-two" ? new[] { 1.2d, 2.3d }
                     : kind == "percent-one" ? new[] { 0.125d, 0.25d }
                     : kind == "decimal-midpoint" ? new[] { 1.25d, 2.25d }
+                    : kind == "decimal-three" ? new[] { 1.2344d, 1.2346d, 2.5d }
+                    : kind == "currency-positive" ? new[] { 1000d, 2000d }
+                    : kind == "currency-negative" ? new[] { -1000d, 2000d }
                     : new[] { 10d, 1000d, 2000d };
                 for (int index = 0; index < keys.Length; index++) {
                     source.CellValue(index + 2, 1, keys[index]);
@@ -100,7 +121,8 @@ namespace OfficeIMO.Tests {
                 var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
                 Assert.False(pivot.PivotFields!.Elements<PivotField>().First().ShowAll!.Value);
                 if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative"
-                    or "decimal-two" or "percent-one" or "decimal-midpoint") {
+                    or "decimal-two" or "percent-one" or "decimal-midpoint" or "decimal-three"
+                    or "currency-positive" or "currency-negative") {
                     var column = pivot.PivotFilters!.Elements<PivotFilter>().Single().AutoFilter!
                         .Elements<FilterColumn>().Single();
                     Assert.Null(column.GetFirstChild<CustomFilters>());
@@ -120,6 +142,8 @@ namespace OfficeIMO.Tests {
             "decimal-two" => "0.00",
             "percent-one" => "0.0%",
             "decimal-midpoint" => "0.0",
+            "decimal-three" => "0.000",
+            "currency-positive" or "currency-negative" => "$#,##0.00",
             "duplicate-caption-unfiltered" or "duplicate-caption-equals" => "0.0",
             _ => "#,##0"
         };

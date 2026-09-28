@@ -37,7 +37,7 @@ namespace OfficeIMO.Excel {
                         var workbookPart = _excelDocument.WorkbookPartRoot
                             ?? throw new InvalidOperationException("WorkbookPart is null");
                         if (!BuildNumberFormatCodeMap(workbookPart).TryGetValue(numberFormatId, out numberFormatCode)
-                            || numberFormatCode is not ("#,##0" or "0.00" or "0.0" or "0.0%"))
+                            || numberFormatCode is not ("#,##0" or "0.00" or "0.0" or "0.0%" or "0.000" or "$#,##0.00" or "\\$#,##0.00"))
                             throw new NotSupportedException("The numeric label format is not qualified for materialization.");
                     }
                 }

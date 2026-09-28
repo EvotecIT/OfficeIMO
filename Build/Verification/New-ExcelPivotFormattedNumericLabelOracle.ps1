@@ -3,18 +3,28 @@
 Creates Microsoft Excel pivot label-filter fixtures with formatted numeric keys.
 #>
 [CmdletBinding()]
-param([string[]] $Kinds = @())
+param([string[]] $Kinds = @(), [string] $OutputDirectory)
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$directory = Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus'
+$directory = if ($OutputDirectory) { $OutputDirectory }
+    else { Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus' }
+New-Item -ItemType Directory -Path $directory -Force | Out-Null
+$directory = (Resolve-Path -LiteralPath $directory).Path
 $mutex = [Threading.Mutex]::new($false, 'Local\OfficeIMO.Excel.Tests.DesktopCom')
 $acquired = $false
+$existingExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue | ForEach-Object Id)
 $application = $null
 $workbook = $null
+$isolated = $false
 try {
     $acquired = $mutex.WaitOne([TimeSpan]::FromMinutes(5))
     if (-not $acquired) { throw 'Excel COM lock timed out.' }
     $application = New-Object -ComObject Excel.Application
+    Start-Sleep -Milliseconds 500
+    $newExcelIds = @(Get-Process -Name EXCEL -ErrorAction SilentlyContinue |
+        Where-Object { $existingExcelIds -notcontains $_.Id } | ForEach-Object Id)
+    if ($newExcelIds.Count -ne 1) { throw 'Could not prove isolated Excel instance.' }
+    $isolated = $true
     $application.Visible = $false
     $application.DisplayAlerts = $false
     $application.AutomationSecurity = 3
@@ -28,6 +38,9 @@ try {
         [pscustomobject]@{ Key = 'decimal-two'; Type = 15; Criterion = '1.20'; Format = '0.00'; Values = @(1.2, 2.3); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'percent-one'; Type = 15; Criterion = '12.5%'; Format = '0.0%'; Values = @(0.125, 0.25); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'decimal-midpoint'; Type = 15; Criterion = '1.3'; Format = '0.0'; Values = @('=5/4', '=9/4'); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'decimal-three'; Type = 15; Criterion = '1.234'; Format = '0.000'; Values = @(1.2344, 1.2346, 2.5); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'currency-positive'; Type = 15; Criterion = '$1,000.00'; Format = '$#,##0.00'; Values = @(1000, 2000); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'currency-negative'; Type = 15; Criterion = '-$1,000.00'; Format = '$#,##0.00'; Values = @(-1000, 2000); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'duplicate-caption-unfiltered'; Type = $null; Criterion = $null; Format = '0.0'; Values = @(1.21, 1.24, 2.26); Total = 60.0; Range = 'A4:B8' },
         [pscustomobject]@{ Key = 'duplicate-caption-equals'; Type = 15; Criterion = '1.2'; Format = '0.0'; Values = @(1.21, 1.24, 2.26); Total = 30.0; Range = 'A4:B7' }
     )
@@ -82,8 +95,8 @@ try {
         $file = "pivot-label-number-$($case.Key)-conformance.xlsx"
         $path = Join-Path $directory $file
         $workbook.SaveAs($path, 51)
-        $workbook.Close($false)
-        $workbook = $null
+        try { $workbook.Close($false) }
+        finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook); $workbook = $null }
         [ordered]@{
             producer = 'Microsoft Excel'; version = $application.Version; build = $application.Build
             generatedUtc = [DateTime]::UtcNow.ToString('o')
@@ -96,11 +109,20 @@ try {
         [pscustomobject]@{ File = $file; Range = $range; Grand = $grand }
     }
 } finally {
-    if ($null -ne $workbook) { $workbook.Close($false) }
-    if ($null -ne $application) {
-        $application.Quit()
-        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($application)
+    try {
+        if ($null -ne $workbook) {
+            try { $workbook.Close($false) }
+            finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook) }
+        }
+    } finally {
+        try {
+            if ($null -ne $application) {
+                try { if ($isolated) { $application.Quit() } }
+                finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($application) }
+            }
+        } finally {
+            if ($acquired) { $mutex.ReleaseMutex() }
+            $mutex.Dispose()
+        }
     }
-    if ($acquired) { $mutex.ReleaseMutex() }
-    $mutex.Dispose()
 }

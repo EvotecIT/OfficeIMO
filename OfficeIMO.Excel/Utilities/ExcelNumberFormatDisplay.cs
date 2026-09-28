@@ -846,6 +846,10 @@ namespace OfficeIMO.Excel {
 
             string prefix = CleanLiteralAffix(formatCode.Substring(0, first));
             string suffix = CleanLiteralAffix(formatCode.Substring(last + 1));
+            if (numericText.Length > 0 && numericText[0] == '-' && prefix.Length > 0
+                && prefix[0] is '$' or '\u20AC' or '\u00A3') {
+                return "-" + prefix + numericText.Substring(1) + suffix;
+            }
             return prefix + numericText + suffix;
         }
 
