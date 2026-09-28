@@ -175,6 +175,15 @@ public sealed class WordChartImportedPreservationTests {
         Assert.Empty(document.ValidateDocument());
         chart.SetData(kind, new OfficeChartData(data.Categories, data.Series.Take(2)));
         var layers = chart.ChartPart.ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToArray();
+        if (kind == OfficeChartKind.Scatter) {
+            Assert.Equal(2, layers.Length);
+            Assert.Single(layers[0].ChildElements, element => element.LocalName == "ser");
+            Assert.Single(layers[1].ChildElements, element => element.LocalName == "ser");
+            Assert.True(layers[0].GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
+            Assert.False(layers[1].GetFirstChild<C.DataLabels>()!.GetFirstChild<C.ShowValue>()!.Val!.Value);
+            Assert.Empty(document.ValidateDocument());
+            return;
+        }
         var retained = Assert.Single(layers);
         var retainedSeries = retained.ChildElements.Where(element => element.LocalName == "ser").ToArray();
         Assert.Equal(2, retainedSeries.Length);
