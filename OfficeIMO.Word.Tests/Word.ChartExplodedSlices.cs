@@ -55,6 +55,22 @@ public sealed class WordChartExplodedSlicesTests {
         Assert.Equal(new[] { 25, 10 }, snapshot.Data.Series.Single().PointExplosions);
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void ShrinkingValues_IgnoresPreservedExplosionForRemovedPoint(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 0, 25 })
+        }));
+        chart.SetData(kind, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Status", new[] { 8d })
+        }));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Null(snapshot.Data.Series.Single().PointExplosions);
+        Assert.Empty(document.ValidateDocument());
+    }
+
     [Fact]
     public void UnsupportedNativeExplosion_PreservesEditableChartButRejectsProjection() {
         using var document = WordDocument.Create();
