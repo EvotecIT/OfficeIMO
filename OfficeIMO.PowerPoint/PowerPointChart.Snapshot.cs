@@ -618,6 +618,7 @@ namespace OfficeIMO.PowerPoint {
                 dataLabelNumberFormat: radialLabels?.NumberFormat,
                 dataLabelPosition: radialLabels?.Position ?? OfficeChartDataLabelPosition.BestFit,
                 dataLabelFontSize: radialLabels?.FontSize,
+                dataLabelFontFamily: radialLabels?.FontFamily,
                 dataLabelFontStyle: radialLabels?.FontStyle,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,

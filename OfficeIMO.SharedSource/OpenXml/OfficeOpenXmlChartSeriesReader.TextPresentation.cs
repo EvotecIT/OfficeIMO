@@ -9,11 +9,13 @@ namespace OfficeIMO.OpenXml.Internal;
 
 internal static partial class OfficeOpenXmlChartSeriesReader {
     private readonly struct NativeText {
-        internal NativeText(double? size, OfficeFontStyle? style, OfficeColor? color) { Size = size; Style = style; Color = color; }
+        internal NativeText(double? size, OfficeFontStyle? style, OfficeColor? color, string? family) { Size = size; Style = style; Color = color; Family = family; }
         internal double? Size { get; }
         internal OfficeFontStyle? Style { get; }
         internal OfficeColor? Color { get; }
-        internal bool SameAs(NativeText other) => Size == other.Size && Style == other.Style && Nullable.Equals(Color, other.Color);
+        internal string? Family { get; }
+        internal bool SameAs(NativeText other) => Size == other.Size && Style == other.Style && Nullable.Equals(Color, other.Color) &&
+            string.Equals(Family, other.Family, StringComparison.OrdinalIgnoreCase);
     }
 
     private static NativeText ReadNativeText(C.Chart chart, OpenXmlElement? owner, A.ColorScheme? scheme) {
@@ -96,7 +98,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         double? size = inherited.Size;
         OfficeFontStyle? style = inherited.Style;
         OfficeColor? color = inherited.Color;
+        string? family = inherited.Family;
         string? latinTypeface = properties.GetFirstChild<A.LatinFont>()?.Typeface?.Value;
+        if (latinTypeface != null) {
+            if (string.IsNullOrWhiteSpace(latinTypeface) || latinTypeface.StartsWith("+", StringComparison.Ordinal))
+                throw new NotSupportedException("The chart text typeface cannot be projected without a resolved font scheme.");
+            family = latinTypeface;
+        }
         foreach (var attribute in properties.GetAttributes()) {
             if (attribute.LocalName == "sz") {
                 if (!int.TryParse(attribute.Value, out int hundredths) || hundredths <= 0)
@@ -129,7 +137,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             } else if (child is not A.LatinFont and not A.EastAsianFont and not A.ComplexScriptFont)
                 throw new NotSupportedException("The chart text appearance cannot be projected.");
         }
-        return new NativeText(size, style, color);
+        return new NativeText(size, style, color, family);
     }
 
     private static System.Collections.Generic.IEnumerable<OpenXmlElement> TextAxes(C.Chart chart) =>

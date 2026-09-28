@@ -761,7 +761,11 @@ namespace OfficeIMO.Excel {
                     source));
             }
 
-            if (chartSpace.Descendants<C.LeaderLines>().Any()) {
+            if (chartSpace.Descendants<C.LeaderLines>().Any(lines => lines.HasChildren || lines.HasAttributes ||
+                lines.Ancestors().FirstOrDefault(element => element is C.PieChart or C.DoughnutChart) == null ||
+                lines.Parent is not C.DataLabels labels ||
+                labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value != C.DataLabelPositionValues.OutsideEnd ||
+                labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value != true)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported,

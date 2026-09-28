@@ -108,6 +108,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 axisLabelFontSize: axisText.Size, axisTextFontStyle: axisText.Style,
                 axisTitleFontSize: axisTitleText.Size, axisTitleFontStyle: axisTitleText.Style,
                 dataLabelFontSize: labels.FontSize ?? defaultText.Size,
+                dataLabelFontFamily: labels.FontFamily ?? defaultText.Family,
                 dataLabelFontStyle: labels.FontStyle ?? defaultText.Style,
                 overlayTitle: chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Overlay>() is C.Overlay title && title.Val?.Value != false,
                 showLegend: legend != null, legendPosition: sharedPosition, hiddenCategoryLegendIndexes: hidden,
