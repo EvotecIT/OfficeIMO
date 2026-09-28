@@ -100,6 +100,108 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     }
 
     [Fact]
+    public void OdsImplicitTrailingPointsKeepTheStyledChartConvertible() {
+        OdsDocument source = CreateStyledOdsChart(OdsChartType.Pie);
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement series = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"));
+        foreach (XElement point in series.Elements(OdfNamespaces.Chart + "data-point").Skip(1).ToArray())
+            point.Remove();
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Single(converted["Data"].Charts);
+        using (SpreadsheetDocument package = SpreadsheetDocument.Open(
+            new MemoryStream(converted.ToBytes()), false)) {
+            ChartPart chartPart = Assert.Single(package.WorkbookPart!.WorksheetParts
+                .SelectMany(sheet => sheet.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>()));
+            C.DataPoint point = Assert.Single(chartPart.ChartSpace!.Descendants<C.DataPoint>());
+            Assert.Equal(0U, point.Index!.Val!.Value);
+        }
+        Assert.DoesNotContain(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void PartiallySupportedOdsPointEffectReportsWholeChartLoss() {
+        OdsDocument source = CreateStyledOdsChart(OdsChartType.Pie);
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement point = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"))
+            .Element(OdfNamespaces.Chart + "data-point")!;
+        string name = (string)point.Attribute(OdfNamespaces.Chart + "style-name")!;
+        XElement definition = Assert.Single(part.Descendants(OdfNamespaces.Style + "style"),
+            item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+        definition.Element(OdfNamespaces.Style + "graphic-properties")!
+            .SetAttributeValue(OdfNamespaces.Draw + "shadow", "visible");
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void StyledOdsLineReportsWholeChartLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        sheet.AddChart(OdsChartType.Line, "Data.$A$1:.$A$3",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$3") },
+            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement series = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"));
+        XElement point = Assert.Single(series.Elements(OdfNamespaces.Chart + "data-point"));
+        point.SetAttributeValue(OdfNamespaces.Chart + "repeated", null);
+        point.SetAttributeValue(OdfNamespaces.Chart + "style-name", "StyledLinePoint");
+        part.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(
+            new XElement(OdfNamespaces.Style + "style",
+                new XAttribute(OdfNamespaces.Style + "name", "StyledLinePoint"),
+                new XAttribute(OdfNamespaces.Style + "family", "chart"),
+                new XElement(OdfNamespaces.Style + "graphic-properties",
+                    new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                    new XAttribute(OdfNamespaces.Draw + "fill-color", "#228844"))));
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void StyledExcelLineReportsWholeChartLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Summary");
+        var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
+            new[] { new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+                .WithPointStyles(new OfficeChartPointStyle?[] {
+                    new(fillColor: OfficeColor.Parse("#228844")), null, null
+                }) });
+        sheet.AddChart(OfficeChartKind.Line, data, row: 2, column: 4);
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
+            mapping.Count == 1);
+    }
+
+    [Fact]
     public void OdsDoughnutKeepsStylesOnBothRingsThroughExcel() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");

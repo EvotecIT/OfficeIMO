@@ -34,6 +34,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         || type == OdsChartType.Pie && range.SeriesCount != 1
                         || snapshot.Data.Categories.Count != range.CategoryCount
                         || snapshot.Data.Series.Count != range.SeriesCount
+                        || type == OdsChartType.Line && snapshot.Data.Series.Any(series =>
+                            series.PointStyles?.Any(style => style != null) == true)
                         || snapshot.Data.Series.Any(series =>
                             series.ChartType.HasValue && series.ChartType.Value != chart.ChartType
                             || series.AxisGroup != OfficeChartAxisGroup.Primary
