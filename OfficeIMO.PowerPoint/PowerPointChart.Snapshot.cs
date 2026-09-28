@@ -469,6 +469,19 @@ namespace OfficeIMO.PowerPoint {
             OfficeChartAxisTickMark verticalMinorTickMark =
                 OfficeChartAxisTickMark.None;
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
+            C.ValueAxis? primaryValueAxis = null;
+            OpenXmlCompositeElement? primaryCategoryAxis = null;
+            if (plotArea != null) {
+                var groups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
+                var primaryLayer = plotArea.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(layer =>
+                    layer is not C.ScatterChart && layer is not C.BubbleChart &&
+                    layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
+                    groups.Read(layer) == OfficeChartAxisGroup.Primary);
+                var primaryAxes = primaryLayer?.Elements<C.AxisId>()
+                    .Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
+                primaryValueAxis = primaryAxes?.OfType<C.ValueAxis>().SingleOrDefault();
+                primaryCategoryAxis = primaryAxes?.FirstOrDefault(axis => axis is C.CategoryAxis or C.DateAxis);
+            }
             if (kind == PowerPointChartSnapshotKind.Bubble &&
                 plotArea != null &&
                 plotArea.GetFirstChild<C.BubbleChart>() is C.BubbleChart bubble &&
@@ -495,10 +508,10 @@ namespace OfficeIMO.PowerPoint {
                         .Val?.Value);
             } else if (plotArea != null) {
                 OpenXmlCompositeElement? categoryAxis =
-                    (OpenXmlCompositeElement?)plotArea
+                    primaryCategoryAxis ?? (OpenXmlCompositeElement?)plotArea
                         .Elements<C.CategoryAxis>().FirstOrDefault()
                     ?? plotArea.Elements<C.DateAxis>().FirstOrDefault();
-                C.ValueAxis? valueAxis = plotArea.Elements<C.ValueAxis>()
+                C.ValueAxis? valueAxis = primaryValueAxis ?? plotArea.Elements<C.ValueAxis>()
                     .FirstOrDefault();
                 if (categoryAxis != null) {
                     horizontalAxisTitle = ReadAxisTitle(categoryAxis);
@@ -529,16 +542,6 @@ namespace OfficeIMO.PowerPoint {
 
             TryReadAxisTitleTypeface(chart,
                 ReadChartDefaultTypeface(chart), out string? axisTitleFont);
-            C.ValueAxis? primaryValueAxis = null;
-            if (plotArea != null) {
-                var groups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
-                var primaryLayer = plotArea.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(layer =>
-                    layer is not C.ScatterChart && layer is not C.BubbleChart &&
-                    layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
-                    groups.Read(layer) == OfficeChartAxisGroup.Primary);
-                primaryValueAxis = primaryLayer?.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value))
-                    .OfType<C.ValueAxis>().SingleOrDefault();
-            }
             bool horizontalValue = primaryValueAxis?.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom ||
                 primaryValueAxis?.AxisPosition?.Val?.Value == C.AxisPositionValues.Top;
             var primaryScale = primaryValueAxis?.GetFirstChild<C.Scaling>();

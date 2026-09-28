@@ -11,6 +11,40 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_RejectsUnresolvedSecondaryAxisTitleReference() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        var text = secondary.GetFirstChild<C.Title>()!.GetFirstChild<C.ChartText>()!;
+        text.RemoveAllChildren();
+        text.Append(new C.StringReference(new C.Formula("Sheet1!$A$1")));
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void SecondaryAxisScaleUpdatePreservesTitleUntilExplicitlyCleared() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 2));
+        Assert.True(chart.TryGetOfficeSnapshot(out var preserved));
+        Assert.Equal("Ratio", preserved.Layout.SecondaryValueAxis!.Title);
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle(null));
+        Assert.True(chart.TryGetOfficeSnapshot(out var cleared));
+        Assert.Null(cleared.Layout.SecondaryValueAxis!.Title);
+    }
+
+    [Fact]
     public void OfficeSnapshot_RejectsManualSecondaryAxisTitleLayout() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {

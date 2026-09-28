@@ -39,10 +39,14 @@ public sealed class OfficeChartValueAxisLayout {
     /// <summary>Independent secondary value-axis title, when set.</summary>
     public string? Title { get; private set; }
 
-    /// <summary>Returns a copy with the secondary value-axis title.</summary>
+    /// <summary>Whether a title replacement or removal was requested explicitly.</summary>
+    public bool IsTitleSpecified { get; private set; }
+
+    /// <summary>Returns a copy with the secondary value-axis title; null or whitespace removes an existing title.</summary>
     public OfficeChartValueAxisLayout WithTitle(string? title) {
         var copy = (OfficeChartValueAxisLayout)MemberwiseClone();
         copy.Title = string.IsNullOrWhiteSpace(title) ? null : title;
+        copy.IsTitleSpecified = true;
         return copy;
     }
 
