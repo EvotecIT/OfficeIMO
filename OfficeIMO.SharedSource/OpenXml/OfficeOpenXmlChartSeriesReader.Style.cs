@@ -86,8 +86,7 @@ namespace OfficeIMO.OpenXml.Internal {
             var outline = properties.GetFirstChild<A.Outline>();
             if (outline?.CapType != null || outline?.Alignment != null || outline?.CompoundLineType != null)
                 throw new NotSupportedException("The chart outline attributes cannot be projected.");
-            if (outline?.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.PresetDash &&
-                child is not A.Round && child is not A.Bevel && child is not A.Miter) == true)
+            if (outline?.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.PresetDash) == true)
                 throw new NotSupportedException("The chart surface has an unsupported outline.");
             if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties.GetFirstChild<A.SolidFill>()) ||
                 OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(outline?.GetFirstChild<A.SolidFill>()))

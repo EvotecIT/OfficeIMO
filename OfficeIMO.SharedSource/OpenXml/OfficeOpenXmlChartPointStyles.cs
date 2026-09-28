@@ -26,11 +26,14 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (flattenThreeDimensional && child is A.Shape3DType) continue;
             if (child is A.NoFill) continue;
             if (child is A.SolidFill) {
-                if (!OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) return false;
+                if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(child) ||
+                    !OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) return false;
                 continue;
             }
             if (child is A.PatternFill pattern) {
                 if (!ReadHatch(pattern.Preset?.InnerText).HasValue ||
+                    OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<A.ForegroundColor>()) ||
+                    OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<A.BackgroundColor>()) ||
                     !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<A.ForegroundColor>(), scheme).HasValue ||
                     !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<A.BackgroundColor>(), scheme).HasValue) return false;
                 continue;
@@ -41,7 +44,8 @@ internal static class OfficeOpenXmlChartPointStyles {
                     HasUnsupportedLineAttributes(outline)) return false;
                 foreach (OpenXmlElement lineChild in outline.ChildElements) {
                     if (lineChild is A.NoFill) continue;
-                    if (lineChild is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
+                    if (lineChild is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(lineChild) &&
+                        OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
                     return false;
                 }
                 continue;
