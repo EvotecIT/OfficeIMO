@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Spreadsheet;
+using System.Globalization;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -115,6 +116,32 @@ namespace OfficeIMO.Tests {
             Assert.Contains("localized text ordering", error.Message);
             Assert.Equal(beforeView, grouped.WorksheetPart.Worksheet.OuterXml);
             Assert.Equal(beforePivot, pivot.OuterXml);
+        }
+
+        [Theory]
+        [InlineData("cs-CZ", 30d)]
+        [InlineData("en-US", 20d)]
+        public void Test_PivotLabelRange_UsesCurrentCultureForAsciiDigraphOrdering(string cultureName, double total) {
+            CultureInfo original = CultureInfo.CurrentCulture;
+            try {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
+                using var document = ExcelDocument.Create();
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Sales");
+                source.CellValue(2, 1, "Ch");
+                source.CellValue(2, 2, 10d);
+                source.CellValue(3, 1, "Echo");
+                source.CellValue(3, 2, 20d);
+                source.Pivot("A1:B3").Rows("Region").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular)
+                    .Filter(ExcelPivotFilter.LabelGreaterThan("Region", "D"))
+                    .At("D4", "FilteredPivot");
+                Assert.True(source.MaterializePivotTable("FilteredPivot").Mutation.PackageIsValid);
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+            } finally {
+                CultureInfo.CurrentCulture = original;
+            }
         }
     }
 }

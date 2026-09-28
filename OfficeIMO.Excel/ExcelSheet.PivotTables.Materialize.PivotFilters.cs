@@ -41,10 +41,11 @@ namespace OfficeIMO.Excel {
                             return !IsQualifiedPivotLabelOrderingText(label);
                         }))
                         throw new NotSupportedException("Label range materialization requires ASCII alphabetic captions and criteria; localized text ordering is not qualified.");
+                    CompareInfo compareInfo = CultureInfo.CurrentCulture.CompareInfo;
                     included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
                         string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
                             ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
-                        return MatchesMaterializedPivotLabelRange(label, needle, second, type);
+                        return MatchesMaterializedPivotLabelRange(label, needle, second, type, compareInfo);
                     }));
                 } else {
                     string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
@@ -148,13 +149,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool MatchesMaterializedPivotLabelRange(string label, string first, string? second,
-            PivotFilterValues type) {
-            int firstComparison = StringComparer.OrdinalIgnoreCase.Compare(label, first);
+            PivotFilterValues type, CompareInfo compareInfo) {
+            int firstComparison = compareInfo.Compare(label, first, CompareOptions.IgnoreCase);
             if (type == PivotFilterValues.CaptionGreaterThan) return firstComparison > 0;
             if (type == PivotFilterValues.CaptionGreaterThanOrEqual) return firstComparison >= 0;
             if (type == PivotFilterValues.CaptionLessThan) return firstComparison < 0;
             if (type == PivotFilterValues.CaptionLessThanOrEqual) return firstComparison <= 0;
-            int secondComparison = StringComparer.OrdinalIgnoreCase.Compare(label, second);
+            int secondComparison = compareInfo.Compare(label, second, CompareOptions.IgnoreCase);
             if (type == PivotFilterValues.CaptionBetween) return firstComparison >= 0 && secondComparison <= 0;
             return firstComparison < 0 || secondComparison > 0;
         }
