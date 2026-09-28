@@ -400,6 +400,10 @@ public static partial class WordIWorkConverter {
                 && (cell.Value == null || !cell.CachedValueIsComplete))) {
                 return $"Pages table '{table.Name}' contains a formula without a complete cached value that the DOCX owner cannot evaluate.";
             }
+            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                && cell.RichText is { IsComplete: false })) {
+                return $"Pages table '{table.Name}' contains formula cached text with incomplete formatting that the DOCX owner cannot preserve.";
+            }
             if (!FitsSignedTwips(table.DefaultRowHeight)
                 || !FitsSignedTwips(table.DefaultColumnWidth)) {
                 return $"Pages table '{table.Name}' has default sizing outside the DOCX measurement range.";

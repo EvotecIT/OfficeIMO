@@ -336,6 +336,10 @@ public static partial class PowerPointIWorkConverter {
                     && (cell.Value == null || !cell.CachedValueIsComplete))) {
                     return $"Keynote table '{table.Name}' contains a formula without a complete cached value that the PPTX owner cannot evaluate.";
                 }
+                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                    && cell.RichText is { IsComplete: false })) {
+                    return $"Keynote table '{table.Name}' contains formula cached text with incomplete formatting that the PPTX owner cannot preserve.";
+                }
                 if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
                 }
