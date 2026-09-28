@@ -20,7 +20,8 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static OfficeColor GetPointDataLabelColor(OfficeChartStyle style, OfficeChartSeries series,
         int index) {
-        OfficeColor background = style.PlotAreaBackgroundColor ?? style.BackgroundColor;
+        // Radial charts do not paint a separate plot-area rectangle.
+        OfficeColor background = style.BackgroundColor;
         OfficeChartPointStyle? point = GetPointStyle(series, index);
         OfficeColor fill = point?.NoFill == true ? background : GetPointColor(style, series, index);
         background = CompositeLabelFill(fill, background);
@@ -113,9 +114,9 @@ public static partial class OfficeChartDrawingRenderer {
         void Line(double x1, double y1, double x2, double y2) =>
             AddShape(strokes, OfficeShape.Line(x1, y1, x2, y2), Math.Min(x1, x2), Math.Min(y1, y2), null, color, 0.75);
         if (hatch == OfficeChartHatchPattern.Horizontal || hatch == OfficeChartHatchPattern.Cross)
-            for (double y = step / 2; y < height; y += step) Line(0, y, width, y);
+            for (double y = Math.Min(step / 2, height / 2); y < height; y += step) Line(0, y, width, y);
         if (hatch == OfficeChartHatchPattern.Vertical || hatch == OfficeChartHatchPattern.Cross)
-            for (double x = step / 2; x < width; x += step) Line(x, 0, x, height);
+            for (double x = Math.Min(step / 2, width / 2); x < width; x += step) Line(x, 0, x, height);
         if (hatch == OfficeChartHatchPattern.ForwardDiagonal || hatch == OfficeChartHatchPattern.DiagonalCross)
             for (double sum = step / 2; sum < width + height; sum += step) {
                 double x1 = Math.Max(0, sum - height), x2 = Math.Min(width, sum);
