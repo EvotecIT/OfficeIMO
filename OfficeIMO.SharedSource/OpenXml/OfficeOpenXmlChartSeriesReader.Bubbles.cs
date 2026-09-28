@@ -101,7 +101,8 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasUnresolvedSeriesColor(
             C.ChartShapeProperties? properties, ColorScheme? colorScheme) {
-            if (!OfficeOpenXmlThemeColorResolver.ResolveColor(
+            if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties?.GetFirstChild<SolidFill>()) ||
+                !OfficeOpenXmlThemeColorResolver.ResolveColor(
                     properties?.GetFirstChild<SolidFill>(), colorScheme).HasValue) {
                 return true;
             }
@@ -122,7 +123,9 @@ namespace OfficeIMO.OpenXml.Internal {
             if (HasUnresolvedSolidFill(properties?.GetFirstChild<SolidFill>(), colorScheme) ||
                 HasUnresolvedSolidFill(properties?.GetFirstChild<Outline>()?.GetFirstChild<SolidFill>(), colorScheme)) return true;
             if (properties?.GetFirstChild<PatternFill>() is PatternFill pattern)
-                return !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<ForegroundColor>(), colorScheme).HasValue ||
+                return OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<ForegroundColor>()) ||
+                    OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(pattern.GetFirstChild<BackgroundColor>()) ||
+                    !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<ForegroundColor>(), colorScheme).HasValue ||
                     !OfficeOpenXmlThemeColorResolver.ResolveColor(pattern.GetFirstChild<BackgroundColor>(), colorScheme).HasValue;
             return false;
         }
@@ -130,7 +133,8 @@ namespace OfficeIMO.OpenXml.Internal {
         private static bool HasUnresolvedSolidFill(
             SolidFill? fill, ColorScheme? colorScheme) =>
             fill != null &&
-            !OfficeOpenXmlThemeColorResolver.ResolveColor(fill, colorScheme).HasValue;
+            (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(fill) ||
+             !OfficeOpenXmlThemeColorResolver.ResolveColor(fill, colorScheme).HasValue);
 
         private static IReadOnlyList<OfficeColor?>? ReadBubblePointColors(
             C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme, int maximumPoints) {

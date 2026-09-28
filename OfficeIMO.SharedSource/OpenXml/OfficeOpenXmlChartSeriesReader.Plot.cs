@@ -113,6 +113,17 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static bool HasSupportedProjectionAxisGroups(System.Collections.Generic.IReadOnlyList<OpenXmlCompositeElement> layers,
             OfficeOpenXmlChartAxisGroups.Groups groups) {
+            uint? scatterX = null, scatterY = null;
+            foreach (var scatter in layers.OfType<C.ScatterChart>()) {
+                var axes = scatter.Elements<C.AxisId>().Select(reference => groups.Resolve(reference.Val?.Value)).ToArray();
+                if (axes.Length != 2 || axes[0] is not C.ValueAxis x || axes[1] is not C.ValueAxis y ||
+                    ReferenceEquals(x, y) || x.AxisPosition?.Val?.Value != C.AxisPositionValues.Bottom ||
+                    y.AxisPosition?.Val?.Value != C.AxisPositionValues.Left) return false;
+                uint? xId = x.AxisId?.Val?.Value, yId = y.AxisId?.Val?.Value;
+                if (scatterX.HasValue && (scatterX != xId || scatterY != yId)) return false;
+                scatterX = xId;
+                scatterY = yId;
+            }
             var categoryLayers = layers.Where(layer => layer is C.BarChart or C.LineChart or C.AreaChart or C.RadarChart).ToArray();
             if (categoryLayers.Length == 0) return true;
             // The projection contract supports the conventional primary pair followed by

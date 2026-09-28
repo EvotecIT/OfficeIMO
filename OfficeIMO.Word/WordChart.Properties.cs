@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -133,6 +135,16 @@ namespace OfficeIMO.Word {
                     if (barChart != null) {
                         if (value.HasValue) {
                             (barChart.BarDirection ??= new BarDirection()).Val = value.Value.ToOpenXml();
+                            var plot = chart!.PlotArea!;
+                            if (plot.ChildElements.Count(item => item.LocalName.EndsWith("Chart", StringComparison.Ordinal)) == 1 &&
+                                plot.Elements<CategoryAxis>().Count() == 1 && plot.Elements<ValueAxis>().Count() == 1) {
+                                var category = plot.GetFirstChild<CategoryAxis>()!.GetFirstChild<AxisPosition>();
+                                var numeric = plot.GetFirstChild<ValueAxis>()!.GetFirstChild<AxisPosition>();
+                                if (category != null && numeric != null) {
+                                    category.Val = value.Value == WordChartBarDirection.Bar ? AxisPositionValues.Left : AxisPositionValues.Bottom;
+                                    numeric.Val = value.Value == WordChartBarDirection.Bar ? AxisPositionValues.Bottom : AxisPositionValues.Left;
+                                }
+                            }
                         } else {
                             barChart.BarDirection = null;
                         }
