@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -68,6 +69,11 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd)))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
+                if (labels.GetFirstChild<C.TextProperties>() != null &&
+                    chart.Parent is C.ChartSpace chartSpace &&
+                    chartSpace.OpenXmlPart is ChartPart chartPart &&
+                    chartPart.GetPartsOfType<ChartStylePart>().Any())
+                    throw new NotSupportedException("Styled chart data-label text inheritance cannot be projected.");
                 NativeText text = ReadNativeText(chart, labels, scheme);
                 current.FontSize = text.Size;
                 current.FontStyle = text.Style;

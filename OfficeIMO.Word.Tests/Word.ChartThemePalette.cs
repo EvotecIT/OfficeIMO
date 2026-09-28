@@ -3,6 +3,7 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Tests;
 
@@ -23,5 +24,24 @@ public sealed class WordChartThemePaletteTests {
         }.Select(OfficeColor.Parse).ToArray();
         Assert.Equal(expected, snapshot.Style.Palette.Take(2));
         Assert.Null(snapshot.Data.Series.Single().PointColors);
+    }
+
+    [Fact]
+    public void RadialPaletteUsesWordColorSchemeMapping() {
+        using var document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Values", new[] { 3d, 2d })
+            }));
+        W.ColorSchemeMapping map = document.MainDocumentPartRoot.DocumentSettingsPart!
+            .Settings!.GetFirstChild<W.ColorSchemeMapping>()!;
+        map.Accent1 = W.ColorSchemeIndexValues.Accent2;
+        map.Accent2 = W.ColorSchemeIndexValues.Accent1;
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
+        Assert.Equal(OfficeColor.Parse(scheme.GetFirstChild<A.Accent2Color>()!
+            .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!), snapshot.Style.Palette[0]);
+        Assert.Equal(OfficeColor.Parse(scheme.GetFirstChild<A.Accent1Color>()!
+            .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!), snapshot.Style.Palette[1]);
     }
 }

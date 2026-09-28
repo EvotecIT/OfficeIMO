@@ -32,13 +32,14 @@ internal static class OfficeOpenXmlThemeColorResolver {
         // An unsupported inherited palette is immaterial when every rendered ring has
         // an explicit appearance for every category.
         if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
+        OpenXmlElement? colorMap = ResolveChartColorMap(chartPart);
         ChartColorStylePart? colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault();
         if (colorStylePart != null) {
             ChartStylePart? stylePart = chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault();
             if (stylePart == null || !HasAutomaticDataPointFill(stylePart))
                 throw new NotSupportedException("The modern chart style does not use the automatic data-point palette.");
             bool multipleRings = series.Parent.Elements<C.PieChartSeries>().Skip(1).Any();
-            return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings)
+            return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings, colorMap)
                 ?? throw new NotSupportedException("The modern radial color style cannot be projected.");
         }
         if (chartPart.GetPartsOfType<ChartStylePart>().Any()) return null;
@@ -48,7 +49,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
             return null;
         var colors = new OfficeColor[pointCount];
         for (int index = 0; index < pointCount; index++) {
-            OfficeColor? color = ResolveSchemeColor(scheme, "accent" + (index + 1));
+            OfficeColor? color = ResolveSchemeColor(scheme,
+                MapSchemeColor("accent" + (index + 1), colorMap));
             if (!color.HasValue) return null;
             colors[index] = color.Value;
         }
@@ -57,8 +59,15 @@ internal static class OfficeOpenXmlThemeColorResolver {
 
     private static bool AllRadialPointsHaveExplicitFill(OpenXmlCompositeElement chart, int pointCount) {
         bool hasSeries = false;
+        bool multipleRings = chart is C.DoughnutChart &&
+            chart.Elements<C.PieChartSeries>().Skip(1).Any();
         foreach (C.PieChartSeries series in chart.Elements<C.PieChartSeries>()) {
             hasSeries = true;
+            C.ChartShapeProperties? seriesAppearance = series.GetFirstChild<C.ChartShapeProperties>();
+            if (multipleRings && (seriesAppearance?.GetFirstChild<A.SolidFill>() != null ||
+                seriesAppearance?.GetFirstChild<A.NoFill>() != null ||
+                seriesAppearance?.GetFirstChild<A.PatternFill>() != null))
+                continue;
             var covered = new bool[pointCount];
             foreach (C.DataPoint point in series.Elements<C.DataPoint>()) {
                 uint? index = point.Index?.Val?.Value;
@@ -72,6 +81,45 @@ internal static class OfficeOpenXmlThemeColorResolver {
             if (covered.Any(value => !value)) return false;
         }
         return hasSeries;
+    }
+
+    private static OpenXmlElement? ResolveChartColorMap(ChartPart chartPart) {
+        foreach (OpenXmlPart owner in chartPart.GetParentParts()) {
+            if (owner is SlidePart slide)
+                return slide.Slide?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                    ?? slide.SlideLayoutPart?.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                    ?? (OpenXmlElement?)slide.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.ColorMap;
+            if (owner is SlideLayoutPart layout)
+                return layout.SlideLayout?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                    ?? (OpenXmlElement?)layout.SlideMasterPart?.SlideMaster?.ColorMap;
+            if (owner is SlideMasterPart master)
+                return master.SlideMaster?.ColorMap;
+            if (owner is MainDocumentPart document)
+                return document.DocumentSettingsPart?.Settings?
+                    .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.ColorSchemeMapping>();
+            foreach (OpenXmlPart parent in owner.GetParentParts())
+                if (parent is MainDocumentPart parentDocument)
+                    return parentDocument.DocumentSettingsPart?.Settings?
+                        .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.ColorSchemeMapping>();
+        }
+        return null;
+    }
+
+    private static string MapSchemeColor(string scheme, OpenXmlElement? colorMap) {
+        if (colorMap == null) return scheme;
+        bool wordMap = colorMap is DocumentFormat.OpenXml.Wordprocessing.ColorSchemeMapping;
+        string attribute = scheme.ToLowerInvariant() switch {
+            "dark1" or "dk1" or "text1" or "tx1" => wordMap ? "t1" : "tx1",
+            "light1" or "lt1" or "background1" or "bg1" => "bg1",
+            "dark2" or "dk2" or "text2" or "tx2" => wordMap ? "t2" : "tx2",
+            "light2" or "lt2" or "background2" or "bg2" => "bg2",
+            "hyperlink" or "hlink" => "hlink",
+            "followedhyperlink" or "folhlink" => "folHlink",
+            _ => scheme
+        };
+        string? mapped = colorMap.GetAttributes()
+            .FirstOrDefault(item => item.LocalName == attribute).Value;
+        return string.IsNullOrWhiteSpace(mapped) ? scheme : mapped;
     }
 
     private static bool HasAutomaticDataPointFill(ChartStylePart part) {
@@ -98,7 +146,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
     }
 
     private static OfficeColor[]? ReadModernRadialPalette(ChartColorStylePart part,
-        int pointCount, A.ColorScheme scheme, bool multipleRings) {
+        int pointCount, A.ColorScheme scheme, bool multipleRings, OpenXmlElement? colorMap) {
         const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
         const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
         try {
@@ -122,7 +170,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
             for (int index = 0; index < pointCount; index++) {
                 XElement entry = entries[index];
                 if (entry.Name != XName.Get("schemeClr", drawingNamespace) || entry.HasElements) return null;
-                OfficeColor? color = ResolveSchemeColor(scheme, (string?)entry.Attribute("val"));
+                string? token = (string?)entry.Attribute("val");
+                OfficeColor? color = ResolveSchemeColor(scheme,
+                    token == null ? null : MapSchemeColor(token, colorMap));
                 if (!color.HasValue) return null;
                 colors[index] = color.Value;
             }
