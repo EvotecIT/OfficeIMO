@@ -910,6 +910,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Opml => "text/x-opml",
             ReaderInputKind.DocBook => "application/docbook+xml",
             ReaderInputKind.OneNote => "application/onenote",
+            ReaderInputKind.IWork => "application/octet-stream",
             ReaderInputKind.Text => "text/plain",
             ReaderInputKind.Csv => "text/csv",
             ReaderInputKind.Json => "application/json",
@@ -961,6 +962,9 @@ internal static partial class DocumentReaderEngine {
             ".odt" => "application/vnd.oasis.opendocument.text",
             ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
             ".odp" => "application/vnd.oasis.opendocument.presentation",
+            ".pages" => "application/vnd.apple.pages",
+            ".numbers" => "application/vnd.apple.numbers",
+            ".key" => "application/vnd.apple.keynote",
             _ => GetMediaType(kind)
         };
     }

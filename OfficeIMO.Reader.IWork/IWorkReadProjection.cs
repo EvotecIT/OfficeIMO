@@ -16,6 +16,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentLink> _links = new();
     private readonly List<OfficeDocumentPage> _pages = new();
     private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
+    private readonly List<OfficeDocumentMetadataEntry> _slideMetadata = new();
     private bool _reportedMarkdownListDepthLimit;
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentBlock>> _pageBlocks = new();
     private readonly Dictionary<OfficeDocumentPage, List<ReaderTable>> _pageTables = new();
@@ -75,6 +76,15 @@ internal sealed partial class IWorkReadProjection {
         foreach (IWorkKeynoteSlide slide in source.Slides) {
             _cancellationToken.ThrowIfCancellationRequested();
             var page = NewPage(slide.Index, slide.Name, null, slide.Index);
+            _slideMetadata.Add(new OfficeDocumentMetadataEntry {
+                Id = "iwork-slide-" + slide.Index.ToString("D4", CultureInfo.InvariantCulture)
+                    + "-skipped",
+                Category = "presentation.slide",
+                Name = "IsSkipped",
+                Value = slide.IsSkipped ? "true" : "false",
+                ValueType = "boolean",
+                Location = Location(page)
+            });
             page.Width = source.SlideSize?.WidthPoints;
             page.Height = source.SlideSize?.HeightPoints;
             foreach (IWorkKeynoteDrawable drawable in slide.Drawables) {
@@ -145,7 +155,7 @@ internal sealed partial class IWorkReadProjection {
                 Category = "producer",
                 Name = "BuildVersion",
                 Value = version
-            }).ToArray();
+            }).Concat(_slideMetadata).ToArray();
     }
 
     private OfficeDocumentPage NewPage(int? number, string name, string? sheet,

@@ -6,14 +6,14 @@ order: 80
 
 The project inventory distinguishes NativeAOT evidence from managed deployment. **117 of 128 production projects publish and execute in NativeAOT validation**. The Chromium browser-PDF bridge, local HTML/PDF workbench, and Avalonia-based OfficeIMO Studio use managed cross-platform deployment. The Project library, invoice engine, optional PDF adapter and standards validator use managed cross-platform deployment. The document-AI engine, IntelligenceX adapter and headless example target managed .NET 10; NativeAOT support for those projects is not claimed. The WPF/WebView2 renderer is tested as a managed Windows component because the .NET SDK rejects trimming for WPF executables (`NETSDK1168`).
 
-The 116 native-validated projects are not all proved in the same way:
+The 117 native-validated projects are not all proved in the same way:
 
 - **114 production libraries** are fully rooted as complete assemblies across three native hosts: 112 in the main compile graph, with the optional `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` packages each exercised in a dedicated host. All three executables must start successfully.
 - **1 optional Google APIs adapter** runs a bounded token-store workflow natively. Its complete Google authorization dependency surface is not advertised as trim-safe because fully rooting `Google.Apis` and `Newtonsoft.Json` produces upstream warnings.
 - **1 production command-line tool** publishes as a native executable and must start and return its real command help.
 - **1 build-time source generator** emits an explicit row mapper that compiles into and executes from the main native host. The analyzer itself is not deployed as a runtime assembly.
 
-The [machine-readable project matrix](/data/aot-compatibility.json) names all 127 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
+The [machine-readable project matrix](/data/aot-compatibility.json) names all 128 production projects and records which proof applies to each one. A passing native workflow does not establish that every optional third-party API has been executed.
 
 `OfficeIMO.Project` has additional bounded Linux NativeAOT lifecycle smoke evidence described in its [Project runtime and scale support](https://github.com/EvotecIT/OfficeIMO/blob/master/OfficeIMO.Project/SUPPORT.md#runtime-and-scale). It is not counted in the coordinated native hosts above; full-library rooting remains unqualified.
 
@@ -43,11 +43,11 @@ The Word, Excel, PowerPoint, and Word-to-HTML packages use the Microsoft Open XM
 
 | Production classification | Projects | What CI proves | Customer guidance |
 |---|---:|---|---|
-| Fully rooted libraries | 113 | The complete assembly surfaces compile into NativeAOT executables on Windows and Linux: 111 libraries in the main host, with `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` each exercised in a dedicated host. All three executables must start. | These packages are suitable NativeAOT building blocks; still test the exact documents and options your application uses. |
+| Fully rooted libraries | 114 | The complete assembly surfaces compile into NativeAOT executables on Windows and Linux: 112 libraries in the main host, with `OfficeIMO.Security` and `OfficeIMO.Provenance.C2pa` each exercised in a dedicated host. All three executables must start. | These packages are suitable NativeAOT building blocks; still test the exact documents and options your application uses. |
 | Bounded Google APIs adapter | 1 | `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` constructs its data-store adapter and round-trips a value in the native executable. | The validated adapter path is native. Treat live OAuth/provider flows as application-specific until your chosen Google dependency graph publishes cleanly. |
 | Native command-line tools | 1 | `OfficeIMO.Tool` publishes and starts as a native executable on Windows and Linux with namespaced HTML, Reader, and Markup commands. | Native CLI deployment is supported; validate the concrete commands and formats used by your job. |
 | Native build analyzer | 1 | `OfficeIMO.Data.Generators` emits a row-mapping plan that compiles into and executes from the native host. | Install the analyzer at build time; only its generated application code is deployed. |
-| Managed cross-platform applications and integrations | 9 | `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime; OfficeIMO Studio uses the managed Avalonia desktop runtime. `OfficeIMO.AI`, `OfficeIMO.AI.IntelligenceX`, and `OfficeIMO.AI.Example` target managed .NET 10. `OfficeIMO.Invoicing`, `OfficeIMO.Invoicing.Validation`, and `OfficeIMO.Invoicing.Pdf` provide managed invoice authoring, optional standards validation, and PDF presentation. | Use managed .NET deployment for these applications and integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
+| Managed cross-platform applications and integrations | 10 | `OfficeIMO.Html.Pdf.Browser` and the local HTML/PDF workbench use the managed HtmlTinkerX and Playwright runtime; OfficeIMO Studio uses the managed Avalonia desktop runtime. `OfficeIMO.AI`, `OfficeIMO.AI.IntelligenceX`, and `OfficeIMO.AI.Example` target managed .NET 10. `OfficeIMO.Project`, `OfficeIMO.Invoicing`, `OfficeIMO.Invoicing.Validation`, and `OfficeIMO.Invoicing.Pdf` use managed deployment for Project and invoice workflows. | Use managed .NET deployment for these applications and integrations; do not advertise them as NativeAOT-compatible without separate native-publish proof. |
 | Managed Windows UI | 1 | `OfficeIMO.MarkdownRenderer.Wpf` builds and runs through the managed Windows/WPF test lane. | Do not enable NativeAOT for this WPF/WebView2 UI package. Use the managed Windows deployment model. |
 
 CI fails if a production project is added, removed, or renamed without being classified in this matrix.

@@ -105,6 +105,38 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("42", mapped.Attributes["recordIdentifier"]);
     }
 
+    [Fact]
+    public void Keynote_reader_retains_each_slides_skipped_state() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote);
+        var empty = new IWorkTextContent(Array.Empty<IWorkTextParagraph>(), true, true);
+        var slides = new[] {
+            new IWorkKeynoteSlide(1, "Visible", null, Array.Empty<IWorkTextBox>(), empty,
+                Array.Empty<IWorkImageAsset>(), Array.Empty<IWorkTable>(),
+                Array.Empty<IWorkKeynoteDrawable>(), isSkipped: false),
+            new IWorkKeynoteSlide(2, "Skipped", null, Array.Empty<IWorkTextBox>(), empty,
+                Array.Empty<IWorkImageAsset>(), Array.Empty<IWorkTable>(),
+                Array.Empty<IWorkKeynoteDrawable>(), isSkipped: true)
+        };
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "synthetic.key",
+            new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
+
+        projection.AddKeynote(new IWorkKeynoteProjection(source, slides, null,
+            Array.Empty<IWorkDiagnostic>(), supportsEditableReconstruction: true));
+        projection.Complete(source);
+
+        Assert.Equal(2, result.Pages.Count);
+        OfficeDocumentMetadataEntry visible = Assert.Single(result.Metadata,
+            entry => entry.Id == "iwork-slide-0001-skipped");
+        OfficeDocumentMetadataEntry skipped = Assert.Single(result.Metadata,
+            entry => entry.Id == "iwork-slide-0002-skipped");
+        Assert.Equal("false", visible.Value);
+        Assert.Equal("true", skipped.Value);
+        Assert.Equal("boolean", skipped.ValueType);
+        Assert.Equal(2, skipped.Location!.Slide);
+    }
+
     private sealed class CancellingReadStream : MemoryStream {
         private readonly CancellationTokenSource _cancellation;
 

@@ -6,6 +6,20 @@ namespace OfficeIMO.Reader.Tests;
 
 public sealed class ReaderIWorkTests {
     [Theory]
+    [InlineData("sample.pages", "application/vnd.apple.pages")]
+    [InlineData("sample.numbers", "application/vnd.apple.numbers")]
+    [InlineData("sample.key", "application/vnd.apple.keynote")]
+    public void IWorkExtensionDetectionReportsItsRegisteredMediaType(
+        string sourceName, string expectedMediaType) {
+        ReaderDetectionResult detection = new OfficeDocumentReaderBuilder()
+            .AddIWorkHandler().Build().Detect(Array.Empty<byte>(), sourceName,
+                new ReaderDetectionOptions { Mode = ReaderDetectionMode.ExtensionOnly });
+
+        Assert.Equal(ReaderInputKind.IWork, detection.Kind);
+        Assert.Equal(expectedMediaType, detection.MediaType);
+    }
+
+    [Theory]
     [InlineData("nim-iwork/simple.pages", "hello pages")]
     [InlineData("nim-iwork/simple.numbers", "a")]
     [InlineData("nim-iwork/simple.key", "hello keynote")]
