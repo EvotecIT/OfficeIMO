@@ -289,6 +289,14 @@ internal static class HtmlMhtmlEvidenceRunner {
                         new Promise(resolve => setTimeout(resolve, deadline - Date.now()))
                     ]);
                 }
+                // Eager images can still be loading after DOMContentLoaded. Give
+                // them the same bounded readiness window as promoted lazy images.
+                if (Date.now() < deadline) {
+                    await Promise.race([
+                        Promise.all(images.map(settle)),
+                        new Promise(resolve => setTimeout(resolve, deadline - Date.now()))
+                    ]);
+                }
                 return {
                     total: images.length,
                     promoted,

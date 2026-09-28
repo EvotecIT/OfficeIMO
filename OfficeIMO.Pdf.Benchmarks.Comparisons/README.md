@@ -153,7 +153,7 @@ does not infer a fitting width or qualify the page by itself.
 Choose a page you are permitted to capture and retain, and use new output
 directories. The live capture waits for `DOMContentLoaded` plus one second,
 then promotes lazy images in batches of eight and waits up to 15 seconds for
-them to settle. The JSON records the image counts, including failed and pending
+all images, including already-eager images, to settle. The JSON records the image counts, including failed and pending
 loads; pending images fail the capture. This still does not establish readiness
 for every scripted application, and an origin may reject image requests. The
 replay is the comparable input: Chromium opens the frozen MHTML offline, while
