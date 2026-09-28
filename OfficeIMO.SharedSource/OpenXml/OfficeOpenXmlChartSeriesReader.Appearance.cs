@@ -26,7 +26,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         foreach (var child in properties.ChildElements) {
             if ((child is A.EffectList || child is A.Shape3DType) && !child.HasChildren && !child.HasAttributes) continue;
             if (flattenThreeDimensional && child is A.Shape3DType) continue;
-            if (child is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) continue;
+            if (child is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(child) &&
+                OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) continue;
             if (child is A.NoFill && !filled) continue;
             if (child is not A.Outline outline) return false;
             // Marker-only series retain native line metadata that has no rendered
@@ -36,7 +37,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             if (OfficeOpenXmlChartPointStyles.HasUnsupportedLineAttributes(outline) || outline.Width?.Value < 0) return false;
             foreach (var lineChild in outline.ChildElements) {
                 if (lineChild is A.NoFill) continue;
-                if (lineChild is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
+                if (lineChild is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(lineChild) &&
+                    OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
                 if ((!filled || area) && lineChild is A.PresetDash && (!connectLine || ReadDash(outline).HasValue)) continue;
                 return false;
             }

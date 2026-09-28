@@ -12,8 +12,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.LegendPosition>()?.Val?.Value == C.LegendPositionValues.TopRight ||
-                chart.PlotArea?.Descendants<C.Title>().Any(title => title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null) == true)
-                throw new NotSupportedException("Manual chart layouts and top-right legends cannot be projected.");
+                chart.PlotArea?.Descendants<C.Title>().Any(title =>
+                    title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
+                    title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false) == true)
+                throw new NotSupportedException("Manual or overlaid axis-title layouts and top-right legends cannot be projected.");
             var labels = ReadLabels(chart);
             var defaultText = ReadNativeText(chart, chart, scheme);
             var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
@@ -138,7 +140,13 @@ namespace OfficeIMO.OpenXml.Internal {
                     throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
                 if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value is C.TickLabelPositionValues tickPosition && tickPosition != C.TickLabelPositionValues.NextTo))
                     throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
-                if (axis is C.ValueAxis) QualifyAutomaticSecondaryScale(axis);
+                if (axis is C.ValueAxis) {
+                    if (ReadLayoutTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value) !=
+                            ReadLayoutTick(primaryValueAxis?.GetFirstChild<C.MajorTickMark>()?.Val?.Value) ||
+                        ReadLayoutTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value) != OfficeChartAxisTickMark.None)
+                        throw new NotSupportedException("Independent secondary-axis tick marks cannot be projected.");
+                    QualifyAutomaticSecondaryScale(axis);
+                }
             }
             if (primaryValueAxis != null) QualifyAutomaticSecondaryScale(primaryValueAxis);
         }

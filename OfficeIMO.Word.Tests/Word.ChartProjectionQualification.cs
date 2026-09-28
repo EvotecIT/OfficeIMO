@@ -8,6 +8,19 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartProjectionQualificationTests {
+    [Fact]
+    public void AuthoredBarDirectionChangeKeepsNativeAxesProjectable() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.BarClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3D, 4D }) }));
+        chart.BarDirection = WordChartBarDirection.Column;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        Assert.Equal(C.AxisPositionValues.Bottom, plot.GetFirstChild<C.CategoryAxis>()!.AxisPosition!.Val!.Value);
+        Assert.Equal(C.AxisPositionValues.Left, plot.GetFirstChild<C.ValueAxis>()!.AxisPosition!.Val!.Value);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
