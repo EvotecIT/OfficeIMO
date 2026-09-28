@@ -184,6 +184,7 @@ internal sealed partial class IWorkReadProjection {
     private void AddTextBox(OfficeDocumentPage page, IWorkTextBox textBox,
         string sourceKind) {
         OfficeDocumentRegion? region = Region(textBox.Geometry);
+        ReportUnsupportedRotation(page, textBox.Geometry, sourceKind);
         int firstBlockIndex = _blocks.Count;
         AddRichContent(page, textBox.Content, sourceKind, region);
         if (!textBox.Content.Paragraphs.Any(paragraph => paragraph.Text.Length > 0)
@@ -267,10 +268,11 @@ internal sealed partial class IWorkReadProjection {
         ReaderTable? table = null,
         Func<int, int, string>? markdownPart = null,
         string? sourceKind = null, OfficeDocumentRegion? region = null,
-        bool splitMarkdownIndependently = false) {
+        bool splitMarkdownIndependently = false, int? tableIndex = null) {
         _cancellationToken.ThrowIfCancellationRequested();
         string id = "iwork-b" + (_blocks.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         ReaderLocation location = Location(page, sourceKind: sourceKind ?? kind, anchor: id);
+        location.TableIndex = tableIndex;
         var block = new OfficeDocumentBlock {
             Id = id,
             Kind = kind,
@@ -283,24 +285,27 @@ internal sealed partial class IWorkReadProjection {
         _blocks.Add(block);
         _pageBlocks[page].Add(block);
         int maxChars = Math.Max(1, _readerOptions.MaxChars);
+        bool independentMarkdownChunks = splitMarkdownIndependently || markdown.Length > maxChars;
         int partIndex = 0;
         int textOffset = 0;
         int markdownOffset = 0;
         bool split = text.Length > maxChars
-            || splitMarkdownIndependently && markdown.Length > maxChars;
+            || independentMarkdownChunks && markdown.Length > maxChars;
         while (textOffset < text.Length
-            || splitMarkdownIndependently && markdownOffset < markdown.Length
+            || independentMarkdownChunks && markdownOffset < markdown.Length
             || partIndex == 0) {
             int length = ScalarSafeChunkLength(text, textOffset, maxChars);
             string part = length == 0 ? string.Empty : text.Substring(textOffset, length);
-            int markdownLength = splitMarkdownIndependently
+            int markdownLength = independentMarkdownChunks
                 ? ScalarSafeChunkLength(markdown, markdownOffset, maxChars) : 0;
+            ReaderLocation chunkLocation = Location(page, _chunks.Count, sourceKind ?? kind, id);
+            chunkLocation.TableIndex = tableIndex;
             _chunks.Add(new ReaderChunk {
                 Id = id + "-" + partIndex.ToString("D3", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.IWork,
-                Location = Location(page, _chunks.Count, sourceKind ?? kind, id),
+                Location = chunkLocation,
                 Text = part,
-                Markdown = splitMarkdownIndependently
+                Markdown = independentMarkdownChunks
                     ? markdownLength == 0 ? string.Empty
                         : markdown.Substring(markdownOffset, markdownLength)
                     : split
@@ -315,6 +320,18 @@ internal sealed partial class IWorkReadProjection {
             partIndex++;
         }
         return location;
+    }
+
+    private void ReportUnsupportedRotation(OfficeDocumentPage page, IWorkGeometry? geometry,
+        string sourceKind) {
+        if (geometry == null || Math.Abs(geometry.RotationDegrees) < 0.000001d) return;
+        _diagnostics.Add(new OfficeDocumentDiagnostic {
+            Category = OfficeDocumentDiagnosticCategory.Content,
+            Code = "IWORK_READER_ROTATION_UNSUPPORTED",
+            Message = "A source drawable's rotation is omitted from Reader regions; the iWork source model retains it.",
+            Source = "OfficeIMO.Reader.IWork",
+            Location = Location(page, sourceKind: sourceKind)
+        });
     }
 
     private static int ScalarSafeChunkLength(string value, int offset, int maximum) {

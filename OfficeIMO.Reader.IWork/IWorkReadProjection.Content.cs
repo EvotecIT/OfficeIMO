@@ -5,6 +5,7 @@ namespace OfficeIMO.Reader.IWork;
 internal sealed partial class IWorkReadProjection {
     private void AddTable(OfficeDocumentPage page, IWorkTable source) {
         _cancellationToken.ThrowIfCancellationRequested();
+        ReportUnsupportedRotation(page, source.Geometry, "table");
         int tableIndex = _pageTables[page].Count;
         int headerRows = Math.Min(source.HeaderRowCount, source.RowCount);
         int materializedHeaderRows = Math.Min(headerRows, Math.Max(1, _readerOptions.MaxTableRows));
@@ -45,13 +46,22 @@ internal sealed partial class IWorkReadProjection {
         string markdown = table.ToMarkdownTable();
         string text = DocumentReaderEngine.BuildRichTableText(table);
         ReaderLocation tableBlockLocation = AddBlock(page, "table", text, markdown, null, null, table,
-            region: Region(source.Geometry), splitMarkdownIndependently: true);
-        tableBlockLocation.TableIndex = tableIndex;
+            region: Region(source.Geometry), splitMarkdownIndependently: true,
+            tableIndex: tableIndex);
         if (truncated) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Limit,
                 Code = "IWORK_READER_TABLE_TRUNCATED",
                 Message = $"Table '{source.Name}' exceeds Reader row or column materialization limits.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = location
+            });
+        }
+        if (source.MergedRanges.Count > 0) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_TABLE_MERGES_UNSUPPORTED",
+                Message = $"Table '{source.Name}' is projected as a flat Reader grid; merged ranges remain on the iWork source model.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
@@ -99,6 +109,7 @@ internal sealed partial class IWorkReadProjection {
 
     private void AddImage(OfficeDocumentPage page, IWorkImageAsset source) {
         _cancellationToken.ThrowIfCancellationRequested();
+        ReportUnsupportedRotation(page, source.Geometry, "image");
         string id = "iwork-a" + (_assets.Count + 1).ToString("D6", CultureInfo.InvariantCulture);
         var asset = new OfficeDocumentAsset {
             Id = id,
@@ -168,10 +179,19 @@ internal sealed partial class IWorkReadProjection {
             int start = Math.Max(offset, runStart);
             int end = Math.Min(offset + length, runOffset);
             if (end <= start) continue;
-            string value = EscapeMarkdown(run.Text.Substring(start - runStart, end - start));
-            if (run.Style.Bold == true) value = "**" + value + "**";
-            if (run.Style.Italic == true) value = "*" + value + "*";
-            if (run.Style.Strikethrough == true) value = "~~" + value + "~~";
+            string segment = run.Text.Substring(start - runStart, end - start);
+            int leading = 0;
+            while (leading < segment.Length && char.IsWhiteSpace(segment[leading])) leading++;
+            int trailing = segment.Length;
+            while (trailing > leading && char.IsWhiteSpace(segment[trailing - 1])) trailing--;
+            string value = EscapeMarkdown(segment.Substring(leading, trailing - leading));
+            if (value.Length > 0) {
+                if (run.Style.Bold == true) value = "**" + value + "**";
+                if (run.Style.Italic == true) value = "*" + value + "*";
+                if (run.Style.Strikethrough == true) value = "~~" + value + "~~";
+            }
+            value = EscapeMarkdown(segment.Substring(0, leading)) + value
+                + EscapeMarkdown(segment.Substring(trailing));
             if (run.Hyperlink != null
                 && Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out Uri? uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps

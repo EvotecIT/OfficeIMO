@@ -138,6 +138,103 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_READER_TEXT_STYLE_PARTIAL");
     }
 
+    [Fact]
+    public void Reader_bounds_escaped_and_linked_markdown_chunks() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
+        var style = new IWorkTextStyle(null, null, null, null, null,
+            null, null, null, null);
+        var paragraphStyle = new IWorkParagraphStyle(null, null, null, null, null,
+            null, null, null, null, null, style);
+        string text = new string('`', 20);
+        var paragraph = new IWorkTextParagraph(new[] {
+            new IWorkTextRun(text, style, "https://example.com/" + new string('x', 100))
+        }, paragraphStyle, null, -1, null, IWorkParagraphBreakKind.None);
+        var pages = new IWorkPagesProjection(source,
+            new IWorkTextContent(new[] { paragraph }, true, true),
+            Array.Empty<IWorkPagesSection>(), Array.Empty<IWorkTextBox>(),
+            Array.Empty<IWorkImageAsset>(), Array.Empty<IWorkTable>(),
+            Array.Empty<IWorkPagesDrawable>(), null, Array.Empty<IWorkDiagnostic>(), true);
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "sample.pages",
+            new ReaderOptions { MaxChars = 8 }, new ReaderIWorkOptions(), CancellationToken.None);
+
+        projection.AddPages(pages);
+        projection.Complete(source);
+
+        Assert.Equal(text, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
+        Assert.Equal(IWorkReadProjection.RichTextMarkdown(paragraph), result.Markdown);
+        Assert.All(result.Chunks, chunk => Assert.InRange(chunk.Markdown!.Length, 0, 8));
+    }
+
+    [Fact]
+    public void Reader_keeps_whitespace_outside_rich_text_delimiters() {
+        var plain = new IWorkTextStyle(null, null, null, null, null,
+            null, null, null, null);
+        var bold = new IWorkTextStyle(null, true, null, null, null,
+            null, null, null, null);
+        var italic = new IWorkTextStyle(null, null, true, null, null,
+            null, null, null, null);
+        var strike = new IWorkTextStyle(null, null, null, null, true,
+            null, null, null, null);
+        var paragraphStyle = new IWorkParagraphStyle(null, null, null, null, null,
+            null, null, null, null, null, plain);
+        var paragraph = new IWorkTextParagraph(new[] {
+            new IWorkTextRun(" bold ", bold, null),
+            new IWorkTextRun(" italic ", italic, null),
+            new IWorkTextRun(" strike ", strike, null)
+        }, paragraphStyle, null, -1, null, IWorkParagraphBreakKind.None);
+
+        string markdown = IWorkReadProjection.RichTextMarkdown(paragraph);
+
+        Assert.Contains(" **bold** ", markdown);
+        Assert.Contains(" *italic* ", markdown);
+        Assert.Contains(" ~~strike~~ ", markdown);
+    }
+
+    [Fact]
+    public void Reader_reports_rotations_and_merges_and_indexes_each_table_chunk() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
+        var rotation = new IWorkGeometry(10, 20, 100, 40, 15);
+        var emptyText = new IWorkTextContent(Array.Empty<IWorkTextParagraph>(), true, true);
+        var textBox = new IWorkTextBox(emptyText, rotation, null, "Rotated text box");
+        var image = new IWorkImageAsset("image.png", "Data/image.png", "image/png",
+            ValidPreviewPng(), 1, 1, rotation, false, null, null);
+        var merged = new IWorkTable("Merged", 1, 2,
+            new[] { new IWorkTableCell(1, 1, IWorkCellKind.Text, "Value") },
+            mergedRanges: new[] { new IWorkTableMergeRange(1, 1, 1, 2) },
+            geometry: rotation);
+        var second = new IWorkTable("Second", 1, 1,
+            new[] { new IWorkTableCell(1, 1, IWorkCellKind.Text, "Other") });
+        var pages = new IWorkPagesProjection(source, emptyText,
+            Array.Empty<IWorkPagesSection>(), new[] { textBox },
+            new[] { image }, new[] { merged, second },
+            new IWorkPagesDrawable[] {
+                new(textBox), new(image), new(merged), new(second)
+            }, null, Array.Empty<IWorkDiagnostic>(), true);
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "sample.pages",
+            new ReaderOptions { MaxChars = 4 }, new ReaderIWorkOptions(), CancellationToken.None);
+
+        projection.AddPages(pages);
+        projection.Complete(source);
+
+        Assert.Equal(3, result.Diagnostics.Count(diagnostic =>
+            diagnostic.Code == "IWORK_READER_ROTATION_UNSUPPORTED"));
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_READER_TABLE_MERGES_UNSUPPORTED");
+        OfficeDocumentBlock[] tableBlocks = result.Blocks.Where(block => block.Kind == "table").ToArray();
+        Assert.Equal(2, tableBlocks.Length);
+        for (int index = 0; index < tableBlocks.Length; index++) {
+            Assert.Equal(index, tableBlocks[index].Location.TableIndex);
+            ReaderChunk[] chunks = result.Chunks.Where(chunk =>
+                chunk.Location.BlockAnchor == tableBlocks[index].Id).ToArray();
+            Assert.NotEmpty(chunks);
+            Assert.All(chunks, chunk => Assert.Equal(index, chunk.Location.TableIndex));
+        }
+    }
+
     private static void AssertValidUnicode(string value) {
         for (int index = 0; index < value.Length; index++) {
             if (char.IsHighSurrogate(value[index])) {
