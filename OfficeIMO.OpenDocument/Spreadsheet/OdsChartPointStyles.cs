@@ -147,9 +147,6 @@ internal static class OdsChartPointStyles {
 
     internal static bool HasUnprojectedSeriesPieOffset(XElement series,
         Func<string?, XElement?> findStyle, XElement? defaultStyle) {
-        string? defaultOffset = (string?)defaultStyle?.Element(OdfNamespaces.Style + "chart-properties")?
-            .Attribute(OdfNamespaces.Chart + "pie-offset");
-        if (defaultOffset != null && defaultOffset != "0") return true;
         string? name = (string?)series.Attribute(OdfNamespaces.Chart + "style-name");
         var visited = new HashSet<string>(StringComparer.Ordinal);
         while (!string.IsNullOrEmpty(name)) {
@@ -158,10 +155,12 @@ internal static class OdsChartPointStyles {
             if (definition == null) return true;
             string? offset = (string?)definition.Element(OdfNamespaces.Style + "chart-properties")?
                 .Attribute(OdfNamespaces.Chart + "pie-offset");
-            if (offset != null && offset != "0") return true;
+            if (offset != null) return offset != "0";
             name = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
         }
-        return false;
+        string? defaultOffset = (string?)defaultStyle?.Element(OdfNamespaces.Style + "chart-properties")?
+            .Attribute(OdfNamespaces.Chart + "pie-offset");
+        return defaultOffset != null && defaultOffset != "0";
     }
 
     private static bool HasUnsupportedChartProperties(XElement definition) {

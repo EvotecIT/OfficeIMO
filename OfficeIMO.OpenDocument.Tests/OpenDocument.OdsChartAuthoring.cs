@@ -210,6 +210,20 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void ExplicitZeroPieOffsetOverridesInheritedDefault() {
+        var defaultStyle = new XElement(OdfNamespaces.Style + "default-style",
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", "25")));
+        var seriesStyle = new XElement(OdfNamespaces.Style + "style",
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", "0")));
+        var series = new XElement(OdfNamespaces.Chart + "series",
+            new XAttribute(OdfNamespaces.Chart + "style-name", "SeriesStyle"));
+        Assert.False(OdsChartPointStyles.HasUnprojectedSeriesPieOffset(series,
+            name => name == "SeriesStyle" ? seriesStyle : null, defaultStyle));
+    }
+
+    [Fact]
     public void ImportedSolidHatchAcceptsXmlBooleanOne() {
         OdsChart chart = ReadProducerChart(content => {
             XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
