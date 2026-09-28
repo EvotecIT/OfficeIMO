@@ -17,6 +17,8 @@ namespace OfficeIMO.Tests {
         [InlineData("TextByColumns", "SORT(A1:C2,1,1,TRUE)")]
         [InlineData("MixedByColumnsDescending", "SORT(A1:E2,1,-1,TRUE)")]
         [InlineData("TextCaseTies", "SORT(A1:B3,1,1)")]
+        [InlineData("DigitText", "SORT(A1:B5,1,1)")]
+        [InlineData("NumericText", "SORT(A1:B5,1,1)")]
         public void ArraySort_MatchesExcelProducedCachesAfterNewCalculationAndReopen(string caseName, string formula) {
             string source = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
                 "Documents", "ExcelFormulaCorpus", "sort-collation.xlsx");

@@ -7,12 +7,14 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private readonly struct FormulaArgumentValue {
-            internal FormulaArgumentValue(double? number, string? text, bool isUnresolvedFormula = false, bool isError = false, bool isBoolean = false) {
+            internal FormulaArgumentValue(double? number, string? text, bool isUnresolvedFormula = false, bool isError = false, bool isBoolean = false,
+                bool isUnevaluatedFormulaCache = false) {
                 Number = number;
                 Text = text;
                 IsUnresolvedFormula = isUnresolvedFormula;
                 IsError = isError;
                 IsBoolean = isBoolean;
+                IsUnevaluatedFormulaCache = isUnevaluatedFormulaCache;
             }
 
             internal double? Number { get; }
@@ -20,6 +22,7 @@ namespace OfficeIMO.Excel {
             internal bool IsUnresolvedFormula { get; }
             internal bool IsError { get; }
             internal bool IsBoolean { get; }
+            internal bool IsUnevaluatedFormulaCache { get; }
             internal string? ErrorCode => IsError ? Text : null;
             internal bool HasValue => Number.HasValue || Text != null || IsError;
 

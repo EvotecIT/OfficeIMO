@@ -1014,11 +1014,13 @@ namespace OfficeIMO.Excel {
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
                 || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
-                return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty);
+                return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty,
+                    isUnevaluatedFormulaCache: unresolvedFormula);
             }
 
             if (value.Value is bool boolean) {
-                return new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "1" : "0", isBoolean: true);
+                return new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "1" : "0", isBoolean: true,
+                    isUnevaluatedFormulaCache: unresolvedFormula);
             }
 
             if (TryParseFormulaErrorLiteral(value.CachedText ?? value.Value?.ToString() ?? string.Empty, out string errorCode)) {
@@ -1026,14 +1028,15 @@ namespace OfficeIMO.Excel {
             }
 
             if (value.Value is double d) {
-                return new FormulaArgumentValue(d, value.CachedText);
+                return new FormulaArgumentValue(d, value.CachedText, isUnevaluatedFormulaCache: unresolvedFormula);
             }
 
             if (double.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
-                return new FormulaArgumentValue(parsed, value.CachedText);
+                return new FormulaArgumentValue(parsed, value.CachedText, isUnevaluatedFormulaCache: unresolvedFormula);
             }
 
-            return new FormulaArgumentValue(null, value.Value?.ToString());
+            return new FormulaArgumentValue(null, value.Value?.ToString(),
+                isUnevaluatedFormulaCache: unresolvedFormula);
         }
 
         private static string? NormalizeFormulaCellReference(string? reference) {

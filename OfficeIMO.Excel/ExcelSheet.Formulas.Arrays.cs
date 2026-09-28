@@ -331,7 +331,7 @@ namespace OfficeIMO.Excel {
 
         private static bool TryGetArraySortKeyKind(FormulaArgumentValue value, out ArraySortKeyKind kind) {
             kind = default;
-            if (value.IsError || value.IsUnresolvedFormula) return false;
+            if (value.IsError || value.IsUnresolvedFormula || value.IsUnevaluatedFormulaCache) return false;
             if (!value.HasValue) { kind = ArraySortKeyKind.Blank; return true; }
             if (value.IsBoolean) { kind = ArraySortKeyKind.Boolean; return value.Number.HasValue; }
             if (value.Number.HasValue) {
@@ -341,7 +341,9 @@ namespace OfficeIMO.Excel {
             }
             if (value.Text == null || value.Text.Length == 0) return false;
             foreach (char character in value.Text) {
-                if (!((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z')))
+                if (!((character >= 'A' && character <= 'Z')
+                    || (character >= 'a' && character <= 'z')
+                    || (character >= '0' && character <= '9')))
                     return false;
             }
             kind = ArraySortKeyKind.Text;

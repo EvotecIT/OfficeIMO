@@ -16,7 +16,7 @@ $caseCount = 0
 $workbookPath = Join-Path $outputDirectory 'sort-collation.xlsx'
 $jsonPath = Join-Path $outputDirectory 'sort-collation.provenance.json'
 
-function Add-OracleCase($name, $values, $formula, $outputRows, $outputColumns) {
+function Add-OracleCase($name, $values, $formula, $outputRows, $outputColumns, [switch]$forceTextKeys) {
     $sheet = if ($script:caseCount -eq 0) { $script:workbook.Worksheets.Item(1) } else { $script:workbook.Worksheets.Add() }
     $script:caseCount++
     $sheet.Name = $name
@@ -31,6 +31,7 @@ function Add-OracleCase($name, $values, $formula, $outputRows, $outputColumns) {
                 } elseif ($cellValue -is [bool]) {
                     $cell.Formula = if ($cellValue) { '=TRUE()' } else { '=FALSE()' }
                 } else {
+                    if ($forceTextKeys -and $column -eq 0) { $cell.NumberFormat = '@' }
                     $cell.Value2 = [string]$cellValue
                 }
                 [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($cell)
@@ -75,7 +76,10 @@ try {
         (Add-OracleCase 'BlankTextDescending' @(@('pear',1),@($null,2),@('apple',3)) '=SORT(A1:B3,1,-1)' 3 2),
         (Add-OracleCase 'TextByColumns' @(@('pear','apple','banana'),@(1,2,3)) '=SORT(A1:C2,1,1,TRUE)' 2 3),
         (Add-OracleCase 'MixedByColumnsDescending' @(@($false,'a',1,$true,$null),@(1,2,3,4,5)) '=SORT(A1:E2,1,-1,TRUE)' 2 5),
-        (Add-OracleCase 'TextCaseTies' @(@('apple',1),@('Apple',2),@('APPLE',3)) '=SORT(A1:B3,1,1)' 3 2)
+        (Add-OracleCase 'TextCaseTies' @(@('apple',1),@('Apple',2),@('APPLE',3)) '=SORT(A1:B3,1,1)' 3 2),
+        (Add-OracleCase 'DigitText' @(@('v2',1),@('v10',2),@('v1',3),@('v02',4),@('v9',5)) '=SORT(A1:B5,1,1)' 5 2),
+        (Add-OracleCase 'NumericText' @(@('2',1),@('10',2),@('1',3),@('02',4),@('9',5)) '=SORT(A1:B5,1,1)' 5 2 -forceTextKeys),
+        (Add-OracleCase 'PunctuationText' @(@('a-b',1),@('a_b',2),@('ab',3),@('a b',4),@('a.b',5)) '=SORT(A1:B5,1,1)' 5 2)
     )
     $excel.CalculateFullRebuild()
     $results = @()
@@ -105,7 +109,7 @@ try {
         generatedUtc=[DateTime]::UtcNow.ToString('o')
         file='sort-collation.xlsx'
         sha256=(Get-FileHash -LiteralPath $workbookPath -Algorithm SHA256).Hash.ToLowerInvariant()
-        inputNote='Numeric and Boolean source cells are Excel-calculated constants; text cells are literals.'
+        inputNote='Numeric and Boolean source cells are Excel-calculated constants; text cells are literals. NumericText sort keys use Excel text formatting.'
         cases=$results
         regeneration='Build/Verification/New-ExcelSortOracle.ps1'
     }

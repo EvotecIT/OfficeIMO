@@ -118,8 +118,10 @@ namespace OfficeIMO.Tests {
             Assert.All(sheet.InspectFormulas().Formulas, formula => Assert.Equal("0", formula.CachedValue));
         }
 
-        [Fact]
-        public void Test_ArrayCalculation_UnsupportedFormulaTextCacheIsNotNumericSortKey() {
+        [Theory]
+        [InlineData(true)]
+        [InlineData(false)]
+        public void Test_ArrayCalculation_UnsupportedFormulaCacheIsNotSortKey(bool cachedAsText) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Arrays");
             sheet.CellFormula(1, 1, "UNSUPPORTED()");
@@ -127,7 +129,9 @@ namespace OfficeIMO.Tests {
             var cells = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().ToArray();
             foreach (var cell in cells) {
                 cell.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue(cell.CellReference == "A1" ? "12" : "2");
-                cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.String;
+                cell.DataType = cachedAsText
+                    ? DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                    : DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             }
             sheet.SetArrayFormula("G1:G2", "SORT(A1:A2)");
             Assert.Equal(0, document.Calculate());
@@ -259,12 +263,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("neighbor", sheet.CellAt(2, 1).GetValue().Value);
         }
 
-        [Fact]
-        public void Test_ArrayCalculation_UnqualifiedUnicodeTextSortStaysDeferred() {
+        [Theory]
+        [InlineData("é", "a")]
+        // Excel's saved punctuation oracle orders "ab" before "a-b"; ordinal ordering reverses them.
+        [InlineData("a-b", "ab")]
+        public void Test_ArrayCalculation_UnqualifiedTextSortStaysDeferred(string first, string second) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, "é");
-            sheet.CellValue(2, 1, "a");
+            sheet.CellValue(1, 1, first);
+            sheet.CellValue(2, 1, second);
             sheet.SetArrayFormula("G1:G2", "SORT(A1:A2)");
             Assert.Equal(0, document.Calculate());
         }

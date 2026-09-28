@@ -817,13 +817,14 @@ document.Save();
 column mask of numbers or Booleans, including comparisons between operands of
 the same native type and a scalar empty-result fallback. Blank mask cells are
 false; mixed-type comparisons and text-mask coercion remain deferred.
-`SORT` supports numeric, ASCII-letter text, Boolean, and blank sort keys, including
+`SORT` supports numeric, ASCII letter-and-digit text, Boolean, and blank sort keys, including
 mixed keys, both directions, and sorting rows or columns. Numbers precede text and
 Booleans in ascending order; descending order reverses those nonblank groups.
 Blanks remain last in either direction and their output cells contain zero, as
 in Excel's cached results. Text compares without ASCII case and equal keys keep
-their input order. Locale-dependent, punctuation, digit-text, Unicode, and error-key
-collation remains deferred. `UNIQUE` preserves the first
+their input order. Sort keys backed only by an unevaluated formula cache remain
+deferred. Locale-dependent, punctuation, Unicode, and error-key collation remains
+deferred. `UNIQUE` preserves the first
 occurrence of distinct rows or columns and supports `exactly_once`. These
 functions can be nested within this array subset. Each input and output is
 limited to 100,000 cells, with at most 32 array-expression levels.
