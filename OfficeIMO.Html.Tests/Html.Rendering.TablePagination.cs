@@ -9,6 +9,26 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTables_CollapsedRowRulesSurvivePagedFragmentation() {
+        string rows = string.Concat(Enumerable.Range(0, 12).Select(index =>
+            "<tr><td>Row" + index.ToString("D2") + "</td><td>Value</td></tr>"));
+        string html = "<style>@page{size:200px 100px;margin:0}table{width:160px;margin:0;border-collapse:collapse}"
+            + "td{font-size:10px;line-height:16px;padding:4px;border:1px solid black}</style>"
+            + "<table id='grid'>" + rows + "</table>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        Assert.True(rendered.Pages.Count > 1);
+        foreach (HtmlRenderPage page in rendered.Pages) {
+            if (!page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text.StartsWith("Row", StringComparison.Ordinal))) continue;
+            HtmlRenderShape[] horizontalRules = page.Visuals.OfType<HtmlRenderShape>()
+                .Where(shape => shape.Source?.StartsWith("table#grid:collapsed-border-h-", StringComparison.Ordinal) == true)
+                .ToArray();
+
+            Assert.True(horizontalRules.Length >= 2);
+        }
+    }
+
+    [Fact]
     public void HtmlTables_CssRowGroupsControlPagedHeaderAndFooterRepetition() {
         string bodyRows = string.Concat(Enumerable.Range(0, 14).Select(index =>
             "<tr><td>Body" + index.ToString("D2") + "</td><td>Value</td></tr>"));

@@ -8,8 +8,8 @@ namespace OfficeIMO.Html;
 public sealed class HtmlRenderShape : HtmlRenderVisual {
     private readonly OfficeShape _shape;
 
-    internal HtmlRenderShape(OfficeShape shape, double x, double y, int paintOrder, string? linkUri = null, string? source = null, double? layoutY = null)
-        : base(HtmlRenderVisualKind.Shape, x, y, shape?.Width ?? 0D, shape?.Height ?? 0D, paintOrder, linkUri, source, layoutY) {
+    internal HtmlRenderShape(OfficeShape shape, double x, double y, int paintOrder, string? linkUri = null, string? source = null, double? layoutY = null, double? layoutHeight = null)
+        : base(HtmlRenderVisualKind.Shape, x, y, shape?.Width ?? 0D, shape?.Height ?? 0D, paintOrder, linkUri, source, layoutY, layoutHeight) {
         _shape = shape?.Clone() ?? throw new ArgumentNullException(nameof(shape));
     }
 
@@ -19,8 +19,8 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
     internal OfficeShape InnerShape => _shape;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY);
+        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY, LayoutHeight);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY);
+        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY, LayoutHeight);
 }

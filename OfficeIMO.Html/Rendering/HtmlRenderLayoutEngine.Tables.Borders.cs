@@ -299,7 +299,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         shape.StrokeWidth = width;
         shape.StrokeDashStyle = MapStrokeDashStyle(style);
         shape.FillColor = null;
-        visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source));
+        // The painted horizontal line is almost flat, but pagination must retain
+        // its stroke extent when a table is sliced between rows.
+        double layoutHeight = horizontal ? Math.Max(0.01D, width) : shape.Height;
+        double layoutY = horizontal ? y - layoutHeight / 2D : y;
+        visuals.Add(new HtmlRenderShape(shape, x, y, visuals.Count, source: source,
+            layoutY: layoutY, layoutHeight: layoutHeight));
     }
 
     private enum CollapsedBorderOrigin {
