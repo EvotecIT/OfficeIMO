@@ -218,7 +218,8 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data, colorScheme: colorScheme);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data,
+                        colorScheme: colorScheme, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -229,7 +230,8 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data, colorScheme: colorScheme);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data,
+                        colorScheme: colorScheme, forDataUpdate: forDataUpdate);
                     return true;
                 }
 
@@ -411,7 +413,8 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,
             PowerPointChartSnapshotKind kind, PowerPointChartData data,
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
-            double bubbleScalePercent = 100D, A.ColorScheme? colorScheme = null) {
+            double bubbleScalePercent = 100D, A.ColorScheme? colorScheme = null,
+            bool forDataUpdate = false) {
             HashSet<uint> hiddenLegendSeries = GetHiddenLegendSeriesIndexes(chart);
             bool hasLegend = chart.GetFirstChild<C.Legend>() != null;
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
@@ -431,7 +434,7 @@ namespace OfficeIMO.PowerPoint {
                     : null;
             if (radialLabels?.TextColor is OfficeColor labelColor)
                 style = style.WithDataLabelTextColor(labelColor);
-            if (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut) {
+            if (!forDataUpdate && kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ReadRadialPalette(
