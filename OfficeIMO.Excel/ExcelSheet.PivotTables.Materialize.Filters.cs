@@ -33,14 +33,15 @@ namespace OfficeIMO.Excel {
                     ?? Array.Empty<OpenXmlElement>();
                 if (shared.Length == 0 || items.Length == 0)
                     throw new NotSupportedException("The filtered pivot field has no saved item mapping.");
+                bool manualGroup = manualGroupings.ContainsKey(field);
                 var hiddenKeys = new HashSet<PivotFieldValue>();
                 foreach (Item item in items) {
                     if (item.Hidden?.Value != true) continue;
-                    hiddenKeys.Add(OriginalPivotMaterializationKey(item, shared));
+                    hiddenKeys.Add(OriginalPivotMaterializationKey(item, shared, manualGroup));
                 }
                 if (hiddenKeys.Count > 0 && pivotFields[field].IncludeNewItemsInFilter?.Value != true) {
                     var known = new HashSet<PivotFieldValue>(items.Where(item => item.ItemType == null || item.ItemType.Value == ItemValues.Data)
-                        .Select(item => OriginalPivotMaterializationKey(item, shared)));
+                        .Select(item => OriginalPivotMaterializationKey(item, shared, manualGroup)));
                     foreach (PivotFieldValue key in maps[field].Items)
                         if (!known.Contains(key)) hiddenKeys.Add(key);
                 }
@@ -50,7 +51,7 @@ namespace OfficeIMO.Excel {
                         throw new NotSupportedException("The selected page item is outside the saved pivot field.");
                     Item selected = items[page.Item.Value];
                     if (selected.ItemType?.Value != ItemValues.Default) {
-                        PivotFieldValue key = OriginalPivotMaterializationKey(selected, shared);
+                        PivotFieldValue key = OriginalPivotMaterializationKey(selected, shared, manualGroup);
                         if (hiddenKeys.Contains(key))
                             throw new NotSupportedException("The selected page item is hidden.");
                         result.SelectedPages.Add(field, key);
@@ -86,11 +87,16 @@ namespace OfficeIMO.Excel {
             return result;
         }
 
-        private static PivotFieldValue OriginalPivotMaterializationKey(Item item, OpenXmlElement[] shared) {
+        private static PivotFieldValue OriginalPivotMaterializationKey(Item item, OpenXmlElement[] shared,
+            bool manualGroup) {
             if (item.Index == null || item.Index.Value >= shared.Length)
                 throw new NotSupportedException("The filtered pivot item has no valid shared key.");
-            string caption = PivotLookupAttribute(item, "n");
-            if (caption.Length != 0) return PivotFieldValue.FromText(caption);
+            // A manual group is keyed by its saved display label. Ordinary fields and
+            // range/date groups are keyed by their cache items, even when renamed.
+            if (manualGroup) {
+                string caption = PivotLookupAttribute(item, "n");
+                if (caption.Length != 0) return PivotFieldValue.FromText(caption);
+            }
             return OriginalPivotMaterializationKey(shared[item.Index.Value]);
         }
 

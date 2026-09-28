@@ -11,7 +11,14 @@ namespace OfficeIMO.Excel {
         /// Materialize or refresh the pivot to populate its displayed values.
         /// </summary>
         public void AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
-            IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string>? hiddenGroupItems = null) {
+            IReadOnlyDictionary<string, string[]> groups) =>
+            AddPivotManualGrouping(pivotTableName, sourceFieldName, groupFieldName, groups, null);
+
+        /// <summary>
+        /// Adds a derived manual text grouping field and hides selected group labels.
+        /// </summary>
+        public void AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
+            IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string>? hiddenGroupItems) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot name is required.", nameof(pivotTableName));
             if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("A source field is required.", nameof(sourceFieldName));
             if (string.IsNullOrWhiteSpace(groupFieldName)) throw new ArgumentException("A group field name is required.", nameof(groupFieldName));

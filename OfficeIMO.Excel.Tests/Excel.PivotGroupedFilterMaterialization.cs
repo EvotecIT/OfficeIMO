@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -130,6 +132,67 @@ namespace OfficeIMO.Tests {
             var actualLookups = reopened.GetSheet("Lookups").ReadRange("B1:B6");
             for (int row = 0; row < 6; row++)
                 AssertPivotLookupOracleValue(expectedLookups[row, 0], actualLookups[row, 0]);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_PivotGroupedItemFilter_SourceItemCaptionsDoNotChangeFilterKeys(bool includeNewItems) {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
+                "Documents", "ExcelPivotCorpus", "manual-group-filter-conformance.xlsx");
+            using var document = ExcelDocument.Load(path);
+            var grouped = document.GetSheet("Grouped");
+            var part = grouped.WorksheetPart.PivotTableParts.Single();
+            var cache = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
+            int sourceIndex = cache.CacheFields!.Elements<CacheField>().ToList()
+                .FindIndex(field => field.Name?.Value == "Product");
+            Assert.True(sourceIndex >= 0);
+            var shared = cache.CacheFields.Elements<CacheField>().ElementAt(sourceIndex)
+                .SharedItems!.Elements<StringItem>().ToArray();
+            var field = part.PivotTableDefinition!.PivotFields!.Elements<PivotField>().ElementAt(sourceIndex);
+            field.IncludeNewItemsInFilter = includeNewItems;
+            foreach (var (sourceName, caption) in new[] { ("Apple", "Hidden Apple"), ("Pear", "Visible Pear") }) {
+                int itemIndex = Array.FindIndex(shared, item => item.Val?.Value == sourceName);
+                Assert.True(itemIndex >= 0);
+                var item = field.Items!.Elements<Item>().Single(item => item.Index?.Value == (uint)itemIndex);
+                item.SetAttribute(new OpenXmlAttribute("n", string.Empty, caption));
+            }
+            Assert.True(grouped.MaterializePivotTable("PivotManualGrouped").Mutation.PackageIsValid);
+            Assert.Equal(60d, grouped.GetPivotData("PivotManualGrouped", "Metric").Value);
+            Assert.Equal(20d, grouped.GetPivotData("PivotManualGrouped", "Metric",
+                new Dictionary<string, object?> { ["Product2"] = "Fruit" }).Value);
+        }
+
+        [Theory]
+        [InlineData("numeric-group-filter-conformance.xlsx", "PivotGrouped", "Quantity", 813d)]
+        [InlineData("date-group-filter-conformance.xlsx", "PivotDateGrouped", "Years (OrderDate)", 60d)]
+        public void Test_PivotGroupedItemFilter_RangeAndDateCaptionsDoNotChangeFilterKeys(
+            string file, string pivotName, string fieldName, double expectedGrand) {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
+            using var document = ExcelDocument.Load(path);
+            var grouped = document.GetSheet("Grouped");
+            var part = grouped.WorksheetPart.PivotTableParts.Single();
+            var cache = part.PivotTableCacheDefinitionPart!.PivotCacheDefinition!;
+            int fieldIndex = cache.CacheFields!.Elements<CacheField>().ToList()
+                .FindIndex(field => field.Name?.Value == fieldName);
+            Assert.True(fieldIndex >= 0);
+            var field = part.PivotTableDefinition!.PivotFields!.Elements<PivotField>().ElementAt(fieldIndex);
+            var dataItems = field.Items!.Elements<Item>().Where(item => item.Index != null).ToArray();
+            Assert.Contains(dataItems, item => item.Hidden?.Value == true);
+            Assert.Contains(dataItems, item => item.Hidden?.Value != true);
+            dataItems.First(item => item.Hidden?.Value == true)
+                .SetAttribute(new OpenXmlAttribute("n", string.Empty, "Hidden caption"));
+            dataItems.First(item => item.Hidden?.Value != true)
+                .SetAttribute(new OpenXmlAttribute("n", string.Empty, "Visible caption"));
+            Assert.True(grouped.MaterializePivotTable(pivotName).Mutation.PackageIsValid);
+            Assert.Equal(expectedGrand, grouped.GetPivotData(pivotName, "Metric").Value);
+        }
+
+        [Fact]
+        public void Test_PivotGroupedItemFilter_ManualGroupingRetainsFourArgumentClrContract() {
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(nameof(ExcelSheet.AddPivotManualGrouping), new[] {
+                typeof(string), typeof(string), typeof(string), typeof(IReadOnlyDictionary<string, string[]>)
+            }));
         }
     }
 }
