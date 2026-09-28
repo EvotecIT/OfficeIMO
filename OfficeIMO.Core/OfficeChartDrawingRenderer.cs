@@ -1347,14 +1347,24 @@ public static partial class OfficeChartDrawingRenderer {
             areaPoints.Add(bottomPoints[i]);
         }
 
-        if (plotBounds.HasValue && valueRange.HasValue)
-            areaPoints = ClipValuePolygon(areaPoints, valueRange.Value, plotBounds.Value);
+        bool clipped = plotBounds.HasValue && valueRange.HasValue;
+        ChartPlotBounds bounds = plotBounds.GetValueOrDefault();
+        ValueRange range = valueRange.GetValueOrDefault();
+        if (clipped)
+            areaPoints = ClipValuePolygon(areaPoints, range, bounds);
         if (areaPoints.Count >= 3)
-            AddPolygonShape(drawing, areaPoints, color, showStroke ? color : null, showStroke ? 0.5D : 0D);
+            AddPolygonShape(drawing, areaPoints, color, showStroke && !clipped ? color : null,
+                showStroke && !clipped ? 0.5D : 0D);
         if (showStroke) {
-            if (plotBounds.HasValue && valueRange.HasValue)
-                AddClippedValueLine(drawing, topPoints, color, strokeWidth, dashStyle, valueRange.Value, plotBounds.Value);
-            else AddPointLine(drawing, topPoints, color, strokeWidth, dashStyle);
+            if (clipped) {
+                AddClippedValueLine(drawing, topPoints, color, strokeWidth, dashStyle, range, bounds);
+                AddClippedValueLine(drawing, bottomPoints, color, 0.5D, OfficeStrokeDashStyle.Solid,
+                    range, bounds);
+                AddClippedValueLine(drawing, new[] { bottomPoints[0], topPoints[0] }, color, 0.5D,
+                    OfficeStrokeDashStyle.Solid, range, bounds);
+                AddClippedValueLine(drawing, new[] { topPoints[topPoints.Count - 1], bottomPoints[bottomPoints.Count - 1] },
+                    color, 0.5D, OfficeStrokeDashStyle.Solid, range, bounds);
+            } else AddPointLine(drawing, topPoints, color, strokeWidth, dashStyle);
         }
     }
 
