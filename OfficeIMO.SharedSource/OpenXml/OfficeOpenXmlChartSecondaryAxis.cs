@@ -25,15 +25,16 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         var axis = Resolve(plot);
         if (axis == null) return null;
         var scaling = axis.GetFirstChild<C.Scaling>();
-        return new OfficeChartValueAxisLayout(
+        var layout = new OfficeChartValueAxisLayout(
             minimum: scaling?.GetFirstChild<C.MinAxisValue>()?.Val?.Value,
             maximum: scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
             majorUnit: axis.GetFirstChild<C.MajorUnit>()?.Val?.Value,
             minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
             numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
             majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
-            minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value))
-            .WithTitle(ReadTitle(axis.GetFirstChild<C.Title>()));
+            minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
+        string? title = ReadTitle(axis.GetFirstChild<C.Title>());
+        return title == null ? layout : layout.WithTitle(title);
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
@@ -62,8 +63,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             axis.RemoveAllChildren<C.MinorTickMark>();
             axis.AddChild(new C.MinorTickMark { Val = WriteTick(layout.MinorTickMark.Value) }, true);
         }
-        axis.GetFirstChild<C.Title>()?.Remove();
-        if (layout.Title != null) axis.AddChild(new C.Title(
+        if (layout.IsTitleSpecified) axis.GetFirstChild<C.Title>()?.Remove();
+        if (layout.IsTitleSpecified && layout.Title != null) axis.AddChild(new C.Title(
             new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(),
                 new A.Paragraph(new A.Run(new A.Text(layout.Title))))),
             new C.Layout(), new C.Overlay { Val = false }), true);
@@ -87,7 +88,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if (title != null &&
             (title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
              title.GetFirstChild<C.Overlay>()?.Val?.Value == true ||
-             title.GetFirstChild<C.ChartText>() == null))
+             ReadTitle(title) == null))
             throw new NotSupportedException("The secondary axis title cannot be projected.");
     }
 

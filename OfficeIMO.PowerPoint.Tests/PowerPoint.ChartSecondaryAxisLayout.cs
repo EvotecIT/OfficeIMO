@@ -8,6 +8,27 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartSecondaryAxisLayoutTests {
+    [Fact]
+    public void SecondaryAxisTitleDoesNotReplacePrimaryTitleWhenAxisElementsAreReordered() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Volume", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetValueAxisTitle("Volume");
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var plot = slide.SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        var primary = plot.Elements<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Left);
+        var secondary = plot.Elements<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        secondary.Remove();
+        plot.InsertBefore(secondary, primary);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("Volume", snapshot.Layout.ValueAxisTitle);
+        Assert.Equal("Ratio", snapshot.Layout.SecondaryValueAxis!.Title);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
