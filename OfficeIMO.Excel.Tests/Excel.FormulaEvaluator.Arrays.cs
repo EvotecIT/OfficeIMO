@@ -177,6 +177,28 @@ namespace OfficeIMO.Tests {
             Assert.Null(sheet.InspectFormulas().Formulas.Single(formula => formula.CellReference == "G1").CachedValue);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void Test_ArrayCalculation_SpillChildFromUnsupportedFormulaCacheIsNotSortKey(bool dynamicSpill) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Sort");
+            sheet.CellFormula(1, 1, "UNSUPPORTED()");
+            var cachedSource = document.WorkbookPartRoot.WorksheetParts.Single().Worksheet
+                .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>()
+                .Single(cell => cell.CellReference == "A1");
+            cachedSource.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("12");
+            cachedSource.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
+            if (dynamicSpill)
+                sheet.SetDynamicArrayFormula("D1", "SEQUENCE(2,1,A1+1)");
+            else
+                sheet.SetArrayFormula("D1:D2", "SEQUENCE(2,1,A1+1)");
+            sheet.SetArrayFormula("G1:G2", "SORT(D2:D3)");
+
+            Assert.Equal(1, document.Calculate());
+            Assert.Null(sheet.InspectFormulas().Formulas.Single(formula => formula.CellReference == "G1").CachedValue);
+        }
+
         [Fact]
         public void Test_ArrayCalculation_UnsupportedFormulaErrorLookingTextReopensAsText() {
             string path = Path.Combine(_directoryWithFiles, "ArrayTextCache.xlsx");

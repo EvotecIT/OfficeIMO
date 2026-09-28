@@ -93,6 +93,13 @@ namespace OfficeIMO.Excel {
             internal int Rows { get; }
             internal int Columns { get; }
             internal FormulaArgumentValue[] Values { get; }
+
+            internal FormulaArrayValue WithUnevaluatedFormulaCache() {
+                var values = new FormulaArgumentValue[Values.Length];
+                for (int index = 0; index < values.Length; index++)
+                    values[index] = Values[index].WithUnevaluatedFormulaCache();
+                return new FormulaArrayValue(Rows, Columns, values);
+            }
         }
 
         private bool TryEvaluateAuthoredFormulaCell(Cell cell, string formula, out FormulaArgumentValue result) {
@@ -108,6 +115,9 @@ namespace OfficeIMO.Excel {
                 || !TryGetFormulaRangeCellCount(r1, c1, r2, c2, out _)
                 || !TryEvaluateArrayValue(formula, 0, out FormulaArrayValue array))
                 return false;
+            if (_formulaEvaluationDepthFrames?.Count > 0
+                && _formulaEvaluationDepthFrames.Peek().UsedUnevaluatedFormulaCache)
+                array = array.WithUnevaluatedFormulaCache();
             if (_formulaEvaluationCache != null
                 && GetFixedArraySheetIndex().DynamicByCell.TryGetValue(cell, out FixedArrayOwner? dynamicOwner))
                 return TryPlanDynamicArray(dynamicOwner, array, out result);
