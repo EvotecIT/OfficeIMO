@@ -568,6 +568,12 @@ namespace OfficeIMO.PowerPoint {
                 dataLabelSeparator: radialLabels?.Separator,
                 dataLabelNumberFormat: radialLabels?.NumberFormat,
                 dataLabelPosition: radialLabels?.Position ?? OfficeChartDataLabelPosition.BestFit,
+                dataLabelFontSize: radialLabels?.Visible == true
+                    ? chart.Parent?.GetFirstChild<C.TextProperties>()?
+                        .Descendants<A.DefaultRunProperties>()
+                        .Select(properties => properties.FontSize?.Value)
+                        .FirstOrDefault(size => size > 0) / 100D
+                    : null,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,

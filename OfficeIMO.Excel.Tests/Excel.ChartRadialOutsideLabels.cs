@@ -30,4 +30,25 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         Assert.Equal(showLeaderLines, snapshot.Layout.ShowDataLabelLeaderLines);
         Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Png).Bytes);
     }
+
+    [Fact]
+    public void ConflictingSeriesLeaderLineSettingsRejectImageSnapshot() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Inner", new[] { 3d, 4d }),
+                new OfficeChartSeries("Outer", new[] { 4d, 3d })
+            }), 1, 1);
+        C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.DoughnutChart>().Single();
+        C.PieChartSeries[] series = native.Elements<C.PieChartSeries>().ToArray();
+        for (int index = 0; index < series.Length; index++) {
+            var labels = new C.DataLabels();
+            labels.AddChild(new C.ShowCategoryName { Val = true }, true);
+            labels.AddChild(new C.ShowLeaderLines { Val = index == 0 }, true);
+            series[index].AddChild(labels, true);
+        }
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
 }
