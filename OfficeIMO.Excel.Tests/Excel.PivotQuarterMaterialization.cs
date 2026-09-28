@@ -91,5 +91,44 @@ namespace OfficeIMO.Tests {
             var pivotFields = part.PivotTableDefinition!.PivotFields!.Elements<PivotField>().ToArray();
             Assert.All(pivotFields.Skip(2).Take(3), field => Assert.False(field.ShowAll!.Value));
         }
+
+        [Fact]
+        public void Test_PivotQuarterMaterialization_ExplicitBoundsAndSavedRecords() {
+            string output = Path.Combine(_directoryWithFiles, "QuarterHierarchy.Bounded.xlsx");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "OrderDate");
+                source.CellValue(1, 2, "Sales");
+                var entries = new[] {
+                    (new DateTime(2024, 12, 15), 10d), (new DateTime(2025, 1, 15), 20d),
+                    (new DateTime(2025, 7, 1), 30d), (new DateTime(2026, 5, 5), 40d),
+                    (new DateTime(2026, 9, 9), 50d)
+                };
+                for (int index = 0; index < entries.Length; index++) {
+                    source.CellValue(index + 2, 1, entries[index].Item1);
+                    source.CellValue(index + 2, 2, entries[index].Item2);
+                }
+                source.AddPivotTable("A1:B6", "F4", "BoundedDate", rowFields: new[] { "OrderDate" },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Metric") },
+                    layout: ExcelPivotLayout.Tabular,
+                    groupings: new[] { ExcelPivotGrouping.DateHierarchy("OrderDate",
+                        new[] { ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters, ExcelPivotGroupBy.Months },
+                        new DateTime(2025, 1, 1), new DateTime(2026, 8, 1)) },
+                    options: new ExcelPivotTableOptions { SaveSourceData = true });
+                Assert.True(source.MaterializePivotTable("BoundedDate").Mutation.PackageIsValid);
+                Assert.Equal(150d, source.GetPivotData("BoundedDate", "Metric").Value);
+                Assert.Equal(10d, source.GetPivotData("BoundedDate", "Metric",
+                    new Dictionary<string, object?> { ["OrderDate Years"] = "<2025-01-01" }).Value);
+                Assert.Equal(50d, source.GetPivotData("BoundedDate", "Metric",
+                    new Dictionary<string, object?> { ["OrderDate Years"] = ">2026-08-01" }).Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(150d, reopened.GetSheet("Source").GetPivotData("BoundedDate", "Metric").Value);
+            var part = reopened.GetSheet("Source").WorksheetPart.PivotTableParts.Single();
+            Assert.Equal(5U, part.PivotTableCacheDefinitionPart!.PivotTableCacheRecordsPart!
+                .PivotCacheRecords!.Count!.Value);
+        }
     }
 }
