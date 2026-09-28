@@ -121,5 +121,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
 
         Assert.True(chart.TryGetSnapshot(out var snapshot));
         Assert.Equal("0%", snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
+        var visual = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts);
+        Assert.Equal("0%", visual.Snapshot.Layout!.SecondaryValueAxis!.NumberFormat);
     }
 }

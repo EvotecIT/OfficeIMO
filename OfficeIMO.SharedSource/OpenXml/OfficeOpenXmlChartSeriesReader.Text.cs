@@ -11,6 +11,11 @@ namespace OfficeIMO.OpenXml.Internal;
 internal sealed class OfficeOpenXmlChartTextReader {
     private readonly A.FontScheme? _scheme;
     internal OfficeOpenXmlChartTextReader(A.FontScheme? scheme) => _scheme = scheme;
+
+    internal static bool HasUncachedFormulaTitle(C.Chart chart) =>
+        chart.Descendants<C.Title>().Any(title => title.GetFirstChild<C.ChartText>()?
+            .GetFirstChild<C.StringReference>() is C.StringReference reference &&
+            reference.Formula != null && string.IsNullOrWhiteSpace(reference.StringCache?.InnerText));
         internal bool TryReadSharedTextStyle(C.Chart chart,
             out OfficeChartStyle? style) {
             string? chartDefaultTypeface = ReadChartDefaultTypeface(chart);

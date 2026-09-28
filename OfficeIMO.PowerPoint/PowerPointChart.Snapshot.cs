@@ -96,6 +96,12 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (!forDataUpdate && OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartTextReader
+                        .HasUncachedFormulaTitle(chart)) {
+                    snapshot = null!;
+                    return false;
+                }
+
                 if (!forDataUpdate) {
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea,
                         resolveSourceLinkedFormats: true);
@@ -322,6 +328,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ValidatePlotBudget(plotArea, PowerPointUtils.MaximumSharedChartPoints);
             var axisGroups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
             var referencedAxes = new Dictionary<OfficeChartAxisGroup, (uint Category, uint Value)>();
+            var stackedLayers = new HashSet<(PowerPointChartSnapshotKind Kind, OfficeChartAxisGroup AxisGroup)>();
             foreach (OpenXmlCompositeElement layer in plotArea.ChildElements.OfType<OpenXmlCompositeElement>()
                          .Where(element => element is C.BarChart or C.LineChart or C.AreaChart)) {
                 OpenXmlCompositeElement?[] axes = layer.Elements<C.AxisId>()
@@ -331,6 +338,13 @@ namespace OfficeIMO.PowerPoint {
                     category.AxisId?.Val?.Value is not uint categoryId || value.AxisId?.Val?.Value is not uint valueId)
                     return false;
                 OfficeChartAxisGroup group = axisGroups.Read(layer);
+                PowerPointChartSnapshotKind layerKind = layer switch {
+                    C.BarChart bar => GetBarChartSnapshotKind(bar),
+                    C.LineChart line => GetLineChartSnapshotKind(line),
+                    C.AreaChart area => GetAreaChartSnapshotKind(area),
+                    _ => throw new InvalidOperationException()
+                };
+                if (IsStackedChartKind(layerKind) && !stackedLayers.Add((layerKind, group))) return false;
                 if (referencedAxes.TryGetValue(group, out var prior) &&
                     (prior.Category != categoryId || prior.Value != valueId)) return false;
                 referencedAxes[group] = (categoryId, valueId);
@@ -427,6 +441,12 @@ namespace OfficeIMO.PowerPoint {
             kind == PowerPointChartSnapshotKind.StackedBar ||
             kind == PowerPointChartSnapshotKind.StackedBar100;
 
+        private static bool IsStackedChartKind(PowerPointChartSnapshotKind kind) => kind is
+            PowerPointChartSnapshotKind.StackedColumn or PowerPointChartSnapshotKind.StackedColumn100 or
+            PowerPointChartSnapshotKind.StackedBar or PowerPointChartSnapshotKind.StackedBar100 or
+            PowerPointChartSnapshotKind.StackedLine or PowerPointChartSnapshotKind.StackedLine100 or
+            PowerPointChartSnapshotKind.StackedArea or PowerPointChartSnapshotKind.StackedArea100;
+
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,
             PowerPointChartSnapshotKind kind, PowerPointChartData data,
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
@@ -450,6 +470,9 @@ namespace OfficeIMO.PowerPoint {
                     : null;
             if (radialLabels?.TextColor is OfficeColor labelColor)
                 style = style.WithDataLabelTextColor(labelColor);
+            if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Radar)
+                style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
+                    GetChartPart(), chart, OfficeChartKind.Radar, colorScheme, style);
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
@@ -621,6 +644,15 @@ namespace OfficeIMO.PowerPoint {
                 else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis, forDataUpdate);
             }
 
+            OpenXmlCompositeElement? logicalCategoryAxis = primaryCategoryAxis ?? horizontalNumericAxis;
+            OpenXmlCompositeElement? logicalValueAxis = primaryValueAxis ?? verticalNumericAxis;
+            OpenXmlCompositeElement? physicalHorizontalAxis = horizontalValue ? logicalValueAxis : logicalCategoryAxis;
+            OpenXmlCompositeElement? physicalVerticalAxis = horizontalValue ? logicalCategoryAxis : logicalValueAxis;
+            if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Radar &&
+                logicalCategoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value ==
+                    C.OrientationValues.MaxMin)
+                throw new NotSupportedException("Reversed radar categories cannot be projected.");
+
             return new OfficeChartLayout(overlayLegend: overlay,
                 overlayTitle: overlayTitle,
                 showLegend: legend != null,
@@ -652,6 +684,21 @@ namespace OfficeIMO.PowerPoint {
                 verticalAxisMajorTickMark: verticalMajorTickMark,
                 horizontalAxisMinorTickMark: horizontalMinorTickMark,
                 verticalAxisMinorTickMark: verticalMinorTickMark,
+                showCategoryAxis: !IsHiddenAxis(logicalCategoryAxis),
+                showValueAxis: !IsHiddenAxis(logicalValueAxis),
+                showCategoryAxisLabels: !HasHiddenTickLabels(logicalCategoryAxis),
+                showValueAxisLabels: !HasHiddenTickLabels(logicalValueAxis),
+                horizontalAxisTickLabelPosition: ReadAxisTickLabelPosition(physicalHorizontalAxis),
+                verticalAxisTickLabelPosition: ReadAxisTickLabelPosition(physicalVerticalAxis),
+                horizontalAxisCrossingPosition: ReadAxisCrossing(physicalVerticalAxis),
+                verticalAxisCrossingPosition: ReadAxisCrossing(physicalHorizontalAxis),
+                reverseCategoryAxis: logicalCategoryAxis is C.CategoryAxis or C.DateAxis &&
+                    logicalCategoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value ==
+                        C.OrientationValues.MaxMin,
+                categoryAxisOrientationSpecified: logicalCategoryAxis is C.CategoryAxis or C.DateAxis &&
+                    logicalCategoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>() != null,
+                fillRadarSeries: plotArea?.GetFirstChild<C.RadarChart>()?.RadarStyle?.Val?.Value ==
+                    C.RadarStyleValues.Filled,
                 axisTitleFontFamily: axisTitleFont)
                 .WithSecondaryValueAxis(forDataUpdate ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea,
@@ -669,6 +716,29 @@ namespace OfficeIMO.PowerPoint {
                     : value == C.TickMarkValues.Cross
                         ? OfficeChartAxisTickMark.Cross
                         : OfficeChartAxisTickMark.None;
+
+        private static bool IsHiddenAxis(OpenXmlCompositeElement? axis) =>
+            axis?.GetFirstChild<C.Delete>()?.Val?.Value == true;
+
+        private static bool HasHiddenTickLabels(OpenXmlCompositeElement? axis) =>
+            axis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None;
+
+        private static OfficeChartAxisTickLabelPosition ReadAxisTickLabelPosition(
+            OpenXmlCompositeElement? axis) {
+            C.TickLabelPositionValues? value = axis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value;
+            if (value == C.TickLabelPositionValues.High) return OfficeChartAxisTickLabelPosition.High;
+            if (value == C.TickLabelPositionValues.Low) return OfficeChartAxisTickLabelPosition.Low;
+            if (value == C.TickLabelPositionValues.None) return OfficeChartAxisTickLabelPosition.None;
+            return OfficeChartAxisTickLabelPosition.NextTo;
+        }
+
+        private static OfficeChartAxisCrossingPosition ReadAxisCrossing(
+            OpenXmlCompositeElement? axis) {
+            C.CrossesValues? value = axis?.GetFirstChild<C.Crosses>()?.Val?.Value;
+            if (value == C.CrossesValues.Maximum) return OfficeChartAxisCrossingPosition.Maximum;
+            if (value == C.CrossesValues.Minimum) return OfficeChartAxisCrossingPosition.Minimum;
+            return OfficeChartAxisCrossingPosition.AutoZero;
+        }
 
         private static string? ReadAxisTitle(OpenXmlCompositeElement axis) =>
             ReadChartText(
