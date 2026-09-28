@@ -8,10 +8,13 @@ namespace OfficeIMO.Html;
 public sealed class HtmlRenderShape : HtmlRenderVisual {
     private readonly OfficeShape _shape;
 
-    internal HtmlRenderShape(OfficeShape shape, double x, double y, int paintOrder, string? linkUri = null, string? source = null, double? layoutY = null, double? layoutHeight = null)
+    internal HtmlRenderShape(OfficeShape shape, double x, double y, int paintOrder, string? linkUri = null, string? source = null, double? layoutY = null, double? layoutHeight = null, bool isAtomicReplacedPlaceholder = false)
         : base(HtmlRenderVisualKind.Shape, x, y, shape?.Width ?? 0D, shape?.Height ?? 0D, paintOrder, linkUri, source, layoutY, layoutHeight) {
         _shape = shape?.Clone() ?? throw new ArgumentNullException(nameof(shape));
+        IsAtomicReplacedPlaceholder = isAtomicReplacedPlaceholder;
     }
+
+    internal bool IsAtomicReplacedPlaceholder { get; }
 
     /// <summary>Independent snapshot of the shared dependency-free vector shape.</summary>
     public OfficeShape Shape => _shape.Clone();
@@ -19,8 +22,8 @@ public sealed class HtmlRenderShape : HtmlRenderVisual {
     internal OfficeShape InnerShape => _shape;
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY, LayoutHeight);
+        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY + offsetY, LayoutHeight, IsAtomicReplacedPlaceholder);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY, LayoutHeight);
+        new HtmlRenderShape(_shape, X + offsetX, Y + offsetY, paintOrder, LinkUri, Source, LayoutY, LayoutHeight, IsAtomicReplacedPlaceholder);
 }

@@ -497,6 +497,114 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_PaginatesAtUnpaintedGapBetweenUnequalColumnLineBoxes() {
+        const string html = """
+            <style>body{margin:0}</style>
+            <div style="height:25px">Before</div>
+            <div style="display:flex;width:180px;align-items:flex-start">
+              <div style="width:90px;line-height:26px">First<br>Second<br>Third<br>Fourth</div>
+              <div style="width:90px;line-height:20px">
+                <div style="height:20px">Side one</div>
+                <div style="height:20px;margin-bottom:20px">Side two</div>
+                <div style="height:70px;background:#eeeeee">Sidebar tail</div>
+              </div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Second", StringComparison.Ordinal));
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Third", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Third", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Sidebar tail", StringComparison.Ordinal));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_DoesNotSplitAnAtomicSidebarImageAtSiblingTextBreak() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body{margin:0}</style><div style='height:45px'>Before</div>"
+            + "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:26px'>First<br>Second<br>Third<br>Fourth<br>Fifth</div>"
+            + "<img id='atomic-sidebar' src='data:image/png;base64," + image + "' style='display:block;width:90px;height:70px'>"
+            + "</div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), visual => visual.Source == "img#atomic-sidebar");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("First", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderImage>(), visual => visual.Source == "img#atomic-sidebar");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_GapBreakRespectsOrphansAcrossAnEmptyLine() {
+        const string html = """
+            <style>body{margin:0}</style>
+            <div style="height:65px">Before</div>
+            <div style="display:flex;width:180px;align-items:flex-start">
+              <div style="width:90px;line-height:25px;orphans:1;widows:1">A<br>B<br>C<br>D<br>E<br>F<br>G<br>H</div>
+              <div style="width:90px;line-height:20px;orphans:2;widows:1">One<br><br>Three<br>Four<br>Five<br>Six<br>Seven<br>Eight</div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "A" || text.Text == "One");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "A");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "One");
+    }
+
+    [Fact]
+    public void HtmlFlexRow_DoesNotSplitMissingImagePlaceholderAtSiblingBreak() {
+        const string html = """
+            <style>body{margin:0}</style>
+            <div style="height:60px">Before</div>
+            <div style="display:flex;width:180px;align-items:flex-start">
+              <div style="width:90px;line-height:26px">First<br>Second<br>Third<br>Fourth<br>Fifth<br>Sixth</div>
+              <div style="width:90px">
+                <div style="height:20px">Lead</div>
+                <img id="missing-sidebar" src="data:image/png;base64,%%%" style="display:block;width:90px;height:70px">
+                <div style="height:30px"></div>
+                <div style="height:20px">Tail</div>
+              </div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 120D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "First");
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(), shape => shape.IsAtomicReplacedPlaceholder);
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(), shape => shape.IsAtomicReplacedPlaceholder);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
     public void HtmlFlexRow_RespectsWidowsAndOrphansInNestedParagraph() {
         const string html = """
             <div style="height:30px">Before</div>

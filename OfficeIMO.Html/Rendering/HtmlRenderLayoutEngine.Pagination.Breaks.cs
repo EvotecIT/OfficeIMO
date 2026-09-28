@@ -76,7 +76,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
             IReadOnlyList<double> offsets = group.Offsets;
             int candidateIndex = UpperBound(offsets, candidate + 0.0001D) - 1;
-            if (candidateIndex < 0 || Math.Abs(offsets[candidateIndex] - candidate) > 0.0001D) continue;
+            bool exactLineBreak = candidateIndex >= 0 && Math.Abs(offsets[candidateIndex] - candidate) <= 0.0001D;
+            // A flex sibling can supply a break in this item's unpainted line-box
+            // space. Only flex rows need the wider paragraph-span check.
+            if (!exactLineBreak && (!group.CheckInteriorBreaks
+                || candidate <= group.Start + 0.0001D || candidate >= group.End - 0.0001D)) continue;
             int firstFragmentLine = UpperBound(offsets, start + 0.0001D);
             int fragmentLines = candidateIndex >= firstFragmentLine ? candidateIndex - firstFragmentLine + 1 : 0;
             int remainingLines = offsets.Count - candidateIndex - 1 + (group.HasImplicitFinalLine ? 1 : 0);

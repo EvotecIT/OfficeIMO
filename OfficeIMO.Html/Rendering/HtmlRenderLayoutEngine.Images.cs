@@ -103,7 +103,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             // Keep the missing image's hit area without painting over its authored CSS background.
             placeholder.FillColor = OfficeColor.Transparent;
             placeholder.StrokeWidth = 0D;
-            objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count, link, sourceDescription));
+            objectVisuals.Add(new HtmlRenderShape(placeholder, imageX + placement.X, imageY + placement.Y, objectVisuals.Count,
+                link, sourceDescription, isAtomicReplacedPlaceholder: true));
             if (!string.IsNullOrWhiteSpace(alternativeText)) {
                 AddMissingImageAlternativeText(objectVisuals, alternativeText!, imageX + placement.X,
                     imageY + placement.Y, placement.Width, placement.Height, style, link, sourceDescription);

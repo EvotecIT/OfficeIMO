@@ -184,6 +184,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
 
         var atomicVisualBottoms = new Dictionary<HtmlRenderFlowBlock, double>();
+        var atomicVisualRanges = new Dictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>>();
         IEnumerable<double> breakOffsets = lines.SelectMany(line => line.Items.SelectMany(item =>
                 // A flex item's zero offset is its entry, not content. Keep the row
                 // boundary below, but do not strand the container's top border.
@@ -195,12 +196,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 : lines.Skip(1).Select(line => contentY + line.CrossOffset))
             .Where(offset => lines.All(line => line.Items.All(item => {
                 double localOffset = offset - contentY - line.CrossOffset - item.CrossOffset;
-                return IsSafeFlexRowBreak(item.Block!, localOffset, atomicVisualBottoms);
+                return IsSafeFlexRowBreak(item.Block!, localOffset, atomicVisualBottoms, atomicVisualRanges);
             })))
             .Distinct()
             .OrderBy(offset => offset);
         IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = lines.SelectMany(line => line.Items.SelectMany(item =>
-            item.Block!.LineBreakGroups.Select(group => group.Translate(contentY + line.CrossOffset + item.CrossOffset))));
+            item.Block!.LineBreakGroups.Select(group => group.Translate(contentY + line.CrossOffset + item.CrossOffset).WithInteriorBreaks())));
         IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = style.FlexWrap == "wrap"
             ? lines.Skip(1)
                 .Where(line => line.Items.Count > 0 && line.Items[0].Element != null)
@@ -238,16 +239,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static bool IsSafeFlexRowBreak(
         HtmlRenderFlowBlock item,
         double offset,
-        IDictionary<HtmlRenderFlowBlock, double> atomicVisualBottoms) {
+        IDictionary<HtmlRenderFlowBlock, double> atomicVisualBottoms,
+        IDictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>> atomicVisualRanges) {
         if (offset <= 0.0001D || offset >= item.Height - 0.0001D) return true;
-        if (item.BreakOffsets.Any(candidate => Math.Abs(candidate - offset) <= 0.0001D)) return true;
+        int precedingBreakIndex = UpperBound(item.BreakOffsets, offset + 0.0001D) - 1;
+        if (precedingBreakIndex >= 0 && Math.Abs(item.BreakOffsets[precedingBreakIndex] - offset) <= 0.0001D) return true;
         // A stretched column can have a large painted but content-free tail. Its background
         // may fragment while the neighboring column supplies the actual page break.
         if (!atomicVisualBottoms.TryGetValue(item, out double bottom)) {
             bottom = LastAtomicFlexVisualBottom(item.Visuals);
             atomicVisualBottoms[item] = bottom;
         }
-        return offset >= bottom - 0.0001D;
+        if (offset >= bottom - 0.0001D) return true;
+
+        // Neighboring flex columns need not share identical line-box heights. A
+        // sibling's legal break can also split this item in its unpainted space
+        // between line boxes or child blocks, provided its own break constraints
+        // and atomic visuals remain intact.
+        if (item.AvoidBreakInside || item.AvoidBreakRanges.Any(range =>
+                offset > range.Start + 0.0001D && offset < range.End - 0.0001D)) return false;
+        int previousBreakIndex = UpperBound(item.BreakOffsets, offset - 0.0001D) - 1;
+        if (previousBreakIndex < 0 || item.BreakOffsets[previousBreakIndex] <= 0.0001D) return false;
+        if (!atomicVisualRanges.TryGetValue(item, out IReadOnlyList<(double Top, double Bottom)>? ranges)) {
+            ranges = CollectAtomicFlexVisualRanges(item.Visuals);
+            atomicVisualRanges[item] = ranges;
+        }
+        return !CrossesAtomicFlexVisual(ranges, offset);
     }
 
     private static double LastAtomicFlexVisualBottom(IEnumerable<HtmlRenderVisual> visuals) {
@@ -263,10 +280,56 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 _ => null
             };
             if (children != null) bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children));
-            else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField)
+            else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
+                     or HtmlRenderShape { IsAtomicReplacedPlaceholder: true })
                 bottom = Math.Max(bottom, visual.LayoutY + visual.LayoutHeight);
         }
         return bottom;
+    }
+
+    private static IReadOnlyList<(double Top, double Bottom)> CollectAtomicFlexVisualRanges(IEnumerable<HtmlRenderVisual> visuals) {
+        var ranges = new List<(double Top, double Bottom)>();
+        AppendAtomicFlexVisualRanges(visuals, ranges);
+        ranges.Sort((left, right) => left.Top.CompareTo(right.Top));
+        var merged = new List<(double Top, double Bottom)>();
+        foreach ((double top, double bottom) in ranges) {
+            if (merged.Count > 0 && top <= merged[merged.Count - 1].Bottom + 0.0001D) {
+                (double previousTop, double previousBottom) = merged[merged.Count - 1];
+                merged[merged.Count - 1] = (previousTop, Math.Max(previousBottom, bottom));
+            } else {
+                merged.Add((top, bottom));
+            }
+        }
+        return merged;
+    }
+
+    private static void AppendAtomicFlexVisualRanges(IEnumerable<HtmlRenderVisual> visuals, ICollection<(double Top, double Bottom)> ranges) {
+        foreach (HtmlRenderVisual visual in visuals) {
+            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
+                HtmlRenderClipGroup group => group.Visuals,
+                HtmlRenderEffectGroup group => group.Visuals,
+                HtmlRenderLogicalTextGroup group => group.Visuals,
+                HtmlRenderPathClipGroup group => group.Visuals,
+                HtmlRenderLayoutRegion group => group.Visuals,
+                HtmlRenderSemanticGroup group => group.Visuals,
+                _ => null
+            };
+            if (children != null) AppendAtomicFlexVisualRanges(children, ranges);
+            else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
+                     or HtmlRenderShape { IsAtomicReplacedPlaceholder: true })
+                ranges.Add((visual.LayoutY, visual.LayoutY + visual.LayoutHeight));
+        }
+    }
+
+    private static bool CrossesAtomicFlexVisual(IReadOnlyList<(double Top, double Bottom)> ranges, double offset) {
+        int low = 0;
+        int high = ranges.Count;
+        while (low < high) {
+            int middle = low + ((high - low) >> 1);
+            if (ranges[middle].Top < offset - 0.0001D) low = middle + 1;
+            else high = middle;
+        }
+        return low > 0 && ranges[low - 1].Bottom > offset + 0.0001D;
     }
 
     private double ResolveFlexBasis(FlexItem item, double availableWidth, int intrinsicDepth = 0) {
