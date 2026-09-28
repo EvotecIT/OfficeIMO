@@ -42,10 +42,20 @@ namespace OfficeIMO.Excel {
                     && (long)views.Length * (lastRow - firstRow) * (lastColumn - firstColumn + 1)
                         > Math.Min(1_000_000, effective.MaximumAffectedCells))
                     throw new InvalidOperationException("The combined pivot source work exceeds the materialization budget.");
-                var plans = views.Select(view => (view.Sheet, Plan: view.Sheet.PreparePivotMaterialization(
-                    view.Part.PivotTableDefinition?.Name?.Value
-                        ?? throw new InvalidOperationException("A shared pivot view has no name."), effective, cancellationToken)))
-                    .ToArray();
+                int remainingInputVisits = Math.Min(1_000_000, effective.MaximumAffectedCells);
+                int remainingOutputCells = remainingInputVisits;
+                var prepared = new List<(ExcelSheet Sheet, PivotMaterializationPlan Plan)>();
+                foreach (var view in views) {
+                    PivotMaterializationPlan current = view.Sheet.PreparePivotMaterialization(
+                        view.Part.PivotTableDefinition?.Name?.Value
+                            ?? throw new InvalidOperationException("A shared pivot view has no name."),
+                        effective, remainingInputVisits, remainingOutputCells, cancellationToken);
+                    prepared.Add((view.Sheet, current));
+                    remainingInputVisits -= (int)current.MeasureInputVisits;
+                    remainingOutputCells -= (current.AffectedBottom - current.Top + 1)
+                        * (current.AffectedRight - current.Left + 1);
+                }
+                var plans = prepared.ToArray();
                 PivotMaterializationPlan plan = plans.Single(item => ReferenceEquals(item.Plan.Part, requestedPart)).Plan;
                 int affectedCells = ValidateCoordinatedPivotPlans(plans, effective);
                 ExcelMutationResult mutation;
@@ -153,7 +163,8 @@ namespace OfficeIMO.Excel {
             MarkRequiresSavePreparation();
         }
 
-        private PivotMaterializationPlan PreparePivotMaterialization(string name, ExcelMutationPlanOptions options, CancellationToken token) {
+        private PivotMaterializationPlan PreparePivotMaterialization(string name, ExcelMutationPlanOptions options,
+            int remainingInputVisits, int remainingOutputCells, CancellationToken token) {
             var part = _worksheetPart.PivotTableParts.FirstOrDefault(p => string.Equals(p.PivotTableDefinition?.Name?.Value, name, StringComparison.OrdinalIgnoreCase))
                 ?? throw new ArgumentException("The pivot table was not found on this worksheet.", nameof(name));
             var definition = part.PivotTableDefinition ?? throw new InvalidOperationException("The pivot definition is missing.");
@@ -228,7 +239,8 @@ namespace OfficeIMO.Excel {
             bool columnTotal = columnField >= 0 && definition.RowGrandTotals?.Value != false;
             long visits = (long)(r2 - r1) * measures.Length * MaterializedInputLevels(rowAxis, pivotFields)
                 * MaterializedInputLevels(columnAxis, pivotFields);
-            if (visits > limit) throw new InvalidOperationException("The pivot measure input visits, including intermediate subtotals, exceed the materialization budget.");
+            if (visits > remainingInputVisits)
+                throw new InvalidOperationException("The combined pivot measure input visits, including intermediate subtotals, exceed the materialization budget.");
             if (_excelDocument.GetWorkbookSlicerCaches().Concat(_excelDocument.GetWorkbookTimelineCaches())
                 .Any(c => string.IsNullOrEmpty(c.PivotTableName) || string.Equals(c.PivotTableName, definition.Name?.Value, StringComparison.OrdinalIgnoreCase)))
                 throw new NotSupportedException("Materialization of pivot interaction caches requires coordinated cache updates.");
@@ -283,7 +295,7 @@ namespace OfficeIMO.Excel {
             long bottom = (long)top + height - 1, right = (long)left + width - 1;
             long affectedBottom = Math.Max(bottom, oldBottom), affectedRight = Math.Max(right, oldRight);
             if (bottom > 1_048_576 || right > 16_384 || (long)height * width > limit
-                || (affectedBottom - top + 1) * (affectedRight - left + 1) > limit)
+                || (affectedBottom - top + 1) * (affectedRight - left + 1) > remainingOutputCells)
                 throw new InvalidOperationException("The pivot output exceeds the worksheet or materialization budget.");
             ValidatePivotMaterializationDestination(part, sourceSheet, r1, c1, r2, c2, top, left, (int)affectedBottom, (int)affectedRight, oldBottom, oldRight, token);
             var plan = new PivotMaterializationPlan { Part = part, CachePart = cachePart, Definition = (PivotTableDefinition)definition.CloneNode(true),

@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
             document.GetSheet("Source").CellValue(2, 2, 50d);
 
             Assert.Throws<InvalidOperationException>(() => rows.MaterializePivotTable("RowsPivot",
-                new ExcelMutationPlanOptions { MaximumAffectedCells = 9 }));
+                new ExcelMutationPlanOptions { MaximumAffectedCells = 20 }));
 
             Assert.Equal(rowBefore, rows.WorksheetPart.Worksheet.OuterXml);
             Assert.Equal(columnBefore, columns.WorksheetPart.Worksheet.OuterXml);
