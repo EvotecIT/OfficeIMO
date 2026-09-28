@@ -45,9 +45,12 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             var color = seriesColors[index % seriesColors.Count];
             if (normalizedType == "line") {
                 chart.SetSeriesLineColor(index, color, widthPoints: 2.25);
+                chart.SetSeriesMarker(index, OfficeChartMarkerShape.Circle, fillColor: color, lineColor: color);
             } else {
                 chart.SetSeriesFillColor(index, color);
                 chart.SetSeriesLineColor(index, color, widthPoints: 0.5);
+                if (normalizedType == "scatter")
+                    chart.SetSeriesMarker(index, OfficeChartMarkerShape.Circle, fillColor: color, lineColor: color);
             }
         }
 

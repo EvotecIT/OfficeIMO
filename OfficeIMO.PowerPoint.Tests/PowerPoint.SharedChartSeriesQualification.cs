@@ -68,6 +68,22 @@ public class PowerPointSharedChartSeriesQualificationTests {
     }
 
     [Fact]
+    public void NativeUpdate_PreservesUnspecifiedRadarMarkerShape() {
+        using var presentation = PowerPointPresentation.Create(new MemoryStream());
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.Radar, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Values", new[] { 2d }) }));
+        chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 9);
+
+        chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Values", new[] { 3d }) }));
+
+        var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.RadarChartSeries>().Single();
+        Assert.Equal(C.MarkerStyleValues.Diamond, series.GetFirstChild<C.Marker>()!.Symbol!.Val!.Value);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeChartMarkerShape.Diamond, Assert.Single(snapshot.Data.Series).MarkerShape);
+    }
+
+    [Fact]
     public void Snapshot_RejectsExplicitZeroWidthBubbleOutline() {
         using var presentation = PowerPointPresentation.Create(new MemoryStream());
         var chart = presentation.AddSlide().AddChart(OfficeChartKind.Bubble, new OfficeChartData(new[] { "1" }, new[] {
