@@ -119,9 +119,9 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             for (int index = 0; index < series.PointColors.Count; index++) {
                 OfficeColor? color = series.PointColors[index];
-                if (!color.HasValue) continue;
                 uint pointIndex = (uint)index;
                 if (!pointsByIndex.TryGetValue(pointIndex, out C.DataPoint? point)) {
+                    if (!color.HasValue) continue;
                     point = new C.DataPoint(new C.Index { Val = (uint)index });
                     if (insertBefore != null) {
                         seriesElement.InsertBefore(point, insertBefore);
@@ -130,19 +130,17 @@ namespace OfficeIMO.OpenXml.Internal {
                     }
                     pointsByIndex.Add(pointIndex, point);
                 }
-                C.ChartShapeProperties? properties =
-                    point.GetFirstChild<C.ChartShapeProperties>();
-                if (properties == null) {
-                    properties = new C.ChartShapeProperties();
-                    point.AddChild(properties, true);
+                C.ChartShapeProperties? direct = point.GetFirstChild<C.ChartShapeProperties>();
+                C.ChartShapeProperties? marker = point.GetFirstChild<C.Marker>()?.ChartShapeProperties;
+                if (direct != null) RemoveSharedFillChoices(direct);
+                if (marker != null) RemoveSharedFillChoices(marker);
+                if (color.HasValue) {
+                    C.ChartShapeProperties properties = marker ?? direct ?? new C.ChartShapeProperties();
+                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value)), true);
+                    if (properties.Parent == null) point.AddChild(properties, true);
                 }
-                properties.RemoveAllChildren<A.SolidFill>();
-                properties.RemoveAllChildren<A.NoFill>();
-                properties.RemoveAllChildren<A.GradientFill>();
-                properties.RemoveAllChildren<A.PatternFill>();
-                properties.RemoveAllChildren<A.BlipFill>();
-                properties.RemoveAllChildren<A.GroupFill>();
-                properties.AddChild(new A.SolidFill(CreateSharedRgbColor(color.Value)), true);
+                if (direct != null && !direct.HasChildren && !direct.HasAttributes) direct.Remove();
+                if (marker != null && !marker.HasChildren && !marker.HasAttributes) marker.Remove();
             }
         }
 

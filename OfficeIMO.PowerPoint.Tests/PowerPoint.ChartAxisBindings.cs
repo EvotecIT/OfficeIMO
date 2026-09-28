@@ -13,6 +13,36 @@ public sealed class PowerPointChartAxisBindingsTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void CategoryGroups_FollowAxisPairsWhenPrimaryValueAxisMoves(bool top) {
+        using var document = PowerPointPresentation.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, false,
+                renderKind: OfficeChartKind.ColumnClustered),
+            new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, false, renderKind: OfficeChartKind.Line,
+                axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = document.AddSlide().AddChart(OfficeChartKind.ColumnClustered, data);
+        var plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.ValueAxis[] values = plot.Elements<C.ValueAxis>().ToArray();
+        Assert.Equal(2, values.Length);
+        values[0].AxisPosition!.Val = top ? C.AxisPositionValues.Top : C.AxisPositionValues.Right;
+        values[0].Scaling!.AddChild(new C.MaxAxisValue { Val = 100 }, true);
+        values[1].AxisPosition!.Val = C.AxisPositionValues.Right;
+        values[1].Scaling!.AddChild(new C.MaxAxisValue { Val = 200 }, true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartAxisGroup.Primary, snapshot.Data.Series[0].AxisGroup);
+        Assert.Equal(OfficeChartAxisGroup.Secondary, snapshot.Data.Series[1].AxisGroup);
+        chart.UpdateData(snapshot.Data);
+        plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        values = plot.Elements<C.ValueAxis>().ToArray();
+        Assert.Equal(100d, values[0].Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
+        Assert.Equal(200d, values[1].Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void MixedSnapshot_RepositionedSoleValueAxisRemainsPrimaryAndCanUpdate(bool top) {
         using var document = PowerPointPresentation.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {

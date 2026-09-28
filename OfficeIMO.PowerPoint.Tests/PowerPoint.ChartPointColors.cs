@@ -36,6 +36,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PointColors_ExplicitNullClearsAnOldNativePointFill() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Pie,
+                CreateData(OfficeChartKind.Pie, Colors));
+            chart.UpdateData(CreateData(OfficeChartKind.Pie,
+                new OfficeColor?[] { null, Colors[1], Colors[2] }));
+            C.PieChartSeries series = presentation.Slides.Single().SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.PieChartSeries>().Single();
+            C.DataPoint point = series.Elements<C.DataPoint>().Single(item => item.Index?.Val?.Value == 0);
+            Assert.Null(point.ChartShapeProperties?.GetFirstChild<A.SolidFill>());
+            Assert.Null(point.ChartShapeProperties?.GetFirstChild<A.PatternFill>());
+            AssertColors(chart, new OfficeColor?[] { null, Colors[1], Colors[2] });
+        }
+
+        [Fact]
+        public void PointColors_ReplaceImportedMarkerFillAndRetainItsOutline() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartKind.Line,
+                CreateData(OfficeChartKind.Line, null));
+            C.LineChartSeries series = presentation.Slides.Single().SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.LineChartSeries>().Single();
+            var outline = new A.Outline(new A.SolidFill(new A.RgbColorModelHex { Val = "123456" }));
+            series.AddChild(new C.DataPoint(new C.Index { Val = 0U },
+                new C.Marker(new C.ChartShapeProperties(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }), outline))), true);
+
+            OfficeColor replacement = OfficeColor.FromRgb(31, 78, 121);
+            chart.UpdateData(CreateData(OfficeChartKind.Line,
+                new OfficeColor?[] { replacement, null, null }));
+            series = presentation.Slides.Single().SlidePart.ChartParts.Single()
+                .ChartSpace!.Descendants<C.LineChartSeries>().Single();
+            C.DataPoint point = series.Elements<C.DataPoint>().Single(item => item.Index?.Val?.Value == 0);
+            Assert.Equal("1F4E79", point.Marker!.ChartShapeProperties!.GetFirstChild<A.SolidFill>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Equal("123456", point.Marker.ChartShapeProperties.GetFirstChild<A.Outline>()!
+                .GetFirstChild<A.SolidFill>()!.GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            Assert.Null(point.ChartShapeProperties);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+        [Fact]
         public void PointColors_KeepComboSeriesAlignmentAndPdfStyleOverrides() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             var data = new OfficeChartData(new[] { "First", "Second", "Third" }, new[] {
