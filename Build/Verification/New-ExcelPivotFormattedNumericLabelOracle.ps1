@@ -3,7 +3,7 @@
 Creates Microsoft Excel pivot label-filter fixtures with formatted numeric keys.
 #>
 [CmdletBinding()]
-param()
+param([string[]] $Kinds = @())
 $ErrorActionPreference = 'Stop'
 $repositoryRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 $directory = Join-Path $repositoryRoot 'OfficeIMO.TestAssets/Documents/ExcelPivotCorpus'
@@ -24,9 +24,16 @@ try {
         [pscustomobject]@{ Key = 'not-equals-grouped'; Type = 16; Criterion = '1,000'; Format = '#,##0'; Total = 40.0; Range = 'A4:B7' },
         [pscustomobject]@{ Key = 'general-contains-one'; Type = 21; Criterion = '1'; Format = 'General'; Total = 30.0; Range = 'A4:B7' },
         [pscustomobject]@{ Key = 'midpoint-positive'; Type = 15; Criterion = '3'; Format = '#,##0'; Values = @('=5/2', '=9/2'); Total = 10.0; Range = 'A4:B6' },
-        [pscustomobject]@{ Key = 'midpoint-negative'; Type = 15; Criterion = '-3'; Format = '#,##0'; Values = @('=-5/2', '=9/2'); Total = 10.0; Range = 'A4:B6' }
+        [pscustomobject]@{ Key = 'midpoint-negative'; Type = 15; Criterion = '-3'; Format = '#,##0'; Values = @('=-5/2', '=9/2'); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'decimal-two'; Type = 15; Criterion = '1.20'; Format = '0.00'; Values = @(1.2, 2.3); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'percent-one'; Type = 15; Criterion = '12.5%'; Format = '0.0%'; Values = @(0.125, 0.25); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'decimal-midpoint'; Type = 15; Criterion = '1.3'; Format = '0.0'; Values = @('=5/4', '=9/4'); Total = 10.0; Range = 'A4:B6' }
     )
+    if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
+        throw "Unknown pivot label fixture kind: $($Kinds -join ', ')"
+    }
     foreach ($case in $cases) {
+        if ($Kinds.Count -gt 0 -and $Kinds -notcontains $case.Key) { continue }
         $workbook = $application.Workbooks.Add()
         $source = $workbook.Worksheets.Item(1)
         $source.Name = 'Source'
@@ -40,7 +47,7 @@ try {
             } else {
                 $source.Cells.Item($index + 2, 1).Value2 = $keys[$index]
             }
-            $source.Cells.Item($index + 2, 2).Value2 = 10 * ($index + 1)
+            $source.Cells.Item($index + 2, 2).Value2 = [double](10 * ($index + 1))
         }
         if ($case.Format -ne 'General') { $source.Range("A2:A$lastSourceRow").NumberFormat = $case.Format }
         $application.CalculateFullRebuild()

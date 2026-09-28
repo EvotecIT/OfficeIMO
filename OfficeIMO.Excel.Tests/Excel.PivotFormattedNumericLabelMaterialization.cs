@@ -11,6 +11,9 @@ namespace OfficeIMO.Tests {
         [InlineData("general-contains-one", "A4:B7", 4, 4, 30d)]
         [InlineData("midpoint-positive", "A4:B6", 3, 3, 10d)]
         [InlineData("midpoint-negative", "A4:B6", 3, 3, 10d)]
+        [InlineData("decimal-two", "A4:B6", 3, 3, 10d)]
+        [InlineData("percent-one", "A4:B6", 3, 3, 10d)]
+        [InlineData("decimal-midpoint", "A4:B6", 3, 3, 10d)]
         public void Test_PivotFormattedNumericLabel_ImportedViewAndLookupMatchExcel(
             string kind, string range, int rows, int lookupRows, double total) {
             string file = $"pivot-label-number-{kind}-conformance.xlsx";
@@ -27,8 +30,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(range, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid,
                     string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
-                if (kind != "general-contains-one")
-                    Assert.Equal("#,##0", grouped.GetCellStyle(5, 1).NumberFormatCode);
+                if (NumericLabelFormat(kind) is string format)
+                    Assert.Equal(format, grouped.GetCellStyle(5, 1).NumberFormatCode);
                 var lookups = document.GetSheet("Lookups");
                 lookups.ClearCachedFormulaResults();
                 Assert.Equal(lookupRows, lookups.RecalculateSupportedFormulas());
@@ -51,6 +54,9 @@ namespace OfficeIMO.Tests {
         [InlineData("general-contains-one", 30d)]
         [InlineData("midpoint-positive", 10d)]
         [InlineData("midpoint-negative", 10d)]
+        [InlineData("decimal-two", 10d)]
+        [InlineData("percent-one", 10d)]
+        [InlineData("decimal-midpoint", 10d)]
         public void Test_PivotFormattedNumericLabel_TemplateFreePublicApi(string kind, double total) {
             string output = Path.Combine(_directoryWithFiles, $"Filter.label-number-{kind}.Authored.xlsx");
             ExcelPivotFilter filter = kind switch {
@@ -59,6 +65,9 @@ namespace OfficeIMO.Tests {
                 "general-contains-one" => ExcelPivotFilter.LabelContains("Item", "1"),
                 "midpoint-positive" => ExcelPivotFilter.LabelEquals("Item", "3"),
                 "midpoint-negative" => ExcelPivotFilter.LabelEquals("Item", "-3"),
+                "decimal-two" => ExcelPivotFilter.LabelEquals("Item", "1.20"),
+                "percent-one" => ExcelPivotFilter.LabelEquals("Item", "12.5%"),
+                "decimal-midpoint" => ExcelPivotFilter.LabelEquals("Item", "1.3"),
                 _ => ExcelPivotFilter.LabelNotEquals("Item", "1,000")
             };
             using (var document = ExcelDocument.Create()) {
@@ -67,23 +76,27 @@ namespace OfficeIMO.Tests {
                 source.CellValue(1, 2, "Sales");
                 double[] keys = kind == "midpoint-positive" ? new[] { 2.5d, 4.5d }
                     : kind == "midpoint-negative" ? new[] { -2.5d, 4.5d }
+                    : kind == "decimal-two" ? new[] { 1.2d, 2.3d }
+                    : kind == "percent-one" ? new[] { 0.125d, 0.25d }
+                    : kind == "decimal-midpoint" ? new[] { 1.25d, 2.25d }
                     : new[] { 10d, 1000d, 2000d };
                 for (int index = 0; index < keys.Length; index++) {
                     source.CellValue(index + 2, 1, keys[index]);
                     source.CellValue(index + 2, 2, 10 * (index + 1));
                 }
                 var builder = source.Pivot($"A1:B{keys.Length + 1}").Rows("Item").Sum("Sales", "Metric");
-                if (kind != "general-contains-one") builder.FieldNumberFormat("Item", "#,##0");
+                if (NumericLabelFormat(kind) is string fieldFormat) builder.FieldNumberFormat("Item", fieldFormat);
                 builder.Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
                 var result = source.MaterializePivotTable("FilteredPivot");
                 Assert.True(result.Mutation.PackageIsValid,
                     string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
-                if (kind != "general-contains-one")
-                    Assert.Equal("#,##0", source.GetCellStyle(5, 4).NumberFormatCode);
+                if (NumericLabelFormat(kind) is string outputFormat)
+                    Assert.Equal(outputFormat, source.GetCellStyle(5, 4).NumberFormatCode);
                 var pivot = source.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!;
                 Assert.False(pivot.PivotFields!.Elements<PivotField>().First().ShowAll!.Value);
-                if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative") {
+                if (kind is "equals-grouped" or "midpoint-positive" or "midpoint-negative"
+                    or "decimal-two" or "percent-one" or "decimal-midpoint") {
                     var column = pivot.PivotFilters!.Elements<PivotFilter>().Single().AutoFilter!
                         .Elements<FilterColumn>().Single();
                     Assert.Null(column.GetFirstChild<CustomFilters>());
@@ -94,9 +107,17 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
-            if (kind != "general-contains-one")
-                Assert.Equal("#,##0", reopened.GetSheet("Source").GetCellStyle(5, 4).NumberFormatCode);
+            if (NumericLabelFormat(kind) is string savedFormat)
+                Assert.Equal(savedFormat, reopened.GetSheet("Source").GetCellStyle(5, 4).NumberFormatCode);
         }
+
+        private static string? NumericLabelFormat(string kind) => kind switch {
+            "general-contains-one" => null,
+            "decimal-two" => "0.00",
+            "percent-one" => "0.0%",
+            "decimal-midpoint" => "0.0",
+            _ => "#,##0"
+        };
 
         [Fact]
         public void Test_PivotFormattedNumericLabel_MidpointsUseExcelDisplayRounding() {

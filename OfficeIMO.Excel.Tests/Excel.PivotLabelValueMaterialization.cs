@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
                 source.CellValue(2, 2, 20d);
                 source.CellValue(3, 2, 30d);
                 var builder = source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric");
-                if (kind != "date") builder.FieldNumberFormat("Item", "0.00");
+                if (kind != "date") builder.FieldNumberFormat("Item", "0.000");
                 builder.Layout(ExcelPivotLayout.Tabular)
                     .Filter(ExcelPivotFilter.LabelContains("Item", kind == "date" ? "2025" : "1"))
                     .At("D4", "FilteredPivot");
