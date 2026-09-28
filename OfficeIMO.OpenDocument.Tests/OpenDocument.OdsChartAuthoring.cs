@@ -265,6 +265,37 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
         Assert.Equal(OfficeColor.Parse("#228844"), Assert.Single(styles!)!.FillColor);
     }
 
+    [Theory]
+    [InlineData("+3")]
+    [InlineData(" 3 ")]
+    public void RepeatedPointZeroOffsetOverridesExplodedSeries(string repeated) {
+        var seriesStyle = new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "family", "chart"),
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", "25")));
+        var pointStyle = new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "family", "chart"),
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", "0")),
+            new XElement(OdfNamespaces.Style + "graphic-properties",
+                new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                new XAttribute(OdfNamespaces.Draw + "fill-color", "#228844")));
+        var series = new XElement(OdfNamespaces.Chart + "series",
+            new XAttribute(OdfNamespaces.Chart + "values-cell-range-address", "Data.$B$1:.$B$3"),
+            new XAttribute(OdfNamespaces.Chart + "style-name", "SeriesStyle"),
+            new XElement(OdfNamespaces.Chart + "data-point",
+                new XAttribute(OdfNamespaces.Chart + "style-name", "PointStyle"),
+                new XAttribute(OdfNamespaces.Chart + "repeated", repeated)));
+        XElement? Find(string? name) => name == "SeriesStyle" ? seriesStyle :
+            name == "PointStyle" ? pointStyle : null;
+
+        Assert.False(OdsChartPointStyles.HasUnprojectedSeriesPieOffset(series, Find, null));
+        Assert.True(OdsChartPointStyles.TryRead(series, Find, null,
+            new System.Collections.Generic.Dictionary<string, XElement>(), out var styles));
+        Assert.Equal(3, styles!.Count);
+        Assert.All(styles, point => Assert.Equal(OfficeColor.Parse("#228844"), point!.FillColor));
+    }
+
     [Fact]
     public void ImportedSolidHatchAcceptsXmlBooleanOne() {
         OdsChart chart = ReadProducerChart(content => {

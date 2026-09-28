@@ -21,7 +21,7 @@ internal static class OdsChartPointStyles {
         foreach (XElement point in points) {
             string? repeatedText = (string?)point.Attribute(OdfNamespaces.Chart + "repeated");
             int count = 1;
-            if (repeatedText != null && (!int.TryParse(repeatedText, NumberStyles.None,
+            if (repeatedText != null && (!int.TryParse(repeatedText, NumberStyles.Integer,
                     CultureInfo.InvariantCulture, out count) || count < 1)) return false;
             if (count > MaximumPoints - result.Count) return false;
             if (count > pointCount - result.Count) return false;
@@ -148,20 +148,42 @@ internal static class OdsChartPointStyles {
 
     internal static bool HasUnprojectedSeriesPieOffset(XElement series,
         Func<string?, XElement?> findStyle, XElement? defaultStyle) {
-        string? name = (string?)series.Attribute(OdfNamespaces.Chart + "style-name");
-        var visited = new HashSet<string>(StringComparer.Ordinal);
-        while (!string.IsNullOrEmpty(name)) {
-            if (!visited.Add(name!) || visited.Count > 32) return true;
-            XElement? definition = findStyle(name);
-            if (definition == null) return true;
-            string? offset = (string?)definition.Element(OdfNamespaces.Style + "chart-properties")?
-                .Attribute(OdfNamespaces.Chart + "pie-offset");
-            if (offset != null) return !IsZeroPieOffset(offset);
-            name = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
+        bool? seriesOffset = ReadPieOffset((string?)series.Attribute(OdfNamespaces.Chart + "style-name"), findStyle)
+            ?? ReadPieOffset(defaultStyle);
+        if (seriesOffset != true) return false;
+        if (!TryGetPointCount((string?)series.Attribute(OdfNamespaces.Chart + "values-cell-range-address"),
+                out int pointCount)) return true;
+        int covered = 0;
+        foreach (XElement point in series.Elements(OdfNamespaces.Chart + "data-point")) {
+            string? repeated = (string?)point.Attribute(OdfNamespaces.Chart + "repeated");
+            int count = 1;
+            if (repeated != null && (!int.TryParse(repeated, NumberStyles.Integer,
+                    CultureInfo.InvariantCulture, out count) || count < 1)) return true;
+            if (count > pointCount - covered) return true;
+            if (ReadPieOffset((string?)point.Attribute(OdfNamespaces.Chart + "style-name"), findStyle) != false)
+                return true;
+            covered += count;
         }
-        string? defaultOffset = (string?)defaultStyle?.Element(OdfNamespaces.Style + "chart-properties")?
+        return covered != pointCount;
+    }
+
+    private static bool? ReadPieOffset(string? styleName, Func<string?, XElement?> findStyle) {
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (!string.IsNullOrEmpty(styleName)) {
+            if (!visited.Add(styleName!) || visited.Count > 32) return true;
+            XElement? definition = findStyle(styleName);
+            if (definition == null) return true;
+            bool? offset = ReadPieOffset(definition);
+            if (offset.HasValue) return offset;
+            styleName = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
+        }
+        return null;
+    }
+
+    private static bool? ReadPieOffset(XElement? definition) {
+        string? offset = (string?)definition?.Element(OdfNamespaces.Style + "chart-properties")?
             .Attribute(OdfNamespaces.Chart + "pie-offset");
-        return defaultOffset != null && !IsZeroPieOffset(defaultOffset);
+        return offset == null ? null : !IsZeroPieOffset(offset);
     }
 
     private static bool HasUnsupportedChartProperties(XElement definition, ref bool? unprojectedPieOffset) {
