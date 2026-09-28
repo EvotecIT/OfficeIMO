@@ -83,8 +83,6 @@ internal static class IWorkTableRichTextReader {
                         tolerateStyleDepth: true)
                     : null;
                 storageContents.Add(storage.Identifier, content);
-            } else if (content != null) {
-                projectionBudget.AddTextContentUse(content, includeCharacters: true);
             }
             if (content == null) {
                 fullyReconstructed = false;
