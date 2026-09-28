@@ -109,6 +109,8 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeColor? stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
             if (properties.GetFirstChild<A.SolidFill>() != null && !fill.HasValue || outline?.GetFirstChild<A.SolidFill>() != null && !stroke.HasValue)
                 throw new NotSupportedException("The chart surface colour cannot be resolved.");
+            if (outline != null && outline.GetFirstChild<A.NoFill>() == null && !stroke.HasValue)
+                throw new NotSupportedException("The chart surface outline colour cannot be projected.");
             double? width = outline?.Width?.Value is int emus ? emus / 12700d : null;
             if (width.HasValue && (width < 0 || width > OfficeChartStyleBounds.MaximumLineWidthPoints))
                 throw new NotSupportedException("The chart outline width is outside the supported range.");
