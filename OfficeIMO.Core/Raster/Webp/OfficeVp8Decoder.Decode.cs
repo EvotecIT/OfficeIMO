@@ -163,7 +163,7 @@ internal static partial class OfficeVp8Decoder {
         var vNzCurrent = new byte[macroblockCols * MacroblockChromaBlocks];
 
         var macroblockHasCoefficients = new bool[macroblocks.Length];
-        var predictionScratch = new OfficeVp8PredictionScratch();
+        var predictionScratch = new OfficeVp8DecodeScratch();
 
         for (var row = 0; row < macroblockRows; row++) {
             cancellationToken.ThrowIfCancellationRequested();

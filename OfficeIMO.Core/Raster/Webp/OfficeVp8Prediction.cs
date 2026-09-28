@@ -13,7 +13,7 @@ internal static class OfficeVp8Prediction {
     private static byte ClampToByte(int value) => (byte)Math.Max(0, Math.Min(255, value));
     private static byte GetPlaneSampleOrDefault(byte[] plane, int width, int height, int x, int y, byte fallback) =>
         (uint)x < (uint)width && (uint)y < (uint)height ? plane[y * width + x] : fallback;
-    internal static void PredictBlock(byte[] plane, int width, int height, int x, int y, int size, int mode, byte[] predicted, OfficeVp8PredictionScratch scratch) {
+    internal static void PredictBlock(byte[] plane, int width, int height, int x, int y, int size, int mode, byte[] predicted, OfficeVp8DecodeScratch scratch) {
         int[] top = scratch.BlockTop;
         int[] left = scratch.BlockLeft;
         int sum = 0, count = 0;
@@ -33,7 +33,7 @@ internal static class OfficeVp8Prediction {
         }
     }
 
-    internal static void PredictSubblock(byte[] plane, int width, int height, int x, int y, int mode, byte[] predicted, OfficeVp8PredictionScratch scratch) {
+    internal static void PredictSubblock(byte[] plane, int width, int height, int x, int y, int mode, byte[] predicted, OfficeVp8DecodeScratch scratch) {
         int[] top = scratch.SubblockTop;
         int[] left = scratch.SubblockLeft;
         int corner = GetPlaneSampleOrDefault(plane, width, height, x - 1, y - 1, y == 0 ? (byte)127 : (byte)129);

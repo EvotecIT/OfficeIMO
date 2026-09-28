@@ -12,6 +12,11 @@ internal static class OfficeVp8Transform {
     internal static int[] InverseTransform4x4(int[] input) {
         var output = new int[CoefficientsPerBlock];
         var temp = new int[CoefficientsPerBlock];
+        InverseTransform4x4(input, temp, output);
+        return output;
+    }
+
+    internal static void InverseTransform4x4(int[] input, int[] temp, int[] output) {
 
         for (var i = 0; i < BlockSize; i++) {
             var ip0 = input[i];
@@ -56,12 +61,16 @@ internal static class OfficeVp8Transform {
             output[baseIndex + 2] = unchecked((short)((b1 - c1 + 4) >> 3));
         }
 
-        return output;
     }
 
     internal static int[] InverseWalshTransform4x4(int[] input) {
         var temp = new int[CoefficientsPerBlock];
         var output = new int[CoefficientsPerBlock];
+        InverseWalshTransform4x4(input, temp, output);
+        return output;
+    }
+
+    internal static void InverseWalshTransform4x4(int[] input, int[] temp, int[] output) {
 
         for (var i = 0; i < BlockSize; i++) {
             var ip0 = input[i];
@@ -103,6 +112,5 @@ internal static class OfficeVp8Transform {
             output[baseIndex + 3] = unchecked((short)((d2 + 3) >> 3));
         }
 
-        return output;
     }
 }

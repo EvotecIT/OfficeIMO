@@ -14,9 +14,9 @@ internal static partial class OfficeVp8Decoder {
         int initialContext,
         int dequantDc,
         int dequantAc,
-        out int[] dequantizedCoefficients,
+        int[] dequantizedCoefficients,
         out bool hasNonZero) {
-        dequantizedCoefficients = new int[CoefficientsPerBlock];
+        Array.Clear(dequantizedCoefficients, 0, dequantizedCoefficients.Length);
         hasNonZero = false;
 
         var prevContext = initialContext;

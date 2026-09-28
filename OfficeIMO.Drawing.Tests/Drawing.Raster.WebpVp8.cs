@@ -68,6 +68,26 @@ public sealed class DrawingWebpVp8Tests {
         Assert.False(OfficeWebpCodec.TryDecode(encoded, out _));
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void LargeVp8DecodeKeepsAllocationsNearItsRetainedImageBudget() {
+        // Independently produced with Pillow/libwebp from a 512x512 gradient pattern.
+        // The output itself needs 1 MiB; per-block coefficient/transform arrays
+        // would add several more MiB of short-lived allocations.
+        byte[] encoded = ReadFixture("independent-vp8-allocation.webp");
+        Assert.True(OfficeWebpCodec.TryDecode(encoded, out _)); // JIT and codec warmup.
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        bool decoded = OfficeWebpCodec.TryDecode(encoded, out OfficeRasterImage? image);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(decoded);
+        Assert.Equal(512, image!.Width);
+        Assert.Equal(512, image.Height);
+        Assert.True(allocated <= 4_000_000, $"VP8 decode allocated {allocated:N0} bytes.");
+    }
+#endif
+
     [Fact]
     public void TruncatedControlPartitionIsRejected() {
         byte[] encoded = ReadFixture("independent-vp8-pattern.webp");
@@ -108,7 +128,7 @@ public sealed class DrawingWebpVp8Tests {
         // stage in signed 16-bit arrays. These extreme reference vectors diverge
         // if a stage is retained as an unbounded 32-bit integer.
         var coefficients = new int[16];
-        Array.Fill(coefficients, 32767);
+        for (int index = 0; index < coefficients.Length; index++) coefficients[index] = 32767;
         Assert.Equal(new[] {
             -2402, 478, -478, -95, -12062, 2399, -2399, -477,
             12062, -2399, 2399, 477, 2400, -477, 477, 95
