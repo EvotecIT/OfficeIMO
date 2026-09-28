@@ -19,9 +19,7 @@ public partial class WordChart {
             if (_chartPart == null || chart == null) return false;
             // A formula-linked title without a usable cache cannot be rendered
             // faithfully from the chart part alone.
-            if (chart.Descendants<C.Title>().Any(title => title.GetFirstChild<C.ChartText>()?
-                .GetFirstChild<C.StringReference>() is C.StringReference reference &&
-                reference.Formula != null && string.IsNullOrWhiteSpace(reference.StringCache?.InnerText))) return false;
+            if (OfficeOpenXmlChartTextReader.HasUncachedFormulaTitle(chart)) return false;
             // The shared Drawing palette has no Word color-slot remapping metadata.
             // Preserve the native chart and report unsupported projection rather than
             // resolving theme slots through the unmapped document theme.
