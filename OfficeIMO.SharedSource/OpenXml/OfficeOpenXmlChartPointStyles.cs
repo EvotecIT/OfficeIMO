@@ -62,12 +62,31 @@ internal static class OfficeOpenXmlChartPointStyles {
         outline.Alignment != null && outline.Alignment.Value != A.PenAlignmentValues.Center ||
         outline.CompoundLineType != null && outline.CompoundLineType.Value != A.CompoundLineValues.Single;
 
-    internal static bool HasUnsupportedPointContent(C.DataPoint point) =>
-        point.ChildElements.Any(child => child is not C.Index and not C.ChartShapeProperties &&
-            !(child is C.Explosion && point.Parent is C.PieChartSeries) &&
-            !(child is C.Marker marker && !marker.HasAttributes &&
-              marker.ChildElements.All(markerChild => markerChild is C.ChartShapeProperties) &&
-              (marker.ChartShapeProperties == null || point.ChartShapeProperties?.HasChildren != true)));
+    internal static bool HasUnsupportedPointContent(C.DataPoint point) {
+        foreach (OpenXmlElement child in point.ChildElements) {
+            if (child is C.Index or C.ChartShapeProperties) continue;
+            if (child is C.Explosion && point.Parent is C.PieChartSeries) continue;
+            if (child is C.Marker marker && !marker.HasAttributes &&
+                marker.ChildElements.All(markerChild => markerChild is C.ChartShapeProperties) &&
+                (marker.ChartShapeProperties == null || point.ChartShapeProperties?.HasChildren != true)) continue;
+            if (child is C.Bubble3D bubble && bubble.Val?.Value == false) continue;
+            if (child is C.ExtensionList extensions && HasOnlyUniqueIdMetadata(extensions)) continue;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool HasOnlyUniqueIdMetadata(C.ExtensionList extensions) {
+        if (extensions.ChildElements.Count != 1 || extensions.FirstChild is not C.Extension extension ||
+            extension.Uri?.Value != "{C3380CC4-5D6E-409C-BE32-E72D297353CC}" ||
+            extension.ChildElements.Count != 1 || extension.FirstChild is not OpenXmlElement uniqueId ||
+            uniqueId.LocalName != "uniqueId" ||
+            uniqueId.NamespaceUri != "http://schemas.microsoft.com/office/drawing/2014/chart" ||
+            uniqueId.HasChildren) return false;
+        var attributes = uniqueId.GetAttributes();
+        return attributes.Count == 1 && attributes[0].LocalName == "val" &&
+            attributes[0].NamespaceUri.Length == 0 && Guid.TryParse(attributes[0].Value, out _);
+    }
 
     internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) =>
         Read(GetBoundedPoints(series), count, scheme, series.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);
