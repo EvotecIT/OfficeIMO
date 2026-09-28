@@ -118,4 +118,21 @@ public sealed class DrawingChartSecondaryScaleTests {
         Assert.Null(primaryLayout.SecondaryValueAxis);
         Assert.Null(OfficeChartLayout.Default.SecondaryValueAxis);
     }
+
+    [Fact]
+    public void MixedSecondarySeriesDoNotApplyPercentLabelsToAnOrdinaryAxis() {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Primary", new[] { 5d, 6d }),
+            new OfficeChartSeries("Share", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: OfficeChartKind.LineStacked100, axisGroup: OfficeChartAxisGroup.Secondary),
+            new OfficeChartSeries("Amount", new[] { 2d, 3d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        });
+        var snapshot = new OfficeChartSnapshot("", null, OfficeChartKind.ColumnClustered, data, 360, 240,
+            layout: new OfficeChartLayout(showLegend: false).WithSecondaryValueAxis(new OfficeChartValueAxisLayout()));
+        var labels = OfficeChartDrawingRenderer.Render(snapshot).Elements.OfType<OfficeDrawingText>()
+            .Select(text => text.Text).ToArray();
+        Assert.Contains("3", labels);
+        Assert.DoesNotContain(labels, label => label.Contains('%'));
+    }
 }

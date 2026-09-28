@@ -21,7 +21,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         return axes.SingleOrDefault();
     }
 
-    internal static OfficeChartValueAxisLayout? Read(C.PlotArea? plot) {
+    internal static OfficeChartValueAxisLayout? Read(C.PlotArea? plot, Func<string>? resolveSourceLinkedFormat = null) {
         var axis = Resolve(plot);
         if (axis == null) return null;
         var scaling = axis.GetFirstChild<C.Scaling>();
@@ -30,7 +30,11 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             maximum: scaling?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
             majorUnit: axis.GetFirstChild<C.MajorUnit>()?.Val?.Value,
             minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
-            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
+            numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
+                axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null
+                    ? (resolveSourceLinkedFormat ??
+                        throw new NotSupportedException("The source-linked secondary axis has no qualified chart workbook."))()
+                    : axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
             majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
             minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
         string? title = ReadTitle(axis.GetFirstChild<C.Title>());
@@ -86,7 +90,10 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
             throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");
         var scaling = axis.GetFirstChild<C.Scaling>();
-        if ((!resolveSourceLinkedFormats || axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true) &&
+        bool linkedWorkbookFormat = resolveSourceLinkedFormats &&
+            axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
+            axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null;
+        if ((!linkedWorkbookFormat) &&
                 HasUnsupportedSharedAxisNumberFormat(axis) ||
             scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
@@ -108,10 +115,17 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         bool sectionHasPlaceholder = false;
         for (int index = 0; index < format!.Length; index++) {
             char value = format[index];
-            if (escaped) { escaped = false; continue; }
+            if (escaped) {
+                if (value == '%') return true;
+                escaped = false;
+                continue;
+            }
             if (value == '\\') { escaped = true; continue; }
             if (value == '"') { inQuotedLiteral = !inQuotedLiteral; continue; }
-            if (inQuotedLiteral) continue;
+            if (inQuotedLiteral) {
+                if (value == '%') return true;
+                continue;
+            }
             if (value == '0' || value == '#' || value == '?') {
                 sectionHasPlaceholder = true;
                 continue;
