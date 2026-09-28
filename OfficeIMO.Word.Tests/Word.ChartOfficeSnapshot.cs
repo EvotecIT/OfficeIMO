@@ -120,6 +120,19 @@ public sealed class WordChartOfficeSnapshotTests {
     }
 
     [Fact]
+    public void AuthoredSeriesMaterializesPaletteAndUnknownAutomaticFillFailsStaticProjection() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        Assert.True(chart.TryGetOfficeSnapshot(out var authored));
+        Assert.Equal(OfficeChartStyle.Default.GetSeriesColor(0), authored.Data.Series.Single().Color);
+        var nativeSeries = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        nativeSeries.GetFirstChild<C.ChartShapeProperties>()!.Remove();
+        nativeSeries.GetFirstChild<C.Index>()!.Val = 5;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void OfficeSnapshot_PreservesFormulaBasedAxisTitleTypeface() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered,
@@ -252,6 +265,19 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("A / 75%"));
         labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+    [Fact]
+    public void OfficeSnapshot_IgnoresPercentFlagOnCartesianLabels() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" },
+            new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var labels = chart.ChartPart!.ChartSpace!.Descendants<C.DataLabels>().Single();
+        labels.GetFirstChild<C.ShowPercent>()!.Val = true;
+        labels.GetFirstChild<C.ShowValue>()!.Val = true;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.False(snapshot.Layout.ShowDataLabelPercentages);
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        Assert.DoesNotContain(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("%"));
     }
     [Fact]
     public void OfficeSnapshot_PreservesCombinationPlottingOrder() {

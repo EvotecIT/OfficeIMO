@@ -1014,9 +1014,11 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        double slot = plotWidth / categories.Count;
-        double groupWidth = slot * 0.68D;
         int barSeriesCount = Math.Max(1, slotCount);
+        double slot = plotWidth / categories.Count;
+        // OOXML gapWidth defaults to 150 percent of one bar. A cluster of n
+        // bars therefore occupies n / (n + 1.5) of the category slot.
+        double groupWidth = slot * barSeriesCount / (barSeriesCount + 1.5D);
         double barWidth = Math.Max(2D, groupWidth / barSeriesCount);
         ValueRange horizontalRange;
         ValueRange verticalRange;
@@ -1079,10 +1081,11 @@ public static partial class OfficeChartDrawingRenderer {
 
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
-                    double rowHeight = Math.Max(2D, categoryHeight * 0.68D / barSeriesCount);
+                    double rowHeight = Math.Max(2D, categoryHeight / (barSeriesCount + 1.5D));
                     int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
                     int seriesSlot = barSeriesCount - 1 - layoutSlot;
-                    double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + rowHeight * seriesSlot;
+                    double y = plotTop + categoryHeight * categorySlot +
+                        (categoryHeight - rowHeight * barSeriesCount) / 2D + rowHeight * seriesSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double x1 = ToPlotX(visibleBaseline, min, max, plotLeft, plotWidth);
@@ -1117,7 +1120,7 @@ public static partial class OfficeChartDrawingRenderer {
                     double y = Math.Min(y1, y2);
                     double h = Math.Max(1D, Math.Abs(y2 - y1));
                     if (value != 0D) {
-                        AddStyledPointShape(drawing, OfficeShape.Rectangle(barWidth * 0.88D, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
+                        AddStyledPointShape(drawing, OfficeShape.Rectangle(barWidth, h), x, y, color, GetPointStyle(currentSeries, category), null, 0.75D);
                     }
 
                     AddVerticalDataLabel(
@@ -1128,7 +1131,7 @@ public static partial class OfficeChartDrawingRenderer {
                         currentSeries,
                         value,
                         GetDataLabelCategoryTotal(barSeriesValues, category),
-                        x + barWidth * 0.44D,
+                        x + barWidth / 2D,
                         y,
                         y + h,
                         sourceSeriesIndex,
