@@ -11,7 +11,7 @@ namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static Result? ReadBubbles(IEnumerable<C.BubbleChartSeries> elements,
             ColorScheme? colorScheme, int maximumPoints, bool forDataUpdate = false,
-            bool validatePlot = true, ProjectionBudget? projectionBudget = null) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
             var source = OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(elements, maximumPoints);
             if (source.Count == 0) return null;
             if (validatePlot) ValidatePlotBudget(source[0], maximumPoints);
@@ -30,7 +30,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 var element = source[index];
                 if (!forDataUpdate && (element.Elements<C.Trendline>().Any() || element.Elements<C.ErrorBars>().Any() ||
                     HasUnsupportedSeriesStyle(element.ChartShapeProperties) || HasUnresolvedSeriesColor(element.ChartShapeProperties, colorScheme) ||
-                    OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(element.Elements<C.DataPoint>(), maximumPoints).Any(point =>
+                    OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides).Any(point =>
                         HasUnsupportedPointStyle(point.ChartShapeProperties) || HasUnresolvedPointColor(point.ChartShapeProperties, colorScheme)))) return null;
                 if (!TryReadStrictCachedNumbers(element.GetFirstChild<C.XValues>(), true, maximumPoints, out var x) ||
                     !TryReadStrictCachedNumbers(element.GetFirstChild<C.YValues>(), true, maximumPoints, out var y) ||
@@ -54,9 +54,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 var stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<SolidFill>(), colorScheme);
                 double? width = outline?.Width?.Value is int emus && emus > 0 ? emus / 12700d : null;
                 var data = OfficeChartSeries.CreateBubble(name, x, y, sizes, fill,
-                    ReadBubblePointColors(element, x.Count, colorScheme, maximumPoints), markerOutlineColor: stroke,
+                    ReadBubblePointColors(element, x.Count, colorScheme, maximumPointOverrides), markerOutlineColor: stroke,
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
-                    .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(element, x.Count, colorScheme));
+                    .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(
+                        OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides), x.Count, colorScheme));
                 series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index, data));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
@@ -137,10 +138,10 @@ namespace OfficeIMO.OpenXml.Internal {
              !OfficeOpenXmlThemeColorResolver.ResolveColor(fill, colorScheme).HasValue);
 
         private static IReadOnlyList<OfficeColor?>? ReadBubblePointColors(
-            C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme, int maximumPoints) {
+            C.BubbleChartSeries series, int pointCount, ColorScheme? colorScheme, int maximumPointOverrides) {
             var colors = new OfficeColor?[pointCount];
             bool found = false;
-            foreach (C.DataPoint point in OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(series.Elements<C.DataPoint>(), maximumPoints)) {
+            foreach (C.DataPoint point in OfficeOpenXmlChartPointStyles.GetBoundedPoints(series, maximumPointOverrides)) {
                 uint? sourceIndex = point.GetFirstChild<C.Index>()?.Val?.Value;
                 if (!sourceIndex.HasValue || sourceIndex.Value >= (uint)pointCount) continue;
                 C.ChartShapeProperties? properties =

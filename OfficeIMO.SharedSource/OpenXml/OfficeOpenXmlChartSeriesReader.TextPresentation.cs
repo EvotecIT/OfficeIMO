@@ -96,6 +96,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         double? size = inherited.Size;
         OfficeFontStyle? style = inherited.Style;
         OfficeColor? color = inherited.Color;
+        string? latinTypeface = properties.GetFirstChild<A.LatinFont>()?.Typeface?.Value;
         foreach (var attribute in properties.GetAttributes()) {
             if (attribute.LocalName == "sz") {
                 if (!int.TryParse(attribute.Value, out int hundredths) || hundredths <= 0)
@@ -116,7 +117,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         }
         foreach (var child in properties.ChildElements) {
             if (child is A.SolidFill fill) {
+                if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(fill))
+                    throw new NotSupportedException("The chart text colour transforms cannot be projected.");
                 color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill, scheme) ?? throw new NotSupportedException("The chart text colour cannot be resolved.");
+            } else if (child is A.EastAsianFont or A.ComplexScriptFont) {
+                string? scriptTypeface = child is A.EastAsianFont eastAsian ? eastAsian.Typeface?.Value : ((A.ComplexScriptFont)child).Typeface?.Value;
+                if (string.IsNullOrWhiteSpace(latinTypeface) || !string.Equals(latinTypeface, scriptTypeface, StringComparison.OrdinalIgnoreCase))
+                    throw new NotSupportedException("Different chart text script typefaces cannot be projected by one font family.");
             } else if (child is not A.LatinFont and not A.EastAsianFont and not A.ComplexScriptFont)
                 throw new NotSupportedException("The chart text appearance cannot be projected.");
         }

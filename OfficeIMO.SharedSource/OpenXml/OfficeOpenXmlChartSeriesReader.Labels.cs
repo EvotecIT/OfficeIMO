@@ -25,6 +25,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 .Any(item => item.GetFirstChild<C.DataLabels>() != null))
                 throw new NotSupportedException("Series-specific chart labels cannot be projected by this layout reader.");
             var labels = layer.GetFirstChild<C.DataLabels>();
+            if (labels?.GetFirstChild<C.Separator>() is C.Separator separator && string.IsNullOrEmpty(separator.Text))
+                throw new NotSupportedException("An empty native data label separator cannot be projected.");
             var current = new LabelLayout {
                 Values = LabelFlag<C.ShowValue>(labels), Categories = LabelFlag<C.ShowCategoryName>(labels),
                 SeriesNames = LabelFlag<C.ShowSeriesName>(labels), Percentages = LabelFlag<C.ShowPercent>(labels),
