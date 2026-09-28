@@ -7,6 +7,25 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPlotClippingTests {
     [Fact]
+    public void AutomaticScatterRangeMapsOppositeFiniteExtremes() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", new[] { -double.MaxValue, double.MaxValue },
+                new[] { -double.MaxValue, double.MaxValue }, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+            shape.Shape.StrokeColor == ink && shape.Shape.Width > 100D && shape.Shape.Height > 100D);
+        Assert.DoesNotContain(drawing.Elements.OfType<OfficeDrawingText>(), text =>
+            text.Text.Contains("NaN", StringComparison.Ordinal) ||
+            text.Text.Contains("Infinity", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ClippedAreaDoesNotOutlineTheArtificialUpperEdge() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {
