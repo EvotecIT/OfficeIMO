@@ -76,7 +76,7 @@ try {
             if ($keys[$index] -is [string] -and $keys[$index].StartsWith('=')) {
                 $source.Cells.Item($index + 2, 1).Formula = $keys[$index]
             } else {
-                $source.Cells.Item($index + 2, 1).Value2 = $keys[$index]
+                $source.Cells.Item($index + 2, 1).Value2 = [double]$keys[$index]
             }
             $source.Cells.Item($index + 2, 2).Value2 = [double](10 * ($index + 1))
         }
