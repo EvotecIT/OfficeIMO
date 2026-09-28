@@ -93,6 +93,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { Colors[0]!.Value, OfficeColor.FromRgb(90, 100, 110), Colors[2]!.Value }, swatches);
         }
 
+        [Theory]
+        [InlineData(OfficeChartKind.ColumnClustered)]
+        [InlineData(OfficeChartKind.BarClustered)]
+        public void PointColors_SparseBarOverridesKeepTheSeriesFill(OfficeChartKind kind) {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(kind,
+                CreateData(kind, Colors), 1, 1, 20, 10);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+            OfficeColor inherited = OfficeColor.FromRgb(90, 100, 110);
+            OfficeDrawingShape[] bars = drawing.Shapes.Where(shape =>
+                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                (shape.Shape.Width > 20D || shape.Shape.Height > 20D) &&
+                (shape.Shape.FillColor == inherited || shape.Shape.FillColor == Colors[0] ||
+                 shape.Shape.FillColor == Colors[2])).ToArray();
+            Assert.Equal(3, bars.Length);
+            Assert.Equal(inherited, bars[1].Shape.FillColor);
+        }
+
         [Fact]
         public void PointColors_ResolveSparseThemeFillWithoutAllocatingForUnboundedIndex() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
