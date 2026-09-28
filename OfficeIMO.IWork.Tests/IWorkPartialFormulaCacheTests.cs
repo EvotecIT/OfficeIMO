@@ -85,8 +85,22 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
 
+    [Fact]
+    public void Unused_invalid_rich_catalog_entry_does_not_block_editable_cells() {
+        using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
+            includeUnusedRichEntry: true, invalidUnusedWrapper: true);
+
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+
+        Assert.False(result.IsVisualFallback);
+        Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
+    }
+
     private static MemoryStream CreateNumbersWithPartialRichCell(bool hasFormula,
-        bool includeFormulaRecord = true, bool includeUnusedRichEntry = false) {
+        bool includeFormulaRecord = true, bool includeUnusedRichEntry = false,
+        bool invalidUnusedWrapper = false) {
         byte[] cell = new byte[hasFormula ? 20 : 16];
         cell[0] = 5;
         cell[1] = 9;
@@ -117,9 +131,11 @@ public sealed partial class IWorkBoundaryTests {
             hasFormula && includeFormulaRecord ? ArchiveRecord(16, 6201, Message(BytesField(3,
                 Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))
                 : Array.Empty<byte>(),
-            includeUnusedRichEntry ? ArchiveRecord(17, 6218,
-                Message(ReferenceField(1, 18)), new ulong[] { 18 }) : Array.Empty<byte>(),
-            includeUnusedRichEntry ? ArchiveRecord(18, 2001,
+            includeUnusedRichEntry ? invalidUnusedWrapper
+                ? ArchiveRecord(17, 2001, Message(StringField(3, "Not a wrapper")))
+                : ArchiveRecord(17, 6218, Message(ReferenceField(1, 18)), new ulong[] { 18 })
+                : Array.Empty<byte>(),
+            includeUnusedRichEntry && !invalidUnusedWrapper ? ArchiveRecord(18, 2001,
                 Message(StringField(3, "Unused\uFFFCtext"))) : Array.Empty<byte>());
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));

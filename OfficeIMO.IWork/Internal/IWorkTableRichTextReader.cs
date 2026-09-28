@@ -62,21 +62,18 @@ internal static class IWorkTableRichTextReader {
             if (entry.FieldCount(9) != 1
                 || wrapper?.MessageType != RichTextWrapperArchive) {
                 fullyReconstructed = false;
-                catalogStructureComplete = false;
                 continue;
             }
             if (!TryReadRecord(index, wrapper, options, wrapperMessages,
                     out IWorkWireMessage? wrapperMessage)
                 || wrapperMessage == null) {
                 fullyReconstructed = false;
-                catalogStructureComplete = false;
                 continue;
             }
             IWorkArchiveRecord? storage = index.Dereference(wrapperMessage, 1);
             if (wrapperMessage.FieldCount(1) != 1
                 || storage?.MessageType != TextStorageArchive) {
                 fullyReconstructed = false;
-                catalogStructureComplete = false;
                 continue;
             }
             if (!storageTexts.TryGetValue(storage.Identifier, out var cached)) {
@@ -88,7 +85,6 @@ internal static class IWorkTableRichTextReader {
             }
             if (!cached.HasValue) {
                 fullyReconstructed = false;
-                catalogStructureComplete = false;
                 continue;
             }
             (string text, bool textComplete) = cached.Value;
