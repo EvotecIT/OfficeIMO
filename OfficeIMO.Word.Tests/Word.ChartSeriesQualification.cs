@@ -9,8 +9,10 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public class WordChartSeriesQualificationTests {
-    [Fact]
-    public void UpdatingAreaSeriesCanRestoreAnInheritedOutline() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UpdatingAreaSeriesCanRestoreAnInheritedOutline(bool zeroWidth) {
         OfficeChartData Data(bool connectLine) => new(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Area", new[] { 1d, 2d }, null, null, null,
                 showMarkers: false, connectLine: connectLine)
@@ -20,8 +22,10 @@ public class WordChartSeriesQualificationTests {
         A.Outline Outline() => chart.ChartPart!.ChartSpace!.Descendants<C.AreaChartSeries>().Single()
             .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.Outline>()!;
         Assert.NotNull(Outline().GetFirstChild<A.NoFill>());
+        if (zeroWidth) Outline().Width = 0;
         chart.SetData(OfficeChartKind.Area, Data(true));
         Assert.Null(Outline().GetFirstChild<A.NoFill>());
+        Assert.NotEqual(0, Outline().Width?.Value);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.True(snapshot.Data.Series[0].ConnectLine);
     }
