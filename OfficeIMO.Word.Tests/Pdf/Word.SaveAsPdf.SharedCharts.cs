@@ -14,6 +14,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordSharedChartPdfTests {
     [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void ExplodedSliceSurvivesNativePdfProjection(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        WordChart chart = document.AddChart(kind, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Status", new[] { 7d, 3d }).WithPointExplosions(new[] { 25, 0 }) }));
+        MethodInfo factory = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { chart, null, null };
+        Assert.True((bool)factory.Invoke(null, arguments)!);
+        OfficeChartSnapshot projected = Assert.IsType<OfficeChartSnapshot>(arguments[1]);
+        Assert.Equal(new[] { 25, 0 }, projected.Data.Series.Single().PointExplosions);
+        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        Assert.NotEmpty(document.ToPdfBytes(options));
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+    }
+
+    [Theory]
     [InlineData("empty")]
     [InlineData("noFill")]
     [InlineData("noFillOutline")]

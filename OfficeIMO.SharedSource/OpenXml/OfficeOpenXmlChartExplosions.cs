@@ -57,6 +57,31 @@ internal static class OfficeOpenXmlChartExplosions {
         }
     }
 
+    internal static void ApplyPoint(OpenXmlCompositeElement series, uint index, int? percent) {
+        if (percent < 0 || percent > OfficeChartSeries.MaximumPointExplosionPercent)
+            throw new ArgumentOutOfRangeException(nameof(percent));
+        if (series is not C.PieChartSeries)
+            throw new NotSupportedException("Point explosions require a native pie or doughnut series.");
+        C.DataPoint? point = series.Elements<C.DataPoint>()
+            .FirstOrDefault(item => item.Index?.Val?.Value == index);
+        int inherited = (int)(series.GetFirstChild<C.Explosion>()?.Val?.Value ?? 0U);
+        if (!percent.HasValue || percent.Value == inherited) {
+            point?.GetFirstChild<C.Explosion>()?.Remove();
+            if (point != null && point.ChildElements.All(child => child is C.Index))
+                point.Remove();
+            return;
+        }
+        if (point == null) {
+            point = new C.DataPoint(new C.Index { Val = index });
+            OpenXmlElement? anchor = series.ChildElements.FirstOrDefault(child =>
+                child is C.DataLabels or C.CategoryAxisData or C.Values or C.ExtensionList);
+            if (anchor != null) series.InsertBefore(point, anchor);
+            else series.Append(point);
+        }
+        point.GetFirstChild<C.Explosion>()?.Remove();
+        point.AddChild(new C.Explosion { Val = (uint)percent.Value }, true);
+    }
+
     private static bool TryValue(C.Explosion? source, out int value) {
         value = 0;
         if (source == null) return true;
