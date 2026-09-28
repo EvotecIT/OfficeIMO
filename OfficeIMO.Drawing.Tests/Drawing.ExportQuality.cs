@@ -7,6 +7,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingExportQualityTests {
+    [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Radar)]
+    public void OverlayTitleRendersAboveThePlot(OfficeChartKind kind) {
+        var snapshot = new OfficeChartSnapshot("Native chart", "Overlay title", kind,
+            new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeChartSeries("Values", new[] { 1d, 2d, 3d })
+            }), 360, 240,
+            style: new OfficeChartStyle(titleFontSize: 24,
+                plotAreaBackgroundColor: OfficeColor.Parse("#224466")),
+            layout: new OfficeChartLayout(overlayTitle: true, showLegend: false));
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        OfficeDrawingText title = Assert.IsType<OfficeDrawingText>(drawing.Elements.Last());
+        Assert.Equal("Overlay title", title.Text);
+    }
+
     [Fact]
     public void ImportedLargeChartTitleReservesItsFullTextHeight() {
         var snapshot = new OfficeChartSnapshot("Native chart", "Shared combination", OfficeChartKind.ColumnClustered,
