@@ -4,23 +4,6 @@ using System.Numerics;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>One Numbers sheet and its semantic drawables.</summary>
-public sealed class IWorkNumbersSheet {
-    internal IWorkNumbersSheet(string name, IReadOnlyList<IWorkTable> tables,
-        IReadOnlyList<string> textBoxes) {
-        Name = name;
-        Tables = Array.AsReadOnly(tables.ToArray());
-        TextBoxes = Array.AsReadOnly(textBoxes.ToArray());
-    }
-
-    /// <summary>Gets the source sheet name.</summary>
-    public string Name { get; }
-    /// <summary>Gets tables in drawable order.</summary>
-    public IReadOnlyList<IWorkTable> Tables { get; }
-    /// <summary>Gets text-box content in drawable order.</summary>
-    public IReadOnlyList<string> TextBoxes { get; }
-}
-
 /// <summary>Read-only Numbers structure recovered from a shared IWA object graph.</summary>
 public sealed class IWorkNumbersProjection {
     private readonly IWorkSourceDocument _source;
@@ -173,6 +156,7 @@ internal static class IWorkNumbersReader {
             projectionBudget.AddDrawableReferences(drawableReferenceCount);
             var tables = new List<IWorkTable>();
             var textBoxes = new List<string>();
+            var orderedDrawables = new List<IWorkNumbersDrawable>();
             IReadOnlyList<IWorkArchiveRecord> drawables = index.DereferenceAll(
                 sheetMessage, 2, out int unresolvedDrawableCount);
             if (unresolvedDrawableCount > 0) {
@@ -197,7 +181,10 @@ internal static class IWorkNumbersReader {
                     projectionBudget.AddTable();
                     IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
                         ref materializedCellCount, ref supportsEditableReconstruction);
-                    if (table != null) tables.Add(table);
+                    if (table != null) {
+                        tables.Add(table);
+                        orderedDrawables.Add(new IWorkNumbersDrawable(table));
+                    }
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                         out bool drawableComplete);
@@ -258,6 +245,7 @@ internal static class IWorkNumbersReader {
                         if (text.Length > 0) {
                             projectionBudget.AddTextItem();
                             textBoxes.Add(text);
+                            orderedDrawables.Add(new IWorkNumbersDrawable(text));
                         }
                     } else {
                         supportsEditableReconstruction = false;
@@ -281,7 +269,8 @@ internal static class IWorkNumbersReader {
                 MarkTextMetadataUnsupported(sheetRecord, diagnostics, ref supportsEditableReconstruction);
             }
             if (sheetName != null) projectionBudget.AddTextCharacters(sheetName.Length);
-            sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes));
+            sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes,
+                orderedDrawables));
         }
         if (sheets.Count == 0) {
             supportsEditableReconstruction = false;

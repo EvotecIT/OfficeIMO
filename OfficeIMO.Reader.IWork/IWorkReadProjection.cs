@@ -70,8 +70,17 @@ internal sealed partial class IWorkReadProjection {
             _cancellationToken.ThrowIfCancellationRequested();
             IWorkNumbersSheet sheet = source.Sheets[sheetIndex];
             var page = NewPage(sheetIndex + 1, sheet.Name, sheet.Name);
-            foreach (string textBox in sheet.TextBoxes) AddPlainText(page, textBox, "text-box");
-            foreach (IWorkTable table in sheet.Tables) AddTable(page, table);
+            foreach (IWorkNumbersDrawable drawable in sheet.Drawables) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                switch (drawable.Kind) {
+                    case IWorkNumbersDrawableKind.TextBox:
+                        AddPlainText(page, drawable.TextBox!, "text-box");
+                        break;
+                    case IWorkNumbersDrawableKind.Table:
+                        AddTable(page, drawable.Table!);
+                        break;
+                }
+            }
         }
         AddDiagnostics(source.Diagnostics);
     }
@@ -92,6 +101,7 @@ internal sealed partial class IWorkReadProjection {
             page.Width = source.SlideSize?.WidthPoints;
             page.Height = source.SlideSize?.HeightPoints;
             foreach (IWorkKeynoteDrawable drawable in slide.Drawables) {
+                _cancellationToken.ThrowIfCancellationRequested();
                 switch (drawable.Kind) {
                     case IWorkKeynoteDrawableKind.TextBox:
                         AddTextBox(page, drawable.TextBox!,
@@ -312,6 +322,7 @@ internal sealed partial class IWorkReadProjection {
         while (textOffset < text.Length
             || independentMarkdownChunks && markdownOffset < markdown.Length
             || partIndex == 0) {
+            _cancellationToken.ThrowIfCancellationRequested();
             int length = ScalarSafeChunkLength(text, textOffset, maxChars);
             string part = length == 0 ? string.Empty : text.Substring(textOffset, length);
             int markdownLength = independentMarkdownChunks

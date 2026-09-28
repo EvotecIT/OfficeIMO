@@ -49,6 +49,9 @@ internal sealed partial class IWorkReadProjection {
         }
         bool truncated = headerRows > materializedHeaderRows
             || totalDataRows > dataRows || source.ColumnCount > columnCount;
+        _cancellationToken.ThrowIfCancellationRequested();
+        IReadOnlyList<ReaderTableColumnProfile> profiles = ReaderTableProfiler.CreateProfiles(columns, rows);
+        _cancellationToken.ThrowIfCancellationRequested();
         var location = Location(page);
         location.TableIndex = tableIndex;
         var table = new ReaderTable {
@@ -57,14 +60,16 @@ internal sealed partial class IWorkReadProjection {
             Kind = "iwork-table",
             Location = location,
             Columns = columns,
+            ColumnProfiles = profiles,
+            Diagnostics = TableDiagnostics(source),
             Rows = rows,
             TotalRowCount = totalDataRows,
             Truncated = truncated
         };
         _tables.Add(table);
         _pageTables[page].Add(table);
-        string markdown = table.ToMarkdownTable();
-        string text = DocumentReaderEngine.BuildRichTableText(table);
+        string markdown = table.ToMarkdownTable(_cancellationToken);
+        string text = DocumentReaderEngine.BuildRichTableText(table, _cancellationToken);
         ReaderLocation tableBlockLocation = AddBlock(page, "table", text, markdown, null, null, table,
             region: Region(source.Geometry), splitMarkdownIndependently: true,
             tableIndex: tableIndex);
@@ -96,6 +101,19 @@ internal sealed partial class IWorkReadProjection {
                 Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
                     ["headerColumnCount"] = source.HeaderColumnCount.ToString(CultureInfo.InvariantCulture),
                     ["footerRowCount"] = source.FooterRowCount.ToString(CultureInfo.InvariantCulture)
+                }
+            });
+        }
+        long sourceCellArea = (long)source.RowCount * source.ColumnCount;
+        if (source.Geometry != null && sourceCellArea > int.MaxValue) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Limit,
+                Code = "IWORK_READER_TABLE_CELL_COUNTS_SATURATED",
+                Message = $"Table '{source.Name}' has more logical cells than Reader's 32-bit table diagnostic counts can represent; expected and missing counts are saturated.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = location,
+                Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["sourceLogicalCellCount"] = sourceCellArea.ToString(CultureInfo.InvariantCulture)
                 }
             });
         }
@@ -142,6 +160,31 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
+    }
+
+    private static ReaderTableDiagnostics? TableDiagnostics(IWorkTable source) {
+        if (source.Geometry is not { } geometry) return null;
+        long sourceArea = (long)source.RowCount * source.ColumnCount;
+        int expectedCells = (int)Math.Min(sourceArea, int.MaxValue);
+        int filledCells = source.Cells.Count;
+        int missingCells = (int)Math.Min(Math.Max(0, sourceArea - filledCells), int.MaxValue);
+        return new ReaderTableDiagnostics {
+            Confidence = 1,
+            SchemaConfidence = 1,
+            CellCompleteness = sourceArea == 0 ? 1 : (double)filledCells / sourceArea,
+            ColumnGeometryConfidence = source.DefaultColumnWidth.HasValue ? 1 : 0,
+            SourceRowCount = source.RowCount,
+            ExpectedCellCount = expectedCells,
+            FilledCellCount = filledCells,
+            MissingCellCount = missingCells,
+            HasGeometry = true,
+            XStart = geometry.LeftPoints,
+            XEnd = geometry.LeftPoints + geometry.WidthPoints,
+            YTop = geometry.TopPoints,
+            YBottom = geometry.TopPoints + geometry.HeightPoints,
+            Width = geometry.WidthPoints,
+            Height = geometry.HeightPoints
+        };
     }
 
     private static string CellText(IWorkTableCell? cell) => cell == null
