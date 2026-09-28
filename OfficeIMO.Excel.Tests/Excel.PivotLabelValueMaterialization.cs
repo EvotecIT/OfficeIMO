@@ -163,6 +163,47 @@ namespace OfficeIMO.Tests {
             Assert.Empty(reopened.ValidateOpenXml());
         }
 
+        [Theory]
+        [InlineData("equal", 30d)]
+        [InlineData("not-equal", 185d)]
+        [InlineData("greater-or-equal", 200d)]
+        [InlineData("less", 15d)]
+        [InlineData("less-or-equal", 45d)]
+        public void Test_PivotValueComparisons_TemplateFreePublicApi(string comparison, double total) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.value-{comparison}.Authored.xlsx");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Sales");
+                var entries = new[] {
+                    ("East", 60d), ("North", 30d), ("Northeast", 40d),
+                    ("Southeast", 15d), ("West", 70d)
+                };
+                for (int index = 0; index < entries.Length; index++) {
+                    source.CellValue(index + 2, 1, entries[index].Item1);
+                    source.CellValue(index + 2, 2, entries[index].Item2);
+                }
+                ExcelPivotFilter filter = comparison switch {
+                    "equal" => ExcelPivotFilter.ValueEquals("Region", "Metric", 30d),
+                    "not-equal" => ExcelPivotFilter.ValueNotEquals("Region", "Metric", 30d),
+                    "greater-or-equal" => ExcelPivotFilter.ValueGreaterThanOrEqual("Region", "Metric", 30d),
+                    "less" => ExcelPivotFilter.ValueLessThan("Region", "Metric", 30d),
+                    "less-or-equal" => ExcelPivotFilter.ValueLessThanOrEqual("Region", "Metric", 30d),
+                    _ => throw new ArgumentOutOfRangeException(nameof(comparison))
+                };
+                source.Pivot("A1:B6").Rows("Region").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                var result = source.MaterializePivotTable("FilteredPivot");
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
         [Fact]
         public void Test_PivotLabelValueFilters_RefreshRequalifiesValueItem() {
             string directory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus");

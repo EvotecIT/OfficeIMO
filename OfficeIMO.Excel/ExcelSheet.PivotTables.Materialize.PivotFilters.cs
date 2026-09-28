@@ -43,15 +43,16 @@ namespace OfficeIMO.Excel {
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
-            foreach (var filter in filters.Where(filter => filter.Type?.Value == PivotFilterValues.ValueGreaterThan)) {
+            foreach (var filter in filters.Where(IsMaterializedPivotValueComparison)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
                 if (axisFields.Count != 1 || filter.MeasureField == null || filter.MeasureField.Value >= measures.Length)
                     throw new NotSupportedException("Value-filter materialization requires one ordinary axis field and a saved measure.");
                 var custom = QualifiedPivotCustomFilter(filter);
-                if (custom.Operator?.Value != FilterOperatorValues.GreaterThan
+                var comparison = ResolveSingleFilterOperator(filter.Type!.Value);
+                if ((custom.Operator?.Value ?? FilterOperatorValues.Equal) != comparison
                     || !double.TryParse(custom.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double threshold)
                     || double.IsNaN(threshold) || double.IsInfinity(threshold))
-                    throw new NotSupportedException("The value filter does not have a finite greater-than threshold.");
+                    throw new NotSupportedException("The value filter does not have a qualified finite comparison threshold.");
                 var measure = measures[filter.MeasureField.Value];
                 int measureColumn = firstColumn + (int)measure.Field!.Value;
                 var aggregates = new Dictionary<PivotFieldValue, ExcelPivotAggregateAccumulator>();
@@ -72,16 +73,35 @@ namespace OfficeIMO.Excel {
                 }
                 var function = (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum).ToOfficeEnum();
                 var included = new HashSet<PivotFieldValue>(aggregates.Where(pair =>
-                    pair.Value.GetValue(function).Value is double value && value > threshold).Select(pair => pair.Key));
+                    pair.Value.GetValue(function).Value is double value
+                    && MatchesMaterializedPivotValueComparison(value, threshold, comparison)).Select(pair => pair.Key));
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
             if (filters.Any(filter => filter.Type?.Value != PivotFilterValues.CaptionContains
-                && filter.Type?.Value != PivotFilterValues.ValueGreaterThan))
+                && !IsMaterializedPivotValueComparison(filter)))
                 throw new NotSupportedException("This pivot label or value filter is not qualified for materialization.");
             if (!visibility.IncludedRows.Any(include => include))
                 throw new NotSupportedException("The pivot filters select no source records for materialization.");
+        }
+
+        private static bool IsMaterializedPivotValueComparison(PivotFilter filter) {
+            var type = filter.Type?.Value;
+            return type == PivotFilterValues.ValueEqual || type == PivotFilterValues.ValueNotEqual
+                || type == PivotFilterValues.ValueGreaterThan || type == PivotFilterValues.ValueGreaterThanOrEqual
+                || type == PivotFilterValues.ValueLessThan || type == PivotFilterValues.ValueLessThanOrEqual;
+        }
+
+        private static bool MatchesMaterializedPivotValueComparison(double value, double threshold,
+            FilterOperatorValues comparison) {
+            if (comparison == FilterOperatorValues.Equal) return value == threshold;
+            if (comparison == FilterOperatorValues.NotEqual) return value != threshold;
+            if (comparison == FilterOperatorValues.GreaterThan) return value > threshold;
+            if (comparison == FilterOperatorValues.GreaterThanOrEqual) return value >= threshold;
+            if (comparison == FilterOperatorValues.LessThan) return value < threshold;
+            if (comparison == FilterOperatorValues.LessThanOrEqual) return value <= threshold;
+            return false;
         }
 
         private static int QualifiedPivotFilterField(PivotFilter filter, CacheField[] fields, IReadOnlyList<int> axisFields) {

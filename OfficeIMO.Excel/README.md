@@ -646,9 +646,10 @@ New source keys remain excluded from a manually filtered field unless its
 `IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
 records is rejected before changing the saved view.
 Label-contains filters on ordinary row or column fields with text, Boolean,
-blank, or error captions and value-greater-than
-filters on a single ordinary axis field can be materialized, including both
-filters on the same field. Value filters use the selected measure's aggregation
+blank, or error captions and value-equals, not-equals, greater-than,
+greater-than-or-equal, less-than, and less-than-or-equal filters on a single
+ordinary axis field can be materialized, including label and value filters
+on the same field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
 filter definition remains available for Excel refresh, and filtered items are
 not converted into manually hidden items. Filter evaluation is bounded by the
