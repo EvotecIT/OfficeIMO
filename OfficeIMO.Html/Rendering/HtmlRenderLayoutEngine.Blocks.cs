@@ -168,6 +168,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
+                    childStyle = AvoidActiveFloatsForFormattingContext(
+                        childStyle, width, flowHeight, activeFloats);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     List<HtmlFloatExclusion>? childFloats = pageBoundary.HasValue

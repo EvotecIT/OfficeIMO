@@ -9,6 +9,32 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlFloat_PagedOverflowBlockNarrowsBesideActiveFloat() {
+        const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:260px'>Prelude</div>"
+            + "<p style='margin:0'><span id='float' style='float:right;width:100px;height:200px;background:#ddd'></span></p>"
+            + "<p style='height:80px;margin:0'>Text</p>"
+            + "<hr id='rule' style='border:0;border-top:1px solid black;height:0;margin:0;overflow:auto'>"
+            + "<p style='height:150px;margin:0'>More text</p>"
+            + "<hr id='rule-after' style='border:0;border-top:1px solid black;height:0;margin:0;overflow:auto'>"
+            + "</article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape rule = FindPositionedShape(rendered, "hr#rule");
+        HtmlRenderShape ruleAfter = FindPositionedShape(rendered, "hr#rule-after");
+
+        Assert.Equal(80D, rule.Y, 1);
+        Assert.Equal(200D, rule.Width, 1);
+        Assert.Equal(300D, ruleAfter.Width, 1);
+    }
+
+    [Fact]
     public void HtmlFloat_OverflowAutoListItemDoesNotAddParagraphBottomMarginAfterTallerFloat() {
         const string html = "<ul style='margin:0;padding:0;list-style:none'>"
             + "<li id='first' style='overflow:auto;margin:0;padding:0;background:#eee'>"
