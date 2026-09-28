@@ -70,6 +70,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new InvalidOperationException("Chart space not found.");
             C.Chart chart = chartSpace.GetFirstChild<C.Chart>() ??
                 throw new InvalidOperationException("Chart not found.");
+            bool cacheOnlySource = chartSpace.GetFirstChild<C.ExternalData>() == null;
             C.PlotArea plotArea = chart.GetFirstChild<C.PlotArea>() ??
                 throw new InvalidOperationException("Chart plot area not found.");
 
@@ -89,6 +90,15 @@ namespace OfficeIMO.OpenXml.Internal {
                     }
                 }
                 chart.ReplaceChild(replacement, plotArea);
+            }
+
+            if (cacheOnlySource) {
+                foreach (C.ValueAxis axis in chart.GetFirstChild<C.PlotArea>()!.Elements<C.ValueAxis>()) {
+                    C.NumberingFormat? format = axis.GetFirstChild<C.NumberingFormat>();
+                    if (format?.SourceLinked?.Value == true &&
+                        string.Equals(format.FormatCode?.Value, "General", StringComparison.OrdinalIgnoreCase))
+                        format.SourceLinked = false;
+                }
             }
 
             UpdateSharedLegend(chart, data, defaultKind);
