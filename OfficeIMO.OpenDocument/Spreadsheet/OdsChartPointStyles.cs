@@ -59,8 +59,9 @@ internal static class OdsChartPointStyles {
         appearance = null;
         var attributes = new Dictionary<XName, string>();
         bool unsupportedChartProperties = false;
+        bool? unprojectedPieOffset = null;
         void AddAttributes(XElement definition, bool pointOrSeries) {
-            if (pointOrSeries && HasUnsupportedChartProperties(definition))
+            if (pointOrSeries && HasUnsupportedChartProperties(definition, ref unprojectedPieOffset))
                 unsupportedChartProperties = true;
             XElement? graphic = definition.Element(OdfNamespaces.Style + "graphic-properties");
             if (graphic != null)
@@ -82,7 +83,7 @@ internal static class OdsChartPointStyles {
         if (!AddChain(name, pointOrSeries: true) ||
             !AddChain((string?)series.Attribute(OdfNamespaces.Chart + "style-name"), pointOrSeries: true)) return false;
         if (defaultStyle != null) AddAttributes(defaultStyle, pointOrSeries: true);
-        if (unsupportedChartProperties) return false;
+        if (unsupportedChartProperties || unprojectedPieOffset == true) return false;
         string? Get(XName key) => attributes.TryGetValue(key, out string? value) ? value : null;
         foreach (XName key in attributes.Keys) {
             if (key != OdfNamespaces.Draw + "fill" &&
@@ -155,26 +156,33 @@ internal static class OdsChartPointStyles {
             if (definition == null) return true;
             string? offset = (string?)definition.Element(OdfNamespaces.Style + "chart-properties")?
                 .Attribute(OdfNamespaces.Chart + "pie-offset");
-            if (offset != null) return offset != "0";
+            if (offset != null) return !IsZeroPieOffset(offset);
             name = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
         }
         string? defaultOffset = (string?)defaultStyle?.Element(OdfNamespaces.Style + "chart-properties")?
             .Attribute(OdfNamespaces.Chart + "pie-offset");
-        return defaultOffset != null && defaultOffset != "0";
+        return defaultOffset != null && !IsZeroPieOffset(defaultOffset);
     }
 
-    private static bool HasUnsupportedChartProperties(XElement definition) {
+    private static bool HasUnsupportedChartProperties(XElement definition, ref bool? unprojectedPieOffset) {
         XElement? properties = definition.Element(OdfNamespaces.Style + "chart-properties");
         if (properties == null) return false;
         foreach (XAttribute attribute in properties.Attributes()) {
+            if (attribute.Name == OdfNamespaces.Chart + "pie-offset") {
+                if (!unprojectedPieOffset.HasValue)
+                    unprojectedPieOffset = !IsZeroPieOffset(attribute.Value);
+                continue;
+            }
             if (attribute.Name == OdfNamespaces.Chart + "solid-type" && attribute.Value == "cuboid" ||
                 attribute.Name == OdfNamespaces.Chart + "link-data-style-to-source" &&
-                    OdfBoolean.TryParseXml(attribute.Value, out bool linked) && linked ||
-                attribute.Name == OdfNamespaces.Chart + "pie-offset" && attribute.Value == "0") continue;
+                    OdfBoolean.TryParseXml(attribute.Value, out bool linked) && linked) continue;
             return true;
         }
         return false;
     }
+
+    private static bool IsZeroPieOffset(string value) =>
+        double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double offset) && offset == 0D;
 
     internal static IReadOnlyDictionary<string, XElement> IndexHatches(XDocument content, XDocument? styles) {
         var index = new Dictionary<string, XElement>(StringComparer.Ordinal);
@@ -203,8 +211,8 @@ internal static class OdsChartPointStyles {
         string? kind = (string?)definition.Attribute(OdfNamespaces.Draw + "style");
         int angle = ((rotation % 1800) + 1800) % 1800;
         pattern = kind switch {
-            "single" when angle == 0 => OfficeChartHatchPattern.Vertical,
-            "single" when angle == 900 => OfficeChartHatchPattern.Horizontal,
+            "single" when angle == 0 => OfficeChartHatchPattern.Horizontal,
+            "single" when angle == 900 => OfficeChartHatchPattern.Vertical,
             "single" when angle == 450 => OfficeChartHatchPattern.ForwardDiagonal,
             "single" when angle == 1350 => OfficeChartHatchPattern.BackwardDiagonal,
             "double" when angle == 0 || angle == 900 => OfficeChartHatchPattern.Cross,
@@ -226,7 +234,7 @@ internal static class OdsChartPointStyles {
     internal static void Write(IReadOnlyList<OfficeChartPointStyle?>? pointStyles, int pointCount,
         int seriesIndex, XElement series, ICollection<XElement> styleDefinitions,
         ICollection<XElement> hatchDefinitions) {
-        if (pointStyles == null || pointStyles.All(style => style == null)) {
+        if (pointStyles == null || pointStyles.All(style => !HasAppearanceOverride(style))) {
             series.Add(new XElement(OdfNamespaces.Chart + "data-point",
                 new XAttribute(OdfNamespaces.Chart + "repeated", pointCount)));
             return;
@@ -236,7 +244,7 @@ internal static class OdsChartPointStyles {
         for (int index = 0; index < pointCount; index++) {
             OfficeChartPointStyle? point = pointStyles[index];
             var dataPoint = new XElement(OdfNamespaces.Chart + "data-point");
-            if (point != null) {
+            if (point != null && HasAppearanceOverride(point)) {
                 string styleName = "ChartPoint" + seriesIndex.ToString(CultureInfo.InvariantCulture) + "_" + index.ToString(CultureInfo.InvariantCulture);
                 var graphic = new XElement(OdfNamespaces.Style + "graphic-properties");
                 if (point.NoFill) graphic.SetAttributeValue(OdfNamespaces.Draw + "fill", "none");
@@ -283,12 +291,17 @@ internal static class OdsChartPointStyles {
         }
     }
 
+    internal static bool HasAppearanceOverride(OfficeChartPointStyle? style) =>
+        style != null && (style.FillColor.HasValue || style.NoFill || style.Hatch.HasValue ||
+            style.HatchColor.HasValue || style.OutlineColor.HasValue || style.OutlineWidth.HasValue ||
+            style.ShowOutline.HasValue || style.OutlineJoin.HasValue);
+
     private static XElement CreateHatch(string name, OfficeChartPointStyle point) {
         OfficeChartHatchPattern pattern = point.Hatch!.Value;
         bool crossed = pattern is OfficeChartHatchPattern.Cross or OfficeChartHatchPattern.DiagonalCross;
         int rotation = pattern switch {
-            OfficeChartHatchPattern.Vertical or OfficeChartHatchPattern.Cross => 0,
-            OfficeChartHatchPattern.Horizontal => 900,
+            OfficeChartHatchPattern.Horizontal or OfficeChartHatchPattern.Cross => 0,
+            OfficeChartHatchPattern.Vertical => 900,
             OfficeChartHatchPattern.ForwardDiagonal or OfficeChartHatchPattern.WideForwardDiagonal or OfficeChartHatchPattern.DiagonalCross => 450,
             _ => 1350
         };

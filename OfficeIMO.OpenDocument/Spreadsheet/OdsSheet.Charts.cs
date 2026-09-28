@@ -23,7 +23,7 @@ public sealed partial class OdsSheet {
             if (item.LabelAddress != null) ValidateChartRange(item.LabelAddress, nameof(series), singleCell: true);
             if (item.PointStyles != null && item.PointStyles.Count != pointCount)
                 throw new ArgumentException("Point-style count must match the category count.", nameof(series));
-            if (type == OdsChartType.Line && item.PointStyles?.Any(style => style != null) == true)
+            if (type == OdsChartType.Line && item.PointStyles?.Any(OdsChartPointStyles.HasAppearanceOverride) == true)
                 throw new NotSupportedException("Native line chart point styles require visible point symbols.");
             OdsChartPointStyles.Validate(item.PointStyles);
         }
@@ -61,7 +61,7 @@ public sealed partial class OdsSheet {
                 new XAttribute(chart + "values-cell-range-address", item.ValuesAddress),
                 new XAttribute(chart + "class", type == OdsChartType.Doughnut ? "chart:circle" : chartClass));
             // Calc keeps authored data-point styles only when their series has a chart style.
-            if (item.PointStyles?.Any(style => style != null) == true) {
+            if (item.PointStyles?.Any(OdsChartPointStyles.HasAppearanceOverride) == true) {
                 string seriesStyleName = "ChartSeries" + seriesIndex.ToString(CultureInfo.InvariantCulture);
                 output.SetAttributeValue(chart + "style-name", seriesStyleName);
                 pointStyleDefinitions.Add(new XElement(OdfNamespaces.Style + "style",

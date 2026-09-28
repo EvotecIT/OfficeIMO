@@ -162,6 +162,18 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
         Assert.Null(Assert.Single(chart.Series).PointStyles);
     }
 
+    [Theory]
+    [InlineData("0", OfficeChartHatchPattern.Horizontal)]
+    [InlineData("900", OfficeChartHatchPattern.Vertical)]
+    public void ProducerHatchRotationUsesOdfStrokeDirection(string rotation, OfficeChartHatchPattern pattern) {
+        OdsChart chart = ReadProducerChart(styles => {
+            Assert.Single(styles.Descendants(OdfNamespaces.Draw + "hatch"))
+                .SetAttributeValue(OdfNamespaces.Draw + "rotation", rotation);
+        }, editStyles: true);
+
+        Assert.Equal(pattern, Assert.Single(chart.Series).PointStyles![1]!.Hatch);
+    }
+
     [Fact]
     public void ImportedPointStylesIncludeImplicitTrailingPoints() {
         OdsChart chart = ReadProducerChart(content => {
@@ -223,6 +235,36 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
             name => name == "SeriesStyle" ? seriesStyle : null, defaultStyle));
     }
 
+    [Theory]
+    [InlineData("00")]
+    [InlineData("+0")]
+    [InlineData("0.0")]
+    public void NumericZeroPieOffsetProjects(string zero) {
+        var defaultStyle = new XElement(OdfNamespaces.Style + "default-style",
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", "25")));
+        var seriesStyle = new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "family", "chart"),
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", zero)));
+        var pointStyle = new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "family", "chart"),
+            new XElement(OdfNamespaces.Style + "graphic-properties",
+                new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                new XAttribute(OdfNamespaces.Draw + "fill-color", "#228844")));
+        var series = new XElement(OdfNamespaces.Chart + "series",
+            new XAttribute(OdfNamespaces.Chart + "values-cell-range-address", "Data.$B$1"),
+            new XAttribute(OdfNamespaces.Chart + "style-name", "SeriesStyle"),
+            new XElement(OdfNamespaces.Chart + "data-point",
+                new XAttribute(OdfNamespaces.Chart + "style-name", "PointStyle")));
+        XElement? Find(string? name) => name == "SeriesStyle" ? seriesStyle : name == "PointStyle" ? pointStyle : null;
+
+        Assert.False(OdsChartPointStyles.HasUnprojectedSeriesPieOffset(series, Find, defaultStyle));
+        Assert.True(OdsChartPointStyles.TryRead(series, Find, defaultStyle,
+            new System.Collections.Generic.Dictionary<string, XElement>(), out var styles));
+        Assert.Equal(OfficeColor.Parse("#228844"), Assert.Single(styles!)!.FillColor);
+    }
+
     [Fact]
     public void ImportedSolidHatchAcceptsXmlBooleanOne() {
         OdsChart chart = ReadProducerChart(content => {
@@ -265,6 +307,22 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
                 new OfficeChartPointStyle?[] { new(fillColor: OfficeColor.Parse("#228844")) }) },
             0, 2, OdfRect.FromCentimeters(0, 0, 10, 6)));
         Assert.Empty(sheet.Charts);
+    }
+
+    [Fact]
+    public void EmptyPointStyleOnLineChartInheritsSeriesAppearance() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetNumber(1);
+        sheet.AddChart(OdsChartType.Line, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1").WithPointStyles(
+                new OfficeChartPointStyle?[] { new() }) },
+            0, 2, OdfRect.FromCentimeters(0, 0, 10, 6));
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        Assert.Null(Assert.Single(Assert.Single(reopened.GetSheet("Data")!.Charts).Series).PointStyles);
+        Assert.True(reopened.Validate().IsValid);
     }
 
     [Fact]
