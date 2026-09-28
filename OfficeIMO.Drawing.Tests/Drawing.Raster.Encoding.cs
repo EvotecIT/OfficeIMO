@@ -932,7 +932,7 @@ public sealed partial class DrawingRasterEncodingTests {
     }
 
     [Fact]
-    public void StaticLossyWebpRemainsOutsideTheManagedContainerSubset() {
+    public void HeaderOnlyLossyWebpIsRejectedWithoutImagePayload() {
         byte[] webp = CreateStaticLossyWebpHeader();
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(webp, null, out OfficeImageInfo identified));
