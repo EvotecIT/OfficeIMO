@@ -44,7 +44,8 @@ namespace OfficeIMO.Excel {
 
         private static PivotHierarchyAxis BuildMaterializedHierarchyAxis(ExcelSheet source, int firstRow, int lastRow, int firstColumn,
             IReadOnlyList<PivotFieldValues> maps, PivotMaterializationAxis layout, PivotField[] fields,
-            bool[] includedRows, int measures, bool total, CancellationToken token) {
+            IReadOnlyDictionary<int, PivotNumericGrouping> groupings, bool[] includedRows,
+            int measures, bool total, CancellationToken token) {
             var result = new PivotHierarchyAxis { Layout = layout, GrandTotal = total,
                 Subtotals = layout.RealFields.Select(field => MaterializedAutomaticSubtotal(fields[field])).ToArray() };
             if (layout.RealFields.Length > 0) {
@@ -56,7 +57,8 @@ namespace OfficeIMO.Excel {
                     if (!includedRows[row - firstRow - 1]) continue;
                     var node = result.Root;
                     for (int depth = 0; depth < layout.RealFields.Length; depth++) {
-                        int key = indices[depth][source.GetPivotFieldValue(row, firstColumn + layout.RealFields[depth], null)];
+                        int field = layout.RealFields[depth];
+                        int key = indices[depth][MaterializedPivotAxisKey(source, row, firstColumn + field, field, groupings)];
                         node.ChildrenByKey ??= new Dictionary<int, PivotHierarchyNode>();
                         if (!node.ChildrenByKey.TryGetValue(key, out var child)) {
                             child = new PivotHierarchyNode { Id = ++nodeId, Key = key, Depth = depth + 1, Parent = node };

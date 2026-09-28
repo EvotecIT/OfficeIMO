@@ -318,7 +318,7 @@ namespace OfficeIMO.Excel {
             if (baseFieldIndex.HasValue) fieldGroup.Base = baseFieldIndex.Value;
             if (parentFieldIndex.HasValue) fieldGroup.ParentId = parentFieldIndex.Value;
             if (groupItems != null) {
-                fieldGroup.Append(BuildGroupItems(groupItems));
+                fieldGroup.Append(BuildGroupItems(BuildAuthorNumericGroupLabels(grouping) ?? groupItems));
             }
 
             return fieldGroup;

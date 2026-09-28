@@ -66,9 +66,10 @@ namespace OfficeIMO.Excel {
 
             foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
                 var values = new List<string>();
-                SharedItems? sharedItems = field.SharedItems;
-                if (sharedItems != null) {
-                    foreach (OpenXmlElement item in sharedItems.ChildElements) {
+                OpenXmlCompositeElement? items = field.FieldGroup?.GetFirstChild<GroupItems>();
+                items ??= field.SharedItems;
+                if (items != null) {
+                    foreach (OpenXmlElement item in items.ChildElements) {
                         string? text = item switch {
                             StringItem stringItem => stringItem.Val?.Value,
                             NumberItem numberItem => numberItem.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),

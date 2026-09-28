@@ -81,11 +81,13 @@ namespace OfficeIMO.Excel {
                 || pageFields.Any(f => f.Field == null || f.Field.Value < 0 || f.Field.Value >= fields.Length || f.Field.Value >= pivotFields.Length)
                 || realFields.Concat(pageFields.Select(f => f.Field!.Value)).Distinct().Count() != realFields.Length + pageFields.Length)
                 throw new NotSupportedException("Pivot lookup requires distinct source axis and page fields.");
-            foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0)) {
-                if (fields[field].FieldGroup != null) throw new NotSupportedException("Grouped pivot lookup is not supported.");
-            }
+            var groupings = new PivotNumericGrouping?[fields.Length];
+            foreach (int field in rowFields.Concat(columnFields).Where(f => f >= 0))
+                groupings[field] = ReadPivotNumericGrouping(fields[field], field);
             foreach (PageField page in pageFields) {
                 int field = page.Field!.Value;
+                if (fields[field].FieldGroup != null)
+                    throw new NotSupportedException("Grouped page-field lookup is not qualified.");
                 string name = fields[field].Name?.Value ?? "";
                 if (!criteria.TryGetValue(name, out object? requested)) continue;
                 if (page.Item == null) return PivotLookupReferenceError();
@@ -106,8 +108,8 @@ namespace OfficeIMO.Excel {
             }
             var visibleFields = new HashSet<string>(rowFields.Concat(columnFields).Where(f => f >= 0).Select(f => fields[f].Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase);
             if (criteria.Keys.Any(key => !visibleFields.Contains(key))) return PivotLookupReferenceError();
-            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, measure, criteria, _excelDocument.DateSystem);
-            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, measure, criteria, _excelDocument.DateSystem);
+            int row = FindSavedPivotAxisItem(definition.RowItems, rowFields, fields, pivotFields, groupings, measure, criteria, _excelDocument.DateSystem);
+            int column = FindSavedPivotAxisItem(definition.ColumnItems, columnFields, fields, pivotFields, groupings, measure, criteria, _excelDocument.DateSystem);
             if (row < 0 || column < 0) return PivotLookupReferenceError();
             long outputRow = (long)top + location.FirstDataRow.Value + row;
             long outputColumn = (long)left + location.FirstDataColumn.Value + column;
@@ -121,7 +123,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int FindSavedPivotAxisItem(OpenXmlCompositeElement? axis, int[] axisFields, CacheField[] fields, PivotField[] pivotFields,
-            int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
+            PivotNumericGrouping?[] groupings, int measure, Dictionary<string, object?> criteria, ExcelDateSystem dateSystem) {
             if (axis == null || axis.ChildElements.Count == 0) throw new NotSupportedException("The pivot view has no saved axis items. Refresh or materialize the view first.");
             // One additional item accommodates the grand total for 100,000 real keys.
             if (axis.ChildElements.Count > 100_001) throw new NotSupportedException("The saved pivot axis exceeds lookup limits.");
@@ -140,13 +142,13 @@ namespace OfficeIMO.Excel {
                 if (!criteria.TryGetValue(fields[field].Name?.Value ?? "", out object? expected)) continue;
                 criterionDepth = depth;
                 var savedItems = pivotFields[field].Items;
-                var shared = fields[field].SharedItems;
-                if (savedItems == null || shared == null) return -1;
-                if (savedItems.ChildElements.Count > 100_001 || shared.ChildElements.Count > 100_000)
+                OpenXmlElement[] sharedItems = groupings[field]?.SavedItems
+                    ?? fields[field].SharedItems?.ChildElements.ToArray() ?? Array.Empty<OpenXmlElement>();
+                if (savedItems == null || sharedItems.Length == 0) return -1;
+                if (savedItems.ChildElements.Count > 100_001 || sharedItems.Length > 100_000)
                     throw new NotSupportedException("The saved pivot field exceeds lookup limits.");
-                indexedItems += savedItems.ChildElements.Count + shared.ChildElements.Count;
+                indexedItems += savedItems.ChildElements.Count + sharedItems.Length;
                 if (indexedItems > 1_000_000) throw new NotSupportedException("The saved pivot criteria exceed one million indexed items.");
-                var sharedItems = shared.ChildElements.ToArray();
                 var accepted = new HashSet<uint>();
                 HashSet<uint>? acceptedDates = null;
                 HashSet<uint>? collapsed = null;

@@ -378,6 +378,10 @@ namespace OfficeIMO.Excel {
                 ReportPivotTiming("AddPivotTable.PreserveFastSaveModel");
 
                 var allFieldValueMap = BuildPivotTextValueMap(fieldValueMap, generatedFieldValueMap, calculatedFieldList.Count, allFields.Count);
+                foreach (var pair in groupingMap) {
+                    PivotFieldValues? numericLabels = BuildAuthorNumericGroupLabels(pair.Value);
+                    if (numericLabels != null) allFieldValueMap[pair.Key] = numericLabels.TextValues;
+                }
                 ExpandGeneratedGroupingFieldOptions(fieldOptionMap, generatedFieldsBySource, allFields, allFieldValueMap);
                 uint cacheId = NextPivotCacheId(workbookPart);
                 ReportPivotTiming("AddPivotTable.PrepareCacheMetadata");
@@ -405,7 +409,8 @@ namespace OfficeIMO.Excel {
                     groupingMap.TryGetValue(i, out var grouping);
                     cacheField.SharedItems = BuildSharedItems(fieldValueMap[i], grouping, sourceSharedItemRequirements[i]);
                     if (grouping != null) {
-                        cacheField.FieldGroup = CreatePivotFieldGroup(grouping, fieldValueMap[i]);
+                        cacheField.FieldGroup = CreatePivotFieldGroup(grouping, fieldValueMap[i],
+                            grouping.GroupBy == ExcelPivotGroupBy.Range ? (uint)i : null);
                     }
                     cacheDef.CacheFields.Append(cacheField);
                 }
