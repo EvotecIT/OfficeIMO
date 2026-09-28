@@ -6,6 +6,28 @@ namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
     [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.BarClustered)]
+    public void BarClusterWidthFollowsNativeDefaultGapWidth(OfficeChartKind kind) {
+        OfficeColor first = OfficeColor.FromRgb(200, 20, 20);
+        OfficeColor second = OfficeColor.FromRgb(20, 20, 200);
+        OfficeDrawing Render(params OfficeChartSeries[] series) => OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot("", null, kind,
+                new OfficeChartData(new[] { "A" }, series), 480, 260,
+                layout: new OfficeChartLayout(showLegend: false)));
+        var single = Render(new OfficeChartSeries("First", new[] { 10d }, null, first));
+        var paired = Render(new OfficeChartSeries("First", new[] { 10d }, null, first),
+            new OfficeChartSeries("Second", new[] { 10d }, null, second));
+        double singleSize = kind == OfficeChartKind.BarClustered
+            ? single.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Height
+            : single.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Width;
+        double pairedSize = kind == OfficeChartKind.BarClustered
+            ? paired.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Height
+            : paired.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Width;
+        Assert.Equal(2.5D / 3.5D, pairedSize / singleSize, 3);
+    }
+
+    [Theory]
     [InlineData(.705, "0%", "71%")]
     [InlineData(-.705, "0%", "-71%")]
     [InlineData(12.5, "0", "13")]

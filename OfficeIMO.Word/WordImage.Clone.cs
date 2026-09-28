@@ -1,6 +1,3 @@
-using Blip = DocumentFormat.OpenXml.Drawing.Blip;
-using HyperlinkOnClick = DocumentFormat.OpenXml.Drawing.HyperlinkOnClick;
-using HyperlinkOnHover = DocumentFormat.OpenXml.Drawing.HyperlinkOnHover;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -55,22 +52,10 @@ public partial class WordImage {
             return new WordImage(paragraph._document, paragraph._paragraph, run, shape);
         }
         var drawing = (DocumentFormat.OpenXml.Wordprocessing.Drawing)_Image.CloneNode(true);
-        foreach (var blip in drawing.Descendants<Blip>()) {
-            if (blip.Embed?.Value is string id) blip.Embed = Remap(id);
-            if (blip.Link?.Value is string link) blip.Link = Remap(link);
-        }
-        foreach (var hyperlink in drawing.Descendants<HyperlinkOnClick>())
-            if (hyperlink.Id?.Value is string id) hyperlink.Id = Remap(id);
-        foreach (var hyperlink in drawing.Descendants<HyperlinkOnHover>())
-            if (hyperlink.Id?.Value is string id) hyperlink.Id = Remap(id);
-        foreach (var svg in drawing.Descendants().Where(element => element.LocalName == "svgBlip"
-            && (element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2010/main"
-                || element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2016/SVG/main"))) {
-            var embed = svg.GetAttributes().FirstOrDefault(attribute =>
-                attribute.LocalName == "embed" && attribute.NamespaceUri == relationshipNamespace);
-            if (!string.IsNullOrEmpty(embed.Value))
-                svg.SetAttribute(new OpenXmlAttribute("r", "embed", relationshipNamespace, Remap(embed.Value!)));
-        }
+        foreach (OpenXmlElement element in new OpenXmlElement[] { drawing }.Concat(drawing.Descendants()))
+            foreach (OpenXmlAttribute attribute in element.GetAttributes().Where(attribute => attribute.NamespaceUri == relationshipNamespace).ToArray())
+                if (!string.IsNullOrEmpty(attribute.Value))
+                    element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, Remap(attribute.Value!)));
         WordDrawingIdAllocator.Reassign(paragraph._document, drawing);
         paragraph._paragraph.Append(new Run(drawing));
         return new WordImage(paragraph._document, drawing);

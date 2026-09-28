@@ -121,16 +121,15 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (index < 0 || index >= data.Series.Count) continue;
                 OfficeChartSeries series = data.Series[index];
                 OfficeChartKind kind = series.RenderKind ?? defaultKind;
-                OfficeColor? fallbackBubbleColor =
-                    (materializeMissingBubbleColors ||
-                     preservedSeriesIndexes != null &&
-                     !preservedSeriesIndexes.Contains(nativeIndex)) &&
-                    kind == OfficeChartKind.Bubble &&
+                bool newSeries = preservedSeriesIndexes == null || !preservedSeriesIndexes.Contains(nativeIndex);
+                OfficeColor? fallbackSeriesColor =
+                    (newSeries || materializeMissingBubbleColors && kind == OfficeChartKind.Bubble) &&
+                    kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut &&
                     !series.Color.HasValue
                         ? OfficeChartStyle.Default.GetSeriesColor(index)
                         : null;
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
-                    fallbackBubbleColor);
+                    fallbackSeriesColor);
                 ApplySharedSeriesMarker(seriesElement, series, kind);
                 ApplySharedPointColors(seriesElement, series);
                 OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);

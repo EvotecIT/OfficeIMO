@@ -183,7 +183,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? Description {
             get => _vmlShape != null ? _vmlShape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value : GetDocProperties()?.Description;
-            set => GetWritableDocProperties()?.Description = value;
+            set {
+                if (_vmlShape != null) {
+                    if (string.IsNullOrEmpty(value)) _vmlShape.RemoveAttribute("alt", "");
+                    else _vmlShape.SetAttribute(new OpenXmlAttribute("", "alt", "", value));
+                } else GetWritableDocProperties()?.Description = value;
+            }
         }
 
         /// <summary>
