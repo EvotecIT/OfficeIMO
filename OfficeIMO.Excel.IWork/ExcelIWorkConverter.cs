@@ -26,22 +26,15 @@ public static partial class ExcelIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (projection.Sheets.SelectMany(sheet => sheet.Tables)
+        if (mode != IWorkConversionMode.VisualOnly
+            && projection.Sheets.SelectMany(sheet => sheet.Tables)
             .SelectMany(table => table.Cells)
-            .Any(cell => cell.RichText != null &&
-                (cell.Kind == IWorkCellKind.Formula
-                 || cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                    .Any(run => run.Hyperlink != null)
-                 && UniformCellHyperlink(cell.RichText) == null
-                 || cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                     .Any(run => run.Style.BackgroundColor != null
-                         || run.Style.Color is { Alpha: < byte.MaxValue })
-                 || cell.RichText.Paragraphs.Any(paragraph =>
-                     paragraph.ListLevel >= 0 || !string.IsNullOrEmpty(paragraph.ListLabel))))) {
+            .Any(cell => cell.RichText != null
+                && HasUnsupportedRichText(cell.RichText, cell.Kind == IWorkCellKind.Formula))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
-                    "Some formula-cell rich text, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
+                    "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
@@ -174,6 +167,28 @@ public static partial class ExcelIWorkConverter {
     private static string ErrorText(IWorkTableCell cell) => cell.Kind == IWorkCellKind.Formula
             ? cell.CachedDisplayText
             : cell.DisplayText;
+
+    internal static bool HasUnsupportedRichText(IWorkTextContent content, bool formula) =>
+        formula
+        || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+            .Any(run => run.Hyperlink != null)
+            && UniformCellHyperlink(content) == null
+        || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+            .Any(run => run.Style.BackgroundColor != null
+                || run.Style.Color is { Alpha: < byte.MaxValue })
+        || content.Paragraphs.Any(paragraph =>
+            paragraph.ListLevel >= 0 || !string.IsNullOrEmpty(paragraph.ListLabel)
+            || paragraph.Style.Alignment.HasValue
+            || paragraph.Style.FirstLineIndentPoints.HasValue
+            || paragraph.Style.LeftIndentPoints.HasValue
+            || paragraph.Style.RightIndentPoints.HasValue
+            || paragraph.Style.SpaceBeforePoints.HasValue
+            || paragraph.Style.SpaceAfterPoints.HasValue
+            || paragraph.Style.PageBreakBefore.HasValue
+            || paragraph.Style.KeepWithNext.HasValue
+            || paragraph.Style.KeepLinesTogether.HasValue
+            || paragraph.BreakKind is IWorkParagraphBreakKind.Section
+                or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
 
     private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold) {
         var runs = new List<ExcelRichTextRun>();
