@@ -247,8 +247,6 @@ namespace OfficeIMO.Excel {
             (PivotFieldValue Key, double Value)[] values, PivotFilterValues type, Top10 ranking) {
             if (values.Length == 0) return new HashSet<PivotFieldValue>();
             bool top = ranking.Top?.Value != false;
-            if (type != PivotFilterValues.Count && values.Any(pair => pair.Value <= 0))
-                throw new NotSupportedException("Top/bottom sum and percent materialization requires positive numeric aggregates.");
             Array.Sort(values, (left, right) => top
                 ? right.Value.CompareTo(left.Value) : left.Value.CompareTo(right.Value));
             double requested = ranking.Val!.Value;
@@ -256,6 +254,8 @@ namespace OfficeIMO.Excel {
                 ? values.Sum(pair => pair.Value) * (requested / 100d) : requested;
             if (double.IsNaN(target) || double.IsInfinity(target))
                 throw new NotSupportedException("The top/bottom percent total exceeds the qualified numeric range.");
+            if (type == PivotFilterValues.Percent && target == 0)
+                return new HashSet<PivotFieldValue>(values.Select(pair => pair.Key));
             int cutoffIndex = 0;
             if (type == PivotFilterValues.Count) {
                 cutoffIndex = Math.Min(values.Length, (int)requested) - 1;
@@ -263,7 +263,9 @@ namespace OfficeIMO.Excel {
                 double accumulated = 0;
                 for (; cutoffIndex < values.Length - 1; cutoffIndex++) {
                     accumulated += values[cutoffIndex].Value;
-                    if (accumulated >= target) break;
+                    if (double.IsNaN(accumulated) || double.IsInfinity(accumulated))
+                        throw new NotSupportedException("The top/bottom ranking total exceeds the qualified numeric range.");
+                    if (target < 0 ? accumulated <= target : accumulated >= target) break;
                 }
             }
             double cutoff = values[cutoffIndex].Value;

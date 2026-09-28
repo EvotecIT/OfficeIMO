@@ -12,6 +12,22 @@ namespace OfficeIMO.Tests {
         [InlineData("bottom-percent", "A4:B9", 6, 100d)]
         [InlineData("top-sum", "A4:B7", 4, 100d)]
         [InlineData("bottom-sum", "A4:B8", 5, 60d)]
+        [InlineData("zero-top-percent", "A4:B7", 4, 90d)]
+        [InlineData("zero-bottom-percent", "A4:B9", 6, 60d)]
+        [InlineData("zero-top-sum", "A4:B7", 4, 90d)]
+        [InlineData("zero-bottom-sum", "A4:B9", 6, 60d)]
+        [InlineData("mixed-top-count", "A4:B6", 3, 50d)]
+        [InlineData("mixed-bottom-count", "A4:B6", 3, -40d)]
+        [InlineData("mixed-top-percent", "A4:B6", 3, 50d)]
+        [InlineData("mixed-bottom-percent", "A4:B11", 8, 50d)]
+        [InlineData("mixed-top-sum", "A4:B7", 4, 80d)]
+        [InlineData("mixed-bottom-sum", "A4:B11", 8, 50d)]
+        [InlineData("negative-top-percent", "A4:B9", 6, -100d)]
+        [InlineData("negative-bottom-percent", "A4:B7", 4, -110d)]
+        [InlineData("mixed-negative-top-percent", "A4:B10", 7, -35d)]
+        [InlineData("mixed-negative-bottom-percent", "A4:B6", 3, -25d)]
+        [InlineData("balanced-top-percent", "A4:B11", 8, 0d)]
+        [InlineData("balanced-bottom-percent", "A4:B11", 8, 0d)]
         public void Test_PivotValueRangeRanking_ImportedViewAndLookupMatchExcel(
             string kind, string range, int rows, double total) {
             string file = $"pivot-value-{kind}-conformance.xlsx";
@@ -77,6 +93,62 @@ namespace OfficeIMO.Tests {
                     "bottom-sum" => ExcelPivotFilter.BottomSum("Region", "Metric", 35),
                     _ => throw new ArgumentOutOfRangeException(nameof(kind))
                 };
+                source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                var result = source.MaterializePivotTable("FilteredPivot");
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
+        [Theory]
+        [InlineData("zero-top-percent", 90d)]
+        [InlineData("zero-bottom-percent", 60d)]
+        [InlineData("zero-top-sum", 90d)]
+        [InlineData("zero-bottom-sum", 60d)]
+        [InlineData("mixed-top-count", 50d)]
+        [InlineData("mixed-bottom-count", -40d)]
+        [InlineData("mixed-top-percent", 50d)]
+        [InlineData("mixed-bottom-percent", 50d)]
+        [InlineData("mixed-top-sum", 80d)]
+        [InlineData("mixed-bottom-sum", 50d)]
+        [InlineData("negative-top-percent", -100d)]
+        [InlineData("negative-bottom-percent", -110d)]
+        [InlineData("mixed-negative-top-percent", -35d)]
+        [InlineData("mixed-negative-bottom-percent", -25d)]
+        [InlineData("balanced-top-percent", 0d)]
+        [InlineData("balanced-bottom-percent", 0d)]
+        public void Test_PivotNonpositiveRanking_TemplateFreePublicApi(string kind, double total) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.value-{kind}.Authored.xlsx");
+            double[] amounts = kind.StartsWith("zero-", StringComparison.Ordinal) ? new double[] { 0, 10, 20, 30, 40, 50 }
+                : kind.StartsWith("mixed-negative-", StringComparison.Ordinal) ? new double[] { 30, -10, -15, -20, -20, -25 }
+                : kind.StartsWith("mixed-", StringComparison.Ordinal) ? new double[] { -40, -10, 0, 20, 30, 50 }
+                : kind.StartsWith("negative-", StringComparison.Ordinal) ? new double[] { -60, -50, -40, -30, -20, -10 }
+                : new double[] { -50, -20, 0, 10, 20, 40 };
+            ExcelPivotFilter filter = kind switch {
+                "mixed-top-count" => ExcelPivotFilter.TopCount("Region", "Metric", 1),
+                "mixed-bottom-count" => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
+                "zero-top-sum" or "mixed-top-sum" => ExcelPivotFilter.TopSum("Region", "Metric", 60),
+                "zero-bottom-sum" => ExcelPivotFilter.BottomSum("Region", "Metric", 60),
+                "mixed-bottom-sum" => ExcelPivotFilter.BottomSum("Region", "Metric", 20),
+                "zero-top-percent" or "mixed-top-percent" or "negative-top-percent" or "mixed-negative-top-percent" or "balanced-top-percent"
+                    => ExcelPivotFilter.TopPercent("Region", "Metric", 40),
+                _ => ExcelPivotFilter.BottomPercent("Region", "Metric", 40)
+            };
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Sales");
+                string[] names = { "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot" };
+                for (int index = 0; index < names.Length; index++) {
+                    source.CellValue(index + 2, 1, names[index]);
+                    source.CellValue(index + 2, 2, amounts[index]);
+                }
                 source.Pivot("A1:B7").Rows("Region").Sum("Sales", "Metric")
                     .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
                 var result = source.MaterializePivotTable("FilteredPivot");
