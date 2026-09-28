@@ -114,6 +114,7 @@ public sealed class WordChartPresentationQualificationTests {
             new OfficeChartSeries("Values", positive ? new[] { 10d, 20d } : new[] { -10d, -20d }) }));
         var axis = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.Elements<C.ValueAxis>().Single();
         axis.GetFirstChild<C.Scaling>()!.AddChild(positive ? new C.MinAxisValue { Val = 5d } : new C.MaxAxisValue { Val = -5d }, true);
+        if (!positive) axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Minimum;
         string native = chart.ChartPart.ChartSpace.OuterXml;
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements,
