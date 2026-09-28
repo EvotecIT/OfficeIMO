@@ -164,6 +164,10 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (anchor != null) series.InsertBefore(point, anchor);
             else series.Append(point);
         }
+        ApplyPointStyle(point, style, legacyColor);
+    }
+
+    private static void ApplyPointStyle(C.DataPoint point, OfficeChartPointStyle? style, OfficeColor? legacyColor) {
         C.ChartShapeProperties properties = point.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
         properties.RemoveAllChildren<A.SolidFill>();
         properties.RemoveAllChildren<A.NoFill>();
