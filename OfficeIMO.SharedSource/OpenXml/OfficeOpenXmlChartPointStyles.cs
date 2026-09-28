@@ -62,6 +62,10 @@ internal static class OfficeOpenXmlChartPointStyles {
         outline.Alignment != null && outline.Alignment.Value != A.PenAlignmentValues.Center ||
         outline.CompoundLineType != null && outline.CompoundLineType.Value != A.CompoundLineValues.Single;
 
+    internal static bool HasUnsupportedPointContent(C.DataPoint point) =>
+        point.ChildElements.Any(child => child is not C.Index and not C.ChartShapeProperties &&
+            !(child is C.Explosion && point.Parent is C.PieChartSeries));
+
     internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) =>
         Read(GetBoundedPoints(series), count, scheme, series.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true);
 
@@ -70,8 +74,8 @@ internal static class OfficeOpenXmlChartPointStyles {
         foreach (C.DataPoint point in points) {
             uint? index = point.Index?.Val?.Value;
             if (!index.HasValue || index.Value >= (uint)count) continue;
-            if (point.GetFirstChild<C.Marker>() != null)
-                throw new System.IO.InvalidDataException("Per-point native markers cannot be projected by the shared chart model.");
+            if (HasUnsupportedPointContent(point))
+                throw new System.IO.InvalidDataException("The native point record contains unsupported appearance or behavior.");
             C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) continue;
             if (!IsSupported(properties, scheme, flattenThreeDimensional))

@@ -204,6 +204,59 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
     }
 
     [Fact]
+    public void DefaultOdsPieOffsetReportsWholeChartLoss() {
+        OdsDocument source = CreateStyledOdsChart(OdsChartType.Pie);
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        part.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(
+            new XElement(OdfNamespaces.Style + "default-style",
+                new XAttribute(OdfNamespaces.Style + "family", "chart"),
+                new XElement(OdfNamespaces.Style + "chart-properties",
+                    new XAttribute(OdfNamespaces.Chart + "pie-offset", "25"))));
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Empty(converted["Data"].Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void EmptyOdsPointStyleDoesNotTurnAValidChartIntoLoss() {
+        OdsDocument source = OdsDocument.Create();
+        OdsSheet sheet = source.AddSheet("Data");
+        for (int index = 0; index < 2; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$2",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$2") },
+            2, 4, OdfRect.FromCentimeters(0, 0, 10, 7));
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement point = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"))
+            .Elements(OdfNamespaces.Chart + "data-point").First();
+        point.SetAttributeValue(OdfNamespaces.Chart + "repeated", null);
+        point.SetAttributeValue(OdfNamespaces.Chart + "style-name", "EmptyPoint");
+        part.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.Add(
+            new XElement(OdfNamespaces.Style + "style",
+                new XAttribute(OdfNamespaces.Style + "name", "EmptyPoint"),
+                new XAttribute(OdfNamespaces.Style + "family", "chart")));
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Single(converted["Data"].Charts);
+        Assert.DoesNotContain(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
     public void StyledOdsLineReportsWholeChartLoss() {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
@@ -248,6 +301,27 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
                     new(fillColor: OfficeColor.Parse("#228844")), null, null
                 }) });
         sheet.AddChart(OfficeChartKind.Line, data, row: 2, column: 4);
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
+            mapping.Count == 1);
+    }
+
+    [Fact]
+    public void ExcelPointInversionReportsWholeChartLoss() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelChart chart = source.AddWorksheet("Summary").AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Loss", "Gain" }, new[] {
+                new OfficeChartSeries("Status", new[] { -3d, 4d })
+            }), row: 2, column: 4);
+        C.BarChartSeries native = source.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.BarChartSeries>().Single();
+        native.AddChild(new C.DataPoint(new C.Index { Val = 0U },
+            new C.InvertIfNegative { Val = true }), true);
+        Assert.False(chart.TryGetSnapshot(out _));
 
         OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
         Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
