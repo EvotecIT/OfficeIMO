@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "cb18906c2cb65045a3f3150a653b623c920c539b",
+  "sourceClean": true,
+  "archiveSha256": "ca63703f97b63439d1969d7425e4e9f07c611566b6c7089e47b1b0d058739735",
+  "browserVersion": "151.0.7922.34",
+  "nasaOperations": 13,
+  "nasaConversionFailures": 0,
+  "operations": [
+    {
+      "intent": "chromium-screen",
+      "sha256": "1c7d0d68deaaaac23879244c92078f2f0664d1b9119e03069e4b44b8ca5f1672",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "chromium-print",
+      "sha256": "686e99dc55175f0c3ba690c57c2b00783e61fa655617664d72c4ad5a946d1582",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-print",
+      "sha256": "86f00901c418c5059f04dc16e9c71f20d867d4e35a6372b1a543cdb26cfd8653",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-print-zero-margin",
+      "sha256": "a79c324a1f9b28f509a974233dac78942afeb21a89ef8040436d68b8e464c41d",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-print-fit-1200",
+      "sha256": "a043ee2ced33a9bca086a3f08bf3cce7e53088abed3ade049b75e4b009c8599f",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-print-fit-1200-local-fonts",
+      "sha256": "75a6d87c2fcb70e34f35ecf81cc8aa9b66c83156d1dd4c08ade26ce88805d585",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-print-browser-ua",
+      "sha256": "a79c324a1f9b28f509a974233dac78942afeb21a89ef8040436d68b8e464c41d",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-print-zero-margin-local-fonts",
+      "sha256": "3f1376bb6839d1159b2d89619e73fda66ec68ab1cc5b20a72cd50ec5c5187426",
+      "pageCount": 4,
+      "previousPageCount": 4
+    },
+    {
+      "intent": "officeimo-screen-media",
+      "sha256": "0732fa093b52600c4699e8ba1348f51b4dba136901e763458b955c859d415c30",
+      "pageCount": 10,
+      "previousPageCount": 10
+    },
+    {
+      "intent": "officeimo-screen-media-local-fonts",
+      "sha256": "7ed93c555acc579d7d64af3e45a0b7907d18876f5d5a7a31e4518b2348c30e94",
+      "pageCount": 10,
+      "previousPageCount": 10
+    },
+    {
+      "intent": "officeimo-screen-snapshot",
+      "sha256": "a450e8e57656b8c21dfb4b2e18f435dc5dd11618e053b369dd45c4e4dacd97eb",
+      "pageCount": 12,
+      "previousPageCount": 12
+    },
+    {
+      "intent": "officeimo-screen-snapshot-local-fonts",
+      "sha256": "93635638ebe4f2ea7ba454e5824a6115ab63810dc4f9e5a8727d1c80b00b9bbf",
+      "pageCount": 12,
+      "previousPageCount": 12
+    },
+    {
+      "intent": "peachpdf-print",
+      "sha256": "970d8c326e8333b59c48872789e365c84896080ad877e4f7eb7c7416763efc71",
+      "pageCount": 3,
+      "previousPageCount": 3
+    }
+  ],
+  "h4": {
+    "sourceCommit": "cb18906c2cb65045a3f3150a653b623c920c539b",
+    "sourceClean": true,
+    "cases": 8,
+    "acceptancePassed": true,
+    "directOwnedArtifactsCompared": 72,
+    "directOwnedArtifactsChanged": 0
+  },
+  "validation": {
+    "htmlNet10Passed": 3716,
+    "htmlNet8Passed": 3716,
+    "netstandard20Warnings": 0,
+    "preferredBreakReviewFindingClosed": true,
+    "zeroMarginPrintPixelsChangedByPage": [
+      0,
+      0,
+      0,
+      26527
+    ],
+    "zeroMarginPrintPage4ChangedBounds144Dpi": [
+      422,
+      704,
+      1179,
+      836
+    ],
+    "cardTextCrop144Dpi": [
+      420,
+      670,
+      1185,
+      840
+    ],
+    "cardTextMeanAbsoluteRgbErrorBefore": 33.521,
+    "cardTextMeanAbsoluteRgbErrorAfter": 28.626,
+    "browserPrintPage4ReplayVariationPixels": 14963
+  },
+  "macosH4Budget": {
+    "status": "Failed",
+    "coldProcessElapsedMilliseconds": 10906.7179,
+    "warmElapsedMilliseconds": [
+      2660.9032,
+      2868.5429,
+      6139.6098
+    ],
+    "peakWorkingSetBytes": 546799616,
+    "coldWarmDeterministic": true,
+    "failures": [
+      "cold process elapsed milliseconds 10906.7 exceeded ceiling 8000.0.",
+      "warm iteration 3 elapsed milliseconds 6139.6 exceeded ceiling 3000.0."
+    ]
+  }
+}
