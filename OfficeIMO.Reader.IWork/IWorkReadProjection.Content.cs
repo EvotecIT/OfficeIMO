@@ -7,6 +7,7 @@ internal sealed partial class IWorkReadProjection {
         _cancellationToken.ThrowIfCancellationRequested();
         int tableIndex = _pageTables[page].Count;
         int headerRows = Math.Min(source.HeaderRowCount, source.RowCount);
+        int materializedHeaderRows = Math.Min(headerRows, Math.Max(1, _readerOptions.MaxTableRows));
         int totalDataRows = source.RowCount - headerRows;
         int dataRows = Math.Min(totalDataRows, Math.Max(1, _readerOptions.MaxTableRows));
         int columnCount = Math.Min(source.ColumnCount, _options.MaximumTableColumns);
@@ -14,7 +15,7 @@ internal sealed partial class IWorkReadProjection {
         bool hasHeader = headerRows > 0;
         string[] columns = Enumerable.Range(1, columnCount)
             .Select(column => hasHeader
-                ? string.Join(" / ", Enumerable.Range(1, headerRows)
+                ? string.Join(" / ", Enumerable.Range(1, materializedHeaderRows)
                     .Select(row => CellText(source.GetCell(row, column)))
                     .Where(value => value.Length > 0))
                 : "Column " + column.ToString(CultureInfo.InvariantCulture))
@@ -25,7 +26,8 @@ internal sealed partial class IWorkReadProjection {
             rows.Add(Enumerable.Range(1, columnCount)
                 .Select(column => CellText(source.GetCell(row, column))).ToArray());
         }
-        bool truncated = totalDataRows > dataRows || source.ColumnCount > columnCount;
+        bool truncated = headerRows > materializedHeaderRows
+            || totalDataRows > dataRows || source.ColumnCount > columnCount;
         var location = Location(page);
         location.TableIndex = tableIndex;
         var table = new ReaderTable {
@@ -60,7 +62,9 @@ internal sealed partial class IWorkReadProjection {
             });
         }
         foreach (IWorkTableCell cell in source.Cells) {
-            if (cell.Row > headerRows + dataRows || cell.Column > columnCount || cell.RichText == null) continue;
+            if (cell.Row > headerRows + dataRows || cell.Column > columnCount
+                || (cell.Row > materializedHeaderRows && cell.Row <= headerRows)
+                || cell.RichText == null) continue;
             foreach (IWorkTextParagraph paragraph in cell.RichText.Paragraphs) {
                 AddRunLinks(page, paragraph.Runs, location);
             }
