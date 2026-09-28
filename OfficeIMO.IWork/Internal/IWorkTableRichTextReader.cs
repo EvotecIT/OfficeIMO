@@ -47,10 +47,18 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            IWorkWireMessage wrapperMessage = index.Message(wrapper);
+            if (!TryReadRecord(index, wrapper, options, out IWorkWireMessage? wrapperMessage)
+                || wrapperMessage == null) {
+                fullyReconstructed = false;
+                continue;
+            }
             IWorkArchiveRecord? storage = index.Dereference(wrapperMessage, 1);
             if (wrapperMessage.FieldCount(1) != 1
                 || storage?.MessageType != TextStorageArchive) {
+                fullyReconstructed = false;
+                continue;
+            }
+            if (!TryReadRecord(index, storage, options, out _)) {
                 fullyReconstructed = false;
                 continue;
             }
@@ -60,5 +68,19 @@ internal static class IWorkTableRichTextReader {
             strings.Add(normalizedKey, content.PlainText);
         }
         return strings;
+    }
+
+    private static bool TryReadRecord(IWorkObjectIndex index, IWorkArchiveRecord record,
+        IWorkReadOptions options, out IWorkWireMessage? message) {
+        message = null;
+        try {
+            // Count first so configured field limits remain fatal even when the record is malformed.
+            IWorkProtobuf.CountFields(record.Payload, 1, options.MaximumProtobufFieldCount);
+            message = index.Message(record);
+            return true;
+        } catch (InvalidDataException exception)
+            when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            return false;
+        }
     }
 }

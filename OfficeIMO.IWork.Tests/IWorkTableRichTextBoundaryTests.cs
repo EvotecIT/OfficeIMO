@@ -1,0 +1,43 @@
+using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
+
+namespace OfficeIMO.IWork.Tests;
+
+public sealed partial class IWorkBoundaryTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Malformed_rich_text_cell_records_do_not_abort_table_decoding(bool malformedWrapper) {
+        var options = new IWorkReadOptions();
+        const ulong listId = 1;
+        const ulong wrapperId = 2;
+        const ulong storageId = 3;
+        byte[] listPayload = Message(BytesField(3, Message(
+            VarintField(1, 1), ReferenceField(9, wrapperId))));
+        byte[] wrapperPayload = malformedWrapper
+            ? new byte[] { 0x80 }
+            : Message(ReferenceField(1, storageId));
+        byte[] storagePayload = malformedWrapper
+            ? Message(StringField(3, "Value"))
+            : new byte[] { 0x80 };
+        var records = new[] {
+            Record(listId, 6005, listPayload),
+            Record(wrapperId, 6218, wrapperPayload),
+            Record(storageId, 2001, storagePayload)
+        };
+        var index = new IWorkObjectIndex(records, options);
+        IWorkWireMessage store = IWorkProtobuf.Parse(
+            Message(ReferenceField(17, listId)), options);
+
+        IReadOnlyDictionary<uint, string> strings = IWorkTableRichTextReader.Read(
+            index, store, new IWorkProjectionBudget(options), options,
+            options.MaximumTableCatalogEntries, out bool complete);
+
+        Assert.False(complete);
+        Assert.Empty(strings);
+
+        static IWorkArchiveRecord Record(ulong id, uint type, byte[] payload) =>
+            new(id, type, Array.Empty<uint>(), Array.Empty<ulong>(),
+                Array.Empty<ulong>(), "Index/Tables/Test.iwa", 0, payload);
+    }
+}
