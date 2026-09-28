@@ -80,6 +80,27 @@ public sealed class WordSharedChartAppearanceTests {
     }
 
     [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void SharedAppearance_DataUpdatePreservesExplicitMarkerFillWhenColorIsUnspecified(OfficeChartKind kind) {
+        using WordDocument document = WordDocument.Create();
+        var chart = document.AddChart(kind, Data(kind));
+        var series = Series(chart);
+        var shape = series.GetFirstChild<C.ChartShapeProperties>()!;
+        shape.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.SolidFill>();
+        shape.GetFirstChild<A.Outline>()!.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }), true);
+        var marker = series.GetFirstChild<C.Marker>()!;
+        marker.ChartShapeProperties!.RemoveAllChildren<A.SolidFill>();
+        marker.ChartShapeProperties.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = "FFFFFF" }), true);
+
+        chart.SetData(kind, Data(kind));
+
+        var updated = Series(chart).GetFirstChild<C.Marker>()!.ChartShapeProperties!;
+        Assert.Equal("FFFFFF", updated.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
     public void SharedAppearance_HiddenRadialSeriesHidesEveryCategoryAndUpdatesVisibility(OfficeChartKind kind) {

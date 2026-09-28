@@ -57,8 +57,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 });
             }
             chartPart.ChartSpace = chartSpace;
-            ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
-                materializeMissingBubbleColors: true);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind);
         }
 
         internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
@@ -76,6 +75,8 @@ namespace OfficeIMO.OpenXml.Internal {
 
             ISet<uint>? preservedSeriesIndexes = null;
             if (defaultKind == OfficeChartKind.Scatter && IsOnlySharedScatterPlot(plotArea)) {
+                preservedSeriesIndexes = new HashSet<uint>(EnumerateSharedSeriesElements(plotArea)
+                    .Select(series => series.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue));
                 UpdateScatterData(chartPart, NormalizeScatterData(data));
             } else {
                 preservedSeriesIndexes = new HashSet<uint>();
@@ -102,14 +103,12 @@ namespace OfficeIMO.OpenXml.Internal {
             }
 
             UpdateSharedLegend(chart, data, defaultKind);
-            ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
-                materializeMissingBubbleColors: false,
-                preservedSeriesIndexes);
+            ApplySharedChartSeriesStyle(chartPart, data, defaultKind, preservedSeriesIndexes);
             chartSpace.Save();
         }
 
         internal static void ApplySharedChartSeriesStyle(ChartPart chartPart, OfficeChartData data,
-            OfficeChartKind defaultKind, bool materializeMissingBubbleColors,
+            OfficeChartKind defaultKind,
             ISet<uint>? preservedSeriesIndexes = null) {
             C.PlotArea? plotArea = chartPart.ChartSpace?.GetFirstChild<C.Chart>()?.GetFirstChild<C.PlotArea>();
             if (plotArea == null) return;
@@ -122,12 +121,11 @@ namespace OfficeIMO.OpenXml.Internal {
                 OfficeChartSeries series = data.Series[index];
                 OfficeChartKind kind = series.RenderKind ?? defaultKind;
                 bool newSeries = preservedSeriesIndexes == null || !preservedSeriesIndexes.Contains(nativeIndex);
-                OfficeColor? fallbackSeriesColor =
-                    (newSeries || materializeMissingBubbleColors && kind == OfficeChartKind.Bubble) &&
+                OfficeColor? fallbackSeriesColor = newSeries &&
                     kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut &&
                     !series.Color.HasValue
                         ? OfficeChartStyle.Default.GetSeriesColor(index)
-                        : !series.Color.HasValue ? ReadDirectSeriesColor(seriesElement) : null;
+                        : null;
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
                     fallbackSeriesColor);
                 ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor);
