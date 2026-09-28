@@ -83,6 +83,12 @@ measurement](officeimo.csv-wide-read-dispatch-2026-09-28.md) records the
 source-level read improvement on both processor groups. DataReader writing and
 portable regression budgets remain open work.
 
+The [wide high-cardinality async reader measurement](officeimo.csv-wide-async-read-2026-09-28.md)
+compares the public snapshot and incremental readers on distinct-string,
+32-field files. It records first-row latency and complete traversal on both
+Windows processor domains without treating a small throughput difference as
+a portable win.
+
 ## Word Open XML SDK evidence
 
 `OfficeIMO.Word.Benchmarks` has a publishable lane containing only OfficeIMO and
