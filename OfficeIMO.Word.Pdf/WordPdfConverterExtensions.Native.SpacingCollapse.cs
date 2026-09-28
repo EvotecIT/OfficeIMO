@@ -5,6 +5,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private sealed class NativeSpacingCollapseFlow : INativePdfFlow {
+            public bool SupportsPositionedTables => _inner.SupportsPositionedTables;
             private readonly INativePdfFlow _inner;
             private double? _pendingSpacingAfter;
 
@@ -108,8 +109,8 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             public void Drawing(OfficeDrawing drawing, PdfCore.PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfCore.PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
-                _inner.Drawing(drawing, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
-                ResetSpacingCollapse();
+                _inner.Drawing(drawing, align, spacingBefore.HasValue ? CollapseSpacingBefore(spacingBefore.Value) : null, spacingAfter, style, linkUri, linkContents);
+                _pendingSpacingAfter = spacingAfter;
             }
 
             public void Canvas(Action<PdfCore.PdfPageCanvas> build) {

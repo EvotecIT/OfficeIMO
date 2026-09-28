@@ -431,33 +431,59 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             var runs = new List<WordParagraph>();
-            foreach (var element in paragraph._paragraph.ChildElements) {
-                if (element is W.Run run) {
-                    runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph, run));
-                } else if (element is W.Hyperlink hyperlink) {
-                    AddNativeHyperlinkRuns(runs, paragraph, hyperlink);
-                } else if (element is W.SdtRun sdtRun && IsNativeSimpleTextContentControl(sdtRun)) {
-                    AddNativeSdtRunRuns(runs, paragraph, sdtRun);
-                }
-            }
+            var fieldVisibility = WordComplexFieldRunVisibility.ForParagraph(paragraph._paragraph);
+            AddNativeVisibleRuns(runs, paragraph, paragraph._paragraph, null, fieldVisibility);
 
             return runs;
         }
 
-        private static void AddNativeSdtRunRuns(List<WordParagraph> runs, WordParagraph paragraph, W.SdtRun sdtRun) {
-            if (TryGetNativeSdtRunPropertyValue(paragraph._document, sdtRun, out string? propertyValue)) {
-                W.Run resolvedRun = CreateNativeResolvedSdtRun(sdtRun, propertyValue!);
-                runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, resolvedRun));
+        private static void AddNativeVisibleRuns(List<WordParagraph> runs, WordParagraph paragraph,
+            DocumentFormat.OpenXml.OpenXmlCompositeElement container, W.Hyperlink? hyperlink,
+            WordComplexFieldRunVisibility fieldVisibility) {
+            foreach (var element in container.ChildElements) {
+                if (element is W.Run sourceRun) {
+                    W.Run? visibleRun = fieldVisibility.GetVisibleRun(sourceRun, out var visibleSourceChildren);
+                    if (visibleRun != null)
+                        runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sourceRun) {
+                            _hyperlink = hyperlink,
+                            _visibleRun = ReferenceEquals(visibleRun, sourceRun) ? null : visibleRun,
+                            _visibleRunSourceChildren = visibleSourceChildren
+                        });
+                } else if (element is W.Hyperlink nestedHyperlink) {
+                    AddNativeVisibleRuns(runs, paragraph, nestedHyperlink, nestedHyperlink, fieldVisibility);
+                } else if (element is W.SimpleField simpleField) {
+                    if (fieldVisibility.IsVisible)
+                        AddNativeVisibleRuns(runs, paragraph, simpleField, hyperlink, fieldVisibility);
+                    else
+                        fieldVisibility.ObserveDescendantRuns(simpleField);
+                } else if (element is W.SdtRun sdtRun) {
+                    if (IsNativeSimpleTextContentControl(sdtRun))
+                        AddNativeSdtRunRuns(runs, paragraph, sdtRun, hyperlink, fieldVisibility);
+                    else
+                        fieldVisibility.ObserveDescendantRuns(sdtRun);
+                } else if (element is W.CustomXmlRun customXml) {
+                    AddNativeVisibleRuns(runs, paragraph, customXml, hyperlink, fieldVisibility);
+                }
+            }
+        }
+
+        private static void AddNativeSdtRunRuns(List<WordParagraph> runs, WordParagraph paragraph,
+            W.SdtRun sdtRun, W.Hyperlink? hyperlink, WordComplexFieldRunVisibility fieldVisibility) {
+            if (sdtRun.Descendants<W.FieldChar>().Any()) {
+                if (sdtRun.SdtContentRun != null)
+                    AddNativeVisibleRuns(runs, paragraph, sdtRun.SdtContentRun, hyperlink, fieldVisibility);
                 return;
             }
 
-            foreach (var childElement in sdtRun.SdtContentRun!.ChildElements) {
-                if (childElement is W.Run sdtContentRun) {
-                    runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, sdtContentRun));
-                } else if (childElement is W.Hyperlink sdtHyperlink) {
-                    AddNativeHyperlinkRuns(runs, paragraph, sdtHyperlink);
-                }
+            if (!fieldVisibility.IsVisible) return;
+            if (TryGetNativeSdtRunPropertyValue(paragraph._document, sdtRun, out string? propertyValue)) {
+                W.Run resolvedRun = CreateNativeResolvedSdtRun(sdtRun, propertyValue!);
+                runs.Add(new WordParagraph(paragraph._document, paragraph._paragraph!, resolvedRun) { _hyperlink = hyperlink });
+                return;
             }
+
+            if (sdtRun.SdtContentRun != null)
+                AddNativeVisibleRuns(runs, paragraph, sdtRun.SdtContentRun, hyperlink, fieldVisibility);
         }
 
         private static bool TryGetNativeSdtRunPropertyValue(WordDocument document, W.SdtRun sdtRun, out string? value) {
@@ -479,13 +505,6 @@ namespace OfficeIMO.Word.Pdf {
 
             resolvedRun.Append(new W.Text(value) { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve });
             return resolvedRun;
-        }
-
-        private static void AddNativeHyperlinkRuns(List<WordParagraph> runs, WordParagraph paragraph, W.Hyperlink hyperlink) {
-            foreach (W.Run childRun in hyperlink.Elements<W.Run>()) {
-                var run = new WordParagraph(paragraph._document, paragraph._paragraph!, childRun) { _hyperlink = hyperlink };
-                runs.Add(run);
-            }
         }
 
     }

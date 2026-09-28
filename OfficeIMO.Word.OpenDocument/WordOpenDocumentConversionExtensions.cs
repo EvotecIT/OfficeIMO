@@ -27,7 +27,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         var imageValidationBudget = new OdfImageValidationBudget();
         IReadOnlyList<WordParagraphSnapshot> sourceParagraphs = EnumerateParagraphs(snapshot).ToList();
         IReadOnlyList<WordParagraphSnapshot> convertedHeaderFooterParagraphs = effective.IncludeHeadersAndFooters && snapshot.Sections.Count > 0
-            ? EnumerateDefaultHeaderFooterParagraphs(snapshot.Sections[0]).ToList()
+            ? EnumerateMappedHeaderFooterParagraphs(snapshot.Sections[0]).ToList()
             : Array.Empty<WordParagraphSnapshot>();
         IEnumerable<WordParagraphSnapshot> convertedParagraphs = sourceParagraphs.Concat(convertedHeaderFooterParagraphs);
         int paragraphFormatting = convertedParagraphs.Count(HasUnsupportedParagraphFormatting);
@@ -85,22 +85,43 @@ public static partial class WordOpenDocumentConversionExtensions {
                 ref unsupportedImages, ref bookmarks, notes);
             CopyHeaderFooter(first.DefaultFooter, target.PageLayout.Footer, effective, imageValidationBudget, ref hyperlinks, ref images,
                 ref unsupportedImages, ref bookmarks, notes);
-            int firstDefaultTables = (first.DefaultHeader?.Tables.Count ?? 0) + (first.DefaultFooter?.Tables.Count ?? 0);
-            if (firstDefaultTables > 0) report.Add("header-footer-tables", OdfConversionMappingStatus.Skipped, firstDefaultTables,
-                "Tables in the first section's default header and footer are not represented by the current ODT header/footer surface.");
+            if (first.DifferentFirstPage) {
+                CopyHeaderFooter(first.FirstHeader, target.PageLayout.EnsureFirstHeader(), effective, imageValidationBudget,
+                    ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
+                CopyHeaderFooter(first.FirstFooter, target.PageLayout.EnsureFirstFooter(), effective, imageValidationBudget,
+                    ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
+            }
+            if (first.DocumentOddEvenSettingEnabled) {
+                CopyHeaderFooter(first.EvenHeader, target.PageLayout.EnsureLeftHeader(), effective, imageValidationBudget,
+                    ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
+                CopyHeaderFooter(first.EvenFooter, target.PageLayout.EnsureLeftFooter(), effective, imageValidationBudget,
+                    ref hyperlinks, ref images, ref unsupportedImages, ref bookmarks, notes);
+            }
+            int firstTables = EnumerateMappedHeaderFooters(first).Sum(part => part?.Tables.Count ?? 0);
+            if (firstTables > 0) report.Add("header-footer-tables", OdfConversionMappingStatus.Skipped, firstTables,
+                "Header and footer tables are not represented by the current ODT header/footer surface.");
             int laterDefaultBlocks = snapshot.Sections.Skip(1).Sum(section =>
-                (section.DefaultHeader?.Elements.Count ?? 0) + (section.DefaultFooter?.Elements.Count ?? 0));
+                (section.HasExplicitDefaultHeader ? Math.Max(1, section.DefaultHeader?.Elements.Count ?? 0) : 0) +
+                (section.HasExplicitDefaultFooter ? Math.Max(1, section.DefaultFooter?.Elements.Count ?? 0) : 0));
             if (laterDefaultBlocks > 0) report.Add("section-headers-footers", OdfConversionMappingStatus.Skipped, laterDefaultBlocks,
                 "Default header and footer content from later Word sections is omitted because ODT conversion emits one page layout.");
-            int alternate = snapshot.Sections.Sum(section =>
-                (section.FirstHeader == null ? 0 : 1) + (section.FirstFooter == null ? 0 : 1) +
-                (section.EvenHeader == null ? 0 : 1) + (section.EvenFooter == null ? 0 : 1));
-            if (alternate > 0) report.Add("alternate-headers-footers", OdfConversionMappingStatus.Unsupported, alternate,
-                "ODT conversion currently maps only the first section's default header and footer.");
+            int laterAlternate = snapshot.Sections.Skip(1).Sum(section =>
+                (section.HasExplicitFirstHeader ? 1 : 0) + (section.HasExplicitFirstFooter ? 1 : 0) +
+                (section.HasExplicitEvenHeader ? 1 : 0) + (section.HasExplicitEvenFooter ? 1 : 0) +
+                (section.DifferentFirstPage && !section.HasExplicitFirstHeader && !section.HasExplicitFirstFooter ? 1 : 0));
+            int inactiveAlternate = (first.DifferentFirstPage ? 0 : (first.HasExplicitFirstHeader ? 1 : 0) + (first.HasExplicitFirstFooter ? 1 : 0)) +
+                (first.DocumentOddEvenSettingEnabled ? 0 : (first.HasExplicitEvenHeader ? 1 : 0) + (first.HasExplicitEvenFooter ? 1 : 0));
+            if (laterAlternate + inactiveAlternate > 0) report.Add("alternate-headers-footers", OdfConversionMappingStatus.Unsupported,
+                laterAlternate + inactiveAlternate, "Alternate header and footer parts or active first-page behavior outside the first-section mapping are omitted.");
         } else if (headerFooterBlocks > 0) {
             report.Add("headers-footers", OdfConversionMappingStatus.Skipped, headerFooterBlocks,
                 "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
+
+        int unsupportedPageNumberStarts = snapshot.Sections.Select((section, index) => (section, index))
+            .Count(item => item.section.PageNumberStart is int start && (item.index > 0 || start != 1));
+        if (unsupportedPageNumberStarts > 0) report.Add("page-numbering", OdfConversionMappingStatus.Unsupported,
+            unsupportedPageNumberStarts, "Word section page-number restarts are not preserved by the one-layout ODT conversion.");
 
         AddCount(report, "paragraphs", paragraphs);
         AddCount(report, "headings", headings);
@@ -153,6 +174,7 @@ public static partial class WordOpenDocumentConversionExtensions {
         WordDocument target = WordDocument.Create();
         var report = new OdfConversionReport("ODT", "DOCX");
         int paragraphs = 0, headings = 0, lists = 0, tables = 0, hyperlinks = 0, externalHyperlinks = 0, images = 0, bookmarks = 0;
+        int approximatedHeadingLevels = 0;
         int approximatedRuns = 0, approximatedBookmarkRanges = 0, unsupportedMeasurements = 0;
         int mappedFields = 0, unsupportedFields = 0;
         var handledUnsupportedFieldElements = new HashSet<System.Xml.Linq.XElement>();
@@ -164,11 +186,13 @@ public static partial class WordOpenDocumentConversionExtensions {
         CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
         int approximatedTextDecorations = CountNonSolidTextDecorations(source);
         int unsupportedWritingModes = CountUnsupportedWritingModes(source);
+        OdtPageLayout sourcePageLayout = source.PageLayout;
+        OdtHeaderFooter[] sourceHeaderFooters = EnumerateOdtHeaderFooters(sourcePageLayout).ToArray();
         int sourceImages = source.ContentBlocks.Where(block => block.Paragraph != null).Sum(block => block.Paragraph!.Images.Count) +
             source.ContentBlocks.Where(block => block.Table != null).Sum(block => block.Table!.Rows
                 .Sum(row => row.Cells.Sum(cell => cell.Paragraphs.Sum(paragraph => paragraph.Images.Count)))) +
-            source.PageLayout.Header.Paragraphs.Sum(paragraph => paragraph.Images.Count) +
-            source.PageLayout.Footer.Paragraphs.Sum(paragraph => paragraph.Images.Count);
+            sourceHeaderFooters.Where(part => part.IsDisplayed)
+                .Sum(part => part.Paragraphs.Sum(paragraph => paragraph.Images.Count));
         WordList? currentList = null;
         bool? currentOrdered = null;
 
@@ -200,6 +224,7 @@ public static partial class WordOpenDocumentConversionExtensions {
                 currentOrdered = null;
                 converted = target.AddParagraph();
                 if (block.Kind == OdtContentBlockKind.Heading) {
+                    if (paragraph.HeadingLevel > 9) approximatedHeadingLevels++;
                     converted.Style = HeadingStyle(paragraph.HeadingLevel ?? 1);
                     headings++;
                 } else {
@@ -213,41 +238,64 @@ public static partial class WordOpenDocumentConversionExtensions {
                 handledUnsupportedFieldElements, notes);
         }
 
-        int unsupportedPageMeasurements = ApplyOdtPageLayout(source.PageLayout, target.Sections[0]);
+        int unsupportedPageMeasurements = ApplyOdtPageLayout(sourcePageLayout, target.Sections[0]);
         unsupportedMeasurements += unsupportedPageMeasurements;
         report.Add("page-layout", unsupportedPageMeasurements == 0
             ? OdfConversionMappingStatus.Converted
             : OdfConversionMappingStatus.Approximated, 1,
             unsupportedPageMeasurements == 0 ? null : "Relative page measurements were omitted while absolute layout values were retained.");
 
-        if (effective.IncludeHeadersAndFooters &&
-            (source.PageLayout.Header.Paragraphs.Count > 0 || source.PageLayout.Footer.Paragraphs.Count > 0)) {
+        int headerFooterParagraphs = sourceHeaderFooters.Sum(part => part.Paragraphs.Count);
+        int displayedHeaderFooterParagraphs = sourceHeaderFooters.Where(part => part.IsDisplayed).Sum(part => part.Paragraphs.Count);
+        int unsupportedHeaderFooterBlocks = sourceHeaderFooters.Where(part => part.IsDisplayed).Sum(part => part.NonParagraphBlockCount);
+        if (effective.IncludeHeadersAndFooters) approximatedHeadingLevels += sourceHeaderFooters.Where(part => part.IsDisplayed)
+            .Sum(part => part.Paragraphs.Count(paragraph => paragraph.HeadingLevel > 9));
+        int hiddenHeaderFooterBlocks = sourceHeaderFooters.Where(part => !part.IsDisplayed)
+            .Sum(part => part.Paragraphs.Count + part.NonParagraphBlockCount);
+        bool hasAlternateHeaderFooter = sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null ||
+            sourcePageLayout.LeftHeader != null || sourcePageLayout.LeftFooter != null;
+        if (effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hiddenHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
             target.AddHeadersAndFooters();
-            foreach (OdtParagraph paragraph in source.PageLayout.Header.Paragraphs) {
-                WordParagraph converted = target.Header!.Default!.AddParagraph();
-                CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
-                    ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
-                    handledUnsupportedFieldElements, notes, allowNotes: false);
+            WordSection firstSection = target.Sections[0];
+            if (sourcePageLayout.FirstHeader != null || sourcePageLayout.FirstFooter != null) {
+                firstSection.DifferentFirstPage = true;
             }
-            foreach (OdtParagraph paragraph in source.PageLayout.Footer.Paragraphs) {
-                WordParagraph converted = target.Footer!.Default!.AddParagraph();
-                CopyParagraph(paragraph, converted, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks, ref images, ref bookmarks,
-                    ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
-                    ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
-                    handledUnsupportedFieldElements, notes, allowNotes: false);
+            if (sourcePageLayout.LeftHeader != null || sourcePageLayout.LeftFooter != null) {
+                firstSection.DifferentOddAndEvenPages = true;
             }
-            report.Add("headers-footers", OdfConversionMappingStatus.Converted,
-                source.PageLayout.Header.Paragraphs.Count + source.PageLayout.Footer.Paragraphs.Count);
-        } else if (!effective.IncludeHeadersAndFooters &&
-            (source.PageLayout.Header.Paragraphs.Count > 0 || source.PageLayout.Footer.Paragraphs.Count > 0)) {
+            foreach ((OdtHeaderFooter? story, WordHeaderFooterType kind, bool isHeader) in
+                EnumerateOdtHeaderFooterVariants(sourcePageLayout)) {
+                OdtHeaderFooter? effectiveStory = story ?? ResolveOdtHeaderFooterFallback(sourcePageLayout, kind, isHeader);
+                if (effectiveStory == null) continue;
+                WordHeaderFooter destination = isHeader
+                    ? firstSection.GetOrCreateHeader(kind)
+                    : firstSection.GetOrCreateFooter(kind);
+                if (!effectiveStory.IsDisplayed) continue;
+                if (story == null) {
+                    CopyOdtHeaderFooterFallback(effectiveStory, destination, effective, textCaseCulture,
+                        handledUnsupportedFieldElements);
+                } else {
+                    CopyOdtHeaderFooter(effectiveStory, destination, effective, textCaseCulture, ref hyperlinks, ref externalHyperlinks,
+                        ref images, ref bookmarks, ref approximatedRuns, ref approximatedBookmarkRanges, ref unsupportedMeasurements,
+                        ref approximatedFontFamilyLists, ref unsupportedFontFamilies, ref mappedFields, ref unsupportedFields,
+                        handledUnsupportedFieldElements, notes);
+                }
+            }
+            AddCount(report, "headers-footers", displayedHeaderFooterParagraphs);
+            if (hiddenHeaderFooterBlocks > 0) report.Add("hidden-header-footer-content", OdfConversionMappingStatus.Skipped,
+                hiddenHeaderFooterBlocks, "Header and footer content marked style:display='false' is omitted from the Word story.");
+            if (unsupportedHeaderFooterBlocks > 0) report.Add("header-footer-blocks", OdfConversionMappingStatus.Unsupported,
+                unsupportedHeaderFooterBlocks, "Header and footer blocks other than paragraphs and headings are omitted.");
+        } else if (!effective.IncludeHeadersAndFooters && (headerFooterParagraphs > 0 || unsupportedHeaderFooterBlocks > 0 || hiddenHeaderFooterBlocks > 0 || hasAlternateHeaderFooter)) {
             report.Add("headers-footers", OdfConversionMappingStatus.Skipped,
-                source.PageLayout.Header.Paragraphs.Count + source.PageLayout.Footer.Paragraphs.Count,
+                Math.Max(1, displayedHeaderFooterParagraphs + unsupportedHeaderFooterBlocks + hiddenHeaderFooterBlocks),
                 "Header and footer content was omitted because IncludeHeadersAndFooters is disabled.");
         }
 
         AddCount(report, "paragraphs", paragraphs);
         AddCount(report, "headings", headings);
+        if (approximatedHeadingLevels > 0) report.Add("heading-levels", OdfConversionMappingStatus.Approximated,
+            approximatedHeadingLevels, "ODF outline level 10 was mapped to Word Heading9.");
         AddCount(report, "lists", lists);
         AddCount(report, "tables", tables);
         AddCount(report, "hyperlinks", hyperlinks);
@@ -676,7 +724,9 @@ public static partial class WordOpenDocumentConversionExtensions {
         ref int bookmarks, NoteMappingStats notes) {
         if (source == null) return;
         foreach (WordParagraphSnapshot paragraph in source.Paragraphs) {
-            CopyParagraph(paragraph, target.AddParagraph(), options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
+            int headingLevel = GetHeadingLevel(paragraph);
+            OdtParagraph converted = headingLevel > 0 ? target.AddHeading(string.Empty, headingLevel) : target.AddParagraph();
+            CopyParagraph(paragraph, converted, options, imageValidationBudget, ref hyperlinks, ref images, ref unsupportedImages,
                 ref bookmarks, notes);
         }
     }
@@ -716,8 +766,17 @@ public static partial class WordOpenDocumentConversionExtensions {
         }
     }
 
-    private static IEnumerable<WordParagraphSnapshot> EnumerateDefaultHeaderFooterParagraphs(WordSectionSnapshot section) =>
+    private static IEnumerable<WordHeaderFooterSnapshot?> EnumerateMappedHeaderFooters(WordSectionSnapshot section) =>
         new[] { section.DefaultHeader, section.DefaultFooter }
+            .Concat(section.DifferentFirstPage
+                ? new[] { section.FirstHeader, section.FirstFooter }
+                : Array.Empty<WordHeaderFooterSnapshot?>())
+            .Concat(section.DocumentOddEvenSettingEnabled
+                ? new[] { section.EvenHeader, section.EvenFooter }
+                : Array.Empty<WordHeaderFooterSnapshot?>());
+
+    private static IEnumerable<WordParagraphSnapshot> EnumerateMappedHeaderFooterParagraphs(WordSectionSnapshot section) =>
+        EnumerateMappedHeaderFooters(section)
             .Where(item => item != null)
             .SelectMany(item => item!.Paragraphs);
 
@@ -748,9 +807,16 @@ public static partial class WordOpenDocumentConversionExtensions {
         table.Rows.SelectMany(row => row.Cells).Any(cell => cell.ShadingFillColorHex != null || cell.LeftBorder != null ||
             cell.RightBorder != null || cell.TopBorder != null || cell.BottomBorder != null);
 
-    private static int CountHeaderFooterBlocks(WordSectionSnapshot section) => new[] {
-        section.DefaultHeader, section.DefaultFooter, section.FirstHeader, section.FirstFooter, section.EvenHeader, section.EvenFooter
-    }.Where(item => item != null).Sum(item => item!.Elements.Count);
+    private static int CountHeaderFooterBlocks(WordSectionSnapshot section) =>
+        CountBlocks(section.DefaultHeader, section.Index == 0 || section.HasExplicitDefaultHeader) +
+        CountBlocks(section.DefaultFooter, section.Index == 0 || section.HasExplicitDefaultFooter) +
+        CountBlocks(section.FirstHeader, section.Index == 0 || section.HasExplicitFirstHeader) +
+        CountBlocks(section.FirstFooter, section.Index == 0 || section.HasExplicitFirstFooter) +
+        CountBlocks(section.EvenHeader, section.Index == 0 || section.HasExplicitEvenHeader) +
+        CountBlocks(section.EvenFooter, section.Index == 0 || section.HasExplicitEvenFooter);
+
+    private static int CountBlocks(WordHeaderFooterSnapshot? part, bool authoredHere) =>
+        authoredHere ? part?.Elements.Count ?? 0 : 0;
 
     private static void ApplyWordPageLayout(WordSectionSnapshot source, OdtPageLayout target) {
         if (source.PageWidthPoints.HasValue) target.Width = OdfLength.Points(source.PageWidthPoints.Value);

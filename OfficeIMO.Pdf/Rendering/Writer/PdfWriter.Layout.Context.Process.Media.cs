@@ -73,6 +73,7 @@ internal static partial class PdfWriter {
             }
             if (imageSpacingBefore > 0) y -= imageSpacingBefore;
             EnsurePage();
+            RecordFlowPlacement(y);
             PageImage pageImage = CreatePageImage(ib, imageStyle, xImg, y - imageBox.Height, imageBox.Width, imageBox.Height);
             currentPage!.Images.Add(pageImage);
             if (!string.IsNullOrWhiteSpace(pageImage.AlternativeText)) {

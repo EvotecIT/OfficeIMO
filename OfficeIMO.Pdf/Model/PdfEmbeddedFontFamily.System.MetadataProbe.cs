@@ -4,6 +4,8 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontTableCountToInspect = 4096;
     internal const int MaxSystemFontNameTableBytes = 4 * 1024 * 1024;
     internal const int MaxSystemFontNameMetadataBytes = 16 * 1024 * 1024;
+    internal const int MaxSystemFontNameRecords = 4096;
+    internal const int MaxSystemFontDecodedNameBytes = 128 * 1024;
 
     private static bool TryReadSystemFontNameMetadata(string path,
         out System.Collections.Generic.List<TrueTypeNameMetadata>? metadataFaces,

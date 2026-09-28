@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using DocumentFormat.OpenXml;
 using System.Globalization;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
@@ -190,16 +191,18 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Initializes a <see cref="WordShape"/> from existing run content.
         /// </summary>
-        internal WordShape(WordDocument document, Paragraph paragraph, Run run, WordDrawing? drawing = null) {
+        internal WordShape(WordDocument document, Paragraph paragraph, Run run, WordDrawing? drawing = null, OpenXmlElement? selectedVmlShape = null) {
             _document = document;
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
-            _rectangle = run.Descendants<V.Rectangle>().FirstOrDefault();
-            _roundRectangle = run.Descendants<V.RoundRectangle>().FirstOrDefault();
-            _ellipse = run.Descendants<V.Oval>().FirstOrDefault();
-            _line = run.Descendants<V.Line>().FirstOrDefault();
-            _polygon = run.Descendants<V.PolyLine>().FirstOrDefault();
-            _shape = run.Descendants<V.Shape>().FirstOrDefault(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any());
+            _rectangle = selectedVmlShape == null ? run.Descendants<V.Rectangle>().FirstOrDefault() : selectedVmlShape as V.Rectangle;
+            _roundRectangle = selectedVmlShape == null ? run.Descendants<V.RoundRectangle>().FirstOrDefault() : selectedVmlShape as V.RoundRectangle;
+            _ellipse = selectedVmlShape == null ? run.Descendants<V.Oval>().FirstOrDefault() : selectedVmlShape as V.Oval;
+            _line = selectedVmlShape == null ? run.Descendants<V.Line>().FirstOrDefault() : selectedVmlShape as V.Line;
+            _polygon = selectedVmlShape == null ? run.Descendants<V.PolyLine>().FirstOrDefault() : selectedVmlShape as V.PolyLine;
+            _shape = selectedVmlShape == null
+                ? run.Descendants<V.Shape>().FirstOrDefault(s => !s.Descendants<V.ImageData>().Any() && !s.Descendants<V.TextBox>().Any())
+                : selectedVmlShape as V.Shape;
             _drawing = drawing;
             if (drawing != null) {
                 _wpsShape = drawing.Descendants<Wps.WordprocessingShape>().FirstOrDefault();

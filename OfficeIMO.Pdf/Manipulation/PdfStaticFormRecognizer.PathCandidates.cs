@@ -1,0 +1,76 @@
+using System.Threading;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Pdf;
+
+internal static partial class PdfStaticFormRecognizer {
+    private static List<PdfPageVisualPrimitive> ExpandIndependentPathStrokes(
+        IReadOnlyList<PdfPageVisualPrimitive> primitives, ref long candidateScanWork,
+        int maxCandidateScanWork, CancellationToken cancellationToken) {
+        var expanded = new List<PdfPageVisualPrimitive>(primitives.Count);
+        foreach (PdfPageVisualPrimitive primitive in primitives) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (primitive.Kind != PdfPageVisualPrimitiveKind.Path || !primitive.HasStrokePaint ||
+                primitive.PathCommands.Count == 0) {
+                expanded.Add(primitive);
+                continue;
+            }
+            // Filled subpaths share a fill rule. Splitting them can turn a hole
+            // into an opaque cover and erase occupancy that still exists visually.
+            if (primitive.HasFillPaint && !HasExactRectangularFill(primitive)) {
+                expanded.Add(primitive);
+                continue;
+            }
+            candidateScanWork = checked(candidateScanWork + primitive.PathCommands.Count);
+            if (candidateScanWork > maxCandidateScanWork) {
+                throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts,
+                    maxCandidateScanWork, candidateScanWork);
+            }
+            var parts = new List<PdfPageVisualPrimitive>();
+            var subpath = new List<OfficePathCommand>();
+            bool supported = true;
+            foreach (OfficePathCommand command in primitive.PathCommands) {
+                if (command.Kind == OfficePathCommandKind.MoveTo && subpath.Count > 0) {
+                    supported &= TryAddSimpleSubpath(primitive, subpath, parts);
+                    subpath.Clear();
+                }
+                subpath.Add(command);
+            }
+            if (subpath.Count > 0) supported &= TryAddSimpleSubpath(primitive, subpath, parts);
+            if (supported && parts.Count > 0) expanded.AddRange(parts);
+            else expanded.Add(primitive);
+        }
+        return expanded;
+    }
+
+    private static bool TryAddSimpleSubpath(PdfPageVisualPrimitive source,
+        List<OfficePathCommand> commands, List<PdfPageVisualPrimitive> parts) {
+        if (commands[0].Kind != OfficePathCommandKind.MoveTo) return false;
+        PdfPageVisualPrimitive part;
+        if (commands.Count == 2 && commands[1].Kind == OfficePathCommandKind.LineTo &&
+            Math.Abs(commands[0].Point.Y - commands[1].Point.Y) <= 1D) {
+            part = PdfPageVisualPrimitive.Line(commands[0].Point.X, commands[0].Point.Y,
+                commands[1].Point.X, commands[1].Point.Y, source.StrokeColor,
+                source.StrokeGradient, source.StrokeRadialGradient, source.StrokeWidth,
+                source.StrokeDashStyle, source.StrokeLineCap, source.StrokeLineJoin,
+                source.StrokeOpacity, source.ClipPath, source.PaintOrder,
+                source.StrokeTilingPattern, source.StrokeDashPattern);
+        } else if (PdfRectanglePathGeometry.IsRectangle(commands, allowImplicitClose: false)) {
+            double left = Math.Min(commands[0].Point.X, commands[2].Point.X);
+            double top = Math.Min(commands[0].Point.Y, commands[2].Point.Y);
+            double right = Math.Max(commands[0].Point.X, commands[2].Point.X);
+            double bottom = Math.Max(commands[0].Point.Y, commands[2].Point.Y);
+            part = PdfPageVisualPrimitive.Rectangle(left, top, right - left, bottom - top,
+                source.FillColor, source.FillGradient, source.FillRadialGradient,
+                source.StrokeColor, source.StrokeGradient, source.StrokeRadialGradient,
+                source.StrokeWidth, source.StrokeDashStyle, source.StrokeLineCap,
+                source.StrokeLineJoin, source.FillOpacity, source.StrokeOpacity,
+                source.ClipPath, source.PaintOrder, source.FillTilingPattern,
+                source.StrokeTilingPattern, source.StrokeDashPattern);
+        } else return false;
+        if (source.ContentOrderKey is PdfContentOrderKey key) part = part.WithContentOrderKey(key);
+        parts.Add(part.WithSourceOperatorIndex(source.SourceOperatorIndex));
+        return true;
+    }
+
+}

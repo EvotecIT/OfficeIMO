@@ -1161,8 +1161,43 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml();
 
-            Assert.Contains("<table style=\"width:100%;border:1px solid black;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<table style=\"width:100%;border-collapse:collapse\">", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<td style=\"width:50%;text-align:center;border:1px solid black\">", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Theory]
+        [InlineData(WordBorderStyle.Nil, "hidden")]
+        [InlineData(WordBorderStyle.None, "none")]
+        public void Test_WordToHtml_CellBorderConflictRespectsNilAndNone(WordBorderStyle borderStyle, string expectedCss) {
+            using var document = WordDocument.Create();
+            WordTable table = document.AddTable(1, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Left";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Right";
+            table.Rows[0].Cells[0].Borders.RightStyle = borderStyle;
+            table.Rows[0].Cells[1].Borders.LeftStyle = WordBorderStyle.Single;
+
+            string html = document.ToHtml();
+
+            Assert.Contains("border-right:" + expectedCss, html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-left:1px solid black", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-collapse:collapse", html, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<table style=\"border:1px solid black", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_PreservesCachedSimpleDateFieldWithItalicText() {
+            using var document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("Due ");
+            paragraph._paragraph.Append(new SimpleField(new Run(new Text("2020-01-02"))) {
+                Instruction = " DATE \\@ \"yyyy-MM-dd\" "
+            });
+            paragraph.AddText(" confirmed").SetItalic();
+
+            string html = document.ToHtml();
+
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            Assert.Contains("Due 2020-01-02", parsed.Body!.TextContent, StringComparison.Ordinal);
+            Assert.Contains(parsed.QuerySelectorAll("em"), element => element.TextContent.Trim() == "confirmed");
         }
 
         [Fact]
@@ -1184,6 +1219,28 @@ namespace OfficeIMO.Tests {
             using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
 
             Assert.Equal((short)240, roundTrip.Tables[0].StyleDetails!.CellSpacing);
+        }
+
+        [Theory]
+        [InlineData(WordBorderStyle.Nil)]
+        [InlineData(WordBorderStyle.None)]
+        public void WordToHtml_SpacedBorderlessTableUsesSeparateBorderMode(WordBorderStyle hiddenBorder) {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 1);
+            table.StyleDetails!.CellSpacing = 240;
+            var cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].Text = "Spaced";
+            cell.Borders.LeftStyle = hiddenBorder;
+            cell.Borders.RightStyle = hiddenBorder;
+            cell.Borders.TopStyle = hiddenBorder;
+            cell.Borders.BottomStyle = hiddenBorder;
+
+            string html = doc.ToHtml();
+
+            var parsed = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
+            string? style = parsed.QuerySelector("table")?.GetAttribute("style");
+            Assert.Contains("border-spacing:12pt", style, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("border-collapse:separate", style, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

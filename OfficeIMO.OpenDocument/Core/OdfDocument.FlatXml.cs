@@ -5,6 +5,7 @@ namespace OfficeIMO.OpenDocument;
 public abstract partial class OdfDocument {
     /// <summary>Projects this package into a single flat OpenDocument XML tree.</summary>
     public XDocument ToFlatXml() {
+        EnsureFirstPageStoriesAreSupported(OdfCompatibilityProfile.PreserveSource);
         XElement root = new XElement(OdfNamespaces.Office + "document");
         OdfXmlCodec.AddStandardNamespaces(root);
         root.SetAttributeValue(OdfNamespaces.Office + "version", Version.ToToken());

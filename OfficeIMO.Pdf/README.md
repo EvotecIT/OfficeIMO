@@ -316,6 +316,53 @@ PdfAcroFormEditResult edited = PdfDocument.Load("input.pdf").Forms.Edit(form => 
 File.WriteAllBytes("form.pdf", edited.ToBytes());
 ```
 
+For a static paper-style form, inspect proposed fields before creating any widgets:
+
+```csharp
+PdfDocument source = PdfDocument.Load("static-form.pdf");
+PdfStaticFormRecognitionReport proposals = source.Forms.RecognizeStaticLayout();
+foreach (PdfStaticFormFieldProposal field in proposals.Proposals)
+    Console.WriteLine($"{field.Index}: {field.Label} ({field.Kind}, {field.Confidence:0.00})");
+
+int[] accepted = proposals.Proposals
+    .Where(field => field.Confidence >= 0.6)
+    .Select(field => field.Index)
+    .ToArray();
+if (accepted.Length > 0)
+    File.WriteAllBytes("fillable-form.pdf", proposals.ApplySelected(accepted).ToBytes());
+```
+
+Recognition proposes text fields from empty continuous outlines or writing lines
+and check boxes from small square outlines. Dashed outlines and writing lines are
+skipped with an `unsupported-outline-dash` diagnostic because their painted
+segments cannot be proven from the recognition geometry. Later fill, stroke, or image paint that
+intersects a required outline segment is also skipped conservatively, including
+partially erased boxes and writing lines. Exact rectangular path fills can prove
+opaque covers; arbitrary or compound paths do not prove their entire bounds are
+filled. Compound filled-and-stroked paths are not split into independent field
+candidates, since their shared fill rule can leave holes. Nearby native text
+supplies labels; callers
+can also pass bounded positioned OCR text as `PdfStaticFormTextEvidence` without
+installing an OCR runtime in `OfficeIMO.Pdf`. Native labels require perceptible
+opacity, resolved paint, proven contrast, and full visibility within the visual
+page and any rectangular clip. Patterned, dashed-stroke, or combined fill-and-stroke labels,
+labels with partial or unproven clipping, and image backdrops need separate
+visibility evidence such as positioned
+OCR. Native text crossing a page or crop edge still counts as possible field
+occupancy within the visible page. Labels partially covered by later paint are excluded.
+A label names at most one nearest eligible field; equally plausible assignments
+require manual authoring. Detected table text and table regions are excluded from
+automatic form evidence. Duplicate labels retain the strongest evidence after
+the OCR confidence adjustment, and native text occupancy respects exact
+rectangular clips and conservative text-stroke envelopes. Overlapping labels
+that support different fields require manual assignment. Unsupported graphics-state paint is excluded
+from field evidence. The report includes page-local tab
+order suggestions and collision diagnostics. It does not infer radio groups,
+choice values, calculations, or form actions from static marks. Applying selected
+proposals edits the analyzed PDF snapshot; a new analysis is needed to include
+later changes to the source document. The usual PDF mutation and preservation
+checks apply.
+
 The same transaction creates text fields, check boxes, combo or list choices,
 radio-button groups, push buttons, and empty signature fields. Generated widget
 appearances use `PdfFormFieldStyle`; widget JavaScript is returned as inert,
@@ -439,6 +486,23 @@ OfficeDrawing drawing = document.Pages[0].ToDrawing(fonts);
 
 Use the PDF's resolved font family name when registering a replacement. The overload also accepts `textShapingProvider`, `textShapingLanguage`, and `cancellationToken`. Supplied faces replace matching embedded faces and apply to nested drawings. Adding fonts after `ToDrawing()` cannot restore glyphs already discarded by visibility checks.
 
+### Embedded-font Latin ligatures
+
+Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default for embedded
+TrueType and OpenType/CFF fonts. Measurement and painting use the same glyph run;
+Unicode mappings retain the source text for extraction, search, and redaction.
+
+Set `PdfOptions.TextShapingMode = PdfTextShapingMode.UnicodeScalar` to retain
+separate scalar glyphs and the previous wrapping behavior. Per-run feature
+settings such as `OfficeTextFeatureSettings.Default.With("liga", 0)` disable
+that optional feature; the language system's required feature remains enabled.
+`LatinLigatures` remains available for the presentation-character
+substitutions supported by that mode.
+
+See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust)
+for supported substitutions and limits. Use `TextShapingProvider` when a full
+OpenType shaping provider is needed.
+
 ### Write a generated PDF
 
 ```csharp
@@ -534,6 +598,12 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 These recipes compose normal flow, table, and panel primitives. `IPdfContextComponent`
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
+
+### Floating tables
+
+Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.
+
+Floating placement ignores the table's flow spacing (`SpacingBefore` and `SpacingAfter`). Deferred tables apply their top anchor once across all batches. Vertical `Inside` alignment uses the top edge on odd output pages and the bottom edge on even pages; `Outside` reverses those edges. Center, bottom, inside, and outside alignment require an eager table because a deferred table's total height is not known before its rows are streamed. Floating placement is supported in document flow; tables inside row columns reject `Position`, and Word multi-column sections retain an approximation diagnostic.
 
 ### Hyphenation and inline visuals
 
@@ -837,6 +907,54 @@ IReadOnlyList<PdfDocument> selectedRanges = source.Pages.Split("1-2,5-6");
 selectedRanges[0].Save("packet-front.pdf");
 selectedRanges[1].Save("packet-evidence.pdf");
 ```
+
+To place source pages on printable sheets, use the same page import engine for
+N-up or duplex booklet output:
+
+```csharp
+var nup = source.Pages.ImposeNUp(new PdfNUpOptions(new PageSize(842, 595), columns: 2, rows: 1));
+nup.ToDocument().Save("packet-two-up.pdf");
+
+var booklet = source.Pages.ImposeBooklet(new PdfBookletOptions(new PageSize(842, 595)));
+booklet.ToDocument().Save("packet-booklet.pdf");
+foreach (var placement in booklet.Placements)
+    Console.WriteLine($"Source {placement.SourcePageNumber}: sheet side {placement.SheetPageNumber}, column {placement.Column}");
+```
+
+Booklet pages are ordered front then back for each physical sheet. Missing
+pages are blank-padded to a multiple of four. Set `RightToLeft` for reverse
+reading order; printer duplex edge, creep, and bleed settings remain with the
+print workflow. Both operations import page
+content as vector Form XObjects, but do not carry source annotations, forms,
+structure tags, or selected TrimBox, BleedBox, and ArtBox boundaries onto the
+new sheets; their visible appearances may also be omitted. Set
+`AllowSourceFeatureLoss = true` to accept that loss and inspect
+`SourceFeatureLoss` on the result. Set `MaxOutputBytes` on either layout option
+to bound retained page content and the finished PDF (256 MiB by default).
+Signed sources are rejected by default; set
+`SignaturePolicy = PdfImpositionSignaturePolicy.CreateUnsignedDerivative` to
+create an unsigned source derivative first. The result reports
+`RemovedSignatureCount`, and the original signed PDF remains unchanged.
+Layered PDFs are rejected because their visibility settings cannot yet be
+preserved on imposed sheets.
+
+For review after page insertion or reordering, align pages before comparing
+the ones that need closer inspection:
+
+```csharp
+PdfDocument revised = PdfDocument.Load("packet-revised.pdf");
+PdfPageChangeReport changes = source.Proof.AnalyzePageChanges(revised);
+foreach (PdfPageChange change in changes.Changes) {
+    if (change.Kind != PdfPageChangeKind.ModifiedCandidate) continue;
+    PdfVisualPageComparison detail = source.Proof.CompareVisualPages(
+        change.ExpectedPageNumber!.Value, revised, change.ActualPageNumber!.Value);
+    Console.WriteLine($"Page {change.ExpectedPageNumber}: {detail.DifferentPixels} changed pixels");
+}
+```
+
+Alignment uses exact rendered pixels at the chosen scale. A changed-page pair
+is a review candidate; the report does not claim to identify semantic text or
+image edits.
 
 ### Merge, reorder, delete, duplicate, move, and rotate
 
@@ -1200,6 +1318,26 @@ PdfDocument.Load("contract.pdf")
     })
     .Save("contract-reviewed.pdf");
 ```
+
+An image-backed Stamp annotation keeps the picture in the annotation layer,
+which can be useful for a handwritten approval mark on an existing page:
+
+```csharp
+using System.IO;
+using OfficeIMO.Pdf;
+
+var result = PdfDocument.Load("contract.pdf").Annotations.AddStamp(
+    new PdfStampAnnotationOptions {
+        PageNumber = 1,
+        X = 72, Y = 700, Width = 144, Height = 48,
+        ImageBytes = File.ReadAllBytes("approval.png"),
+        Contents = "Reviewed"
+    });
+result.ToDocument().Save("contract-marked.pdf");
+```
+
+This is a visual annotation, not a cryptographic PDF signature. The encoded
+image input is limited to 128 MiB by default.
 
 Use `Stamp.Watermark` when you want to reopen and revise a watermark later:
 

@@ -894,12 +894,20 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(box.Paragraphs[2], markerlessList.NumberId);
 
         PdfTextSpan[] spans = PdfReadDocument.Open(document.ToPdfBytes()).Pages[0].GetTextSpans().ToArray();
-        double plainX = Assert.Single(spans, span => span.Text.Contains("PlainBox", StringComparison.Ordinal)).X;
-        Assert.True(spans.Any(span => span.Text.Contains("BulletBox", StringComparison.Ordinal)),
-            PdfReadDocument.Open(document.ToPdfBytes()).ExtractText() + " | " +
-            string.Join(" | ", spans.Select(span => $"'{span.Text}'@{span.X},{span.Y}+{span.Advance}")));
-        double bulletX = Assert.Single(spans, span => span.Text.Contains("BulletBox", StringComparison.Ordinal)).X;
-        double unmarkedX = Assert.Single(spans, span => span.Text.Contains("UnmarkedBox", StringComparison.Ordinal)).X;
+        var lines = spans.GroupBy(span => Math.Round(span.Y, 2)).Select(group => new {
+            Text = string.Concat(group.OrderBy(span => span.X).Select(span => span.Text)),
+            Spans = group.OrderBy(span => span.X).ToArray()
+        }).ToArray();
+        double WordX(string word) {
+            var line = Assert.Single(lines, item => item.Text.Contains(word, StringComparison.Ordinal));
+            int offset = line.Text.IndexOf(word, StringComparison.Ordinal), consumed = 0;
+            foreach (var span in line.Spans) {
+                if (consumed + span.Text.Length > offset) return span.X;
+                consumed += span.Text.Length;
+            }
+            throw new InvalidOperationException("Expected word has no positioned text span.");
+        }
+        double plainX = WordX("PlainBox"), bulletX = WordX("BulletBox"), unmarkedX = WordX("UnmarkedBox");
         Assert.True(bulletX > plainX + 35D, $"plain={plainX}, bullet={bulletX}");
         Assert.True(unmarkedX > plainX + 55D, $"plain={plainX}, unmarked={unmarkedX}");
 

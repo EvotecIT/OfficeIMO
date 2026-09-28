@@ -11,7 +11,8 @@ internal static class OdfFeatureInspector {
         XNamespace.Xml.NamespaceName, XNamespace.Xmlns.NamespaceName, string.Empty
     };
 
-    internal static OdfFeatureReport Inspect(OdfPackage package) {
+    internal static OdfFeatureReport Inspect(OdfDocument source) {
+        OdfPackage package = source.Package;
         var findings = new List<OdfFeatureFinding>();
         var diagnostics = new List<OdfFeatureDiagnostic>();
         foreach (OdfPackageEntry entry in package.Entries.Where(entry => entry.Name.EndsWith(".xml", StringComparison.OrdinalIgnoreCase))) {
@@ -48,6 +49,14 @@ internal static class OdfFeatureInspector {
             AddElementFinding(document, OdfNamespaces.Table + "content-validation", "spreadsheet-validations", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "database-range", "spreadsheet-database-ranges", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "filter", "spreadsheet-filters", OdfFeatureSupport.Inspected, entry.Name, findings);
+            XElement[] dataPilots = document.Descendants(OdfNamespaces.Table + "data-pilot-table").ToArray();
+            int editableDataPilots = dataPilots.Count(pivot =>
+                source is OdsDocument spreadsheet && OdsDataPilotTable.IsEditableElement(spreadsheet, pivot));
+            if (editableDataPilots > 0) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Editable, entry.Name, editableDataPilots));
+            if (dataPilots.Length > editableDataPilots) findings.Add(new OdfFeatureFinding(
+                "spreadsheet-data-pilot-tables", OdfFeatureSupport.Inspected, entry.Name,
+                dataPilots.Length - editableDataPilots));
             AddElementFinding(document, OdfNamespaces.Table + "named-range", "spreadsheet-named-ranges", OdfFeatureSupport.Editable, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "named-expression", "spreadsheet-named-expressions", OdfFeatureSupport.Inspected, entry.Name, findings);
             AddElementFinding(document, OdfNamespaces.Table + "scenario", "spreadsheet-scenarios", OdfFeatureSupport.Preserved, entry.Name, findings);
@@ -85,7 +94,11 @@ internal static class OdfFeatureInspector {
             int transitions = document.Descendants(OdfNamespaces.Style + "drawing-page-properties")
                 .Count(element => element.Attribute(OdfNamespaces.Presentation + "transition-type") != null || element.Attribute(OdfNamespaces.Presentation + "transition-style") != null);
             if (transitions > 0) findings.Add(new OdfFeatureFinding("presentation-transitions", OdfFeatureSupport.Editable, entry.Name, transitions));
-            int animations = document.Descendants(OdfNamespaces.Anim + "animate").Count();
+            int animations = document.Descendants().Count(element =>
+                element.Name.Namespace == OdfNamespaces.Anim &&
+                element.Name.LocalName is not ("par" or "seq" or "iterate"));
+            int legacyAnimations = document.Descendants(OdfNamespaces.Presentation + "animations").Count();
+            if (legacyAnimations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Preserved, entry.Name, legacyAnimations));
             if (animations > 0) findings.Add(new OdfFeatureFinding("presentation-animations", OdfFeatureSupport.Editable, entry.Name, animations));
 
             var foreign = document.Root.DescendantsAndSelf()
@@ -129,7 +142,11 @@ internal static class OdfFeatureInspector {
         }
         if (partPath == "styles.xml") {
             if (paragraph.Parent?.Name != OdfNamespaces.Style + "header" &&
-                paragraph.Parent?.Name != OdfNamespaces.Style + "footer") return false;
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "header-first" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer-first" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "header-left" &&
+                paragraph.Parent?.Name != OdfNamespaces.Style + "footer-left") return false;
             XElement? firstMaster = element.Document?.Root?
                 .Element(OdfNamespaces.Office + "master-styles")?
                 .Elements(OdfNamespaces.Style + "master-page").FirstOrDefault();
