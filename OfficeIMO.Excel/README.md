@@ -715,10 +715,11 @@ aggregate is compared or ranked within each parent; the outer field uses its
 aggregate across its children. Two column fields support the same comparisons,
 ranges, and top/bottom count, percent, and sum filters on either field. With
 one row and one column field, the same value comparisons, ranges,
-and top/bottom count, percent, and sum filters can target either field. Other
-three-or-more-field value rules,
-deeper hierarchies, and multi-measure filter interactions remain outside this
-qualified profile. Signed and zero child aggregates, nonpositive outer-field
+and top/bottom count, percent, and sum filters can target either field. With
+three row fields and one measure, Top 1 count on the innermost field is
+qualified against an Excel-produced view and `GETPIVOTDATA` results. Other
+three-or-more-field value rules and multi-measure filter interactions remain
+outside this qualified profile. Signed and zero child aggregates, nonpositive outer-field
 totals, three siblings per parent, mixed numeric/error ranking, and classic
 all-error parent top/bottom count ranking have Excel-produced examples.
 All-error parent percent/sum ranking and broader sign/error mixes still need
