@@ -6,6 +6,79 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlRender_Paged_PaintsBodyOverDistinctRootBackgroundUntilBodyEnds() {
+        const string html = """
+            <style>
+              @page { size: 200px 100px; margin: 0; }
+              html { background: #222; }
+              body { margin: 0; background: #fff; }
+              section { height: 80px; }
+            </style>
+            <section>First block</section><section>Second block</section>
+            """;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
+        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, first.GetPixel(190, 90));
+        Assert.Equal(OfficeColor.White, last.GetPixel(190, 50));
+        Assert.Equal(OfficeColor.FromRgb(0x22, 0x22, 0x22), last.GetPixel(190, 90));
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_PaintsBodyAcrossAuthoredPageBreak() {
+        const string html = """
+            <style>
+              @page { size: 200px 100px; margin: 0; }
+              html { background: #222; }
+              body { margin: 0; background: #fff; }
+              section + section { break-before: page; }
+            </style>
+            <section>First block</section><section>Second block</section>
+            """;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        OfficeRasterImage first = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing(), 1D, OfficeColor.White);
+        OfficeRasterImage last = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing(), 1D, OfficeColor.White);
+        Assert.Equal(OfficeColor.White, first.GetPixel(190, 50));
+        Assert.Equal(OfficeColor.White, last.GetPixel(190, 5));
+        Assert.Equal(OfficeColor.FromRgb(0x22, 0x22, 0x22), last.GetPixel(190, 50));
+    }
+
+    [Fact]
+    public void HtmlRender_Paged_ExplicitBodyHeightDoesNotDropOverflowingContent() {
+        const string html = """
+            <style>
+              @page { size: 200px 100px; margin: 0; }
+              html { background: #222; }
+              body { margin: 0; height: 100vh; background: #fff; }
+              section { height: 80px; }
+            </style>
+            <section>First block</section><section>Second block</section>
+            """;
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text =>
+            text.Text.Contains("Second block", StringComparison.Ordinal));
+    }
+
+
+    [Fact]
     public void HtmlRender_PagedBodyBackgroundCoversSlackBeforeContinuation() {
         const string html = """
             <style>
