@@ -19,6 +19,9 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentMetadataEntry> _slideMetadata = new();
     private bool _reportedMarkdownListDepthLimit;
     private bool _reportedUnsupportedTextStyles;
+    private bool _reportedUnsupportedLayoutBreaks;
+    private bool _reportedTableBudgetExhausted;
+    private int _projectedTableCells;
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentBlock>> _pageBlocks = new();
     private readonly Dictionary<OfficeDocumentPage, List<ReaderTable>> _pageTables = new();
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentAsset>> _pageAssets = new();
@@ -213,6 +216,18 @@ internal sealed partial class IWorkReadProjection {
     private void AddParagraph(OfficeDocumentPage page, IWorkTextParagraph paragraph,
         string sourceKind, OfficeDocumentRegion? region = null) {
         string text = paragraph.Text;
+        if (!_reportedUnsupportedLayoutBreaks && paragraph.BreakKind is
+            IWorkParagraphBreakKind.Page or IWorkParagraphBreakKind.Section
+                or IWorkParagraphBreakKind.Layout) {
+            _reportedUnsupportedLayoutBreaks = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_LAYOUT_BREAK_UNSUPPORTED",
+                Message = "Reader text and Markdown do not represent explicit page, section, or layout breaks; the iWork source model retains them.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = Location(page)
+            });
+        }
         if (!_reportedUnsupportedTextStyles
             && (HasUnrepresentedParagraphStyle(paragraph.Style)
                 || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)

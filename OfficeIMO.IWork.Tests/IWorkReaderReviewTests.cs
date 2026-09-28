@@ -235,6 +235,86 @@ public sealed partial class IWorkBoundaryTests {
         }
     }
 
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages)]
+    [InlineData(IWorkDocumentKind.Keynote)]
+    public void Reader_reports_formula_cache_styles_it_cannot_project(IWorkDocumentKind kind) {
+        using MemoryStream package = CreateFormulaTableWithIncompleteRichCacheStyle(kind);
+
+        OfficeDocumentReadResult result = IWorkReaderAdapter.ReadDocument(package,
+            kind == IWorkDocumentKind.Pages ? "sample.pages" : "sample.key",
+            new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
+
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_READER_TABLE_STYLE_PARTIAL");
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_READER_FORMULA_CACHE");
+    }
+
+    [Theory]
+    [InlineData(IWorkParagraphBreakKind.Page)]
+    [InlineData(IWorkParagraphBreakKind.Section)]
+    [InlineData(IWorkParagraphBreakKind.Layout)]
+    public void Reader_reports_explicit_layout_breaks(IWorkParagraphBreakKind breakKind) {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
+        var style = new IWorkTextStyle(null, null, null, null, null,
+            null, null, null, null);
+        var paragraphStyle = new IWorkParagraphStyle(null, null, null, null, null,
+            null, null, null, null, null, style);
+        var paragraph = new IWorkTextParagraph(new[] {
+            new IWorkTextRun("Before break", style, null)
+        }, paragraphStyle, null, -1, null, breakKind);
+        var pages = new IWorkPagesProjection(source,
+            new IWorkTextContent(new[] { paragraph }, true, true),
+            Array.Empty<IWorkPagesSection>(), Array.Empty<IWorkTextBox>(),
+            Array.Empty<IWorkImageAsset>(), Array.Empty<IWorkTable>(),
+            Array.Empty<IWorkPagesDrawable>(), null, Array.Empty<IWorkDiagnostic>(), true);
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "sample.pages",
+            new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
+
+        projection.AddPages(pages);
+        projection.Complete(source);
+
+        Assert.Contains("Before break", result.Markdown);
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_READER_LAYOUT_BREAK_UNSUPPORTED");
+    }
+
+    [Fact]
+    public void Reader_bounds_dense_cells_across_sparse_tables() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
+        IWorkTable[] tables = Enumerable.Range(1, 3)
+            .Select(index => new IWorkTable("Sparse " + index, 2, 2,
+                Array.Empty<IWorkTableCell>()))
+            .ToArray();
+        var sheet = new IWorkNumbersSheet("Sheet 1", tables, Array.Empty<string>());
+        var numbers = new IWorkNumbersProjection(source, new[] { sheet },
+            Array.Empty<IWorkDiagnostic>(), supportsEditableReconstruction: true);
+        var result = new OfficeDocumentReadResult();
+        var projection = new IWorkReadProjection(result, "sample.numbers",
+            new ReaderOptions(), new ReaderIWorkOptions {
+                MaximumProjectedTableCells = 5
+            }, CancellationToken.None);
+
+        projection.AddNumbers(numbers);
+        projection.Complete(source);
+
+        Assert.Equal(2, result.Tables.Count);
+        Assert.Equal(2, result.Tables[0].Columns.Count);
+        Assert.Equal(2, result.Tables[0].Rows.Count);
+        Assert.Single(result.Tables[1].Columns);
+        Assert.Single(result.Tables[1].Rows);
+        Assert.True(result.Tables[1].Truncated);
+        Assert.Equal(5, result.Tables.Sum(table => table.Columns.Count * table.Rows.Count));
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_READER_TABLE_TRUNCATED");
+        Assert.Contains(result.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_READER_TABLE_BUDGET_EXCEEDED");
+    }
+
     private static void AssertValidUnicode(string value) {
         for (int index = 0; index < value.Length; index++) {
             if (char.IsHighSurrogate(value[index])) {

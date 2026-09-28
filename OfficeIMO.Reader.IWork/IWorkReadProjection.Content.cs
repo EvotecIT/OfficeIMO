@@ -7,12 +7,32 @@ internal sealed partial class IWorkReadProjection {
         _cancellationToken.ThrowIfCancellationRequested();
         ReportUnsupportedRotation(page, source.Geometry, "table");
         int tableIndex = _pageTables[page].Count;
+        if (source.RowCount == 0 || source.ColumnCount == 0) return;
+        int remainingCells = _options.MaximumProjectedTableCells - _projectedTableCells;
+        if (remainingCells == 0) {
+            if (!_reportedTableBudgetExhausted) {
+                _reportedTableBudgetExhausted = true;
+                _diagnostics.Add(new OfficeDocumentDiagnostic {
+                    Category = OfficeDocumentDiagnosticCategory.Limit,
+                    Code = "IWORK_READER_TABLE_BUDGET_EXCEEDED",
+                    Message = "Additional iWork tables were omitted because the Reader document-wide dense table cell limit was reached.",
+                    Source = "OfficeIMO.Reader.IWork",
+                    Location = Location(page)
+                });
+            }
+            return;
+        }
+        int columnCount = Math.Min(Math.Min(source.ColumnCount, _options.MaximumTableColumns),
+            remainingCells);
+        int remainingRows = remainingCells / columnCount;
         int headerRows = Math.Min(source.HeaderRowCount, source.RowCount);
-        int materializedHeaderRows = Math.Min(headerRows, Math.Max(1, _readerOptions.MaxTableRows));
+        int materializedHeaderRows = Math.Min(headerRows,
+            Math.Min(Math.Max(1, _readerOptions.MaxTableRows), remainingRows));
         int totalDataRows = source.RowCount - headerRows;
-        int dataRows = Math.Min(totalDataRows, Math.Max(1, _readerOptions.MaxTableRows));
-        int columnCount = Math.Min(source.ColumnCount, _options.MaximumTableColumns);
-        if (source.RowCount == 0 || columnCount == 0) return;
+        int dataRows = Math.Min(totalDataRows,
+            Math.Min(Math.Max(1, _readerOptions.MaxTableRows),
+                remainingRows - materializedHeaderRows));
+        _projectedTableCells += columnCount * (materializedHeaderRows + dataRows);
         bool hasHeader = headerRows > 0;
         string[] columns = Enumerable.Range(1, columnCount)
             .Select(column => hasHeader
@@ -52,7 +72,7 @@ internal sealed partial class IWorkReadProjection {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Limit,
                 Code = "IWORK_READER_TABLE_TRUNCATED",
-                Message = $"Table '{source.Name}' exceeds Reader row or column materialization limits.",
+                Message = $"Table '{source.Name}' exceeds Reader row, column, or document-wide dense cell materialization limits.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
@@ -75,18 +95,19 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
-        if (source.Cells.Any(cell => cell.RichText?.Paragraphs.Any(paragraph =>
-                HasUnrepresentedParagraphStyle(paragraph.Style)
-                || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
-                || paragraph.Runs.Any(run => run.Style.Bold == true
-                    || run.Style.Italic == true || run.Style.Underline == true
-                    || run.Style.Strikethrough == true || run.Style.FontSizePoints.HasValue
-                    || run.Style.FontName != null || run.Style.Color != null
-                    || run.Style.BackgroundColor != null)) == true)) {
+        if (source.Cells.Any(cell => cell.RichText is { } richText
+                && (!richText.IsComplete || richText.Paragraphs.Any(paragraph =>
+                    HasUnrepresentedParagraphStyle(paragraph.Style)
+                    || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
+                    || paragraph.Runs.Any(run => run.Style.Bold == true
+                        || run.Style.Italic == true || run.Style.Underline == true
+                        || run.Style.Strikethrough == true || run.Style.FontSizePoints.HasValue
+                        || run.Style.FontName != null || run.Style.Color != null
+                        || run.Style.BackgroundColor != null))))) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
-                Message = $"Table '{source.Name}' is projected as plain Reader table text; source rich-text cell formatting remains on the iWork source model.",
+                Message = $"Table '{source.Name}' is projected as plain Reader table text; source rich-text cell formatting is unresolved or cannot be represented in Reader output.",
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
