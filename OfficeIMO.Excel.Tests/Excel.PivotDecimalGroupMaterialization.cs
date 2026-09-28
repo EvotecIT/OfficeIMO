@@ -195,6 +195,13 @@ namespace OfficeIMO.Tests {
                     new Dictionary<string, object?> { ["Quantity"] = next }).Value);
                 document.Save(output);
             }
+            using (var imported = ExcelDocument.Load(output)) {
+                var sheet = imported.GetSheet("Source");
+                Assert.Equal("D4:E7", sheet.MaterializePivotTable("PivotLargeIntegers").OutputRange);
+                Assert.Equal(5d, sheet.GetPivotData("PivotLargeIntegers", "Metric",
+                    new Dictionary<string, object?> { ["Quantity"] = next }).Value);
+                imported.Save(output);
+            }
             using var reopened = ExcelDocumentReader.Open(output);
             var view = reopened.GetSheet("Source").ReadRange("D5:E7");
             Assert.Equal("8999999999999998-8999999999999998", view[0, 0]);
