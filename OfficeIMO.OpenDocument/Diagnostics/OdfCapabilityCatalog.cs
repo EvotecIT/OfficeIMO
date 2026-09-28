@@ -39,7 +39,7 @@ public static class OdfCapabilityCatalog {
         new OdfCapability("tracked-change-editing", "Tracked-change editing", OdfCapabilityLevel.Limited,
             "Paragraph insertion and deletion changes can be authored, inspected, accepted, and rejected; arbitrary inline merge/conflict editing remains outside the typed surface."),
         new OdfCapability("advanced-charts", "Advanced charts", OdfCapabilityLevel.Limited,
-            "ODS embedded charts expose structure and source ranges; bounded column, bar, and line charts can be authored from existing cell ranges. Imported chart XML is preserved, while editing imported charts and advanced chart features remain outside the typed surface."),
+            "ODS embedded charts expose structure, source ranges, and supported point appearances; bounded column, bar, line, pie, and doughnut charts can be authored from existing cell ranges with solid, hatch, and outline point styles. Imported chart XML is preserved, while editing imported charts and advanced chart features remain outside the typed surface."),
         new OdfCapability("data-pilot-tables", "Data pilot tables", OdfCapabilityLevel.Limited,
             "Local-range ODS data pilot tables and their source fields can be inspected and authored; advanced imported field settings remain preserved as source XML."),
         new OdfCapability("presentation-animations", "Presentation animations", OdfCapabilityLevel.Limited,

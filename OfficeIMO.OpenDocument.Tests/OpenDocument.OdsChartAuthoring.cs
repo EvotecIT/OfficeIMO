@@ -1,18 +1,176 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdsChartAuthoringTests {
     [Theory]
+    [InlineData(OdsChartType.Pie)]
+    [InlineData(OdsChartType.Doughnut)]
+    public void RadialPointStylesSurviveNativePackageReopen(OdsChartType type) {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        OfficeChartPointStyle?[] styles = {
+            new(fillColor: OfficeColor.Parse("#228844")),
+            new(fillColor: OfficeColor.Parse("#FFF0DD"), hatch: OfficeChartHatchPattern.WideForwardDiagonal,
+                hatchColor: OfficeColor.Parse("#D97706")),
+            new(noFill: true, outlineColor: OfficeColor.Parse("#445566"), outlineWidth: 2,
+                showOutline: true, outlineJoin: OfficeStrokeLineJoin.Round)
+        };
+        sheet.AddChart(type, "Data.$A$1:.$A$3",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$3").WithPointStyles(styles) },
+            4, 2, OdfRect.FromCentimeters(1, 1, 10, 6), "Status");
+
+        XDocument chartPart = XDocument.Parse(Encoding.UTF8.GetString(
+            document.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement seriesPart = Assert.Single(chartPart.Descendants(OdfNamespaces.Chart + "series"));
+        Assert.Equal("chart:circle", (string?)seriesPart.Attribute(OdfNamespaces.Chart + "class"));
+        string seriesStyle = Assert.IsType<string>((string?)seriesPart.Attribute(OdfNamespaces.Chart + "style-name"));
+        Assert.Contains(chartPart.Descendants(OdfNamespaces.Style + "style"), definition =>
+            (string?)definition.Attribute(OdfNamespaces.Style + "name") == seriesStyle &&
+            (string?)definition.Attribute(OdfNamespaces.Style + "family") == "chart");
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        OdsChart chart = Assert.Single(reopened.GetSheet("Data")!.Charts);
+        Assert.Equal(type == OdsChartType.Pie ? "chart:circle" : "chart:ring", chart.ChartClass);
+        OfficeChartPointStyle?[] actual = Assert.Single(chart.Series).PointStyles!.ToArray();
+        Assert.Equal(styles.Select(style => style!.FillColor), actual.Select(style => style!.FillColor));
+        Assert.Equal(OfficeChartHatchPattern.WideForwardDiagonal, actual[1]!.Hatch);
+        Assert.Equal(OfficeColor.Parse("#D97706"), actual[1]!.HatchColor);
+        Assert.True(actual[2]!.NoFill);
+        Assert.Equal(OfficeColor.Parse("#445566"), actual[2]!.OutlineColor);
+        Assert.True(actual[2]!.ShowOutline);
+        Assert.Equal(OfficeStrokeLineJoin.Round, actual[2]!.OutlineJoin);
+        Assert.True(reopened.Validate().IsValid);
+    }
+
+    [Fact]
+    public void LibreOfficePiePointStylesProjectFromIndependentChartParts() {
+        string fixture = Path.Combine(AppContext.BaseDirectory, "ChartProducerReferences", "status-pie.odt");
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$3",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$3") },
+            4, 2, OdfRect.FromCentimeters(1, 1, 10, 6));
+        using (var stream = File.OpenRead(fixture))
+        using (var package = new ZipArchive(stream, ZipArchiveMode.Read)) {
+            foreach (string file in new[] { "content.xml", "styles.xml" }) {
+                using var source = package.GetEntry("Object 1/" + file)!.Open();
+                using var bytes = new MemoryStream();
+                source.CopyTo(bytes);
+                document.Package.AddOrReplaceEntry("Object 1/" + file, bytes.ToArray(), "text/xml");
+            }
+        }
+        OdsChart chart = Assert.Single(sheet.Charts);
+        Assert.Equal("chart:circle", chart.ChartClass);
+        OfficeChartPointStyle?[] styles = Assert.Single(chart.Series).PointStyles!.ToArray();
+        Assert.Equal(3, styles.Length);
+        Assert.Equal(OfficeColor.Parse("#228844"), styles[0]!.FillColor);
+        Assert.Equal(OfficeChartHatchPattern.ForwardDiagonal, styles[1]!.Hatch);
+        Assert.Equal(OfficeColor.Parse("#FFF0DD"), styles[1]!.FillColor);
+        Assert.Equal(OfficeColor.Parse("#D97706"), styles[1]!.HatchColor);
+        Assert.True(styles[2]!.NoFill);
+        Assert.Equal(OfficeColor.Parse("#445566"), styles[2]!.OutlineColor);
+        Assert.Equal(0.07 * 72 / 2.54, styles[2]!.OutlineWidth!.Value, 6);
+    }
+
+    [Fact]
+    public void ImportedPointFillInheritsSeriesFillMode() {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
+            string name = Assert.IsType<string>((string?)series.Attribute(OdfNamespaces.Chart + "style-name"));
+            XElement definition = Assert.Single(content.Descendants(OdfNamespaces.Style + "style"),
+                item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+            definition.Element(OdfNamespaces.Style + "graphic-properties")!
+                .SetAttributeValue(OdfNamespaces.Draw + "fill", "none");
+        });
+
+        OfficeChartPointStyle?[] styles = Assert.Single(chart.Series).PointStyles!.ToArray();
+        Assert.True(styles[0]!.NoFill);
+        Assert.Null(styles[0]!.FillColor);
+        Assert.Equal(OfficeChartHatchPattern.ForwardDiagonal, styles[1]!.Hatch);
+    }
+
+    [Fact]
+    public void UnsupportedProducerHatchSpacingRemainsUnprojected() {
+        OdsChart chart = ReadProducerChart(styles => {
+            Assert.Single(styles.Descendants(OdfNamespaces.Draw + "hatch"))
+                .SetAttributeValue(OdfNamespaces.Draw + "distance", "0.8cm");
+        }, editStyles: true);
+
+        Assert.Null(Assert.Single(chart.Series).PointStyles);
+    }
+
+    [Fact]
+    public void OutlineOnlyPointDoesNotInheritChartBackgroundNoFill() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        for (int index = 0; index < 2; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$2",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$2").WithPointStyles(
+                new OfficeChartPointStyle?[] {
+                    new(outlineColor: OfficeColor.Parse("#445566"), showOutline: true), null
+                }) }, 0, 2, OdfRect.FromCentimeters(0, 0, 10, 6));
+
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
+        OfficeChartPointStyle?[] points = Assert.Single(
+            Assert.Single(reopened.GetSheet("Data")!.Charts).Series).PointStyles!.ToArray();
+        Assert.False(points[0]!.NoFill);
+        Assert.Null(points[0]!.FillColor);
+        Assert.True(points[0]!.ShowOutline);
+        Assert.Equal(OfficeColor.Parse("#445566"), points[0]!.OutlineColor);
+        Assert.Null(points[1]);
+    }
+
+    private static OdsChart ReadProducerChart(Action<XDocument> edit,
+        bool editStyles = false) {
+        string fixture = Path.Combine(AppContext.BaseDirectory, "ChartProducerReferences", "status-pie.odt");
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        for (int index = 0; index < 3; index++) {
+            sheet.Cell(index, 0).SetString("Category " + index);
+            sheet.Cell(index, 1).SetNumber(index + 1);
+        }
+        sheet.AddChart(OdsChartType.Pie, "Data.$A$1:.$A$3",
+            new[] { new OdsChartSeries("Data.$B$1:.$B$3") },
+            4, 2, OdfRect.FromCentimeters(1, 1, 10, 6));
+        using (var stream = File.OpenRead(fixture))
+        using (var package = new ZipArchive(stream, ZipArchiveMode.Read)) {
+            foreach (string file in new[] { "content.xml", "styles.xml" }) {
+                using var source = package.GetEntry("Object 1/" + file)!.Open();
+                XDocument xml = XDocument.Load(source);
+                if ((file == "styles.xml") == editStyles) edit(xml);
+                document.Package.AddOrReplaceEntry("Object 1/" + file,
+                    Encoding.UTF8.GetBytes(xml.ToString(SaveOptions.DisableFormatting)), "text/xml");
+            }
+        }
+        return Assert.Single(sheet.Charts);
+    }
+
+    [Theory]
     [InlineData(OdsChartType.Column, "chart:bar", false)]
     [InlineData(OdsChartType.Bar, "chart:bar", true)]
     [InlineData(OdsChartType.Line, "chart:line", null)]
+    [InlineData(OdsChartType.Pie, "chart:circle", null)]
+    [InlineData(OdsChartType.Doughnut, "chart:ring", null)]
     public void AuthoredChartReopensWithSourceRanges(OdsChartType type, string chartClass, bool? vertical) {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
