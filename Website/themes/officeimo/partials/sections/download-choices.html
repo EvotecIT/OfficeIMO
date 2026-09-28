@@ -113,8 +113,8 @@
     {{ if studio_macos_app_x64 && studio_macos_app_arm64 }}
       <p>OfficeIMO Studio {{ string.replace studio_macos_release.tag "Studio-v" "v" }}. Choose the application ZIP for your processor.</p>
       <dl class="imo-channel-list">
-        <div><dt>Intel Mac</dt><dd><a href="{{ studio_macos_app_x64.downloadUrl }}">Application ZIP</a></dd></div>
-        <div><dt>Apple silicon</dt><dd><a href="{{ studio_macos_app_arm64.downloadUrl }}">Application ZIP</a></dd></div>
+        <div><dt>Intel Mac</dt><dd><a href="{{ studio_macos_app_x64.downloadUrl }}">Intel Mac application ZIP</a></dd></div>
+        <div><dt>Apple silicon</dt><dd><a href="{{ studio_macos_app_arm64.downloadUrl }}">Apple silicon application ZIP</a></dd></div>
       </dl>
       <p><a href="{{ studio_macos_release.url }}">Release notes and checksums</a></p>
     {{ else }}
