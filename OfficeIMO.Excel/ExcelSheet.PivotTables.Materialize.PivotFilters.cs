@@ -105,8 +105,8 @@ namespace OfficeIMO.Excel {
                     .Where(pair => pair.Value is double).Select(pair => (pair.Key, Value: (double)pair.Value!)).ToArray();
                 HashSet<PivotFieldValue> included;
                 if (ranking != null) {
-                    if (values.Length != aggregates.Count)
-                        throw new NotSupportedException("Top/bottom value materialization requires numeric aggregate results for every item.");
+                    if (aggregates.Count != 0 && values.Length == 0)
+                        throw new NotSupportedException("Top/bottom ranking with no numeric aggregate is not qualified for materialization.");
                     included = RankMaterializedPivotValues(values, type, ranking);
                 } else {
                     included = new HashSet<PivotFieldValue>(values.Where(pair =>

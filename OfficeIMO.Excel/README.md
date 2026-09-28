@@ -663,9 +663,11 @@ equal, inclusive between, exclusive not-between, and top/bottom count,
 percent, and sum filters. Count filters include ties at the cutoff. Percent
 and sum filters select by cumulative signed measure value, including the item
 that crosses the threshold. Percent uses the current grand total; a zero
-grand total retains all items. Zero and negative item aggregates are supported,
-while error-valued aggregates remain unqualified for ranking. Label and value
-filters can share that field. Value filters use the selected measure's aggregation
+grand total retains all items. Zero and negative item aggregates are supported.
+An item whose selected aggregate is an error does not enter the ranking; Count
+and Count Numbers still rank their numeric results for error-valued source cells.
+Ranking with no numeric aggregate is not qualified for headless materialization.
+Label and value filters can share that field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
 filter definition remains available for Excel refresh, and filtered items are
 not converted into manually hidden items. Filter evaluation is bounded by the

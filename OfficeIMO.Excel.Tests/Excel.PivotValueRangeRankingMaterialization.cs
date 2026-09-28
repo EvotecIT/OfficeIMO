@@ -28,6 +28,18 @@ namespace OfficeIMO.Tests {
         [InlineData("mixed-negative-bottom-percent", "A4:B6", 3, -25d)]
         [InlineData("balanced-top-percent", "A4:B11", 8, 0d)]
         [InlineData("balanced-bottom-percent", "A4:B11", 8, 0d)]
+        [InlineData("error-top-count", "A4:B6", 3, 50d)]
+        [InlineData("error-bottom-count", "A4:B6", 3, 10d)]
+        [InlineData("error-top-percent", "A4:B7", 4, 90d)]
+        [InlineData("error-bottom-percent", "A4:B8", 5, 60d)]
+        [InlineData("error-top-sum", "A4:B7", 4, 90d)]
+        [InlineData("error-bottom-sum", "A4:B8", 5, 60d)]
+        [InlineData("error-average-top-count", "A4:B6", 3, 50d)]
+        [InlineData("error-count-top-count", "A4:B11", 8, 6d)]
+        [InlineData("error-count-numbers-bottom-count", "A4:B6", 3, 0d)]
+        [InlineData("error-div-zero-top-count", "A4:B6", 3, 50d)]
+        [InlineData("error-value-bottom-sum", "A4:B8", 5, 60d)]
+        [InlineData("error-mixed-group-bottom-percent", "A4:B8", 5, 60d)]
         public void Test_PivotValueRangeRanking_ImportedViewAndLookupMatchExcel(
             string kind, string range, int rows, double total) {
             string file = $"pivot-value-{kind}-conformance.xlsx";
@@ -160,6 +172,89 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(output);
             Assert.Empty(reopened.ValidateOpenXml());
             Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
+        [Theory]
+        [InlineData("top-count", 50d)]
+        [InlineData("bottom-count", 10d)]
+        [InlineData("top-percent", 90d)]
+        [InlineData("bottom-percent", 60d)]
+        [InlineData("top-sum", 90d)]
+        [InlineData("bottom-sum", 60d)]
+        [InlineData("average-top-count", 50d)]
+        [InlineData("count-top-count", 6d)]
+        [InlineData("count-numbers-bottom-count", 0d)]
+        [InlineData("div-zero-top-count", 50d)]
+        [InlineData("value-bottom-sum", 60d)]
+        [InlineData("mixed-group-bottom-percent", 60d)]
+        public void Test_PivotErrorRanking_TemplateFreePublicApi(string kind, double total) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.value-error-{kind}.Authored.xlsx");
+            ExcelPivotDataFunction function = kind switch {
+                "average-top-count" => ExcelPivotDataFunction.Average,
+                "count-top-count" => ExcelPivotDataFunction.Count,
+                "count-numbers-bottom-count" => ExcelPivotDataFunction.CountNumbers,
+                _ => ExcelPivotDataFunction.Sum
+            };
+            ExcelPivotFilter filter = kind switch {
+                "top-count" or "average-top-count" or "count-top-count" or "div-zero-top-count"
+                    => ExcelPivotFilter.TopCount("Region", "Metric", 1),
+                "bottom-count" or "count-numbers-bottom-count"
+                    => ExcelPivotFilter.BottomCount("Region", "Metric", 1),
+                "top-percent" => ExcelPivotFilter.TopPercent("Region", "Metric", 40),
+                "bottom-percent" or "mixed-group-bottom-percent" => ExcelPivotFilter.BottomPercent("Region", "Metric", 40),
+                "top-sum" => ExcelPivotFilter.TopSum("Region", "Metric", 60),
+                _ => ExcelPivotFilter.BottomSum("Region", "Metric", 60)
+            };
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Sales");
+                string[] names = { "Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot" };
+                double[] amounts = { 10, 0, 20, 30, 40, 50 };
+                string error = kind == "div-zero-top-count" ? "#DIV/0!"
+                    : kind == "value-bottom-sum" ? "#VALUE!" : "#N/A";
+                for (int index = 0; index < names.Length; index++) {
+                    source.CellValue(index + 2, 1, names[index]);
+                    if (index == 1) source.CellError(index + 2, 2, error);
+                    else source.CellValue(index + 2, 2, amounts[index]);
+                }
+                bool mixedGroup = kind == "mixed-group-bottom-percent";
+                if (mixedGroup) {
+                    source.CellValue(8, 1, "Bravo");
+                    source.CellValue(8, 2, 15d);
+                }
+                source.AddPivotTable(mixedGroup ? "A1:B8" : "A1:B7", "D4", "FilteredPivot",
+                    rowFields: new[] { "Region" },
+                    dataFields: new[] { new ExcelPivotDataField("Sales", function, "Metric") },
+                    layout: ExcelPivotLayout.Tabular,
+                    pivotFilters: new[] { filter });
+                var result = source.MaterializePivotTable("FilteredPivot");
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
+        [Fact]
+        public void Test_PivotErrorRanking_RejectsAllErrorAggregates() {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet("Source");
+            source.CellValue(1, 1, "Region");
+            source.CellValue(1, 2, "Sales");
+            source.CellValue(2, 1, "Alpha");
+            source.CellError(2, 2, "#N/A");
+            source.CellValue(3, 1, "Bravo");
+            source.CellError(3, 2, "#N/A");
+            source.Pivot("A1:B3").Rows("Region").Sum("Sales", "Metric")
+                .Layout(ExcelPivotLayout.Tabular)
+                .Filter(ExcelPivotFilter.TopPercent("Region", "Metric", 40))
+                .At("D4", "FilteredPivot");
+
+            Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("FilteredPivot"));
         }
 
         [Fact]
