@@ -54,10 +54,12 @@ public sealed class HtmlConversionLimits {
     /// <summary>Maximum UTF-8 bytes across embedded stylesheets, or <c>null</c> for no total limit.</summary>
     public long? MaxTotalCssBytes { get; set; }
 
-    /// <summary>Maximum active CSS rules, or <c>null</c> for no rule-count limit.</summary>
+    /// <summary>Maximum active, selector-expanded CSS style entries, or <c>null</c> for no limit.</summary>
+    /// <remarks>A qualified rule with several selectors consumes one entry per selector after nesting
+    /// is resolved. This bounds the entries retained for matching, not the stylesheet's raw block count.</remarks>
     public int? MaxCssRules { get; set; }
 
-    /// <summary>Maximum declarations across active CSS rules, or <c>null</c> for no declaration limit.</summary>
+    /// <summary>Maximum declarations across active, selector-expanded style entries, or <c>null</c> for no limit.</summary>
     public int? MaxCssDeclarations { get; set; }
 
     /// <summary>Maximum lexical tokens produced while parsing one inline declaration block, or <c>null</c> for no token limit.</summary>
