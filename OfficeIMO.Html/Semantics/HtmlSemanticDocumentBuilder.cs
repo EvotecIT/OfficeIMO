@@ -186,6 +186,7 @@ internal static class HtmlSemanticDocumentBuilder {
         ICollection<HtmlSemanticResource> resources,
         string title) {
         var rows = new List<HtmlSemanticTableRow>();
+        int sourceRowIndex = 0;
         foreach (IElement rowElement in DirectRows(table)) {
             var cells = new List<HtmlSemanticTableCell>();
             foreach (IElement cell in rowElement.Children.Where(IsTableCell)) {
@@ -203,7 +204,9 @@ internal static class HtmlSemanticDocumentBuilder {
                     style,
                     HtmlSemanticSourceLocation.FromElement(cell)));
             }
-            if (cells.Count > 0) rows.Add(new HtmlSemanticTableRow(cells.AsReadOnly(), HtmlSemanticSourceLocation.FromElement(rowElement)));
+            if (cells.Count > 0) rows.Add(new HtmlSemanticTableRow(cells.AsReadOnly(),
+                HtmlSemanticSourceLocation.FromElement(rowElement), sourceRowIndex));
+            sourceRowIndex++;
         }
         IElement? caption = table.Children.FirstOrDefault(child => Is(child, "caption"));
         IReadOnlyList<HtmlSemanticRun> captionRuns = caption != null

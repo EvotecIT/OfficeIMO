@@ -112,6 +112,28 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void OneNoteHtml_RowSpanAcrossEmptySourceRowDoesNotShiftLaterCells() {
+        const string html = "<table><tr><td rowspan='2'>A</td><td>B</td></tr><tr></tr>"
+            + "<tr><td>C</td><td>D</td></tr></table>";
+        HtmlSemanticTable semantic = Assert.Single(HtmlConversionDocument.Parse(html)
+            .CreateSemanticDocumentForConversion(HtmlCssMediaContext.Screen).RootTables).Table!;
+        Assert.Equal(new[] { 0, 2 }, semantic.Rows.Select(row => row.SourceRowIndex));
+
+        HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ToOneNoteSectionResult();
+        OneNoteSection reopened = OneNoteSectionReader.Read(
+            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
+            .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
+
+        Assert.Equal(2, table.Rows.Count);
+        Assert.All(table.Rows, row => Assert.Equal(2, row.Cells.Count));
+        Assert.Equal("C", string.Concat(table.Rows[1].Cells[0].Content
+            .OfType<OneNoteParagraph>().SelectMany(paragraph => paragraph.Runs).Select(run => run.Text)));
+        Assert.Equal("D", string.Concat(table.Rows[1].Cells[1].Content
+            .OfType<OneNoteParagraph>().SelectMany(paragraph => paragraph.Runs).Select(run => run.Text)));
+    }
+
+    [Fact]
     public void Rtf_ReportsUnsupportedAriaTableStructureAsApproximation() {
         const string html = "<div role='table'><p>Unstructured</p><div role='row'><div role='cell'>Value</div></div></div>";
 

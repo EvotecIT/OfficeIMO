@@ -368,9 +368,10 @@ public static class HtmlOneNoteConverterExtensions {
         var occupiedUntilRow = new int[byte.MaxValue];
         for (int column = 0; column < occupiedUntilRow.Length; column++) occupiedUntilRow[column] = -1;
         for (int rowIndex = 0; rowIndex < rows; rowIndex++) {
+            int sourceRowIndex = source.Rows[rowIndex].SourceRowIndex;
             var projected = new List<HtmlSemanticTableCell?>();
             for (int column = 0; column < occupiedUntilRow.Length; column++) {
-                if (occupiedUntilRow[column] >= rowIndex) {
+                if (occupiedUntilRow[column] >= sourceRowIndex) {
                     while (projected.Count <= column) projected.Add(null);
                 }
             }
@@ -384,7 +385,7 @@ public static class HtmlOneNoteConverterExtensions {
                 while (cursor + span <= byte.MaxValue) {
                     bool free = true;
                     for (int offset = 0; offset < span; offset++) {
-                        if (occupiedUntilRow[cursor + offset] >= rowIndex) {
+                        if (occupiedUntilRow[cursor + offset] >= sourceRowIndex) {
                             free = false;
                             cursor += offset + 1;
                             break;
@@ -398,7 +399,8 @@ public static class HtmlOneNoteConverterExtensions {
                 }
                 while (projected.Count < cursor + span) projected.Add(null);
                 projected[cursor] = cell;
-                int finalRow = (int)Math.Min(rows - 1L, rowIndex + (long)Math.Max(1, cell.RowSpan) - 1L);
+                int finalRow = (int)Math.Min(source.Rows[rows - 1].SourceRowIndex,
+                    sourceRowIndex + (long)Math.Max(1, cell.RowSpan) - 1L);
                 for (int offset = 0; offset < span; offset++) occupiedUntilRow[cursor + offset] = finalRow;
                 approximated |= cell.RowSpan != 1 || cell.ColumnSpan != 1;
                 cursor += span;

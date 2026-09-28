@@ -311,15 +311,19 @@ public sealed class HtmlSemanticTable {
 
 /// <summary>One semantic table row.</summary>
 public sealed class HtmlSemanticTableRow {
-    internal HtmlSemanticTableRow(IReadOnlyList<HtmlSemanticTableCell> cells, HtmlSemanticSourceLocation? sourceLocation) {
+    internal HtmlSemanticTableRow(IReadOnlyList<HtmlSemanticTableCell> cells,
+        HtmlSemanticSourceLocation? sourceLocation, int sourceRowIndex) {
         Cells = Array.AsReadOnly((cells ?? throw new ArgumentNullException(nameof(cells))).ToArray());
         SourceLocation = sourceLocation;
+        SourceRowIndex = sourceRowIndex;
     }
 
     /// <summary>Cells in source order.</summary>
     public IReadOnlyList<HtmlSemanticTableCell> Cells { get; }
     /// <summary>Source provenance.</summary>
     public HtmlSemanticSourceLocation? SourceLocation { get; }
+    /// <summary>Zero-based position among authored table rows, including empty rows omitted from this semantic view.</summary>
+    public int SourceRowIndex { get; }
 }
 
 /// <summary>One semantic table cell.</summary>
