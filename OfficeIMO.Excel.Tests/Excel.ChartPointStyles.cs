@@ -79,6 +79,31 @@ public sealed class ExcelChartPointStylesTests {
         Assert.True(chart.TryGetSnapshot(out snapshot));
         Assert.Null(snapshot.Data.Series[0].PointStyles);
     }
+
+    [Fact]
+    public void PointStylesAndLegacyPointColorsShareOneNativeRecordPerPoint() {
+        var series = new OfficeChartSeries("Status", new[] { 1d, 2d, 3d, 4d },
+                xValues: null, color: null,
+                pointColors: new OfficeColor?[] { OfficeColor.Parse("#AA2200"),
+                    OfficeColor.Parse("#22AA00"), null, null })
+            .WithPointStyles(new OfficeChartPointStyle?[] {
+                null, new(noFill: true, outlineColor: OfficeColor.Black), null,
+                new(fillColor: OfficeColor.Parse("#2244AA"))
+            });
+        using ExcelDocument document = ExcelDocument.Create();
+        document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B", "C", "D" }, new[] { series }), 1, 1);
+        Assert.Empty(document.ValidateDocument());
+
+        using var package = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);
+        ChartPart chart = Assert.Single(package.WorkbookPart!.WorksheetParts
+            .SelectMany(sheet => sheet.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>()));
+        C.DataPoint[] points = chart.ChartSpace!.Descendants<C.DataPoint>().ToArray();
+        Assert.Equal(new uint[] { 0, 1, 3 }, points.Select(point => point.Index!.Val!.Value));
+        Assert.NotNull(points[0].GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.SolidFill>());
+        Assert.NotNull(points[1].GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.NoFill>());
+        Assert.NotNull(points[2].GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.SolidFill>());
+    }
     // Thin hatch strokes blend with their background during antialiasing.
     private static bool IsPurpleStroke(OfficeColor pixel) =>
         pixel.R < 200 && pixel.G < 150 && pixel.B > pixel.G + 40 && pixel.R > pixel.G + 20;

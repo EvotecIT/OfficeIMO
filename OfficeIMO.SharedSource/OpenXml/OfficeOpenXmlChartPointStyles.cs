@@ -175,6 +175,10 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (anchor != null) series.InsertBefore(point, anchor);
             else series.Append(point);
         }
+        ApplyPointStyle(point, style, legacyColor);
+    }
+
+    private static void ApplyPointStyle(C.DataPoint point, OfficeChartPointStyle? style, OfficeColor? legacyColor) {
         C.Marker? pointMarker = point.GetFirstChild<C.Marker>();
         OpenXmlCompositeElement styleOwner = pointMarker?.GetFirstChild<C.ChartShapeProperties>() != null
             ? pointMarker : point;
