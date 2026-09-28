@@ -206,69 +206,8 @@ namespace OfficeIMO.OpenXml.Internal {
             });
 
 
-        internal static bool HasUnsupportedSharedAxisNumberFormat(
-            OpenXmlCompositeElement axis) {
-            C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
-            // A linked format can differ from formatCode only when the chart has a workbook.
-            // Cache-only producer charts have no source cell style to resolve.
-            if (numbering?.SourceLinked?.Value == true &&
-                axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null) return true;
-            string? format = numbering?.FormatCode?.Value;
-            if (string.IsNullOrWhiteSpace(format)) return false;
-            if (string.Equals(format, "General",
-                    StringComparison.OrdinalIgnoreCase)) {
-                return false;
-            }
-
-            bool inQuotedLiteral = false;
-            bool escaped = false;
-            bool sectionHasPlaceholder = false;
-            for (int index = 0; index < format!.Length; index++) {
-                char value = format[index];
-                if (escaped) {
-                    escaped = false;
-                    continue;
-                }
-                if (value == '\\') {
-                    escaped = true;
-                    continue;
-                }
-                if (value == '"') {
-                    inQuotedLiteral = !inQuotedLiteral;
-                    continue;
-                }
-                if (inQuotedLiteral) {
-                    continue;
-                }
-                if (value == '0' || value == '#' || value == '?') {
-                    sectionHasPlaceholder = true;
-                    continue;
-                }
-                if (value == ';') {
-                    if (!sectionHasPlaceholder) return true;
-                    sectionHasPlaceholder = false;
-                    continue;
-                }
-                if (value == '/' || value == '@' ||
-                    value == '[' || value == ']') {
-                    return true;
-                }
-                if (value != 'E' && value != 'e') continue;
-
-                int next = index + 1;
-                if (next < format.Length &&
-                    (format[next] == '+' || format[next] == '-')) {
-                    next++;
-                }
-                if (next < format.Length &&
-                    (format[next] == '0' || format[next] == '#' ||
-                     format[next] == '?')) {
-                    return true;
-                }
-            }
-
-            return inQuotedLiteral || escaped || !sectionHasPlaceholder;
-        }
+        internal static bool HasUnsupportedSharedAxisNumberFormat(OpenXmlCompositeElement axis) =>
+            OfficeOpenXmlChartSecondaryAxis.HasUnsupportedSharedAxisNumberFormat(axis);
 
 
     }

@@ -88,11 +88,49 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         var scaling = axis.GetFirstChild<C.Scaling>();
         if ((!resolveSourceLinkedFormats && axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) ||
             axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
-                OfficeOpenXmlChartSeriesReader.HasUnsupportedSharedAxisNumberFormat(axis) ||
+                HasUnsupportedSharedAxisNumberFormat(axis) ||
             scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
             axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)
             throw new NotSupportedException("The secondary numeric axis requires an unsupported projection.");
+    }
+
+    internal static bool HasUnsupportedSharedAxisNumberFormat(OpenXmlCompositeElement axis) {
+        C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
+        // Source-linked formats can differ from formatCode only when a workbook is attached.
+        if (numbering?.SourceLinked?.Value == true &&
+            axis.Ancestors<C.ChartSpace>().FirstOrDefault()?.GetFirstChild<C.ExternalData>() != null) return true;
+        string? format = numbering?.FormatCode?.Value;
+        if (string.IsNullOrWhiteSpace(format) || string.Equals(format, "General", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        bool inQuotedLiteral = false;
+        bool escaped = false;
+        bool sectionHasPlaceholder = false;
+        for (int index = 0; index < format!.Length; index++) {
+            char value = format[index];
+            if (escaped) { escaped = false; continue; }
+            if (value == '\\') { escaped = true; continue; }
+            if (value == '"') { inQuotedLiteral = !inQuotedLiteral; continue; }
+            if (inQuotedLiteral) continue;
+            if (value == '0' || value == '#' || value == '?') {
+                sectionHasPlaceholder = true;
+                continue;
+            }
+            if (value == ';') {
+                if (!sectionHasPlaceholder) return true;
+                sectionHasPlaceholder = false;
+                continue;
+            }
+            if (value == '/' || value == '@' || value == '[' || value == ']') return true;
+            if (value != 'E' && value != 'e') continue;
+            int next = index + 1;
+            if (next < format.Length && (format[next] == '+' || format[next] == '-')) next++;
+            if (next < format.Length && (format[next] == '0' || format[next] == '#' || format[next] == '?'))
+                return true;
+        }
+
+        return inQuotedLiteral || escaped || !sectionHasPlaceholder;
     }
 
     internal static void QualifyTitle(C.Title? title) {
