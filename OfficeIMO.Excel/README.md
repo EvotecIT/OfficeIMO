@@ -424,8 +424,8 @@ Combination-chart snapshots retain secondary value-axis bounds, tick units and n
 independently of the primary axis. Configure them with `SetValueAxisScale(...,
 axisGroup: OfficeChartAxisGroup.Secondary)` and `SetValueAxisNumberFormat("0%", false,
 OfficeChartAxisGroup.Secondary)`; managed chart images use the same independent scale.
-`SetSecondaryValueAxis(new OfficeChartValueAxisLayout(...))` configures these settings together,
-including optional `majorTickMark` and `minorTickMark` appearance.
+`SetSecondaryValueAxis(new OfficeChartValueAxisLayout(...).WithTitle("Margin"))` configures
+these settings together, including optional `majorTickMark` and `minorTickMark` appearance.
 Snapshots reject malformed secondary numeric settings and secondary logarithmic or reversed
 scales, display units, and explicit numeric crossing values.
 

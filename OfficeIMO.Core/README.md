@@ -594,7 +594,7 @@ The background and border are optional; the border width is a positive value in 
 These settings style the chart legend frame in shared static renders.
 
 Use `layout.WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
-majorUnit: 0.2, numberFormat: "0%"))` for an independent secondary value-axis scale.
+majorUnit: 0.2, numberFormat: "0%").WithTitle("Completion rate"))` for an independent secondary value-axis scale and title.
 Use optional `majorTickMark` and `minorTickMark` settings to select independent tick appearance.
 The returned layout preserves the primary axis settings and leaves the original layout unchanged.
 Bounds must be finite and ordered; tick units must be positive.

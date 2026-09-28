@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal;
@@ -31,7 +32,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             minorUnit: axis.GetFirstChild<C.MinorUnit>()?.Val?.Value,
             numberFormat: axis.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
             majorTickMark: ReadTick(axis.GetFirstChild<C.MajorTickMark>()?.Val?.Value),
-            minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value));
+            minorTickMark: ReadTick(axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value))
+            .WithTitle(ReadTitle(axis.GetFirstChild<C.Title>()));
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
@@ -60,6 +62,11 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             axis.RemoveAllChildren<C.MinorTickMark>();
             axis.AddChild(new C.MinorTickMark { Val = WriteTick(layout.MinorTickMark.Value) }, true);
         }
+        axis.GetFirstChild<C.Title>()?.Remove();
+        if (layout.Title != null) axis.AddChild(new C.Title(
+            new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(),
+                new A.Paragraph(new A.Run(new A.Text(layout.Title))))),
+            new C.Layout(), new C.Overlay { Val = false }), true);
     }
 
     internal static void QualifyLinearProjection(C.PlotArea? plot, bool resolveSourceLinkedFormats = false) {
@@ -79,6 +86,13 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         value == C.TickMarkValues.Inside ? OfficeChartAxisTickMark.Inside :
         value == C.TickMarkValues.Outside ? OfficeChartAxisTickMark.Outside :
         value == C.TickMarkValues.Cross ? OfficeChartAxisTickMark.Cross : OfficeChartAxisTickMark.None;
+
+    private static string? ReadTitle(C.Title? title) {
+        var text = title?.GetFirstChild<C.ChartText>();
+        string? value = text?.GetFirstChild<C.RichText>()?.InnerText ??
+            text?.GetFirstChild<C.StringReference>()?.StringCache?.InnerText;
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
 
     private static C.TickMarkValues WriteTick(OfficeChartAxisTickMark value) =>
         value == OfficeChartAxisTickMark.Inside ? C.TickMarkValues.Inside :

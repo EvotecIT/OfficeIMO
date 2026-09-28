@@ -11,6 +11,22 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
     [Fact]
+    public void OfficeSnapshot_RejectsManualSecondaryAxisTitleLayout() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d }),
+            new OfficeChartSeries("Ratio", new[] { 1d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
+        secondary.GetFirstChild<C.Title>()!.GetFirstChild<C.Layout>()!
+            .Append(new C.ManualLayout(new C.Left { Val = .3 }));
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void OfficeSnapshot_PreservesFormulaBasedAxisTitleTypeface() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered,
@@ -57,11 +73,16 @@ public sealed class WordChartOfficeSnapshotTests {
         var secondary = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 2,
             majorUnit: 0.5, minorUnit: 0.25, numberFormat: "0%",
-            majorTickMark: OfficeChartAxisTickMark.Cross, minorTickMark: OfficeChartAxisTickMark.Outside));
+            majorTickMark: OfficeChartAxisTickMark.Cross, minorTickMark: OfficeChartAxisTickMark.Outside)
+            .WithTitle("Secondary percentage"));
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(2, snapshot.Layout.SecondaryValueAxis!.Maximum);
         Assert.Equal(0.5, snapshot.Layout.SecondaryValueAxis.MajorUnit);
         Assert.Equal("0%", snapshot.Layout.SecondaryValueAxis.NumberFormat);
+        Assert.Equal("Secondary percentage", snapshot.Layout.SecondaryValueAxis.Title);
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text =>
+            text.Text == "Secondary percentage" && text.Alignment == OfficeTextAlignment.Right);
         Assert.Null(snapshot.Layout.VerticalAxisMaximum);
         Assert.Equal(2, secondary.Scaling!.GetFirstChild<C.MaxAxisValue>()!.Val!.Value);
         chart.SetData(snapshot.ChartKind, snapshot.Data);
@@ -72,6 +93,7 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.True(reopened.Charts.Single().TryGetOfficeSnapshot(out var imported));
         Assert.Equal(2, imported.Layout.SecondaryValueAxis!.Maximum);
         Assert.Equal("0%", imported.Layout.SecondaryValueAxis.NumberFormat);
+        Assert.Equal("Secondary percentage", imported.Layout.SecondaryValueAxis.Title);
         Assert.Equal(0.25, imported.Layout.SecondaryValueAxis.MinorUnit);
         Assert.Equal(OfficeChartAxisTickMark.Cross, imported.Layout.SecondaryValueAxis.MajorTickMark);
         Assert.Equal(OfficeChartAxisTickMark.Outside, imported.Layout.SecondaryValueAxis.MinorTickMark);
