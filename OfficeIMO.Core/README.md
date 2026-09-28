@@ -7,7 +7,7 @@
 
 The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. That same single zero-dependency foundation is now named `OfficeIMO.Core`; it was not split into another runtime dependency. Actual drawing APIs remain in `OfficeIMO.Drawing`, neutral data and flattening contracts use `OfficeIMO.Data`, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle, compatibility, capability, and conversion-report contracts use the root `OfficeIMO` namespace.
 
-The VP8 decoder is adapted from Apache-2.0-licensed CodeGlyphX source. Its attribution and license are included in the package's `THIRD-PARTY-NOTICES.md` and `Licenses` directory; package licensing covers MIT and Apache-2.0 components.
+The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation; applications do not need CodeGlyphX to decode WebP images. The separate WebM reference license and patent notices remain in the package's `Licenses` directory.
 
 ## Install
 
