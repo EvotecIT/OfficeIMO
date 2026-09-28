@@ -65,6 +65,9 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             if (outlineWidth.HasValue) {
                 outline.Width = checked((int)FromPoints(outlineWidth.Value));
+            } else if (reenableConnectingLine && outline.Width?.Value == 0) {
+                // A hidden native area outline may have zero width as well as no fill.
+                outline.Width = null;
             }
             if (series.StrokeDashStyle.HasValue) {
                 outline.RemoveAllChildren<A.PresetDash>();
