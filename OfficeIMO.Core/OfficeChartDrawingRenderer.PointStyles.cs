@@ -89,7 +89,8 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
         AddStyledPointPolygon(drawing, new[] { new OfficePoint(x, y), new OfficePoint(x + size, y),
-            new OfficePoint(x + size, y + size), new OfficePoint(x, y + size) }, color, style, null, 0.75);
+            new OfficePoint(x + size, y + size), new OfficePoint(x, y + size) }, color, style,
+            OfficeColor.White, 0.5D);
     }
 
     private static void AddPointHatch(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points,
