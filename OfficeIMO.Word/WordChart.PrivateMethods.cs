@@ -160,7 +160,7 @@ namespace OfficeIMO.Word {
         }
 
         private Chart CreatePieChart(Chart chart) {
-            PieChart pieChart1 = new PieChart(AddDataLabel());
+            PieChart pieChart1 = new PieChart(new VaryColors { Val = true }, AddDataLabel());
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             chart.PlotArea!.Append(pieChart1);
             return chart;

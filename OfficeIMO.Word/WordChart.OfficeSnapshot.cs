@@ -1,6 +1,7 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.OpenXml.Internal;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word;
 
@@ -16,6 +17,11 @@ public partial class WordChart {
         try {
             var chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
             if (_chartPart == null || chart == null) return false;
+            // The shared Drawing palette has no Word color-slot remapping metadata.
+            // Preserve the native chart and report unsupported projection rather than
+            // resolving theme slots through the unmapped document theme.
+            if (HasNonIdentityColorSchemeMapping(_document.MainDocumentPartRoot.DocumentSettingsPart?.Settings?
+                .GetFirstChild<W.ColorSchemeMapping>())) return false;
             // Preserve the existing flat projection for single legacy 3-D groups. A rejected
             // 2-D projection must never fall back through a less strict legacy reader.
             var groups = chart.PlotArea?.ChildElements.Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).Take(10001).ToArray();
@@ -48,6 +54,20 @@ public partial class WordChart {
             return false;
         }
     }
+
+    private static bool HasNonIdentityColorSchemeMapping(W.ColorSchemeMapping? mapping) => mapping != null && (
+        mapping.Background1?.Value != W.ColorSchemeIndexValues.Light1 ||
+        mapping.Text1?.Value != W.ColorSchemeIndexValues.Dark1 ||
+        mapping.Background2?.Value != W.ColorSchemeIndexValues.Light2 ||
+        mapping.Text2?.Value != W.ColorSchemeIndexValues.Dark2 ||
+        mapping.Accent1?.Value != W.ColorSchemeIndexValues.Accent1 ||
+        mapping.Accent2?.Value != W.ColorSchemeIndexValues.Accent2 ||
+        mapping.Accent3?.Value != W.ColorSchemeIndexValues.Accent3 ||
+        mapping.Accent4?.Value != W.ColorSchemeIndexValues.Accent4 ||
+        mapping.Accent5?.Value != W.ColorSchemeIndexValues.Accent5 ||
+        mapping.Accent6?.Value != W.ColorSchemeIndexValues.Accent6 ||
+        mapping.Hyperlink?.Value != W.ColorSchemeIndexValues.Hyperlink ||
+        mapping.FollowedHyperlink?.Value != W.ColorSchemeIndexValues.FollowedHyperlink);
 
     private static bool HasUnclippedExplicitScale(OfficeChartSnapshot snapshot) {
         OfficeChartLayout layout = snapshot.Layout;

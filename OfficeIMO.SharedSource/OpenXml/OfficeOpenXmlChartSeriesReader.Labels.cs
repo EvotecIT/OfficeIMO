@@ -41,6 +41,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     _ => throw new NotSupportedException("The native data label position cannot be projected.")
                 }
             };
+            if (current.Visible && (layer is C.PieChart or C.DoughnutChart) &&
+                current.Position != OfficeChartDataLabelPosition.BestFit)
+                throw new NotSupportedException("The native radial data label position cannot be projected.");
             if (labels?.Elements<C.DataLabel>().Any() == true || LabelFlag<C.ShowLegendKey>(labels) ||
                 LabelFlag<C.ShowBubbleSize>(labels) ||
                 (LabelFlag<C.ShowLeaderLines>(labels) && layer is C.PieChart or C.DoughnutChart && current.Position == OfficeChartDataLabelPosition.BestFit) ||

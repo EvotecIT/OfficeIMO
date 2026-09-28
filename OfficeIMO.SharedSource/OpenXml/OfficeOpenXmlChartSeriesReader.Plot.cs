@@ -97,7 +97,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool radial = layer is C.PieChart or C.DoughnutChart;
             if (radial) {
                 // Radial default colouring is per category in the shared renderer.
-                if (layer.GetFirstChild<C.VaryColors>()?.Val?.Value == false &&
+                if (layer.GetFirstChild<C.VaryColors>()?.Val?.Value != true &&
                     layer.Elements<C.PieChartSeries>().Any(series => series.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.SolidFill>() == null)) return true;
                 if (layer.Descendants<C.Explosion>().Any(explosion => explosion.Val?.Value != 0)) return true;
             } else if (layer is not C.BubbleChart && IsVaryColorsEnabled(layer.GetFirstChild<C.VaryColors>())) return true;

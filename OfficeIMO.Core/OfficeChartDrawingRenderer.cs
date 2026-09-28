@@ -291,33 +291,11 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (GetShowCategoryMinorGridLines(style)) {
-            if (barChart) {
-                AddHorizontalGridLines(
-                    drawing,
-                    plotLeft,
-                    plotTop,
-                    plotWidth,
-                    plotHeight,
-                    divisions: 8,
-                    startIndex: 1,
-                    step: 2,
-                    GetCategoryMinorGridLineColor(style),
-                    GetCategoryMinorGridLineWidth(style),
-                    GetCategoryMinorGridLineDashStyle(style));
-            } else {
-                AddVerticalGridLines(
-                    drawing,
-                    numericPlotLeft,
-                    plotTop,
-                    numericPlotWidth,
-                    plotHeight,
-                    divisions: 8,
-                    startIndex: 1,
-                    step: 2,
-                    GetCategoryMinorGridLineColor(style),
-                    GetCategoryMinorGridLineWidth(style),
-                    GetCategoryMinorGridLineDashStyle(style));
-            }
+            AddCategoryGridLines(drawing, snapshot, layout, barChart,
+                barChart ? plotLeft : numericPlotLeft, plotTop,
+                barChart ? plotWidth : numericPlotWidth, plotHeight, minor: true,
+                GetCategoryMinorGridLineColor(style), GetCategoryMinorGridLineWidth(style),
+                GetCategoryMinorGridLineDashStyle(style));
         }
 
         if (GetShowValueMinorGridLines(style)) {
@@ -379,33 +357,11 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (GetShowCategoryGridLines(style)) {
-            if (barChart) {
-                AddHorizontalGridLines(
-                    drawing,
-                    plotLeft,
-                    plotTop,
-                    plotWidth,
-                    plotHeight,
-                    divisions: 4,
-                    startIndex: 1,
-                    step: 1,
-                    GetCategoryGridLineColor(style),
-                    GetCategoryGridLineWidth(style),
-                    GetCategoryGridLineDashStyle(style));
-            } else {
-                AddVerticalGridLines(
-                    drawing,
-                    numericPlotLeft,
-                    plotTop,
-                    numericPlotWidth,
-                    plotHeight,
-                    divisions: 4,
-                    startIndex: 1,
-                    step: 1,
-                    GetCategoryGridLineColor(style),
-                    GetCategoryGridLineWidth(style),
-                    GetCategoryGridLineDashStyle(style));
-            }
+            AddCategoryGridLines(drawing, snapshot, layout, barChart,
+                barChart ? plotLeft : numericPlotLeft, plotTop,
+                barChart ? plotWidth : numericPlotWidth, plotHeight, minor: false,
+                GetCategoryGridLineColor(style), GetCategoryGridLineWidth(style),
+                GetCategoryGridLineDashStyle(style));
         }
 
         if (GetShowValueGridLines(style)) {

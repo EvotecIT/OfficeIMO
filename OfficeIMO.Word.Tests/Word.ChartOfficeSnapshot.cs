@@ -130,6 +130,44 @@ public sealed class WordChartOfficeSnapshotTests {
         Assert.Contains(drawing.Shapes, shape => shape.Shape.StrokeColor == OfficeColor.Parse("#445566") && shape.Shape.StrokeDashStyle == OfficeStrokeDashStyle.Dash);
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.BarClustered)]
+    public void OfficeSnapshot_CategoryGridlinesFollowAllTenCategoryTicks(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        string[] categories = Enumerable.Range(1, 10).Select(index => "C" + index).ToArray();
+        var chart = document.AddChart(kind, new OfficeChartData(categories,
+            new[] { new OfficeChartSeries("Values", Enumerable.Range(1, 10).Select(index => (double)index)) }));
+        var axis = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.GetFirstChild<C.CategoryAxis>()!;
+        axis.AddChild(new C.MajorGridlines(new C.ChartShapeProperties(
+            new DocumentFormat.OpenXml.Drawing.Outline(new DocumentFormat.OpenXml.Drawing.SolidFill(
+                new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "143C82" })))), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        var gridlines = OfficeChartDrawingRenderer.Render(snapshot).Shapes
+            .Where(shape => shape.Shape.StrokeColor == OfficeColor.Parse("#143C82"))
+            .OrderBy(shape => kind == OfficeChartKind.BarClustered ? shape.Y : shape.X).ToArray();
+        Assert.Equal(kind == OfficeChartKind.Line ? 8 : 10, gridlines.Length);
+        double Position(OfficeDrawingShape shape) => kind == OfficeChartKind.BarClustered ? shape.Y : shape.X;
+        double spacing = Position(gridlines[1]) - Position(gridlines[0]);
+        Assert.All(gridlines.Zip(gridlines.Skip(1), (left, right) => Position(right) - Position(left)),
+            delta => Assert.Equal(spacing, delta, 6));
+    }
+
+    [Fact]
+    public void OfficeSnapshot_RejectsUnmappedWordThemeColorSlots() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) }));
+        var mapping = document._wordprocessingDocument.MainDocumentPart!.DocumentSettingsPart!.Settings!
+            .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.ColorSchemeMapping>()!;
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        mapping.Accent1 = DocumentFormat.OpenXml.Wordprocessing.ColorSchemeIndexValues.Accent2;
+        string before = chart.ChartPart!.ChartSpace!.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
+    }
+
     [Fact]
     public void OfficeSnapshot_RejectsAnUnqualifiedSurfaceInsteadOfDroppingItsAppearance() {
         using var document = WordDocument.Create();

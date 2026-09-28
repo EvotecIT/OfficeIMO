@@ -76,6 +76,13 @@ namespace OfficeIMO.OpenXml.Internal {
                 vertical?.GetFirstChild<C.Crosses>()?.Val?.Value != C.CrossesValues.Minimum &&
                 (ReadLayoutMinimum(vertical) < 0D || data.Series.Any(series => series.Values.Any(value => value < 0D))))
                 throw new NotSupportedException("A horizontal bar axis crossing through negative values cannot be projected.");
+            if (kind is not OfficeChartKind.BarClustered and not OfficeChartKind.BarStacked and not OfficeChartKind.BarStacked100 &&
+                kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut and not OfficeChartKind.Radar &&
+                ReadLayoutCrossing(vertical) == OfficeChartAxisCrossingPosition.AutoZero &&
+                (ReadLayoutMinimum(vertical) is double minimum && minimum < 0D ||
+                 data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Primary &&
+                     series.Values.Any(value => value < 0D))))
+                throw new NotSupportedException("A zero-crossing category axis cannot be projected at the plot edge.");
             QualifySecondaryLayout(plot, vertical);
             // Titles, visibility and category direction describe logical roles;
             // scales and tick marks describe the physical horizontal/vertical axes.
