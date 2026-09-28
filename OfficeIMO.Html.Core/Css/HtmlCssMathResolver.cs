@@ -146,6 +146,9 @@ public static class HtmlCssMathResolver {
                 return ContextValue(context.FontSize, HtmlCssLengthResolutionStatus.MissingFontSize);
             case HtmlCssLengthUnit.Ex:
                 return ContextValue(context.FontSize, HtmlCssLengthResolutionStatus.MissingFontSize).Scale(0.5D);
+            case HtmlCssLengthUnit.Ch:
+                return ContextValue(context.FontSize, HtmlCssLengthResolutionStatus.MissingFontSize)
+                    .Scale(context.UprightVerticalText ? 1D : 0.5D);
             case HtmlCssLengthUnit.Rem:
                 return ContextValue(context.RootFontSize, HtmlCssLengthResolutionStatus.MissingRootFontSize);
             case HtmlCssLengthUnit.Vw:

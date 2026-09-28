@@ -11,7 +11,7 @@ public sealed class HtmlCssLengthValuesTests {
     [Fact]
     public void IndependentLengthMathCorpusMatchesTypedAndContextualContracts() {
         LengthMathCase[] corpus = Read<LengthMathCase>("css-length-math-corpus.json");
-        Assert.Equal(28, corpus.Length);
+        Assert.Equal(29, corpus.Length);
         var context = new HtmlCssLengthResolutionContext {
             PercentageReference = 200D,
             FontSize = 20D,
@@ -60,6 +60,10 @@ public sealed class HtmlCssLengthValuesTests {
             HtmlCssMathResolver.ResolveLength(ex, new HtmlCssLengthResolutionContext()).Status);
         Assert.Equal(20D, HtmlCssMathResolver.ResolveLength(ex, new HtmlCssLengthResolutionContext {
             FontSize = 20D
+        }).Value);
+        Assert.Equal(60D, HtmlCssMathResolver.ResolveLength(Parse("3ch"), new HtmlCssLengthResolutionContext {
+            FontSize = 20D,
+            UprightVerticalText = true
         }).Value);
         Assert.Equal(HtmlCssLengthResolutionStatus.MissingRootFontSize,
             HtmlCssMathResolver.ResolveLength(rem, new HtmlCssLengthResolutionContext()).Status);
@@ -154,7 +158,7 @@ public sealed class HtmlCssLengthValuesTests {
             [HtmlCssLengthUnit.Pc] = "pc", [HtmlCssLengthUnit.In] = "in",
             [HtmlCssLengthUnit.Cm] = "cm", [HtmlCssLengthUnit.Mm] = "mm",
             [HtmlCssLengthUnit.Q] = "q", [HtmlCssLengthUnit.Em] = "em",
-            [HtmlCssLengthUnit.Ex] = "ex",
+            [HtmlCssLengthUnit.Ex] = "ex", [HtmlCssLengthUnit.Ch] = "ch",
             [HtmlCssLengthUnit.Rem] = "rem", [HtmlCssLengthUnit.Vw] = "vw",
             [HtmlCssLengthUnit.Vh] = "vh", [HtmlCssLengthUnit.Vmin] = "vmin",
             [HtmlCssLengthUnit.Vmax] = "vmax", [HtmlCssLengthUnit.Svw] = "svw",

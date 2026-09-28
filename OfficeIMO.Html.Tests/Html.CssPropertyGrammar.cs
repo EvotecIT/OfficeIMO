@@ -13,7 +13,7 @@ public sealed class HtmlCssPropertyGrammarTests {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Css", "css-property-grammar-corpus.json");
         CssPropertyCorpusCase[] corpus = JsonSerializer.Deserialize<CssPropertyCorpusCase[]>(
             File.ReadAllText(path), new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
-        Assert.Equal(35, corpus.Length);
+        Assert.Equal(36, corpus.Length);
 
         foreach (CssPropertyCorpusCase item in corpus) {
             HtmlCssPropertyParseResult parsed = HtmlCssPropertyParser.Parse(item.Property, item.Value);

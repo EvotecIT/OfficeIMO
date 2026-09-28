@@ -50,9 +50,10 @@ internal static class HtmlRenderCssValues {
         double viewportHeight,
         double containerWidth,
         double containerHeight,
-        out double result) {
+        out double result,
+        bool uprightVerticalText = false) {
         return TryLength(value, reference, fontSize, rootFontSize, viewportWidth, viewportHeight,
-            containerWidth, containerHeight, out result, out _);
+            containerWidth, containerHeight, out result, out _, uprightVerticalText);
     }
 
     internal static bool TryLength(
@@ -65,7 +66,8 @@ internal static class HtmlRenderCssValues {
         double containerWidth,
         double containerHeight,
         out double result,
-        out bool isCalculated) {
+        out bool isCalculated,
+        bool uprightVerticalText = false) {
         result = 0D;
         isCalculated = false;
         if (string.IsNullOrWhiteSpace(value)) return false;
@@ -77,6 +79,7 @@ internal static class HtmlRenderCssValues {
                 PercentageReference = FiniteOrNull(reference),
                 FontSize = FiniteOrNull(fontSize),
                 RootFontSize = FiniteOrNull(rootFontSize),
+                UprightVerticalText = uprightVerticalText,
                 ViewportWidth = FiniteOrNull(viewportWidth),
                 ViewportHeight = FiniteOrNull(viewportHeight),
                 ContainerWidth = FiniteOrNull(containerWidth),

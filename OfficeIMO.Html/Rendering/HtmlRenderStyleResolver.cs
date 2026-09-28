@@ -15,6 +15,7 @@ internal sealed partial class HtmlRenderStyleResolver {
     private double _viewportHeight;
     private double _activeContainerWidth = double.NaN;
     private double _activeContainerHeight = double.NaN;
+    private bool _activeUprightVerticalText;
 
     internal HtmlRenderStyleResolver(HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
         _computedStyles = computedStyles;
@@ -51,7 +52,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             _viewportHeight,
             _activeContainerWidth,
             _activeContainerHeight,
-            out result);
+            out result,
+            _activeUprightVerticalText);
 
     private bool TryResolveLength(
         string? value,
@@ -70,7 +72,8 @@ internal sealed partial class HtmlRenderStyleResolver {
             _activeContainerWidth,
             _activeContainerHeight,
             out result,
-            out isCalculated);
+            out isCalculated,
+            _activeUprightVerticalText);
 
     internal HtmlRenderBoxStyle Resolve(IElement element, double containingWidth, HtmlRenderBoxStyle? parent = null) {
         HtmlComputedStyle computed = _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? found)
@@ -138,6 +141,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         string tag = element.TagName.ToLowerInvariant();
         double viewportWidth = _viewportWidth;
         double viewportHeight = _viewportHeight;
+        string writingMode = ResolveWritingMode(computed.GetValue("writing-mode"), parent?.WritingMode);
+        string textOrientation = ResolveTextOrientation(computed.GetValue("text-orientation"), parent?.TextOrientation);
+        _activeUprightVerticalText = (writingMode == "vertical-rl" || writingMode == "vertical-lr")
+            && textOrientation == "upright";
         _activeContainerWidth = parent?.ContainerType == "inline-size" || parent?.ContainerType == "size"
             ? containingWidth
             : parent?.ContainerUnitWidth ?? viewportWidth;
@@ -182,8 +189,6 @@ internal sealed partial class HtmlRenderStyleResolver {
         string family = HtmlRenderCssValues.FontFamilyList(computed.GetValue("font-family"), defaultFamily);
         string direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction);
         string unicodeBidi = NormalizeCssValue(computed.GetValue("unicode-bidi"), "normal");
-        string writingMode = ResolveWritingMode(computed.GetValue("writing-mode"), parent?.WritingMode);
-        string textOrientation = ResolveTextOrientation(computed.GetValue("text-orientation"), parent?.TextOrientation);
         string language = ResolveLanguage(element, parent?.Language);
 
         string fontVariant = string.IsNullOrWhiteSpace(computed.GetValue("font-variant"))
@@ -987,7 +992,7 @@ internal sealed partial class HtmlRenderStyleResolver {
         style.ClipPath = NormalizeCssValue(computed.GetValue("clip-path"), "none");
         style.BoxDecorationBreak = NormalizeCssValue(computed.GetValue("box-decoration-break"), "slice");
         string boxShadow = NormalizeCssValue(computed.GetValue("box-shadow"), "none");
-        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows)) {
+        if (!HtmlCssBoxShadowParser.TryParse(boxShadow, style.Font.Size, _rootFontSize, _viewportWidth, _viewportHeight, _activeContainerWidth, _activeContainerHeight, style.Color, out IReadOnlyList<HtmlCssBoxShadow> shadows, _activeUprightVerticalText)) {
             style.UnsupportedBoxShadow = boxShadow;
         } else {
             style.BoxShadowLayerCount = shadows.Count;

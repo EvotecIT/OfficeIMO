@@ -69,7 +69,9 @@ public enum HtmlCssLengthUnit {
     /// <summary>One percent of the larger query-container dimension.</summary>
     Cqmax,
     /// <summary>The element font's x-height, approximated as half the font size when metrics are unavailable.</summary>
-    Ex
+    Ex,
+    /// <summary>The zero-glyph advance, approximated as 0.5em or 1em for upright vertical text when metrics are unavailable.</summary>
+    Ch
 }
 
 /// <summary>Syntax node kinds in a parsed CSS numeric expression.</summary>
@@ -217,6 +219,8 @@ public sealed class HtmlCssLengthResolutionContext {
     public double? FontSize { get; set; }
     /// <summary>Computed root font size in CSS pixels.</summary>
     public double? RootFontSize { get; set; }
+    /// <summary>Whether text is upright in a vertical writing mode, requiring a 1em fallback for the ch unit.</summary>
+    public bool UprightVerticalText { get; set; }
     /// <summary>Default viewport width in CSS pixels. Specialized viewport sizes fall back to this value.</summary>
     public double? ViewportWidth { get; set; }
     /// <summary>Default viewport height in CSS pixels. Specialized viewport sizes fall back to this value.</summary>
