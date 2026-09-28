@@ -599,6 +599,8 @@ Updating the scale without `WithTitle` preserves an existing native title; `With
 Use optional `majorTickMark` and `minorTickMark` settings to select independent tick appearance.
 The returned layout preserves the primary axis settings and leaves the original layout unchanged.
 Bounds must be finite and ordered; tick units must be positive.
+Explicit numeric bounds clip line, area, and scatter series paint to the plot; points outside the range
+do not gain false edge markers or labels. Data labels for visible points can extend beyond the plot.
 
 ### Style individual chart points
 
