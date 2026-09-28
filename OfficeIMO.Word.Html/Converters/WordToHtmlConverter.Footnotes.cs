@@ -148,6 +148,9 @@ namespace OfficeIMO.Word.Html {
             void Scan(IEnumerable<WordParagraph>? paragraphs) {
                 foreach (WordParagraph paragraph in paragraphs ?? Enumerable.Empty<WordParagraph>()) {
                     foreach (WordParagraph run in paragraph.GetRuns()) {
+                        if (IsBlockquoteCiteReference(run.CharacterStyleId) ||
+                            string.Equals(run.CharacterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase))
+                            continue;
                         IEnumerable<OpenXmlElement> children = run._visibleRunSourceChildren ??
                             (IEnumerable<OpenXmlElement>?)run._run?.ChildElements ?? Array.Empty<OpenXmlElement>();
                         foreach (OpenXmlElement child in children) {
