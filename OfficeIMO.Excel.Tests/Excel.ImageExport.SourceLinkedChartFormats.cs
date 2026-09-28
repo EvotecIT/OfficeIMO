@@ -8,6 +8,29 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class ExcelSourceLinkedChartFormatTests {
+    [Fact]
+    public void ChartAxis_InheritsNamedStyleNumberFormat() {
+        using var document = ExcelDocument.Create(new MemoryStream());
+        var sheet = document.AddWorksheet("Named");
+        sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Score");
+        sheet.CellValue(2, 1, "North"); sheet.CellValue(2, 2, .94); sheet.CellAt(2, 2).Percent(0);
+        sheet.AddChartFromRange("A1:B2", row: 1, column: 4);
+
+        var stylesheet = document.WorkbookPartRoot!.WorkbookStylesPart!.Stylesheet!;
+        stylesheet.CellStyleFormats!.Append(new DocumentFormat.OpenXml.Spreadsheet.CellFormat { NumberFormatId = 9U });
+        var cell = sheet.WorksheetPart.Worksheet.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.SheetData>()!
+            .Elements<DocumentFormat.OpenXml.Spreadsheet.Row>().Single(row => row.RowIndex!.Value == 2)
+            .Elements<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single(item => item.CellReference!.Value == "B2");
+        var format = stylesheet.CellFormats!.Elements<DocumentFormat.OpenXml.Spreadsheet.CellFormat>()
+            .ElementAt((int)cell.StyleIndex!.Value);
+        format.NumberFormatId = null;
+        format.ApplyNumberFormat = null;
+        format.FormatId = 1U;
+
+        var snapshot = Assert.Single(sheet.Range("A1:J12").CreateVisualSnapshot().Charts).Snapshot;
+        Assert.Equal("0%", snapshot.Layout!.VerticalAxisNumberFormat);
+    }
+
     [Theory]
     [InlineData(23U)]
     [InlineData(165U)]
