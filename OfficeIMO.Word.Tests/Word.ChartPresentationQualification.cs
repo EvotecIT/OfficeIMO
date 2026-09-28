@@ -39,6 +39,25 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_RejectsDifferentCrossBetweenModesAcrossAreaAxes() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Area, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Primary", new[] { 3d, 4d }),
+            new OfficeChartSeries("Secondary", new[] { 5d, 6d }, null, null, null, true,
+                renderKind: OfficeChartKind.Area,
+                axisGroup: OfficeChartAxisGroup.Secondary)
+        }));
+        var axes = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.Elements<C.ValueAxis>().ToArray();
+        Assert.Equal(2, axes.Length);
+        axes[1].GetFirstChild<C.CrossBetween>()!.Val = C.CrossBetweenValues.MidpointCategory;
+        string native = chart.ChartPart.ChartSpace.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
+        axes[0].GetFirstChild<C.CrossBetween>()!.Val = C.CrossBetweenValues.MidpointCategory;
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData("legend")]
     [InlineData("chart")]
