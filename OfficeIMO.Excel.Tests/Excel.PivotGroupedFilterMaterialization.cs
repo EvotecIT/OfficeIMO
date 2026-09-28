@@ -140,6 +140,7 @@ namespace OfficeIMO.Tests {
         public void Test_PivotGroupedItemFilter_SourceItemCaptionsDoNotChangeFilterKeys(bool includeNewItems) {
             string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
                 "Documents", "ExcelPivotCorpus", "manual-group-filter-conformance.xlsx");
+            string output = Path.Combine(_directoryWithFiles, $"SourceCaptions.{includeNewItems}.xlsx");
             using var document = ExcelDocument.Load(path);
             var grouped = document.GetSheet("Grouped");
             var part = grouped.WorksheetPart.PivotTableParts.Single();
@@ -161,6 +162,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(60d, grouped.GetPivotData("PivotManualGrouped", "Metric").Value);
             Assert.Equal(20d, grouped.GetPivotData("PivotManualGrouped", "Metric",
                 new Dictionary<string, object?> { ["Product2"] = "Fruit" }).Value);
+            Assert.Equal(20d, grouped.GetPivotData("PivotManualGrouped", "Metric",
+                new Dictionary<string, object?> { ["Product"] = "Visible Pear" }).Value);
+            document.Save(output);
+            using var reopened = ExcelDocumentReader.Open(output);
+            var view = reopened.GetSheet("Grouped").ReadRange("A4:C9");
+            Assert.Contains("Visible Pear", view.Cast<object?>());
+            Assert.DoesNotContain("Hidden Apple", view.Cast<object?>());
         }
 
         [Theory]
@@ -186,6 +194,30 @@ namespace OfficeIMO.Tests {
                 .SetAttribute(new OpenXmlAttribute("n", string.Empty, "Visible caption"));
             Assert.True(grouped.MaterializePivotTable(pivotName).Mutation.PackageIsValid);
             Assert.Equal(expectedGrand, grouped.GetPivotData(pivotName, "Metric").Value);
+        }
+
+        [Theory]
+        [InlineData("numeric-group-filter-renamed-conformance.xlsx", "PivotGrouped", "Quantity", "Small", "A4:B9", 6, 2, 300d)]
+        [InlineData("date-group-filter-renamed-conformance.xlsx", "PivotDateGrouped", "Years (OrderDate)", "FY25", "A4:C9", 6, 3, 60d)]
+        public void Test_PivotGroupedItemFilter_RenamedGroupViewAndLookupMatchExcel(string file, string pivotName,
+            string fieldName, string caption, string range, int rows, int columns, double expectedLookup) {
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
+            string output = Path.Combine(_directoryWithFiles, "Materialized." + file);
+            using var oracle = ExcelDocumentReader.Open(path);
+            var expectedView = oracle.GetSheet("Grouped").ReadRange(range);
+            using (var document = ExcelDocument.Load(path)) {
+                var grouped = document.GetSheet("Grouped");
+                var result = grouped.MaterializePivotTable(pivotName);
+                Assert.True(result.Mutation.PackageIsValid);
+                Assert.Equal(expectedLookup, grouped.GetPivotData(pivotName, "Metric",
+                    new Dictionary<string, object?> { [fieldName] = caption }).Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocumentReader.Open(output);
+            var actualView = reopened.GetSheet("Grouped").ReadRange(range);
+            for (int row = 0; row < rows; row++)
+                for (int column = 0; column < columns; column++)
+                    AssertPivotLookupOracleValue(expectedView[row, column], actualView[row, column]);
         }
 
         [Fact]

@@ -185,6 +185,9 @@ namespace OfficeIMO.Excel {
             foreach (var pair in groupings) displayMaps[pair.Key] = pair.Value.Labels;
             for (int field = fieldCount; field < fields.Length; field++)
                 displayMaps.Add(dateGroupings.TryGetValue(field, out var date) ? date.Labels : manualGroupings[field].Labels);
+            var captions = ReadPivotMaterializationCaptions(fields, pivotFields, displayMaps,
+                realFields.Concat(pageFields),
+                groupings, dateGroupings, manualGroupings);
             var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
                 displayMaps, realFields, groupings, dateGroupings, manualGroupings, r1, r2, c1, limit, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
@@ -223,7 +226,7 @@ namespace OfficeIMO.Excel {
                 && rowManual.SourceField == rowAxis.RealFields[1];
             bool manualColumnHierarchy = columnAxis.RealFields.Length == 2 && manualGroupings.TryGetValue(columnAxis.RealFields[0], out var columnManual)
                 && columnManual.SourceField == columnAxis.RealFields[1];
-            FillMaterializedHierarchy(plan, displayMaps, rows, columns, visibility, measures, dataRow, dataColumn, aggregates,
+            FillMaterializedHierarchy(plan, displayMaps, captions, rows, columns, visibility, measures, dataRow, dataColumn, aggregates,
                 dateRowHierarchy, dateColumnHierarchy, manualRowHierarchy, manualColumnHierarchy, token);
             var cacheFields = plan.Cache.CacheFields!.Elements<CacheField>().ToArray();
             var savedPivotFields = plan.Definition.PivotFields!.Elements<PivotField>().ToArray();

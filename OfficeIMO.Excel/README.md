@@ -634,7 +634,8 @@ bounds and intervals, including decimal intervals, are supported when each bound
 in magnitude and the range has at most 99,998 buckets.
 Years/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Hidden items on qualified manual, numeric, and date groups are applied to source records and saved views. Grouping on page fields is not.
 Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
-a non-English Excel locale. It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
+a non-English Excel locale. Renamed item captions remain visible in the generated view and usable by `GETPIVOTDATA`.
+It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved

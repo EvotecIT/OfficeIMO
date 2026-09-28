@@ -111,12 +111,15 @@ namespace OfficeIMO.Excel {
             };
 
         private static void NormalizeMaterializedPageFields(PivotTableDefinition definition,
-            IReadOnlyList<PivotFieldValues> maps, PivotMaterializationVisibility visibility) {
+            IReadOnlyList<PivotFieldValues> maps,
+            IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
+            PivotMaterializationVisibility visibility) {
             var fields = definition.PivotFields!.Elements<PivotField>().ToArray();
             foreach (PageField page in definition.PageFields?.Elements<PageField>() ?? Enumerable.Empty<PageField>()) {
                 int field = page.Field!.Value;
                 fields[field].Items = CreateMaterializedFilteredItems(maps[field],
-                    visibility.Hidden.TryGetValue(field, out var hidden) ? hidden : null, true, false);
+                    visibility.Hidden.TryGetValue(field, out var hidden) ? hidden : null, true, false,
+                    captions.TryGetValue(field, out var fieldCaptions) ? fieldCaptions : null);
                 if (visibility.SelectedPages.TryGetValue(field, out var selected)) {
                     int index = maps[field].Items.ToList().FindIndex(item => item.Equals(selected));
                     if (index < 0) throw new NotSupportedException("The selected page item is absent from the current source.");
@@ -126,11 +129,14 @@ namespace OfficeIMO.Excel {
         }
 
         private static Items CreateMaterializedFilteredItems(PivotFieldValues map,
-            HashSet<PivotFieldValue>? hidden, bool includeDefault, bool subtotal) {
+            HashSet<PivotFieldValue>? hidden, bool includeDefault, bool subtotal,
+            IReadOnlyDictionary<PivotFieldValue, string>? captions = null) {
             var items = new Items { Count = (uint)(map.Items.Count + (includeDefault || subtotal ? 1 : 0)) };
             for (int index = 0; index < map.Items.Count; index++) {
                 var item = new Item { Index = (uint)index };
                 if (hidden?.Contains(map.Items[index]) == true) item.Hidden = true;
+                if (captions?.TryGetValue(map.Items[index], out string? caption) == true)
+                    item.SetAttribute(new OpenXmlAttribute("n", string.Empty, caption));
                 items.AppendChild(item);
             }
             if (includeDefault || subtotal) items.AppendChild(new Item { ItemType = ItemValues.Default });

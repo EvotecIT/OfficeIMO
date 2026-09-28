@@ -5,6 +5,7 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static void FillMaterializedHierarchy(PivotMaterializationPlan plan, IReadOnlyList<PivotFieldValues> maps,
+            IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             PivotHierarchyAxis rows, PivotHierarchyAxis columns, PivotMaterializationVisibility visibility,
             DataField[] measures, int dataRow, int dataColumn,
             Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> groups,
@@ -52,16 +53,20 @@ namespace OfficeIMO.Excel {
                         if (!grandLabel) { put(level, PivotMaterializedText(totalCaption), false); grandLabel = true; }
                     } else if (depth < keys.Length) {
                         var key = maps[field].Items[keys[depth++]];
-                        var label = PivotMaterializedKey(key, plan.SourceDateSystem);
+                        string? displayName = null;
+                        bool renamed = captions.TryGetValue(field, out var fieldCaptions)
+                            && fieldCaptions.TryGetValue(key, out displayName);
+                        var label = renamed ? PivotMaterializedText(displayName!)
+                            : PivotMaterializedKey(key, plan.SourceDateSystem);
                         bool subtotalLabel = entry.Type == ItemValues.Default && depth == keys.Length;
                         if (subtotalLabel) {
-                            string text = key.Kind == PivotFieldValueKind.Blank ? "(blank)"
+                            string text = renamed ? displayName! : key.Kind == PivotFieldValueKind.Blank ? "(blank)"
                                 : key.Kind == PivotFieldValueKind.Boolean ? key.Boolean == true ? "TRUE" : "FALSE"
                                 : key.Kind == PivotFieldValueKind.Date ? PivotMaterializedDateCaption(key, plan.SourceDateSystem) : key.Text;
                             label = PivotMaterializedText(dateRowLayout && axis.Layout.HasValues && rowValuesPosition > 0
                                 ? text + " " + (measures[entry.Measure].Name?.Value ?? "") : text + " Total");
                         }
-                        put(level, label, key.Kind == PivotFieldValueKind.Date && !subtotalLabel);
+                        put(level, label, key.Kind == PivotFieldValueKind.Date && !renamed && !subtotalLabel);
                     }
                 }
             }
@@ -140,9 +145,9 @@ namespace OfficeIMO.Excel {
             definition.CompactData = false;
             definition.OutlineData = false;
             definition.DataOnRows = rows.Layout.HasValues;
-            NormalizeMaterializedPivotFields(definition, maps, rows, visibility);
-            NormalizeMaterializedPivotFields(definition, maps, columns, visibility);
-            NormalizeMaterializedPageFields(definition, maps, visibility);
+            NormalizeMaterializedPivotFields(definition, maps, captions, rows, visibility);
+            NormalizeMaterializedPivotFields(definition, maps, captions, columns, visibility);
+            NormalizeMaterializedPageFields(definition, maps, captions, visibility);
             definition.RowItems = new RowItems { Count = (uint)rows.Entries.Count };
             definition.ColumnItems = new ColumnItems { Count = (uint)columns.Entries.Count };
             foreach (var entry in rows.Entries) definition.RowItems.AppendChild(CreateMaterializedHierarchyItem(rows, entry));
@@ -150,13 +155,15 @@ namespace OfficeIMO.Excel {
         }
 
         private static void NormalizeMaterializedPivotFields(PivotTableDefinition definition, IReadOnlyList<PivotFieldValues> maps,
+            IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             PivotHierarchyAxis axis, PivotMaterializationVisibility visibility) {
             var fields = definition.PivotFields!.Elements<PivotField>().ToArray();
             for (int depth = 0; depth < axis.Layout.RealFields.Length; depth++) {
                 int field = axis.Layout.RealFields[depth];
                 bool subtotal = axis.Subtotals[depth];
                 fields[field].Items = CreateMaterializedFilteredItems(maps[field],
-                    visibility.Hidden.TryGetValue(field, out var hidden) ? hidden : null, false, subtotal);
+                    visibility.Hidden.TryGetValue(field, out var hidden) ? hidden : null, false, subtotal,
+                    captions.TryGetValue(field, out var fieldCaptions) ? fieldCaptions : null);
                 fields[field].DefaultSubtotal = subtotal;
                 fields[field].SumSubtotal = false;
                 fields[field].CountASubtotal = false;
