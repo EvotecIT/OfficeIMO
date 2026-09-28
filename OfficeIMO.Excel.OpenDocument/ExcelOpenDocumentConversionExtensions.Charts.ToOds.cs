@@ -86,7 +86,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         snapshot.Title, snapshot.Name);
                     if (anchorCells.Add(coordinate)) materializedCells++;
                     converted++;
-                } catch (Exception exception) when (exception is InvalidOperationException or
+                } catch (Exception exception) when (exception is InvalidOperationException or NotSupportedException or
                     InvalidCastException or ArgumentException or KeyNotFoundException or InvalidDataException or
                     OpenXmlPackageException or System.Xml.XmlException) {
                     // A malformed drawing relationship or chart part is an unsupported chart,

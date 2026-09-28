@@ -372,11 +372,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         AddUnsupported(report, "named-expressions", unsupportedNamedExpressions,
             "Excel defined names that contain constants or formulas instead of representable A1 ranges are not translated to ODS.");
         if (convertedCharts > 0) report.Add("charts", OdfConversionMappingStatus.Approximated, convertedCharts,
-            "Bounded column, bar, and line charts retain worksheet-linked categories, numeric series, title, and approximate placement; Excel chart styling, axes, legends, and interactions are not transferred.");
+            "Bounded column, bar, line, pie, and doughnut charts retain worksheet-linked categories, numeric series, title, approximate placement, and supported point fills, hatches, and outlines; other styling, axes, legends, and interactions are not transferred.");
         int sourceChartObjects = sourceChartFrames +
             Math.Max(0, snapshot.ChartPartCount - CountReferencedChartParts(source));
         AddUnsupported(report, "charts", Math.Max(0, sourceChartObjects - convertedCharts),
-            "Excel charts outside the bounded worksheet-linked column, bar, and line subset are not translated to ODS.");
+            "Excel charts outside the bounded worksheet-linked column, bar, line, pie, and doughnut subset, including unsupported point appearances, are not translated to ODS.");
         if (convertedPivots > 0) report.Add("pivot-tables", OdfConversionMappingStatus.Approximated, convertedPivots,
             "Worksheet-source pivots with row/column fields and one aggregate become ODF data pilots. Excel cache, style, sorting, subtotal, and interaction details are not transferred.");
         AddUnsupported(report, "pivot-tables", Math.Max(0, snapshot.PivotTablePartCount - convertedPivots),
@@ -767,7 +767,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             forcedVisibleWorksheets, "The first worksheet was made visible because XLSX requires at least one visible worksheet.");
         AddConverted(report, "validations", convertedValidations);
         if (convertedCharts > 0) report.Add("charts", OdfConversionMappingStatus.Approximated, convertedCharts,
-            "Bounded ODS column, bar, and line charts retain cached categories, numeric series, title, and approximate placement; chart styling, axis settings, legends, and live source links are not transferred.");
+            "Bounded ODS column, bar, line, pie, and doughnut charts retain cached categories, numeric series, title, approximate placement, and supported point fills, hatches, and outlines; other styling, axis settings, legends, and live source links are not transferred.");
         if (convertedPivots > 0) report.Add("pivot-tables", OdfConversionMappingStatus.Approximated, convertedPivots,
             "Local-range ODS row and column data pilots with one aggregate field become Excel pivot tables. ODF subtotal, sort, layout, and filter-button presentation settings are not transferred.");
         AddUnsupported(report, "pivot-tables", source.DataPilotTables.Count - convertedPivots,
