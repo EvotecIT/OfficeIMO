@@ -311,10 +311,13 @@ internal static partial class OfficeVp8Decoder {
         return true;
     }
 
-    private static bool TryReadControlHeader(OfficeVp8BoolDecoder decoder, out OfficeVp8ControlHeader controlHeader) {
+    internal static bool TryReadControlHeader(OfficeVp8BoolDecoder decoder, out OfficeVp8ControlHeader controlHeader) {
         controlHeader = default;
         if (!decoder.TryReadBool(probability: 128, out var colorSpaceBit)) return false;
         if (!decoder.TryReadBool(probability: 128, out var clampTypeBit)) return false;
+        // RFC 6386 reserves color space 1. Clamp type 1 is valid: compliant
+        // streams already reconstruct within the byte range.
+        if (colorSpaceBit) return false;
 
         controlHeader = new OfficeVp8ControlHeader(
             colorSpaceBit ? 1 : 0,

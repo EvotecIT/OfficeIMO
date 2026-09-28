@@ -8,6 +8,17 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingWebpVp8Tests {
     [Fact]
+    public void ReservedColorSpaceIsRejectedButValidNoClampFlagIsAccepted() {
+        var reservedColor = new OfficeVp8BoolDecoder(new OfficeByteView(new byte[] { 128, 0 }));
+        Assert.False(OfficeVp8Decoder.TryReadControlHeader(reservedColor, out _));
+
+        var noClampRequired = new OfficeVp8BoolDecoder(new OfficeByteView(new byte[] { 64, 0 }));
+        Assert.True(OfficeVp8Decoder.TryReadControlHeader(noClampRequired, out var header));
+        Assert.Equal(0, header.ColorSpace);
+        Assert.Equal(1, header.ClampType);
+    }
+
+    [Fact]
     public void ArithmeticReadFailsOnTheSymbolThatExhaustsPadding() {
         var decoder = new OfficeVp8BoolDecoder(new OfficeByteView(new byte[] { 0, 0 }));
         for (int index = 0; index < 16; index++) {
