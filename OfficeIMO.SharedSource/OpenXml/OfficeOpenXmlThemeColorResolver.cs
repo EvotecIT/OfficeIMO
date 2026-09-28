@@ -28,6 +28,10 @@ internal static class OfficeOpenXmlThemeColorResolver {
             series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
             varyColors.Val?.Value == false)
             return null;
+        // Point fills take precedence over the theme palette in every static renderer.
+        // An unsupported inherited palette is immaterial when every rendered ring has
+        // an explicit appearance for every category.
+        if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
         ChartColorStylePart? colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault();
         if (colorStylePart != null) {
             ChartStylePart? stylePart = chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault();
@@ -49,6 +53,25 @@ internal static class OfficeOpenXmlThemeColorResolver {
             colors[index] = color.Value;
         }
         return colors;
+    }
+
+    private static bool AllRadialPointsHaveExplicitFill(OpenXmlCompositeElement chart, int pointCount) {
+        bool hasSeries = false;
+        foreach (C.PieChartSeries series in chart.Elements<C.PieChartSeries>()) {
+            hasSeries = true;
+            var covered = new bool[pointCount];
+            foreach (C.DataPoint point in series.Elements<C.DataPoint>()) {
+                uint? index = point.Index?.Val?.Value;
+                if (!index.HasValue || index.Value >= (uint)pointCount) continue;
+                C.ChartShapeProperties? appearance = point.GetFirstChild<C.ChartShapeProperties>();
+                if (appearance?.GetFirstChild<A.SolidFill>() != null ||
+                    appearance?.GetFirstChild<A.NoFill>() != null ||
+                    appearance?.GetFirstChild<A.PatternFill>() != null)
+                    covered[(int)index.Value] = true;
+            }
+            if (covered.Any(value => !value)) return false;
+        }
+        return hasSeries;
     }
 
     private static bool HasAutomaticDataPointFill(ChartStylePart part) {
