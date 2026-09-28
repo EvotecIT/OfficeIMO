@@ -346,9 +346,11 @@ namespace OfficeIMO.Excel {
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
             var axis = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Resolve(plotArea);
-            OfficeChartValueAxisLayout? native = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea);
-            if (axis == null || native == null) return null;
+            if (axis == null) return null;
             string? numberFormat = GetImageExportAxisNumberFormat(axis);
+            OfficeChartValueAxisLayout? native = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(
+                plotArea, () => numberFormat ?? "General");
+            if (native == null) return null;
             if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat))
                 throw new NotSupportedException("The secondary axis number format cannot be rendered.");
             return new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
