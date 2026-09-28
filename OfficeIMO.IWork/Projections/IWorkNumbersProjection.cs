@@ -452,6 +452,8 @@ internal static class IWorkNumbersReader {
             model, diagnostics, ref supportsEditableReconstruction);
         var cells = new List<IWorkTableCell>();
         var coordinates = new HashSet<long>();
+        var formulaRichStringIdentifiers = new HashSet<uint>();
+        var nonFormulaRichStringIdentifiers = new HashSet<uint>();
         IWorkWireMessage? store = IWorkObjectIndex.TryGetMessage(message, 4);
         if (store == null) {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
@@ -463,7 +465,7 @@ internal static class IWorkNumbersReader {
             out bool stringStorageComplete);
         IReadOnlyDictionary<uint, (string Text, bool IsComplete)> richStrings = IWorkTableRichTextReader.Read(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
-            out bool richStringStorageComplete);
+            out bool richStringStorageComplete, out bool richStringCatalogStructureComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
@@ -472,13 +474,6 @@ internal static class IWorkNumbersReader {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_STRING_STORAGE_UNSUPPORTED",
                 "An iWork string table contains malformed or duplicate entries; editable reconstruction is incomplete.",
-                model.EntryPath, model.Identifier));
-        }
-        if (!richStringStorageComplete) {
-            supportsEditableReconstruction = false;
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED",
-                "An iWork rich-text table catalog contains malformed or unresolved entries; affected cell text may be incomplete.",
                 model.EntryPath, model.Identifier));
         }
         if (!formulaStorageComplete) {
@@ -691,7 +686,8 @@ internal static class IWorkNumbersReader {
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
                     IWorkTableCell cell = DecodeCell(buffer, offset, cellLimits[offset],
                         checked((int)zeroBasedRow + 1), column + 1,
-                        strings, richStrings, formulas, source.Options, projectionBudget);
+                        strings, richStrings, formulas, source.Options, projectionBudget,
+                        formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
                     if (cell.Kind == IWorkCellKind.Empty) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
                         throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
@@ -713,6 +709,16 @@ internal static class IWorkNumbersReader {
             }
         }
 
+        bool blockingRichString = richStrings.Any(entry => !entry.Value.IsComplete
+            && (!formulaRichStringIdentifiers.Contains(entry.Key)
+                || nonFormulaRichStringIdentifiers.Contains(entry.Key)));
+        if (!richStringStorageComplete && (!richStringCatalogStructureComplete || blockingRichString)) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED",
+                "An iWork rich-text table catalog contains malformed or unresolved entries; affected cell text may be incomplete.",
+                model.EntryPath, model.Identifier));
+        }
         int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error && cell.Error != "#ERROR");
         if (errorCount > 0) {
             supportsEditableReconstruction = false;
@@ -1003,7 +1009,8 @@ internal static class IWorkNumbersReader {
         IReadOnlyDictionary<uint, string> strings,
         IReadOnlyDictionary<uint, (string Text, bool IsComplete)> richStrings,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
-        IWorkReadOptions options, IWorkProjectionBudget projectionBudget) {
+        IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
+        HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
             || offset > endOffset - 12) return Error(row, column, "Truncated cell record.");
         int version = buffer[offset];
@@ -1135,6 +1142,8 @@ internal static class IWorkNumbersReader {
                     : Error(row, column, "#ERROR");
             case 9:
                 if (hasRichString) {
+                    if (hasFormula) formulaRichStringIdentifiers.Add(richStringIdentifier);
+                    else nonFormulaRichStringIdentifiers.Add(richStringIdentifier);
                     if (richStrings.TryGetValue(richStringIdentifier, out var richText)) {
                         projectionBudget.AddTextCharacters(richText.Text.Length);
                         return hasFormula
