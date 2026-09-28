@@ -149,6 +149,21 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
+    public void ExplodedProducerSliceWithSupportedFillRemainsUnprojected() {
+        OdsChart chart = ReadProducerChart(content => {
+            XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));
+            string name = (string)series.Element(OdfNamespaces.Chart + "data-point")!
+                .Attribute(OdfNamespaces.Chart + "style-name")!;
+            XElement definition = Assert.Single(content.Descendants(OdfNamespaces.Style + "style"),
+                item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+            definition.Element(OdfNamespaces.Style + "chart-properties")!
+                .SetAttributeValue(OdfNamespaces.Chart + "pie-offset", "25");
+        });
+
+        Assert.Null(Assert.Single(chart.Series).PointStyles);
+    }
+
+    [Fact]
     public void ImportedSolidHatchAcceptsXmlBooleanOne() {
         OdsChart chart = ReadProducerChart(content => {
             XElement series = Assert.Single(content.Descendants(OdfNamespaces.Chart + "series"));

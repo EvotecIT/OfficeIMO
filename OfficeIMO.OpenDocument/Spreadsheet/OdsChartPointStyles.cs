@@ -55,28 +55,32 @@ internal static class OdsChartPointStyles {
         IReadOnlyDictionary<string, XElement> hatches, out OfficeChartPointStyle? appearance) {
         appearance = null;
         var attributes = new Dictionary<XName, string>();
-        void AddAttributes(XElement definition) {
+        bool unsupportedChartProperties = false;
+        void AddAttributes(XElement definition, bool pointOrSeries) {
+            if (pointOrSeries && HasUnsupportedChartProperties(definition))
+                unsupportedChartProperties = true;
             XElement? graphic = definition.Element(OdfNamespaces.Style + "graphic-properties");
             if (graphic != null)
                 foreach (XAttribute attribute in graphic.Attributes())
                     if (!attributes.ContainsKey(attribute.Name)) attributes.Add(attribute.Name, attribute.Value);
         }
-        bool AddChain(string? styleName) {
+        bool AddChain(string? styleName, bool pointOrSeries) {
             var visited = new HashSet<string>(StringComparer.Ordinal);
             while (!string.IsNullOrEmpty(styleName)) {
                 if (!visited.Add(styleName!) || visited.Count > 32) return false;
                 XElement? definition = findStyle(styleName);
                 if (definition == null || (string?)definition.Attribute(OdfNamespaces.Style + "family") != "chart")
                     return false;
-                AddAttributes(definition);
+                AddAttributes(definition, pointOrSeries);
                 styleName = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
             }
             return true;
         }
-        if (!AddChain(name) ||
-            !AddChain((string?)series.Attribute(OdfNamespaces.Chart + "style-name")) ||
-            !AddChain((string?)series.Parent?.Attribute(OdfNamespaces.Chart + "style-name"))) return false;
-        if (defaultStyle != null) AddAttributes(defaultStyle);
+        if (!AddChain(name, pointOrSeries: true) ||
+            !AddChain((string?)series.Attribute(OdfNamespaces.Chart + "style-name"), pointOrSeries: true) ||
+            !AddChain((string?)series.Parent?.Attribute(OdfNamespaces.Chart + "style-name"), pointOrSeries: false)) return false;
+        if (defaultStyle != null) AddAttributes(defaultStyle, pointOrSeries: true);
+        if (unsupportedChartProperties) return false;
         string? Get(XName key) => attributes.TryGetValue(key, out string? value) ? value : null;
         foreach (XName key in attributes.Keys) {
             if (key != OdfNamespaces.Draw + "fill" &&
@@ -137,6 +141,32 @@ internal static class OdsChartPointStyles {
             return true;
         appearance = new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, outline, width, showOutline, join);
         return true;
+    }
+
+    internal static bool HasUnsupportedSeriesChartProperties(XElement series,
+        Func<string?, XElement?> findStyle) {
+        string? name = (string?)series.Attribute(OdfNamespaces.Chart + "style-name");
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        while (!string.IsNullOrEmpty(name)) {
+            if (!visited.Add(name!) || visited.Count > 32) return true;
+            XElement? definition = findStyle(name);
+            if (definition == null || HasUnsupportedChartProperties(definition)) return true;
+            name = (string?)definition.Attribute(OdfNamespaces.Style + "parent-style-name");
+        }
+        return false;
+    }
+
+    private static bool HasUnsupportedChartProperties(XElement definition) {
+        XElement? properties = definition.Element(OdfNamespaces.Style + "chart-properties");
+        if (properties == null) return false;
+        foreach (XAttribute attribute in properties.Attributes()) {
+            if (attribute.Name == OdfNamespaces.Chart + "solid-type" && attribute.Value == "cuboid" ||
+                attribute.Name == OdfNamespaces.Chart + "link-data-style-to-source" &&
+                    OdfBoolean.TryParseXml(attribute.Value, out bool linked) && linked ||
+                attribute.Name == OdfNamespaces.Chart + "pie-offset" && attribute.Value == "0") continue;
+            return true;
+        }
+        return false;
     }
 
     internal static IReadOnlyDictionary<string, XElement> IndexHatches(XDocument content, XDocument? styles) {
