@@ -267,7 +267,7 @@
     {
       "id": "epa-drinking-water-contaminants",
       "sourceClass": "prose-and-regulatory-table",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-26",
       "url": "https://www.epa.gov/sdwa/drinking-water-regulations-and-contaminants",
       "rightsUrl": "https://www.epa.gov/web-policies-and-procedures/image-guidance",
@@ -286,12 +286,12 @@
         {"target": "RTF", "profile": "editable article", "inspect": ["headings", "table rows and cells", "links", "saved and reopened content"]},
         {"target": "Markdown", "profile": "semantic article and table", "inspect": ["heading hierarchy", "contaminant/standard table", "source links", "serialized and reparsed content"]}
       ],
-      "reason": "An EPA article with explanatory sections and an explicit secondary-contaminant table, selected from the published source and checked for HTTP access before OfficeIMO capture or conversion."
+      "reason": "Selected before OfficeIMO capture as an article with an explicit contaminant table. Its print float, border, character-unit and editable-table findings then informed engine changes, so it is now a development regression rather than untouched held-out proof."
     },
     {
       "id": "fws-wetland-dependent-wildlife",
       "sourceClass": "illustrated-species-article",
-      "role": "held-out",
+      "role": "development",
       "selectionDate": "2026-09-26",
       "url": "https://www.fws.gov/story/2026-05/wetland-dependent-wildlife",
       "rightsUrl": "https://www.fws.gov/disclaimer",
@@ -310,7 +310,55 @@
         {"target": "RTF", "profile": "editable illustrated document", "inspect": ["species headings and paragraphs", "images and links", "saved and reopened content"]},
         {"target": "Markdown", "profile": "semantic article", "inspect": ["species headings", "image references and credits", "links", "serialized and reparsed content"]}
       ],
-      "reason": "A multi-species illustrated article on a separate federal publisher and stylesheet system from the current development cases. Selected from its public content, reuse policy and HTTP availability before OfficeIMO capture or conversion."
+      "reason": "Selected before OfficeIMO capture as a multi-species illustrated article. Its archived WebP and CSS-cost findings informed owner changes, so it is now a development regression rather than untouched held-out proof."
+    },
+    {
+      "id": "nist-si-guide-chapter-4",
+      "sourceClass": "long-scientific-tables",
+      "role": "held-out",
+      "selectionDate": "2026-09-28",
+      "url": "https://www.nist.gov/pml/special-publication-811/nist-guide-si-chapter-4-two-classes-si-units-and-si-prefixes",
+      "rightsUrl": "https://www.nist.gov/copyrights-disclaimers",
+      "rightsNotes": "NIST-authored federal material is generally public domain in the United States; inspect individual credits and marks before publishing any visual excerpt. Keep the full capture in ignored local evidence and do not imply NIST endorsement.",
+      "requiredVisibleMarkers": ["SI base units", "SI derived units", "SI prefixes", "kelvin", "watt"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["chapter and section order", "all five SI tables with headings and numeric or symbolic cells", "row integrity at page boundaries", "source links"]},
+        {"intent": "screen-media-pagination", "inspect": ["wide scientific table overflow", "cell alignment", "page-boundary row integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation and clipped content", "visible navigation and symbols"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "editable scientific chapter", "inspect": ["section headings", "five unit and prefix tables", "symbols and links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "typed SI unit tables", "inspect": ["quantity, unit and symbol in separate cells", "all five table boundaries, order and symbols", "saved and reopened cells"]},
+        {"target": "PowerPoint", "profile": "editable chapter slides", "inspect": ["ordered sections", "readable non-overlapping tables", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic chapter", "inspect": ["section order", "tables and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable scientific chapter", "inspect": ["headings", "table rows and cells", "symbols and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text and tables", "inspect": ["section hierarchy", "five unit and prefix tables", "symbols and links", "serialized and reparsed content"]}
+      ],
+      "reason": "An independently authored federal guide with multi-column scientific tables, symbols and long prose on a new publisher. Source content, reuse policy and HTTP 200 were checked before any OfficeIMO capture or output inspection."
+    },
+    {
+      "id": "noaa-nos-hydrography",
+      "sourceClass": "illustrated-science-article",
+      "role": "held-out",
+      "selectionDate": "2026-09-28",
+      "url": "https://oceanservice.noaa.gov/facts/hydrography.html",
+      "rightsUrl": "https://oceanservice.noaa.gov/about/faq.html",
+      "rightsNotes": "NOAA National Ocean Service says its articles and images are generally public domain unless credited otherwise. Preserve source and individual image credits, keep the full archive only in ignored local evidence, and do not imply NOAA endorsement or publish agency marks as OfficeIMO assets.",
+      "requiredVisibleMarkers": ["What is hydrography?", "multibeam sonar", "Office of Coast Survey", "Kachemak Bay"],
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["article heading and paragraph order", "infographic and hydrographer image with credits", "all-page flow and links"]},
+        {"intent": "screen-media-pagination", "inspect": ["image and text placement", "navigation exclusion", "image integrity at page boundaries"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "image and caption visibility", "slice-boundary integrity"]}
+      ],
+      "editableTargets": [
+        {"target": "Word", "profile": "semantic illustrated article", "inspect": ["heading and paragraphs", "image and credit pairing", "links", "saved and reopened content"]},
+        {"target": "Excel", "profile": "generic editable grid", "inspect": ["article text and picture placement", "caption grouping", "saved and reopened cells and images"], "scope": "No typed data-table or formula claim for this page."},
+        {"target": "PowerPoint", "profile": "editable illustrated slides", "inspect": ["ordered article sections", "editable pictures and credits", "non-overlapping text", "saved and reopened slide order"]},
+        {"target": "OneNote", "profile": "editable semantic article", "inspect": ["heading and paragraph flow", "images and links", "saved and reopened content"]},
+        {"target": "RTF", "profile": "editable illustrated document", "inspect": ["heading and paragraph flow", "images and links", "saved and reopened content"]},
+        {"target": "Markdown", "profile": "semantic text", "inspect": ["heading hierarchy", "image references and credits", "link destinations", "serialized and reparsed content"]}
+      ],
+      "reason": "A NOAA illustrated explanation on a new host with two credited media surfaces and substantial prose. Source content, reuse policy and HTTP 200 were checked before any OfficeIMO capture or output inspection."
     }
   ]
 }
