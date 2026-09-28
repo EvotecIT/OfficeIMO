@@ -86,6 +86,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
     }
 
     private static OpenXmlElement? ResolveChartColorMap(ChartPart chartPart) {
+        if (chartPart.ChartSpace?.GetFirstChild<C.ColorMapOverride>() is C.ColorMapOverride chartOverride)
+            return chartOverride;
         foreach (OpenXmlPart owner in chartPart.GetParentParts()) {
             if (owner is SlidePart slide)
                 return slide.Slide?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()

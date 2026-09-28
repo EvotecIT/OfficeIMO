@@ -72,16 +72,16 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     not OfficeChartDataLabelPosition.Center and not OfficeChartDataLabelPosition.InsideBase and not OfficeChartDataLabelPosition.InsideEnd)))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (current.Visible && labels != null) {
+                ChartPart? chartPart = (chart.Parent as C.ChartSpace)?.OpenXmlPart as ChartPart;
                 if (labels.GetFirstChild<C.TextProperties>() != null &&
-                    chart.Parent is C.ChartSpace chartSpace &&
-                    chartSpace.OpenXmlPart is ChartPart chartPart &&
-                    chartPart.GetPartsOfType<ChartStylePart>().Any())
+                    chartPart?.GetPartsOfType<ChartStylePart>().Any() == true)
                     throw new NotSupportedException("Styled chart data-label text inheritance cannot be projected.");
                 NativeText text = ReadNativeText(chart, labels, scheme);
-                current.FontSize = text.Size;
-                current.FontFamily = text.Family;
-                current.FontStyle = text.Style;
-                current.TextColor = text.Color;
+                NativeText styled = chartPart == null ? default : ReadChartStyleLabelText(chartPart, scheme);
+                current.FontSize = text.Size ?? styled.Size;
+                current.FontFamily = text.Family ?? styled.Family;
+                current.FontStyle = text.Style ?? styled.Style;
+                current.TextColor = text.Color ?? styled.Color;
                 if (HasUnsupportedSharedAxisNumberFormat(labels))
                     throw new NotSupportedException("The native data label format cannot be projected.");
                 foreach (var child in labels.ChildElements) {
