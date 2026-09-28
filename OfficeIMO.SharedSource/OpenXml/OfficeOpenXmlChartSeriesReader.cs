@@ -178,7 +178,8 @@ namespace OfficeIMO.OpenXml.Internal {
             bool unsupported = markerShape == OfficeChartMarkerShape.Picture ||
                 connectLine && outline?.GetFirstChild<A.PresetDash>() != null && ReadDash(outline) == null;
             bool area = kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100;
-            unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area, connectLine);
+            bool flatThreeDimensional = element.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true;
+            unsupported |= !IsSupportedSeriesShape(properties, scheme, filled, area, connectLine, flatThreeDimensional);
             unsupported |= area && outline?.GetFirstChild<A.NoFill>() != null;
             unsupported |= showMarkers && !IsSupportedSeriesShape(marker?.ChartShapeProperties, scheme, true);
             // The shared model has one series colour and straight connecting lines.
@@ -192,7 +193,6 @@ namespace OfficeIMO.OpenXml.Internal {
             unsupported |= !filled && connectLine && markerFill.HasValue &&
                 (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value);
             OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
-            bool flatThreeDimensional = element.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true;
             bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
                 (point.GetFirstChild<C.Marker>() != null || point.ChartShapeProperties != null &&
                     !OfficeOpenXmlChartPointStyles.IsSupported(point.ChartShapeProperties, scheme, flatThreeDimensional)));

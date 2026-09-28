@@ -21,10 +21,11 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         return elements.OrderBy(element => element.GetFirstChild<C.Order>()?.Val?.Value ?? uint.MaxValue).ToList();
     }
 
-    private static bool IsSupportedSeriesShape(C.ChartShapeProperties? properties, A.ColorScheme? scheme, bool filled, bool area = false, bool connectLine = true) {
+    private static bool IsSupportedSeriesShape(C.ChartShapeProperties? properties, A.ColorScheme? scheme, bool filled, bool area = false, bool connectLine = true, bool flattenThreeDimensional = false) {
         if (properties == null) return true;
         foreach (var child in properties.ChildElements) {
             if ((child is A.EffectList || child is A.Shape3DType) && !child.HasChildren && !child.HasAttributes) continue;
+            if (flattenThreeDimensional && child is A.Shape3DType) continue;
             if (child is A.SolidFill && OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) continue;
             if (child is A.NoFill && !filled) continue;
             if (child is not A.Outline outline) return false;
