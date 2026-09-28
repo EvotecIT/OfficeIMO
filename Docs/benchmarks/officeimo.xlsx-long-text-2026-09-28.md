@@ -96,3 +96,27 @@ The [part hashes](xlsx-long-text-2026-09-28/buffer-128-diagnostic/package-parts.
 [comparison](xlsx-long-text-2026-09-28/buffer-128-diagnostic/comparison.json),
 and [raw samples](xlsx-long-text-2026-09-28/buffer-128-diagnostic/samples.json)
 retain the diagnostic evidence.
+
+A worksheet-only `NoCompression` diagnostic tested the theoretical cost of
+Deflate without changing any other package entry. The baseline Excel assembly
+hash was `AF8BBECE9301993F840F11CC63A2E18B8623D481BE2DD35224E8409C71FA033F`;
+the diagnostic assembly hash was
+`933AB60730113F1D019D49B86503633EF80B5B3BFBFBF2FD23B4C450C51C4693`.
+The [uncompressed package-part hashes](xlsx-long-text-2026-09-28/no-compression-diagnostic/package-parts.jsonl)
+matched for all six output shapes, but complete package size grew 69.28 times
+for compact long plain and 60.20 times for public-default long plain. The
+other long-text shapes grew 60.46–69.28 times; short plain grew 13.89 times.
+
+A rotated two-domain smoke run used two warmups, six retained measurements per
+engine and scenario, four exports per operation, Normal priority, and fixed
+affinity masks `0xFFFF` and `0xFFFF0000`. For public-default long plain, the
+uncompressed candidate's mean-time ratios were 0.79 and 0.77 on the two
+domains. Compact long plain was 1.15 and 1.00. The
+[Domain A](xlsx-long-text-2026-09-28/no-compression-diagnostic/domain-a-comparison.json)
+and [Domain B](xlsx-long-text-2026-09-28/no-compression-diagnostic/domain-b-comparison.json)
+comparisons retain [A](xlsx-long-text-2026-09-28/no-compression-diagnostic/domain-a-samples.json)
+and [B](xlsx-long-text-2026-09-28/no-compression-diagnostic/domain-b-samples.json)
+raw samples. This small diagnostic does not establish a production speedup;
+the package-size cost rejects `NoCompression` as the default. The writer retains
+`CompressionLevel.Fastest`. Further long-plain work needs a better
+compression/output tradeoff rather than a disabled ZIP compressor.
