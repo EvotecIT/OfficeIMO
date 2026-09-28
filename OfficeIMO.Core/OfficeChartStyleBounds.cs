@@ -5,6 +5,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>Shared DrawingML-compatible bounds for chart appearances.</summary>
 internal static class OfficeChartStyleBounds {
     internal const double MaximumLineWidthPoints = 1584;
+    internal const double HairlineWidthPoints = 0.25;
 
     internal static void ValidateLineWidth(double? width, string parameterName, bool allowZero = false) {
         if (width.HasValue && (double.IsNaN(width.Value) || double.IsInfinity(width.Value) ||

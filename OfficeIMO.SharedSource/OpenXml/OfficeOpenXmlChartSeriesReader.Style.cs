@@ -114,7 +114,11 @@ namespace OfficeIMO.OpenXml.Internal {
             double? width = outline?.Width?.Value is int emus ? emus / 12700d : null;
             if (width.HasValue && (width < 0 || width > OfficeChartStyleBounds.MaximumLineWidthPoints))
                 throw new NotSupportedException("The chart outline width is outside the supported range.");
-            if (width == 0) width = null;
+            if (width == 0) {
+                width = outline?.GetFirstChild<A.NoFill>() == null
+                    ? OfficeChartStyleBounds.HairlineWidthPoints
+                    : null;
+            }
             var dash = ReadDash(outline);
             if (outline?.GetFirstChild<A.PresetDash>() != null && !dash.HasValue)
                 throw new NotSupportedException("The chart outline dash pattern cannot be projected.");
