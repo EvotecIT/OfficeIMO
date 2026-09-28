@@ -6,6 +6,29 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPlotClippingTests {
+    [Fact]
+    public void ClippedAreaDoesNotOutlineTheArtificialUpperEdge() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", new[] { 10d, 10d }, null, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 5);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Area, data, 360, 240, layout: layout));
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Contains(group.Drawing.Shapes, shape => shape.Shape.FillColor == ink);
+        Assert.DoesNotContain(group.Drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon && shape.Shape.StrokeColor == ink);
+        Assert.DoesNotContain(group.Drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink &&
+            Math.Abs(shape.Y - group.Y) < .01D && shape.Shape.Width > group.ClipPath.Width * .9D);
+        Assert.Contains(group.Drawing.Shapes, shape =>
+            shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink &&
+            shape.Shape.Width > group.ClipPath.Width * .9D &&
+            shape.Y > group.Y + group.ClipPath.Height * .9D);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -136,7 +159,8 @@ public sealed class DrawingChartPlotClippingTests {
             item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == ink));
         OfficeDrawingShape line = Assert.Single(group.Drawing.Shapes,
-            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink &&
+                shape.Shape.StrokeWidth > 0.5D);
         Assert.True(line.X > group.X + group.ClipPath.Width * .9d);
         Assert.True(line.Shape.Width < group.ClipPath.Width * .1d);
     }
