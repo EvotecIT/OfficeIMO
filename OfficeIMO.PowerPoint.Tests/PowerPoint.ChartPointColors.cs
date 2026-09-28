@@ -200,6 +200,38 @@ namespace OfficeIMO.Tests {
             Assert.Null(snapshot.Data.Series.Single().PointColors);
         }
 
+        [Fact]
+        public void RadialPaletteUsesChartLocalColorMapBeforeSlideMapping() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartKind.Pie,
+                new OfficeChartData(new[] { "A", "B" }, new[] {
+                    new OfficeChartSeries("Values", new[] { 3d, 2d })
+                }), 1, 1, 20, 10);
+            ChartPart part = presentation.Slides.Single().SlidePart.ChartParts.Single();
+            part.ChartSpace!.AddChild(new C.ColorMapOverride {
+                Background1 = A.ColorSchemeIndexValues.Light1,
+                Text1 = A.ColorSchemeIndexValues.Dark1,
+                Background2 = A.ColorSchemeIndexValues.Light2,
+                Text2 = A.ColorSchemeIndexValues.Dark2,
+                Accent1 = A.ColorSchemeIndexValues.Accent2,
+                Accent2 = A.ColorSchemeIndexValues.Accent1,
+                Accent3 = A.ColorSchemeIndexValues.Accent3,
+                Accent4 = A.ColorSchemeIndexValues.Accent4,
+                Accent5 = A.ColorSchemeIndexValues.Accent5,
+                Accent6 = A.ColorSchemeIndexValues.Accent6,
+                Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
+                FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
+            }, true);
+
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            A.ColorScheme scheme = presentation.OpenXmlDocument.PresentationPart.ThemePart!.Theme.ThemeElements!.ColorScheme!;
+            OfficeColor expected = OfficeColor.Parse(scheme.GetFirstChild<A.Accent2Color>()!
+                .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!);
+            Assert.Equal(expected, snapshot.Style.Palette[0]);
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
+
         [Theory]
         [InlineData(OfficeChartKind.Pie)]
         [InlineData(OfficeChartKind.Doughnut)]

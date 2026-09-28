@@ -9,6 +9,24 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartRadialOutsideLabelsTests {
     [Fact]
+    public void DifferingSeriesLabelContentsRejectOneSharedDoughnutLayout() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Inner", new[] { 3d, 4d }),
+                new OfficeChartSeries("Outer", new[] { 4d, 3d })
+            }), 1, 1);
+        C.DoughnutChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.DoughnutChart>().Single();
+        C.PieChartSeries[] series = native.Elements<C.PieChartSeries>().ToArray();
+        series[0].AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        series[1].AddChild(new C.DataLabels(new C.ShowCategoryName { Val = true }), true);
+
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
     public void OuterRingOnlyLabelsKeepTheirSeriesSelectionAndLeaders() {
         using var document = ExcelDocument.Create();
         ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,

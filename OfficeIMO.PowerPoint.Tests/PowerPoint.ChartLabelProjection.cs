@@ -37,7 +37,11 @@ public sealed class PowerPointChartLabelProjectionTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] { series })).SetDataLabels(showValue: true);
         ChartPart chartPart = presentation.Slides.Single().SlidePart.ChartParts.Single();
-        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot styled));
+        Assert.Equal(11.97, styled.Layout.DataLabelFontSize);
+        Assert.Equal(presentation.OpenXmlDocument.PresentationPart.ThemePart!.Theme.ThemeElements!
+            .FontScheme!.MinorFont!.LatinFont!.Typeface!.Value, styled.Layout.DataLabelFontFamily);
+        Assert.Equal(OfficeColor.Parse("#404040"), styled.Style.DataLabelTextColor);
         foreach (ChartStylePart stylePart in chartPart.GetPartsOfType<ChartStylePart>().ToArray())
             chartPart.DeletePart(stylePart);
         Assert.True(chart.TryGetOfficeSnapshot(out _));

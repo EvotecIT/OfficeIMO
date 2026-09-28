@@ -193,9 +193,9 @@ namespace OfficeIMO.Excel {
                 if (labeled.Length > 0 && labeled.Length < nativeSeries.Length)
                     radialLabelSeriesIndexes = labeled;
             }
-            if (radialChart != null && visibleLabels.Any(labels => IsEnabled(labels.GetFirstChild<C.ShowLeaderLines>()) !=
-                IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>())))
-                throw new NotSupportedException("Conflicting chart data-label leader-line settings cannot be projected.");
+            if (radialChart != null && visibleLabels.Skip(1).Any(labels =>
+                !string.Equals(labels.OuterXml, dataLabels?.OuterXml, StringComparison.Ordinal)))
+                throw new NotSupportedException("Different radial data-label layouts cannot be projected by one shared layout.");
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.Title? title = chart.GetFirstChild<C.Title>();
             OfficeChartValueAxisLayout? secondaryValueAxis = ReadImageExportSecondaryValueAxis(plotArea);
