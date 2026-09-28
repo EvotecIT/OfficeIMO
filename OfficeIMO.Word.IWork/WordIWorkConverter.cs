@@ -264,7 +264,7 @@ public static partial class WordIWorkConverter {
                     ApplyParagraphStyle(paragraph, sourceParagraph);
                     if (header) paragraph.Bold = true;
                     foreach (IWorkTextRun run in sourceParagraph.Runs) {
-                        AddStyledTextRun(paragraph, run);
+                        AddStyledTextRun(paragraph, run, forceBold: header);
                     }
                 }
             } else {
@@ -474,6 +474,11 @@ public static partial class WordIWorkConverter {
             foreach (IWorkTextContent footer in section.FooterContents) yield return footer;
         }
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) yield return textBox.Content;
+        foreach (IWorkTable table in projection.Tables) {
+            foreach (IWorkTableCell cell in table.Cells) {
+                if (cell.RichText != null) yield return cell.RichText;
+            }
+        }
     }
 
     private static bool HasContainerScopedBreak(IWorkTextContent content) =>
@@ -561,7 +566,8 @@ public static partial class WordIWorkConverter {
         }
     }
 
-    private static void AddStyledTextRun(WordParagraph paragraph, IWorkTextRun sourceRun) {
+    private static void AddStyledTextRun(WordParagraph paragraph, IWorkTextRun sourceRun,
+        bool forceBold = false) {
         string[] lines = sourceRun.Text.Split('\n');
         for (int index = 0; index < lines.Length; index++) {
             if (index > 0) paragraph.AddBreak();
@@ -576,6 +582,7 @@ public static partial class WordIWorkConverter {
                 run = paragraph.AddText(lines[index]);
             }
             ApplyTextStyle(run, sourceRun.Style);
+            if (forceBold) run.Bold = true;
         }
     }
 

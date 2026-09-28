@@ -1159,7 +1159,8 @@ internal static class IWorkNumbersReader {
                         projectionBudget.AddTextCharacters(text.Length);
                         return hasFormula
                             ? Formula(row, column, formulaIdentifier, formulas, options,
-                                projectionBudget, text, IWorkCellKind.Text)
+                                projectionBudget, text, IWorkCellKind.Text,
+                                richText: richText)
                             : new IWorkTableCell(row, column, IWorkCellKind.Text, text,
                                 richText: richText);
                     }
@@ -1180,7 +1181,8 @@ internal static class IWorkNumbersReader {
         IWorkProjectionBudget projectionBudget,
         object? cachedValue = null,
         IWorkCellKind? cachedValueKind = null,
-        bool cachedValueIsComplete = true) {
+        bool cachedValueIsComplete = true,
+        IWorkTextContent? richText = null) {
         IWorkFormulaResult result;
         if (formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)) {
             projectionBudget.AddFormulaRenderingOperations(
@@ -1197,6 +1199,7 @@ internal static class IWorkNumbersReader {
         return new IWorkTableCell(row, column, IWorkCellKind.Formula, cachedValue,
             formula: formulaText, valueKind: cachedValueKind,
             formulaIsComplete: result.IsComplete,
+            richText: richText,
             cachedValueIsComplete: cachedValueIsComplete);
     }
 

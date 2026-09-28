@@ -159,6 +159,13 @@ public static partial class PowerPointIWorkConverter {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WriteParagraphContent(paragraphs[index], richText.Paragraphs[index]);
                 }
+                if (sourceCell.Row <= source.HeaderRowCount
+                    || sourceCell.Column <= source.HeaderColumnCount
+                    || sourceCell.Row > source.RowCount - source.FooterRowCount) {
+                    foreach (PowerPointParagraph paragraph in paragraphs) {
+                        foreach (PowerPointTextRun run in paragraph.Runs) run.Bold = true;
+                    }
+                }
             } else {
                 target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
                     ? sourceCell.CachedDisplayText
@@ -407,6 +414,11 @@ public static partial class PowerPointIWorkConverter {
         if (slide.TitleBox != null) yield return slide.TitleBox.Content;
         foreach (IWorkTextBox textBox in slide.TextBoxes) yield return textBox.Content;
         yield return slide.PresenterNoteContent;
+        foreach (IWorkTable table in slide.Tables) {
+            foreach (IWorkTableCell cell in table.Cells) {
+                if (cell.RichText != null) yield return cell.RichText;
+            }
+        }
     }
 
     private static bool FitsTextCoordinate(double? points) {

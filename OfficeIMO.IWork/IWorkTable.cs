@@ -38,7 +38,7 @@ public sealed class IWorkTableCell {
     public bool CachedValueIsComplete { get; }
     /// <summary>Gets a cell-level decode error without failing the surrounding table.</summary>
     public string? Error { get; }
-    /// <summary>Gets source rich text for a text cell, including runs, styles, and hyperlinks when recovered.</summary>
+    /// <summary>Gets source rich text for a text or formula cell, including runs, styles, and hyperlinks when recovered.</summary>
     public IWorkTextContent? RichText { get; }
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {

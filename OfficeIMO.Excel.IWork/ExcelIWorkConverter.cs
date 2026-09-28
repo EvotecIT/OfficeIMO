@@ -29,15 +29,17 @@ public static partial class ExcelIWorkConverter {
         if (projection.Sheets.SelectMany(sheet => sheet.Tables)
             .SelectMany(table => table.Cells)
             .Any(cell => cell.RichText != null &&
-                (cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                (cell.Kind == IWorkCellKind.Formula
+                 || cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
                     .Any(run => run.Hyperlink != null)
                  && UniformCellHyperlink(cell.RichText) == null
                  || cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
-                     .Any(run => run.Style.BackgroundColor != null)))) {
+                     .Any(run => run.Style.BackgroundColor != null
+                         || run.Style.Color is { Alpha: < byte.MaxValue })))) {
             destinationDiagnostics = destinationDiagnostics.Concat(new[] {
                 new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
-                    "Some rich-text cell links or run highlights cannot be represented in XLSX; source runs remain available on the iWork projection.")
+                    "Some formula-cell rich text, run links, highlights, or transparent colors cannot be represented in XLSX; source runs remain available on the iWork projection.")
             }).ToArray();
         }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
@@ -113,7 +115,8 @@ public static partial class ExcelIWorkConverter {
                                 || cell.Value != null && cell.CachedValueIsComplete) {
                                 targetCell.SetValue(value);
                             }
-                            if (cell.RichText is { Paragraphs.Count: > 0 } richText) {
+                            if (cell.Kind != IWorkCellKind.Formula
+                                && cell.RichText is { Paragraphs.Count: > 0 } richText) {
                                 string? hyperlink = UniformCellHyperlink(richText);
                                 if (hyperlink != null) {
                                     sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
