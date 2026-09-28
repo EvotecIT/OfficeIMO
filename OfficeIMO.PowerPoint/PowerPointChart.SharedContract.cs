@@ -145,38 +145,8 @@ namespace OfficeIMO.PowerPoint {
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
-            if (HasUnclippedExplicitScale(snapshot)) {
-                snapshot = null!;
-                return false;
-            }
             return true;
         }
-
-        private static bool HasUnclippedExplicitScale(OfficeChartSnapshot snapshot) {
-            OfficeChartLayout layout = snapshot.Layout;
-            foreach (OfficeChartSeries series in snapshot.Data.Series) {
-                OfficeChartKind kind = series.RenderKind ?? snapshot.ChartKind;
-                double? valueMinimum = series.AxisGroup == OfficeChartAxisGroup.Secondary
-                    ? layout.SecondaryValueAxis?.Minimum : layout.VerticalAxisMinimum;
-                double? valueMaximum = series.AxisGroup == OfficeChartAxisGroup.Secondary
-                    ? layout.SecondaryValueAxis?.Maximum : layout.VerticalAxisMaximum;
-                bool lineOrArea = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
-                    OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
-                bool numericPoints = kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble;
-                if (!lineOrArea && !numericPoints) continue;
-                if (kind is OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
-                    OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100 &&
-                    (valueMinimum.HasValue || valueMaximum.HasValue)) return true;
-                if (kind == OfficeChartKind.Area && IsOutside(0D, valueMinimum, valueMaximum)) return true;
-                if (series.Values.Any(value => IsOutside(value, valueMinimum, valueMaximum))) return true;
-                if (numericPoints && (layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue) &&
-                    (series.XValues == null || series.XValues.Any(value => IsOutside(value, layout.HorizontalAxisMinimum, layout.HorizontalAxisMaximum)))) return true;
-            }
-            return false;
-        }
-
-        private static bool IsOutside(double value, double? minimum, double? maximum) =>
-            minimum.HasValue && value < minimum.Value || maximum.HasValue && value > maximum.Value;
 
         private OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {
             return TryReadSharedTextStyle(chart,

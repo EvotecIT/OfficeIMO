@@ -193,7 +193,7 @@ public sealed class WordChartOfficeSnapshotTests {
     }
 
     [Fact]
-    public void OfficeSnapshot_RejectsSecondaryLineOutsideExplicitBounds() {
+    public void OfficeSnapshot_ClipsSecondaryLineOutsideExplicitBounds() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -201,7 +201,10 @@ public sealed class WordChartOfficeSnapshotTests {
                 new OfficeChartSeries("Ratio", new[] { 1d, 3d }, null, null, null, true,
                     renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) }));
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 2));
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(2d, snapshot.Layout.SecondaryValueAxis!.Maximum);
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements,
+            element => element is OfficeDrawingGroup);
     }
     [Fact]
     public void OfficeSnapshot_PreservesInheritedTextFontsAndRejectsConflictingBodyFonts() {

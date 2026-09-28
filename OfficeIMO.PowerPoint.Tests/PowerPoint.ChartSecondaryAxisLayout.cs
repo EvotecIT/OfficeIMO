@@ -94,7 +94,7 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Area)]
-    public void ExplicitPrimaryBoundsOutsideCachedGeometryAreNotProjected(OfficeChartKind kind) {
+    public void ExplicitPrimaryBoundsClipCachedGeometry(OfficeChartKind kind) {
         using var presentation = PowerPointPresentation.Create();
         var chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -103,7 +103,10 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.True(chart.TryGetOfficeSnapshot(out _));
         var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
         axis.Scaling!.AddChild(new C.MaxAxisValue { Val = 10D }, true);
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(10D, snapshot.Layout.VerticalAxisMaximum);
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements,
+            element => element is OfficeDrawingGroup);
     }
 
     [Theory]

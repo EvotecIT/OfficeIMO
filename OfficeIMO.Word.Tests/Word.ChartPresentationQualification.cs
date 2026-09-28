@@ -75,7 +75,7 @@ public sealed class WordChartPresentationQualificationTests {
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Area)]
     [InlineData(OfficeChartKind.Scatter)]
-    public void Snapshot_RejectsUnclippedPointsOutsideExplicitValueBounds(OfficeChartKind kind) {
+    public void Snapshot_ClipsPointsOutsideExplicitValueBounds(OfficeChartKind kind) {
         using var document = WordDocument.Create();
         var data = new OfficeChartData(new[] { "A", "B", "C" }, new[] {
             new OfficeChartSeries("Values", new[] { 0d, 10d, 20d }, kind == OfficeChartKind.Scatter ? new[] { 1d, 2d, 3d } : null) });
@@ -83,33 +83,41 @@ public sealed class WordChartPresentationQualificationTests {
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         plot.Elements<C.ValueAxis>().Last().GetFirstChild<C.Scaling>()!.AddChild(new C.MaxAxisValue { Val = 15d }, true);
         string native = chart.ChartPart.ChartSpace.OuterXml;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(15d, snapshot.Layout.VerticalAxisMaximum);
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements,
+            element => element is OfficeDrawingGroup);
         Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 
     [Fact]
-    public void Snapshot_RejectsUnclippedScatterPointsOutsideExplicitHorizontalBounds() {
+    public void Snapshot_ClipsScatterPointsOutsideExplicitHorizontalBounds() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Scatter, new OfficeChartData(new[] { "A", "B", "C" }, new[] {
             new OfficeChartSeries("Values", new[] { 1d, 2d, 3d }, new[] { 1d, 2d, 3d }) }));
         var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
         plot.Elements<C.ValueAxis>().First().GetFirstChild<C.Scaling>()!.AddChild(new C.MaxAxisValue { Val = 2d }, true);
         string native = chart.ChartPart.ChartSpace.OuterXml;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(2d, snapshot.Layout.HorizontalAxisMaximum);
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements,
+            element => element is OfficeDrawingGroup);
         Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Snapshot_RejectsAreaBaselineOutsideExplicitVerticalBounds(bool positive) {
+    public void Snapshot_ClipsAreaBaselineOutsideExplicitVerticalBounds(bool positive) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.Area, new OfficeChartData(new[] { "A", "B" }, new[] {
             new OfficeChartSeries("Values", positive ? new[] { 10d, 20d } : new[] { -10d, -20d }) }));
         var axis = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!.Elements<C.ValueAxis>().Single();
         axis.GetFirstChild<C.Scaling>()!.AddChild(positive ? new C.MinAxisValue { Val = 5d } : new C.MaxAxisValue { Val = -5d }, true);
         string native = chart.ChartPart.ChartSpace.OuterXml;
-        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements,
+            element => element is OfficeDrawingGroup);
         Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 

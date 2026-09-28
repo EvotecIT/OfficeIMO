@@ -44,10 +44,6 @@ public partial class WordChart {
             snapshot = new OfficeChartSnapshot(ReadDrawingName(), ReadTitle(chart), kind, officeData, GetWidthPoints(), GetHeightPoints(),
                 OfficeOpenXmlChartSeriesReader.ReadStyle(chart, kind, scheme, textStyle), OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
-            if (HasUnclippedExplicitScale(snapshot)) {
-                snapshot = null!;
-                return false;
-            }
             return true;
         } catch {
             snapshot = null!;
@@ -69,33 +65,4 @@ public partial class WordChart {
         mapping.Hyperlink?.Value != W.ColorSchemeIndexValues.Hyperlink ||
         mapping.FollowedHyperlink?.Value != W.ColorSchemeIndexValues.FollowedHyperlink);
 
-    private static bool HasUnclippedExplicitScale(OfficeChartSnapshot snapshot) {
-        OfficeChartLayout layout = snapshot.Layout;
-        foreach (OfficeChartSeries series in snapshot.Data.Series) {
-            OfficeChartKind kind = series.RenderKind ?? snapshot.ChartKind;
-            double? minimum = series.AxisGroup == OfficeChartAxisGroup.Secondary
-                ? layout.SecondaryValueAxis?.Minimum : layout.VerticalAxisMinimum;
-            double? maximum = series.AxisGroup == OfficeChartAxisGroup.Secondary
-                ? layout.SecondaryValueAxis?.Maximum : layout.VerticalAxisMaximum;
-            bool lineOrArea = kind is OfficeChartKind.Line or OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
-                OfficeChartKind.Area or OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100;
-            bool numericPoints = kind is OfficeChartKind.Scatter or OfficeChartKind.Bubble;
-            if (!lineOrArea && !numericPoints) continue;
-            // The shared renderer has no plot clipping for these marks yet. A stacked series
-            // can cross a bound through its cumulative value even when each source value fits.
-            if (kind is OfficeChartKind.LineStacked or OfficeChartKind.LineStacked100 or
-                OfficeChartKind.AreaStacked or OfficeChartKind.AreaStacked100 &&
-                (minimum.HasValue || maximum.HasValue)) return true;
-            // An unstacked area also paints the polygon down to zero. Without clipping,
-            // an explicit range that excludes zero lets its baseline escape the plot.
-            if (kind == OfficeChartKind.Area && IsOutside(0d, minimum, maximum)) return true;
-            if (series.Values.Any(value => IsOutside(value, minimum, maximum))) return true;
-            if (numericPoints && (layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue) &&
-                (series.XValues == null || series.XValues.Any(value => IsOutside(value, layout.HorizontalAxisMinimum, layout.HorizontalAxisMaximum)))) return true;
-        }
-        return false;
-    }
-
-    private static bool IsOutside(double value, double? minimum, double? maximum) =>
-        minimum.HasValue && value < minimum.Value || maximum.HasValue && value > maximum.Value;
 }
