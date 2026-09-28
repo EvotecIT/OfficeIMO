@@ -30,7 +30,7 @@ public sealed class WordChartRadialOutsideLabelsTests {
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout.DataLabelPosition);
         Assert.Equal(showLeaderLines, snapshot.Layout.ShowDataLabelLeaderLines);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
-        Assert.Equal(showLeaderLines ? 3 : 0,
+        Assert.Equal(showLeaderLines ? 6 : 0,
             drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line));
         Assert.Equal(nativeXml, chart.ChartPart.ChartSpace.OuterXml);
     }
