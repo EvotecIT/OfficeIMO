@@ -313,6 +313,20 @@ namespace OfficeIMO.PowerPoint {
             var parts = new List<(PowerPointChartSnapshotKind Kind, PowerPointChartData Data, bool HasSourceCategories)>();
             OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ValidatePlotBudget(plotArea, PowerPointUtils.MaximumSharedChartPoints);
             var axisGroups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
+            var referencedAxes = new Dictionary<OfficeChartAxisGroup, (uint Category, uint Value)>();
+            foreach (OpenXmlCompositeElement layer in plotArea.ChildElements.OfType<OpenXmlCompositeElement>()
+                         .Where(element => element is C.BarChart or C.LineChart or C.AreaChart)) {
+                OpenXmlCompositeElement?[] axes = layer.Elements<C.AxisId>()
+                    .Select(reference => axisGroups.Resolve(reference.Val?.Value)).ToArray();
+                if (axes.Length != 2 || axes.OfType<C.CategoryAxis>().FirstOrDefault() is not C.CategoryAxis category ||
+                    axes.OfType<C.ValueAxis>().FirstOrDefault() is not C.ValueAxis value ||
+                    category.AxisId?.Val?.Value is not uint categoryId || value.AxisId?.Val?.Value is not uint valueId)
+                    return false;
+                OfficeChartAxisGroup group = axisGroups.Read(layer);
+                if (referencedAxes.TryGetValue(group, out var prior) &&
+                    (prior.Category != categoryId || prior.Value != valueId)) return false;
+                referencedAxes[group] = (categoryId, valueId);
+            }
             var projectionBudget = new OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ProjectionBudget();
             foreach (OpenXmlElement element in plotArea.ChildElements) {
                 if (element is C.BarChart barChart) {
@@ -413,9 +427,8 @@ namespace OfficeIMO.PowerPoint {
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
                 PowerPointChartSeries series = data.Series[seriesIndex];
                 uint sourceIndex = series.SourceIndex ?? (uint)seriesIndex;
-                uint legendIndex = kind == PowerPointChartSnapshotKind.Bubble
-                    ? (uint)seriesIndex
-                    : sourceIndex;
+                uint legendIndex = kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut
+                    ? sourceIndex : (uint)seriesIndex;
                 series.ShowInLegend = hasLegend &&
                     !hiddenLegendSeries.Contains(legendIndex);
             }
