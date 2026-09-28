@@ -652,7 +652,10 @@ New source keys remain excluded from a manually filtered field unless its
 records is rejected before changing the saved view.
 Materialization supports label equals, begins with, ends with, contains, and
 their negations on ordinary row or column fields with text, Boolean, blank, or
-error captions. On a single ordinary axis field, it also supports value equals,
+error captions. It also supports label greater/less comparisons and inclusive
+between or exclusive not-between ranges when every caption and criterion uses
+ASCII letters. Other text is rejected because Excel's localized ordering can
+select different items. On a single ordinary axis field, it supports value equals,
 not equals, greater than, greater than or equal, less than, and less than or
 equal. Label and value filters can share that field. Value filters use the
 selected measure's aggregation
@@ -691,7 +694,7 @@ and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
 Other date levels and layouts, custom non-text grouping, formatted date/numeric label filters,
-other label/value pivot filter types and multi-field value filtering,
+localized label range ordering, other label/value pivot filter types and multi-field value filtering,
 calculated fields, incompatible shared-cache groupings, and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

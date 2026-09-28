@@ -29,17 +29,36 @@ namespace OfficeIMO.Excel {
                 string needle = filter.StringValue1?.Value
                     ?? throw new NotSupportedException("The label filter has no saved criterion.");
                 var type = filter.Type!.Value;
-                string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
-                var comparison = ResolveSingleFilterOperator(type);
-                ValidateMaterializedPivotLabelPredicate(filter, savedPattern, comparison);
-                var pattern = new Regex("\\A" + CreateFormulaWildcardPattern(savedPattern) + "\\z",
-                    RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
-                bool negate = comparison == FilterOperatorValues.NotEqual;
-                var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
-                    string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
-                        ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
-                    return pattern.IsMatch(label) != negate;
-                }));
+                HashSet<PivotFieldValue> included;
+                if (IsMaterializedPivotLabelRange(type)) {
+                    string? second = filter.StringValue2?.Value;
+                    ValidateMaterializedPivotLabelRangePredicate(filter, needle, second);
+                    if (!IsQualifiedPivotLabelOrderingText(needle)
+                        || (second != null && !IsQualifiedPivotLabelOrderingText(second))
+                        || maps[field].Items.Any(key => {
+                            string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
+                                ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
+                            return !IsQualifiedPivotLabelOrderingText(label);
+                        }))
+                        throw new NotSupportedException("Label range materialization requires ASCII alphabetic captions and criteria; localized text ordering is not qualified.");
+                    included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
+                        string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
+                            ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
+                        return MatchesMaterializedPivotLabelRange(label, needle, second, type);
+                    }));
+                } else {
+                    string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
+                    var comparison = ResolveSingleFilterOperator(type);
+                    ValidateMaterializedPivotLabelPredicate(filter, savedPattern, comparison);
+                    var pattern = new Regex("\\A" + CreateFormulaWildcardPattern(savedPattern) + "\\z",
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
+                    bool negate = comparison == FilterOperatorValues.NotEqual;
+                    included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
+                        string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
+                            ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
+                        return pattern.IsMatch(label) != negate;
+                    }));
+                }
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
@@ -92,7 +111,52 @@ namespace OfficeIMO.Excel {
             return type == PivotFilterValues.CaptionEqual || type == PivotFilterValues.CaptionNotEqual
                 || type == PivotFilterValues.CaptionBeginsWith || type == PivotFilterValues.CaptionNotBeginsWith
                 || type == PivotFilterValues.CaptionEndsWith || type == PivotFilterValues.CaptionNotEndsWith
-                || type == PivotFilterValues.CaptionContains || type == PivotFilterValues.CaptionNotContains;
+                || type == PivotFilterValues.CaptionContains || type == PivotFilterValues.CaptionNotContains
+                || type == PivotFilterValues.CaptionGreaterThan || type == PivotFilterValues.CaptionGreaterThanOrEqual
+                || type == PivotFilterValues.CaptionLessThan || type == PivotFilterValues.CaptionLessThanOrEqual
+                || type == PivotFilterValues.CaptionBetween || type == PivotFilterValues.CaptionNotBetween;
+        }
+
+        private static bool IsMaterializedPivotLabelRange(PivotFilterValues type)
+            => type == PivotFilterValues.CaptionGreaterThan || type == PivotFilterValues.CaptionGreaterThanOrEqual
+                || type == PivotFilterValues.CaptionLessThan || type == PivotFilterValues.CaptionLessThanOrEqual
+                || type == PivotFilterValues.CaptionBetween || type == PivotFilterValues.CaptionNotBetween;
+
+        private static bool IsQualifiedPivotLabelOrderingText(string text)
+            => text.Length > 0 && text.All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
+
+        private static void ValidateMaterializedPivotLabelRangePredicate(PivotFilter filter, string first, string? second) {
+            PivotFilterValues type = filter.Type!.Value;
+            if (!TryResolveBetweenFilter(type, out var firstOperator, out var secondOperator, out bool matchAll)) {
+                ValidateMaterializedPivotLabelPredicate(filter, first, ResolveSingleFilterOperator(type));
+                return;
+            }
+            if (second == null)
+                throw new NotSupportedException("The label range filter has no saved second criterion.");
+            var columns = filter.AutoFilter?.Elements<FilterColumn>().ToArray() ?? Array.Empty<FilterColumn>();
+            if (columns.Length != 1 || columns[0].ColumnId?.Value != 0
+                || columns[0].ChildElements.Count != 1
+                || columns[0].GetFirstChild<CustomFilters>() is not CustomFilters custom
+                || (custom.And?.Value == true) != matchAll
+                || custom.ChildElements.Count != 2)
+                throw new NotSupportedException("The label range filter does not have a qualified saved predicate.");
+            var predicates = custom.Elements<CustomFilter>().ToArray();
+            if (predicates.Length != 2 || (predicates[0].Operator?.Value ?? FilterOperatorValues.Equal) != firstOperator
+                || predicates[0].Val?.Value != first || (predicates[1].Operator?.Value ?? FilterOperatorValues.Equal) != secondOperator
+                || predicates[1].Val?.Value != second)
+                throw new NotSupportedException("The label range filter does not have a qualified saved predicate.");
+        }
+
+        private static bool MatchesMaterializedPivotLabelRange(string label, string first, string? second,
+            PivotFilterValues type) {
+            int firstComparison = StringComparer.OrdinalIgnoreCase.Compare(label, first);
+            if (type == PivotFilterValues.CaptionGreaterThan) return firstComparison > 0;
+            if (type == PivotFilterValues.CaptionGreaterThanOrEqual) return firstComparison >= 0;
+            if (type == PivotFilterValues.CaptionLessThan) return firstComparison < 0;
+            if (type == PivotFilterValues.CaptionLessThanOrEqual) return firstComparison <= 0;
+            int secondComparison = StringComparer.OrdinalIgnoreCase.Compare(label, second);
+            if (type == PivotFilterValues.CaptionBetween) return firstComparison >= 0 && secondComparison <= 0;
+            return firstComparison < 0 || secondComparison > 0;
         }
 
         private static void ValidateMaterializedPivotLabelPredicate(PivotFilter filter, string pattern,
