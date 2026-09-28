@@ -461,7 +461,7 @@ internal static class IWorkNumbersReader {
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool stringStorageComplete);
-        IReadOnlyDictionary<uint, string> richStrings = IWorkTableRichTextReader.Read(index, store,
+        IReadOnlyDictionary<uint, (string Text, bool IsComplete)> richStrings = IWorkTableRichTextReader.Read(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool richStringStorageComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
@@ -1000,7 +1000,8 @@ internal static class IWorkNumbersReader {
 
     private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int endOffset,
         int row, int column,
-        IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, string> richStrings,
+        IReadOnlyDictionary<uint, string> strings,
+        IReadOnlyDictionary<uint, (string Text, bool IsComplete)> richStrings,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
         IWorkReadOptions options, IWorkProjectionBudget projectionBudget) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
@@ -1134,12 +1135,13 @@ internal static class IWorkNumbersReader {
                     : Error(row, column, "#ERROR");
             case 9:
                 if (hasRichString) {
-                    if (richStrings.TryGetValue(richStringIdentifier, out string? richText)) {
-                        projectionBudget.AddTextCharacters(richText.Length);
+                    if (richStrings.TryGetValue(richStringIdentifier, out var richText)) {
+                        projectionBudget.AddTextCharacters(richText.Text.Length);
                         return hasFormula
                             ? Formula(row, column, formulaIdentifier, formulas, options,
-                                projectionBudget, richText, IWorkCellKind.Text)
-                            : new IWorkTableCell(row, column, IWorkCellKind.Text, richText);
+                                projectionBudget, richText.Text, IWorkCellKind.Text,
+                                cachedValueIsComplete: richText.IsComplete)
+                            : new IWorkTableCell(row, column, IWorkCellKind.Text, richText.Text);
                     }
                     return hasFormula
                         ? Formula(row, column, formulaIdentifier, formulas, options,

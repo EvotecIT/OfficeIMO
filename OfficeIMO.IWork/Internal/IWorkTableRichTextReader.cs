@@ -6,11 +6,13 @@ internal static class IWorkTableRichTextReader {
     private const uint RichTextWrapperArchive = 6218;
     private const uint TextStorageArchive = 2001;
 
-    internal static IReadOnlyDictionary<uint, string> Read(IWorkObjectIndex index,
+    internal static IReadOnlyDictionary<uint, (string Text, bool IsComplete)> Read(IWorkObjectIndex index,
         IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
         IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed) {
-        var strings = new Dictionary<uint, string>();
+        var strings = new Dictionary<uint, (string Text, bool IsComplete)>();
         var seenIdentifiers = new HashSet<uint>();
+        var wrapperMessages = new Dictionary<ulong, IWorkWireMessage?>();
+        var storageTexts = new Dictionary<ulong, (string Text, bool IsComplete)?>();
         fullyReconstructed = true;
         if (!store.HasField(17)) return strings;
         IWorkArchiveRecord? list = index.Dereference(store, 17);
@@ -47,7 +49,8 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            if (!TryReadRecord(index, wrapper, options, out IWorkWireMessage? wrapperMessage)
+            if (!TryReadRecord(index, wrapper, options, wrapperMessages,
+                    out IWorkWireMessage? wrapperMessage)
                 || wrapperMessage == null) {
                 fullyReconstructed = false;
                 continue;
@@ -58,30 +61,46 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
-            if (!TryReadRecord(index, storage, options, out IWorkWireMessage? storageMessage)
-                || storageMessage == null) {
+            if (!storageTexts.TryGetValue(storage.Identifier, out var cached)) {
+                cached = TryReadRecord(index, storage, options, wrapperMessages,
+                        out IWorkWireMessage? storageMessage) && storageMessage != null
+                    ? ReadStorage(storageMessage, projectionBudget)
+                    : null;
+                storageTexts.Add(storage.Identifier, cached);
+            }
+            if (!cached.HasValue) {
                 fullyReconstructed = false;
                 continue;
             }
-            string text = IWorkTextReader.ReadPlainText(storageMessage, projectionBudget,
-                out bool textComplete);
+            (string text, bool textComplete) = cached.Value;
             if (!textComplete) fullyReconstructed = false;
             if (!textComplete && text.Length == 0) continue;
-            strings.Add(normalizedKey, text);
+            strings.Add(normalizedKey, (text, textComplete));
         }
         return strings;
     }
 
+    private static (string Text, bool IsComplete) ReadStorage(IWorkWireMessage message,
+        IWorkProjectionBudget projectionBudget) {
+        string text = IWorkTextReader.ReadPlainText(message, projectionBudget,
+            out bool complete);
+        return (text, complete);
+    }
+
     private static bool TryReadRecord(IWorkObjectIndex index, IWorkArchiveRecord record,
-        IWorkReadOptions options, out IWorkWireMessage? message) {
+        IWorkReadOptions options, Dictionary<ulong, IWorkWireMessage?> cache,
+        out IWorkWireMessage? message) {
+        if (cache.TryGetValue(record.Identifier, out message)) return message != null;
         message = null;
         try {
             // Count first so configured field limits remain fatal even when the record is malformed.
             IWorkProtobuf.CountFields(record.Payload, 1, options.MaximumProtobufFieldCount);
             message = index.Message(record);
+            cache.Add(record.Identifier, message);
             return true;
         } catch (InvalidDataException exception)
             when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            cache.Add(record.Identifier, null);
             return false;
         }
     }
