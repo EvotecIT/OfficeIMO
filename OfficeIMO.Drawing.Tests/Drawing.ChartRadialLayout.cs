@@ -7,6 +7,26 @@ public sealed class DrawingChartRadialLayoutTests {
     [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
+    public void FiniteExtremeSlicesKeepGeometryAndPercentLabels(OfficeChartKind kind) {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1e308, 1e308 })
+        });
+        var layout = new OfficeChartLayout(showLegend: false, showDataLabels: true,
+            showDataLabelPercentages: true);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, 360, 240, layout: layout));
+        OfficeDrawingShape[] slices = drawing.Shapes.Where(shape =>
+            shape.Shape.Kind == OfficeShapeKind.Polygon).ToArray();
+        Assert.Equal(2, slices.Length);
+        Assert.All(slices, slice => Assert.True(slice.Shape.Width > 50D &&
+            slice.Shape.Height > 50D, "Each equal finite slice should cover half the radial plot."));
+        Assert.Equal(2, drawing.Elements.OfType<OfficeDrawingText>()
+            .Count(label => label.Text == "50%"));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
     [InlineData(OfficeChartKind.Radar)]
     public void SmallAuthoredCanvas_KeepsRadialGeometryInsideTheFrame(OfficeChartKind kind) {
         var data = new OfficeChartData(new[] { "A", "B", "C" },
