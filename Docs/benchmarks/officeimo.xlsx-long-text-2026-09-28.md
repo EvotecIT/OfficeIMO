@@ -80,3 +80,19 @@ stronger evidence. Reproduce the stage probe with the existing
 using `--profile ExcelLongPlain 10000 65535 candidate` or
 `--profile ExcelDefaultLongPlain 10000 65535 candidate` and a sampled
 `dotnet-trace` collection of the child process.
+
+A separate 128 KiB byte-buffer diagnostic on source commit `60fa82a54`
+preserved every uncompressed package-part hash and the complete package size
+for compact and default long plain/escaped text, dense markup, and short plain
+text. The baseline and candidate Excel assembly hashes were
+`219A919690E3CC7FD8E7E8E1853BF860760971B9F78C8115F0287B30769D9D75`
+and `1E4CEB0002E531F6B014DFE1C6DCAF6879A661587FC6326C0333605CD9EE98FD`.
+In a Domain A smoke comparison with two warmups, four retained measurements,
+four exports per operation, and rotated before/after order, the candidate's
+mean-time ratios were 1.04 for compact long plain, 0.98 for default long plain,
+and 1.08 for dense markup. This small run did not support the long-plain target;
+the buffer change was reverted. It is not a full two-domain regression result.
+The [part hashes](xlsx-long-text-2026-09-28/buffer-128-diagnostic/package-parts.jsonl),
+[comparison](xlsx-long-text-2026-09-28/buffer-128-diagnostic/comparison.json),
+and [raw samples](xlsx-long-text-2026-09-28/buffer-128-diagnostic/samples.json)
+retain the diagnostic evidence.
