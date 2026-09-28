@@ -298,19 +298,53 @@ namespace OfficeIMO.Excel {
             }
             int vectors = byColumns ? input.Columns : input.Rows;
             int key = (int)index - 1;
-            var keys = new double[vectors];
+            var keyKinds = new ArraySortKeyKind[vectors];
             for (int i = 0; i < vectors; i++) {
                 var value = input.Values[byColumns ? key * input.Columns + i : i * input.Columns + key];
-                // Mixed/text/error collation stays deferred until independently qualified.
-                if (!value.Number.HasValue || value.IsBoolean || value.IsError) return false;
-                keys[i] = value.Number.Value;
+                if (!TryGetArraySortKeyKind(value, out keyKinds[i])) return false;
             }
             var selected = Enumerable.Range(0, vectors).ToArray();
             System.Array.Sort(selected, (left, right) => {
-                int comparison = keys[left].CompareTo(keys[right]) * (int)order;
+                ArraySortKeyKind leftKind = keyKinds[left], rightKind = keyKinds[right];
+                int comparison;
+                if (leftKind == ArraySortKeyKind.Blank || rightKind == ArraySortKeyKind.Blank) {
+                    // Excel keeps blank keys last in both sort directions.
+                    comparison = leftKind == rightKind ? 0 : leftKind == ArraySortKeyKind.Blank ? 1 : -1;
+                } else {
+                    comparison = ((int)leftKind).CompareTo((int)rightKind);
+                    if (comparison == 0) {
+                        FormulaArgumentValue leftValue = input.Values[byColumns ? key * input.Columns + left : left * input.Columns + key];
+                        FormulaArgumentValue rightValue = input.Values[byColumns ? key * input.Columns + right : right * input.Columns + key];
+                        comparison = leftKind == ArraySortKeyKind.Text
+                            ? string.Compare(leftValue.Text, rightValue.Text, StringComparison.OrdinalIgnoreCase)
+                            : leftValue.Number!.Value.CompareTo(rightValue.Number!.Value);
+                    }
+                    comparison = Math.Sign(comparison) * (int)order;
+                }
                 return comparison == 0 ? left.CompareTo(right) : comparison;
             });
             array = SelectArrayVectors(input, selected, byColumns);
+            return true;
+        }
+
+        private enum ArraySortKeyKind : byte { Number, Text, Boolean, Blank }
+
+        private static bool TryGetArraySortKeyKind(FormulaArgumentValue value, out ArraySortKeyKind kind) {
+            kind = default;
+            if (value.IsError || value.IsUnresolvedFormula) return false;
+            if (!value.HasValue) { kind = ArraySortKeyKind.Blank; return true; }
+            if (value.IsBoolean) { kind = ArraySortKeyKind.Boolean; return value.Number.HasValue; }
+            if (value.Number.HasValue) {
+                if (double.IsNaN(value.Number.Value) || double.IsInfinity(value.Number.Value)) return false;
+                kind = ArraySortKeyKind.Number;
+                return true;
+            }
+            if (value.Text == null || value.Text.Length == 0) return false;
+            foreach (char character in value.Text) {
+                if (!((character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z')))
+                    return false;
+            }
+            kind = ArraySortKeyKind.Text;
             return true;
         }
 

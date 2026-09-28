@@ -211,11 +211,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ArrayCalculation_UnqualifiedBlankSortAndMixedComparisonStayDeferred() {
+        public void Test_ArrayCalculation_UnqualifiedMixedComparisonStaysDeferred() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Arrays");
             sheet.CellValue(1, 1, 1d);
-            sheet.SetArrayFormula("G1:G2", "SORT(A1:A2)");
             sheet.SetArrayFormula("H1:H1", "FILTER(A1:A1,A1:A1=\"1\",\"none\")");
             Assert.Equal(0, document.Calculate());
         }
@@ -261,10 +260,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ArrayCalculation_TextSortStaysDeferred() {
+        public void Test_ArrayCalculation_UnqualifiedUnicodeTextSortStaysDeferred() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddWorksheet("Arrays");
-            sheet.CellValue(1, 1, "b");
+            sheet.CellValue(1, 1, "é");
             sheet.CellValue(2, 1, "a");
             sheet.SetArrayFormula("G1:G2", "SORT(A1:A2)");
             Assert.Equal(0, document.Calculate());
