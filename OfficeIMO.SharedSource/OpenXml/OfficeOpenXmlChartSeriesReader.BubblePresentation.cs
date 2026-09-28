@@ -226,6 +226,7 @@ namespace OfficeIMO.OpenXml.Internal {
             for (int index = 0; index < format!.Length; index++) {
                 char value = format[index];
                 if (escaped) {
+                    if (value == '%') return true;
                     escaped = false;
                     continue;
                 }
@@ -238,6 +239,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     continue;
                 }
                 if (inQuotedLiteral) {
+                    if (value == '%') return true;
                     continue;
                 }
                 if (value == '0' || value == '#' || value == '?') {

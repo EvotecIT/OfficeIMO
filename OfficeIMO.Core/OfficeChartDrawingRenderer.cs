@@ -1679,25 +1679,40 @@ public static partial class OfficeChartDrawingRenderer {
             out double visualWidth, out double contentHeight);
         ValueRange range = GetRadarValueRange(series);
 
-        for (int ring = 1; ring <= 4; ring++) {
-            double ringRadius = radius * ring / 4D;
-            IReadOnlyList<OfficePoint> ringPoints = CreateRadarPoints(categories.Count, centerX, centerY, ringRadius);
-            AddPolygonShape(drawing, ringPoints, null, style.GridLineColor, 0.5D);
+        if (GetShowValueGridLines(style)) {
+            for (int ring = 1; ring <= 4; ring++) {
+                double ringRadius = radius * ring / 4D;
+                IReadOnlyList<OfficePoint> ringPoints = CreateRadarPoints(categories.Count, centerX, centerY, ringRadius);
+                AddPolygonShape(drawing, ringPoints, null, GetValueGridLineColor(style), GetValueGridLineWidth(style));
+            }
+        }
+        if (layout.ShowValueAxisLabels) {
+            double labelHeight = GetAxisLabelBoxHeight(layout);
+            for (int ring = 1; ring <= 4; ring++) {
+                double tick = range.Min + (range.Max - range.Min) * ring / 4D;
+                double y = centerY - radius * ring / 4D - labelHeight / 2D;
+                AddChartText(drawing, FormatAxisValue(tick, layout, false, layout.VerticalAxisNumberFormat),
+                    centerX + 4D, y, 42D, labelHeight, layout.AxisLabelFontSize,
+                    style.MutedTextColor, OfficeTextAlignment.Left, style,
+                    layout.AxisTextFontFamily, layout.AxisTextFontStyle);
+            }
         }
 
-        IReadOnlyList<OfficePoint> outerPoints = CreateRadarPoints(categories.Count, centerX, centerY, radius);
-        for (int i = 0; i < outerPoints.Count; i++) {
-            OfficePoint point = outerPoints[i];
-            double minX = Math.Min(centerX, point.X);
-            double minY = Math.Min(centerY, point.Y);
-            AddShape(
-                drawing,
-                OfficeShape.Line(centerX - minX, centerY - minY, point.X - minX, point.Y - minY),
-                minX,
-                minY,
-                null,
-                style.GridLineColor,
-                0.5D);
+        if (GetShowCategoryGridLines(style)) {
+            IReadOnlyList<OfficePoint> outerPoints = CreateRadarPoints(categories.Count, centerX, centerY, radius);
+            for (int i = 0; i < outerPoints.Count; i++) {
+                OfficePoint point = outerPoints[i];
+                double minX = Math.Min(centerX, point.X);
+                double minY = Math.Min(centerY, point.Y);
+                AddShape(
+                    drawing,
+                    OfficeShape.Line(centerX - minX, centerY - minY, point.X - minX, point.Y - minY),
+                    minX,
+                    minY,
+                    null,
+                    GetCategoryGridLineColor(style),
+                    GetCategoryGridLineWidth(style));
+            }
         }
 
         for (int s = 0; s < series.Count; s++) {
@@ -1769,7 +1784,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
+        if (layout.ShowCategoryAxisLabels) AddRadarCategoryLabels(drawing, categories, centerX, centerY, radius, style, layout);
         if (layout.OverlayLegend) {
             AddOverlaySeriesLegend(drawing, series, leftLegend ? legendWidth : 0D, contentTop + 4D, visualWidth, Math.Max(20D, contentHeight - 8D), style, layout);
         } else {

@@ -5,6 +5,26 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPointStylesTests {
     [Fact]
+    public void RadarHonorsIndependentGridlineAndCategoryLabelVisibility() {
+        OfficeColor categoryGrid = OfficeColor.Parse("#B900D0");
+        OfficeColor valueGrid = OfficeColor.Parse("#0077AA");
+        var series = new OfficeChartSeries("Values", new[] { 1d, 2d, 3d }, null, null, null,
+            showMarkers: false, connectLine: false);
+        OfficeChartSnapshot Snapshot(bool category, bool value, bool labels) => new("", null,
+            OfficeChartKind.Radar, new OfficeChartData(new[] { "A", "B", "C" }, new[] { series }), 320, 240,
+            style: new OfficeChartStyle(categoryGridLineColor: categoryGrid, valueGridLineColor: valueGrid,
+                showCategoryGridLines: category, showValueGridLines: value),
+            layout: new OfficeChartLayout(showLegend: false, showCategoryAxisLabels: labels));
+        OfficeDrawing hidden = OfficeChartDrawingRenderer.Render(Snapshot(false, false, false));
+        Assert.DoesNotContain(hidden.Shapes, shape => shape.Shape.StrokeColor == categoryGrid || shape.Shape.StrokeColor == valueGrid);
+        Assert.DoesNotContain(hidden.Elements.OfType<OfficeDrawingText>(), item => item.Text is "A" or "B" or "C");
+        OfficeDrawing visible = OfficeChartDrawingRenderer.Render(Snapshot(true, true, true));
+        Assert.Contains(visible.Shapes, shape => shape.Shape.StrokeColor == categoryGrid);
+        Assert.Contains(visible.Shapes, shape => shape.Shape.StrokeColor == valueGrid);
+        Assert.Contains(visible.Elements.OfType<OfficeDrawingText>(), item => item.Text == "A");
+    }
+
+    [Fact]
     public void DoughnutLegendUsesTheFirstRenderableRingWhenOnlyInnerRingHasPointStyles() {
         var outer = new OfficeChartSeries("Outer", new[] { 3d, 2d }, null, OfficeColor.Parse("#1845A3"));
         var inner = new OfficeChartSeries("Inner", new[] { 4d, 1d })
