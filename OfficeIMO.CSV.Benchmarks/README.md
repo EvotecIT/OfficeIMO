@@ -147,14 +147,14 @@ To run only the larger mixed-field file workload, use
 The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
 records the file workloads, repeated comparisons, and reader allocation analysis.
 
-## Historical generated workstation snapshot
+## Local workstation benchmark snapshot
 
-This single-workstation table is retained so the older focused investigations
-remain reproducible. It is not the current cross-platform product ranking.
+This single-workstation table records a focused local run. It is not the current
+cross-platform product ranking.
 Lower is faster within a row only; the rows use different contracts and cannot
 be combined into one library ranking. Treat differences below 5% as ties. The
-snapshot uses three warmups, nine measured iterations, means, and semantic
-preflight validation of every typed or prepared value.
+run's settings and source revision are recorded in the dated benchmark evidence;
+each method validates its input or output contract before timing.
 
 Use the hash-pinned library-comparison suite and website matrix below for
 current evidence. They keep CSV, XLSX, and XLSB workloads separate and expose
@@ -163,10 +163,10 @@ Windows, Linux, and macOS results independently.
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (27ms) | n/a | 1.74x (47ms) | n/a | 0.99x (26ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.06x (2ms) | 4.47x (9ms) | OfficeIMO.CSV fastest |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (31ms) | 2.65x (82ms) | 1.43x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
+| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (30ms) | n/a | 1.18x (36ms) | n/a | 0.82x (25ms) | Fastest: Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Read every field | MeanMs | 1.00x (4ms) | n/a | n/a | 0.57x (2ms) | 0.73x (3ms) | Fastest: Sep |
+| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (26ms) | 2.79x (74ms) | 1.12x (30ms) | n/a | n/a | Fastest: OfficeIMO.CSV |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Validate and write rows | MeanMs | 1.00x (7ms) | 3.55x (26ms) | 1.97x (14ms) | 3.47x (25ms) | 1.57x (12ms) | Fastest: OfficeIMO.CSV |
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Dated four-reader CSV snapshot (2026-08-31)

@@ -18,6 +18,18 @@ Excel, or All. Omit this parameter to refresh only from committed compact data.
 Optional BenchmarkDotNet artifact directory or report for a fresh CSV run. When
 omitted, the last committed compact CSV comparison is rendered again.
 
+.PARAMETER CsvAffinityMasks
+Optional processor-affinity masks for the CSV benchmark jobs.
+
+.PARAMETER CsvPriority
+Optional process priority for the CSV benchmark jobs.
+
+.PARAMETER CsvWarmupCount
+Warmup iterations for each CSV benchmark job (default 3).
+
+.PARAMETER CsvIterationCount
+Measured iterations for each CSV benchmark job (default 9).
+
 .PARAMETER ExcelSummaryPath
 Optional Excel comparison-suite summary to select. When supplied, the compact
 Excel comparison is rebuilt from that run. If the compact artifact does not yet
@@ -34,6 +46,11 @@ param(
     [ValidateSet("Csv", "Excel", "All")]
     [string[]] $Run = @(),
     [string] $CsvArtifactPath,
+    [string] $CsvAffinityMasks,
+    [ValidateSet("Idle", "BelowNormal", "Normal", "AboveNormal", "High")]
+    [string] $CsvPriority,
+    [ValidateRange(1, 100)] [int] $CsvWarmupCount = 3,
+    [ValidateRange(1, 100)] [int] $CsvIterationCount = 9,
     [string] $ExcelSummaryPath = "./Docs/benchmarks/comparison-current/officeimo.excel.comparison-summary.json",
     [string] $OutputDirectory = "./Docs/benchmarks/readme-current"
 )
@@ -79,27 +96,41 @@ try {
     if ($runCsv) {
         $csvRunPath = Join-Path $artifactRoot "csv"
         Remove-Item -LiteralPath $csvRunPath -Recurse -Force -ErrorAction SilentlyContinue
-        Invoke-DotNetBenchmark -Name "CSV" -Arguments @(
-            "run", "-c", "Release", "--framework", "net8.0",
-            "--project", "OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj", "--",
-            "--filter",
-            "*CsvWideBenchmarks.OfficeIMO_ReadTextFieldSpanVisitorSkipHeader*",
-            "*CsvWideBenchmarks.Sep_ReadFieldSpans*",
-            "*CsvWideBenchmarks.Sylvan_ReadFieldSpans*",
-            "*CsvWideBenchmarks.OfficeIMO_WriteProjectedRows*",
-            "*CsvWideBenchmarks.OfficeIMO_WriteDataReader*",
-            "*CsvWideBenchmarks.OfficeIMO_WriteValidatedTextRows*",
-            "*CsvWideBenchmarks.CsvHelper_WriteProjectedRows*",
-            "*CsvWideBenchmarks.CsvHelper_WriteTextRows*",
-            "*CsvWideBenchmarks.Sep_WriteTextRows*",
-            "*CsvWideBenchmarks.Sylvan_WriteProjectedRows*",
-            "*CsvWideBenchmarks.Sylvan_WriteTextRows*",
-            "*CsvWideBenchmarks.Dataplat_WriteProjectedRows*",
-            "*CsvWideBenchmarks.Dataplat_WriteFromReader*",
-            "*CsvWideBenchmarks.Dataplat_WriteTextRows*",
-            "--warmupCount", "3", "--iterationCount", "9",
-            "--artifacts", $csvRunPath
-        )
+        $previousCsvRowCount = $env:OFFICEIMO_CSV_WIDE_ROW_COUNT
+        try {
+            $env:OFFICEIMO_CSV_WIDE_ROW_COUNT = "25000"
+            $csvArguments = @(
+                "run", "-c", "Release", "--framework", "net8.0",
+                "--project", "OfficeIMO.CSV.Benchmarks/OfficeIMO.CSV.Benchmarks.csproj", "--",
+                "--filter",
+                "*CsvWideBenchmarks.OfficeIMO_ReadTextFieldSpanVisitorSkipHeader*",
+                "*CsvWideBenchmarks.Sep_ReadFieldSpans*",
+                "*CsvWideBenchmarks.Sylvan_ReadFieldSpans*",
+                "*CsvWideBenchmarks.OfficeIMO_WriteProjectedRows",
+                "*CsvWideBenchmarks.OfficeIMO_WriteDataReader*",
+                "*CsvWideBenchmarks.OfficeIMO_WriteValidatedTextRows*",
+                "*CsvWideBenchmarks.CsvHelper_WriteProjectedRows*",
+                "*CsvWideBenchmarks.CsvHelper_WriteTextRows*",
+                "*CsvWideBenchmarks.Sep_WriteTextRows*",
+                "*CsvWideBenchmarks.Sylvan_WriteProjectedRows*",
+                "*CsvWideBenchmarks.Sylvan_WriteTextRows*",
+                "*CsvWideBenchmarks.Dataplat_WriteProjectedRows*",
+                "*CsvWideBenchmarks.Dataplat_WriteFromReader*",
+                "*CsvWideBenchmarks.Dataplat_WriteTextRows*",
+                "--warmupCount", [string] $CsvWarmupCount, "--iterationCount", [string] $CsvIterationCount,
+                "--outliers", "DontRemove",
+                "--artifacts", $csvRunPath
+            )
+            if ($CsvAffinityMasks) { $csvArguments += @("--affinityMasks", $CsvAffinityMasks) }
+            if ($CsvPriority) { $csvArguments += @("--priority", $CsvPriority) }
+            Invoke-DotNetBenchmark -Name "CSV" -Arguments $csvArguments
+        } finally {
+            if ($null -eq $previousCsvRowCount) {
+                Remove-Item Env:OFFICEIMO_CSV_WIDE_ROW_COUNT -ErrorAction SilentlyContinue
+            } else {
+                $env:OFFICEIMO_CSV_WIDE_ROW_COUNT = $previousCsvRowCount
+            }
+        }
         $CsvArtifactPath = "./.benchmark-artifacts/readme-refresh/csv"
     }
 
@@ -143,6 +174,8 @@ try {
             [Parameter(Mandatory)] [string] $Metric,
             [Parameter(Mandatory)] [System.Collections.IDictionary] $Variables,
             [Parameter(Mandatory)] [string] $RuntimeHost,
+            [string] $OperatingSystem = "",
+            [string] $RunMode = "",
             [ValidateRange(0, 1)] [double] $TieTolerance = 0.05
         )
 
@@ -151,8 +184,8 @@ try {
             scenario = $Scenario
             operation = $Operation
             host = $RuntimeHost
-            os = ""
-            runMode = ""
+            os = $OperatingSystem
+            runMode = $RunMode
             variables = $Variables
             engine = $Engine
             baselineEngine = $BaselineEngine
@@ -248,14 +281,22 @@ try {
         })
         $csvRows = [System.Collections.Generic.List[object]]::new()
         $csvSnapshot = (Get-Item -Force -LiteralPath $csvSource).LastWriteTimeUtc.ToString("yyyy-MM-dd")
+        $csvRuntimeHost = ([string] $csvRun.Environment.RuntimeVersion -split ' ', 3)[0..1] -join ' '
+        $csvOperatingSystem = [string] $csvRun.Environment.OsFamily
         foreach ($selection in $csvSelections.GetEnumerator()) {
             $scenarioRows = @($selected | Where-Object Scenario -in $selection.Value.Methods)
+            foreach ($method in $selection.Value.Methods) {
+                $methodRows = @($scenarioRows | Where-Object Scenario -eq $method)
+                if ($methodRows.Count -ne 1 -or $methodRows[0].Status -ne "Succeeded") {
+                    throw "CSV comparison '$($selection.Key)' requires one successful '$method' result."
+                }
+            }
             $baselineRow = $scenarioRows | Where-Object Scenario -eq $selection.Value.Baseline | Select-Object -First 1
-            if ($null -eq $baselineRow) { throw "CSV baseline is missing for '$($selection.Key)'." }
             foreach ($row in $scenarioRows) {
                 $csvRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
                     -Engine $csvEngines[$row.Scenario] -BaselineEngine "OfficeIMO.CSV" -Actual ([double] $row.MeanMs) `
-                    -Baseline ([double] $baselineRow.MeanMs) -Metric "MeanMs" -RuntimeHost ".NET 8" `
+                    -Baseline ([double] $baselineRow.MeanMs) -Metric "MeanMs" -RuntimeHost $csvRuntimeHost `
+                    -OperatingSystem $csvOperatingSystem -RunMode "local" `
                     -Variables ([ordered]@{ Format = "CSV"; Rows = "25,000"; Shape = "wide"; Contract = $selection.Value.Contract; Snapshot = $csvSnapshot; Runner = "BenchmarkDotNet local" })))
             }
         }
@@ -268,11 +309,15 @@ try {
         throw "No CSV comparison artifact exists. Pass -CsvArtifactPath after a focused BenchmarkDotNet run."
     }
 
-    foreach ($target in @(
-        @{ Path = "./OfficeIMO.CSV.Benchmarks/README.md"; Block = "officeimo-csv-benchmark-table"; Data = $csvComparisonPath },
-        @{ Path = "./OfficeIMO.Excel.Benchmarks/README.md"; Block = "officeimo-excel-benchmark-table"; Data = $excelComparisonPath }
-    )) {
-        Update-BenchmarkDocument -Path $target.Path -BlockId $target.Block -ComparisonPath $target.Data -Renderer ComparisonTable | Out-Null
+    $refreshCsv = $runCsv -or $PSBoundParameters.ContainsKey("CsvArtifactPath") -or
+        (-not $runExcel -and -not $PSBoundParameters.ContainsKey("ExcelSummaryPath"))
+    $refreshExcel = $runExcel -or $PSBoundParameters.ContainsKey("ExcelSummaryPath") -or
+        (-not $runCsv -and -not $PSBoundParameters.ContainsKey("CsvArtifactPath"))
+    if ($refreshCsv) {
+        Update-BenchmarkDocument -Path "./OfficeIMO.CSV.Benchmarks/README.md" -BlockId "officeimo-csv-benchmark-table" -ComparisonPath $csvComparisonPath -Renderer ComparisonTable | Out-Null
+    }
+    if ($refreshExcel) {
+        Update-BenchmarkDocument -Path "./OfficeIMO.Excel.Benchmarks/README.md" -BlockId "officeimo-excel-benchmark-table" -ComparisonPath $excelComparisonPath -Renderer ComparisonTable | Out-Null
     }
 } finally {
     Pop-Location
