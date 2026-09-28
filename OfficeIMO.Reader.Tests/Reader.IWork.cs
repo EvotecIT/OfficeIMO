@@ -1,5 +1,6 @@
 using OfficeIMO.Reader.IWork;
 using OfficeIMO.Reader.All;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -119,17 +120,32 @@ public sealed class ReaderIWorkTests {
     [InlineData("nim-iwork/simple.pages")]
     [InlineData("nim-iwork/simple.numbers")]
     [InlineData("nim-iwork/simple.key")]
-    public void PreferContentRetainsValidatedIWorkRoutes(string relativePath) {
+    public async Task PreferContentRetainsValidatedIWorkRoutes(string relativePath) {
         string path = Fixture(relativePath);
         var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
         foreach (OfficeDocumentReader reader in new[] {
                      new OfficeDocumentReaderBuilder().AddIWorkHandler().Build(),
                      new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build()
                  }) {
-            Assert.Equal(ReaderInputKind.IWork, reader.ReadDocument(path, options).Kind);
+            OfficeDocumentReadResult fromPath = reader.ReadDocument(path, options);
+            Assert.Equal(ReaderInputKind.IWork, fromPath.Kind);
+            Assert.DoesNotContain(fromPath.Diagnostics,
+                diagnostic => diagnostic.Code == "input-kind-mismatch");
             using FileStream input = File.OpenRead(path);
-            Assert.Equal(ReaderInputKind.IWork,
-                reader.ReadDocument(input, Path.GetFileName(path), options).Kind);
+            OfficeDocumentReadResult fromStream = reader.ReadDocument(input, Path.GetFileName(path), options);
+            Assert.Equal(ReaderInputKind.IWork, fromStream.Kind);
+            Assert.DoesNotContain(fromStream.Diagnostics,
+                diagnostic => diagnostic.Code == "input-kind-mismatch");
+            OfficeDocumentReadResult asyncPath = await reader.ReadDocumentAsync(path, options);
+            Assert.Equal(ReaderInputKind.IWork, asyncPath.Kind);
+            Assert.DoesNotContain(asyncPath.Diagnostics,
+                diagnostic => diagnostic.Code == "input-kind-mismatch");
+            using FileStream asyncInput = File.OpenRead(path);
+            OfficeDocumentReadResult asyncStream = await reader.ReadDocumentAsync(
+                asyncInput, Path.GetFileName(path), options);
+            Assert.Equal(ReaderInputKind.IWork, asyncStream.Kind);
+            Assert.DoesNotContain(asyncStream.Diagnostics,
+                diagnostic => diagnostic.Code == "input-kind-mismatch");
         }
     }
 
@@ -189,7 +205,7 @@ public sealed class ReaderIWorkTests {
         Assert.Contains(document.Chunks, chunk => chunk.ContinuesPreviousChunk);
         string markdown = Assert.IsType<string>(document.Markdown);
         Assert.Contains("Preserve reading order", markdown, StringComparison.Ordinal);
-        Assert.Equal(1, markdown.Split("Preserve reading order", StringSplitOptions.None).Length - 1);
+        Assert.Equal(1, markdown.Split(new[] { "Preserve reading order" }, StringSplitOptions.None).Length - 1);
     }
 
     [Fact]

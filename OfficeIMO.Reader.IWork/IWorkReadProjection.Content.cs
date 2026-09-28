@@ -86,7 +86,45 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
-        if (source.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula)) {
+        if (source.HeaderColumnCount > 0 || source.FooterRowCount > 0) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_TABLE_ROLES_UNSUPPORTED",
+                Message = $"Table '{source.Name}' is projected as a flat Reader grid; source header-column and footer-row roles remain on the iWork source model.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = location,
+                Attributes = new Dictionary<string, string>(StringComparer.Ordinal) {
+                    ["headerColumnCount"] = source.HeaderColumnCount.ToString(CultureInfo.InvariantCulture),
+                    ["footerRowCount"] = source.FooterRowCount.ToString(CultureInfo.InvariantCulture)
+                }
+            });
+        }
+        bool hasFormula = false;
+        bool hasUnrepresentedStyle = false;
+        foreach (IWorkTableCell cell in source.Cells) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            hasFormula |= cell.Kind == IWorkCellKind.Formula;
+            if (cell.RichText is not { } richText) continue;
+            hasUnrepresentedStyle |= !richText.IsComplete;
+            bool isProjected = cell.Row <= headerRows + dataRows && cell.Column <= columnCount
+                && (cell.Row <= materializedHeaderRows || cell.Row > headerRows);
+            foreach (IWorkTextParagraph paragraph in richText.Paragraphs) {
+                _cancellationToken.ThrowIfCancellationRequested();
+                hasUnrepresentedStyle |= HasUnrepresentedParagraphStyle(paragraph.Style)
+                    || HasUnrepresentedRunStyle(paragraph.Style.TextStyle);
+                foreach (IWorkTextRun run in paragraph.Runs) {
+                    _cancellationToken.ThrowIfCancellationRequested();
+                    hasUnrepresentedStyle |= run.Style.Bold == true
+                        || run.Style.Italic == true || run.Style.Underline == true
+                        || run.Style.Strikethrough == true || run.Style.FontSizePoints.HasValue
+                        || run.Style.FontName != null || run.Style.Color != null
+                        || run.Style.BackgroundColor != null;
+                    if (isProjected && run.Hyperlink != null)
+                        AddLink(page, run.Hyperlink, tableBlockLocation, run.Text);
+                }
+            }
+        }
+        if (hasFormula) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_FORMULA_CACHE",
@@ -95,15 +133,7 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
-        if (source.Cells.Any(cell => cell.RichText is { } richText
-                && (!richText.IsComplete || richText.Paragraphs.Any(paragraph =>
-                    HasUnrepresentedParagraphStyle(paragraph.Style)
-                    || HasUnrepresentedRunStyle(paragraph.Style.TextStyle)
-                    || paragraph.Runs.Any(run => run.Style.Bold == true
-                        || run.Style.Italic == true || run.Style.Underline == true
-                        || run.Style.Strikethrough == true || run.Style.FontSizePoints.HasValue
-                        || run.Style.FontName != null || run.Style.Color != null
-                        || run.Style.BackgroundColor != null))))) {
+        if (hasUnrepresentedStyle) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_TABLE_STYLE_PARTIAL",
@@ -111,14 +141,6 @@ internal sealed partial class IWorkReadProjection {
                 Source = "OfficeIMO.Reader.IWork",
                 Location = location
             });
-        }
-        foreach (IWorkTableCell cell in source.Cells) {
-            if (cell.Row > headerRows + dataRows || cell.Column > columnCount
-                || (cell.Row > materializedHeaderRows && cell.Row <= headerRows)
-                || cell.RichText == null) continue;
-            foreach (IWorkTextParagraph paragraph in cell.RichText.Paragraphs) {
-                AddRunLinks(page, paragraph.Runs, tableBlockLocation);
-            }
         }
     }
 
@@ -172,6 +194,7 @@ internal sealed partial class IWorkReadProjection {
     private void AddRunLinks(OfficeDocumentPage page,
         IEnumerable<IWorkTextRun> runs, ReaderLocation? location = null) {
         foreach (IWorkTextRun run in runs) {
+            _cancellationToken.ThrowIfCancellationRequested();
             if (run.Hyperlink != null) AddLink(page, run.Hyperlink, location ?? Location(page), run.Text);
         }
     }

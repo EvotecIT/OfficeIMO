@@ -53,4 +53,29 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_READER_FORMULA_CACHE");
     }
+
+    [Fact]
+    public void Reader_table_reports_unrepresented_header_column_and_footer_row_roles() {
+        IWorkSourceDocument source = IWorkSourceDocument.Open(
+            Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
+        var table = new IWorkTable("Results", 3, 2, new[] {
+            new IWorkTableCell(1, 1, IWorkCellKind.Text, "Label"),
+            new IWorkTableCell(3, 2, IWorkCellKind.Number, 42d)
+        }, headerRowCount: 1, headerColumnCount: 1, footerRowCount: 1);
+        var sheet = new IWorkNumbersSheet("Sheet 1", new[] { table }, Array.Empty<string>());
+        var numbers = new IWorkNumbersProjection(source, new[] { sheet },
+            Array.Empty<IWorkDiagnostic>(), supportsEditableReconstruction: true);
+        var result = new OfficeDocumentReadResult { Kind = ReaderInputKind.IWork };
+        var projection = new IWorkReadProjection(result, "results.numbers",
+            new ReaderOptions(), new ReaderIWorkOptions(), CancellationToken.None);
+
+        projection.AddNumbers(numbers);
+        projection.Complete(source);
+
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(result.Diagnostics,
+            item => item.Code == "IWORK_READER_TABLE_ROLES_UNSUPPORTED");
+        Assert.Equal("1", diagnostic.Attributes["headerColumnCount"]);
+        Assert.Equal("1", diagnostic.Attributes["footerRowCount"]);
+        Assert.Equal("42", Assert.Single(result.Tables).Rows[1][1]);
+    }
 }
