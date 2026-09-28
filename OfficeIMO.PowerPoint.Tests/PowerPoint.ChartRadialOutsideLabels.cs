@@ -8,6 +8,24 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartRadialOutsideLabelsTests {
+    [Fact]
+    public void AuthoredEmptyLeaderLinesContainerProjectsOutsideLabels() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        PowerPointChart chart = slide.AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 3d, 4d })
+            }));
+        chart.SetDataLabels(showValue: false, showCategoryName: true)
+            .SetDataLabelPosition(OfficeChartDataLabelPosition.OutsideEnd)
+            .SetDataLabelLeaderLines(true);
+        C.DataLabels labels = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.PieChart>()
+            .Single().GetFirstChild<C.DataLabels>()!;
+        Assert.Empty(labels.GetFirstChild<C.LeaderLines>()!.ChildElements);
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.True(snapshot.Layout.ShowDataLabelLeaderLines);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

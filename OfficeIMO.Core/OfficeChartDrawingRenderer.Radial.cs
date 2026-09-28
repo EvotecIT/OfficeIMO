@@ -5,6 +5,26 @@ using System.Linq;
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeChartDrawingRenderer {
+    private static bool HasRenderableOutsideRadialLabel(OfficeChartLayout layout,
+        IReadOnlyList<string> categories, IReadOnlyList<(OfficeChartSeries Series, int SourceIndex)> series) {
+        if (!layout.ShowDataLabels || layout.DataLabelPosition != OfficeChartDataLabelPosition.OutsideEnd)
+            return false;
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            (OfficeChartSeries values, int sourceIndex) = series[seriesIndex];
+            for (int point = 0; point < categories.Count; point++) {
+                if (!ShouldShowDataLabel(layout, sourceIndex, point) ||
+                    !TryGetSeriesValue(values, point, out double value) ||
+                    (seriesIndex > 0 && value <= 0D))
+                    continue;
+                if (layout.ShowDataLabelValues || layout.ShowDataLabelPercentages ||
+                    layout.ShowDataLabelCategoryNames && !string.IsNullOrWhiteSpace(categories[point]) ||
+                    layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(values.Name))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     private static void GetRadialPlotGeometry(double width, double height, double topBand,
         double bottomBand, double sideBand, bool leftLegend, double horizontalPadding,
         double verticalPadding, out double centerX, out double centerY, out double radius,
@@ -55,7 +75,8 @@ public static partial class OfficeChartDrawingRenderer {
             : bottomLegendHeight;
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        bool outsideLabels = layout.ShowDataLabels && layout.DataLabelPosition == OfficeChartDataLabelPosition.OutsideEnd;
+        bool outsideLabels = HasRenderableOutsideRadialLabel(layout, categories,
+            new[] { (values, 0) });
         GetRadialPlotGeometry(width, height, contentTop, categoryBottomLegendHeight, legendWidth,
             leftLegend, outsideLabels ? 180D : 48D, outsideLabels ? 56D : 36D,
             out double centerX, out double centerY, out double radius,
@@ -166,7 +187,7 @@ public static partial class OfficeChartDrawingRenderer {
             : bottomLegendHeight;
         double legendWidth = GetCategoryLegendWidth(categories, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
-        bool outsideLabels = layout.ShowDataLabels && layout.DataLabelPosition == OfficeChartDataLabelPosition.OutsideEnd;
+        bool outsideLabels = HasRenderableOutsideRadialLabel(layout, categories, renderableSeries);
         if (outsideLabels && layout.ShowDataLabelLeaderLines && renderableSeries.Count > 1 &&
             renderableSeries.Take(renderableSeries.Count - 1).Any(item =>
                 Enumerable.Range(0, categories.Count).Any(index =>

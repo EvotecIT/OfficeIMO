@@ -173,6 +173,21 @@ namespace OfficeIMO.Excel {
             C.DataLabels[] visibleLabels = plotArea.Descendants<C.DataLabels>()
                 .Where(HasAnyVisibleDataLabelPart).ToArray();
             C.DataLabels? dataLabels = visibleLabels.FirstOrDefault();
+            int[]? radialLabelSeriesIndexes = null;
+            OpenXmlCompositeElement? radialChart = (OpenXmlCompositeElement?)plotArea.GetFirstChild<C.PieChart>() ??
+                plotArea.GetFirstChild<C.DoughnutChart>();
+            C.DataLabels? chartLevelRadialLabels = radialChart?.GetFirstChild<C.DataLabels>();
+            if (radialChart != null &&
+                (chartLevelRadialLabels == null || !HasAnyVisibleDataLabelPart(chartLevelRadialLabels))) {
+                C.PieChartSeries[] nativeSeries = radialChart.Elements<C.PieChartSeries>()
+                    .OrderBy(series => series.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue).ToArray();
+                int[] labeled = nativeSeries.Select((series, index) => (series, index))
+                    .Where(item => item.series.GetFirstChild<C.DataLabels>() is C.DataLabels labels &&
+                        HasAnyVisibleDataLabelPart(labels))
+                    .Select(item => item.index).ToArray();
+                if (labeled.Length > 0 && labeled.Length < nativeSeries.Length)
+                    radialLabelSeriesIndexes = labeled;
+            }
             if (visibleLabels.Any(labels => IsEnabled(labels.GetFirstChild<C.ShowLeaderLines>()) !=
                 IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>())))
                 throw new NotSupportedException("Conflicting chart data-label leader-line settings cannot be projected.");
@@ -295,6 +310,7 @@ namespace OfficeIMO.Excel {
                 showDataLabelPercentages: IsEnabled(dataLabels?.GetFirstChild<C.ShowPercent>()),
                 showDataLabelCategoryNames: IsEnabled(dataLabels?.GetFirstChild<C.ShowCategoryName>()),
                 showDataLabelSeriesNames: IsEnabled(dataLabels?.GetFirstChild<C.ShowSeriesName>()),
+                dataLabelSeriesIndexes: radialLabelSeriesIndexes,
                 dataLabelSeparator: dataLabels?.GetFirstChild<C.Separator>()?.Text,
                 legendFontSize: legendFontSize,
                 legendFontFamily: legendFontFamily,

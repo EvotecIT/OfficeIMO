@@ -63,6 +63,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 foreach (var child in labels.ChildElements) {
                     if (child is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or
                         C.ShowBubbleSize or C.ShowLeaderLines or C.Separator or C.NumberingFormat or C.DataLabelPosition) continue;
+                    if (child is C.LeaderLines leader && !leader.HasChildren && !leader.HasAttributes) continue;
                     throw new NotSupportedException("The native data label appearance cannot be projected.");
                 }
                 if (labels.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true)
