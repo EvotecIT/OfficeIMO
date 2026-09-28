@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using OfficeIMO.Html;
@@ -73,8 +74,20 @@ internal static class EditableEvidenceRunner {
 
         string commit = RunGit(repoRoot, "rev-parse", "HEAD").Trim();
         bool sourceClean = string.IsNullOrWhiteSpace(RunGit(repoRoot, "status", "--porcelain", "--untracked-files=normal"));
-        if (options.ContainsKey("require-clean-source") && !sourceClean) {
-            Console.Error.WriteLine("The source worktree is dirty; commit the runner before exact-head evidence.");
+        Dictionary<string, string?> ownerVersions = new() {
+            ["runner"] = VersionOf(typeof(EditableEvidenceRunner)),
+            ["HTML"] = VersionOf(typeof(HtmlConversionDocument)),
+            ["MHTML"] = VersionOf(typeof(MhtmlDocument)),
+            ["Word HTML"] = VersionOf(typeof(OfficeIMO.Word.Html.HtmlToWordResult)),
+            ["Excel HTML"] = VersionOf(typeof(OfficeIMO.Excel.Html.HtmlToExcelResult)),
+            ["PowerPoint HTML"] = VersionOf(typeof(OfficeIMO.PowerPoint.Html.HtmlToPowerPointResult)),
+            ["OneNote HTML"] = VersionOf(typeof(OfficeIMO.OneNote.Html.HtmlToOneNoteSectionResult)),
+            ["RTF HTML"] = VersionOf(typeof(HtmlToRtfResult)),
+            ["Markdown HTML"] = VersionOf(typeof(OfficeIMO.Markdown.Html.HtmlToMarkdownResult))
+        };
+        if (options.ContainsKey("require-clean-source") && (!sourceClean || ownerVersions.Values.Any(version =>
+                version == null || !version.EndsWith("+" + commit, StringComparison.OrdinalIgnoreCase)))) {
+            Console.Error.WriteLine("Evidence requires a clean worktree and all loaded owner assemblies rebuilt from its exact HEAD commit.");
             return 2;
         }
 
@@ -132,7 +145,7 @@ internal static class EditableEvidenceRunner {
         var summary = new {
             caseId, role = page.GetProperty("role").GetString(), sourceUrl = page.GetProperty("url").GetString(),
             archivePath, sourceSha256 = sourceSha, sourceCommit = commit, worktreeDirty = !sourceClean,
-            maxCssRules, requiredVisibleMarkers = markers, targetCount = results.Count,
+            maxCssRules, ownerVersions, requiredVisibleMarkers = markers, targetCount = results.Count,
             passedTargets = results.Count(result => result.Passed),
             targetsRequiringVisualReview = results.Where(result => result.ReportHasLoss).Select(result => result.Target).ToArray(),
             results = results.Select(result => new { result.Target, result.Passed, result.ReportHasLoss, result.Error }).ToArray()
@@ -168,6 +181,9 @@ internal static class EditableEvidenceRunner {
         }
         throw new InvalidOperationException("OfficeIMO repository root was not found.");
     }
+
+    private static string? VersionOf(Type type) =>
+        type.Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
 
     private static string RunGit(string repoRoot, params string[] arguments) {
         ProcessStartInfo start = new("git") { WorkingDirectory = repoRoot, RedirectStandardOutput = true, RedirectStandardError = true };
