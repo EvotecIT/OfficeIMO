@@ -36,6 +36,7 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
     [InlineData("logarithmic")]
     [InlineData("reversed")]
     [InlineData("displayUnits")]
+    [InlineData("deleted")]
     public void SecondaryValueAxis_InvalidImportedSettingsRejectSnapshot(string setting) {
         using var document = ExcelDocument.Create();
         var sheet = document.AddWorksheet("Results");
@@ -46,7 +47,10 @@ public sealed class ExcelChartSecondaryAxisLayoutTests {
         }), 1, 1);
         var secondary = sheet.WorksheetPart.DrawingsPart!.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right);
-        if (setting == "zeroUnit") secondary.AddChild(new C.MajorUnit { Val = 0 }, true);
+        if (setting == "deleted") {
+            chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+            secondary.AddChild(new C.Delete { Val = true }, true);
+        } else if (setting == "zeroUnit") secondary.AddChild(new C.MajorUnit { Val = 0 }, true);
         else if (setting == "invertedBounds") {
             secondary.Scaling!.AddChild(new C.MinAxisValue { Val = 2 }, true);
             secondary.Scaling.AddChild(new C.MaxAxisValue { Val = 1 }, true);

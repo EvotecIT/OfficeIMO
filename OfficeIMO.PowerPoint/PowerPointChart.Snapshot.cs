@@ -96,8 +96,10 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
-                if (!forDataUpdate)
+                if (!forDataUpdate) {
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plotArea);
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.QualifyTypefaceOnlyTitleAppearance(plotArea);
+                }
 
                 if (!forDataUpdate
                     && !TryReadSharedTextStyle(chart, out _)) {

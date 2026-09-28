@@ -74,6 +74,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         var axis = Resolve(plot);
         if (axis == null) return;
         QualifyTitle(axis.GetFirstChild<C.Title>());
+        if (axis.GetFirstChild<C.Delete>() is C.Delete secondaryDeletion && secondaryDeletion.Val?.Value != false)
+            throw new NotSupportedException("A deleted secondary value axis cannot be projected.");
         var groups = OfficeOpenXmlChartAxisGroups.Create(plot!);
         var primaryLayer = plot!.ChildElements.OfType<OpenXmlCompositeElement>().FirstOrDefault(layer =>
             layer.LocalName.EndsWith("Chart", StringComparison.Ordinal) &&
@@ -95,6 +97,12 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
 
     internal static void QualifyTitle(C.Title? title) {
         var richText = title?.GetFirstChild<C.ChartText>()?.GetFirstChild<C.RichText>();
+        var cache = title?.GetFirstChild<C.ChartText>()?.GetFirstChild<C.StringReference>()?.StringCache;
+        if (cache != null) {
+            C.StringPoint[] points = cache.Elements<C.StringPoint>().ToArray();
+            if (points.Length != 1 || string.IsNullOrWhiteSpace(points[0].NumericValue?.Text))
+                throw new NotSupportedException("The secondary axis title cache must contain one text value.");
+        }
         if (title != null &&
             (title.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
              title.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false ||
@@ -102,6 +110,22 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
              richText?.Descendants<A.Break>().Any() == true ||
              ReadTitle(title) == null))
             throw new NotSupportedException("The secondary axis title cannot be projected.");
+    }
+
+    internal static void QualifyTypefaceOnlyTitleAppearance(C.PlotArea? plot) {
+        var title = Resolve(plot)?.GetFirstChild<C.Title>();
+        if (title == null) return;
+        if (title.GetFirstChild<C.ChartShapeProperties>() is C.ChartShapeProperties shape &&
+            (shape.HasChildren || shape.HasAttributes))
+            throw new NotSupportedException("The secondary axis title shape cannot be projected.");
+        foreach (OpenXmlElement properties in title.Descendants().Where(element =>
+            element is A.RunProperties or A.DefaultRunProperties or A.EndParagraphRunProperties)) {
+            if (properties.GetAttributes().Any(attribute => attribute.LocalName is not
+                    ("lang" or "altLang" or "dirty" or "smtClean" or "smtId") &&
+                !(attribute.LocalName == "spc" && attribute.Value == "-1")) ||
+                properties.ChildElements.Any(child => child is not A.LatinFont and not A.EastAsianFont and not A.ComplexScriptFont))
+                throw new NotSupportedException("The secondary axis title text appearance cannot be projected.");
+        }
     }
 
     private static OfficeChartAxisTickMark ReadTick(C.TickMarkValues? value) =>
