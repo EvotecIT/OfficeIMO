@@ -76,19 +76,44 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     internal static void ApplySeries(OpenXmlCompositeElement series, OfficeChartSeries data) {
         if (data.PointStyles == null) return;
-        for (int index = 0; index < data.PointStyles.Count; index++)
-            ApplyPoint(series, (uint)index, data.PointStyles[index], data.PointColors?[index]);
+        ApplyPoints(series, data.PointStyles, data.PointColors, data.Values.Count);
+    }
+
+    internal static void ApplyPoints(OpenXmlCompositeElement series,
+        IReadOnlyList<OfficeChartPointStyle?>? styles, IReadOnlyList<OfficeColor?>? colors, int count) {
+        if (styles == null && colors == null) return;
+        var existing = new Dictionary<uint, C.DataPoint>();
+        foreach (C.DataPoint point in GetBoundedPoints(series)) {
+            if (point.Index?.Val?.Value is uint index && !existing.ContainsKey(index))
+                existing.Add(index, point);
+        }
+        OpenXmlElement? anchor = FindPointAnchor(series);
+        for (int index = 0; index < count; index++) {
+            OfficeChartPointStyle? style = styles?[index];
+            OfficeColor? color = colors?[index];
+            existing.TryGetValue((uint)index, out C.DataPoint? point);
+            if (point == null && style == null && !color.HasValue) continue;
+            ApplyPointCore(series, (uint)index, style, color, point, anchor);
+        }
     }
 
     internal static void ApplyPoint(OpenXmlCompositeElement series, uint index, OfficeChartPointStyle? style, OfficeColor? legacyColor = null) {
         if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         C.DataPoint? point = series.Elements<C.DataPoint>().FirstOrDefault(item => item.Index?.Val?.Value == index);
+        if (point == null && style == null && !legacyColor.HasValue) return;
+        ApplyPointCore(series, index, style, legacyColor, point, FindPointAnchor(series));
+    }
+
+    private static OpenXmlElement? FindPointAnchor(OpenXmlCompositeElement series) =>
+        series.ChildElements.FirstOrDefault(child =>
+            child is C.DataLabels or C.Trendline or C.ErrorBars or C.CategoryAxisData or C.Values or
+                C.XValues or C.YValues or C.BubbleSize or C.Smooth or C.ExtensionList);
+
+    private static void ApplyPointCore(OpenXmlCompositeElement series, uint index,
+        OfficeChartPointStyle? style, OfficeColor? legacyColor, C.DataPoint? point, OpenXmlElement? anchor) {
+        if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         if (point == null) {
-            if (style == null && !legacyColor.HasValue) return;
             point = new C.DataPoint(new C.Index { Val = index });
-            OpenXmlElement? anchor = series.ChildElements.FirstOrDefault(child =>
-                child is C.DataLabels or C.Trendline or C.ErrorBars or C.CategoryAxisData or C.Values or
-                    C.XValues or C.YValues or C.BubbleSize or C.Smooth or C.ExtensionList);
             if (anchor != null) series.InsertBefore(point, anchor);
             else series.Append(point);
         }

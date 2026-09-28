@@ -17,10 +17,15 @@ namespace OfficeIMO.Excel.Pdf {
                 item.H2(snapshot.Name, PdfCore.PdfAlign.Left, PdfCore.PdfColor.FromRgb(31, 78, 121));
             }
 
-            OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(CreateOfficeChartSnapshot(snapshot, options));
+            bool useStyledRadialLegend = HasStyledRadialPoints(snapshot);
+            OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(
+                CreateOfficeChartSnapshotCore(snapshot, options, preserveWorksheetLegend: useStyledRadialLegend));
             AddChartQualityWarning(options, sheetName, snapshot, rendering.QualityReport);
             item.Drawing(rendering.Drawing, PdfCore.PdfAlign.Left, spacingBefore: 2D, spacingAfter: 6D);
-            item.Table(CreateChartLegendRows(snapshot), PdfCore.PdfAlign.Left, CreateChartLegendStyle(GetChartLegendColorCount(snapshot), options.ChartStyle));
+            // The shared chart legend renders point fill, no-fill, hatch, and outline. A table cell
+            // can only reproduce a solid fill, so keep the data table uncolored for styled radial charts.
+            item.Table(CreateChartLegendRows(snapshot), PdfCore.PdfAlign.Left,
+                CreateChartLegendStyle(useStyledRadialLegend ? 0 : GetChartLegendColorCount(snapshot), options.ChartStyle));
         }
 
         private static void AddChartQualityWarning(ExcelToPdfOptions options, string sheetName, ExcelChartSnapshot snapshot, OfficeDrawingQualityReport qualityReport) {
@@ -213,6 +218,13 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             return snapshot.Data.Series.Count;
+        }
+
+        private static bool HasStyledRadialPoints(ExcelChartSnapshot snapshot) {
+            if (!IsPieLikeChart(snapshot.ChartType)) return false;
+            return snapshot.Data.Series.Any(series =>
+                series.PointStyles?.Any(style => style != null) == true ||
+                series.PointColorArgb?.Any(color => !string.IsNullOrWhiteSpace(color)) == true);
         }
 
         private static PdfCore.PdfTableStyle CreateChartLegendStyle(int colorCount, OfficeChartStyle? chartStyle) {

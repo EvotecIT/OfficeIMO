@@ -26,6 +26,22 @@ public sealed class DrawingChartPointStylesTests {
     }
 
     [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void PointStyles_UnfilledRadialLabelsIgnoreTheUnpaintedPlotSurface(OfficeChartKind kind) {
+        var series = new OfficeChartSeries("Results", new[] { 7d, 0d }).WithPointStyles(
+            new OfficeChartPointStyle?[] { new(noFill: true), null });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Results", null,
+            kind, new OfficeChartData(new[] { "A", "B" }, new[] { series }), 640, 360,
+            style: new OfficeChartStyle(backgroundColor: OfficeColor.White,
+                plotAreaBackgroundColor: OfficeColor.Black),
+            layout: new OfficeChartLayout(showLegend: false, showDataLabels: true,
+                showDataLabelValues: true)));
+        Assert.Equal(OfficeColor.Black, Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(),
+            label => label.Text == "7").Color);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void PointStyles_WidthOnlyOutlinesRemainVisibleUnlessExplicitlyHidden(bool hidden) {
@@ -92,6 +108,32 @@ public sealed class DrawingChartPointStylesTests {
                         if (IsPurpleStroke(raster.GetPixel(x, y))) pixels++;
                 Assert.True(pixels > 10, "Expected hatch coverage in quadrant " + row + "," + column);
             }
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.BarClustered, OfficeChartHatchPattern.Horizontal)]
+    [InlineData(OfficeChartKind.ColumnClustered, OfficeChartHatchPattern.Vertical)]
+    public void PointStyles_ThinBarsAndColumnsKeepTheirHatchDirection(
+        OfficeChartKind kind, OfficeChartHatchPattern hatch) {
+        OfficeColor ink = OfficeColor.Parse("#B900D0");
+        string[] categories = Enumerable.Range(0, 60).Select(index => index.ToString()).ToArray();
+        var styles = new OfficeChartPointStyle?[categories.Length];
+        styles[categories.Length / 2] = new OfficeChartPointStyle(hatch: hatch, hatchColor: ink);
+        var series = new OfficeChartSeries("Results", Enumerable.Repeat(8d, categories.Length).ToArray())
+            .WithPointStyles(styles);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, new OfficeChartData(categories, new[] { series }), 320, 240,
+            layout: new OfficeChartLayout(showLegend: false)));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        int painted = 0;
+        for (int y = 0; y < raster.Height; y++)
+            for (int x = 0; x < raster.Width; x++)
+            {
+                var pixel = raster.GetPixel(x, y);
+                if (pixel.R > pixel.G + 70 && pixel.B > pixel.G + 70 && pixel.R > 180) painted++;
+            }
+        Assert.True(painted > 0, "The requested hatch direction must remain visible on a thin point. SVG has ink: " +
+            OfficeDrawingSvgExporter.ToSvg(drawing).Contains("#B900D0", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]

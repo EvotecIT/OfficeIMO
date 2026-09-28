@@ -16,9 +16,8 @@ public partial class PowerPointChart {
         for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
             PowerPointChartSeries source = data.Series[seriesIndex];
             if (source.PointStyles == null && source.PointColors == null) continue;
-            for (int pointIndex = 0; pointIndex < source.Values.Count; pointIndex++)
-                OfficeOpenXmlChartPointStyles.ApplyPoint(nativeSeries[seriesIndex], (uint)pointIndex,
-                    source.PointStyles?[pointIndex], source.PointColors?[pointIndex]);
+            OfficeOpenXmlChartPointStyles.ApplyPoints(nativeSeries[seriesIndex],
+                source.PointStyles, source.PointColors, source.Values.Count);
         }
         chartSpace.Save();
     }
