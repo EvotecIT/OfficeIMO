@@ -659,13 +659,15 @@ error, or numeric captions. Numeric captions use General, `#,##0`,
 formats and date captions remain unqualified. It also supports label
 greater/less comparisons and inclusive between or exclusive not-between
 ranges when every caption and criterion uses ASCII letters. Numeric label
-ranges also support nonnegative integer captions in General or `#,##0`
-format, using caption order rather than numeric magnitude. Other text and
-numeric formats are rejected because Excel's localized ordering or display
-format can select different items. Qualified label comparisons use the current
-process culture, matching Excel's locale-dependent ordering when run under
-the same locale. Distinct numeric cache keys remain separate when the format gives them
-the same displayed caption: a label filter can select both rows, while typed
+ranges support signed integer captions in General, signed fixed two-decimal
+captions in `0.00`, and nonnegative grouped integer captions in `#,##0`.
+These use caption order rather than numeric magnitude; in the qualified Excel
+workbooks, `2` precedes `-2`. Other text and numeric formats are rejected
+because Excel's localized ordering or display format can select different
+items. Qualified label comparisons use the current process culture, matching
+Excel's locale-dependent ordering when run under the same locale. Distinct
+numeric cache keys remain separate when the format gives them the same
+displayed caption: a label filter can select both rows, while typed
 numeric `GetPivotData` criteria still address each key.
 
 Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,

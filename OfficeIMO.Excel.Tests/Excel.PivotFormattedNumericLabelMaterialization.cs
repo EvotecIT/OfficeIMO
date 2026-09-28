@@ -24,6 +24,12 @@ namespace OfficeIMO.Tests {
         [InlineData("range-general-less-equal", "A4:B8", 5, 5, 60d)]
         [InlineData("range-general-not-between", "A4:B6", 3, 5, 40d)]
         [InlineData("range-grouped-between", "A4:B8", 5, 6, 90d)]
+        [InlineData("range-decimal-greater", "A4:B9", 6, 6, 120d)]
+        [InlineData("range-signed-greater", "A4:B7", 4, 7, 70d)]
+        [InlineData("range-signed-less", "A4:B8", 5, 7, 120d)]
+        [InlineData("range-signed-greater-positive", "A4:B8", 5, 7, 90d)]
+        [InlineData("range-signed-between", "A4:B9", 6, 7, 140d)]
+        [InlineData("range-signed-not-between", "A4:B7", 4, 7, 70d)]
         [InlineData("currency-positive", "A4:B6", 3, 3, 10d)]
         [InlineData("currency-negative", "A4:B6", 3, 3, 10d)]
         [InlineData("grouped-two-decimal", "A4:B6", 3, 3, 10d)]
@@ -93,6 +99,12 @@ namespace OfficeIMO.Tests {
         [InlineData("range-general-less-equal", 60d)]
         [InlineData("range-general-not-between", 40d)]
         [InlineData("range-grouped-between", 90d)]
+        [InlineData("range-decimal-greater", 120d)]
+        [InlineData("range-signed-greater", 70d)]
+        [InlineData("range-signed-less", 120d)]
+        [InlineData("range-signed-greater-positive", 90d)]
+        [InlineData("range-signed-between", 140d)]
+        [InlineData("range-signed-not-between", 70d)]
         [InlineData("currency-positive", 10d)]
         [InlineData("currency-negative", 10d)]
         [InlineData("grouped-two-decimal", 10d)]
@@ -118,6 +130,12 @@ namespace OfficeIMO.Tests {
                 "range-general-less-equal" => ExcelPivotFilter.LabelLessThanOrEqual("Item", "2"),
                 "range-general-not-between" => ExcelPivotFilter.LabelNotBetween("Item", "1", "2"),
                 "range-grouped-between" => ExcelPivotFilter.LabelBetween("Item", "1,000", "2,000"),
+                "range-decimal-greater" => ExcelPivotFilter.LabelGreaterThan("Item", "1.20"),
+                "range-signed-greater" => ExcelPivotFilter.LabelGreaterThan("Item", "-2"),
+                "range-signed-less" => ExcelPivotFilter.LabelLessThan("Item", "-2"),
+                "range-signed-greater-positive" => ExcelPivotFilter.LabelGreaterThan("Item", "2"),
+                "range-signed-between" => ExcelPivotFilter.LabelBetween("Item", "1", "-2"),
+                "range-signed-not-between" => ExcelPivotFilter.LabelNotBetween("Item", "1", "-2"),
                 "currency-positive" => ExcelPivotFilter.LabelEquals("Item", "$1,000.00"),
                 "currency-negative" => ExcelPivotFilter.LabelEquals("Item", "-$1,000.00"),
                 "grouped-two-decimal" => ExcelPivotFilter.LabelEquals("Item", "1,234.50"),
@@ -139,6 +157,8 @@ namespace OfficeIMO.Tests {
                     : kind == "grouped-three-decimal" ? new[] { 1234.5674d, 1234.5676d, 2000d }
                     : kind.StartsWith("range-general-", StringComparison.Ordinal) ? new[] { 1d, 2d, 10d, 20d }
                     : kind == "range-grouped-between" ? new[] { 900d, 1000d, 1500d, 2000d, 3000d }
+                    : kind == "range-decimal-greater" ? new[] { -2.5d, -1.25d, 1.2d, 1.25d, 2.3d }
+                    : kind.StartsWith("range-signed-", StringComparison.Ordinal) ? new[] { -20d, -2d, -1d, 1d, 2d, 20d }
                     : kind == "currency-positive" ? new[] { 1000d, 2000d }
                     : kind == "currency-negative" ? new[] { -1000d, 2000d }
                     : kind == "grouped-two-decimal" ? new[] { 1234.5d, 2000d }
@@ -182,8 +202,10 @@ namespace OfficeIMO.Tests {
 
         private static string? NumericLabelFormat(string kind) => kind switch {
             "general-contains-one" or "range-general-greater" or "range-general-greater-equal"
-                or "range-general-less" or "range-general-less-equal" or "range-general-not-between" => null,
-            "decimal-two" => "0.00",
+                or "range-general-less" or "range-general-less-equal" or "range-general-not-between"
+                or "range-signed-greater" or "range-signed-less" or "range-signed-greater-positive"
+                or "range-signed-between" or "range-signed-not-between" => null,
+            "decimal-two" or "range-decimal-greater" => "0.00",
             "percent-one" => "0.0%",
             "decimal-midpoint" => "0.0",
             "decimal-three" => "0.000",
@@ -198,7 +220,7 @@ namespace OfficeIMO.Tests {
         };
 
         [Fact]
-        public void Test_PivotNumericLabelRange_RejectsUnqualifiedDecimalCaptionBeforeWriting() {
+        public void Test_PivotNumericLabelRange_RejectsUnqualifiedOneDecimalCaptionBeforeWriting() {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");
             source.CellValue(1, 1, "Item");

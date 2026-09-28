@@ -131,18 +131,17 @@ namespace OfficeIMO.Excel {
                     ValidateMaterializedPivotLabelRangePredicate(filter, needle, second);
                     if (numericItems) {
                         if (maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Number)
-                            || (numberFormatId != 0 && numberFormatCode != "#,##0")
-                            || !IsQualifiedPivotNumericLabelOrderingText(needle)
-                            || (second != null && !IsQualifiedPivotNumericLabelOrderingText(second))
-                            || maps[field].Items.Any(key => !IsQualifiedPivotNumericLabelOrderingText(DisplayCaption(key))))
-                            throw new NotSupportedException("Numeric label range materialization requires plain or grouped nonnegative integer captions and criteria.");
+                            || !IsQualifiedPivotNumericLabelOrderingText(needle, numberFormatId, numberFormatCode)
+                            || (second != null && !IsQualifiedPivotNumericLabelOrderingText(second, numberFormatId, numberFormatCode))
+                            || maps[field].Items.Any(key => !IsQualifiedPivotNumericLabelOrderingText(DisplayCaption(key), numberFormatId, numberFormatCode)))
+                            throw new NotSupportedException("Numeric label range materialization requires qualified General, grouped integer, or two-decimal captions and criteria.");
                     } else if (!IsQualifiedPivotLabelOrderingText(needle)
                         || (second != null && !IsQualifiedPivotLabelOrderingText(second))
                         || maps[field].Items.Any(key => !IsQualifiedPivotLabelOrderingText(DisplayCaption(key))))
                         throw new NotSupportedException("Label range materialization requires ASCII alphabetic captions and criteria; localized text ordering is not qualified.");
                     CompareInfo compareInfo = CultureInfo.CurrentCulture.CompareInfo;
                     included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
-                        return MatchesMaterializedPivotLabelRange(DisplayCaption(key), needle, second, type, compareInfo);
+                        return MatchesMaterializedPivotLabelRange(DisplayCaption(key), needle, second, type, compareInfo, numericItems);
                     }));
                 } else {
                     string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
@@ -302,10 +301,29 @@ namespace OfficeIMO.Excel {
         private static bool IsQualifiedPivotLabelOrderingText(string text)
             => text.Length > 0 && text.All(character => character is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
 
-        private static bool IsQualifiedPivotNumericLabelOrderingText(string text)
-            => text.Length is > 0 and <= 64
-                && Regex.IsMatch(text, @"\A(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)\z",
-                    RegexOptions.CultureInvariant, FormulaRegexTimeout);
+        private static bool IsQualifiedPivotNumericLabelOrderingText(string text, uint numberFormatId, string? formatCode) {
+            if (text.Length is < 1 or > 64) return false;
+            int start = text[0] == '-' ? 1 : 0;
+            if (start == text.Length) return false;
+            bool Digits(int first, int end) {
+                if (first >= end) return false;
+                for (int index = first; index < end; index++)
+                    if (text[index] is < '0' or > '9') return false;
+                return true;
+            }
+            if (numberFormatId == 0) return Digits(start, text.Length);
+            if (formatCode == "0.00")
+                return text.Length - start >= 4 && text[text.Length - 3] == '.'
+                    && Digits(start, text.Length - 3) && Digits(text.Length - 2, text.Length);
+            if (formatCode != "#,##0" || start != 0) return false;
+            int firstComma = text.IndexOf(',');
+            if (firstComma < 0) return Digits(0, text.Length);
+            if (firstComma is < 1 or > 3 || !Digits(0, firstComma)) return false;
+            for (int index = firstComma; index < text.Length; index += 4) {
+                if (text[index] != ',' || index + 4 > text.Length || !Digits(index + 1, index + 4)) return false;
+            }
+            return true;
+        }
 
         private static void ValidateMaterializedPivotLabelRangePredicate(PivotFilter filter, string first, string? second) {
             PivotFilterValues type = filter.Type!.Value;
@@ -329,14 +347,29 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("The label range filter does not have a qualified saved predicate.");
         }
 
+        private static int CompareMaterializedPivotNumericLabels(string left, string right, CompareInfo compareInfo) {
+            bool leftNegative = left[0] == '-';
+            bool rightNegative = right[0] == '-';
+            int leftStart = leftNegative ? 1 : 0;
+            int rightStart = rightNegative ? 1 : 0;
+            int comparison = compareInfo.Compare(left, leftStart, left.Length - leftStart,
+                right, rightStart, right.Length - rightStart, CompareOptions.IgnoreCase);
+            // Excel sorts the sign after the remaining caption: 2 precedes -2, while -20 follows both.
+            return comparison != 0 ? comparison : leftNegative.CompareTo(rightNegative);
+        }
+
         private static bool MatchesMaterializedPivotLabelRange(string label, string first, string? second,
-            PivotFilterValues type, CompareInfo compareInfo) {
-            int firstComparison = compareInfo.Compare(label, first, CompareOptions.IgnoreCase);
+            PivotFilterValues type, CompareInfo compareInfo, bool numericCaption) {
+            int Compare(string left, string right) => numericCaption
+                ? CompareMaterializedPivotNumericLabels(left, right, compareInfo)
+                : compareInfo.Compare(left, right, CompareOptions.IgnoreCase);
+            int firstComparison = Compare(label, first);
             if (type == PivotFilterValues.CaptionGreaterThan) return firstComparison > 0;
             if (type == PivotFilterValues.CaptionGreaterThanOrEqual) return firstComparison >= 0;
             if (type == PivotFilterValues.CaptionLessThan) return firstComparison < 0;
             if (type == PivotFilterValues.CaptionLessThanOrEqual) return firstComparison <= 0;
-            int secondComparison = compareInfo.Compare(label, second, CompareOptions.IgnoreCase);
+            int secondComparison = Compare(label, second
+                ?? throw new NotSupportedException("The label range filter has no saved second criterion."));
             if (type == PivotFilterValues.CaptionBetween) return firstComparison >= 0 && secondComparison <= 0;
             return firstComparison < 0 || secondComparison > 0;
         }

@@ -1,0 +1,20 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "producerDecimalSeparator": ".",
+  "producerThousandsSeparator": ",",
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T20:22:14.2394596Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1",
+  "file": "pivot-label-number-range-signed-between-conformance.xlsx",
+  "sha256": "e3e72bdefdb21844bac2a0d27c8f1a0676fbcd122b4eb57f742ac9e251918a4f",
+  "sourceRange": "Source!A1:B7",
+  "numberFormat": "General",
+  "filterType": 27,
+  "criterion": "1",
+  "criterion2": "-2",
+  "outputRange": "A4:B9",
+  "grandTotal": 140.0
+}

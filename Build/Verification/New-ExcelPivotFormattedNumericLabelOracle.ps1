@@ -58,6 +58,12 @@ try {
         [pscustomobject]@{ Key = 'range-general-less-equal'; Type = 26; Criterion = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 60.0; Range = 'A4:B8' },
         [pscustomobject]@{ Key = 'range-general-not-between'; Type = 28; Criterion = '1'; Criterion2 = '2'; Format = 'General'; Values = @(1.0, 2.0, 10.0, 20.0); Total = 40.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'range-grouped-between'; Type = 27; Criterion = '1,000'; Criterion2 = '2,000'; Format = '#,##0'; Values = @(900.0, 1000.0, 1500.0, 2000.0, 3000.0); Total = 90.0; Range = 'A4:B8' },
+        [pscustomobject]@{ Key = 'range-decimal-greater'; Type = 23; Criterion = '1.20'; Format = '0.00'; Values = @(-2.5, -1.25, 1.2, 1.25, 2.3); Total = 120.0; Range = 'A4:B9' },
+        [pscustomobject]@{ Key = 'range-signed-greater'; Type = 23; Criterion = '-2'; Format = 'General'; Values = @(-20.0, -2.0, -1.0, 1.0, 2.0, 20.0); Total = 70.0; Range = 'A4:B7' },
+        [pscustomobject]@{ Key = 'range-signed-less'; Type = 25; Criterion = '-2'; Format = 'General'; Values = @(-20.0, -2.0, -1.0, 1.0, 2.0, 20.0); Total = 120.0; Range = 'A4:B8' },
+        [pscustomobject]@{ Key = 'range-signed-greater-positive'; Type = 23; Criterion = '2'; Format = 'General'; Values = @(-20.0, -2.0, -1.0, 1.0, 2.0, 20.0); Total = 90.0; Range = 'A4:B8' },
+        [pscustomobject]@{ Key = 'range-signed-between'; Type = 27; Criterion = '1'; Criterion2 = '-2'; Format = 'General'; Values = @(-20.0, -2.0, -1.0, 1.0, 2.0, 20.0); Total = 140.0; Range = 'A4:B9' },
+        [pscustomobject]@{ Key = 'range-signed-not-between'; Type = 28; Criterion = '1'; Criterion2 = '-2'; Format = 'General'; Values = @(-20.0, -2.0, -1.0, 1.0, 2.0, 20.0); Total = 70.0; Range = 'A4:B7' },
         [pscustomobject]@{ Key = 'currency-positive'; Type = 15; Criterion = '$1,000.00'; Format = '$#,##0.00'; Values = @(1000, 2000); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'currency-negative'; Type = 15; Criterion = '-$1,000.00'; Format = '$#,##0.00'; Values = @(-1000, 2000); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'grouped-two-decimal'; Type = 15; Criterion = '1,234.50'; Format = '#,##0.00'; Values = @(1234.5, 2000.0); Total = 10.0; Range = 'A4:B6' },
@@ -116,7 +122,10 @@ try {
         $range = $pivot.TableRange1.Address($false, $false)
         $grand = [double]$pivot.GetPivotData('Metric').Value2
         if ($grand -ne $case.Total -or $range -ne $case.Range) {
-            throw "Unexpected Excel $($case.Key) result: range=$range grand=$grand"
+            $selected = for ($row = 5; $row -lt 4 + $pivot.TableRange1.Rows.Count; $row++) {
+                $view.Cells.Item($row, 1).Text
+            }
+            throw "Unexpected Excel $($case.Key) result: range=$range grand=$grand labels=$($selected -join ', ')"
         }
         $file = "pivot-label-number-$($case.Key)-conformance.xlsx"
         $path = Join-Path $directory $file
@@ -125,6 +134,10 @@ try {
         finally { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook); $workbook = $null }
         [ordered]@{
             producer = 'Microsoft Excel'; version = $application.Version; build = $application.Build
+            producerUiLanguageId = [int]$application.LanguageSettings.LanguageID(2)
+            producerDecimalSeparator = [string]$application.International(3)
+            producerThousandsSeparator = [string]$application.International(4)
+            hostCulture = [Globalization.CultureInfo]::CurrentCulture.Name
             generatedUtc = [DateTime]::UtcNow.ToString('o')
             regeneration = 'Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1'
             file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
