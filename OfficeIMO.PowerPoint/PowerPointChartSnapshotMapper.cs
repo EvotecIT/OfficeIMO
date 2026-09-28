@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
                     pointColors: item.PointColors, showMarkers: true,
                     showInLegend: item.ShowInLegend, connectLine: true,
                     strokeWidth: item.StrokeWidth,
+                    markerOutlineColor: item.StrokeColor ?? item.Color,
                     renderKind: item.ChartKind.HasValue ? MapKind(item.ChartKind.Value) : null,
                     axisGroup: item.AxisGroup)).ToList();
             return new OfficeChartSnapshot(snapshot.Name, snapshot.Title, MapKind(snapshot.ChartKind),

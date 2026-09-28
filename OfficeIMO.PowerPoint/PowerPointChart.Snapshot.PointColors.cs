@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
@@ -17,6 +18,8 @@ namespace OfficeIMO.PowerPoint {
                 A.SolidFill? fill = point.GetFirstChild<C.ChartShapeProperties>()?
                     .GetFirstChild<A.SolidFill>();
                 OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill, colorScheme);
+                if (fill != null && !color.HasValue)
+                    throw new NotSupportedException("The chart point fill cannot be resolved for a managed snapshot.");
                 if (!color.HasValue) continue;
                 colors ??= new OfficeColor?[pointCount];
                 colors[(int)index.Value] = color;
