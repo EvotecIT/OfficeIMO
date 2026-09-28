@@ -4,6 +4,120 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
+        [InlineData("equal", "A4:B6", 3, 60d)]
+        [InlineData("not-equal", "A4:B9", 6, 155d)]
+        [InlineData("begins", "A4:B7", 4, 70d)]
+        [InlineData("not-begins", "A4:B8", 5, 145d)]
+        [InlineData("ends", "A4:B8", 5, 115d)]
+        [InlineData("not-ends", "A4:B7", 4, 100d)]
+        [InlineData("not-contains", "A4:B7", 4, 100d)]
+        public void Test_PivotLabelPredicates_ImportedViewAndLookupMatchExcel(
+            string kind, string range, int rows, double total) {
+            string file = $"pivot-label-{kind}-conformance.xlsx";
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
+            string output = Path.Combine(_directoryWithFiles, "Materialized." + file);
+            using var oracle = ExcelDocumentReader.Open(path);
+            var expectedView = oracle.GetSheet("Grouped").ReadRange(range);
+            var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B6");
+            AssertPivotLookupOracleValue(total, expectedLookups[0, 0]);
+            using (var document = ExcelDocument.Load(path)) {
+                var grouped = document.GetSheet("Grouped");
+                Assert.Equal(total, grouped.GetPivotData("LabelPivot", "Metric").Value);
+                var result = grouped.MaterializePivotTable("LabelPivot");
+                Assert.Equal(range, result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                var lookups = document.GetSheet("Lookups");
+                lookups.ClearCachedFormulaResults();
+                Assert.Equal(6, lookups.RecalculateSupportedFormulas());
+                document.Save(output);
+            }
+            using var reopened = ExcelDocumentReader.Open(output);
+            var actualView = reopened.GetSheet("Grouped").ReadRange(range);
+            for (int row = 0; row < rows; row++)
+                for (int column = 0; column < 2; column++)
+                    AssertPivotLookupOracleValue(expectedView[row, column], actualView[row, column]);
+            var actualLookups = reopened.GetSheet("Lookups").ReadRange("B1:B6");
+            for (int row = 0; row < 6; row++)
+                AssertPivotLookupOracleValue(expectedLookups[row, 0], actualLookups[row, 0]);
+        }
+
+        [Theory]
+        [InlineData("equal", 60d)]
+        [InlineData("not-equal", 155d)]
+        [InlineData("begins", 70d)]
+        [InlineData("not-begins", 145d)]
+        [InlineData("ends", 115d)]
+        [InlineData("not-ends", 100d)]
+        [InlineData("not-contains", 100d)]
+        public void Test_PivotLabelPredicates_TemplateFreePublicApi(string kind, double total) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.label-{kind}.Authored.xlsx");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Sales");
+                var entries = new[] {
+                    ("East", 60d), ("North", 30d), ("Northeast", 40d),
+                    ("Southeast", 15d), ("West", 70d)
+                };
+                for (int index = 0; index < entries.Length; index++) {
+                    source.CellValue(index + 2, 1, entries[index].Item1);
+                    source.CellValue(index + 2, 2, entries[index].Item2);
+                }
+                ExcelPivotFilter filter = kind switch {
+                    "equal" => ExcelPivotFilter.LabelEquals("Region", "East"),
+                    "not-equal" => ExcelPivotFilter.LabelNotEquals("Region", "East"),
+                    "begins" => ExcelPivotFilter.LabelBeginsWith("Region", "North"),
+                    "not-begins" => ExcelPivotFilter.LabelNotBeginsWith("Region", "North"),
+                    "ends" => ExcelPivotFilter.LabelEndsWith("Region", "east"),
+                    "not-ends" => ExcelPivotFilter.LabelNotEndsWith("Region", "east"),
+                    "not-contains" => ExcelPivotFilter.LabelNotContains("Region", "east"),
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
+                };
+                source.Pivot("A1:B6").Rows("Region").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("D4", "FilteredPivot");
+                var result = source.MaterializePivotTable("FilteredPivot");
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
+        [Theory]
+        [InlineData("E*st", 60d)]
+        [InlineData("E~*st", 20d)]
+        public void Test_PivotLabelEquals_UsesExcelWildcardRules(string criterion, double total) {
+            string output = Path.Combine(_directoryWithFiles, $"Filter.label-equal-{total}.Authored.xlsx");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Region");
+                source.CellValue(1, 2, "Sales");
+                source.CellValue(2, 1, "E*st");
+                source.CellValue(2, 2, 20d);
+                source.CellValue(3, 1, "East");
+                source.CellValue(3, 2, 40d);
+                source.CellValue(4, 1, "North");
+                source.CellValue(4, 2, 30d);
+                source.Pivot("A1:B4").Rows("Region").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular)
+                    .Filter(ExcelPivotFilter.LabelEquals("Region", criterion))
+                    .At("D4", "FilteredPivot");
+                var result = source.MaterializePivotTable("FilteredPivot");
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(total, source.GetPivotData("FilteredPivot", "Metric").Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocument.Load(output);
+            Assert.Empty(reopened.ValidateOpenXml());
+            Assert.Equal(total, reopened.GetSheet("Source").GetPivotData("FilteredPivot", "Metric").Value);
+        }
+
+        [Theory]
         [InlineData("label", "LabelPivot", "A4:B8", 5, 115d, "#REF!", 40d, 60d, "#REF!", 15d)]
         [InlineData("value", "ValuePivot", "A4:B8", 5, 170d, "#REF!", 40d, 60d, 70d, "#REF!")]
         [InlineData("combined", "CombinedPivot", "A4:B7", 4, 100d, "#REF!", 40d, 60d, "#REF!", "#REF!")]

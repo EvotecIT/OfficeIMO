@@ -21,23 +21,24 @@ namespace OfficeIMO.Excel {
                 || (long)(lastRow - firstRow) * filters.Length > limit)
                 throw new NotSupportedException("The pivot filters exceed the qualified materialization budget or shape.");
 
-            foreach (var filter in filters.Where(filter => filter.Type?.Value == PivotFilterValues.CaptionContains)) {
+            foreach (var filter in filters.Where(IsMaterializedPivotLabelComparison)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
                 if (maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date
                     || key.Kind == PivotFieldValueKind.Number))
                     throw new NotSupportedException("Label-filter materialization has not qualified formatted date or numeric captions.");
                 string needle = filter.StringValue1?.Value
                     ?? throw new NotSupportedException("The label filter has no saved criterion.");
-                var custom = QualifiedPivotCustomFilter(filter);
-                if (custom.Operator != null && custom.Operator.Value != FilterOperatorValues.Equal
-                    || !string.Equals(custom.Val?.Value, "*" + needle + "*", StringComparison.Ordinal))
-                    throw new NotSupportedException("The label filter does not have a qualified contains predicate.");
-                var pattern = new Regex("\\A" + CreateFormulaWildcardPattern(custom.Val!.Value!) + "\\z",
+                var type = filter.Type!.Value;
+                string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
+                var comparison = ResolveSingleFilterOperator(type);
+                ValidateMaterializedPivotLabelPredicate(filter, savedPattern, comparison);
+                var pattern = new Regex("\\A" + CreateFormulaWildcardPattern(savedPattern) + "\\z",
                     RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
+                bool negate = comparison == FilterOperatorValues.NotEqual;
                 var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
                     string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
                         ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
-                    return pattern.IsMatch(label);
+                    return pattern.IsMatch(label) != negate;
                 }));
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
@@ -79,11 +80,34 @@ namespace OfficeIMO.Excel {
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
-            if (filters.Any(filter => filter.Type?.Value != PivotFilterValues.CaptionContains
+            if (filters.Any(filter => !IsMaterializedPivotLabelComparison(filter)
                 && !IsMaterializedPivotValueComparison(filter)))
                 throw new NotSupportedException("This pivot label or value filter is not qualified for materialization.");
             if (!visibility.IncludedRows.Any(include => include))
                 throw new NotSupportedException("The pivot filters select no source records for materialization.");
+        }
+
+        private static bool IsMaterializedPivotLabelComparison(PivotFilter filter) {
+            var type = filter.Type?.Value;
+            return type == PivotFilterValues.CaptionEqual || type == PivotFilterValues.CaptionNotEqual
+                || type == PivotFilterValues.CaptionBeginsWith || type == PivotFilterValues.CaptionNotBeginsWith
+                || type == PivotFilterValues.CaptionEndsWith || type == PivotFilterValues.CaptionNotEndsWith
+                || type == PivotFilterValues.CaptionContains || type == PivotFilterValues.CaptionNotContains;
+        }
+
+        private static void ValidateMaterializedPivotLabelPredicate(PivotFilter filter, string pattern,
+            FilterOperatorValues comparison) {
+            var columns = filter.AutoFilter?.Elements<FilterColumn>().ToArray() ?? Array.Empty<FilterColumn>();
+            if (comparison == FilterOperatorValues.Equal && filter.Type?.Value == PivotFilterValues.CaptionEqual
+                && columns.Length == 1 && columns[0].ColumnId?.Value == 0
+                && columns[0].ChildElements.Count == 1
+                && columns[0].GetFirstChild<Filters>() is Filters values
+                && values.ChildElements.Count == 1 && values.GetFirstChild<Filter>()?.Val?.Value == pattern)
+                return;
+            var custom = QualifiedPivotCustomFilter(filter);
+            if ((custom.Operator?.Value ?? FilterOperatorValues.Equal) != comparison
+                || !string.Equals(custom.Val?.Value, pattern, StringComparison.Ordinal))
+                throw new NotSupportedException("The label filter does not have a qualified saved predicate.");
         }
 
         private static bool IsMaterializedPivotValueComparison(PivotFilter filter) {

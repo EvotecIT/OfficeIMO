@@ -1,0 +1,14 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T06:06:54.5613702Z",
+  "regeneration": "Build/Verification/New-ExcelPivotLabelFilterOracle.ps1",
+  "file": "pivot-label-ends-conformance.xlsx",
+  "sha256": "3b909a7b66b7cda541cdf99ffaa29c468899da6f541cbc1240ea1f4ca4ade393",
+  "sourceRange": "Source!A1:B6",
+  "filterType": 19,
+  "criterion": "east",
+  "outputRange": "A4:B8",
+  "grandTotal": 115.0
+}
