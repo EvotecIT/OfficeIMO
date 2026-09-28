@@ -166,6 +166,26 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void TableCell_JustifyDoesNotStretchLastLineOfAnEarlierParagraph() {
+        var firstRuns = new[] { new PdfTextRun("Alpha beta") };
+        var secondRuns = new[] { new PdfTextRun("Gamma delta") };
+        var cell = new PdfTableCell(
+            firstRuns.Concat(secondRuns),
+            new[] {
+                new PdfTableCellParagraph(firstRuns, align: PdfAlign.Justify),
+                new PdfTableCellParagraph(secondRuns, align: PdfAlign.Justify)
+            });
+        byte[] bytes = PdfDocument.Create(new PdfOptions { DefaultFontSize = 12 })
+            .Table(new[] { new[] { cell } }, style: TableStyles.Minimal())
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        var lines = GetNonWhitespaceLetterLines(pdf.GetPage(1));
+        Assert.Equal(2, lines.Count);
+        Assert.All(lines, line => Assert.InRange(GetInterWordGaps(line).Single(), 0D, 9D));
+    }
+
+    [Fact]
     public void Paragraph_JustifyDoesNotStretchExplicitLineBreaks() {
         var options = new PdfOptions {
             PageWidth = 320,

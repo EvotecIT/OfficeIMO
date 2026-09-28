@@ -321,8 +321,8 @@ public sealed partial class PdfOptions {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), regular, BuildFontFamilyFaceName(familyName, "Bold"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: true);
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: true);
         return this;
     }
 
@@ -336,8 +336,8 @@ public sealed partial class PdfOptions {
         PdfStandardFont normalizedFamily = PdfStandardFontMapper.GetFontFamily(baseFontFamily);
         EmbedStandardFontSnapshot(normalizedFamily, regular, BuildFontFamilyFaceName(familyName, "Regular"));
         EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: false), bold ?? regular, BuildFontFamilyFaceName(familyName, "Bold"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"));
-        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"));
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: false, italic: true), italic ?? regular, BuildFontFamilyFaceName(familyName, "Italic"), syntheticOblique: italic == null);
+        EmbedStandardFontSnapshot(PdfStandardFontMapper.GetStyledFont(normalizedFamily, bold: true, italic: true), boldItalic ?? bold ?? italic ?? regular, BuildFontFamilyFaceName(familyName, "BoldItalic"), syntheticOblique: boldItalic == null && (bold != null || italic == null));
         return this;
     }
 

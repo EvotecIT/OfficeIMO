@@ -119,6 +119,25 @@ public sealed partial class PdfOptions {
         return true;
     }
 
+    internal bool NeedsSyntheticOblique(PdfStandardFont font, PdfNamedFontFace? namedFont = null) {
+        if (namedFont.HasValue) {
+            PdfNamedFontFace face = namedFont.Value;
+            if (_namedFontFamilies == null ||
+                !_namedFontFamilies.TryGetValue(face.FamilyKey, out PdfEmbeddedFontFamily? family) ||
+                !face.Italic) {
+                return false;
+            }
+
+            return face.Bold
+                ? family.BoldItalicSnapshot == null && (family.BoldSnapshot != null || family.ItalicSnapshot == null)
+                : family.ItalicSnapshot == null;
+        }
+
+        return _embeddedFonts != null &&
+               _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? embeddedFont) &&
+               embeddedFont.SyntheticOblique;
+    }
+
     internal bool TryGetNamedFontProgram(PdfNamedFontFace face, out PdfTrueTypeFontProgram? fontProgram) {
         if (_namedFontPrograms != null && _namedFontPrograms.TryGetValue(face, out PdfTrueTypeFontProgram? cached)) {
             fontProgram = cached;

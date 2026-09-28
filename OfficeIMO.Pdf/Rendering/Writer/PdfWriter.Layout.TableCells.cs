@@ -694,7 +694,7 @@ internal static partial class PdfWriter {
             }
 
             if (paragraphIndex < paragraphs.Count - 1 && lines.Count > firstNewLineIndex) {
-                MarkRichLineTextSeparator(lines[lines.Count - 1]);
+                MarkRichLineHardBreak(lines[lines.Count - 1]);
             }
 
             if (paragraph.SpacingAfter > 0D && lineHeights.Count > firstNewLineIndex) {
