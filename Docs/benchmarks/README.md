@@ -89,6 +89,11 @@ compares the public snapshot and incremental readers on distinct-string,
 Windows processor domains without treating a small throughput difference as
 a portable win.
 
+The [XLSX long-text measurement](officeimo.xlsx-long-text-2026-09-28.md)
+records the escaped-text writer change, identical package-part hashes, and
+rotated before/after samples on both Windows processor domains. Long-plain
+export and portable memory budgets remain open.
+
 ## Word Open XML SDK evidence
 
 `OfficeIMO.Word.Benchmarks` has a publishable lane containing only OfficeIMO and
