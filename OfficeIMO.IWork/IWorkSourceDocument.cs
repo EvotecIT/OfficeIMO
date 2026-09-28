@@ -73,12 +73,23 @@ public sealed partial class IWorkSourceDocument {
         return OpenPath(path, expectedKind, options, cancellationToken);
     }
 
+    internal static IWorkSourceDocument Open(string path, IWorkReadOptions? options,
+        CancellationToken cancellationToken) => OpenPath(path, expectedKind: null,
+            options, cancellationToken);
+
     internal static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
         return Create(package, expectedKind, resolved, expectedKind, cancellationToken);
+    }
+
+    internal static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options,
+        CancellationToken cancellationToken) {
+        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
+        return Create(package, hint: null, resolved, expectedKind: null, cancellationToken);
     }
 
     /// <summary>Opens a ZIP-based iWork stream and detects its application kind.</summary>

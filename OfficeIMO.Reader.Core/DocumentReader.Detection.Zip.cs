@@ -10,12 +10,15 @@ namespace OfficeIMO.Reader;
 internal static partial class DocumentReaderEngine {
     private const uint ZipCentralDirectoryHeaderSignature = 0x02014B50U;
     private const uint ZipEndOfCentralDirectorySignature = 0x06054B50U;
+    private const uint Zip64EndOfCentralDirectorySignature = 0x06064B50U;
+    private const uint Zip64EndOfCentralDirectoryLocatorSignature = 0x07064B50U;
     private const uint ZipLocalHeaderSignature = 0x04034B50U;
     private const int ZipCentralDirectoryHeaderLength = 46;
     private const int ZipEndOfCentralDirectoryLength = 22;
     private const int ZipMaximumEndRecordLength = ZipEndOfCentralDirectoryLength + ushort.MaxValue;
 
-    private static DetectionCandidate InspectZipContainer(Stream stream, long start, int maxEntries) {
+    private static DetectionCandidate InspectZipContainer(Stream stream, long start, int maxEntries,
+        bool allowNestedIWorkIndex) {
         if (!TryLocateZipCentralDirectory(stream, start, out long centralDirectoryOffset, out int entryCount)) {
             return GenericZipCandidate();
         }
@@ -23,6 +26,7 @@ internal static partial class DocumentReaderEngine {
         stream.Position = start + centralDirectoryOffset;
         var header = new byte[ZipCentralDirectoryHeaderLength];
         int entriesToInspect = Math.Min(entryCount, maxEntries);
+        bool hasIWorkIndex = false;
         for (int entryIndex = 0; entryIndex < entriesToInspect; entryIndex++) {
             if (!ReadExact(stream, header, 0, header.Length) ||
                 ReadUInt32(header, 0) != ZipCentralDirectoryHeaderSignature) {
@@ -43,6 +47,7 @@ internal static partial class DocumentReaderEngine {
             long nextEntryOffset = stream.Position + extraLength + commentLength;
             if (nextEntryOffset < stream.Position || nextEntryOffset > stream.Length) break;
 
+            hasIWorkIndex |= IsIWorkIndexEntry(name, ReadUInt32(header, 24), allowNestedIWorkIndex);
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
             if (name == "mimetype") {
@@ -59,13 +64,14 @@ internal static partial class DocumentReaderEngine {
             stream.Position = nextEntryOffset;
         }
 
-        return GenericZipCandidate();
+        return hasIWorkIndex ? IWorkCandidate() : GenericZipCandidate();
     }
 
     private static async Task<DetectionCandidate> InspectZipContainerAsync(
         Stream stream,
         long start,
         int maxEntries,
+        bool allowNestedIWorkIndex,
         CancellationToken cancellationToken) {
         (bool found, long centralDirectoryOffset, int entryCount) = await TryLocateZipCentralDirectoryAsync(
             stream,
@@ -76,6 +82,7 @@ internal static partial class DocumentReaderEngine {
         stream.Position = start + centralDirectoryOffset;
         var header = new byte[ZipCentralDirectoryHeaderLength];
         int entriesToInspect = Math.Min(entryCount, maxEntries);
+        bool hasIWorkIndex = false;
         for (int entryIndex = 0; entryIndex < entriesToInspect; entryIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await ReadExactAsync(stream, header, 0, header.Length, cancellationToken).ConfigureAwait(false) ||
@@ -97,6 +104,7 @@ internal static partial class DocumentReaderEngine {
             long nextEntryOffset = stream.Position + extraLength + commentLength;
             if (nextEntryOffset < stream.Position || nextEntryOffset > stream.Length) break;
 
+            hasIWorkIndex |= IsIWorkIndexEntry(name, ReadUInt32(header, 24), allowNestedIWorkIndex);
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
             if (name == "mimetype") {
@@ -115,7 +123,7 @@ internal static partial class DocumentReaderEngine {
             stream.Position = nextEntryOffset;
         }
 
-        return GenericZipCandidate();
+        return hasIWorkIndex ? IWorkCandidate() : GenericZipCandidate();
     }
 
     private static bool TryLocateZipCentralDirectory(
@@ -130,8 +138,12 @@ internal static partial class DocumentReaderEngine {
         var tail = new byte[tailLength];
         long tailOffset = archiveLength - tailLength;
         stream.Position = start + tailOffset;
-        return ReadExact(stream, tail, 0, tail.Length) &&
-               TryParseZipEndRecord(tail, tailOffset, archiveLength, out centralDirectoryOffset, out entryCount);
+        if (!ReadExact(stream, tail, 0, tail.Length)) return false;
+        if (TryParseZipEndRecord(tail, tailOffset, archiveLength,
+                out centralDirectoryOffset, out entryCount)) return true;
+        if (!TryGetZip64LocatorOffset(tail, tailOffset, archiveLength, out long locatorOffset)) return false;
+        return TryParseZip64EndRecord(stream, start, archiveLength, locatorOffset,
+            out centralDirectoryOffset, out entryCount);
     }
 
     private static async Task<(bool Found, long CentralDirectoryOffset, int EntryCount)> TryLocateZipCentralDirectoryAsync(
@@ -155,7 +167,12 @@ internal static partial class DocumentReaderEngine {
             archiveLength,
             out long centralDirectoryOffset,
             out int entryCount);
-        return (found, centralDirectoryOffset, entryCount);
+        if (found) return (true, centralDirectoryOffset, entryCount);
+        if (!TryGetZip64LocatorOffset(tail, tailOffset, archiveLength, out long locatorOffset)) {
+            return (false, 0, 0);
+        }
+        return await TryParseZip64EndRecordAsync(stream, start, archiveLength,
+            locatorOffset, cancellationToken).ConfigureAwait(false);
     }
 
     private static bool TryGetZipWindow(Stream stream, long start, out long archiveLength, out int tailLength) {
@@ -208,6 +225,94 @@ internal static partial class DocumentReaderEngine {
 
         return false;
     }
+
+    private static bool TryGetZip64LocatorOffset(byte[] tail, long tailOffset,
+        long archiveLength, out long locatorOffset) {
+        locatorOffset = 0;
+        for (int index = tail.Length - ZipEndOfCentralDirectoryLength; index >= 0; index--) {
+            if (ReadUInt32(tail, index) != ZipEndOfCentralDirectorySignature) continue;
+            if (index + ZipEndOfCentralDirectoryLength + ReadUInt16(tail, index + 20) != tail.Length) continue;
+            if (ReadUInt16(tail, index + 4) != 0 || ReadUInt16(tail, index + 6) != 0) return false;
+            if (ReadUInt16(tail, index + 8) != ushort.MaxValue &&
+                ReadUInt16(tail, index + 10) != ushort.MaxValue &&
+                ReadUInt32(tail, index + 12) != uint.MaxValue &&
+                ReadUInt32(tail, index + 16) != uint.MaxValue) return false;
+            long endRecordOffset = tailOffset + index;
+            if (endRecordOffset < 20 || endRecordOffset > archiveLength) return false;
+            locatorOffset = endRecordOffset - 20;
+            return true;
+        }
+        return false;
+    }
+
+    private static bool TryParseZip64EndRecord(Stream stream, long start, long archiveLength,
+        long locatorOffset, out long centralDirectoryOffset, out int entryCount) {
+        centralDirectoryOffset = 0;
+        entryCount = 0;
+        var locator = new byte[20];
+        stream.Position = start + locatorOffset;
+        if (!ReadExact(stream, locator, 0, locator.Length)) return false;
+        if (!TryGetZip64RecordOffset(locator, locatorOffset, out long recordOffset)) return false;
+        var record = new byte[56];
+        stream.Position = start + recordOffset;
+        return ReadExact(stream, record, 0, record.Length) &&
+               TryParseZip64Record(record, recordOffset, locatorOffset, archiveLength,
+                   out centralDirectoryOffset, out entryCount);
+    }
+
+    private static async Task<(bool Found, long CentralDirectoryOffset, int EntryCount)> TryParseZip64EndRecordAsync(
+        Stream stream, long start, long archiveLength, long locatorOffset,
+        CancellationToken cancellationToken) {
+        var locator = new byte[20];
+        stream.Position = start + locatorOffset;
+        if (!await ReadExactAsync(stream, locator, 0, locator.Length, cancellationToken).ConfigureAwait(false) ||
+            !TryGetZip64RecordOffset(locator, locatorOffset, out long recordOffset)) {
+            return (false, 0, 0);
+        }
+        var record = new byte[56];
+        stream.Position = start + recordOffset;
+        if (!await ReadExactAsync(stream, record, 0, record.Length, cancellationToken).ConfigureAwait(false)) {
+            return (false, 0, 0);
+        }
+        bool found = TryParseZip64Record(record, recordOffset, locatorOffset, archiveLength,
+            out long centralDirectoryOffset, out int entryCount);
+        return (found, centralDirectoryOffset, entryCount);
+    }
+
+    private static bool TryGetZip64RecordOffset(byte[] locator, long locatorOffset,
+        out long recordOffset) {
+        recordOffset = 0;
+        if (ReadUInt32(locator, 0) != Zip64EndOfCentralDirectoryLocatorSignature ||
+            ReadUInt32(locator, 4) != 0 || ReadUInt32(locator, 16) != 1 ||
+            locatorOffset < 56) return false;
+        ulong offset = ReadZipUInt64(locator, 8);
+        if (offset > (ulong)(locatorOffset - 56)) return false;
+        recordOffset = (long)offset;
+        return true;
+    }
+
+    private static bool TryParseZip64Record(byte[] record, long recordOffset,
+        long locatorOffset, long archiveLength, out long centralDirectoryOffset,
+        out int entryCount) {
+        centralDirectoryOffset = 0;
+        entryCount = 0;
+        if (ReadUInt32(record, 0) != Zip64EndOfCentralDirectorySignature ||
+            ReadZipUInt64(record, 4) < 44 ||
+            ReadZipUInt64(record, 4) > (ulong)(locatorOffset - recordOffset - 12) ||
+            ReadUInt32(record, 16) != 0 || ReadUInt32(record, 20) != 0) return false;
+        ulong onDisk = ReadZipUInt64(record, 24);
+        ulong total = ReadZipUInt64(record, 32);
+        ulong size = ReadZipUInt64(record, 40);
+        ulong offset = ReadZipUInt64(record, 48);
+        if (onDisk != total || total > int.MaxValue || offset > (ulong)recordOffset ||
+            size > (ulong)recordOffset - offset || recordOffset > archiveLength) return false;
+        centralDirectoryOffset = (long)offset;
+        entryCount = (int)total;
+        return true;
+    }
+
+    private static ulong ReadZipUInt64(byte[] bytes, int offset) =>
+        ReadUInt32(bytes, offset) | ((ulong)ReadUInt32(bytes, offset + 4) << 32);
 
     private static DetectionCandidate? TryReadContainerMimeType(
         Stream stream,
@@ -330,6 +435,12 @@ internal static partial class DocumentReaderEngine {
     private static DetectionCandidate GenericZipCandidate() {
         return DetectionCandidate.High(ReaderInputKind.Zip, "application/zip", "container:zip-generic");
     }
+
+    private static bool IsIWorkIndexEntry(string name, uint length, bool allowNestedIndex) =>
+        length > 0 && (name == "index/document.iwa" || allowNestedIndex && name == "index.zip");
+
+    private static DetectionCandidate IWorkCandidate() => DetectionCandidate.High(
+        ReaderInputKind.IWork, "application/octet-stream", "container:iwork-index");
 
     private static DetectionCandidate EpubCandidate() {
         return DetectionCandidate.High(

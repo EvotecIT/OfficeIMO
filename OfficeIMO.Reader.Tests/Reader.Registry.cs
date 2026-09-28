@@ -374,6 +374,30 @@ public sealed partial class ReaderRegistryTests {
     }
 
     [Fact]
+    public void PreferContentExplicitBudgetCannotBypassExtensionCeilingBeforeSnapshot() {
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.explicit-ceiling",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".tiny" },
+                MaxInputBytesCeiling = 8,
+                ReadStream = (_, _, _, _) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            }).Build();
+        using var stream = new NonSeekableReadStream(Encoding.ASCII.GetBytes(
+            "This payload exceeds the registered ceiling"));
+
+        Assert.Throws<IOException>(() => reader.Read(stream, "input.tiny", new ReaderOptions {
+            DetectionMode = ReaderDetectionMode.PreferContent,
+            MaxInputBytes = 1024
+        }).ToArray());
+        Assert.Equal(0, dispatchCount);
+    }
+
+    [Fact]
     public async Task PreferContentAppliesSelectedHandlerPrefixLimitBeforeEveryDispatch() {
         byte[] source = Encoding.ASCII.GetBytes("%PDF-1.7\n" + new string('x', 32));
         int dispatchCount = 0;

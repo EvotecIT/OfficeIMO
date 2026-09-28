@@ -1,5 +1,6 @@
 using OfficeIMO.Reader.IWork;
 using OfficeIMO.Reader.All;
+using System.IO.Compression;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -149,6 +150,81 @@ public sealed class ReaderIWorkTests {
         }
     }
 
+    [Theory]
+    [InlineData("nim-iwork/simple.pages", "application/vnd.apple.pages")]
+    [InlineData("nim-iwork/simple.numbers", "application/vnd.apple.numbers")]
+    [InlineData("nim-iwork/simple.key", "application/vnd.apple.keynote")]
+    public async Task PublicContentDetectionRecognizesIWorkPackages(
+        string relativePath, string mediaType) {
+        string path = Fixture(relativePath);
+        string sourceName = Path.GetFileName(path);
+        byte[] bytes = File.ReadAllBytes(path);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+
+        foreach (ReaderDetectionResult result in new[] {
+                     reader.Detect(path),
+                     reader.Detect(bytes, sourceName),
+                     await reader.DetectAsync(bytes, sourceName)
+                 }) {
+            Assert.Equal(ReaderInputKind.IWork, result.Kind);
+            Assert.Equal(ReaderInputKind.IWork, result.ContentKind);
+            Assert.Equal(mediaType, result.MediaType);
+            Assert.False(result.IsMismatch);
+        }
+
+        byte[] prefix = { 0x19, 0x27, 0x38, 0x44, 0x55 };
+        using var stream = new MemoryStream(prefix.Concat(bytes).ToArray(), writable: false);
+        stream.Position = prefix.Length;
+        ReaderDetectionResult offsetDetection = reader.Detect(stream, sourceName);
+        Assert.Equal(ReaderInputKind.IWork, offsetDetection.Kind);
+        Assert.Equal(prefix.Length, stream.Position);
+    }
+
+    [Fact]
+    public void ContentDetectedIWorkCanReadWithoutAnIWorkExtension() {
+        byte[] bytes = File.ReadAllBytes(Fixture("nim-iwork/simple.pages"));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddAllOfficeIMOHandlers().Build();
+        var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+
+        ReaderDetectionResult detection = reader.Detect(bytes, "renamed.zip");
+        OfficeDocumentReadResult document = reader.ReadDocument(bytes, "renamed.zip", options);
+
+        Assert.Equal(ReaderInputKind.IWork, detection.Kind);
+        Assert.Equal(ReaderInputKind.IWork, document.Kind);
+        Assert.Contains(document.Chunks, chunk => chunk.Text.Contains("hello pages", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void BareIndexZipDoesNotOverrideGenericZipOrOpenXmlEvidence() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddAllOfficeIMOHandlers().Build();
+
+        byte[] generic = CreateZip("Index.zip", "notes.txt");
+        ReaderDetectionResult genericDetection = reader.Detect(generic, "notes.zip");
+        Assert.Equal(ReaderInputKind.Zip, genericDetection.Kind);
+
+        byte[] openXml = CreateZip("Index/Document.iwa", "word/document.xml");
+        ReaderDetectionResult wordDetection = reader.Detect(openXml, "document.docx");
+        Assert.Equal(ReaderInputKind.Word, wordDetection.Kind);
+    }
+
+    [Fact]
+    public async Task PublicDetectionRecognizesZip64IWorkPackage() {
+        byte[] package = WrapWithZip64EndRecord(
+            File.ReadAllBytes(Fixture("nim-iwork/simple.pages")));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+
+        ReaderDetectionResult sync = reader.Detect(package, "large.pages");
+        ReaderDetectionResult asyncResult = await reader.DetectAsync(package, "large.pages");
+        OfficeDocumentReadResult document = reader.ReadDocument(package, "large.pages",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Equal(ReaderInputKind.IWork, sync.Kind);
+        Assert.Equal(ReaderInputKind.IWork, asyncResult.Kind);
+        Assert.Equal(ReaderInputKind.IWork, document.Kind);
+    }
+
     [Fact]
     public void PreferContentUsesTheKnownIWorkPackageLimitBeforeDetection() {
         const long packageLimit = 512L * 1024L * 1024L;
@@ -172,6 +248,30 @@ public sealed class ReaderIWorkTests {
                 "large.pages", options, streamCanSeek: true));
             Assert.Equal(64L * 1024L * 1024L, DocumentReaderEngine.ResolveStreamMaxInputBytes(
                 "unknown.bin", options, streamCanSeek: true));
+        }
+    }
+
+    [Fact]
+    public void PreferContentClampsExplicitInputBudgetToKnownHandlerCeiling() {
+        var registry = new ReaderHandlerRegistry();
+        registry.Register(new ReaderHandlerRegistration {
+            Id = "officeimo.tests.small-iwork-ceiling",
+            Kind = ReaderInputKind.IWork,
+            Extensions = new[] { ".pages" },
+            MaxInputBytesCeiling = 8,
+            ReadPath = (_, _, _) => Array.Empty<ReaderChunk>(),
+            ReadStream = (_, _, _, _) => Array.Empty<ReaderChunk>()
+        }, replaceExisting: false);
+        using (DocumentReaderEngine.UseHandlerRegistry(registry.CaptureSnapshot())) {
+            var options = new ReaderOptions {
+                DetectionMode = ReaderDetectionMode.PreferContent,
+                MaxInputBytes = 1024
+            };
+            Assert.Equal(8, DocumentReaderEngine.ResolveInitialMaxInputBytes("input.pages", options));
+            Assert.Equal(8, DocumentReaderEngine.ResolveStreamMaxInputBytes(
+                "input.pages", options, streamCanSeek: false));
+            Assert.Equal(1024, DocumentReaderEngine.ResolveStreamMaxInputBytes(
+                "input.bin", options, streamCanSeek: false));
         }
     }
 
@@ -233,4 +333,49 @@ public sealed class ReaderIWorkTests {
     private static string Fixture(string relativePath) =>
         Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             relativePath.Replace('/', Path.DirectorySeparatorChar));
+
+    private static byte[] CreateZip(params string[] entryNames) {
+        using var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (string name in entryNames) {
+                using Stream entry = archive.CreateEntry(name).Open();
+                entry.WriteByte(1);
+            }
+        }
+        return stream.ToArray();
+    }
+
+    private static byte[] WrapWithZip64EndRecord(byte[] source) {
+        int endOffset = source.Length - 22;
+        Assert.Equal(0x06054B50u, BitConverter.ToUInt32(source, endOffset));
+        ushort count = BitConverter.ToUInt16(source, endOffset + 10);
+        uint size = BitConverter.ToUInt32(source, endOffset + 12);
+        uint offset = BitConverter.ToUInt32(source, endOffset + 16);
+        using var output = new MemoryStream();
+        output.Write(source, 0, endOffset);
+        using (var writer = new BinaryWriter(output, System.Text.Encoding.UTF8, leaveOpen: true)) {
+            writer.Write(0x06064B50u);
+            writer.Write(44ul);
+            writer.Write((ushort)45);
+            writer.Write((ushort)45);
+            writer.Write(0u);
+            writer.Write(0u);
+            writer.Write((ulong)count);
+            writer.Write((ulong)count);
+            writer.Write((ulong)size);
+            writer.Write((ulong)offset);
+            writer.Write(0x07064B50u);
+            writer.Write(0u);
+            writer.Write((ulong)endOffset);
+            writer.Write(1u);
+            writer.Write(0x06054B50u);
+            writer.Write(0u);
+            writer.Write(ushort.MaxValue);
+            writer.Write(ushort.MaxValue);
+            writer.Write(uint.MaxValue);
+            writer.Write(uint.MaxValue);
+            writer.Write((ushort)0);
+        }
+        return output.ToArray();
+    }
 }

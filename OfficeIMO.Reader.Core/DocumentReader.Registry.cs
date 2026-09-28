@@ -68,7 +68,9 @@ internal static partial class DocumentReaderEngine {
 
     private static long ResolvePreferContentInputLimit(string? sourceName, ReaderOptions options,
         bool requireStreamInput) {
-        if (options.MaxInputBytes.HasValue) return options.MaxInputBytes.Value;
+        if (options.MaxInputBytes.HasValue) return CombineHandlerInputCeiling(
+            sourceName, options.MaxInputBytes.Value, requireStreamInput)
+            ?? options.MaxInputBytes.Value;
         if (!TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler)
             || (requireStreamInput ? !handler.SupportsStreamInput : !handler.SupportsPathInput)) {
             return DefaultUnidentifiedStreamMaxInputBytes;
@@ -81,7 +83,8 @@ internal static partial class DocumentReaderEngine {
 
     private static long? CombineHandlerInputCeiling(string? sourceName, long? configured, bool requireStreamInput) {
         if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor handler) &&
-            (!requireStreamInput || handler.SupportsStreamInput) && handler.MaxInputBytesCeiling.HasValue) {
+            (requireStreamInput ? handler.SupportsStreamInput : handler.SupportsPathInput) &&
+            handler.MaxInputBytesCeiling.HasValue) {
             return CombineMaxInputBytes(configured, handler.MaxInputBytesCeiling);
         }
         return configured;

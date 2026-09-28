@@ -11,12 +11,14 @@ internal static class IWorkContainerProbe {
         if (!stream.CanRead || !stream.CanSeek) return false;
         long start = stream.Position;
         try {
-            if (stream.Length - start > maximumPackageBytes) return false;
+            long packageLength = stream.Length - start;
+            if (packageLength > maximumPackageBytes) return false;
+            using var window = new SeekableReadWindowStream(stream, start, packageLength);
             OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
-                OfficeArchiveSafety.ScanZipCentralDirectory(stream,
-                    stream.Length - start, maximumEntries, cancellationToken);
+                OfficeArchiveSafety.ScanZipCentralDirectory(window,
+                    packageLength, maximumEntries, cancellationToken);
             if (!directory.IsValid || directory.LimitExceeded) return false;
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
+            using var archive = new ZipArchive(window, ZipArchiveMode.Read, leaveOpen: true);
             foreach (ZipArchiveEntry entry in archive.Entries) {
                 cancellationToken.ThrowIfCancellationRequested();
                 string path = entry.FullName.Replace('\\', '/');

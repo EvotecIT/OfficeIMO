@@ -18,6 +18,21 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(0, stream.Position);
     }
 
+    [Theory]
+    [InlineData("nim-iwork/simple.pages")]
+    [InlineData("nim-iwork/simple.numbers")]
+    [InlineData("nim-iwork/simple.key")]
+    public void Structural_probe_respects_the_current_stream_slice(string name) {
+        byte[] package = File.ReadAllBytes(Fixture(name));
+        byte[] prefix = { 0x19, 0x27, 0x38, 0x44, 0x55 };
+        using var stream = new MemoryStream(prefix.Concat(package).ToArray(), writable: false);
+        stream.Position = prefix.Length;
+
+        Assert.True(IWorkContainerProbe.HasModernIndex(stream, package.LongLength,
+            8192, CancellationToken.None));
+        Assert.Equal(prefix.Length, stream.Position);
+    }
+
     [Fact]
     public void Structural_probe_rejects_a_generic_zip() {
         using var stream = new MemoryStream();

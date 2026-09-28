@@ -8,11 +8,7 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(sourceName) || !stream.CanSeek) return false;
-        try {
-            _ = ExpectedKind(sourceName!);
-        } catch (NotSupportedException) {
-            return false;
-        }
+        if (!ExpectedKind(sourceName!).HasValue) return false;
         IWorkReadOptions readOptions = options.ReadOptions ?? new IWorkReadOptions();
         long maximumPackageBytes = Math.Min(readOptions.MaximumPackageBytes,
             readerOptions.MaxInputBytes ?? readOptions.MaximumPackageBytes);
@@ -23,9 +19,10 @@ internal static class IWorkReaderAdapter {
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions,
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        IWorkDocumentKind expected = ExpectedKind(path);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path, expected, options.ReadOptions,
-            cancellationToken);
+        IWorkDocumentKind? expected = ExpectedKind(path);
+        IWorkSourceDocument source = expected.HasValue
+            ? IWorkSourceDocument.Open(path, expected.Value, options.ReadOptions, cancellationToken)
+            : IWorkSourceDocument.Open(path, options.ReadOptions, cancellationToken);
         return Project(source, path, readerOptions, options, cancellationToken);
     }
 
@@ -35,23 +32,24 @@ internal static class IWorkReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         string logicalName = string.IsNullOrWhiteSpace(sourceName)
             ? "document.pages" : sourceName!.Trim();
-        IWorkDocumentKind expected = ExpectedKind(logicalName);
+        IWorkDocumentKind? expected = ExpectedKind(logicalName);
         long originalPosition = stream.CanSeek ? stream.Position : 0;
         try {
-            IWorkSourceDocument source = IWorkSourceDocument.Open(stream, expected, options.ReadOptions,
-                cancellationToken);
+            IWorkSourceDocument source = expected.HasValue
+                ? IWorkSourceDocument.Open(stream, expected.Value, options.ReadOptions, cancellationToken)
+                : IWorkSourceDocument.Open(stream, options.ReadOptions, cancellationToken);
             return Project(source, logicalName, readerOptions, options, cancellationToken);
         } finally {
             if (stream.CanSeek) stream.Position = originalPosition;
         }
     }
 
-    private static IWorkDocumentKind ExpectedKind(string name) =>
+    private static IWorkDocumentKind? ExpectedKind(string name) =>
         Path.GetExtension(name).ToLowerInvariant() switch {
             ".pages" => IWorkDocumentKind.Pages,
             ".numbers" => IWorkDocumentKind.Numbers,
             ".key" => IWorkDocumentKind.Keynote,
-            _ => throw new NotSupportedException("The iWork Reader requires a .pages, .numbers, or .key source name.")
+            _ => null
         };
 
     private static OfficeDocumentReadResult Project(IWorkSourceDocument source, string path,
