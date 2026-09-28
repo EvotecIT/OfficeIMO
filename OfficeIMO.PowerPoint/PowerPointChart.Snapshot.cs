@@ -218,7 +218,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Pie, data, colorScheme: colorScheme);
                     return true;
                 }
 
@@ -229,7 +229,7 @@ namespace OfficeIMO.PowerPoint {
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data);
+                    snapshot = CreateSnapshot(chart, PowerPointChartSnapshotKind.Doughnut, data, colorScheme: colorScheme);
                     return true;
                 }
 
@@ -411,7 +411,7 @@ namespace OfficeIMO.PowerPoint {
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart,
             PowerPointChartSnapshotKind kind, PowerPointChartData data,
             OfficeChartBubbleSizeMode bubbleSizeMode = OfficeChartBubbleSizeMode.Area,
-            double bubbleScalePercent = 100D) {
+            double bubbleScalePercent = 100D, A.ColorScheme? colorScheme = null) {
             HashSet<uint> hiddenLegendSeries = GetHiddenLegendSeriesIndexes(chart);
             bool hasLegend = chart.GetFirstChild<C.Legend>() != null;
             for (int seriesIndex = 0; seriesIndex < data.Series.Count; seriesIndex++) {
@@ -424,6 +424,14 @@ namespace OfficeIMO.PowerPoint {
                     !hiddenLegendSeries.Contains(legendIndex);
             }
 
+            OfficeChartStyle style = ReadSharedTextStyle(chart) ?? OfficeChartStyle.Default;
+            if (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut) {
+                C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
+                OfficeColor[]? palette = radialSeries == null ? null :
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ReadRadialPalette(
+                        GetChartPart(), radialSeries, data.Categories.Count, colorScheme);
+                if (palette != null) style = style.WithPalette(palette);
+            }
             return new PowerPointChartSnapshot(
                 Name ?? string.Empty,
                 ReadTitle(chart),
@@ -434,7 +442,7 @@ namespace OfficeIMO.PowerPoint {
                 bubbleSizeMode,
                 bubbleScalePercent,
                 ReadChartLayout(chart, kind),
-                ReadSharedTextStyle(chart),
+                style,
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 

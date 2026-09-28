@@ -10,7 +10,7 @@ using OfficeIMO.Excel.Utilities;
 
 namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
-        private OfficeChartStyle? CreateImageExportStyle() {
+        private OfficeChartStyle? CreateImageExportStyle(int radialPointCount) {
             C.ChartSpace? chartSpace = GetChartPart().ChartSpace;
             if (chartSpace == null) {
                 return null;
@@ -69,7 +69,12 @@ namespace OfficeIMO.Excel {
             bool showValueGridLines = HasImageExportMajorGridlines(valueAxis);
             bool showCategoryMinorGridLines = HasImageExportMinorGridlines(categoryAxis);
             bool showValueMinorGridLines = HasImageExportMinorGridlines(valueAxis);
-            if (chartFill == null &&
+            C.PieChartSeries? radialSeries = ChartType is ExcelChartType.Pie or ExcelChartType.Doughnut
+                ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
+            OfficeColor[]? radialPalette = radialSeries == null ? null :
+                OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
+                    radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+            if (radialPalette == null && chartFill == null &&
                 chartLine == null &&
                 plotFill == null &&
                 plotLine == null &&
@@ -113,7 +118,7 @@ namespace OfficeIMO.Excel {
                 return null;
             }
 
-            var style = new OfficeChartStyle(
+            var style = new OfficeChartStyle(palette: radialPalette,
                 showBackground: !hasNoChartFill,
                 backgroundColor: chartFill,
                 borderColor: chartLine,

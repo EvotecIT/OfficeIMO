@@ -1,6 +1,7 @@
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
@@ -10,6 +11,36 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartExplodedSlicesTests {
+    [Fact]
+    public void CustomModernColorStyleControlsRadialPaletteWithoutAuthoringPointFills() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 7d, 3d })
+            }), 1, 1);
+        chart.ApplyStylePreset();
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot baseline));
+        ChartPart chartPart = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
+        string styleXml;
+        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartStylePart>()).GetStream()))
+            styleXml = reader.ReadToEnd();
+        string colorXml;
+        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>()).GetStream()))
+            colorXml = reader.ReadToEnd();
+        string customColors = colorXml.Replace(
+            "<a:schemeClr val=\"accent1\"/><a:schemeClr val=\"accent2\"/>",
+            "<a:schemeClr val=\"accent2\"/><a:schemeClr val=\"accent1\"/>");
+        Assert.NotEqual(colorXml, customColors);
+        chart.ApplyStylePreset(new ExcelChartStylePreset(styleXml, customColors));
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(baseline.Style!.Palette[1], snapshot.Style!.Palette[0]);
+        Assert.Equal(baseline.Style.Palette[0], snapshot.Style.Palette[1]);
+        Assert.Null(snapshot.Data.Series.Single().PointColorArgb);
+        Assert.Empty(document.ValidateDocument());
+    }
+
     [Fact]
     public void ExcelProducedPieAndDoughnut_ProjectExplodedPoint() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "Excel",
@@ -21,6 +52,9 @@ public sealed class ExcelChartExplodedSlicesTests {
         foreach (ExcelChart chart in charts) {
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal(new[] { 25, 0 }, snapshot.Data.Series.Single().PointExplosions);
+            Assert.Equal(new[] { "156082", "E97132" }, snapshot.Style!.Palette.Take(2)
+                .Select(color => color.ToRgbHex()));
+            Assert.Null(snapshot.Data.Series.Single().PointColorArgb);
             Assert.NotEmpty(chart.ExportImage(OfficeImageExportFormat.Svg).Bytes);
             MethodInfo pdfProjection = typeof(ExcelPdfConverterExtensions).GetMethod(
                 "CreateOfficeChartSnapshot", BindingFlags.NonPublic | BindingFlags.Static)!;
