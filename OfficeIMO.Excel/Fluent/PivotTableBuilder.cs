@@ -15,7 +15,6 @@ namespace OfficeIMO.Excel.Fluent {
         private readonly List<ExcelPivotFilter> _pivotFilters = new();
         private readonly List<ExcelPivotCalculatedField> _calculatedFields = new();
         private readonly List<ExcelPivotGrouping> _groupings = new();
-        private readonly List<(string Source, string Derived, string Label, string[] Members)> _manualGroups = new();
         private bool _showRowGrandTotals = true;
         private bool _showColumnGrandTotals = true;
         private string? _pivotStyleName;
@@ -338,20 +337,9 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
-        /// <summary>Adds a named text group to a derived pivot field. Put the source field on a row or column axis.</summary>
-        public PivotTableBuilder ManualGroup(string sourceField, string groupField, string label, params string[] members) {
-            if (string.IsNullOrWhiteSpace(sourceField) || string.IsNullOrWhiteSpace(groupField)
-                || string.IsNullOrWhiteSpace(label) || members == null || members.Length < 2)
-                throw new ArgumentException("A manual group needs source and group fields, a label, and at least two members.");
-            _manualGroups.Add((sourceField, groupField, label, members.ToArray()));
-            return this;
-        }
-
         /// <summary>Creates the pivot table at the destination cell and returns the source sheet.</summary>
         public ExcelSheet At(string destinationCell, string? name = null) {
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
-            if (_manualGroups.Count != 0 && string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("A named pivot is required when authoring manual groups.", nameof(name));
 
             _sheet.AddPivotTable(
                 sourceRange: _sourceRange,
@@ -386,17 +374,6 @@ namespace OfficeIMO.Excel.Fluent {
                 calculatedFields: _calculatedFields.Count == 0 ? null : _calculatedFields,
                 groupings: _groupings.Count == 0 ? null : _groupings,
                 options: CreateOptions());
-            foreach (var group in _manualGroups.GroupBy(item => (item.Source.ToUpperInvariant(), item.Derived.ToUpperInvariant()))) {
-                var first = group.First();
-                var labels = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
-                foreach (var item in group) {
-                    if (labels.ContainsKey(item.Label))
-                        throw new ArgumentException("Manual group labels must be distinct.");
-                    labels.Add(item.Label, item.Members);
-                }
-                _sheet.AddPivotManualGrouping(name!, first.Source, first.Derived, labels);
-            }
-
             return _sheet;
         }
 

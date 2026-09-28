@@ -614,19 +614,18 @@ materialize the resulting two-level row view:
 
 ```csharp
 sheet.Pivot("A1:B6").Rows("Product").Sum("Sales", "Metric")
-    .Layout(ExcelPivotLayout.Tabular)
-    .ManualGroup("Product", "Product2", "Fruit", "Apple", "Pear")
-    .At("E4", "SalesByProductGroup");
+    .Layout(ExcelPivotLayout.Tabular).At("E4", "SalesByProductGroup");
+sheet.AddPivotManualGrouping("SalesByProductGroup", "Product", "Product2",
+    new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } });
 sheet.MaterializePivotTable("SalesByProductGroup");
 var fruit = sheet.GetPivotData("SalesByProductGroup", "Metric",
     new Dictionary<string, object?> { ["Product2"] = "Fruit" });
 ```
 
-Call `ManualGroup` again to add another named group to the same derived field.
+Pass multiple entries in the dictionary to add several named groups in one derived field.
 Each source item can belong to only one group; ungrouped text items remain
-individual entries. The source field must be on a row or column axis, and the
-pivot must have an explicit name. `AddPivotManualGrouping` adds a group field to
-an existing pivot using a dictionary of group labels and source item arrays.
+individual entries. The source field must be on a row or column axis. Use the
+pivot's actual name, which may differ from a requested duplicate name.
 
 Materialization supports up to 256 ordinary measures with unique captions, all eleven aggregation modes,
 and multiple fields on each axis, with at most 256 cache fields in total. Numeric range groups with explicit finite
