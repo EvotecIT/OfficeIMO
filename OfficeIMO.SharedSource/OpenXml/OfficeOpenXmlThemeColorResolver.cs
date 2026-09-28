@@ -29,8 +29,14 @@ internal static class OfficeOpenXmlThemeColorResolver {
             varyColors.Val?.Value == false)
             return null;
         ChartColorStylePart? colorStylePart = chartPart.GetPartsOfType<ChartColorStylePart>().FirstOrDefault();
-        if (colorStylePart != null)
-            return ReadModernRadialPalette(colorStylePart, pointCount, scheme);
+        if (colorStylePart != null) {
+            ChartStylePart? stylePart = chartPart.GetPartsOfType<ChartStylePart>().FirstOrDefault();
+            if (stylePart == null || !HasAutomaticDataPointFill(stylePart))
+                throw new NotSupportedException("The modern chart style does not use the automatic data-point palette.");
+            bool multipleRings = series.Parent.Elements<C.PieChartSeries>().Skip(1).Any();
+            return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings)
+                ?? throw new NotSupportedException("The modern radial color style cannot be projected.");
+        }
         if (chartPart.GetPartsOfType<ChartStylePart>().Any()) return null;
         C.Style? style = series.Ancestors<C.ChartSpace>().FirstOrDefault()?
             .Descendants<C.Style>().FirstOrDefault();
@@ -45,8 +51,31 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return colors;
     }
 
+    private static bool HasAutomaticDataPointFill(ChartStylePart part) {
+        const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
+        try {
+            using var stream = part.GetStream();
+            using var reader = XmlReader.Create(stream, new XmlReaderSettings {
+                DtdProcessing = DtdProcessing.Prohibit,
+                XmlResolver = null,
+                MaxCharactersInDocument = 131072
+            });
+            XElement? root = XDocument.Load(reader).Root;
+            XElement? dataPoint = root?.Element(XName.Get("dataPoint", chartStyleNamespace));
+            XElement? fill = dataPoint?.Element(XName.Get("fillRef", chartStyleNamespace));
+            XElement? color = fill?.Element(XName.Get("styleClr", chartStyleNamespace));
+            return root?.Name == XName.Get("chartStyle", chartStyleNamespace) &&
+                dataPoint != null && dataPoint.Element(XName.Get("spPr", chartStyleNamespace)) == null &&
+                fill?.Attribute("idx")?.Value == "1" &&
+                fill.Elements().Count() == 1 && color?.Attribute("val")?.Value == "auto" &&
+                !color.HasElements;
+        } catch (XmlException) {
+            return false;
+        }
+    }
+
     private static OfficeColor[]? ReadModernRadialPalette(ChartColorStylePart part,
-        int pointCount, A.ColorScheme scheme) {
+        int pointCount, A.ColorScheme scheme, bool multipleRings) {
         const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
         const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
         try {
@@ -61,6 +90,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
                 (string?)root.Attribute("meth") != "cycle") return null;
             XElement? firstVariation = root.Elements(XName.Get("variation", chartStyleNamespace)).FirstOrDefault();
             if (firstVariation is { HasElements: true }) return null;
+            if (multipleRings && root.Elements(XName.Get("variation", chartStyleNamespace))
+                .Any(variation => variation.HasElements)) return null;
             XElement[] entries = root.Elements().Where(element => element.Name.NamespaceName == drawingNamespace)
                 .Take(pointCount + 1).ToArray();
             if (entries.Length < pointCount) return null;

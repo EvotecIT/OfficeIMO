@@ -42,6 +42,41 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Fact]
+    public void MultiRingDoughnutRejectsTransformedModernPalette() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Inner", new[] { 7d, 3d }),
+                new OfficeChartSeries("Outer", new[] { 2d, 8d })
+            }), 1, 1);
+        chart.ApplyStylePreset();
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
+    public void ModernPaletteRejectsNonAutomaticDataPointFill() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 7d, 3d })
+            }), 1, 1);
+        chart.ApplyStylePreset();
+        ChartPart chartPart = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single();
+        string styleXml;
+        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartStylePart>()).GetStream()))
+            styleXml = reader.ReadToEnd();
+        string colorXml;
+        using (var reader = new StreamReader(Assert.Single(chartPart.GetPartsOfType<ChartColorStylePart>()).GetStream()))
+            colorXml = reader.ReadToEnd();
+        string customStyle = styleXml.Replace("<cs:fillRef idx=\"1\"><cs:styleClr val=\"auto\"/></cs:fillRef>",
+            "<cs:fillRef idx=\"1\"><cs:styleClr val=\"accent1\"/></cs:fillRef>");
+        Assert.NotEqual(styleXml, customStyle);
+        chart.ApplyStylePreset(new ExcelChartStylePreset(customStyle, colorXml));
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
+    [Fact]
     public void ExcelProducedPieAndDoughnut_ProjectExplodedPoint() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "Excel",
             "exploded-slices.xlsx");
