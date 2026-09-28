@@ -3,6 +3,7 @@ using System.Data;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -109,5 +110,53 @@ public class CsvDataReaderWriterRegressionTests
         });
 
         Assert.Equal("||value\n", writer.ToString());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void WriteDataReader_CancellationKeepsCompletedRowsFromBatchedPaths(bool formattedTextDelimiter)
+    {
+        using var cancellation = new CancellationTokenSource();
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name" },
+            new[] { new object?[] { "Alpha" }, new object?[] { "Beta" } },
+            afterRead: index => { if (index == 1) cancellation.Cancel(); },
+            supportGetValues: formattedTextDelimiter);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        var options = new CsvSaveOptions {
+            NewLine = "\n",
+            DelimiterText = formattedTextDelimiter ? "||" : ",",
+            DateTimeFormat = formattedTextDelimiter ? "O" : null
+        };
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CsvDocument.WriteDataReader(writer, reader, options, cancellation.Token));
+
+        Assert.Equal("Name\nAlpha\n", writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_FormattingFailureDoesNotWritePartialBufferedRow()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Value" },
+            new[] {
+                new object?[] { "Alpha", "One" },
+                new object?[] { "Beta", new ThrowingCsvValue() }
+            },
+            supportGetValues: true);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        Assert.Throws<InvalidOperationException>(() => CsvDocument.WriteDataReader(
+            writer, reader,
+            new CsvSaveOptions { DelimiterText = "||", DateTimeFormat = "O", NewLine = "\n" }));
+
+        Assert.Equal("Name||Value\nAlpha||One\n", writer.ToString());
+    }
+
+    private sealed class ThrowingCsvValue
+    {
+        public override string ToString() => throw new InvalidOperationException("Value formatting failed.");
     }
 }
