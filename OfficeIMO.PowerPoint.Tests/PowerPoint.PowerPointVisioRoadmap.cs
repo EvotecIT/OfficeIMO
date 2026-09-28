@@ -29,7 +29,11 @@ namespace OfficeIMO.Tests {
             C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
             C.BarChart bar = plot.GetFirstChild<C.BarChart>()!;
             C.BarChartSeries series = bar.Elements<C.BarChartSeries>().First();
-            series.AddChild(new C.ChartShapeProperties(new A.Shape3DType(new A.BevelTop())), true);
+            // Keep the authored fill explicit: an automatic native series colour
+            // cannot be projected faithfully into a static chart snapshot.
+            series.AddChild(new C.ChartShapeProperties(
+                new A.SolidFill(new A.RgbColorModelHex { Val = "4472C4" }),
+                new A.Shape3DType(new A.BevelTop())), true);
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
             var advanced = new C.Bar3DChart(bar.ChildElements.Select(child => child.CloneNode(true)));
