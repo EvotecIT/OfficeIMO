@@ -200,6 +200,22 @@ namespace OfficeIMO.Tests {
             Assert.Null(snapshot.Data.Series.Single().PointColors);
         }
 
+        [Fact]
+        public void MultiRingDoughnutCanUpdateDataWithoutProjectingItsPalette() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            var categories = new[] { "A", "B" };
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartKind.Doughnut,
+                new OfficeChartData(categories, new[] {
+                    new OfficeChartSeries("Inner", new[] { 3d, 2d }),
+                    new OfficeChartSeries("Outer", new[] { 4d, 1d })
+                }), 1, 1, 20, 10);
+            chart.UpdateData(new OfficeChartData(categories, new[] {
+                new OfficeChartSeries("Inner", new[] { 5d, 6d }),
+                new OfficeChartSeries("Outer", new[] { 7d, 8d })
+            }));
+            Assert.Empty(presentation.ValidateDocument());
+        }
+
         [Theory]
         [InlineData(OfficeChartKind.Pie)]
         [InlineData(OfficeChartKind.Doughnut)]
