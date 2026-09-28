@@ -43,9 +43,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 throw new NotSupportedException("The native radial data label position cannot be projected.");
             if (layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser")
                 .Any(item => item.GetFirstChild<C.DataLabels>() is C.DataLabels seriesLabels &&
-                    (current.Visible || HasVisibleLabelContent(seriesLabels))))
+                    (current.Visible || HasVisibleLabelContent(seriesLabels, layer is C.PieChart or C.DoughnutChart))))
                 throw new NotSupportedException("Series-specific chart labels cannot be projected by this layout reader.");
-            if (!current.Visible && labels != null && HasVisibleLabelContent(labels))
+            if (!current.Visible && labels != null && HasVisibleLabelContent(labels, layer is C.PieChart or C.DoughnutChart))
                 throw new NotSupportedException("The native data label overrides cannot be projected.");
             if (!current.Visible) {
                 current.Separator = null;
@@ -79,11 +79,12 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     private static bool LabelFlag<T>(C.DataLabels? labels) where T : C.BooleanType =>
         labels?.GetFirstChild<T>() is T flag && flag.Val?.Value != false;
 
-    private static bool HasVisibleLabelContent(C.DataLabels labels) =>
+    private static bool HasVisibleLabelContent(C.DataLabels labels, bool radial) =>
         LabelFlag<C.ShowValue>(labels) || LabelFlag<C.ShowCategoryName>(labels) ||
-        LabelFlag<C.ShowSeriesName>(labels) || LabelFlag<C.ShowPercent>(labels) ||
+        LabelFlag<C.ShowSeriesName>(labels) || radial && LabelFlag<C.ShowPercent>(labels) ||
         LabelFlag<C.ShowLegendKey>(labels) || LabelFlag<C.ShowBubbleSize>(labels) ||
         labels.Elements<C.DataLabel>().Any(label => label.GetFirstChild<C.ChartText>() != null ||
             label.Descendants<C.BooleanType>().Any(flag => flag.Val?.Value != false &&
-                flag is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowPercent or C.ShowLegendKey or C.ShowBubbleSize));
+                flag is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowLegendKey or C.ShowBubbleSize ||
+                radial && flag is C.ShowPercent));
 }

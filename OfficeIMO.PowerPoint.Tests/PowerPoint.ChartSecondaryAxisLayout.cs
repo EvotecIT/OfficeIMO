@@ -1,10 +1,12 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests;
 
@@ -21,6 +23,47 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
 
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal("General", snapshot.Layout.VerticalAxisNumberFormat);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PrimarySourceLinkedAxisRejectsInheritedWorkbookStyles(bool columnStyle) {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var part = slide.SlidePart.ChartParts.Single();
+        part.ChartSpace!.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!.SourceLinked = true;
+        var package = part.GetPartsOfType<EmbeddedPackagePart>().Single();
+        using var bytes = new MemoryStream();
+        using (var source = package.GetStream(FileMode.Open, FileAccess.Read)) source.CopyTo(bytes);
+        bytes.Position = 0;
+        using (var workbook = SpreadsheetDocument.Open(bytes, true)) {
+            var stylesPart = workbook.WorkbookPart!.WorkbookStylesPart ??
+                workbook.WorkbookPart.AddNewPart<WorkbookStylesPart>();
+            var styles = stylesPart.Stylesheet ??= new S.Stylesheet();
+            var formats = styles.CellFormats ?? (styles.CellFormats = new S.CellFormats());
+            if (formats.ChildElements.Count == 0)
+                formats.Append(new S.CellFormat { NumberFormatId = 0U });
+            formats.Append(new S.CellFormat { NumberFormatId = 4U, FontId = 0U, FillId = 0U,
+                BorderId = 0U, FormatId = 0U, ApplyNumberFormat = true });
+            formats.Count = (uint)formats.ChildElements.Count;
+            styles.Save();
+            var worksheet = workbook.WorkbookPart.WorksheetParts.Single().Worksheet;
+            if (columnStyle) {
+                worksheet.InsertBefore(new S.Columns(new S.Column { Min = 1U, Max = 1U, Style = 1U }),
+                    worksheet.GetFirstChild<S.SheetData>());
+            } else {
+                worksheet.Descendants<S.Row>().First().StyleIndex = 1U;
+                worksheet.Descendants<S.Row>().First().CustomFormat = true;
+            }
+            worksheet.Save();
+        }
+        bytes.Position = 0;
+        package.FeedData(bytes);
+
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
     [Fact]

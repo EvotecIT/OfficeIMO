@@ -266,16 +266,19 @@ public sealed class WordChartOfficeSnapshotTests {
         labels.AddChild(new C.DataLabel(new C.Index { Val = 0 }), true);
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
-    [Fact]
-    public void OfficeSnapshot_IgnoresPercentFlagOnCartesianLabels() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeSnapshot_IgnoresPercentFlagOnCartesianLabels(bool showValue) {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" },
             new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
         var labels = chart.ChartPart!.ChartSpace!.Descendants<C.DataLabels>().Single();
         labels.GetFirstChild<C.ShowPercent>()!.Val = true;
-        labels.GetFirstChild<C.ShowValue>()!.Val = true;
+        labels.GetFirstChild<C.ShowValue>()!.Val = showValue;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.False(snapshot.Layout.ShowDataLabelPercentages);
+        Assert.Equal(showValue, snapshot.Layout.ShowDataLabels);
         var drawing = OfficeChartDrawingRenderer.Render(snapshot);
         Assert.DoesNotContain(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains("%"));
     }
