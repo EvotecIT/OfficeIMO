@@ -6,6 +6,46 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPlotClippingTests {
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void OneSidedBoundOutsideDataStillClipsSeries(OfficeChartKind kind) {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var series = kind == OfficeChartKind.Scatter
+            ? new OfficeChartSeries("Series", new[] { 10d, 20d }, new[] { 0d, 1d }, ink)
+            : new OfficeChartSeries("Series", new[] { 10d, 20d }, null, ink);
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
+        var layout = new OfficeChartLayout(showLegend: false, verticalAxisMaximum: 5);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, 360, 240, layout: layout));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        for (int y = 0; y < raster.Height; y++)
+            for (int x = 0; x < raster.Width; x++)
+                Assert.NotEqual(ink, raster.GetPixel(x, y));
+    }
+
+    [Fact]
+    public void ExtremeScatterOutlierKeepsTrueLineSlopeAtPlotBoundary() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", new[] { -1e9, .5d }, new[] { -1e12, .5d }, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 1);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
+            item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == ink));
+        OfficeDrawingShape line = Assert.Single(group.Drawing.Shapes,
+            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+        Assert.InRange(Math.Abs(line.X - group.X), 0D, .01D);
+        Assert.InRange(Math.Abs(line.Y - (group.Y + group.ClipPath.Height * .5d)), 0D, 1D);
+        Assert.True(line.Shape.Width > group.ClipPath.Width * .4d);
+        Assert.InRange(line.Shape.Height, 0D, 1D);
+    }
+
     [Fact]
     public void MixedBubblePaddingDoesNotExposeOffscaleScatterLine() {
         OfficeColor lineInk = OfficeColor.Parse("#D900AA");

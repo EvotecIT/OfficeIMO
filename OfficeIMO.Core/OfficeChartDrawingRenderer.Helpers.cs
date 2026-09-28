@@ -349,7 +349,17 @@ public static partial class OfficeChartDrawingRenderer {
             ? layout.HorizontalAxisMaximum ?? range.Max
             : layout.VerticalAxisMaximum ?? range.Max;
         if (max <= min) {
-            return range;
+            double span = range.Max - range.Min;
+            if (double.IsNaN(span) || double.IsInfinity(span) || span <= 0D)
+                span = 1D;
+            bool explicitMin = horizontal ? layout.HorizontalAxisMinimum.HasValue : layout.VerticalAxisMinimum.HasValue;
+            bool explicitMax = horizontal ? layout.HorizontalAxisMaximum.HasValue : layout.VerticalAxisMaximum.HasValue;
+            if (!explicitMin && !explicitMax) return range;
+            if (explicitMin && !explicitMax) max = min + span;
+            else if (explicitMax && !explicitMin) min = max - span;
+            else throw new ArgumentException("The value-axis maximum must exceed its minimum.", nameof(layout));
+            if (double.IsInfinity(min) || double.IsInfinity(max) || max <= min)
+                throw new ArgumentException("The value-axis bounds cannot form a finite range.", nameof(layout));
         }
 
         return new ValueRange(min, max);

@@ -1650,7 +1650,8 @@ public static partial class OfficeChartDrawingRenderer {
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(currentSeries, i, out double yValue)) {
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                        AddPointLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle);
+                        AddScatterPlotLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle,
+                            clipPlot, xRange, yRange, centerBounds);
                     }
 
                     lineSegment.Clear();
@@ -1660,7 +1661,8 @@ public static partial class OfficeChartDrawingRenderer {
                 double xValue = xValues[i];
                 if (!IsFiniteChartValue(xValue)) {
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                        AddPointLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle);
+                        AddScatterPlotLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle,
+                            clipPlot, xRange, yRange, centerBounds);
                     }
 
                     lineSegment.Clear();
@@ -1674,12 +1676,13 @@ public static partial class OfficeChartDrawingRenderer {
                 var point = new OfficePoint(x, y);
                 points.Add((point, i));
                 if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                    lineSegment.Add(point);
+                    lineSegment.Add(clipPlot ? new OfficePoint(xValue, yValue) : point);
                 }
             }
 
             if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                AddPointLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle);
+                AddScatterPlotLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle,
+                    clipPlot, xRange, yRange, centerBounds);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
