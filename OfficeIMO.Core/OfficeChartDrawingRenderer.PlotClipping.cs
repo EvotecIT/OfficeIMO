@@ -137,7 +137,9 @@ public static partial class OfficeChartDrawingRenderer {
             return false;
         double dx = x1 - x0;
         double dy = y1 - y0;
-        if (double.IsInfinity(dx) || double.IsInfinity(dy)) return false;
+        if (double.IsInfinity(dx) || double.IsInfinity(dy))
+            return TryClipScatterOverflowSegment(from, to, xRange, yRange, bounds,
+                out start, out end);
         double entry = 0D;
         double exit = 1D;
         if (!Clip(-dx, x0, ref entry, ref exit) || !Clip(dx, 1D - x0, ref entry, ref exit) ||
@@ -150,6 +152,60 @@ public static partial class OfficeChartDrawingRenderer {
         OfficePoint Map(double x, double y) => new OfficePoint(
             bounds.Left + bounds.Width * Math.Max(0D, Math.Min(1D, x)),
             bounds.Top + bounds.Height * (1D - Math.Max(0D, Math.Min(1D, y))));
+    }
+
+    private static bool TryClipScatterOverflowSegment(OfficePoint from, OfficePoint to,
+        ValueRange xRange, ValueRange yRange, ChartPlotBounds bounds,
+        out OfficePoint start, out OfficePoint end) {
+        start = default;
+        end = default;
+        // A difference of two finite opposite-sign values can overflow. Evaluate
+        // the line at the four plot edges using separately scaled coordinates;
+        // fractions near the middle of that enormous segment cannot distinguish
+        // the two plot edges in ordinary double precision.
+        double xScale = Math.Max(1D, Math.Max(Math.Abs(from.X), Math.Abs(to.X)));
+        double yScale = Math.Max(1D, Math.Max(Math.Abs(from.Y), Math.Abs(to.Y)));
+        double scaledX0 = from.X / xScale, scaledX1 = to.X / xScale;
+        double scaledY0 = from.Y / yScale, scaledY1 = to.Y / yScale;
+        var intersections = new List<OfficePoint>(4);
+
+        double scaledDx = scaledX1 - scaledX0;
+        if (scaledDx != 0D) {
+            double slope = (scaledY1 - scaledY0) / scaledDx;
+            double intercept = scaledY0 - slope * scaledX0;
+            AddCandidate(xRange.Min, (intercept + slope * (xRange.Min / xScale)) * yScale);
+            AddCandidate(xRange.Max, (intercept + slope * (xRange.Max / xScale)) * yScale);
+        }
+        double scaledDy = scaledY1 - scaledY0;
+        if (scaledDy != 0D) {
+            double slope = scaledDx / scaledDy;
+            double intercept = scaledX0 - slope * scaledY0;
+            AddCandidate((intercept + slope * (yRange.Min / yScale)) * xScale, yRange.Min);
+            AddCandidate((intercept + slope * (yRange.Max / yScale)) * xScale, yRange.Max);
+        }
+
+        double longest = 0D;
+        for (int i = 0; i < intersections.Count; i++)
+            for (int j = i + 1; j < intersections.Count; j++) {
+                double dx = intersections[j].X - intersections[i].X;
+                double dy = intersections[j].Y - intersections[i].Y;
+                double lengthSquared = dx * dx + dy * dy;
+                if (lengthSquared <= longest) continue;
+                longest = lengthSquared;
+                start = intersections[i];
+                end = intersections[j];
+            }
+        return longest > 0D;
+
+        void AddCandidate(double x, double y) {
+            if (double.IsNaN(x) || double.IsInfinity(x) ||
+                double.IsNaN(y) || double.IsInfinity(y) ||
+                x < xRange.Min || x > xRange.Max ||
+                y < yRange.Min || y > yRange.Max) return;
+            intersections.Add(new OfficePoint(
+                bounds.Left + bounds.Width * ((x - xRange.Min) / (xRange.Max - xRange.Min)),
+                bounds.Top + bounds.Height * (1D - (y - yRange.Min) / (yRange.Max - yRange.Min))));
+        }
     }
 
     private static bool Clip(double p, double q, ref double entry, ref double exit) {
