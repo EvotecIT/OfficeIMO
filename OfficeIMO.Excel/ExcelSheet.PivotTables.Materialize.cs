@@ -100,6 +100,7 @@ namespace OfficeIMO.Excel {
             internal ExcelCellData?[,] Values = null!;
             internal ExcelDateSystem SourceDateSystem;
             internal HashSet<(int Row, int Column)> DateCells = new();
+            internal Dictionary<(int Row, int Column), uint> NumberFormatCells = new();
             internal int Top, Left, Bottom, Right, OldBottom, OldRight, AffectedBottom, AffectedRight, SourceRecords;
             internal long SourceCellVisits, MeasureInputVisits;
         }
@@ -140,6 +141,7 @@ namespace OfficeIMO.Excel {
             ClearExistingCellFieldsInRange((plan.Top, plan.Left, plan.AffectedBottom, plan.AffectedRight), ExcelClearOptions.Values);
             ClearHeaderCache();
             var dateStyles = new Dictionary<uint, uint>();
+            var numberStyles = new Dictionary<(uint BaseStyle, uint Format), uint>();
             var existingDateStyles = plan.DateCells.Count == 0 ? null : StylesCache.Build(_spreadSheetDocument);
             for (int row = plan.Top; row <= plan.AffectedBottom; row++) {
                 token.ThrowIfCancellationRequested();
@@ -148,7 +150,13 @@ namespace OfficeIMO.Excel {
                     var value = plan.Values[row - plan.Top, column - plan.Left];
                     if (value?.Kind == ExcelCellDataKind.Error) CellError(row, column, (string)value.Value!);
                     else if (value != null) CellValue(row, column, value.Value);
-                    if (plan.DateCells.Contains((row - plan.Top, column - plan.Left))) {
+                    if (plan.NumberFormatCells.TryGetValue((row - plan.Top, column - plan.Left), out uint formatId)) {
+                        var cell = GetCell(row, column);
+                        uint style = cell.StyleIndex?.Value ?? 0U;
+                        if (!numberStyles.TryGetValue((style, formatId), out uint numberStyle))
+                            numberStyles.Add((style, formatId), numberStyle = GetOrCreateBuiltInNumberFormatStyleIndex(style, formatId));
+                        cell.StyleIndex = numberStyle;
+                    } else if (plan.DateCells.Contains((row - plan.Top, column - plan.Left))) {
                         var cell = GetCell(row, column);
                         uint style = cell.StyleIndex?.Value ?? 0U;
                         if (existingDateStyles?.IsDateLike(style) != true) {
@@ -209,6 +217,8 @@ namespace OfficeIMO.Excel {
             if (realFields.Any(field => field >= fields.Length) || pageFields.Any(field => field < 0 || field >= fieldCount)
                 || realFields.Concat(pageFields).Distinct().Count() != realFields.Length + pageFields.Length)
                 throw new NotSupportedException("The pivot axes or page fields do not match distinct source fields.");
+            if (realFields.Any(field => pivotFields[field].ShowAll?.Value == true))
+                throw new NotSupportedException("Pivot fields set to show all items can add empty combinations on Excel refresh and are not qualified for headless materialization.");
             var groupings = new Dictionary<int, PivotNumericGrouping>();
             var dateGroupings = new Dictionary<int, PivotDateGrouping>();
             var manualGroupings = new Dictionary<int, PivotManualGrouping>();

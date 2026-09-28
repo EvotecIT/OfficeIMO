@@ -500,10 +500,7 @@ namespace OfficeIMO.Excel {
                         fieldOptionMap.TryGetValue(i, out options);
                     }
 
-                    var pivotField = new PivotField {
-                        ShowAll = options?.ShowAll ?? !(generatedGroupingFields.Any(field => field.FieldIndex == i && field.NativeGrouping != null)
-                            || pivotFilterList.Any(filter => headerIndex.TryGetValue(filter.FieldName, out int index) && index == i))
-                    };
+                    var pivotField = new PivotField { ShowAll = options?.ShowAll ?? false };
                     if (pageFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisPage;
                     if (rowFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisRow;
                     if (columnFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisColumn;

@@ -250,7 +250,7 @@ namespace OfficeIMO.Tests {
 
         [Theory]
         [InlineData("date")]
-        [InlineData("number")]
+        [InlineData("other-number-format")]
         public void Test_PivotLabelContains_DoesNotMaterializeUnqualifiedFormattedCaptions(string kind) {
             string output = Path.Combine(_directoryWithFiles, $"Filter.{kind}.Unqualified.xlsx");
             using (var document = ExcelDocument.Create()) {
@@ -266,8 +266,9 @@ namespace OfficeIMO.Tests {
                 }
                 source.CellValue(2, 2, 20d);
                 source.CellValue(3, 2, 30d);
-                source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric")
-                    .Layout(ExcelPivotLayout.Tabular)
+                var builder = source.Pivot("A1:B3").Rows("Item").Sum("Sales", "Metric");
+                if (kind != "date") builder.FieldNumberFormat("Item", "0.00");
+                builder.Layout(ExcelPivotLayout.Tabular)
                     .Filter(ExcelPivotFilter.LabelContains("Item", kind == "date" ? "2025" : "1"))
                     .At("D4", "FilteredPivot");
                 Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("FilteredPivot"));

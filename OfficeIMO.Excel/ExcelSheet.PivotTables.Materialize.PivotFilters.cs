@@ -23,29 +23,45 @@ namespace OfficeIMO.Excel {
 
             foreach (var filter in filters.Where(IsMaterializedPivotLabelComparison)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
-                if (maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date
-                    || key.Kind == PivotFieldValueKind.Number))
-                    throw new NotSupportedException("Label-filter materialization has not qualified formatted date or numeric captions.");
+                bool numericItems = maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Number);
+                if (maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date))
+                    throw new NotSupportedException("Label-filter materialization has not qualified formatted date captions.");
+                uint numberFormatId = 0;
+                string? numberFormatCode = null;
+                if (numericItems) {
+                    var pivotFields = definition.PivotFields?.Elements<PivotField>().ToArray() ?? Array.Empty<PivotField>();
+                    if (field >= pivotFields.Length)
+                        throw new NotSupportedException("The numeric label field has no saved pivot format.");
+                    numberFormatId = pivotFields[field].NumberFormatId?.Value ?? 0;
+                    if (numberFormatId != 0) {
+                        var workbookPart = _excelDocument.WorkbookPartRoot
+                            ?? throw new InvalidOperationException("WorkbookPart is null");
+                        if (!BuildNumberFormatCodeMap(workbookPart).TryGetValue(numberFormatId, out numberFormatCode)
+                            || !string.Equals(numberFormatCode, "#,##0", StringComparison.Ordinal))
+                            throw new NotSupportedException("The numeric label format is not qualified for materialization.");
+                    }
+                }
+                string DisplayCaption(PivotFieldValue key) {
+                    if (captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? renamed))
+                        return renamed;
+                    return PivotMaterializedCaption(key, _excelDocument.DateSystem, numberFormatId, numberFormatCode);
+                }
                 string needle = filter.StringValue1?.Value
                     ?? throw new NotSupportedException("The label filter has no saved criterion.");
                 var type = filter.Type!.Value;
                 HashSet<PivotFieldValue> included;
                 if (IsMaterializedPivotLabelRange(type)) {
+                    if (numericItems)
+                        throw new NotSupportedException("Numeric label ordering is not qualified for materialization.");
                     string? second = filter.StringValue2?.Value;
                     ValidateMaterializedPivotLabelRangePredicate(filter, needle, second);
                     if (!IsQualifiedPivotLabelOrderingText(needle)
                         || (second != null && !IsQualifiedPivotLabelOrderingText(second))
-                        || maps[field].Items.Any(key => {
-                            string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
-                                ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
-                            return !IsQualifiedPivotLabelOrderingText(label);
-                        }))
+                        || maps[field].Items.Any(key => !IsQualifiedPivotLabelOrderingText(DisplayCaption(key))))
                         throw new NotSupportedException("Label range materialization requires ASCII alphabetic captions and criteria; localized text ordering is not qualified.");
                     CompareInfo compareInfo = CultureInfo.CurrentCulture.CompareInfo;
                     included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
-                        string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
-                            ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
-                        return MatchesMaterializedPivotLabelRange(label, needle, second, type, compareInfo);
+                        return MatchesMaterializedPivotLabelRange(DisplayCaption(key), needle, second, type, compareInfo);
                     }));
                 } else {
                     string savedPattern = NormalizePivotFilterAutoFilterValue(type, needle);
@@ -55,9 +71,7 @@ namespace OfficeIMO.Excel {
                         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
                     bool negate = comparison == FilterOperatorValues.NotEqual;
                     included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
-                        string label = captions.TryGetValue(field, out var names) && names.TryGetValue(key, out string? caption)
-                            ? caption : PivotMaterializedCaption(key, _excelDocument.DateSystem);
-                        return pattern.IsMatch(label) != negate;
+                        return pattern.IsMatch(DisplayCaption(key)) != negate;
                     }));
                 }
                 FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,

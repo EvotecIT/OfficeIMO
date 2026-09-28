@@ -298,7 +298,11 @@ namespace OfficeIMO.Excel {
             string numericFormat = thousands || currency
                 ? "N" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture)
                 : "F" + decimalPlaces.Maximum.ToString(CultureInfo.InvariantCulture);
-            string text = displayValue.ToString(numericFormat, CultureInfo.InvariantCulture);
+            double roundedValue = decimalPlaces.Maximum <= 15
+                && !double.IsNaN(displayValue) && !double.IsInfinity(displayValue)
+                ? Math.Round(displayValue, decimalPlaces.Maximum, MidpointRounding.AwayFromZero)
+                : displayValue;
+            string text = roundedValue.ToString(numericFormat, CultureInfo.InvariantCulture);
             if (decimalPlaces.Optional > 0) {
                 text = TrimOptionalDecimalPlaces(text, decimalPlaces.Required);
             }

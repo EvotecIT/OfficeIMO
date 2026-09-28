@@ -651,8 +651,10 @@ New source keys remain excluded from a manually filtered field unless its
 `IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
 records is rejected before changing the saved view.
 Materialization supports label equals, begins with, ends with, contains, and
-their negations on ordinary row or column fields with text, Boolean, blank, or
-error captions. It also supports label greater/less comparisons and inclusive
+their negations on ordinary row or column fields with text, Boolean, blank,
+error, or numeric captions. Numeric captions use General or `#,##0` pivot-field
+formatting; other numeric formats and date captions remain unqualified. It also
+supports label greater/less comparisons and inclusive
 between or exclusive not-between ranges when every caption and criterion uses
 ASCII letters. Other text is rejected because Excel's localized ordering can
 select different items. Qualified label comparisons use the current process
@@ -702,8 +704,8 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Other date levels and layouts, custom non-text grouping, formatted date/numeric label filters,
-localized label range ordering, other label/value pivot filter types and multi-field value filtering,
+Other date levels and layouts, custom non-text grouping, formatted date and broader numeric label filters,
+localized label range ordering, explicit show-all empty item combinations, other label/value pivot filter types and multi-field value filtering,
 calculated fields, incompatible shared-cache groupings, and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.

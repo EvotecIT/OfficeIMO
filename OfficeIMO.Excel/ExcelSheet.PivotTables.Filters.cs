@@ -128,6 +128,18 @@ namespace OfficeIMO.Excel {
                 return autoFilter;
             }
 
+            // Excel persists a plain caption equality as a value selection. A custom
+            // equality can stop matching rounded numeric captions after refresh.
+            if (filter.Type.ToOpenXml() == PivotFilterValues.CaptionEqual
+                && filter.Value1 is string exactCaption
+                && exactCaption.IndexOfAny(new[] { '*', '?', '~' }) < 0) {
+                var values = new Filters();
+                values.Append(new Filter { Val = exactCaption });
+                filterColumn.Append(values);
+                autoFilter.Append(filterColumn);
+                return autoFilter;
+            }
+
             CustomFilters customFilters;
 
             if (TryResolveBetweenFilter(filter.Type.ToOpenXml(), out var firstOperator, out var secondOperator, out bool matchAll)) {
