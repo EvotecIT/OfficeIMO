@@ -8,6 +8,13 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
+        internal static void MaterializeDefaultSeriesColor(OpenXmlCompositeElement element,
+            OfficeChartKind kind, int seriesIndex) {
+            var appearance = new OfficeChartSeries(string.Empty, Array.Empty<double>(), null,
+                OfficeChartStyle.Default.GetSeriesColor(seriesIndex));
+            ApplySharedSeriesShapeStyle(element, appearance, kind, null);
+        }
+
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
             OfficeChartSeries series, OfficeChartKind kind,
             OfficeColor? fallbackFillColor) {
