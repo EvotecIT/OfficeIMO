@@ -389,9 +389,9 @@ public static partial class OfficeDrawingRasterRenderer {
             }
             return true;
         }
-        // Only validated animated WebP intentionally delegates pixel decoding
-        // to a caller codec. A rejected managed raster must not bypass its
-        // container and aggregate inspection limits through that fallback.
+        // Validated animated WebP and static WebP with a separate alpha plane
+        // delegate pixel decoding to a caller codec. A rejected managed raster
+        // must not bypass its container and aggregate inspection limits.
         bool callerCodecInputWithinLimit = bytes.Length <= decodeOptions.MaximumEncodedBytes;
         bool callerDecodedWebp = callerCodecInputWithinLimit && decodeInfo.Container?.Format == OfficeImageFormat.Webp &&
             decodeInfo.Container.IsAnimated ||
