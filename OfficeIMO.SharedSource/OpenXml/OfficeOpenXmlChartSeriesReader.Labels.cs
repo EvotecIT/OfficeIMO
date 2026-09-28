@@ -12,6 +12,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     internal sealed class LabelLayout {
         internal bool Values, Categories, SeriesNames, Percentages, LeaderLines;
         internal double? FontSize;
+        internal string? FontFamily;
         internal OfficeFontStyle? FontStyle;
         internal OfficeColor? TextColor;
         internal bool Visible => Values || Categories || SeriesNames || Percentages;
@@ -21,6 +22,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             SeriesNames == other.SeriesNames && Percentages == other.Percentages && Separator == other.Separator &&
             NumberFormat == other.NumberFormat && Position == other.Position &&
             LeaderLines == other.LeaderLines && FontSize == other.FontSize &&
+            string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase) &&
             FontStyle == other.FontStyle && Nullable.Equals(TextColor, other.TextColor);
     }
 
@@ -77,6 +79,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                     throw new NotSupportedException("Styled chart data-label text inheritance cannot be projected.");
                 NativeText text = ReadNativeText(chart, labels, scheme);
                 current.FontSize = text.Size;
+                current.FontFamily = text.Family;
                 current.FontStyle = text.Style;
                 current.TextColor = text.Color;
                 if (HasUnsupportedSharedAxisNumberFormat(labels))

@@ -9,6 +9,35 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public class WordChartSeriesQualificationTests {
+    [Fact]
+    public void OfficeSnapshot_HidesLegendByPlottedOrdinal() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("First", new[] { 1d }), new OfficeChartSeries("Second", new[] { 2d }) }));
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.Descendants<C.LineChartSeries>().First().Index!.Val = 5;
+        native.GetFirstChild<C.Legend>()!.AddChild(
+            new C.LegendEntry(new C.Index { Val = 0 }, new C.Delete { Val = true }), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.False(snapshot.Data.Series[0].ShowInLegend);
+        Assert.True(snapshot.Data.Series[1].ShowInLegend);
+    }
+
+    [Fact]
+    public void OfficeSnapshot_RejectsDistinctCategoryAxesInOneGroup() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
+                new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartKind.Line) }));
+        C.PlotArea plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.CategoryAxis second = (C.CategoryAxis)plot.GetFirstChild<C.CategoryAxis>()!.CloneNode(true);
+        second.AxisId!.Val = 700001;
+        plot.GetFirstChild<C.LineChart>()!.GetFirstChild<C.AxisId>()!.Val = 700001;
+        plot.Append(second);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

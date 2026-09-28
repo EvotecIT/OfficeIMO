@@ -1,6 +1,7 @@
 using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -73,6 +74,34 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
         native.AddChild(labels, true);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(18D, snapshot.Layout.DataLabelFontSize);
+    }
+
+    [Fact]
+    public void NativeDataLabelsPreserveExplicitTypeface() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 3d, 4d })
+            }));
+        chart.SetDataLabels(showValue: true);
+        ChartPart chartPart = slide.SlidePart.ChartParts.Single();
+        foreach (ChartStylePart stylePart in chartPart.GetPartsOfType<ChartStylePart>().ToArray())
+            chartPart.DeletePart(stylePart);
+        C.DataLabels labels = chartPart.ChartSpace!
+            .Descendants<C.BarChart>().Single().GetFirstChild<C.DataLabels>()!;
+        labels.GetFirstChild<C.TextProperties>()?.Remove();
+        labels.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
+                new A.LatinFont { Typeface = "Georgia" })))), true);
+        Assert.Contains("Georgia", labels.OuterXml);
+        Assert.Equal("Georgia", labels.GetFirstChild<C.TextProperties>()?
+            .Descendants<A.LatinFont>().Single().Typeface?.Value);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal("Georgia", snapshot.Layout.DataLabelFontFamily);
+        Assert.Contains(OfficeChartDrawingRenderer.Render(snapshot).Elements.OfType<OfficeDrawingText>(),
+            text => text.Font.FamilyName == "Georgia");
     }
 
     [Fact]

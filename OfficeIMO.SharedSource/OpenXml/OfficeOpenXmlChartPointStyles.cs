@@ -183,13 +183,14 @@ internal static class OfficeOpenXmlChartPointStyles {
         OpenXmlCompositeElement styleOwner = pointMarker?.GetFirstChild<C.ChartShapeProperties>() != null
             ? pointMarker : point;
         C.ChartShapeProperties properties = styleOwner.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
-        properties.RemoveAllChildren<A.SolidFill>();
-        properties.RemoveAllChildren<A.NoFill>();
-        properties.RemoveAllChildren<A.PatternFill>();
-        properties.RemoveAllChildren<A.GradientFill>();
-        properties.RemoveAllChildren<A.BlipFill>();
-        properties.RemoveAllChildren<A.GroupFill>();
-        properties.RemoveAllChildren<A.Outline>();
+        C.ChartShapeProperties? competing = styleOwner == point
+            ? pointMarker?.GetFirstChild<C.ChartShapeProperties>()
+            : point.GetFirstChild<C.ChartShapeProperties>();
+        if (competing != null) {
+            ClearPointAppearance(competing);
+            if (!competing.HasChildren) competing.Remove();
+        }
+        ClearPointAppearance(properties);
         if (style?.NoFill == true) properties.AddChild(new A.NoFill(), true);
         else if (style?.Hatch is OfficeChartHatchPattern hatch) {
             var preset = new EnumValue<A.PresetPatternValues> { InnerText = HatchToken(hatch) };
@@ -212,6 +213,16 @@ internal static class OfficeOpenXmlChartPointStyles {
         }
         if (properties.Parent == null && properties.HasChildren) styleOwner.AddChild(properties, true);
         else if (!properties.HasChildren && properties.Parent != null) properties.Remove();
+    }
+
+    private static void ClearPointAppearance(C.ChartShapeProperties properties) {
+        properties.RemoveAllChildren<A.SolidFill>();
+        properties.RemoveAllChildren<A.NoFill>();
+        properties.RemoveAllChildren<A.PatternFill>();
+        properties.RemoveAllChildren<A.GradientFill>();
+        properties.RemoveAllChildren<A.BlipFill>();
+        properties.RemoveAllChildren<A.GroupFill>();
+        properties.RemoveAllChildren<A.Outline>();
     }
 
     private static A.RgbColorModelHex CreateColor(OfficeColor color) {

@@ -9,6 +9,50 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public class PowerPointSharedChartSeriesQualificationTests {
+    [Fact]
+    public void NativeUpdate_KeepsPointFormattingWithPlottedSeriesOrder() {
+        using var presentation = PowerPointPresentation.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("First", new[] { 1d }),
+                new OfficeChartSeries("Second", new[] { 2d }) }));
+        C.BarChartSeries[] native = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
+            .Descendants<C.BarChartSeries>().ToArray();
+        native[0].Index!.Val = 5; native[0].Order!.Val = 1;
+        native[1].Index!.Val = 7; native[1].Order!.Val = 0;
+        native[0].AddChild(new C.DataPoint(new C.Index { Val = 0 },
+            new C.ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" }))), true);
+        native[1].AddChild(new C.DataPoint(new C.Index { Val = 0 },
+            new C.ChartShapeProperties(new A.SolidFill(new A.RgbColorModelHex { Val = "0000FF" }))), true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot before));
+        Assert.Equal(new[] { "Second", "First" }, before.Data.Series.Select(series => series.Name));
+        chart.UpdateData(before.Data);
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot after));
+        Assert.Equal(new[] { "Second", "First" }, after.Data.Series.Select(series => series.Name));
+        Assert.Equal(OfficeColor.FromRgb(0, 0, 255), after.Data.Series[0].PointStyles![0]!.FillColor);
+        Assert.Equal(OfficeColor.FromRgb(255, 0, 0), after.Data.Series[1].PointStyles![0]!.FillColor);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Fact]
+    public void NativeUpdate_PreservesUnresolvedPointColorWhenOnlyDataChanges() {
+        using var presentation = PowerPointPresentation.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 1d }) }));
+        C.PieChartSeries series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
+            .Descendants<C.PieChartSeries>().Single();
+        var point = new C.DataPoint(new C.Index { Val = 0 },
+            new C.ChartShapeProperties(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.PhColor })));
+        series.AddChild(point, true);
+        string appearance = point.OuterXml;
+        chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 2d }) }));
+        series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
+            .Descendants<C.PieChartSeries>().Single();
+        Assert.Equal(appearance, series.GetFirstChild<C.DataPoint>()!.OuterXml);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

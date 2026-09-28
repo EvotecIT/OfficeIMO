@@ -213,8 +213,9 @@ namespace OfficeIMO.Word {
             string? relationshipId = _externalRelationshipId ?? RelationshipId;
             occurrence.Remove();
             bool referenced = relationshipId != null && owner.RootElement?.Descendants().Any(element =>
-                element is Blip blip && (blip.Embed?.Value == relationshipId || blip.Link?.Value == relationshipId) ||
-                element is V.ImageData data && data.RelationshipId?.Value == relationshipId) == true;
+                element.GetAttributes().Any(attribute =>
+                    attribute.NamespaceUri == "http://schemas.openxmlformats.org/officeDocument/2006/relationships" &&
+                    attribute.Value == relationshipId)) == true;
             if (referenced) return;
             if (_imagePart != null) {
                 owner.DeletePart(_imagePart);
