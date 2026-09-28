@@ -26,6 +26,28 @@ public sealed class DrawingChartPlotClippingTests {
     }
 
     [Fact]
+    public void ExplicitExtremeScatterBoundsKeepTheConnectedLine() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", new[] { -double.MaxValue, double.MaxValue },
+                new[] { -double.MaxValue, double.MaxValue }, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: -double.MaxValue, horizontalAxisMaximum: double.MaxValue,
+            verticalAxisMinimum: -double.MaxValue, verticalAxisMaximum: double.MaxValue);
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
+            item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == ink));
+        OfficeDrawingShape line = Assert.Single(group.Drawing.Shapes,
+            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+        Assert.True(line.Shape.Width > group.ClipPath.Width * .99D);
+        Assert.True(line.Shape.Height > group.ClipPath.Height * .99D);
+    }
+
+    [Fact]
     public void ClippedAreaDoesNotOutlineTheArtificialUpperEdge() {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
         var data = new OfficeChartData(new[] { "A", "B" }, new[] {

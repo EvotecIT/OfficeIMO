@@ -222,16 +222,20 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double GetPlotRatio(double value, double min, double max) {
-        double range = max - min;
-        double ratio = range <= 0D ? 0.5D : double.IsInfinity(range)
-            ? (value * 0.5D - min * 0.5D) / (max * 0.5D - min * 0.5D)
-            : (value - min) / range;
+        double ratio = GetUnclampedPlotRatio(value, min, max);
         if (ratio < 0D) {
             ratio = 0D;
         } else if (ratio > 1D) {
             ratio = 1D;
         }
         return ratio;
+    }
+
+    private static double GetUnclampedPlotRatio(double value, double min, double max) {
+        double range = max - min;
+        return range <= 0D ? 0.5D : double.IsInfinity(range)
+            ? (value * 0.5D - min * 0.5D) / (max * 0.5D - min * 0.5D)
+            : (value - min) / range;
     }
 
     private static IReadOnlyList<double> GetScatterXValues(IReadOnlyList<string> categories) {
