@@ -308,11 +308,12 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
     // MeasureAdvanceWidth1000's loop (same usage recording, same missing-glyph throw); ForRendering never
     // reports control characters, so that branch is not part of the contract and the hex equals
     // ToGlyphHex over the same shaped glyphs.
-    public static string EncodeGlyphHex(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText) {
+    public static string EncodeGlyphHex(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText, out int advanceWidth1000) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
         var sb = PdfGlyphRun.RentHexBuilder(text.Length * 4);
+        advanceWidth1000 = 0;
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
@@ -324,6 +325,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 }
 
                 PdfGlyphRun.AppendGlyphHex(sb, ligatureGlyphId);
+                advanceWidth1000 = checked(advanceWidth1000 + font.GetGlyphWidth1000(ligatureGlyphId));
                 index += ligatureLength;
                 continue;
             }
@@ -346,6 +348,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             PdfGlyphRun.AppendGlyphHex(sb, glyphId);
+            advanceWidth1000 = checked(advanceWidth1000 + font.GetGlyphWidth1000(glyphId));
         }
 
         actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft ? text : null;

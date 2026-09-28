@@ -360,7 +360,7 @@ internal static partial class PdfWriter {
                 }
             }
 
-            double firstBaseline = cellTop - padTop - verticalOffset - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
+            double firstBaseline = cellTop - padTop - verticalOffset - lines.TopSpacing - GetAscenderForOptions(cellFont, fontSize, currentOpts) + style.RowBaselineOffset;
             var visibleLines = SliceTableCellLines(lines, 0, lineCount);
             var visibleHeights = SliceTableCellLineHeights(lines, 0, lineCount, leading);
             var visibleAlignments = SliceTableCellLineAlignments(lines, 0, lineCount);

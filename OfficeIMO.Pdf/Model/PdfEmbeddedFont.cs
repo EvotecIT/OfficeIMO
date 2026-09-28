@@ -11,7 +11,7 @@ public sealed class PdfEmbeddedFont {
         : this(font, data, fontName, cloneData: true) {
     }
 
-    internal PdfEmbeddedFont(PdfStandardFont font, byte[] data, string? fontName, bool cloneData) {
+    internal PdfEmbeddedFont(PdfStandardFont font, byte[] data, string? fontName, bool cloneData, bool syntheticOblique = false) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font mapping must target one of the supported standard PDF font slots.");
         Guard.NotNull(data, nameof(data));
         if (data.Length == 0) {
@@ -23,6 +23,7 @@ public sealed class PdfEmbeddedFont {
         Font = font;
         _data = cloneData ? (byte[])data.Clone() : data;
         FontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
+        SyntheticOblique = syntheticOblique;
     }
 
     /// <summary>Standard PDF font slot that this font file replaces in generated output.</summary>
@@ -35,6 +36,7 @@ public sealed class PdfEmbeddedFont {
     public byte[] Data => (byte[])_data.Clone();
 
     internal byte[] DataSnapshot => _data;
+    internal bool SyntheticOblique { get; }
 
     internal PdfEmbeddedFont Clone() => this;
 }

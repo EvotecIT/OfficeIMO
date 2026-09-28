@@ -160,17 +160,21 @@ public class PdfFormCreationTests {
         Assert.True(info.Pages[0].HasFormWidgets);
     }
 
-    [Fact]
-    public void TableCellCheckBox_RendersInlineWithSingleLineText() {
+    [Theory]
+    [InlineData(0D)]
+    [InlineData(5D)]
+    public void TableCellCheckBox_RendersInlineWithSingleLineText(double spacingBefore) {
+        var runs = new[] { new PdfTextRun("Table approval") };
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageSize = new PageSize(300, 180),
                 Margins = PageMargins.Uniform(24)
             })
             .Table(new[] {
                 new[] {
-                    PdfTableCell.WithCheckBoxes(
-                        "Table approval",
-                        new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: 12) })
+                    new PdfTableCell(
+                        runs,
+                        new[] { new PdfTableCellParagraph(runs, spacingBefore: spacingBefore) },
+                        checkBoxes: new[] { new PdfTableCellCheckBox("Table.InlineApproved", isChecked: true, size: 12) })
                 }
             }, style: TableStyles.Light())
             .ToBytes();

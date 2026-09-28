@@ -12,7 +12,7 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder SaveState() {
-        _textStates.Push((_textScale, _textLeading, _textWordSpacing));
+        _textStates.Push((_textScale, _textLeading, _textWordSpacing, _syntheticOblique));
         _sb.Append("q\n");
         return this;
     }
@@ -21,6 +21,7 @@ internal sealed partial class ContentStreamBuilder {
         if (_textStates.Count != 0) {
             var state = _textStates.Pop();
             _textScale = state.Scale; _textLeading = state.Leading; _textWordSpacing = state.WordSpacing;
+            _syntheticOblique = state.SyntheticOblique;
         }
         _sb.Append("Q\n");
         return this;
@@ -198,9 +199,20 @@ internal sealed partial class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder Font(string resourceName, double size) {
+    public ContentStreamBuilder Font(string resourceName, double size, bool syntheticOblique = false) {
         Guard.NotNullOrWhiteSpace(resourceName, nameof(resourceName));
         _sb.Append('/').Append(resourceName).Append(' ').Append(F(size)).Append(" Tf\n");
+        if (_syntheticOblique != syntheticOblique) {
+            double previousShear = _syntheticOblique ? SyntheticObliqueShear : 0D;
+            _syntheticOblique = syntheticOblique;
+            if (_hasTextMatrix) {
+                double nextShear = syntheticOblique ? SyntheticObliqueShear : 0D;
+                TextMatrixApplied(_textA, _textB,
+                    _textC + (nextShear - previousShear) * _textA,
+                    _textD + (nextShear - previousShear) * _textB,
+                    _textE, _textF);
+            }
+        }
         return this;
     }
 
@@ -215,6 +227,11 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder TextMatrix(double a, double b, double c, double d, double e, double f) {
+        double shear = _syntheticOblique ? SyntheticObliqueShear : 0D;
+        return TextMatrixApplied(a, b, c + shear * a, d + shear * b, e, f);
+    }
+
+    private ContentStreamBuilder TextMatrixApplied(double a, double b, double c, double d, double e, double f) {
         TrackTextMatrix(a, b, c, d, e, f);
         _sb.Append(F(a)).Append(' ')
             .Append(F(b)).Append(' ')
@@ -226,15 +243,18 @@ internal sealed partial class ContentStreamBuilder {
     }
 
     public ContentStreamBuilder MoveText(double x, double y) {
-        if (_isolatedText) return TextMatrix(_textA, _textB, _textC, _textD, _lineE + _textA * x + _textC * y, _lineF + _textB * x + _textD * y);
-        _lineE += _textA * x + _textC * y; _lineF += _textB * x + _textD * y;
+        double shear = _syntheticOblique ? SyntheticObliqueShear : 0D;
+        double xAdvance = _textA * x + (_textC - shear * _textA) * y;
+        double yAdvance = _textB * x + (_textD - shear * _textB) * y;
+        if (_isolatedText || _syntheticOblique) return TextMatrixApplied(_textA, _textB, _textC, _textD, _lineE + xAdvance, _lineF + yAdvance);
+        _lineE += xAdvance; _lineF += yAdvance;
         _textE = _lineE; _textF = _lineF;
         _sb.Append(F(x)).Append(' ').Append(F(y)).Append(" Td\n");
         return this;
     }
 
     public ContentStreamBuilder NextTextLine() {
-        if (_isolatedText) return MoveText(0, -_textLeading);
+        if (_isolatedText || _syntheticOblique) return MoveText(0, -_textLeading);
         _lineE -= _textC * _textLeading; _lineF -= _textD * _textLeading;
         _textE = _lineE; _textF = _lineF;
         _sb.Append("T*\n");
