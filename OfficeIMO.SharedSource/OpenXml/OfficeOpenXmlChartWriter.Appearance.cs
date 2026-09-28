@@ -8,6 +8,21 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
+        private static OfficeColor? ReadDirectSeriesColor(OpenXmlCompositeElement seriesElement) {
+            var properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
+            var marker = seriesElement.GetFirstChild<C.Marker>()?.ChartShapeProperties;
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), null)
+                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), null)
+                ?? OfficeOpenXmlThemeColorResolver.ResolveColor(marker?.GetFirstChild<A.SolidFill>(), null);
+        }
+
+        internal static void MaterializeDefaultSeriesColor(OpenXmlCompositeElement element,
+            OfficeChartKind kind, int seriesIndex) {
+            var appearance = new OfficeChartSeries(string.Empty, Array.Empty<double>(), null,
+                OfficeChartStyle.Default.GetSeriesColor(seriesIndex));
+            ApplySharedSeriesShapeStyle(element, appearance, kind, null);
+        }
+
         private static void ApplySharedSeriesShapeStyle(OpenXmlCompositeElement seriesElement,
             OfficeChartSeries series, OfficeChartKind kind,
             OfficeColor? fallbackFillColor) {
@@ -82,21 +97,22 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void ApplySharedSeriesMarker(OpenXmlCompositeElement seriesElement,
-            OfficeChartSeries series, OfficeChartKind kind) {
+            OfficeChartSeries series, OfficeChartKind kind, OfficeColor? fallbackColor) {
             if (!IsMarkerKind(kind)) return;
             C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
             marker.Symbol = new C.Symbol {
                 Val = series.ShowMarkers ? MapMarker(series.MarkerShape) : C.MarkerStyleValues.None
             };
             if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = (byte)OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value) };
-            if (series.Color.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
+            OfficeColor? markerFill = series.Color ?? fallbackColor;
+            if (markerFill.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
                 C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
-                if (series.Color.HasValue) {
+                if (markerFill.HasValue) {
                     RemoveSharedFillChoices(properties);
-                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(series.Color.Value)), true);
+                    properties.AddChild(new A.SolidFill(CreateSharedRgbColor(markerFill.Value)), true);
                 }
                 A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
-                OfficeColor? markerColor = series.MarkerOutlineColor ?? series.Color;
+                OfficeColor? markerColor = series.MarkerOutlineColor ?? markerFill;
                 if (markerColor.HasValue) {
                     RemoveSharedFillChoices(outline);
                     outline.AddChild(new A.SolidFill(CreateSharedRgbColor(markerColor.Value)), true);
