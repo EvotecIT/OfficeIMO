@@ -27,7 +27,9 @@ try {
         [pscustomobject]@{ Key = 'midpoint-negative'; Type = 15; Criterion = '-3'; Format = '#,##0'; Values = @('=-5/2', '=9/2'); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'decimal-two'; Type = 15; Criterion = '1.20'; Format = '0.00'; Values = @(1.2, 2.3); Total = 10.0; Range = 'A4:B6' },
         [pscustomobject]@{ Key = 'percent-one'; Type = 15; Criterion = '12.5%'; Format = '0.0%'; Values = @(0.125, 0.25); Total = 10.0; Range = 'A4:B6' },
-        [pscustomobject]@{ Key = 'decimal-midpoint'; Type = 15; Criterion = '1.3'; Format = '0.0'; Values = @('=5/4', '=9/4'); Total = 10.0; Range = 'A4:B6' }
+        [pscustomobject]@{ Key = 'decimal-midpoint'; Type = 15; Criterion = '1.3'; Format = '0.0'; Values = @('=5/4', '=9/4'); Total = 10.0; Range = 'A4:B6' },
+        [pscustomobject]@{ Key = 'duplicate-caption-unfiltered'; Type = $null; Criterion = $null; Format = '0.0'; Values = @(1.21, 1.24, 2.26); Total = 60.0; Range = 'A4:B8' },
+        [pscustomobject]@{ Key = 'duplicate-caption-equals'; Type = 15; Criterion = '1.2'; Format = '0.0'; Values = @(1.21, 1.24, 2.26); Total = 30.0; Range = 'A4:B7' }
     )
     if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
         throw "Unknown pivot label fixture kind: $($Kinds -join ', ')"
@@ -61,7 +63,7 @@ try {
         [void]$pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
         $pivot.RowAxisLayout(1)
         [void]$pivot.RefreshTable()
-        [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.Criterion)
+        if ($null -ne $case.Type) { [void]$field.PivotFilters.Add2($case.Type, [Type]::Missing, $case.Criterion) }
         $lookups = $workbook.Worksheets.Add()
         $lookups.Name = 'Lookups'
         $lookups.Cells.Item(1, 2).Formula = '=GETPIVOTDATA("Metric",Grouped!$A$4)'

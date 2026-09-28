@@ -660,7 +660,10 @@ between or exclusive not-between ranges when every caption and criterion uses
 ASCII letters. Other text is rejected because Excel's localized ordering can
 select different items. Qualified label comparisons use the current process
 culture, matching Excel's locale-dependent ordering when run under the same
-locale. On a single ordinary axis field, it supports value equals,
+locale. Distinct numeric cache keys remain separate when the format gives them
+the same displayed caption: a label filter can select both rows, while typed
+numeric `GetPivotData` criteria still address each key. On a single ordinary
+axis field, it supports value equals,
 not equals, greater than, greater than or equal, less than, less than or
 equal, inclusive between, exclusive not-between, and top/bottom count,
 percent, and sum filters. Count filters include ties at the cutoff. Percent

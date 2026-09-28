@@ -14,6 +14,8 @@ namespace OfficeIMO.Tests {
         [InlineData("decimal-two", "A4:B6", 3, 3, 10d)]
         [InlineData("percent-one", "A4:B6", 3, 3, 10d)]
         [InlineData("decimal-midpoint", "A4:B6", 3, 3, 10d)]
+        [InlineData("duplicate-caption-unfiltered", "A4:B8", 5, 4, 60d)]
+        [InlineData("duplicate-caption-equals", "A4:B7", 4, 4, 30d)]
         public void Test_PivotFormattedNumericLabel_ImportedViewAndLookupMatchExcel(
             string kind, string range, int rows, int lookupRows, double total) {
             string file = $"pivot-label-number-{kind}-conformance.xlsx";
@@ -32,6 +34,8 @@ namespace OfficeIMO.Tests {
                     string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
                 if (NumericLabelFormat(kind) is string format)
                     Assert.Equal(format, grouped.GetCellStyle(5, 1).NumberFormatCode);
+                if (kind.StartsWith("duplicate-caption-", StringComparison.Ordinal))
+                    Assert.Equal("0.0", grouped.GetCellStyle(6, 1).NumberFormatCode);
                 var lookups = document.GetSheet("Lookups");
                 lookups.ClearCachedFormulaResults();
                 Assert.Equal(lookupRows, lookups.RecalculateSupportedFormulas());
@@ -116,8 +120,47 @@ namespace OfficeIMO.Tests {
             "decimal-two" => "0.00",
             "percent-one" => "0.0%",
             "decimal-midpoint" => "0.0",
+            "duplicate-caption-unfiltered" or "duplicate-caption-equals" => "0.0",
             _ => "#,##0"
         };
+
+        [Theory]
+        [InlineData("duplicate-caption-unfiltered", 60d, 8)]
+        [InlineData("duplicate-caption-equals", 30d, 7)]
+        public void Test_PivotDuplicateFormattedCaptions_TemplateFreePublicApi(string kind, double grand, int lastRow) {
+            string file = $"pivot-label-number-{kind}-conformance.xlsx";
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
+            string output = Path.Combine(_directoryWithFiles, $"Filter.label-number-{kind}.Authored.xlsx");
+            using var oracle = ExcelDocumentReader.Open(path);
+            var expected = oracle.GetSheet("Grouped").ReadRange($"A4:B{lastRow}");
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                source.CellValue(1, 1, "Item");
+                source.CellValue(1, 2, "Sales");
+                double[] keys = { 1.21d, 1.24d, 2.26d };
+                for (int index = 0; index < keys.Length; index++) {
+                    source.CellValue(index + 2, 1, keys[index]);
+                    source.CellValue(index + 2, 2, 10d * (index + 1));
+                }
+                var builder = source.Pivot("A1:B4").Rows("Item").Sum("Sales", "Metric")
+                    .FieldNumberFormat("Item", "0.0").Layout(ExcelPivotLayout.Tabular);
+                if (kind == "duplicate-caption-equals") builder.Filter(ExcelPivotFilter.LabelEquals("Item", "1.2"));
+                builder.At("D4", "DuplicateCaptionPivot");
+                var result = source.MaterializePivotTable("DuplicateCaptionPivot");
+                Assert.Equal($"D4:E{lastRow}", result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                Assert.Equal(grand, source.GetPivotData("DuplicateCaptionPivot", "Metric").Value);
+                Assert.Equal(10d, source.GetPivotData("DuplicateCaptionPivot", "Metric", new Dictionary<string, object?> { ["Item"] = 1.21d }).Value);
+                Assert.Equal(20d, source.GetPivotData("DuplicateCaptionPivot", "Metric", new Dictionary<string, object?> { ["Item"] = 1.24d }).Value);
+                document.Save(output);
+            }
+            using var reopened = ExcelDocumentReader.Open(output);
+            var actual = reopened.GetSheet("Source").ReadRange($"D4:E{lastRow}");
+            for (int row = 0; row <= lastRow - 4; row++)
+                for (int column = 0; column < 2; column++)
+                    AssertPivotLookupOracleValue(expected[row, column], actual[row, column]);
+        }
 
         [Fact]
         public void Test_PivotFormattedNumericLabel_MidpointsUseExcelDisplayRounding() {
