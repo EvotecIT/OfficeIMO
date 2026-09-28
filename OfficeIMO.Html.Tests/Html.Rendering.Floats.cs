@@ -34,6 +34,31 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(300D, ruleAfter.Width, 1);
     }
 
+    [Theory]
+    [InlineData("<span style='float:left;width:100px;height:150px;background:#ddd'></span>", "width:100px;height:60px", 100D, 0D, 100D)]
+    [InlineData("<span style='float:left;width:300px;height:150px;background:#ddd'></span>", "min-width:50px;height:60px", 0D, 150D, 300D)]
+    [InlineData("<span style='float:right;width:100px;height:100px;background:#ddd'></span><span style='float:left;width:250px;height:100px;background:#ccc'></span>", "height:150px", 250D, 100D, 50D)]
+    public void HtmlFloat_PagedFormattingBlockUsesAFreeBandForItsWholeBox(
+        string floats, string blockStyle, double expectedX, double expectedY, double expectedWidth) {
+        string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:260px'>Prelude</div><p style='margin:0'>" + floats + "</p>"
+            + "<div id='bfc' style='overflow:auto;background:#faa;" + blockStyle + "'>Block</div>"
+            + "</article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape block = FindPositionedShape(rendered, "div#bfc");
+
+        Assert.Equal(expectedX, block.X, 1);
+        Assert.Equal(expectedY, block.Y, 1);
+        Assert.Equal(expectedWidth, block.Width, 1);
+    }
+
     [Fact]
     public void HtmlFloat_OverflowAutoListItemDoesNotAddParagraphBottomMarginAfterTallerFloat() {
         const string html = "<ul style='margin:0;padding:0;list-style:none'>"
