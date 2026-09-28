@@ -710,8 +710,7 @@ internal static class IWorkNumbersReader {
         }
 
         bool blockingRichString = richStrings.Any(entry => !entry.Value.IsComplete
-            && (!formulaRichStringIdentifiers.Contains(entry.Key)
-                || nonFormulaRichStringIdentifiers.Contains(entry.Key)));
+            && nonFormulaRichStringIdentifiers.Contains(entry.Key));
         if (!richStringStorageComplete && (!richStringCatalogStructureComplete || blockingRichString)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

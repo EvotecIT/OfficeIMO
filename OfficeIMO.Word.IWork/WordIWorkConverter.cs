@@ -376,8 +376,9 @@ public static partial class WordIWorkConverter {
             if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                 return "Pages tables exceed the bounded DOCX destination cell budget.";
             }
-            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
-                return $"Pages table '{table.Name}' contains an uncached formula that the DOCX owner cannot evaluate.";
+            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                && (cell.Value == null || !cell.CachedValueIsComplete))) {
+                return $"Pages table '{table.Name}' contains a formula without a complete cached value that the DOCX owner cannot evaluate.";
             }
             if (!FitsSignedTwips(table.DefaultRowHeight)
                 || !FitsSignedTwips(table.DefaultColumnWidth)) {

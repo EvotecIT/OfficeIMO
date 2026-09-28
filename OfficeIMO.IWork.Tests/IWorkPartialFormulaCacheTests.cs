@@ -72,8 +72,21 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
 
+    [Fact]
+    public void Unused_partial_rich_catalog_entry_does_not_block_editable_cells() {
+        using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
+            includeUnusedRichEntry: true);
+
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+
+        Assert.False(result.IsVisualFallback);
+        Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
+    }
+
     private static MemoryStream CreateNumbersWithPartialRichCell(bool hasFormula,
-        bool includeFormulaRecord = true) {
+        bool includeFormulaRecord = true, bool includeUnusedRichEntry = false) {
         byte[] cell = new byte[hasFormula ? 20 : 16];
         cell[0] = 5;
         cell[1] = 9;
@@ -95,12 +108,19 @@ public sealed partial class IWorkBoundaryTests {
                 hasFormula ? new ulong[] { 12, 13, 16 } : new ulong[] { 12, 13 }),
             ArchiveRecord(12, 6002, Message(BytesField(5, row))),
             ArchiveRecord(13, 6005, Message(BytesField(3,
-                Message(VarintField(1, 1), ReferenceField(9, 14)))), new ulong[] { 14 }),
+                Message(VarintField(1, 1), ReferenceField(9, 14))),
+                includeUnusedRichEntry ? BytesField(3,
+                    Message(VarintField(1, 2), ReferenceField(9, 17))) : Array.Empty<byte>()),
+                includeUnusedRichEntry ? new ulong[] { 14, 17 } : new ulong[] { 14 }),
             ArchiveRecord(14, 6218, Message(ReferenceField(1, 15)), new ulong[] { 15 }),
             ArchiveRecord(15, 2001, Message(StringField(3, "Before\uFFFCafter"))),
             hasFormula && includeFormulaRecord ? ArchiveRecord(16, 6201, Message(BytesField(3,
                 Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))
-                : Array.Empty<byte>());
+                : Array.Empty<byte>(),
+            includeUnusedRichEntry ? ArchiveRecord(17, 6218,
+                Message(ReferenceField(1, 18)), new ulong[] { 18 }) : Array.Empty<byte>(),
+            includeUnusedRichEntry ? ArchiveRecord(18, 2001,
+                Message(StringField(3, "Unused\uFFFCtext"))) : Array.Empty<byte>());
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
     }

@@ -308,8 +308,9 @@ public static partial class PowerPointIWorkConverter {
                 if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                     return "Keynote tables exceed the bounded PPTX destination cell budget.";
                 }
-                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
-                    return $"Keynote table '{table.Name}' contains an uncached formula that the PPTX owner cannot evaluate.";
+                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                    && (cell.Value == null || !cell.CachedValueIsComplete))) {
+                    return $"Keynote table '{table.Name}' contains a formula without a complete cached value that the PPTX owner cannot evaluate.";
                 }
                 if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
