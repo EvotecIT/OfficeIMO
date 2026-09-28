@@ -32,7 +32,8 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static Result? ReadCategories(IEnumerable<OpenXmlCompositeElement> source,
             OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartAxisGroup axisGroup, int maximumPoints,
-            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000,
+            bool forDataUpdate = false) {
             List<OpenXmlCompositeElement> elements = OrderSeries(OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(source, maximumPoints));
             if (validatePlot) ValidatePlotBudget(elements.FirstOrDefault(), maximumPoints);
             projectionBudget ??= new ProjectionBudget();
@@ -58,13 +59,15 @@ namespace OfficeIMO.OpenXml.Internal {
                 projectionBudget.Reserve(categories.Count);
                 double[] normalized = new double[categories.Count];
                 for (int index = 0; index < item.Values.Count; index++) normalized[index] = item.Values[index];
-                series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints, maximumPointOverrides));
+                series.Add(ReadSeries(item.Element, normalized, null, kind, scheme, axisGroup, item.Position, maximumPoints,
+                    maximumPointOverrides, forDataUpdate));
             }
             return series.Count == 0 ? null : new Result(categories, series);
         }
 
         internal static Result? ReadScatter(IEnumerable<C.ScatterChartSeries> source, A.ColorScheme? scheme, int maximumPoints,
-            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000) {
+            bool validatePlot = true, ProjectionBudget? projectionBudget = null, int maximumPointOverrides = 1_000_000,
+            bool forDataUpdate = false) {
             var series = new List<Series>();
             IReadOnlyList<string>? categories = null;
             int sourcePosition = -1;
@@ -81,7 +84,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 double[] alignedX = x.Take(count).ToArray();
                 categories ??= alignedX.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
                 series.Add(ReadSeries(element, y.Take(count).ToArray(), alignedX, OfficeChartKind.Scatter,
-                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides));
+                    scheme, OfficeChartAxisGroup.Primary, sourcePosition, maximumPoints, maximumPointOverrides, forDataUpdate));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }
@@ -124,7 +127,8 @@ namespace OfficeIMO.OpenXml.Internal {
 
         private static Series ReadSeries(OpenXmlCompositeElement element, IReadOnlyList<double> values,
             IReadOnlyList<double>? xValues, OfficeChartKind kind, A.ColorScheme? scheme,
-            OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints, int maximumPointOverrides) {
+            OfficeChartAxisGroup axisGroup, int fallbackIndex, int maximumPoints, int maximumPointOverrides,
+            bool forDataUpdate) {
             C.ChartShapeProperties? properties = element.GetFirstChild<C.ChartShapeProperties>();
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties?.GetFirstChild<A.SolidFill>(), scheme);
@@ -155,7 +159,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 name = cache.FirstOrDefault() ?? string.Concat(text?.Descendants<A.Text>().Select(item => item.Text) ?? Enumerable.Empty<string>());
             }
             if (string.IsNullOrWhiteSpace(name)) {
-                if (text?.GetFirstChild<C.StringReference>() != null)
+                if (!forDataUpdate && text?.GetFirstChild<C.StringReference>() != null)
                     throw new NotSupportedException("The formula-based chart series name has no cached value.");
                 name = "Series " + (fallbackIndex + 1).ToString(CultureInfo.InvariantCulture);
             }
