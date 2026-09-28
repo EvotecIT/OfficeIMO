@@ -14,12 +14,29 @@ using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using Xunit;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using A = DocumentFormat.OpenXml.Drawing;
 using Dgm = DocumentFormat.OpenXml.Drawing.Diagrams;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public class PowerPointPowerPointVisioRoadmapTests {
+        [Fact]
+        public void ThreeDimensionalSeriesShapeFlattensOnlyWithThreeDimensionalFamily() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointChart chart = presentation.AddSlide().AddChart();
+            ChartPart part = presentation.Slides[0].SlidePart.ChartParts.Single();
+            C.PlotArea plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+            C.BarChart bar = plot.GetFirstChild<C.BarChart>()!;
+            C.BarChartSeries series = bar.Elements<C.BarChartSeries>().First();
+            series.AddChild(new C.ChartShapeProperties(new A.Shape3DType(new A.BevelTop())), true);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+
+            var advanced = new C.Bar3DChart(bar.ChildElements.Select(child => child.CloneNode(true)));
+            plot.ReplaceChild(advanced, bar);
+            Assert.True(chart.TryGetOfficeSnapshot(out _));
+        }
+
         [Theory]
         [InlineData("bar3DChart", OfficeChartKind.BarStacked100)]
         [InlineData("line3DChart", OfficeChartKind.LineStacked)]
