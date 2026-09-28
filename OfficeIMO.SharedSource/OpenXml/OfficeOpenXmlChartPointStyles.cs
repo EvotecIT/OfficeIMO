@@ -53,7 +53,8 @@ internal static class OfficeOpenXmlChartPointStyles {
         foreach (C.DataPoint point in GetBoundedPoints(series)) {
             uint? index = point.Index?.Val?.Value;
             if (!index.HasValue || index.Value >= (uint)count) continue;
-            C.ChartShapeProperties? properties = point.GetFirstChild<C.ChartShapeProperties>();
+            C.ChartShapeProperties? properties = point.GetFirstChild<C.Marker>()?
+                .GetFirstChild<C.ChartShapeProperties>() ?? point.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) continue;
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
             bool noFill = properties.GetFirstChild<A.NoFill>() != null;
@@ -99,6 +100,8 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     internal static void ApplyPoint(OpenXmlCompositeElement series, uint index, OfficeChartPointStyle? style, OfficeColor? legacyColor = null) {
         if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
+        if (!SupportsDataPoints(series))
+            throw new NotSupportedException("Point styles are not supported by this native chart series.");
         C.DataPoint? point = series.Elements<C.DataPoint>().FirstOrDefault(item => item.Index?.Val?.Value == index);
         if (point == null && style == null && !legacyColor.HasValue) return;
         ApplyPointCore(series, index, style, legacyColor, point, FindPointAnchor(series));
@@ -109,6 +112,10 @@ internal static class OfficeOpenXmlChartPointStyles {
             child is C.DataLabels or C.Trendline or C.ErrorBars or C.CategoryAxisData or C.Values or
                 C.XValues or C.YValues or C.BubbleSize or C.Smooth or C.ExtensionList);
 
+    private static bool SupportsDataPoints(OpenXmlCompositeElement series) =>
+        series is C.BarChartSeries or C.LineChartSeries or C.AreaChartSeries or C.PieChartSeries or
+            C.ScatterChartSeries or C.RadarChartSeries or C.BubbleChartSeries;
+
     private static void ApplyPointCore(OpenXmlCompositeElement series, uint index,
         OfficeChartPointStyle? style, OfficeColor? legacyColor, C.DataPoint? point, OpenXmlElement? anchor) {
         if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
@@ -117,7 +124,10 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (anchor != null) series.InsertBefore(point, anchor);
             else series.Append(point);
         }
-        C.ChartShapeProperties properties = point.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
+        C.Marker? pointMarker = point.GetFirstChild<C.Marker>();
+        OpenXmlCompositeElement styleOwner = pointMarker?.GetFirstChild<C.ChartShapeProperties>() != null
+            ? pointMarker : point;
+        C.ChartShapeProperties properties = styleOwner.GetFirstChild<C.ChartShapeProperties>() ?? new C.ChartShapeProperties();
         properties.RemoveAllChildren<A.SolidFill>();
         properties.RemoveAllChildren<A.NoFill>();
         properties.RemoveAllChildren<A.PatternFill>();
@@ -140,7 +150,7 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (style.OutlineColor is OfficeColor line) outline.Append(new A.SolidFill(CreateColor(line)));
             properties.AddChild(outline, true);
         }
-        if (properties.Parent == null && properties.HasChildren) point.AddChild(properties, true);
+        if (properties.Parent == null && properties.HasChildren) styleOwner.AddChild(properties, true);
         else if (!properties.HasChildren && properties.Parent != null) properties.Remove();
     }
 

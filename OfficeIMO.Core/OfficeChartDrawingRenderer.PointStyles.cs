@@ -118,12 +118,12 @@ public static partial class OfficeChartDrawingRenderer {
         if (hatch == OfficeChartHatchPattern.Vertical || hatch == OfficeChartHatchPattern.Cross)
             for (double x = Math.Min(step / 2, width / 2); x < width; x += step) Line(x, 0, x, height);
         if (hatch == OfficeChartHatchPattern.ForwardDiagonal || hatch == OfficeChartHatchPattern.DiagonalCross)
-            for (double sum = step / 2; sum < width + height; sum += step) {
+            for (double sum = Math.Min(step / 2, (width + height) / 2); sum < width + height; sum += step) {
                 double x1 = Math.Max(0, sum - height), x2 = Math.Min(width, sum);
                 Line(x1, sum - x1, x2, sum - x2);
             }
         if (hatch == OfficeChartHatchPattern.BackwardDiagonal || hatch == OfficeChartHatchPattern.DiagonalCross)
-            for (double offset = -height + step / 2; offset < width; offset += step) {
+            for (double offset = Math.Min(-height + step / 2, (width - height) / 2); offset < width; offset += step) {
                 double x1 = Math.Max(0, offset), x2 = Math.Min(width, offset + height);
                 Line(x1, x1 - offset, x2, x2 - offset);
             }
