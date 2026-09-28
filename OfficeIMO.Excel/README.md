@@ -670,9 +670,13 @@ percent, and sum filters. Count filters include ties at the cutoff. Percent
 and sum filters select by cumulative signed measure value, including the item
 that crosses the threshold. Percent uses the current grand total; a zero
 grand total retains all items. Zero and negative item aggregates are supported.
-An item whose selected aggregate is an error does not enter the ranking; Count
-and Count Numbers still rank their numeric results for error-valued source cells.
-Ranking with no numeric aggregate is not qualified for headless materialization.
+An item whose selected aggregate is an error does not enter a ranking with numeric
+aggregates; Count and Count Numbers still rank their numeric results for
+error-valued source cells. When every selected aggregate is one of Excel's seven
+classic errors, top/bottom count filters rank by Excel error-code order and
+include ties at the cutoff. All-error percent and sum ranking, newer error
+values, and ranking with neither numeric nor qualified error aggregates remain
+deferred.
 Label and value filters can share that field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
 filter definition remains available for Excel refresh, and filtered items are

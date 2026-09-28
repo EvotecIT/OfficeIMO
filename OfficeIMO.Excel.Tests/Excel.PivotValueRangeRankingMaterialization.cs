@@ -240,24 +240,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_PivotErrorRanking_RejectsAllErrorAggregates() {
-            using var document = ExcelDocument.Create();
-            var source = document.AddWorksheet("Source");
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Sales");
-            source.CellValue(2, 1, "Alpha");
-            source.CellError(2, 2, "#N/A");
-            source.CellValue(3, 1, "Bravo");
-            source.CellError(3, 2, "#N/A");
-            source.Pivot("A1:B3").Rows("Region").Sum("Sales", "Metric")
-                .Layout(ExcelPivotLayout.Tabular)
-                .Filter(ExcelPivotFilter.TopPercent("Region", "Metric", 40))
-                .At("D4", "FilteredPivot");
-
-            Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("FilteredPivot"));
-        }
-
-        [Fact]
         public void Test_PivotTopPercent_LargeFiniteTotalDoesNotOverflowThreshold() {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");

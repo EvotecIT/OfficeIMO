@@ -119,9 +119,16 @@ namespace OfficeIMO.Excel {
                     .Where(pair => pair.Value is double).Select(pair => (pair.Key, Value: (double)pair.Value!)).ToArray();
                 HashSet<PivotFieldValue> included;
                 if (ranking != null) {
-                    if (aggregates.Count != 0 && values.Length == 0)
-                        throw new NotSupportedException("Top/bottom ranking with no numeric aggregate is not qualified for materialization.");
-                    included = RankMaterializedPivotValues(values, type, ranking);
+                    if (aggregates.Count != 0 && values.Length == 0) {
+                        var results = aggregates.Select(pair => (pair.Key, Result: pair.Value.GetValue(function))).ToArray();
+                        if (results.Any(pair => pair.Result.Kind != ExcelCellDataKind.Error || pair.Result.Value is not string))
+                            throw new NotSupportedException("Top/bottom ranking with no numeric or error aggregate is not qualified for materialization.");
+                        if (type != PivotFilterValues.Count)
+                            throw new NotSupportedException("Top/bottom percent and sum ranking over only error aggregates is not qualified for materialization.");
+                        included = RankMaterializedPivotErrorValues(results, ranking);
+                    } else {
+                        included = RankMaterializedPivotValues(values, type, ranking);
+                    }
                 } else {
                     included = new HashSet<PivotFieldValue>(values.Where(pair =>
                         type == PivotFilterValues.ValueBetween ? pair.Value >= first && pair.Value <= second
@@ -285,6 +292,23 @@ namespace OfficeIMO.Excel {
             double cutoff = values[cutoffIndex].Value;
             return new HashSet<PivotFieldValue>(values.Where(pair => top
                 ? pair.Value >= cutoff : pair.Value <= cutoff).Select(pair => pair.Key));
+        }
+
+        private static HashSet<PivotFieldValue> RankMaterializedPivotErrorValues(
+            (PivotFieldValue Key, ExcelCellData Result)[] results, Top10 ranking) {
+            var values = new (PivotFieldValue Key, byte Code)[results.Length];
+            for (int index = 0; index < results.Length; index++) {
+                string error = (string)results[index].Result.Value!;
+                if (!ExcelErrorCode.TryGetCode(error, out byte code) || code > 0x2a)
+                    throw new NotSupportedException("The pivot error ranking contains an unqualified error value.");
+                values[index] = (results[index].Key, code);
+            }
+            bool top = ranking.Top?.Value != false;
+            Array.Sort(values, (left, right) => top
+                ? left.Code.CompareTo(right.Code) : right.Code.CompareTo(left.Code));
+            byte cutoff = values[Math.Min(values.Length, (int)ranking.Val!.Value) - 1].Code;
+            return new HashSet<PivotFieldValue>(values.Where(pair => top
+                ? pair.Code <= cutoff : pair.Code >= cutoff).Select(pair => pair.Key));
         }
 
         private static bool MatchesMaterializedPivotValueComparison(double value, double threshold,
