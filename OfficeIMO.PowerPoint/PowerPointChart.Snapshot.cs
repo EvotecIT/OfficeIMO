@@ -429,6 +429,12 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OfficeChartStyle style = ReadSharedTextStyle(chart) ?? OfficeChartStyle.Default;
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels =
+                !forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)
+                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadLabels(chart, colorScheme)
+                    : null;
+            if (radialLabels?.TextColor is OfficeColor labelColor)
+                style = style.WithDataLabelTextColor(labelColor);
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
@@ -445,17 +451,14 @@ namespace OfficeIMO.PowerPoint {
                 HeightPoints,
                 bubbleSizeMode,
                 bubbleScalePercent,
-                ReadChartLayout(chart, kind, forDataUpdate),
+                ReadChartLayout(chart, kind, forDataUpdate, radialLabels),
                 style,
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartRadialLayout.Read(chart));
         }
 
         private OfficeChartLayout ReadChartLayout(
-            C.Chart chart, PowerPointChartSnapshotKind kind, bool forDataUpdate) {
-            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels =
-                !forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)
-                    ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadLabels(chart)
-                    : null;
+            C.Chart chart, PowerPointChartSnapshotKind kind, bool forDataUpdate,
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.LabelLayout? radialLabels) {
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             C.LegendPositionValues? nativePosition =
                 legend?.GetFirstChild<C.LegendPosition>()?.Val?.Value;
@@ -613,12 +616,8 @@ namespace OfficeIMO.PowerPoint {
                 dataLabelSeparator: radialLabels?.Separator,
                 dataLabelNumberFormat: radialLabels?.NumberFormat,
                 dataLabelPosition: radialLabels?.Position ?? OfficeChartDataLabelPosition.BestFit,
-                dataLabelFontSize: radialLabels?.Visible == true
-                    ? chart.Parent?.GetFirstChild<C.TextProperties>()?
-                        .Descendants<A.DefaultRunProperties>()
-                        .Select(properties => properties.FontSize?.Value)
-                        .FirstOrDefault(size => size > 0) / 100D
-                    : null,
+                dataLabelFontSize: radialLabels?.FontSize,
+                dataLabelFontStyle: radialLabels?.FontStyle,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,

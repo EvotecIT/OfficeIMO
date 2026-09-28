@@ -578,6 +578,13 @@ public sealed class OfficeChartStyle {
         return copy;
     }
 
+    /// <summary>Returns a style with the projected data-label text color.</summary>
+    public OfficeChartStyle WithDataLabelTextColor(OfficeColor color) {
+        var copy = (OfficeChartStyle)MemberwiseClone();
+        copy.DataLabelTextColor = color;
+        return copy;
+    }
+
     /// <summary>Chart text font family.</summary>
     public string FontFamily { get; }
 
@@ -627,7 +634,7 @@ public sealed class OfficeChartStyle {
     public double? LegendBorderWidth { get; }
 
     /// <summary>Optional data label text color.</summary>
-    public OfficeColor? DataLabelTextColor { get; }
+    public OfficeColor? DataLabelTextColor { get; private set; }
 
     /// <summary>Optional data label box fill color.</summary>
     public OfficeColor? DataLabelFillColor { get; }
