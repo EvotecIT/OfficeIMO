@@ -7,6 +7,22 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingWebpVp8Tests {
+    [Fact]
+    public void VerticalLeftPredictionUsesSpecifiedLastTwoTopTriples() {
+        // RFC 6386 section 12.3 assigns B[2][3] to A[4..6] and
+        // B[3][3] to A[5..7]; the last two pixels break the diagonal pattern.
+        byte[] plane = new byte[16 * 16];
+        for (int index = 0; index < 8; index++) {
+            plane[3 * 16 + 4 + index] = (byte)((index + 1) * 10);
+        }
+        byte[] predicted = new byte[16];
+
+        OfficeVp8Prediction.PredictSubblock(plane, 16, 16, 4, 4, 7, predicted, new OfficeVp8DecodeScratch());
+
+        Assert.Equal((byte)60, predicted[2 * 4 + 3]);
+        Assert.Equal((byte)70, predicted[3 * 4 + 3]);
+    }
+
     // Independently encoded and decoded with Pillow/libwebp (quality 80, method 6).
     // These fixtures exercise directional prediction, coefficients and odd canvas padding.
     [Theory]
