@@ -56,3 +56,27 @@ The old long-plain 25-30% reduction target is still open: this change does not
 alter its escape-free path. Allocation, peak memory, native Linux and macOS,
 and portable absolute budgets were not qualified in this run. The remaining
 work is tracked in the [single roadmap](../ROADMAP.md).
+
+## Long-plain follow-up profile
+
+On source commit `c7a431094`, the same 1,000-row long-plain fixture allocated
+251,287 bytes per compact export and 645,949 bytes per public-default export
+in a warmed, single-thread allocation probe. A 10,000-export sampled trace on
+Domain A placed `PooledUtf8TextWriter.FlushBytes` on 90.48% of compact and
+75.52% of default sampled stacks. Native Deflate appeared on 45.48% and
+43.50%, respectively; the default shared-string probe appeared on 10.86%.
+These are overlapping inclusive stack percentages, not an additive breakdown
+or elapsed-time budget. The compact trace gives little support for further
+XML-scanner tuning as the route to the long-plain target.
+
+A diagnostic 32 KiB writer buffer kept all six uncompressed package-part hashes
+identical and changed four compressed package sizes by one byte. Its short
+rotated Domain A smoke run made compact long-plain export 1.13 times the
+baseline mean and default long-plain 1.01 times the baseline mean. That
+candidate was reverted. This six-iteration smoke result does not establish a
+portable regression; it only rules out accepting the smaller buffer without
+stronger evidence. Reproduce the stage probe with the existing
+[isolated comparison runner](excel-csv-buffering-2026-09-08/reproduction/README.md)
+using `--profile ExcelLongPlain 10000 65535 candidate` or
+`--profile ExcelDefaultLongPlain 10000 65535 candidate` and a sampled
+`dotnet-trace` collection of the child process.
