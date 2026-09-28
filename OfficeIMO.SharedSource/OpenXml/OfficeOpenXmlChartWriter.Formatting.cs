@@ -35,7 +35,9 @@ namespace OfficeIMO.OpenXml.Internal {
                     OpenXmlCompositeElement match = matches[layerIndex];
                     int remaining = generatedSeries.Count - offset;
                     int oldCount = Math.Max(1, match.ChildElements.OfType<OpenXmlCompositeElement>().Count(IsSharedSeriesElement));
-                    int count = layerIndex == matches.Count - 1 ? remaining : Math.Min(oldCount, remaining);
+                    int reservedForLaterLayers = Math.Min(matches.Count - layerIndex - 1, remaining - 1);
+                    int count = layerIndex == matches.Count - 1 ? remaining :
+                        Math.Min(oldCount, remaining - reservedForLaterLayers);
                     var slice = (OpenXmlCompositeElement)generated.CloneNode(true);
                     foreach (OpenXmlCompositeElement item in slice.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList()) item.Remove();
                     foreach (OpenXmlCompositeElement item in generatedSeries.Skip(offset).Take(count)) InsertSeries(slice, item.CloneNode(true));
