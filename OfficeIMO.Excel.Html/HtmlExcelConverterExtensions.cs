@@ -437,6 +437,13 @@ public static partial class HtmlExcelConverterExtensions {
         ReadChartDimensions(item, out int seriesCount, out int categoryCount);
         ExcelChartType type = ReadExcelChartType(item);
         bool isRadial = type == ExcelChartType.Pie || type == ExcelChartType.Doughnut;
+        if (isRadial && hasSemanticData && chartData!.Series.Any(series =>
+                series.ChartType.HasValue && series.ChartType != ExcelChartType.Pie && series.ChartType != ExcelChartType.Doughnut)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "Chart inventory item '" + title + "' mixed radial and non-radial series and was not imported.",
+                lossKind: OfficeConversionLossKind.Omission);
+            return;
+        }
         OfficeChartRadialLayout radialLayout = OfficeChartRadialLayout.Default;
         if (isRadial && !OfficeHtmlChartRadialLayout.TryRead(item, out radialLayout)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
