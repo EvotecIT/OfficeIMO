@@ -511,9 +511,9 @@ namespace OfficeIMO.PowerPoint {
                 horizontalAxisTitle = ReadAxisTitle(horizontalAxis);
                 verticalAxisTitle = ReadAxisTitle(verticalAxis);
                 horizontalAxisNumberFormat =
-                    ReadAxisNumberFormat(horizontalAxis);
+                    ReadAxisNumberFormat(horizontalAxis, forDataUpdate);
                 verticalAxisNumberFormat =
-                    ReadAxisNumberFormat(verticalAxis);
+                    ReadAxisNumberFormat(verticalAxis, forDataUpdate);
                 horizontalMajorTickMark = ReadAxisTickMark(
                     horizontalAxis.GetFirstChild<C.MajorTickMark>()?
                         .Val?.Value);
@@ -570,12 +570,12 @@ namespace OfficeIMO.PowerPoint {
                         ? null
                         : ReadAxisTitle(positionedVerticalAxis);
                     if (positionedHorizontalAxis != null) {
-                        horizontalAxisNumberFormat = ReadAxisNumberFormat(positionedHorizontalAxis);
+                        horizontalAxisNumberFormat = ReadAxisNumberFormat(positionedHorizontalAxis, forDataUpdate);
                         horizontalMajorTickMark = ReadAxisTickMark(positionedHorizontalAxis.GetFirstChild<C.MajorTickMark>()?.Val?.Value);
                         horizontalMinorTickMark = ReadAxisTickMark(positionedHorizontalAxis.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
                     }
                     if (positionedVerticalAxis != null) {
-                        verticalAxisNumberFormat = ReadAxisNumberFormat(positionedVerticalAxis);
+                        verticalAxisNumberFormat = ReadAxisNumberFormat(positionedVerticalAxis, forDataUpdate);
                         verticalMajorTickMark = ReadAxisTickMark(positionedVerticalAxis.GetFirstChild<C.MajorTickMark>()?.Val?.Value);
                         verticalMinorTickMark = ReadAxisTickMark(positionedVerticalAxis.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
                     }
@@ -596,8 +596,8 @@ namespace OfficeIMO.PowerPoint {
                     scale?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin))
                 throw new NotSupportedException("The numeric axes cannot be projected on a linear forward scale.");
             if (primaryValueAxis != null) {
-                if (horizontalValue) horizontalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
-                else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
+                if (horizontalValue) horizontalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis, forDataUpdate);
+                else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis, forDataUpdate);
             }
 
             return new OfficeChartLayout(overlayLegend: overlay,
@@ -639,10 +639,17 @@ namespace OfficeIMO.PowerPoint {
             ReadChartText(
                 axis.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>());
 
-        private static string? ReadAxisNumberFormat(C.ValueAxis axis) {
+        private string? ReadAxisNumberFormat(C.ValueAxis axis, bool forDataUpdate) {
+            if (forDataUpdate) return null;
             if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.HasUnsupportedSharedAxisNumberFormat(axis))
                 throw new NotSupportedException("The native axis number format cannot be projected.");
+            if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) {
+                ChartPart part = GetChartPart();
+                if (part.ChartSpace?.GetFirstChild<C.ExternalData>() != null)
+                    return OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisNumberFormats
+                        .ResolveSourceLinkedGeneral(part);
+            }
             string? format = axis.GetFirstChild<C.NumberingFormat>()?
                 .FormatCode?.Value;
             return string.IsNullOrWhiteSpace(format) ? null : format;
