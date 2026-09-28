@@ -8,6 +8,52 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartReaderProjectionTests {
+    [Fact]
+    public void Snapshot_HidesLegendByPlottedOrdinalWhenNativeSeriesIndexesDiffer() {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Line, new OfficeChartData(new[] { "A" }, new[] {
+            new OfficeChartSeries("First", new[] { 1d }), new OfficeChartSeries("Second", new[] { 2d }) }));
+        C.Chart native = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.Descendants<C.LineChartSeries>().First().Index!.Val = 5;
+        C.Legend legend = native.GetFirstChild<C.Legend>()!;
+        legend.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, new C.Delete { Val = true }), true);
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.False(snapshot.Data.Series[0].ShowInLegend);
+        Assert.True(snapshot.Data.Series[1].ShowInLegend);
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Radar)]
+    public void Snapshot_UsesNativeDefaultForExplicitMarkersWithoutSize(OfficeChartKind kind) {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d }, null, null, null, showMarkers: true) }));
+        C.Marker marker = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!
+            .Descendants<C.Marker>().First();
+        marker.GetFirstChild<C.Size>()?.Remove();
+        Assert.NotNull(marker.Symbol);
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(5, snapshot.Data.Series.Single().MarkerSize);
+    }
+
+    [Fact]
+    public void Snapshot_RejectsDistinctCategoryAxesInOneAxisGroup() {
+        using var document = PowerPointPresentation.Create();
+        var chart = document.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Columns", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
+                new OfficeChartSeries("Line", new[] { 3d, 4d }, null, null, null, true, renderKind: OfficeChartKind.Line) }));
+        C.PlotArea plot = document.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!
+            .GetFirstChild<C.Chart>()!.PlotArea!;
+        C.CategoryAxis original = plot.GetFirstChild<C.CategoryAxis>()!;
+        C.CategoryAxis second = (C.CategoryAxis)original.CloneNode(true);
+        second.AxisId!.Val = 700001;
+        plot.GetFirstChild<C.LineChart>()!.GetFirstChild<C.AxisId>()!.Val = 700001;
+        plot.Append(second);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Radar)]

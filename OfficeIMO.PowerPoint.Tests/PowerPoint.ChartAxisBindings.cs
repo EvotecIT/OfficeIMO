@@ -122,6 +122,38 @@ public sealed class PowerPointChartAxisBindingsTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    public void ScatterUpdates_ReserveASeriesForEachRemainingLayer(bool shared) {
+        using var document = PowerPointPresentation.Create();
+        var original = new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries("First", new[] { 1d, 2d }, new[] { 1d, 2d }),
+            new OfficeChartSeries("Second", new[] { 3d, 4d }, new[] { 1d, 2d }),
+            new OfficeChartSeries("Third", new[] { 5d, 6d }, new[] { 1d, 2d }) });
+        var chart = document.AddSlide().AddChart(OfficeChartKind.Scatter, original);
+        var part = document.Slides.Single().SlidePart.ChartParts.Single();
+        var plot = part.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.ScatterChart first = plot.GetFirstChild<C.ScatterChart>()!;
+        C.ScatterChart second = (C.ScatterChart)first.CloneNode(true);
+        foreach (C.ScatterChartSeries series in second.Elements<C.ScatterChartSeries>().Take(2).ToArray()) series.Remove();
+        first.Elements<C.ScatterChartSeries>().Last().Remove();
+        plot.InsertAfter(second, first);
+
+        var replacement = new OfficeChartData(new[] { "1", "2" }, new[] {
+            new OfficeChartSeries("Updated first", new[] { 7d, 8d }, new[] { 1d, 2d }),
+            new OfficeChartSeries("Updated second", new[] { 9d, 10d }, new[] { 1d, 2d }) });
+        if (shared) chart.UpdateData(replacement);
+        else chart.UpdateData(new PowerPointScatterChartData(replacement.Series.Select(series =>
+            new PowerPointScatterChartSeries(series.Name, series.XValues!, series.Values))));
+
+        plot = part.ChartSpace.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.ScatterChart[] layers = plot.Elements<C.ScatterChart>().ToArray();
+        Assert.Equal(2, layers.Length);
+        Assert.All(layers, layer => Assert.Single(layer.Elements<C.ScatterChartSeries>()));
+        Assert.Empty(document.ValidateDocument());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     public void CategoryUpdate_PreservesLayerFormattingWithRepositionedPrimaryAxis(bool top) {
         using var document = PowerPointPresentation.Create();
         var data = new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 1d, 2d }) });

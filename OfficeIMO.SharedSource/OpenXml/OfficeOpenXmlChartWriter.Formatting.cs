@@ -28,7 +28,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     .Where(IsSharedSeriesElement)
                     .Select(series => (LayerType: layer.GetType(), Index: series.GetFirstChild<C.Index>()?.Val?.Value,
                         Group: replacementGroups.Read(layer))))
-                .Where(item => item.Index.HasValue).ToHashSet();
+                .Where(item => item.Index.HasValue).ToList();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
             var sourceOrder = new Dictionary<OpenXmlCompositeElement, int>();
             foreach (OpenXmlCompositeElement generated in replacement.ChildElements
@@ -111,30 +111,23 @@ namespace OfficeIMO.OpenXml.Internal {
             OpenXmlCompositeElement preserved,
             OpenXmlCompositeElement generated,
             ISet<uint> preservedSeriesIndexes) {
-            List<OpenXmlCompositeElement> oldSeries = preserved.ChildElements
+            List<OpenXmlCompositeElement> existingSeries = preserved.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList();
-            var usedSeries = new HashSet<OpenXmlCompositeElement>();
-            OpenXmlElement? insertionPoint = oldSeries.FirstOrDefault();
+            OpenXmlElement? insertionPoint = existingSeries.FirstOrDefault();
+            List<OpenXmlCompositeElement> oldSeries = existingSeries
+                .OrderBy(series => series.GetFirstChild<C.Order>()?.Val?.Value ?? uint.MaxValue).ToList();
             List<OpenXmlCompositeElement> generatedSeriesElements = generated.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement).ToList();
             for (int position = 0; position < generatedSeriesElements.Count; position++) {
                 OpenXmlCompositeElement generatedSeries =
                     generatedSeriesElements[position];
                 uint? seriesIndex = generatedSeries.GetFirstChild<C.Index>()?.Val?.Value;
-                OpenXmlCompositeElement? sourceSeries = oldSeries.FirstOrDefault(series =>
-                    !usedSeries.Contains(series) &&
-                    series.GetType() == generatedSeries.GetType() &&
-                    series.GetFirstChild<C.Index>()?.Val?.Value == seriesIndex);
-                if (sourceSeries == null && position < oldSeries.Count &&
-                    !usedSeries.Contains(oldSeries[position]) &&
-                    oldSeries[position].GetType() == generatedSeries.GetType()) {
-                    sourceSeries = oldSeries[position];
-                }
+                OpenXmlCompositeElement? sourceSeries = position < oldSeries.Count &&
+                    oldSeries[position].GetType() == generatedSeries.GetType() ? oldSeries[position] : null;
                 OpenXmlCompositeElement updated = sourceSeries == null
                     ? (OpenXmlCompositeElement)generatedSeries.CloneNode(true)
                     : UpdateSharedSeriesData(sourceSeries, generatedSeries);
                 if (sourceSeries != null) {
-                    usedSeries.Add(sourceSeries);
                     if (seriesIndex.HasValue) {
                         preservedSeriesIndexes.Add(seriesIndex.Value);
                     }

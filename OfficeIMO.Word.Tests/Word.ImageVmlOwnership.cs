@@ -66,6 +66,25 @@ public sealed class WordImageVmlOwnershipTests {
         clone.Remove();
         Assert.Null(document.Paragraphs[1].Image);
     }
+    [Fact]
+    public void ImageRemoval_PreservesPartReferencedByVmlFill() {
+        using var document = WordDocument.Create();
+        byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+        var image = document.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", 20, 20).Image!;
+        var owner = document.MainDocumentPartRoot;
+        string id = image.RelationshipId!;
+        var fill = new V.Fill();
+        fill.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("r", "id",
+            "http://schemas.openxmlformats.org/officeDocument/2006/relationships", id));
+        document.AddParagraph("Texture")._run!.Append(new W.Picture(new V.Shape(fill) { Id = "Texture", Style = "width:15pt;height:15pt" }));
+        image.Remove();
+        Assert.True(owner.TryGetPartById(id, out _));
+        using var bytes = document.ToStream();
+        using var reopened = WordDocument.Load(bytes);
+        using var content = new MemoryStream();
+        reopened.MainDocumentPartRoot.GetPartById(id).GetStream().CopyTo(content);
+        Assert.Equal(expected, content.ToArray());
+    }
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

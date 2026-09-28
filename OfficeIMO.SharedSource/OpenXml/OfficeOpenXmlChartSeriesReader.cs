@@ -147,6 +147,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new InvalidDataException("The native chart marker size is outside the supported DrawingML bound.");
             OfficeChartMarkerShape? markerShape = Enum.TryParse(marker?.Symbol?.Val?.InnerText,
                 ignoreCase: true, out OfficeChartMarkerShape parsedShape) ? parsedShape : null;
+            if (!markerSize.HasValue && markerShape.HasValue && markerShape != OfficeChartMarkerShape.None)
+                markerSize = 5;
             A.Outline? markerOutline = marker?.ChartShapeProperties?.GetFirstChild<A.Outline>();
             OfficeColor? markerOutlineColor = OfficeOpenXmlThemeColorResolver.ResolveColor(markerOutline?.GetFirstChild<A.SolidFill>(), scheme);
             double? markerOutlineWidth = markerOutline?.Width?.Value is int markerEmus && markerEmus > 0 ? markerEmus / 12700d : null;
@@ -165,6 +167,7 @@ namespace OfficeIMO.OpenXml.Internal {
             }
             OfficeColor?[]? pointColors = null;
             var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides);
+            if (forDataUpdate) pointOverrides = Array.Empty<C.DataPoint>();
             foreach (C.DataPoint point in pointOverrides) {
                 uint? index = point.Index?.Val?.Value;
                 if (!index.HasValue || index.Value >= values.Count) continue;
