@@ -47,7 +47,8 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 }
             };
             if (current.Visible && (layer is C.PieChart or C.DoughnutChart) &&
-                current.Position != OfficeChartDataLabelPosition.BestFit)
+                current.Position is not OfficeChartDataLabelPosition.BestFit and
+                    not OfficeChartDataLabelPosition.OutsideEnd)
                 throw new NotSupportedException("The native radial data label position cannot be projected.");
             if (layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(item => item.LocalName == "ser")
                 .Any(item => item.GetFirstChild<C.DataLabels>() is C.DataLabels seriesLabels &&

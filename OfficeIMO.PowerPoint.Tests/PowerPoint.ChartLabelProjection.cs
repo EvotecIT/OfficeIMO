@@ -37,8 +37,10 @@ public sealed class PowerPointChartLabelProjectionTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(kind,
             new OfficeChartData(new[] { "A", "B" }, new[] { series })).SetDataLabels(showValue: true);
         ChartPart chartPart = presentation.Slides.Single().SlidePart.ChartParts.Single();
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
         foreach (ChartStylePart stylePart in chartPart.GetPartsOfType<ChartStylePart>().ToArray())
             chartPart.DeletePart(stylePart);
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
         var labels = chartPart.ChartSpace!
             .Descendants<C.DataLabels>().Single();
         labels.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
