@@ -591,9 +591,10 @@ namespace OfficeIMO.PowerPoint {
             C.ValueAxis? verticalScaleAxis = verticalNumericAxis ?? (!horizontalValue ? primaryValueAxis : null);
             var horizontalScale = horizontalScaleAxis?.GetFirstChild<C.Scaling>();
             var verticalScale = verticalScaleAxis?.GetFirstChild<C.Scaling>();
-            if (!forDataUpdate && (primaryScale?.GetFirstChild<C.LogBase>() != null ||
-                primaryScale?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin))
-                throw new NotSupportedException("The primary numeric axis cannot be projected on a linear forward scale.");
+            if (!forDataUpdate && new[] { primaryScale, horizontalScale, verticalScale }.Any(scale =>
+                    scale?.GetFirstChild<C.LogBase>() != null ||
+                    scale?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin))
+                throw new NotSupportedException("The numeric axes cannot be projected on a linear forward scale.");
             if (primaryValueAxis != null) {
                 if (horizontalValue) horizontalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
                 else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);

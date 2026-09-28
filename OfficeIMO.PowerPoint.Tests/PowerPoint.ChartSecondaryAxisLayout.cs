@@ -241,6 +241,26 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal(2d, snapshot.Layout.VerticalAxisMajorUnit);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ScatterSnapshot_RejectsNonlinearOrReversedAxes(bool verticalAxis, bool reversed) {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.Scatter,
+            new OfficeChartData(new[] { "1", "3" }, new[] {
+                new OfficeChartSeries("Values", new[] { 2d, 4d }, new[] { 1d, 3d }) }));
+        C.ValueAxis axis = slide.SlidePart.ChartParts.Single().ChartSpace!
+            .Descendants<C.ValueAxis>().Single(item => item.AxisPosition?.Val?.Value ==
+                (verticalAxis ? C.AxisPositionValues.Left : C.AxisPositionValues.Bottom));
+        if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
+        else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Fact]
     public void SecondaryValueAxis_PersistsThroughUpdatesAndSnapshots() {
         using var bytes = new MemoryStream();
