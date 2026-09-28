@@ -17,6 +17,24 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public class PowerPointSharedChartAuthoring {
+        [Theory]
+        [InlineData(OfficeChartKind.Line)]
+        [InlineData(OfficeChartKind.Scatter)]
+        public void UpdatingDataKeepsNativeMarkerShapeWhenNotSpecified(OfficeChartKind kind) {
+            using var presentation = PowerPointPresentation.Create(new MemoryStream());
+            double[]? xValues = kind == OfficeChartKind.Scatter ? new[] { 1d } : null;
+            var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Values", new[] { 2d }, xValues) }));
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 9);
+
+            chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Values", new[] { 3d }, xValues) }));
+
+            var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants()
+                .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
+            Assert.Equal(C.MarkerStyleValues.Diamond, series.GetFirstChild<C.Marker>()!.Symbol!.Val!.Value);
+        }
+
         [Fact]
         public void SharedChartContract_AuthorsEveryKindAsValidNativeChart() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
