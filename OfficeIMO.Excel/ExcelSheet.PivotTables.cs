@@ -501,7 +501,8 @@ namespace OfficeIMO.Excel {
                     }
 
                     var pivotField = new PivotField {
-                        ShowAll = options?.ShowAll ?? !generatedGroupingFields.Any(field => field.FieldIndex == i && field.NativeGrouping != null)
+                        ShowAll = options?.ShowAll ?? !(generatedGroupingFields.Any(field => field.FieldIndex == i && field.NativeGrouping != null)
+                            || pivotFilterList.Any(filter => headerIndex.TryGetValue(filter.FieldName, out int index) && index == i))
                     };
                     if (pageFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisPage;
                     if (rowFieldIndices.Contains(i)) pivotField.Axis = PivotTableAxisValues.AxisRow;
@@ -565,6 +566,13 @@ namespace OfficeIMO.Excel {
                 }
 
                 PivotFilters? pivotFiltersElement = CreatePivotFilters(pivotFilterList, headerIndex, dataFieldList, _excelDocument.DateSystem);
+                if (pivotFiltersElement != null) {
+                    var savedPivotFields = pivotFields.Elements<PivotField>().ToArray();
+                    foreach (var filter in pivotFiltersElement.Elements<PivotFilter>()) {
+                        if (filter.MeasureField != null && filter.Field != null)
+                            savedPivotFields[filter.Field.Value].MeasureFilter = true;
+                    }
+                }
 
                 string pivotRef = BuildPivotLocationReference(destRow, destCol, rowFieldIndices.Count + columnFieldIndices.Count + dataFieldList.Count);
 

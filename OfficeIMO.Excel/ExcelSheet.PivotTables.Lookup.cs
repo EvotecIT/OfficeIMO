@@ -180,12 +180,11 @@ namespace OfficeIMO.Excel {
                         && TryPivotLookupUnsigned(item, "x", uint.MaxValue, out uint sharedIndex) && sharedIndex < sharedItems.Length) {
                         var sharedItem = sharedItems[(int)sharedIndex];
                         string displayName = PivotLookupAttribute(item, "n");
-                        bool equal = displayName.Length > 0
-                            ? PivotLookupValuesEqual(displayName, expected)
-                            : sharedItem is MissingItem
-                                ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
-                                : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem, dateSystem),
-                                    sharedItem is DateTimeItem && expected is DateTime date ? ExcelDateSystemConverter.ToSerial(date, dateSystem) : expected);
+                        bool keyEqual = sharedItem is MissingItem
+                            ? expected == null || expected is string label && string.Equals(label, "(blank)", StringComparison.OrdinalIgnoreCase)
+                            : PivotLookupValuesEqual(ReadPivotLookupSharedItem(sharedItem, dateSystem),
+                                sharedItem is DateTimeItem && expected is DateTime date ? ExcelDateSystemConverter.ToSerial(date, dateSystem) : expected);
+                        bool equal = keyEqual || displayName.Length > 0 && PivotLookupValuesEqual(displayName, expected);
                         if (equal) {
                             accepted.Add(itemIndex);
                             if (sharedItem is DateTimeItem) (acceptedDates ??= new HashSet<uint>()).Add(itemIndex);

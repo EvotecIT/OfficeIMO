@@ -104,9 +104,8 @@ namespace OfficeIMO.Excel {
             if (fields.Length < fieldCount || fields.Length > 256 || pivotFields.Length != fields.Length || measures.Length == 0 || measures.Length > 256
                 || fields.Any(f => f.Formula != null || f.DatabaseField?.Value == false && !IsDerivedDateGroup(f) && !IsDerivedManualGroup(f))
                 || pages.Length > 256 || pages.Length != (definition.PageFields?.ChildElements.Count ?? 0)
-                || definition.PivotFilters?.ChildElements.Count > 0
                 || measures.Any(m => m.ShowDataAs?.Value is ShowDataAsValues mode && mode != ShowDataAsValues.Normal))
-                throw new NotSupportedException("Materialization requires ordinary measures, no calculated fields, and no label/value filters.");
+                throw new NotSupportedException("Materialization requires ordinary measures and no calculated fields.");
             if (!sourceSheet.BuildPivotHeaders(r1, c1, c2).SequenceEqual(fields.Take(fieldCount).Select(f => f.Name?.Value ?? ""), StringComparer.OrdinalIgnoreCase))
                 throw new InvalidOperationException("The source headers no longer match the pivot cache fields.");
             var rowAxis = ResolveMaterializationAxis(definition.RowFields);
@@ -190,6 +189,8 @@ namespace OfficeIMO.Excel {
                 groupings, dateGroupings, manualGroupings);
             var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
                 displayMaps, realFields, groupings, dateGroupings, manualGroupings, r1, r2, c1, limit, token);
+            ApplyMaterializedPivotFilters(sourceSheet, definition, fields, displayMaps, captions, measures,
+                realFields, groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
             // possible criterion combination usable, rather than accepting an unreadable view.
             foreach (var axis in new[] { rowAxis, columnAxis }) {

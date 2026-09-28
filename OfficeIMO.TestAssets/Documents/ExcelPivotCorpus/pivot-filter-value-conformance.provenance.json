@@ -1,0 +1,13 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T05:34:31.8837282Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFilterOracle.ps1",
+  "file": "pivot-filter-value-conformance.xlsx",
+  "sha256": "3e41fce2f85ba8743ca5f99a44c26bf75d9ff2feeaeb63e058a84074c1d90f20",
+  "sourceRange": "Source!A1:B8",
+  "filter": "value",
+  "outputRange": "A4:B8",
+  "grandTotal": 170.0
+}

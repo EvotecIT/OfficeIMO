@@ -634,7 +634,8 @@ bounds and intervals, including decimal intervals, are supported when each bound
 in magnitude and the range has at most 99,998 buckets.
 Years/Months and Years/Quarters/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Hidden items on qualified manual, numeric, and date groups are applied to source records and saved views. Grouping on page fields is not.
 Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
-a non-English Excel locale. Renamed item captions remain visible in the generated view and usable by `GETPIVOTDATA`.
+a non-English Excel locale. Renamed item captions remain visible in the generated view; `GETPIVOTDATA`
+accepts both the displayed caption and the original cache key for a renamed ordinary item.
 It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
@@ -644,6 +645,13 @@ Manual item filters retain their selected keys when source item order changes.
 New source keys remain excluded from a manually filtered field unless its
 `IncludeNewItemsInFilter` setting admits them. A filter that leaves no source
 records is rejected before changing the saved view.
+Label-contains filters on ordinary row or column fields and value-greater-than
+filters on a single ordinary axis field can be materialized, including both
+filters on the same field. Value filters use the selected measure's aggregation
+over current source rows; refreshed views reevaluate item membership. The
+filter definition remains available for Excel refresh, and filtered items are
+not converted into manually hidden items. Filter evaluation is bounded by the
+source-cell work budget.
 For multiple measures, the Values field appears on exactly one axis. Values-first,
 intermediate and Values-last ordering are preserved, including views without real row or column
 fields. `AddPivotTable` creates this field on columns by default, or on rows when
@@ -672,7 +680,7 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Other date levels and layouts, custom non-text grouping, label/value pivot filters,
+Other date levels and layouts, custom non-text grouping, other label/value pivot filter types and multi-field value filtering,
 calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.
