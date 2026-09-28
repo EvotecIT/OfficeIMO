@@ -50,10 +50,15 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
                 generated.Remove();
             }
-            // Source order controls overlap in imported combinations. Retained layers
-            // keep that order; newly introduced layers retain their generated order.
+            // Retained layers keep their source-relative overlap order. Keep unmatched
+            // generated layers in their original slots so a newly added area layer can
+            // still sit behind an existing line rather than being moved to the end.
             var layers = replacement.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
-            var ordered = layers.OrderBy(layer => sourceOrder.TryGetValue(layer, out int order) ? order : int.MaxValue).ToList();
+            OpenXmlCompositeElement[] retained = layers.Where(sourceOrder.ContainsKey)
+                .OrderBy(layer => sourceOrder[layer]).ToArray();
+            int retainedIndex = 0;
+            var ordered = layers.Select(layer => sourceOrder.ContainsKey(layer)
+                ? retained[retainedIndex++] : layer).ToList();
             if (layers.Count > 0) {
                 OpenXmlElement? following = layers.Last().NextSibling();
                 foreach (var layer in layers) layer.Remove();
