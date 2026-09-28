@@ -145,8 +145,14 @@ public static partial class OfficeChartDrawingRenderer {
         if (!Clip(-dx, x0, ref entry, ref exit) || !Clip(dx, 1D - x0, ref entry, ref exit) ||
             !Clip(-dy, y0, ref entry, ref exit) || !Clip(dy, 1D - y0, ref entry, ref exit))
             return false;
+        if (entry == exit && !fromInside && !toInside)
+            return TryClipScatterOverflowSegment(from, to, xRange, yRange, bounds,
+                out start, out end);
         start = Map(x0 + entry * dx, y0 + entry * dy);
         end = Map(x0 + exit * dx, y0 + exit * dy);
+        if (start.X == end.X && start.Y == end.Y && !fromInside && !toInside)
+            return TryClipScatterOverflowSegment(from, to, xRange, yRange, bounds,
+                out start, out end);
         return true;
 
         OfficePoint Map(double x, double y) => new OfficePoint(

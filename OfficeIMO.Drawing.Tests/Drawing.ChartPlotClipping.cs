@@ -100,6 +100,26 @@ public sealed class DrawingChartPlotClippingTests {
         }
     }
 
+    [Fact]
+    public void LargeFiniteScatterSegmentCrossesNarrowExplicitBounds() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", new[] { .5d, .5d },
+                new[] { -1e16, 1e16 }, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 1);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, data, 360, 240, layout: layout));
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
+            item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == ink));
+        OfficeDrawingShape line = Assert.Single(group.Drawing.Shapes,
+            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+        Assert.True(line.Shape.Width > group.ClipPath.Width * .99d);
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
