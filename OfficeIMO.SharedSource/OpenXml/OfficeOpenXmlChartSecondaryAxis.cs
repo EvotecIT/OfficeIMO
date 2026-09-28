@@ -67,6 +67,8 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
         if (axis == null) return;
         var scaling = axis.GetFirstChild<C.Scaling>();
         if ((!resolveSourceLinkedFormats && axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) ||
+            axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
+                OfficeOpenXmlChartSeriesReader.HasUnsupportedSharedAxisNumberFormat(axis) ||
             scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
             axis.GetFirstChild<C.DisplayUnits>() != null || axis.GetFirstChild<C.CrossesAt>() != null)

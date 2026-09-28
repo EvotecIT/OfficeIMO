@@ -9,6 +9,41 @@ namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartSecondaryAxisLayoutTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnsupportedNumericAxisFormatIsNotProjected(bool secondaryAxis) {
+        using var presentation = PowerPointPresentation.Create();
+        var chart = presentation.AddSlide().AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Count", new[] { 100D }),
+                new OfficeChartSeries("Ratio", new[] { 10D }, null, null, null, true,
+                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            }));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(item => item.AxisPosition!.Val!.Value ==
+                (secondaryAxis ? C.AxisPositionValues.Right : C.AxisPositionValues.Left));
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
+        axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Area)]
+    public void ExplicitPrimaryBoundsOutsideCachedGeometryAreNotProjected(OfficeChartKind kind) {
+        using var presentation = PowerPointPresentation.Create();
+        var chart = presentation.AddSlide().AddChart(kind,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Values", new[] { 0D, 20D })
+            }));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        var axis = presentation.Slides.Single().SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.Scaling!.AddChild(new C.MaxAxisValue { Val = 10D }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
     [InlineData("logarithmic")]
     [InlineData("reversed")]
     [InlineData("displayUnits")]

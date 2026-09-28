@@ -587,6 +587,9 @@ namespace OfficeIMO.PowerPoint {
                 axis.GetFirstChild<C.Title>()?.GetFirstChild<C.ChartText>());
 
         private static string? ReadAxisNumberFormat(C.ValueAxis axis) {
+            if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
+                OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.HasUnsupportedSharedAxisNumberFormat(axis))
+                throw new NotSupportedException("The native axis number format cannot be projected.");
             string? format = axis.GetFirstChild<C.NumberingFormat>()?
                 .FormatCode?.Value;
             return string.IsNullOrWhiteSpace(format) ? null : format;

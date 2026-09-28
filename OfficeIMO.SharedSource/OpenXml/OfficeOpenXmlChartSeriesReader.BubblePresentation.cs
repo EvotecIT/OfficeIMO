@@ -206,7 +206,7 @@ namespace OfficeIMO.OpenXml.Internal {
             });
 
 
-        private static bool HasUnsupportedSharedAxisNumberFormat(
+        internal static bool HasUnsupportedSharedAxisNumberFormat(
             OpenXmlCompositeElement axis) {
             C.NumberingFormat? numbering = axis.GetFirstChild<C.NumberingFormat>();
             // A linked format can differ from formatCode only when the chart has a workbook.
