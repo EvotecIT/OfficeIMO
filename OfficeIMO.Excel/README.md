@@ -672,7 +672,7 @@ including totals, are capped at 100,001. On each axis, the sum of saved field it
 and shared keys must also fit the configured budget, so all generated criteria
 combinations remain within the saved-lookup indexing limit.
 
-Other date levels and grouped layouts, noninteger-range and manually defined grouping, grouped item filters, label/value pivot filters,
+Other date levels and layouts, custom non-text grouping, label/value pivot filters,
 calculated fields, shared caches and associated interaction
 caches still require additional materialization support. Imported definitions
 remain available through the existing metadata and refresh-on-open APIs.
