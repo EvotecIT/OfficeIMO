@@ -408,7 +408,8 @@ public static partial class OfficeChartDrawingRenderer {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {
             AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
-                numericPlotWidth, numericPlotHeight, style, layout,
+                numericPlotWidth, numericPlotHeight,
+                new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight), style, layout,
                 maximumBubbleDiameterOverride: maximumBubbleDiameter);
         } else if (IsLineChart(snapshot.ChartKind)) {
             AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
@@ -1598,7 +1599,8 @@ public static partial class OfficeChartDrawingRenderer {
             : snapshot.Data.Series;
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,
-        double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout,
+        double plotTop, double plotWidth, double plotHeight, ChartPlotBounds clipBounds,
+        OfficeChartStyle style, OfficeChartLayout layout,
         ValueRange? valueAxisRange = null, OfficeChartAxisGroup? axisGroup = null,
         double? maximumBubbleDiameterOverride = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
@@ -1625,7 +1627,8 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange yRange = valueAxisRange ?? ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
         bool clipPlot = HasExplicitValueBounds(layout, axisGroup) ||
             layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue;
-        var plotBounds = new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight);
+        var centerBounds = new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight);
+        OfficeDrawing lineGeometry = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         OfficeDrawing geometry = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         OfficeDrawing labels = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         double maximumBubbleSize = GetMaximumBubbleSize(allRangeSeries);
@@ -1647,7 +1650,7 @@ public static partial class OfficeChartDrawingRenderer {
             for (int i = 0; i < pointCount; i++) {
                 if (!TryGetSeriesValue(currentSeries, i, out double yValue)) {
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                        AddPointLine(geometry, lineSegment, color, strokeWidth, dashStyle);
+                        AddPointLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle);
                     }
 
                     lineSegment.Clear();
@@ -1657,7 +1660,7 @@ public static partial class OfficeChartDrawingRenderer {
                 double xValue = xValues[i];
                 if (!IsFiniteChartValue(xValue)) {
                     if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                        AddPointLine(geometry, lineSegment, color, strokeWidth, dashStyle);
+                        AddPointLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle);
                     }
 
                     lineSegment.Clear();
@@ -1676,11 +1679,11 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
-                AddPointLine(geometry, lineSegment, color, strokeWidth, dashStyle);
+                AddPointLine(lineGeometry, lineSegment, color, strokeWidth, dashStyle);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
-                if (clipPlot && !plotBounds.Contains(point)) continue;
+                if (clipPlot && !centerBounds.Contains(point)) continue;
                 OfficeColor pointColor = GetPointColor(
                     currentSeries.PointColors, points[i].SourceIndex, color);
                 if (currentSeries.BubbleSizes != null) {
@@ -1709,7 +1712,10 @@ public static partial class OfficeChartDrawingRenderer {
                     pointIndex);
             }
         }
-        if (clipPlot) AddClippedPlotGeometry(drawing, geometry, labels, plotBounds);
+        if (clipPlot) {
+            if (lineGeometry.Elements.Count > 0) AddClippedPlotGeometry(drawing, lineGeometry, centerBounds);
+            AddClippedPlotGeometry(drawing, geometry, labels, clipBounds);
+        }
     }
 
     private static void AddRadarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double width, double height, double contentTop, double bottomLegendHeight, OfficeChartStyle style, OfficeChartLayout layout) {

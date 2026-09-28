@@ -143,12 +143,14 @@ public static partial class OfficeChartDrawingRenderer {
         }
         if (!HasMixedScatterSeriesOnCategoryAxes(snapshot)) {
             AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
-                numericPlotWidth, numericPlotHeight, style, layout,
+                numericPlotWidth, numericPlotHeight,
+                new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight), style, layout,
                 primaryValueAxisRange, OfficeChartAxisGroup.Primary,
                 maximumBubbleDiameter);
             if (hasSecondaryAxis) {
                 AddScatterSeries(drawing, snapshot, numericPlotLeft, numericPlotTop,
-                    numericPlotWidth, numericPlotHeight, style, layout,
+                    numericPlotWidth, numericPlotHeight,
+                    new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight), style, layout,
                     secondaryValueAxisRange, OfficeChartAxisGroup.Secondary,
                     maximumBubbleDiameter);
             }
