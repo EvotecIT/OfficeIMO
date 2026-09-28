@@ -252,10 +252,25 @@ public static partial class WordIWorkConverter {
         }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
-            WordParagraph paragraph = target.AddParagraph(CellText(sourceCell), removeExistingParagraphs: true);
-            if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount) {
-                paragraph.Bold = true;
+            bool header = sourceCell.Row <= source.HeaderRowCount
+                || sourceCell.Column <= source.HeaderColumnCount
+                || sourceCell.Row > source.RowCount - source.FooterRowCount;
+            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
+                bool first = true;
+                foreach (IWorkTextParagraph sourceParagraph in richText.Paragraphs) {
+                    WordParagraph paragraph = target.AddParagraph(string.Empty,
+                        removeExistingParagraphs: first);
+                    first = false;
+                    ApplyParagraphStyle(paragraph, sourceParagraph);
+                    if (header) paragraph.Bold = true;
+                    foreach (IWorkTextRun run in sourceParagraph.Runs) {
+                        AddStyledTextRun(paragraph, run);
+                    }
+                }
+            } else {
+                WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
+                    removeExistingParagraphs: true);
+                if (header) paragraph.Bold = true;
             }
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {
@@ -322,6 +337,10 @@ public static partial class WordIWorkConverter {
         if (projection.TextBoxObjects.Any(textBox => HasContainerScopedBreak(textBox.Content))) {
             return "A Pages text box contains a section, layout, or page break that cannot be represented inside a DOCX text box.";
         }
+        if (projection.Tables.SelectMany(table => table.Cells)
+            .Any(cell => cell.RichText != null && HasContainerScopedBreak(cell.RichText))) {
+            return "A Pages table cell contains a section, layout, or page break that cannot be represented inside a DOCX cell.";
+        }
         if (projection.Body.Paragraphs
                 .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
                 .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
@@ -331,6 +350,14 @@ public static partial class WordIWorkConverter {
                 .Any(run => run.Hyperlink != null
                     && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
             return "Pages contains a text hyperlink that cannot be represented by the DOCX owner.";
+        }
+        if (projection.Tables.SelectMany(table => table.Cells)
+            .Where(cell => cell.RichText != null)
+            .SelectMany(cell => cell.RichText!.Paragraphs)
+            .SelectMany(paragraph => paragraph.Runs)
+            .Any(run => run.Hyperlink != null
+                && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
+            return "Pages contains a table-cell hyperlink that cannot be represented by the DOCX owner.";
         }
         if (projection.Body.Paragraphs
                 .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))

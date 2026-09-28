@@ -26,6 +26,20 @@ public static partial class ExcelIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
+        if (projection.Sheets.SelectMany(sheet => sheet.Tables)
+            .SelectMany(table => table.Cells)
+            .Any(cell => cell.RichText != null &&
+                (cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                    .Any(run => run.Hyperlink != null)
+                 && UniformCellHyperlink(cell.RichText) == null
+                 || cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                     .Any(run => run.Style.BackgroundColor != null)))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
+                    "Some rich-text cell links or run highlights cannot be represented in XLSX; source runs remain available on the iWork projection.")
+            }).ToArray();
+        }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Numbers source has no supported editable content.");
@@ -99,6 +113,14 @@ public static partial class ExcelIWorkConverter {
                                 || cell.Value != null && cell.CachedValueIsComplete) {
                                 targetCell.SetValue(value);
                             }
+                            if (cell.RichText is { Paragraphs.Count: > 0 } richText) {
+                                string? hyperlink = UniformCellHyperlink(richText);
+                                if (hyperlink != null) {
+                                    sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
+                                        display: null, style: false);
+                                }
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText));
+                            }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
                                 targetCell.SetBold();
@@ -144,6 +166,39 @@ public static partial class ExcelIWorkConverter {
     private static string ErrorText(IWorkTableCell cell) => cell.Kind == IWorkCellKind.Formula
             ? cell.CachedDisplayText
             : cell.DisplayText;
+
+    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content) {
+        var runs = new List<ExcelRichTextRun>();
+        for (int paragraphIndex = 0; paragraphIndex < content.Paragraphs.Count; paragraphIndex++) {
+            if (paragraphIndex > 0) runs.Add(new ExcelRichTextRun("\n"));
+            foreach (IWorkTextRun source in content.Paragraphs[paragraphIndex].Runs) {
+                var run = new ExcelRichTextRun(source.Text);
+                if (source.Style.Bold.HasValue) run.Bold = source.Style.Bold.Value;
+                if (source.Style.Italic.HasValue) run.Italic = source.Style.Italic.Value;
+                if (source.Style.Underline.HasValue) run.Underline = source.Style.Underline.Value;
+                if (source.Style.Strikethrough.HasValue) run.Strikethrough = source.Style.Strikethrough.Value;
+                run.FontSize = source.Style.FontSizePoints;
+                run.FontName = source.Style.FontName;
+                run.FontColor = source.Style.Color?.RgbHex;
+                runs.Add(run);
+            }
+        }
+        return runs.ToArray();
+    }
+
+    private static string? UniformCellHyperlink(IWorkTextContent content) {
+        string? hyperlink = null;
+        foreach (IWorkTextRun run in content.Paragraphs.SelectMany(paragraph => paragraph.Runs)) {
+            if (run.Text.Length == 0) continue;
+            if (run.Hyperlink == null) return null;
+            if (hyperlink != null && !string.Equals(hyperlink, run.Hyperlink,
+                    StringComparison.Ordinal)) return null;
+            hyperlink = run.Hyperlink;
+        }
+        return hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out _)
+            ? hyperlink
+            : null;
+    }
 
     private static bool IsNativeExcelError(string value) => value is
             "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?"

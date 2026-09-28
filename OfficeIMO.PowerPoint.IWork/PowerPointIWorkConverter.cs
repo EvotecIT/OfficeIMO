@@ -153,9 +153,17 @@ public static partial class PowerPointIWorkConverter {
         table.LastRow = source.FooterRowCount > 0;
         foreach (IWorkTableCell sourceCell in source.Cells) {
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
-            target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
-                ? sourceCell.CachedDisplayText
-                : sourceCell.DisplayText;
+            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
+                IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
+                    richText.Paragraphs.Select(_ => string.Empty));
+                for (int index = 0; index < paragraphs.Count; index++) {
+                    WriteParagraphContent(paragraphs[index], richText.Paragraphs[index]);
+                }
+            } else {
+                target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
+                    ? sourceCell.CachedDisplayText
+                    : sourceCell.DisplayText;
+            }
             if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
                 || sourceCell.Row > source.RowCount - source.FooterRowCount) target.Bold = true;
         }
@@ -225,6 +233,11 @@ public static partial class PowerPointIWorkConverter {
                 || SlideText(slide).SelectMany(content => content.Paragraphs)
                     .SelectMany(paragraph => paragraph.Runs)
                     .Select(run => run.Hyperlink)
+                    .Concat(slide.Tables.SelectMany(table => table.Cells)
+                        .Where(cell => cell.RichText != null)
+                        .SelectMany(cell => cell.RichText!.Paragraphs)
+                        .SelectMany(paragraph => paragraph.Runs)
+                        .Select(run => run.Hyperlink))
                     .Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))) {
                 return $"Keynote slide {slide.Index} contains a hyperlink that cannot be represented by the PPTX owner.";
             }

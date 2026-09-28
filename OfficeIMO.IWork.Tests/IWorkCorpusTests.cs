@@ -242,6 +242,15 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("Date", pages.Tables[2].GetCell(1, 2)?.DisplayText);
         Assert.DoesNotContain(pages.Tables.SelectMany(candidate => candidate.Cells),
             cell => cell.Kind == IWorkCellKind.Text && cell.DisplayText.Length == 0);
+        IWorkTableCell[] richCells = pages.Tables.SelectMany(candidate => candidate.Cells)
+            .Where(cell => cell.RichText != null).ToArray();
+        Assert.NotEmpty(richCells);
+        Assert.All(richCells, cell => Assert.Equal(cell.DisplayText, cell.RichText!.PlainText));
+        IWorkTextRun headerRun = Assert.Single(Assert.Single(
+            table.GetCell(1, 1)!.RichText!.Paragraphs).Runs);
+        Assert.Equal("Feature", headerRun.Text);
+        Assert.True(headerRun.Style.Bold);
+        Assert.Equal(10.5d, headerRun.Style.FontSizePoints);
     }
 
     [Fact]

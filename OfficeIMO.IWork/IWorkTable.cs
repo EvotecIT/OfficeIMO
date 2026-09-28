@@ -6,7 +6,8 @@ namespace OfficeIMO.IWork;
 public sealed class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
-        bool formulaIsComplete = false, bool cachedValueIsComplete = true) {
+        bool formulaIsComplete = false, IWorkTextContent? richText = null,
+        bool cachedValueIsComplete = true) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -16,6 +17,7 @@ public sealed class IWorkTableCell {
         FormulaIsComplete = formulaIsComplete;
         CachedValueIsComplete = cachedValueIsComplete;
         Error = error;
+        RichText = richText;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -36,6 +38,8 @@ public sealed class IWorkTableCell {
     public bool CachedValueIsComplete { get; }
     /// <summary>Gets a cell-level decode error without failing the surrounding table.</summary>
     public string? Error { get; }
+    /// <summary>Gets source rich text for a text cell, including runs, styles, and hyperlinks when recovered.</summary>
+    public IWorkTextContent? RichText { get; }
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",
