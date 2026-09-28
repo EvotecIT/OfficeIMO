@@ -159,6 +159,8 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             PowerPointPresentation.Load(FixturePath);
         PowerPointChart chart = GetBar3DChart(presentation);
         ChartPart chartPart = GetBar3DChartPart(presentation);
+        Assert.True(chart.TryGetOfficeSnapshot(
+            out OfficeChartSnapshot snapshot));
         EmbeddedPackagePart package = Assert.Single(
             chartPart.GetPartsOfType<EmbeddedPackagePart>());
         SetWorkbookCellStyle(package, "B2", styleIndex: 1U);
@@ -167,8 +169,7 @@ public sealed class PowerPointAdvancedSourceProducerCorpusTests {
             .Descendants<NumberingCache>().First();
         cache.FormatCode = new FormatCode("$#,##0.00");
 
-        Assert.True(chart.TryGetOfficeSnapshot(
-            out OfficeChartSnapshot snapshot));
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
         chart.UpdateData(snapshot.Data);
 
         Assert.Equal(1U, GetWorkbookCellStyle(package, "B2"));
