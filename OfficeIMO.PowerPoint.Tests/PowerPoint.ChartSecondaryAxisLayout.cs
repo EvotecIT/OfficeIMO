@@ -65,9 +65,12 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(bool overlay) {
+    [InlineData("manual")]
+    [InlineData("overlay")]
+    [InlineData("implicitOverlay")]
+    [InlineData("paragraphs")]
+    [InlineData("break")]
+    public void SecondaryValueAxis_UnsupportedTitlePlacementRejectsSnapshot(string placement) {
         using var presentation = PowerPointPresentation.Create();
         var slide = presentation.AddSlide();
         var chart = slide.AddChart(OfficeChartKind.ColumnClustered, new OfficeChartData(new[] { "A" }, new[] {
@@ -78,7 +81,13 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
         var title = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>()
             .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
-        if (overlay) title.GetFirstChild<C.Overlay>()!.Val = true;
+        if (placement == "overlay") title.GetFirstChild<C.Overlay>()!.Val = true;
+        else if (placement == "implicitOverlay") title.GetFirstChild<C.Overlay>()!.Val = null;
+        else if (placement == "paragraphs") title.GetFirstChild<C.ChartText>()!.GetFirstChild<C.RichText>()!
+            .Append(new DocumentFormat.OpenXml.Drawing.Paragraph(new DocumentFormat.OpenXml.Drawing.Run(
+                new DocumentFormat.OpenXml.Drawing.Text("Percent"))));
+        else if (placement == "break") title.GetFirstChild<C.ChartText>()!.GetFirstChild<C.RichText>()!
+            .GetFirstChild<DocumentFormat.OpenXml.Drawing.Paragraph>()!.Append(new DocumentFormat.OpenXml.Drawing.Break());
         else title.GetFirstChild<C.Layout>()!.Append(new C.ManualLayout(new C.Left { Val = .3 }));
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }

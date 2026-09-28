@@ -87,6 +87,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 (ReadLayoutMinimum(vertical) < 0D || data.Series.Any(series => series.Values.Any(value => value < 0D))))
                 throw new NotSupportedException("A horizontal bar axis crossing through negative values cannot be projected.");
             QualifySecondaryLayout(plot);
+            OfficeOpenXmlChartSecondaryAxis.QualifyLinearProjection(plot);
             // Titles, visibility and category direction describe logical roles;
             // scales and tick marks describe the physical horizontal/vertical axes.
             var categoryAxis = horizontal;
