@@ -5,11 +5,35 @@ using System.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartOfficeSnapshotTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeSnapshot_RejectsScriptSpecificSecondaryTitleTypeface(bool eastAsian) {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Count", new[] { 100D }),
+                new OfficeChartSeries("Ratio", new[] { 1D }, null, null, null, true,
+                    renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary)
+            }));
+        chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout().WithTitle("Ratio"));
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        var title = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>()
+            .Single(axis => axis.AxisPosition!.Val!.Value == C.AxisPositionValues.Right).GetFirstChild<C.Title>()!;
+        var run = title.Descendants<A.Run>().First();
+        var properties = run.RunProperties ?? new A.RunProperties();
+        if (properties.Parent == null) run.PrependChild(properties);
+        if (eastAsian) properties.Append(new A.EastAsianFont { Typeface = "SimSun" });
+        else properties.Append(new A.ComplexScriptFont { Typeface = "Arial" });
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Fact]
     public void OfficeSnapshot_RejectsVisibleSecondaryAxisWithDeletedPrimaryAxis() {
         using var document = WordDocument.Create();

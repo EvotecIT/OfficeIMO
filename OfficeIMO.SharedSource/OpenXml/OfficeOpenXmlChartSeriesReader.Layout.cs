@@ -150,6 +150,9 @@ namespace OfficeIMO.OpenXml.Internal {
                     axis.GetFirstChild<C.MajorGridlines>() != null || axis.GetFirstChild<C.MinorGridlines>() != null)
                     throw new NotSupportedException("The secondary axis appearance cannot be projected independently.");
                 OfficeOpenXmlChartSecondaryAxis.QualifyTitle(axis.GetFirstChild<C.Title>());
+                if (axis.GetFirstChild<C.Title>()?.Descendants().Any(child =>
+                        child is A.EastAsianFont or A.ComplexScriptFont) == true)
+                    throw new NotSupportedException("Script-specific secondary axis title fonts cannot be projected.");
                 if (axis is C.ValueAxis && (IsDeletedAxis(axis) || axis.GetFirstChild<C.TickLabelPosition>()?.Val?.Value is C.TickLabelPositionValues tickPosition && tickPosition != C.TickLabelPositionValues.NextTo))
                     throw new NotSupportedException("Secondary value-axis visibility cannot be projected independently.");
                 if (axis is C.ValueAxis) {

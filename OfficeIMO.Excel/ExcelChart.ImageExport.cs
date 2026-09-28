@@ -353,7 +353,7 @@ namespace OfficeIMO.Excel {
                 throw new NotSupportedException("The secondary axis number format cannot be rendered.");
             return new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
-                native.MinorTickMark);
+                native.MinorTickMark).WithTitle(native.Title);
         }
 
         private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {
