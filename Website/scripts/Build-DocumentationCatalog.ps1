@@ -39,7 +39,7 @@ function Get-DocumentationUrl {
     param([string] $Name)
 
     switch -Regex ($Name) {
-        '^OfficeIMO\.(?:IWork|Word\.IWork|Excel\.IWork|PowerPoint\.IWork)$' { return '/docs/iwork/' }
+        '^OfficeIMO\.(?:IWork|Reader\.IWork|Word\.IWork|Excel\.IWork|PowerPoint\.IWork)$' { return '/docs/iwork/' }
         '^OfficeIMO\.Word' { return '/docs/word/' }
         '^OfficeIMO\.Excel' { return '/docs/excel/' }
         '^OfficeIMO\.PowerPoint' { return '/docs/powerpoint/' }

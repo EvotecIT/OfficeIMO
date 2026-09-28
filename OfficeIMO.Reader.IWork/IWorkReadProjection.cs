@@ -3,6 +3,7 @@ using OfficeIMO.IWork;
 namespace OfficeIMO.Reader.IWork;
 
 internal sealed partial class IWorkReadProjection {
+    private const int MaximumMarkdownListLevel = 128;
     private readonly OfficeDocumentReadResult _result;
     private readonly string _path;
     private readonly ReaderOptions _readerOptions;
@@ -15,6 +16,7 @@ internal sealed partial class IWorkReadProjection {
     private readonly List<OfficeDocumentLink> _links = new();
     private readonly List<OfficeDocumentPage> _pages = new();
     private readonly List<OfficeDocumentDiagnostic> _diagnostics = new();
+    private bool _reportedMarkdownListDepthLimit;
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentBlock>> _pageBlocks = new();
     private readonly Dictionary<OfficeDocumentPage, List<ReaderTable>> _pageTables = new();
     private readonly Dictionary<OfficeDocumentPage, List<OfficeDocumentAsset>> _pageAssets = new();
@@ -180,6 +182,16 @@ internal sealed partial class IWorkReadProjection {
         string sourceKind) {
         string text = paragraph.Text;
         if (text.Length == 0) return;
+        if (paragraph.ListLevel > MaximumMarkdownListLevel && !_reportedMarkdownListDepthLimit) {
+            _reportedMarkdownListDepthLimit = true;
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Limit,
+                Code = "IWORK_READER_LIST_DEPTH_TRUNCATED",
+                Message = "Markdown indentation is capped at 128 list levels; source list levels remain on the blocks.",
+                Source = "OfficeIMO.Reader.IWork",
+                Location = Location(page)
+            });
+        }
         string markdown = RichTextMarkdown(paragraph);
         string kind = paragraph.ListLevel >= 0 ? "list-item" :
             sourceKind == "title" ? "heading" : "paragraph";

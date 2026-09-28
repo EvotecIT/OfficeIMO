@@ -27,6 +27,9 @@
     <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <None Include="README.md" Pack="True" PackagePath="README.md" />
   </ItemGroup>
   <ItemGroup>

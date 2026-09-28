@@ -54,7 +54,9 @@ public enum OfficeDocumentFormat {
     /// <summary>Outline Processor Markup Language content.</summary>
     Opml,
     /// <summary>DocBook XML content.</summary>
-    DocBook
+    DocBook,
+    /// <summary>Apple Pages, Numbers, or Keynote content.</summary>
+    IWork
 }
 
 /// <summary>

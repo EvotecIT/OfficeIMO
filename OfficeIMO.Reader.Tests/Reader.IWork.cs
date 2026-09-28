@@ -146,6 +146,28 @@ public sealed class ReaderIWorkTests {
         Assert.Equal(1, markdown.Split("Preserve reading order", StringSplitOptions.None).Length - 1);
     }
 
+    [Fact]
+    public void SplitTableMarkdownRespectsChunkBudgetAndReassembles() {
+        const int maxChars = 256;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        OfficeDocumentReadResult document = reader.ReadDocument(
+            Fixture("picodocs/sample-v14.4.pages"), new ReaderOptions { MaxChars = maxChars });
+
+        ReaderChunk first = Assert.Single(document.Chunks,
+            chunk => chunk.Tables?.Count > 0 && chunk.Tables[0] == document.Tables[0]);
+        string? anchor = first.Location.BlockAnchor;
+        ReaderChunk[] parts = document.Chunks.Where(chunk => chunk.Location.BlockAnchor == anchor).ToArray();
+        Assert.True(parts.Length > 1);
+        Assert.All(parts, part => Assert.InRange(part.Markdown!.Length, 0, maxChars));
+        Assert.Equal(document.Tables[0].ToMarkdownTable(), string.Concat(parts.Select(part => part.Markdown)));
+    }
+
+    [Fact]
+    public void IWorkResultsKeepTheirNeutralFormatIdentity() {
+        Assert.Equal(OfficeDocumentFormat.IWork,
+            OfficeDocumentReadResultPdfExtensions.MapFormat(ReaderInputKind.IWork));
+    }
+
     private static string Fixture(string relativePath) =>
         Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             relativePath.Replace('/', Path.DirectorySeparatorChar));

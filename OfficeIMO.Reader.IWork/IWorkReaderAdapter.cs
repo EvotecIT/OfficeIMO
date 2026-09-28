@@ -1,4 +1,5 @@
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 
 namespace OfficeIMO.Reader.IWork;
 
@@ -7,26 +8,15 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(sourceName) || !stream.CanSeek) return false;
-        IWorkDocumentKind expected;
         try {
-            expected = ExpectedKind(sourceName!);
+            _ = ExpectedKind(sourceName!);
         } catch (NotSupportedException) {
             return false;
         }
-        IWorkReadOptions limits = options.ReadOptions?.Clone() ?? new IWorkReadOptions();
-        limits.MaximumPackageBytes = Math.Min(limits.MaximumPackageBytes,
+        long maximumPackageBytes = Math.Min(options.ReadOptions?.MaximumPackageBytes
+            ?? new IWorkReadOptions().MaximumPackageBytes,
             readerOptions.MaxInputBytes ?? 64L * 1024 * 1024);
-        long position = stream.Position;
-        try {
-            _ = IWorkSourceDocument.Open(stream, expected, limits);
-            return true;
-        } catch (InvalidDataException) {
-            return false;
-        } catch (NotSupportedException) {
-            return false;
-        } finally {
-            stream.Position = position;
-        }
+        return IWorkContainerProbe.HasModernIndex(stream, maximumPackageBytes);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions,

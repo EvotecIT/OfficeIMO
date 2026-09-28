@@ -1,9 +1,34 @@
 using OfficeIMO.IWork;
 using OfficeIMO.IWork.Internal;
+using System.IO.Compression;
 
 namespace OfficeIMO.IWork.Tests;
 
 public sealed partial class IWorkBoundaryTests {
+    [Theory]
+    [InlineData("nim-iwork/simple.pages")]
+    [InlineData("nim-iwork/simple.numbers")]
+    [InlineData("nim-iwork/simple.key")]
+    public void Structural_probe_recognizes_modern_packages_without_consuming_them(string name) {
+        using FileStream stream = File.OpenRead(Fixture(name));
+
+        Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length));
+        Assert.Equal(0, stream.Position);
+    }
+
+    [Fact]
+    public void Structural_probe_rejects_a_generic_zip() {
+        using var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true)) {
+            using Stream entry = archive.CreateEntry("notes.txt").Open();
+            entry.WriteByte(1);
+        }
+        stream.Position = 0;
+
+        Assert.False(IWorkContainerProbe.HasModernIndex(stream, stream.Length));
+        Assert.Equal(0, stream.Position);
+    }
+
     [Theory]
     [InlineData(true)]
     [InlineData(false)]

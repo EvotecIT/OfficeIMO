@@ -32,6 +32,7 @@ internal sealed partial class IWorkReadProjection {
         location.TableIndex = tableIndex;
         var table = new ReaderTable {
             Title = source.Name,
+            Summary = source.AccessibilityDescription,
             Kind = "iwork-table",
             Location = location,
             Columns = columns,
@@ -42,7 +43,8 @@ internal sealed partial class IWorkReadProjection {
         _tables.Add(table);
         _pageTables[page].Add(table);
         string markdown = table.ToMarkdownTable();
-        AddBlock(page, "table", markdown, markdown, null, null, table);
+        AddBlock(page, "table", markdown, markdown, null, null, table,
+            markdownPart: (offset, length) => markdown.Substring(offset, length));
         if (truncated) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Limit,
@@ -52,7 +54,7 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
-        if (source.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value != null)) {
+        if (source.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula)) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,
                 Code = "IWORK_READER_FORMULA_CACHE",
@@ -73,7 +75,7 @@ internal sealed partial class IWorkReadProjection {
 
     private static string CellText(IWorkTableCell? cell) => cell == null
         ? string.Empty
-        : cell.Kind == IWorkCellKind.Formula && cell.Value != null
+        : cell.Kind == IWorkCellKind.Formula
             ? cell.CachedDisplayText
             : cell.DisplayText;
 
@@ -138,7 +140,7 @@ internal sealed partial class IWorkReadProjection {
         _pageLinks[page].Add(link);
     }
 
-    private static string RichTextMarkdown(IWorkTextParagraph paragraph) =>
+    internal static string RichTextMarkdown(IWorkTextParagraph paragraph) =>
         RichTextMarkdown(paragraph, 0, paragraph.Text.Length);
 
     private static string RichTextMarkdown(IWorkTextParagraph paragraph, int offset, int length) {
@@ -160,10 +162,21 @@ internal sealed partial class IWorkReadProjection {
             builder.Append(value);
         }
         if (offset == 0 && paragraph.ListLevel >= 0) {
-            return (string.IsNullOrWhiteSpace(paragraph.ListLabel) ? "-" : paragraph.ListLabel)
-                + " " + builder;
+            string marker = MarkdownListMarker(paragraph.ListLabel);
+            return new string(' ', Math.Min(paragraph.ListLevel, MaximumMarkdownListLevel) * 2)
+                + marker + " " + builder;
         }
         return builder.ToString();
+    }
+
+    private static string MarkdownListMarker(string? sourceLabel) {
+        string label = sourceLabel?.Trim() ?? string.Empty;
+        int digits = 0;
+        while (digits < label.Length && label[digits] >= '0' && label[digits] <= '9') digits++;
+        return digits > 0 && digits == label.Length - 1
+            && (label[digits] == '.' || label[digits] == ')')
+            ? label.Substring(0, digits) + "."
+            : "-";
     }
 
     private static string EscapeMarkdown(string value) {
