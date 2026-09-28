@@ -45,7 +45,7 @@ internal sealed partial class IWorkReadProjection {
         string markdown = table.ToMarkdownTable();
         string text = DocumentReaderEngine.BuildRichTableText(table);
         ReaderLocation tableBlockLocation = AddBlock(page, "table", text, markdown, null, null, table,
-            splitMarkdownIndependently: true);
+            region: Region(source.Geometry), splitMarkdownIndependently: true);
         tableBlockLocation.TableIndex = tableIndex;
         if (truncated) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
@@ -97,18 +97,15 @@ internal sealed partial class IWorkReadProjection {
             SourceObjectId = source.PackagePath,
             PayloadBytes = _options.IncludeImagePayloads ? source.GetBytes() : null,
             Location = Location(page),
-            Region = source.Geometry == null ? null : new OfficeDocumentRegion {
-                X = source.Geometry.LeftPoints,
-                Y = source.Geometry.TopPoints,
-                Width = source.Geometry.WidthPoints,
-                Height = source.Geometry.HeightPoints
-            }
+            Region = Region(source.Geometry)
         };
         _assets.Add(asset);
         _pageAssets[page].Add(asset);
         if (!string.IsNullOrWhiteSpace(source.AccessibilityDescription)) {
-            AddBlock(page, "image", source.AccessibilityDescription!,
-                source.AccessibilityDescription!, null, null);
+            string description = source.AccessibilityDescription!;
+            AddBlock(page, "image", description, EscapeMarkdown(description), null, null,
+                markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length)),
+                region: asset.Region);
         }
         if (source.Hyperlink != null) AddLink(page, source.Hyperlink, asset.Location);
         if (source.HasMask) {
@@ -158,7 +155,9 @@ internal sealed partial class IWorkReadProjection {
             if (run.Style.Bold == true) value = "**" + value + "**";
             if (run.Style.Italic == true) value = "*" + value + "*";
             if (run.Hyperlink != null
-                && Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out Uri? uri)) {
+                && Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out Uri? uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps
+                    || uri.Scheme == Uri.UriSchemeMailto)) {
                 value = "[" + value + "](<" + uri.AbsoluteUri.Replace(">", "%3E") + ">)";
             }
             builder.Append(value);

@@ -120,6 +120,32 @@ public sealed class ReaderIWorkTests {
     }
 
     [Fact]
+    public void PreferContentUsesTheKnownIWorkPackageLimitBeforeDetection() {
+        const long packageLimit = 512L * 1024L * 1024L;
+        var registry = new ReaderHandlerRegistry();
+        registry.Register(new ReaderHandlerRegistration {
+            Id = "officeimo.tests.iwork-limit",
+            Kind = ReaderInputKind.IWork,
+            Extensions = new[] { ".pages" },
+            DefaultMaxInputBytes = packageLimit,
+            MaxInputBytesCeiling = packageLimit,
+            ReadPath = (_, _, _) => Array.Empty<ReaderChunk>(),
+            ReadStream = (_, _, _, _) => Array.Empty<ReaderChunk>()
+        }, replaceExisting: false);
+        using (DocumentReaderEngine.UseHandlerRegistry(registry.CaptureSnapshot())) {
+            var options = new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent };
+            Assert.Equal(packageLimit, DocumentReaderEngine.ResolveInitialMaxInputBytes(
+                "large.pages", options));
+            Assert.Equal(packageLimit, DocumentReaderEngine.ResolveStreamMaxInputBytes(
+                "large.pages", options, streamCanSeek: false));
+            Assert.Equal(packageLimit, DocumentReaderEngine.ResolveStreamMaxInputBytes(
+                "large.pages", options, streamCanSeek: true));
+            Assert.Equal(64L * 1024L * 1024L, DocumentReaderEngine.ResolveStreamMaxInputBytes(
+                "unknown.bin", options, streamCanSeek: true));
+        }
+    }
+
+    [Fact]
     public void ChunkOnlyReadCarriesSourceWarnings() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
         ReaderChunk[] chunks = reader.Read(Fixture("picodocs/sample-v14.4.pages")).ToArray();

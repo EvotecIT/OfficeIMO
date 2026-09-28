@@ -14,7 +14,7 @@ internal static class IWorkContainerProbe {
             if (stream.Length - start > maximumPackageBytes) return false;
             OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
                 OfficeArchiveSafety.ScanZipCentralDirectory(stream,
-                    stream.Length - start, maximumEntries);
+                    stream.Length - start, maximumEntries, cancellationToken);
             if (!directory.IsValid || directory.LimitExceeded) return false;
             using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
             foreach (ZipArchiveEntry entry in archive.Entries) {

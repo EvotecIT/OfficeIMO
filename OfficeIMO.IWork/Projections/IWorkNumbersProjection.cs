@@ -68,8 +68,11 @@ public sealed class IWorkNumbersProjection {
 public sealed partial class IWorkSourceDocument {
     /// <summary>Reads a Numbers package into a bounded semantic source projection.</summary>
     public IWorkNumbersProjection ReadNumbers() {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Numbers) throw new InvalidOperationException($"The source is {Kind}, not Numbers.");
-        return IWorkNumbersReader.Read(this);
+        IWorkNumbersProjection projection = IWorkNumbersReader.Read(this);
+        _cancellationToken.ThrowIfCancellationRequested();
+        return projection;
     }
 }
 

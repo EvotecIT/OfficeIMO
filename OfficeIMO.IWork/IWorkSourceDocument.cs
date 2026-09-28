@@ -1,5 +1,6 @@
 using OfficeIMO.IWork.Internal;
 using System.Text;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.IWork;
@@ -8,15 +9,18 @@ namespace OfficeIMO.IWork;
 public sealed partial class IWorkSourceDocument {
     private readonly IWorkReadOptions _options;
     private readonly IWorkObjectIndex _index;
+    private readonly CancellationToken _cancellationToken;
 
     private IWorkSourceDocument(IWorkDocumentKind kind, IWorkPackageData package,
-        IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
+        IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options,
+        CancellationToken cancellationToken) {
         Kind = kind;
         ContainerKind = package.ContainerKind;
         Entries = Array.AsReadOnly(package.Entries.ToArray());
         Records = Array.AsReadOnly(records.ToArray());
         _options = options;
-        _index = new IWorkObjectIndex(Records, options);
+        _cancellationToken = cancellationToken;
+        _index = new IWorkObjectIndex(Records, options, cancellationToken);
         BuildVersions = Array.AsReadOnly(ReadBuildVersions(Entries).ToArray());
         Previews = Array.AsReadOnly(ReadPreviews(Entries, options.MaximumDecodedImageBytes).ToArray());
         Diagnostics = Array.AsReadOnly(new[] {
@@ -61,6 +65,20 @@ public sealed partial class IWorkSourceDocument {
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved);
         return Create(package, hint: expectedKind, options: resolved, expectedKind: expectedKind);
+    }
+
+    internal static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
+        IWorkReadOptions? options, CancellationToken cancellationToken) {
+        ValidateDocumentKind(expectedKind, nameof(expectedKind));
+        return OpenPath(path, expectedKind, options, cancellationToken);
+    }
+
+    internal static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
+        IWorkReadOptions? options, CancellationToken cancellationToken) {
+        ValidateDocumentKind(expectedKind, nameof(expectedKind));
+        IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
+        IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
+        return Create(package, expectedKind, resolved, expectedKind, cancellationToken);
     }
 
     /// <summary>Opens a ZIP-based iWork stream and detects its application kind.</summary>
@@ -113,15 +131,17 @@ public sealed partial class IWorkSourceDocument {
     }
 
     private static IWorkSourceDocument OpenPath(string path, IWorkDocumentKind? expectedKind,
-        IWorkReadOptions? options) {
+        IWorkReadOptions? options, CancellationToken cancellationToken = default) {
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
-        IWorkPackageData package = IWorkContainerReader.Read(path, resolved);
+        IWorkPackageData package = IWorkContainerReader.Read(path, resolved, cancellationToken);
         IWorkDocumentKind? extensionKind = KindFromExtension(Path.GetExtension(path));
-        return Create(package, expectedKind ?? extensionKind, resolved, expectedKind);
+        return Create(package, expectedKind ?? extensionKind, resolved, expectedKind, cancellationToken);
     }
 
     private static IWorkSourceDocument Create(IWorkPackageData package, IWorkDocumentKind? hint,
-        IWorkReadOptions options, IWorkDocumentKind? expectedKind) {
+        IWorkReadOptions options, IWorkDocumentKind? expectedKind,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!package.Entries.Any(entry => IWorkArchiveParser.IsIndexArchivePath(entry.Path))) {
             string[] legacyMarkers = { "index.xml", "index.apxl", "index.apxl.gz" };
             if (package.Entries.Any(entry => legacyMarkers.Contains(entry.Path, StringComparer.OrdinalIgnoreCase))) {
@@ -130,12 +150,14 @@ public sealed partial class IWorkSourceDocument {
             throw new InvalidDataException("The package does not contain modern iWork IWA archives.");
         }
 
-        IReadOnlyList<IWorkArchiveRecord> records = IWorkArchiveParser.Parse(package.Entries, options);
-        IWorkDocumentKind detected = DetectKind(records, hint, options);
+        IReadOnlyList<IWorkArchiveRecord> records = IWorkArchiveParser.Parse(package.Entries, options,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        IWorkDocumentKind detected = DetectKind(records, hint, options, cancellationToken);
         if (expectedKind.HasValue && expectedKind.Value != detected) {
             throw new InvalidDataException($"The package is {detected}, not the expected {expectedKind.Value} source.");
         }
-        return new IWorkSourceDocument(detected, package, records, options);
+        return new IWorkSourceDocument(detected, package, records, options, cancellationToken);
     }
 
     private static void ValidateDocumentKind(IWorkDocumentKind kind, string parameterName) {
@@ -148,9 +170,10 @@ public sealed partial class IWorkSourceDocument {
     }
 
     private static IWorkDocumentKind DetectKind(IReadOnlyList<IWorkArchiveRecord> records,
-        IWorkDocumentKind? hint, IWorkReadOptions options) {
+        IWorkDocumentKind? hint, IWorkReadOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         bool hasPagesRoot = records.Any(record => record.IsPrimary && record.MessageType == 10000);
-        var index = new IWorkObjectIndex(records, options);
+        var index = new IWorkObjectIndex(records, options, cancellationToken);
         bool hasNumbersRoot = HasNumbersRoot(index, records, options);
         bool hasKeynoteRoot = HasKeynoteRoot(index, records);
         int rootCount = (hasPagesRoot ? 1 : 0) + (hasNumbersRoot ? 1 : 0) + (hasKeynoteRoot ? 1 : 0);

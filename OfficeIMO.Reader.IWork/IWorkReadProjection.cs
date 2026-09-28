@@ -172,12 +172,7 @@ internal sealed partial class IWorkReadProjection {
 
     private void AddTextBox(OfficeDocumentPage page, IWorkTextBox textBox,
         string sourceKind) {
-        OfficeDocumentRegion? region = textBox.Geometry == null ? null : new OfficeDocumentRegion {
-            X = textBox.Geometry.LeftPoints,
-            Y = textBox.Geometry.TopPoints,
-            Width = textBox.Geometry.WidthPoints,
-            Height = textBox.Geometry.HeightPoints
-        };
+        OfficeDocumentRegion? region = Region(textBox.Geometry);
         int firstBlockIndex = _blocks.Count;
         AddRichContent(page, textBox.Content, sourceKind, region);
         if (!textBox.Content.Paragraphs.Any(paragraph => paragraph.Text.Length > 0)
@@ -188,19 +183,24 @@ internal sealed partial class IWorkReadProjection {
                 sourceKind: sourceKind, region: region);
         }
         if (!string.IsNullOrWhiteSpace(textBox.Hyperlink)) {
-            AddLink(page, textBox.Hyperlink!, _blocks.Count > firstBlockIndex
-                ? _blocks[firstBlockIndex].Location : Location(page));
+            OfficeDocumentBlock? anchor = _blocks.Skip(firstBlockIndex)
+                .FirstOrDefault(block => !string.IsNullOrWhiteSpace(block.Text));
+            AddLink(page, textBox.Hyperlink!, anchor?.Location
+                ?? (_blocks.Count > firstBlockIndex ? _blocks[firstBlockIndex].Location : Location(page)));
         }
     }
+
+    private static OfficeDocumentRegion? Region(IWorkGeometry? geometry) =>
+        geometry == null ? null : new OfficeDocumentRegion {
+            X = geometry.LeftPoints,
+            Y = geometry.TopPoints,
+            Width = geometry.WidthPoints,
+            Height = geometry.HeightPoints
+        };
 
     private void AddParagraph(OfficeDocumentPage page, IWorkTextParagraph paragraph,
         string sourceKind, OfficeDocumentRegion? region = null) {
         string text = paragraph.Text;
-        if (text.Length == 0) {
-            AddBlock(page, "paragraph", string.Empty, "\n", null, null,
-                sourceKind: sourceKind, region: region);
-            return;
-        }
         if (paragraph.ListLevel > MaximumMarkdownListLevel && !_reportedMarkdownListDepthLimit) {
             _reportedMarkdownListDepthLimit = true;
             _diagnostics.Add(new OfficeDocumentDiagnostic {
@@ -210,6 +210,13 @@ internal sealed partial class IWorkReadProjection {
                 Source = "OfficeIMO.Reader.IWork",
                 Location = Location(page)
             });
+        }
+        if (text.Length == 0) {
+            AddBlock(page, paragraph.ListLevel >= 0 ? "list-item" : "paragraph",
+                string.Empty, paragraph.ListLevel >= 0 ? RichTextMarkdown(paragraph) : "\n",
+                paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
+                paragraph.ListLabel, sourceKind: sourceKind, region: region);
+            return;
         }
         bool heading = paragraph.ListLevel < 0 && sourceKind == "title";
         string markdown = (heading ? "# " : string.Empty) + RichTextMarkdown(paragraph);

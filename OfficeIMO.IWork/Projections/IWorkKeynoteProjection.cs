@@ -131,8 +131,11 @@ public sealed class IWorkKeynoteProjection {
 public sealed partial class IWorkSourceDocument {
     /// <summary>Reads a Keynote package into a bounded semantic source projection.</summary>
     public IWorkKeynoteProjection ReadKeynote() {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
-        return IWorkKeynoteReader.Read(this);
+        IWorkKeynoteProjection projection = IWorkKeynoteReader.Read(this);
+        _cancellationToken.ThrowIfCancellationRequested();
+        return projection;
     }
 }
 

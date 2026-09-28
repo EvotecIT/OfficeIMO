@@ -24,7 +24,8 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IWorkDocumentKind expected = ExpectedKind(path);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path, expected, options.ReadOptions);
+        IWorkSourceDocument source = IWorkSourceDocument.Open(path, expected, options.ReadOptions,
+            cancellationToken);
         return Project(source, path, readerOptions, options, cancellationToken);
     }
 
@@ -35,7 +36,8 @@ internal static class IWorkReaderAdapter {
         string logicalName = string.IsNullOrWhiteSpace(sourceName)
             ? "document.pages" : sourceName!.Trim();
         IWorkDocumentKind expected = ExpectedKind(logicalName);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(stream, expected, options.ReadOptions);
+        IWorkSourceDocument source = IWorkSourceDocument.Open(stream, expected, options.ReadOptions,
+            cancellationToken);
         return Project(source, logicalName, readerOptions, options, cancellationToken);
     }
 
@@ -70,6 +72,7 @@ internal static class IWorkReaderAdapter {
             default:
                 throw new InvalidDataException("Unsupported iWork document kind.");
         }
+        cancellationToken.ThrowIfCancellationRequested();
         projection.Complete(source);
         return result;
     }

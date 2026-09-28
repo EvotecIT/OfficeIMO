@@ -1,6 +1,7 @@
 using OfficeIMO.IWork;
 using OfficeIMO.IWork.Internal;
 using System.IO.Compression;
+using System.Threading;
 
 namespace OfficeIMO.IWork.Tests;
 
@@ -44,6 +45,13 @@ public sealed partial class IWorkBoundaryTests {
             1, CancellationToken.None));
         Assert.True(IWorkContainerProbe.HasModernIndex(stream, stream.Length,
             2, CancellationToken.None));
+        Assert.Equal(0, stream.Position);
+
+        using var cancelled = new CancellationTokenSource();
+        cancelled.Cancel();
+        Assert.Throws<OperationCanceledException>(() =>
+            IWorkContainerProbe.HasModernIndex(stream, stream.Length, 2,
+                cancelled.Token));
         Assert.Equal(0, stream.Position);
     }
 
