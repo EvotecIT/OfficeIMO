@@ -577,6 +577,22 @@ foreach (var issue in rendered.QualityReport.Issues) {
 }
 ```
 
+Set a legend frame fill and outline through the shared chart style:
+
+```csharp
+var framedStyle = new OfficeChartStyle(
+    showBackground: true,
+    legendBackgroundColor: OfficeColor.Parse("#FFFFFF"),
+    legendBorderColor: OfficeColor.Parse("#375A7F"),
+    legendBorderWidth: 1);
+var framedSnapshot = new OfficeChartSnapshot("RevenueChart", "Revenue by quarter",
+    OfficeChartKind.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
+OfficeDrawing framedChart = OfficeChartDrawingRenderer.Render(framedSnapshot);
+```
+
+The background and border are optional; the border width is a positive value in points.
+These settings style the chart legend frame in shared static renders.
+
 Use `layout.WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
 majorUnit: 0.2, numberFormat: "0%"))` for an independent secondary value-axis scale.
 Use optional `majorTickMark` and `minorTickMark` settings to select independent tick appearance.
