@@ -1930,6 +1930,18 @@ public sealed class PdfRenderingProfileTests {
     }
 
     [Fact]
+    public void FontConfigurationStateIncludesSyntheticItalicChoice() {
+        byte[] regular = ManagedTextShapingTestAssets.CreateFont('A');
+        var options = new PdfOptions()
+            .RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("State", regular));
+        long syntheticState = options.FontConfigurationState;
+
+        options.RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("State", regular, italic: regular));
+
+        Assert.NotEqual(syntheticState, options.FontConfigurationState);
+    }
+
+    [Fact]
     public void AssigningEmbeddedFallbacksReleasesProfileDeclaredFallbacks() {
         var fonts = new OfficeFontFaceCollection()
             .Add("Profile Fallback", ManagedTextShapingTestAssets.CreateFont('A'))

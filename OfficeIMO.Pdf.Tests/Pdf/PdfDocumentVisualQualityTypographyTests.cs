@@ -183,6 +183,7 @@ public partial class PdfDocumentVisualQualityTests {
         var lines = GetNonWhitespaceLetterLines(pdf.GetPage(1));
         Assert.Equal(2, lines.Count);
         Assert.All(lines, line => Assert.InRange(GetInterWordGaps(line).Single(), 0D, 9D));
+        Assert.DoesNotContain("Alpha betaGamma delta", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -21,12 +21,12 @@ public class PdfFontFamilyTests {
     public void MissingItalicFace_UsesObliqueTextMatrixWithoutSkewingDesignedItalics(bool namedFamily, bool designedItalic) {
         string regularPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont());
         byte[] regular = File.ReadAllBytes(regularPath);
-        byte[] bold = File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-Bold.ttf", StringComparison.Ordinal));
+        byte[] bold = File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-Bold.ttf"));
         byte[]? italic = designedItalic
-            ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-Italic.ttf", StringComparison.Ordinal))
+            ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-Italic.ttf"))
             : null;
         byte[]? boldItalic = designedItalic
-            ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-BoldItalic.ttf", StringComparison.Ordinal))
+            ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-BoldItalic.ttf"))
             : null;
         var family = new PdfEmbeddedFontFamily("Oblique Proof", regular, bold, italic, boldItalic);
         var options = new PdfOptions { CompressContentStreams = false };

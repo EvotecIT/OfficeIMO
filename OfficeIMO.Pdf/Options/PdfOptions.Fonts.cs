@@ -272,7 +272,7 @@ public sealed partial class PdfOptions {
 
         return string.Join("|", _embeddedFonts
             .OrderBy(font => font.Key)
-            .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.DataSnapshot.Length.ToString(CultureInfo.InvariantCulture)));
+            .Select(font => ((int)font.Key).ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.FontName ?? string.Empty) + ":" + font.Value.DataSnapshot.Length.ToString(CultureInfo.InvariantCulture) + ":" + (font.Value.SyntheticOblique ? "1" : "0")));
     }
 
     /// <summary>
