@@ -42,6 +42,11 @@ public sealed partial class ExcelChart {
         foreach (var row in data.Elements<S.Row>()) {
             if (--remainingRecords < 0) return null;
             int rowIndex;
+            if (row.RowIndex != null &&
+                !uint.TryParse(row.RowIndex.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out _)) {
+                if (row.HasChildren || row.StyleIndex != null || row.CustomFormat != null) return null;
+                continue;
+            }
             if (row.RowIndex?.Value is uint declaredRow) {
                 if (declaredRow == 0 || declaredRow > 1048576) return null;
                 rowIndex = (int)declaredRow;
