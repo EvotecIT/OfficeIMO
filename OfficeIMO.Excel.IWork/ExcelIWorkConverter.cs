@@ -26,7 +26,7 @@ public static partial class ExcelIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
-        if (mode != IWorkConversionMode.VisualOnly
+        if (editable
             && projection.Sheets.SelectMany(sheet => sheet.Tables)
             .SelectMany(table => table.Cells)
             .Any(cell => cell.RichText != null
