@@ -243,11 +243,18 @@ result.Save("report.pdf").RequireNoLoss();
 
 The first-party font engine loads policy-approved TrueType-glyf OpenType, WOFF 1, CFF/CFF2, and TrueType or CFF2 variable fonts. Single-face WOFF 2 decoding is built in on .NET 8 and newer; extract and register individual faces from WOFF 2 font collections. Static faces remain eligible for PDF embedding; variable instances and shaped results that cannot use the scalar PDF text path are rendered as vector outlines plus logical `ActualText`, preserving extraction and accessibility.
 
-PDF outline expansion is fail-closed. The selected program must implement
+PDF outline expansion remains bounded. The selected program must implement
 `IOfficeBoundedFontProgram`; conversion carries cancellation into contour expansion
 and enforces `MaxOutlinedTextCharactersPerRun` plus the operation-wide
 `MaxOutlinedTextPathCommands` budget. The defaults are 16,384 UTF-16 characters per
-run and 1,000,000 path commands per conversion. Raise them only for trusted inputs.
+run and 1,000,000 path commands per conversion. A run above the character limit
+still fails. If the path-command budget is exhausted, conversion stops outlining
+and uses PDF text for the remaining runs, with a loss-bearing
+`HtmlPdfFontOutlineBudgetApproximated` warning because font appearance or shaping
+may differ. Raise the outline budget only for trusted inputs.
+Outline-only private-use symbols encountered after exhaustion are omitted with
+`HtmlPdfUnavailablePrivateUseGlyphOmitted`, rather than passed to an incompatible
+PDF text font.
 
 No font-program package or license key is required. Select variable-font axes on the font collection before conversion:
 

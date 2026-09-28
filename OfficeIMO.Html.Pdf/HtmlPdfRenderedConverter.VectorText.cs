@@ -63,6 +63,8 @@ internal static partial class HtmlPdfRenderedConverter {
         if (!requiresOutlines) return false;
 
         webFonts.OutlineBudget.ValidateTextLength(visual.Text.Length);
+        if (webFonts.OutlineBudget.IsPathLimitReached)
+            throw new InvalidOperationException("HTML-to-PDF outlined text exceeded the configured path-command budget.");
         if (resolvedRuns.Any(run => run.Face.Program is not IOfficeBoundedFontProgram)) {
             throw new InvalidOperationException(
                 "Provider-owned HTML-to-PDF text outlines require IOfficeBoundedFontProgram so cancellation and output limits remain enforceable.");

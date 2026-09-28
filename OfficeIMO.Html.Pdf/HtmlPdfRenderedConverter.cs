@@ -621,12 +621,15 @@ internal static partial class HtmlPdfRenderedConverter {
         string? printableText = hasLogicalText
             ? FilterLogicalPrivateUseGlyphs(logicalText, group.Visuals, webFonts, cancellationToken)
             : null;
+        bool outlineLimitReachedBeforeChildren = webFonts.OutlineBudget.IsPathLimitReached;
         var content = new PdfCore.PdfPageCanvas(allowOutOfPageCoordinates: true);
         foreach (HtmlRenderVisual child in group.Visuals.OrderBy(item => item.PaintOrder)) {
             cancellationToken.ThrowIfCancellationRequested();
             AddVisual(content, child, webFonts, imageResources, conversionReport, surfaceWidth, surfaceHeight, interactiveFormControls,
                 cancellationToken, childTextAsSpan, activeClip, logicalTextOwned || !string.IsNullOrEmpty(printableText), pagePaint);
         }
+        if (hasLogicalText && !outlineLimitReachedBeforeChildren && webFonts.OutlineBudget.IsPathLimitReached)
+            printableText = FilterLogicalPrivateUseGlyphs(logicalText, group.Visuals, webFonts, cancellationToken);
         if (!HasCanvasContent(content.Items)) {
             canvas.AddItems(content.Items);
             return;
@@ -895,18 +898,38 @@ internal static partial class HtmlPdfRenderedConverter {
             frameWidth = Math.Max(frameWidth, visual.TextAdvanceWidth.Value + metricTolerance);
         }
         frameWidth = Math.Max(0.01D, Math.Min(frameWidth, Math.Max(0.01D, surfaceWidth - visual.X)));
-        if (TryAddOutlinedText(
-                canvas,
-                visual,
-                webFonts,
-                conversionReport,
-                frameWidth,
-                asSpan,
-                logicalTextOwned,
-                cancellationToken,
-                baselineFontSize.Value,
-                suppressLink)) {
-            return;
+        try {
+            if (TryAddOutlinedText(
+                    canvas,
+                    visual,
+                    webFonts,
+                    conversionReport,
+                    frameWidth,
+                    asSpan,
+                    logicalTextOwned,
+                    cancellationToken,
+                    baselineFontSize.Value,
+                    suppressLink)) {
+                return;
+            }
+        } catch (InvalidOperationException exception) when (
+            exception.Message == "Font outline expansion exceeded the configured point budget."
+            || exception.Message == "HTML-to-PDF outlined text exceeded the configured path-command budget.") {
+            webFonts.OutlineBudget.StopOutlining();
+            if (!webFonts.OutlineBudgetApproximationReported) {
+                webFonts.OutlineBudgetApproximationReported = true;
+                conversionReport.Add(new PdfCore.PdfConversionWarning(
+                    "OfficeIMO.Html.Pdf",
+                    HtmlPdfDiagnosticCodes.FontOutlineBudgetApproximated,
+                    visual.Source ?? "html-text",
+                    "The bounded font-outline budget was exhausted; remaining text used PDF text with possible font and shaping differences.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    OfficeConversionLossKind.Approximation,
+                    details: new Dictionary<string, string> {
+                        ["FontFamily"] = visual.Font.FamilyName ?? string.Empty,
+                        ["Fallback"] = "pdf-text"
+                    }));
+            }
         }
         if (!colorOpacityApplied && visual.Color.A < 255) {
             canvas.Effect(OfficeTransform.Identity, visual.Color.A / 255D,

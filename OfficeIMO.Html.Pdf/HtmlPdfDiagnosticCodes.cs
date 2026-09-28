@@ -8,6 +8,9 @@ public static class HtmlPdfDiagnosticCodes {
     /// <summary>A shaped font program was painted as vector outlines while retaining logical text for extraction and accessibility.</summary>
     public const string FontProgramOutlined = "HtmlPdfFontProgramOutlined";
 
+    /// <summary>Outlined text exceeded its path budget and remaining text used the PDF text path with possible font approximation.</summary>
+    public const string FontOutlineBudgetApproximated = "HtmlPdfFontOutlineBudgetApproximated";
+
     /// <summary>A private-use glyph could not be painted with the available PDF fonts or outline path.</summary>
     public const string UnavailablePrivateUseGlyphOmitted = "HtmlPdfUnavailablePrivateUseGlyphOmitted";
 

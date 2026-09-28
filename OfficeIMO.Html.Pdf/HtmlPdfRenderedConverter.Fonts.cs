@@ -548,6 +548,7 @@ internal static partial class HtmlPdfRenderedConverter {
         internal OfficeFontFaceCollection Faces { get; }
         internal PdfCore.PdfOptions Options { get; }
         internal HashSet<string> ReportedPrivateUseOmissions { get; } = new(StringComparer.Ordinal);
+        internal bool OutlineBudgetApproximationReported { get; set; }
         internal Dictionary<string, bool> PrivateUsePaintability { get; } = new(StringComparer.Ordinal);
         internal HtmlDiagnosticReport Diagnostics { get; }
         internal OutlinedTextBudget OutlineBudget { get; }
@@ -580,6 +581,10 @@ internal static partial class HtmlPdfRenderedConverter {
                 return _remainingPathCommands;
             }
         }
+
+        internal bool IsPathLimitReached => _remainingPathCommands <= 0;
+
+        internal void StopOutlining() => _remainingPathCommands = 0;
 
         internal void ValidateTextLength(int characterCount) {
             if (characterCount > MaximumCharactersPerRun) {

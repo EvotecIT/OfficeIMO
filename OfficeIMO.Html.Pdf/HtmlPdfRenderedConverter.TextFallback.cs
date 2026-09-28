@@ -128,13 +128,18 @@ internal static partial class HtmlPdfRenderedConverter {
         string glyph,
         OfficeFontStyle style,
         RegisteredWebFonts webFonts) {
-        string key = visual.Font.FamilyName + "\0" + ((int)style).ToString(CultureInfo.InvariantCulture)
+        // Paintability cached while outlines were available cannot be reused after
+        // exhaustion; a named or embedded PDF font may still cover the same glyph.
+        bool outlinesAvailable = !webFonts.OutlineBudget.IsPathLimitReached;
+        string key = (outlinesAvailable ? "outline" : "pdf-text") + "\0" + visual.Font.FamilyName
+            + "\0" + ((int)style).ToString(CultureInfo.InvariantCulture)
             + "\0" + (visual.FeatureSettings.IsDefault ? "default" : "features") + "\0" + glyph;
         if (webFonts.PrivateUsePaintability.TryGetValue(key, out bool cached)) return cached;
 
         bool paintable = false;
         if (webFonts.Faces.TryResolveFaceForText(glyph, visual.Font.FamilyName, style, out OfficeFontFace? face)
             && face != null
+            && outlinesAvailable
             && (!face.CanEmbedAsStaticPdfFont || !visual.FeatureSettings.IsDefault
                 || ContainsColorGlyph(face.Program, glyph))) {
             paintable = true;
