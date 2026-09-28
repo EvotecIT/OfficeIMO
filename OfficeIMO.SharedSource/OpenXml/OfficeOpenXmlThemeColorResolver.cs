@@ -98,6 +98,13 @@ internal static class OfficeOpenXmlThemeColorResolver {
                     ?? (OpenXmlElement?)layout.SlideMasterPart?.SlideMaster?.ColorMap;
             if (owner is SlideMasterPart master)
                 return master.SlideMaster?.ColorMap;
+            if (owner is NotesSlidePart notes)
+                return notes.NotesSlide?.ColorMapOverride?.GetFirstChild<A.OverrideColorMapping>()
+                    ?? (OpenXmlElement?)notes.NotesMasterPart?.NotesMaster?.ColorMap;
+            if (owner is NotesMasterPart notesMaster)
+                return notesMaster.NotesMaster?.ColorMap;
+            if (owner is HandoutMasterPart handoutMaster)
+                return handoutMaster.HandoutMaster?.ColorMap;
             if (owner is MainDocumentPart document)
                 return document.DocumentSettingsPart?.Settings?
                     .GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.ColorSchemeMapping>();
