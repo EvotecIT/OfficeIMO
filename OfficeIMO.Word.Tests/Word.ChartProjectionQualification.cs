@@ -9,6 +9,74 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartProjectionQualificationTests {
     [Fact]
+    public void Snapshot_RejectsUnrepresentedChartTextColorTransform() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var space = chart.ChartPart!.ChartSpace!;
+        space.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
+                new A.SolidFill(new A.RgbColorModelHex(new A.HueOffset { Val = 60000 }) { Val = "112233" }))))), true);
+        string before = space.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(before, space.OuterXml);
+    }
+
+    [Fact]
+    public void Snapshot_RejectsDifferentChartScriptTypeface() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var space = chart.ChartPart!.ChartSpace!;
+        space.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties(
+                new A.LatinFont { Typeface = "Arial" }, new A.EastAsianFont { Typeface = "Yu Gothic" })))), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsEmptyNativeLabelSeparator() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        chart.ChartPart!.ChartSpace!.Descendants<C.DataLabels>().Single().AddChild(new C.Separator(string.Empty), true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsUnresolvedFormulaBasedSeriesName() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var text = chart.ChartPart!.ChartSpace!.Descendants<C.BarChartSeries>().Single().GetFirstChild<C.SeriesText>()!;
+        text.GetFirstChild<C.StringReference>()!.StringCache!.Remove();
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_TreatsOmittedBarGroupingAsClusteredForOverlap() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }));
+        var bars = chart.ChartPart!.ChartSpace!.Descendants<C.BarChart>().Single();
+        bars.GetFirstChild<C.BarGrouping>()!.Remove();
+        bars.AddChild(new C.Overlap { Val = 0 }, true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
+    }
+
+    [Fact]
+    public void Snapshot_BoundsBubbleOverridesSeparatelyFromCachedPoints() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Bubble,
+            new OfficeChartData(new[] { "1" }, new[] { OfficeChartSeries.CreateBubble("Values", new[] { 1d }, new[] { 3d }, new[] { 5d }) }));
+        var series = chart.ChartPart!.ChartSpace!.Descendants<C.BubbleChartSeries>().Single();
+        for (int index = 0; index < 10001; index++)
+            series.InsertBefore(new C.DataPoint(new C.Index { Val = 99 }), series.GetFirstChild<C.XValues>());
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void AuthoredBarDirectionChangeKeepsNativeAxesProjectable() {
         using var document = WordDocument.Create();
         var chart = document.AddChart(OfficeChartKind.BarClustered,

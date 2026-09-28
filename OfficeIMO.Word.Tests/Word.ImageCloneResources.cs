@@ -12,6 +12,40 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordImageCloneResourcesTests {
     private static readonly byte[] Gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
+    private const string RelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
+    [Fact]
+    public void Clone_RemapsVmlTextureFillAlongsideImageDataAcrossStories() {
+        using var source = WordDocument.Create();
+        using var destination = WordDocument.Create();
+        var paragraph = source.AddParagraph("Textured image");
+        var imagePart = source.MainDocumentPartRoot.AddImagePart(ImagePartType.Gif);
+        imagePart.FeedData(new MemoryStream(Gif));
+        var texturePart = source.MainDocumentPartRoot.AddImagePart(ImagePartType.Gif);
+        texturePart.FeedData(new MemoryStream(Gif));
+        var fill = new V.Fill();
+        fill.SetAttribute(new OpenXmlAttribute("r", "id", RelationshipsNamespace, source.MainDocumentPartRoot.GetIdOfPart(texturePart)));
+        paragraph._run!.Append(new W.Picture(new V.Shape(fill,
+            new V.ImageData { RelationshipId = source.MainDocumentPartRoot.GetIdOfPart(imagePart) }) {
+                Id = "textured", Style = "width:15pt;height:15pt" }));
+        var header = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        header.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", 20, 20);
+        var target = header.AddParagraph();
+        paragraph.Image!.Clone(target);
+        var owner = destination.MainDocumentPartRoot.HeaderParts.Single();
+        var shape = Assert.Single(target._paragraph.Descendants<V.Shape>());
+        var imageId = shape.Descendants<V.ImageData>().Single().RelationshipId!.Value;
+        var fillId = shape.Descendants<V.Fill>().Single().GetAttribute("id", RelationshipsNamespace).Value;
+        Assert.NotEqual(imageId, fillId);
+        Assert.IsType<ImagePart>(owner.GetPartById(imageId));
+        Assert.IsType<ImagePart>(owner.GetPartById(fillId));
+        using var bytes = destination.ToStream();
+        using var reopened = WordDocument.Load(bytes);
+        var persistedOwner = reopened.MainDocumentPartRoot.HeaderParts.Single();
+        var persistedShape = persistedOwner.Header!.Descendants<V.Shape>().Single();
+        Assert.IsType<ImagePart>(persistedOwner.GetPartById(
+            persistedShape.Descendants<V.Fill>().Single().GetAttribute("id", RelationshipsNamespace).Value));
+    }
 
     [Fact]
     public void Clone_RemapsDrawingClickAndHoverLinksAcrossStories() {

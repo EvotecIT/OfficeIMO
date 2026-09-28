@@ -38,7 +38,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (index == 0) kind = layerKind;
                 Result? data;
                 if (layer is C.BubbleChart bubble) {
-                    if (layers.Count != 1 || HasUnsupportedBubblePresentation(part, chart, plot, bubble, maximumPoints)) return null;
+                    if (layers.Count != 1 || HasUnsupportedBubblePresentation(part, chart, plot, bubble, maximumPointOverrides: 1_000_000)) return null;
                     bubbleScale = bubble.GetFirstChild<C.BubbleScale>()?.Val?.Value ?? 100;
                     bubbleMode = bubble.GetFirstChild<C.SizeRepresents>()?.Val?.Value == C.SizeRepresentsValues.Width
                         ? OfficeChartBubbleSizeMode.Width : OfficeChartBubbleSizeMode.Area;
@@ -105,7 +105,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (bars.Descendants().Any(element => element.LocalName == "shape" &&
                     element.GetAttributes().Any(attribute => attribute.LocalName == "val" && attribute.Value != "box"))) return true;
                 if (bars.GetFirstChild<C.GapWidth>()?.Val?.Value is ushort gap && gap != 150) return true;
-                int expectedOverlap = bars.BarGrouping?.Val?.Value == C.BarGroupingValues.Clustered ? 0 : 100;
+                var grouping = bars.BarGrouping?.Val?.Value;
+                int expectedOverlap = grouping == null || grouping == C.BarGroupingValues.Clustered ? 0 : 100;
                 if (bars.GetFirstChild<C.Overlap>()?.Val?.Value is sbyte overlap && overlap != expectedOverlap) return true;
             }
             return false;

@@ -154,7 +154,11 @@ namespace OfficeIMO.OpenXml.Internal {
                 var cache = OfficeOpenXmlChartCacheReader.ReadCachedStrings(text, maximumPoints);
                 name = cache.FirstOrDefault() ?? string.Concat(text?.Descendants<A.Text>().Select(item => item.Text) ?? Enumerable.Empty<string>());
             }
-            if (string.IsNullOrWhiteSpace(name)) name = "Series " + (fallbackIndex + 1).ToString(CultureInfo.InvariantCulture);
+            if (string.IsNullOrWhiteSpace(name)) {
+                if (text?.GetFirstChild<C.StringReference>() != null)
+                    throw new NotSupportedException("The formula-based chart series name has no cached value.");
+                name = "Series " + (fallbackIndex + 1).ToString(CultureInfo.InvariantCulture);
+            }
             OfficeColor?[]? pointColors = null;
             var pointOverrides = OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides);
             foreach (C.DataPoint point in pointOverrides) {

@@ -10,14 +10,14 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static bool HasUnsupportedBubblePresentation(ChartPart part, C.Chart chart, C.PlotArea plotArea,
-            C.BubbleChart bubble, int maximumPoints) =>
+            C.BubbleChart bubble, int maximumPointOverrides) =>
             IsVaryColorsEnabled(bubble.GetFirstChild<C.VaryColors>()) ||
             IsBubble3DEnabled(bubble.GetFirstChild<C.Bubble3D>()) ||
             HasUnsupportedBubbleSourceVisibility(part, chart) ||
             HasUnsupportedBubbleAxes(plotArea, bubble) || HasUnsupportedBubbleLegend(chart) ||
             HasUnsupportedBubbleAreaLayout(part, plotArea) || HasEnabledBubbleDataLabels(bubble) ||
             bubble.Elements<C.BubbleChartSeries>().Any(series => IsBubble3DEnabled(series.GetFirstChild<C.Bubble3D>()) ||
-                OfficeOpenXmlChartCacheReader.GetBoundedCachedPoints(series.Elements<C.DataPoint>(), maximumPoints)
+                OfficeOpenXmlChartPointStyles.GetBoundedPoints(series, maximumPointOverrides)
                     .Any(point => IsBubble3DEnabled(point.GetFirstChild<C.Bubble3D>())));
 
         private static bool IsBubble3DEnabled(C.Bubble3D? bubble3D) =>

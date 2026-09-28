@@ -12,6 +12,7 @@ public partial class WordImage {
     private WordImage CloneToParagraph(WordParagraph paragraph) {
         var sourceOwner = GetContainingPart();
         var destinationOwner = WordPartOwnership.Resolve(paragraph._document, paragraph._paragraph);
+        const string relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         var relationships = new Dictionary<string, string>(StringComparer.Ordinal);
         string Remap(string id) {
             if (ReferenceEquals(sourceOwner, destinationOwner)) return id;
@@ -43,8 +44,11 @@ public partial class WordImage {
                     picture.Append(copiedDefinition);
                 }
             }
-            foreach (var image in shape.Descendants<V.ImageData>())
-                if (image.RelationshipId?.Value is string id) image.RelationshipId = Remap(id);
+            foreach (OpenXmlElement element in picture.Descendants().Concat(new OpenXmlElement[] { shape }).Concat(shape.Descendants())) {
+                foreach (OpenXmlAttribute attribute in element.GetAttributes().Where(attribute => attribute.NamespaceUri == relationshipNamespace).ToArray())
+                    if (!string.IsNullOrEmpty(attribute.Value))
+                        element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, Remap(attribute.Value!)));
+            }
             picture.Append(shape);
             var run = new Run(picture);
             paragraph._paragraph.Append(run);
@@ -59,7 +63,6 @@ public partial class WordImage {
             if (hyperlink.Id?.Value is string id) hyperlink.Id = Remap(id);
         foreach (var hyperlink in drawing.Descendants<HyperlinkOnHover>())
             if (hyperlink.Id?.Value is string id) hyperlink.Id = Remap(id);
-        const string relationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
         foreach (var svg in drawing.Descendants().Where(element => element.LocalName == "svgBlip"
             && (element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2010/main"
                 || element.NamespaceUri == "http://schemas.microsoft.com/office/drawing/2016/SVG/main"))) {
