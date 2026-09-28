@@ -473,6 +473,8 @@ namespace OfficeIMO.PowerPoint {
                 OfficeChartAxisTickMark.None;
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
             C.ValueAxis? primaryValueAxis = null;
+            C.ValueAxis? horizontalNumericAxis = null;
+            C.ValueAxis? verticalNumericAxis = null;
             OpenXmlCompositeElement? primaryCategoryAxis = null;
             if (plotArea != null) {
                 var groups = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartAxisGroups.Create(plotArea);
@@ -491,6 +493,8 @@ namespace OfficeIMO.PowerPoint {
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.TryGetReferencedBubbleAxes(
                     plotArea, bubble, out C.ValueAxis horizontalAxis,
                     out C.ValueAxis verticalAxis)) {
+                horizontalNumericAxis = horizontalAxis;
+                verticalNumericAxis = verticalAxis;
                 horizontalAxisTitle = ReadAxisTitle(horizontalAxis);
                 verticalAxisTitle = ReadAxisTitle(verticalAxis);
                 horizontalAxisNumberFormat =
@@ -534,12 +538,34 @@ namespace OfficeIMO.PowerPoint {
                                 == C.AxisPositionValues.Left
                             || axis.AxisPosition?.Val?.Value
                                 == C.AxisPositionValues.Right);
+                    if (kind == PowerPointChartSnapshotKind.Scatter &&
+                        plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatter) {
+                        C.AxisId[] references = scatter.Elements<C.AxisId>().ToArray();
+                        if (references.Length == 2 && references[0].Val != null && references[1].Val != null) {
+                            positionedHorizontalAxis = plotArea.Elements<C.ValueAxis>().SingleOrDefault(axis =>
+                                axis.AxisId?.Val?.Value == references[0].Val!.Value);
+                            positionedVerticalAxis = plotArea.Elements<C.ValueAxis>().SingleOrDefault(axis =>
+                                axis.AxisId?.Val?.Value == references[1].Val!.Value);
+                        }
+                    }
+                    horizontalNumericAxis = positionedHorizontalAxis;
+                    verticalNumericAxis = positionedVerticalAxis;
                     horizontalAxisTitle = positionedHorizontalAxis == null
                         ? null
                         : ReadAxisTitle(positionedHorizontalAxis);
                     verticalAxisTitle = positionedVerticalAxis == null
                         ? null
                         : ReadAxisTitle(positionedVerticalAxis);
+                    if (positionedHorizontalAxis != null) {
+                        horizontalAxisNumberFormat = ReadAxisNumberFormat(positionedHorizontalAxis);
+                        horizontalMajorTickMark = ReadAxisTickMark(positionedHorizontalAxis.GetFirstChild<C.MajorTickMark>()?.Val?.Value);
+                        horizontalMinorTickMark = ReadAxisTickMark(positionedHorizontalAxis.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
+                    }
+                    if (positionedVerticalAxis != null) {
+                        verticalAxisNumberFormat = ReadAxisNumberFormat(positionedVerticalAxis);
+                        verticalMajorTickMark = ReadAxisTickMark(positionedVerticalAxis.GetFirstChild<C.MajorTickMark>()?.Val?.Value);
+                        verticalMinorTickMark = ReadAxisTickMark(positionedVerticalAxis.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
+                    }
                 }
             }
 
@@ -548,6 +574,13 @@ namespace OfficeIMO.PowerPoint {
             bool horizontalValue = primaryValueAxis?.AxisPosition?.Val?.Value == C.AxisPositionValues.Bottom ||
                 primaryValueAxis?.AxisPosition?.Val?.Value == C.AxisPositionValues.Top;
             var primaryScale = primaryValueAxis?.GetFirstChild<C.Scaling>();
+            C.ValueAxis? horizontalScaleAxis = horizontalNumericAxis ?? (horizontalValue ? primaryValueAxis : null);
+            C.ValueAxis? verticalScaleAxis = verticalNumericAxis ?? (!horizontalValue ? primaryValueAxis : null);
+            var horizontalScale = horizontalScaleAxis?.GetFirstChild<C.Scaling>();
+            var verticalScale = verticalScaleAxis?.GetFirstChild<C.Scaling>();
+            if (!forDataUpdate && (primaryScale?.GetFirstChild<C.LogBase>() != null ||
+                primaryScale?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin))
+                throw new NotSupportedException("The primary numeric axis cannot be projected on a linear forward scale.");
             if (primaryValueAxis != null) {
                 if (horizontalValue) horizontalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
                 else verticalAxisNumberFormat = ReadAxisNumberFormat(primaryValueAxis);
@@ -561,14 +594,14 @@ namespace OfficeIMO.PowerPoint {
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
                 verticalAxisNumberFormat: verticalAxisNumberFormat,
-                horizontalAxisMinimum: horizontalValue ? primaryScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value : null,
-                horizontalAxisMaximum: horizontalValue ? primaryScale?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value : null,
-                horizontalAxisMajorUnit: horizontalValue ? primaryValueAxis?.GetFirstChild<C.MajorUnit>()?.Val?.Value : null,
-                horizontalAxisMinorUnit: horizontalValue ? primaryValueAxis?.GetFirstChild<C.MinorUnit>()?.Val?.Value : null,
-                verticalAxisMinimum: !horizontalValue ? primaryScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value : null,
-                verticalAxisMaximum: !horizontalValue ? primaryScale?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value : null,
-                verticalAxisMajorUnit: !horizontalValue ? primaryValueAxis?.GetFirstChild<C.MajorUnit>()?.Val?.Value : null,
-                verticalAxisMinorUnit: !horizontalValue ? primaryValueAxis?.GetFirstChild<C.MinorUnit>()?.Val?.Value : null,
+                horizontalAxisMinimum: horizontalScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value,
+                horizontalAxisMaximum: horizontalScale?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
+                horizontalAxisMajorUnit: horizontalScaleAxis?.GetFirstChild<C.MajorUnit>()?.Val?.Value,
+                horizontalAxisMinorUnit: horizontalScaleAxis?.GetFirstChild<C.MinorUnit>()?.Val?.Value,
+                verticalAxisMinimum: verticalScale?.GetFirstChild<C.MinAxisValue>()?.Val?.Value,
+                verticalAxisMaximum: verticalScale?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value,
+                verticalAxisMajorUnit: verticalScaleAxis?.GetFirstChild<C.MajorUnit>()?.Val?.Value,
+                verticalAxisMinorUnit: verticalScaleAxis?.GetFirstChild<C.MinorUnit>()?.Val?.Value,
                 horizontalAxisMajorTickMark: horizontalMajorTickMark,
                 verticalAxisMajorTickMark: verticalMajorTickMark,
                 horizontalAxisMinorTickMark: horizontalMinorTickMark,

@@ -175,6 +175,73 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
     }
 
     [Fact]
+    public void SecondaryValueAxis_CacheOnlySourceLinkedFormatUsesCachedCode() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Count", new[] { 100d, 150d }),
+            new OfficeChartSeries("Ratio", new[] { 1d, 2d }, null, null, null, true,
+                renderKind: OfficeChartKind.Line, axisGroup: OfficeChartAxisGroup.Secondary) });
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        var space = slide.SlidePart.ChartParts.Single().ChartSpace!;
+        space.GetFirstChild<C.ExternalData>()?.Remove();
+        var secondary = space.Descendants<C.ValueAxis>().Single(axis =>
+            axis.AxisPosition?.Val?.Value == C.AxisPositionValues.Right);
+        secondary.NumberingFormat!.SourceLinked = true;
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(secondary.NumberingFormat.FormatCode?.Value,
+            snapshot.Layout.SecondaryValueAxis!.NumberFormat);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PrimaryValueAxis_RejectsNonlinearOrReversedStaticProjection(bool reversed) {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Values", new[] { 1d, 10d }) });
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered, data);
+        var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
+        if (reversed) axis.Scaling!.AddChild(new C.Orientation { Val = C.OrientationValues.MaxMin }, true);
+        else axis.Scaling!.AddChild(new C.LogBase { Val = 10 }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        chart.UpdateData(data);
+        axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
+        Assert.Equal(reversed, axis.Scaling!.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin);
+        Assert.Equal(!reversed, axis.Scaling.GetFirstChild<C.LogBase>()?.Val?.Value == 10);
+        Assert.Empty(presentation.ValidateDocument());
+    }
+
+    [Fact]
+    public void ScatterSnapshot_UsesBothReferencedNumericAxisScales() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.Scatter,
+            new OfficeChartData(new[] { "1", "3" }, new[] {
+                new OfficeChartSeries("Values", new[] { 2d, 4d }, new[] { 1d, 3d }) }));
+        var plot = slide.SlidePart.ChartParts.Single().ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        C.AxisId[] references = plot.GetFirstChild<C.ScatterChart>()!.Elements<C.AxisId>().ToArray();
+        C.ValueAxis horizontal = plot.Elements<C.ValueAxis>().Single(axis =>
+            axis.AxisId?.Val?.Value == references[0].Val?.Value);
+        C.ValueAxis vertical = plot.Elements<C.ValueAxis>().Single(axis =>
+            axis.AxisId?.Val?.Value == references[1].Val?.Value);
+        horizontal.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
+        horizontal.Scaling.AddChild(new C.MaxAxisValue { Val = 5 }, true);
+        horizontal.AddChild(new C.MajorUnit { Val = 1 }, true);
+        vertical.Scaling!.AddChild(new C.MinAxisValue { Val = -2 }, true);
+        vertical.Scaling.AddChild(new C.MaxAxisValue { Val = 8 }, true);
+        vertical.AddChild(new C.MajorUnit { Val = 2 }, true);
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal(0d, snapshot.Layout.HorizontalAxisMinimum);
+        Assert.Equal(5d, snapshot.Layout.HorizontalAxisMaximum);
+        Assert.Equal(1d, snapshot.Layout.HorizontalAxisMajorUnit);
+        Assert.Equal(-2d, snapshot.Layout.VerticalAxisMinimum);
+        Assert.Equal(8d, snapshot.Layout.VerticalAxisMaximum);
+        Assert.Equal(2d, snapshot.Layout.VerticalAxisMajorUnit);
+    }
+
+    [Fact]
     public void SecondaryValueAxis_PersistsThroughUpdatesAndSnapshots() {
         using var bytes = new MemoryStream();
         using var presentation = PowerPointPresentation.Create(bytes, new PowerPointCreateOptions());

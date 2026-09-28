@@ -86,8 +86,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
             primaryValueAxis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None)
             throw new NotSupportedException("The primary and secondary value-axis visibility cannot be projected independently.");
         var scaling = axis.GetFirstChild<C.Scaling>();
-        if ((!resolveSourceLinkedFormats && axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) ||
-            axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
+        if ((!resolveSourceLinkedFormats || axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true) &&
                 HasUnsupportedSharedAxisNumberFormat(axis) ||
             scaling?.GetFirstChild<C.LogBase>() != null ||
             scaling?.GetFirstChild<C.Orientation>()?.Val?.Value == C.OrientationValues.MaxMin ||
