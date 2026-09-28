@@ -152,6 +152,27 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
             mapping.Count == 1);
     }
 
+    [Fact]
+    public void TransparentExcelPointReportsChartLossWithoutAbortingWorkbook() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Summary");
+        sheet.Cell(1, 1, "Retained cell");
+        var data = new OfficeChartData(new[] { "Pass", "Fail", "Unknown" },
+            new[] { new OfficeChartSeries("Status", new[] { 3d, 4d, 5d })
+                .WithPointStyles(new OfficeChartPointStyle?[] {
+                    new(fillColor: OfficeColor.FromRgba(34, 136, 68, 128)), null, null
+                }) });
+        sheet.AddChart(OfficeChartKind.Pie, data, row: 2, column: 4);
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdsSheet converted = result.Value.GetSheet("Summary")!;
+        Assert.Equal("Retained cell", converted.Cell(0, 0).Value.DisplayText);
+        Assert.Empty(converted.Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported &&
+            mapping.Count == 1);
+    }
+
     private static OdsDocument CreateStyledOdsChart(OdsChartType type) {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
