@@ -184,7 +184,7 @@ namespace OfficeIMO.Excel {
                 if (axisFields.Count > 1
                     && (axisFields.Count != 2 || measures.Length != 1
                         || !IsQualifiedMultiFieldPivotValueFilter(type, ranking, field,
-                            rowAxisFields, columnAxisFields, fieldPrefix.Length)))
+                            rowAxisFields, columnAxisFields)))
                     throw new NotSupportedException("The multi-field value filter has no qualified two-field axis rule.");
                 var measure = measures[filter.MeasureField.Value];
                 ApplyMaterializedPivotValueFilter(source, visibility.IncludedRows, fieldPrefix, measure,
@@ -399,7 +399,7 @@ namespace OfficeIMO.Excel {
 
         private static bool IsQualifiedMultiFieldPivotValueFilter(
             PivotFilterValues type, Top10? ranking, int field,
-            int[] rowAxisFields, int[] columnAxisFields, int prefixLength) {
+            int[] rowAxisFields, int[] columnAxisFields) {
             if (rowAxisFields.Length == 1 && columnAxisFields.Length == 1)
                 return type == PivotFilterValues.ValueGreaterThan
                     || (field == columnAxisFields[0] && type == PivotFilterValues.Count
@@ -412,8 +412,8 @@ namespace OfficeIMO.Excel {
                 || type == PivotFilterValues.ValueLessThan || type == PivotFilterValues.ValueLessThanOrEqual
                 || type == PivotFilterValues.ValueBetween || type == PivotFilterValues.ValueNotBetween)
                 return true;
-            return type == PivotFilterValues.Count
-                || (prefixLength == 2 && (type == PivotFilterValues.Percent || type == PivotFilterValues.Sum));
+            return type == PivotFilterValues.Count || type == PivotFilterValues.Percent
+                || type == PivotFilterValues.Sum;
         }
 
         private static Top10 QualifiedPivotRankingFilter(PivotFilter filter) {

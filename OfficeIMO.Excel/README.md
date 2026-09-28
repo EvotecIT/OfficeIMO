@@ -708,15 +708,16 @@ values, and ranking with neither numeric nor qualified error aggregates remain
 deferred.
 With two ordinary row fields, no column field, and one measure,
 materialization supports the same value comparisons and ranges on either
-field, top/bottom count on either
-field, and top/bottom percent and sum on the inner field. The inner field's
+field and top/bottom count, percent, and sum on either field. The inner field's
 aggregate is compared or ranked within each parent; the outer field uses its
 aggregate across its children. Two column fields support greater-than on either
 field. With one row and one column field, greater-than can target either field,
 and top-one count can target the column field. Other multi-field value rules,
 deeper hierarchies, and multi-measure filter interactions remain outside this
-qualified profile. Multi-field ranking with signed, zero, or error aggregates
-and wider sibling sets still needs independent Excel-produced evidence.
+qualified profile. Signed and zero child aggregates, three siblings per parent, and
+mixed numeric/error ranking have Excel-produced examples; all-error parent
+groups, nonpositive outer-field totals, and broader sign/error mixes still need
+independent evidence.
 Label and value filters can share that field. Value filters use the selected measure's aggregation
 over current source rows; refreshed views reevaluate item membership. The
 filter definition remains available for Excel refresh, and filtered items are

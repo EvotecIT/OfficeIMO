@@ -249,6 +249,118 @@ namespace OfficeIMO.Tests {
                 authoredView.GetSheet("Source").ReadRange(authoredRange), height, width);
         }
 
+        [Theory]
+        [InlineData("inner-wide-top2", "A4:C14", "E4:G14", 210d)]
+        [InlineData("inner-wide-bottom2", "A4:C14", "E4:G14", 45d)]
+        [InlineData("inner-wide-top50pct", "A4:C11", "E4:G11", 150d)]
+        [InlineData("inner-wide-bottomsum15", "A4:C15", "E4:G15", 95d)]
+        [InlineData("inner-wide-error-top2", "A4:C14", "E4:G14", 210d)]
+        [InlineData("outer-wide-top50pct", "A4:C13", "E4:G13", 155d)]
+        [InlineData("outer-wide-bottom50pct", "A4:C13", "E4:G13", 100d)]
+        [InlineData("outer-wide-topsum50", "A4:C9", "E4:G9", 95d)]
+        [InlineData("outer-wide-bottomsum50", "A4:C13", "E4:G13", 100d)]
+        public void Test_PivotMultiFieldValue_WideSignedRankingMatchesExcel(
+            string kind, string oracleRange, string authoredRange, double total) {
+            string file = $"pivot-value-multifield-{kind}-conformance.xlsx";
+            string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
+            AssertPivotMultiFieldFixtureHash(path);
+            using var oracle = ExcelDocumentReader.Open(path);
+            var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
+            var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B10");
+            AssertPivotLookupOracleValue(total, expectedLookups[0, 0]);
+
+            string importedOutput = Path.Combine(_directoryWithFiles, "Imported." + file);
+            using (var document = ExcelDocument.Load(path)) {
+                var grouped = document.GetSheet("Grouped");
+                Assert.Equal(total, grouped.GetPivotData("ValuePivot", "Metric").Value);
+                var result = grouped.MaterializePivotTable("ValuePivot");
+                Assert.Equal(oracleRange, result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                var lookups = document.GetSheet("Lookups");
+                lookups.ClearCachedFormulaResults();
+                Assert.Equal(10, lookups.RecalculateSupportedFormulas());
+                document.Save(importedOutput);
+            }
+            using (var reopened = ExcelDocumentReader.Open(importedOutput)) {
+                AssertWidePivotRowsMatchExcel(expectedView, reopened.GetSheet("Grouped").ReadRange(oracleRange));
+                var actualLookups = reopened.GetSheet("Lookups").ReadRange("B1:B10");
+                for (int row = 0; row < 10; row++)
+                    AssertPivotLookupOracleValue(expectedLookups[row, 0], actualLookups[row, 0]);
+            }
+
+            string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                PopulateWideSignedPivotSource(source, kind == "inner-wide-error-top2");
+                var filter = kind switch {
+                    "inner-wide-top2" => ExcelPivotFilter.TopCount("Product", "Metric", 2),
+                    "inner-wide-bottom2" => ExcelPivotFilter.BottomCount("Product", "Metric", 2),
+                    "inner-wide-top50pct" => ExcelPivotFilter.TopPercent("Product", "Metric", 50),
+                    "inner-wide-bottomsum15" => ExcelPivotFilter.BottomSum("Product", "Metric", 15d),
+                    "inner-wide-error-top2" => ExcelPivotFilter.TopCount("Product", "Metric", 2),
+                    "outer-wide-top50pct" => ExcelPivotFilter.TopPercent("Region", "Metric", 50),
+                    "outer-wide-bottom50pct" => ExcelPivotFilter.BottomPercent("Region", "Metric", 50),
+                    "outer-wide-topsum50" => ExcelPivotFilter.TopSum("Region", "Metric", 50d),
+                    "outer-wide-bottomsum50" => ExcelPivotFilter.BottomSum("Region", "Metric", 50d),
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
+                };
+                source.Pivot("A1:C10").Rows("Region", "Product").Sum("Sales", "Metric")
+                    .Layout(ExcelPivotLayout.Tabular).Filter(filter).At("E4", "ValuePivot");
+                var result = source.MaterializePivotTable("ValuePivot");
+                Assert.Equal(authoredRange, result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid,
+                    string.Join(Environment.NewLine, result.Mutation.Diagnostics.Select(d => d.Message)));
+                document.Save(authoredOutput);
+            }
+            using (var reopened = ExcelDocument.Load(authoredOutput)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+                var sheet = reopened.GetSheet("Source");
+                Assert.Equal(total, sheet.GetPivotData("ValuePivot", "Metric").Value);
+                AssertWideMultiFieldPivotLookups(sheet, expectedLookups);
+            }
+            using var authoredView = ExcelDocumentReader.Open(authoredOutput);
+            AssertWidePivotRowsMatchExcel(expectedView,
+                authoredView.GetSheet("Source").ReadRange(authoredRange));
+        }
+
+        private static void AssertWidePivotRowsMatchExcel(object?[,] expected, object?[,] actual) {
+            Assert.Equal(expected.GetLength(0), actual.GetLength(0));
+            Assert.Equal(expected.GetLength(1), actual.GetLength(1));
+            string[] Rows(object?[,] view) => Enumerable.Range(0, view.GetLength(0))
+                .Select(row => JsonSerializer.Serialize(Enumerable.Range(0, view.GetLength(1))
+                    .Select(column => view[row, column]).ToArray()))
+                .OrderBy(row => row, StringComparer.Ordinal).ToArray();
+            Assert.Equal(Rows(expected), Rows(actual));
+        }
+
+        private static void PopulateWideSignedPivotSource(ExcelSheet source, bool error) {
+            source.CellValue(1, 1, "Region");
+            source.CellValue(1, 2, "Product");
+            source.CellValue(1, 3, "Sales");
+            var rows = new[] {
+                ("East", "A", 10d), ("East", "B", 50d), ("East", "C", -20d),
+                ("West", "A", 40d), ("West", "B", 20d), ("West", "C", 0d),
+                ("South", "A", 5d), ("South", "B", 60d), ("South", "C", 30d)
+            };
+            for (int index = 0; index < rows.Length; index++) {
+                source.CellValue(index + 2, 1, rows[index].Item1);
+                source.CellValue(index + 2, 2, rows[index].Item2);
+                if (error && index == 2) source.CellError(index + 2, 3, "#N/A");
+                else source.CellValue(index + 2, 3, rows[index].Item3);
+            }
+        }
+
+        private static void AssertWideMultiFieldPivotLookups(ExcelSheet sheet, object?[,] expectedLookups) {
+            string[] regions = { "East", "East", "East", "West", "West", "West", "South", "South", "South" };
+            string[] products = { "A", "B", "C", "A", "B", "C", "A", "B", "C" };
+            for (int index = 0; index < regions.Length; index++) {
+                var result = sheet.GetPivotData("ValuePivot", "Metric",
+                    new Dictionary<string, object?> { ["Region"] = regions[index], ["Product"] = products[index] });
+                AssertPivotLookupOracleValue(expectedLookups[index + 1, 0], result.Value);
+            }
+        }
+
         private static void AssertPivotMixedGridMatchesExcel(object?[,] expected, object?[,] actual,
             int height, int width) {
             string Row(object?[,] view, int row) => JsonSerializer.Serialize(Enumerable.Range(0, width)

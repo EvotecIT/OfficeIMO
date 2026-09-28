@@ -70,7 +70,16 @@ try {
         [pscustomobject]@{ Key = 'outer-less'; Field = 'Region'; Type = 11; Threshold = 65.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
         [pscustomobject]@{ Key = 'outer-less-equal'; Field = 'Region'; Type = 12; Threshold = 60.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
         [pscustomobject]@{ Key = 'outer-between'; Field = 'Region'; Type = 13; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Row'; Range = 'A4:C8'; Grand = 65.0 },
-        [pscustomobject]@{ Key = 'outer-notbetween'; Field = 'Region'; Type = 14; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 }
+        [pscustomobject]@{ Key = 'outer-notbetween'; Field = 'Region'; Type = 14; Threshold = 61.0; Threshold2 = 65.0; Axis = 'Row'; Range = 'A4:C11'; Grand = 120.0 },
+        [pscustomobject]@{ Key = 'inner-wide-top2'; Field = 'Product'; Type = 1; Threshold = 2.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C14'; Grand = 210.0 },
+        [pscustomobject]@{ Key = 'inner-wide-bottom2'; Field = 'Product'; Type = 2; Threshold = 2.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C14'; Grand = 45.0 },
+        [pscustomobject]@{ Key = 'inner-wide-top50pct'; Field = 'Product'; Type = 3; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C11'; Grand = 150.0 },
+        [pscustomobject]@{ Key = 'inner-wide-bottomsum15'; Field = 'Product'; Type = 6; Threshold = 15.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C15'; Grand = 95.0 },
+        [pscustomobject]@{ Key = 'inner-wide-error-top2'; Field = 'Product'; Type = 1; Threshold = 2.0; Axis = 'Row'; Profile = 'WideMixedError'; Range = 'A4:C14'; Grand = 210.0 },
+        [pscustomobject]@{ Key = 'outer-wide-top50pct'; Field = 'Region'; Type = 3; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 155.0 },
+        [pscustomobject]@{ Key = 'outer-wide-bottom50pct'; Field = 'Region'; Type = 4; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 100.0 },
+        [pscustomobject]@{ Key = 'outer-wide-topsum50'; Field = 'Region'; Type = 5; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C9'; Grand = 95.0 },
+        [pscustomobject]@{ Key = 'outer-wide-bottomsum50'; Field = 'Region'; Type = 6; Threshold = 50.0; Axis = 'Row'; Profile = 'WideSigned'; Range = 'A4:C13'; Grand = 100.0 }
     )
     if (@($Kinds | Where-Object { $_ -notin $cases.Key }).Count -gt 0) {
         throw "Unknown pivot value fixture kind: $($Kinds -join ', ')"
@@ -84,23 +93,38 @@ try {
             $source.Cells.Item(1, $column).Value2 = $_
             $column++
         }
-        $rows = @(
-            @('East', 'A', 10.0), @('East', 'B', 50.0),
-            @('West', 'A', 40.0), @('West', 'B', 20.0),
-            @('South', 'A', 5.0), @('South', 'B', 60.0)
-        )
+        $rows = if ($case.Profile -eq 'WideSigned' -or $case.Profile -eq 'WideMixedError') {
+            @(
+                @('East', 'A', 10.0), @('East', 'B', 50.0),
+                @('East', 'C', $(if ($case.Profile -eq 'WideMixedError') { '=NA()' } else { -20.0 })),
+                @('West', 'A', 40.0), @('West', 'B', 20.0), @('West', 'C', 0.0),
+                @('South', 'A', 5.0), @('South', 'B', 60.0), @('South', 'C', 30.0)
+            )
+        } else {
+            @(
+                @('East', 'A', 10.0), @('East', 'B', 50.0),
+                @('West', 'A', 40.0), @('West', 'B', 20.0),
+                @('South', 'A', 5.0), @('South', 'B', 60.0)
+            )
+        }
         for ($index = 0; $index -lt $rows.Count; $index++) {
             for ($column = 0; $column -lt 3; $column++) {
                 if ($column -eq 2) {
-                    $source.Cells.Item($index + 2, $column + 1).Value2 = [double]$rows[$index][$column]
+                    if ($rows[$index][$column] -is [string] -and $rows[$index][$column].StartsWith('=')) {
+                        $source.Cells.Item($index + 2, $column + 1).Formula = $rows[$index][$column]
+                    } else {
+                        $source.Cells.Item($index + 2, $column + 1).Value2 = [double]$rows[$index][$column]
+                    }
                 } else {
                     $source.Cells.Item($index + 2, $column + 1).Value2 = [string]$rows[$index][$column]
                 }
             }
         }
+        if ($case.Profile -eq 'WideMixedError') { $application.CalculateFullRebuild() }
         $view = $workbook.Worksheets.Add()
         $view.Name = 'Grouped'
-        $cache = $workbook.PivotCaches().Create(1, "'Source'!R1C1:R7C3", 6)
+        $sourceRange = "'Source'!R1C1:R$($rows.Count + 1)C3"
+        $cache = $workbook.PivotCaches().Create(1, $sourceRange, 6)
         $pivot = $cache.CreatePivotTable($view.Range('A4'), 'ValuePivot')
         $region = $pivot.PivotFields('Region')
         $region.Orientation = if ($case.Axis -eq 'Column') { 2 } else { 1 }
@@ -120,10 +144,7 @@ try {
         $lookups = $workbook.Worksheets.Add()
         $lookups.Name = 'Lookups'
         $lookups.Cells.Item(1, 2).Formula = '=GETPIVOTDATA("Metric",Grouped!$A$4)'
-        $lookupRows = @(
-            @('East', 'A'), @('East', 'B'), @('West', 'A'),
-            @('West', 'B'), @('South', 'A'), @('South', 'B')
-        )
+        $lookupRows = @($rows | ForEach-Object { ,@([string]$_[0], [string]$_[1]) })
         for ($index = 0; $index -lt $lookupRows.Count; $index++) {
             $regionName = $lookupRows[$index][0]
             $productName = $lookupRows[$index][1]
@@ -151,7 +172,7 @@ try {
             generatedUtc = [DateTime]::UtcNow.ToString('o')
             regeneration = 'Build/Verification/New-ExcelPivotMultiFieldValueOracle.ps1'
             file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-            sourceRange = 'Source!A1:C7'; filteredField = $case.Field; axis = $case.Axis
+            sourceRange = "Source!A1:C$($rows.Count + 1)"; filteredField = $case.Field; axis = $case.Axis
             filterType = $case.Type; threshold = $case.Threshold; threshold2 = $case.Threshold2
             outputRange = $range; grandTotal = $grand
         } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory "pivot-value-multifield-$($case.Key)-conformance.provenance.json") -Encoding utf8
