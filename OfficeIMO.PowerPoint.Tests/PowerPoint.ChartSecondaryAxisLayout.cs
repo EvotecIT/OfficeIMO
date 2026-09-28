@@ -9,6 +9,36 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartSecondaryAxisLayoutTests {
+    [Fact]
+    public void PrimarySourceLinkedAxisUsesGeneralWorkbookFormatInsteadOfCachedCode() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "$0.00";
+        axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = true;
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        Assert.Equal("General", snapshot.Layout.VerticalAxisNumberFormat);
+    }
+
+    [Fact]
+    public void UpdateDataPreservesUnsupportedPrimaryAxisDisplayFormat() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var axis = slide.SlidePart.ChartParts.Single().ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.GetFirstChild<C.NumberingFormat>()!.FormatCode = "[Red]0";
+        axis.GetFirstChild<C.NumberingFormat>()!.SourceLinked = false;
+
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        chart.UpdateData(new OfficeChartData(new[] { "A" },
+            new[] { new OfficeChartSeries("Values", new[] { 24d }) }));
+        Assert.Equal("[Red]0", axis.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+    }
+
     [Theory]
     [InlineData("color")]
     [InlineData("size")]

@@ -203,6 +203,10 @@ namespace OfficeIMO.OpenXml.Internal {
             unsupported |= !filled && connectLine && markerFill.HasValue &&
                 (!stroke.HasValue || showMarkers && stroke.Value != markerFill.Value);
             OfficeColor? seriesColor = filled ? fill : !connectLine && showMarkers ? markerFill ?? stroke ?? fill : stroke ?? fill;
+            // Native automatic series colours depend on chart style, theme and c:idx.
+            // A static Graphite palette guess cannot preserve that appearance.
+            unsupported |= !forDataUpdate && seriesColor == null &&
+                kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut;
             bool unsupportedPoints = pointOverrides.Any(point => point.Index?.Val?.Value is uint index && index < values.Count &&
                 (OfficeOpenXmlChartPointStyles.HasUnsupportedPointContent(point) || point.ChartShapeProperties != null &&
                     !OfficeOpenXmlChartPointStyles.IsSupported(point.ChartShapeProperties, scheme, flatThreeDimensional)));

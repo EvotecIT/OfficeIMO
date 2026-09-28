@@ -15,6 +15,50 @@ public sealed class WordImageCloneResourcesTests {
     private const string RelationshipsNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
 
     [Fact]
+    public void Clone_RemapsImageLayerExtensionAcrossStories() {
+        using var source = WordDocument.Create();
+        using var destination = WordDocument.Create();
+        var image = source.AddParagraph().AddImage(new MemoryStream(Gif), "source.gif", 20, 20).Image!;
+        var layerPart = source.MainDocumentPartRoot.AddImagePart(ImagePartType.Gif);
+        layerPart.FeedData(new MemoryStream(Gif));
+        var layer = new OpenXmlUnknownElement("a14", "imgLayer", "http://schemas.microsoft.com/office/drawing/2010/main");
+        layer.SetAttribute(new OpenXmlAttribute("r", "embed", RelationshipsNamespace, source.MainDocumentPartRoot.GetIdOfPart(layerPart)));
+        image._Image.Descendants<A.Blip>().Single().Append(new A.BlipExtensionList(
+            new A.BlipExtension(layer) { Uri = "{C183D7F6-7BD8-4E7A-B99F-10C4A6E58B54}" }));
+        destination.AddParagraph().AddImage(new MemoryStream(Gif), "existing.gif", 20, 20);
+        var target = destination.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        image.Clone(target);
+        var owner = destination.MainDocumentPartRoot.HeaderParts.Single();
+        var copied = target._paragraph.Descendants().Single(item => item.LocalName == "imgLayer");
+        string id = copied.GetAttribute("embed", RelationshipsNamespace).Value;
+        Assert.IsType<ImagePart>(owner.GetPartById(id));
+        using var package = destination.ToStream();
+        using var reopened = WordDocument.Load(package);
+        var persisted = reopened.MainDocumentPartRoot.HeaderParts.Single();
+        Assert.IsType<ImagePart>(persisted.GetPartById(persisted.Header!.Descendants()
+            .Single(item => item.LocalName == "imgLayer").GetAttribute("embed", RelationshipsNamespace).Value));
+    }
+
+    [Fact]
+    public void VmlDescriptionSetter_PersistsAltText() {
+        using var document = WordDocument.Create();
+        var paragraph = document.AddParagraph("Image");
+        var part = document.MainDocumentPartRoot.AddImagePart(ImagePartType.Gif);
+        part.FeedData(new MemoryStream(Gif));
+        paragraph._run!.Append(new W.Picture(new V.Shape(new V.ImageData {
+            RelationshipId = document.MainDocumentPartRoot.GetIdOfPart(part) }) {
+            Id = "alt-source", Style = "width:15pt;height:15pt"
+        }));
+        var image = paragraph.Image!;
+        image.Description = "Chart summary";
+        Assert.Equal("Chart summary", image.Description);
+        using var package = document.ToStream();
+        using var reopened = WordDocument.Load(package);
+        Assert.Equal("Chart summary", reopened.MainDocumentPartRoot.Document!.Descendants<V.Shape>()
+            .Single().GetAttribute("alt", "").Value);
+    }
+
+    [Fact]
     public void Clone_RemapsVmlTextureFillAlongsideImageDataAcrossStories() {
         using var source = WordDocument.Create();
         using var destination = WordDocument.Create();
