@@ -35,12 +35,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         OfficeChartSeries values = series[0];
-        double total = 0D;
-        for (int i = 0; i < categories.Count; i++) {
-            if (TryGetSeriesValue(values, i, out double value) && value > 0D) {
-                total += value;
-            }
-        }
+        double total = GetPositiveSeriesNormalizedTotal(values, categories.Count, out double scale);
 
         if (total <= 0D) {
             return;
@@ -74,7 +69,8 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             double value = Math.Max(0D, seriesValue);
-            double sweep = value / total * Math.PI * 2D;
+            double ratio = value / scale / total;
+            double sweep = ratio * Math.PI * 2D;
             if (value > 0D) {
                 double end = start + sweep;
                 double middle = start + sweep / 2D;
@@ -95,12 +91,12 @@ public static partial class OfficeChartDrawingRenderer {
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddStyledPointPolygon(drawing, points, sliceColor, GetPointStyle(values, i), OfficeColor.White, 0.5D);
                 if (ShouldShowDataLabel(layout, 0, i)) {
-                    AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null);
+                    AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null, percentageRatio: ratio);
                 }
 
                 start = end;
             } else if (ShouldShowDataLabel(layout, 0, i)) {
-                AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, radius * 0.9D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex);
+                AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, radius * 0.9D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
                 zeroLabelIndex++;
             }
         }
@@ -130,7 +126,7 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         var renderableSeries = new List<(OfficeChartSeries Series, int SourceIndex)>();
         for (int s = 0; s < series.Count; s++) {
-            if (GetPositiveSeriesTotal(series[s], categories.Count) > 0D) {
+            if (GetPositiveSeriesNormalizedTotal(series[s], categories.Count, out _) > 0D) {
                 renderableSeries.Add((series[s], s));
             }
         }
@@ -169,7 +165,7 @@ public static partial class OfficeChartDrawingRenderer {
             int sourceSeriesIndex = renderableSeries[s].SourceIndex;
             double outerRadius = holeRadius + (s + 1) * ringThickness;
             double innerRadius = holeRadius + s * ringThickness;
-            double total = GetPositiveSeriesTotal(values, categories.Count);
+            double total = GetPositiveSeriesNormalizedTotal(values, categories.Count, out double scale);
             double start = GetFirstSliceAngle(snapshot.RadialLayout);
             int zeroLabelIndex = 0;
             OfficeColor zeroLabelColor = GetPointDataLabelColor(style, values,
@@ -180,7 +176,8 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 double value = Math.Max(0D, seriesValue);
-                double sweep = value / total * Math.PI * 2D;
+                double ratio = value / scale / total;
+                double sweep = ratio * Math.PI * 2D;
                 if (value > 0D) {
                     double end = start + sweep;
                     double middle = start + sweep / 2D;
@@ -190,12 +187,12 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeColor sliceColor = GetPointColor(style, values, i);
                     AddDoughnutSlice(drawing, sliceCenterX, sliceCenterY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
                     if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                        AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, (innerRadius + outerRadius) / 2D, middle, zeroLabelIndex: null);
+                        AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, (innerRadius + outerRadius) / 2D, middle, zeroLabelIndex: null, percentageRatio: ratio);
                     }
 
                     start = end;
                 } else if (s == 0 && ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                    AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, (innerRadius + outerRadius) / 2D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex);
+                    AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, (innerRadius + outerRadius) / 2D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
                     zeroLabelIndex++;
                 }
             }
@@ -234,8 +231,8 @@ public static partial class OfficeChartDrawingRenderer {
         double centerY,
         double radius,
         double angle,
-        int? zeroLabelIndex) {
-        string label = FormatDataLabel(layout, category, series, value, total);
+        int? zeroLabelIndex, double percentageRatio) {
+        string label = FormatDataLabel(layout, category, series, value, total, percentageRatio);
         if (string.IsNullOrWhiteSpace(label)) {
             return;
         }
@@ -263,11 +260,18 @@ public static partial class OfficeChartDrawingRenderer {
         return luminance < 0.52D ? OfficeColor.White : OfficeColor.Black;
     }
 
-    private static double GetPositiveSeriesTotal(OfficeChartSeries values, int categoryCount) {
+    private static double GetPositiveSeriesNormalizedTotal(OfficeChartSeries values, int categoryCount,
+        out double scale) {
+        scale = 0D;
+        for (int i = 0; i < categoryCount; i++)
+            if (TryGetSeriesValue(values, i, out double value) && value > scale)
+                scale = value;
+        if (scale == 0D) return 0D;
+
         double total = 0D;
         for (int i = 0; i < categoryCount; i++) {
             if (TryGetSeriesValue(values, i, out double value) && value > 0D) {
-                total += value;
+                total += value / scale;
             }
         }
 

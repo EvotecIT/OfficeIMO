@@ -622,7 +622,8 @@ public static partial class OfficeChartDrawingRenderer {
             : label;
     }
 
-    private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series, double value, double total) {
+    private static string FormatDataLabel(OfficeChartLayout layout, string category, OfficeChartSeries series,
+        double value, double total, double? percentageRatio = null) {
         var parts = new List<string>(4);
         if (layout.ShowDataLabelSeriesNames && !string.IsNullOrWhiteSpace(series.Name)) {
             parts.Add(series.Name);
@@ -637,9 +638,9 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (layout.ShowDataLabelPercentages) {
-            double ratio = total > 0D && !double.IsNaN(value) && !double.IsInfinity(value)
+            double ratio = percentageRatio ?? (total > 0D && !double.IsNaN(value) && !double.IsInfinity(value)
                 ? Math.Max(0D, value) / total
-                : 0D;
+                : 0D);
             parts.Add(FormatDataLabelPercent(ratio, layout.DataLabelNumberFormat));
         }
 
