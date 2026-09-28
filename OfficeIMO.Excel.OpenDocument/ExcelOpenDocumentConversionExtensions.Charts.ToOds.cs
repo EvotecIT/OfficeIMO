@@ -31,11 +31,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         || !range.HasHeaderRow
                         || range.CategoryCount < 1 || range.CategoryCount > MaximumConvertedChartPoints
                         || range.SeriesCount < 1 || range.SeriesCount > MaximumConvertedChartSeries
+                        || type == OdsChartType.Pie && range.SeriesCount != 1
                         || snapshot.Data.Categories.Count != range.CategoryCount
                         || snapshot.Data.Series.Count != range.SeriesCount
                         || snapshot.Data.Series.Any(series =>
                             series.ChartType.HasValue && series.ChartType.Value != chart.ChartType
-                            || series.AxisGroup != OfficeChartAxisGroup.Primary)
+                            || series.AxisGroup != OfficeChartAxisGroup.Primary
+                            || series.PointExplosions?.Any(offset => offset != 0) == true)
                         || snapshot.RowIndex < 1 || snapshot.ColumnIndex < 1
                         || snapshot.RowIndex > options.MaximumRows || snapshot.ColumnIndex > options.MaximumColumns
                         || snapshot.OffsetXPixels < 0 || snapshot.OffsetYPixels < 0
@@ -61,7 +63,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                         string label = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(
                             range.SeriesNameCellA1(index), dataSourceSheet.Name);
                         if (values.Length == 0 || label.Length == 0) { valid = false; break; }
-                        series[index] = new OdsChartSeries(values, label);
+                        series[index] = new OdsChartSeries(values, label)
+                            .WithPointStyles(snapshot.Data.Series[index].PointStyles);
                     }
                     if (!valid) continue;
                     string categories = SpreadsheetAddressConverter.ExcelRangeToOpenAddress(
@@ -119,6 +122,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             case ExcelChartType.ColumnClustered: type = OdsChartType.Column; return true;
             case ExcelChartType.BarClustered: type = OdsChartType.Bar; return true;
             case ExcelChartType.Line: type = OdsChartType.Line; return true;
+            case ExcelChartType.Pie: type = OdsChartType.Pie; return true;
+            case ExcelChartType.Doughnut: type = OdsChartType.Doughnut; return true;
             default: type = default; return false;
         }
     }
