@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
@@ -247,8 +248,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             barChart.Append(CreateDefaultDataLabels());
-            barChart.Append(new C.GapWidth { Val = (UInt16Value)219U });
-            barChart.Append(new C.Overlap { Val = (SByteValue)(sbyte)-27 });
+            barChart.Append(new C.GapWidth { Val = (UInt16Value)150U });
+            barChart.Append(new C.Overlap { Val = (SByteValue)(sbyte)0 });
             barChart.Append(new C.AxisId { Val = categoryAxisId });
             barChart.Append(new C.AxisId { Val = valueAxisId });
             return barChart;
@@ -269,6 +270,9 @@ namespace OfficeIMO.PowerPoint {
                 new C.CategoryAxisData(CreateStringReference(categoriesRef, categories)),
                 new C.Values(CreateNumberReference(valuesRef, series.Values))
             );
+
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.MaterializeDefaultSeriesColor(
+                seriesElement, OfficeChartKind.ColumnClustered, seriesIndex);
 
             return seriesElement;
         }
@@ -306,6 +310,9 @@ namespace OfficeIMO.PowerPoint {
                 new C.Values(CreateNumberReference(valuesRef, series.Values))
             );
 
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.MaterializeDefaultSeriesColor(
+                seriesElement, OfficeChartKind.Line, seriesIndex);
+
             return seriesElement;
         }
 
@@ -339,6 +346,9 @@ namespace OfficeIMO.PowerPoint {
                 new C.XValues(CreateNumberReference(xValuesRef, series.XValues)),
                 new C.YValues(CreateNumberReference(yValuesRef, series.YValues))
             );
+
+            OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.MaterializeDefaultSeriesColor(
+                seriesElement, OfficeChartKind.Scatter, seriesIndex);
 
             return seriesElement;
         }
