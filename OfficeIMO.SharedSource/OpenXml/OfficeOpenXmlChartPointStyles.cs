@@ -46,7 +46,8 @@ internal static class OfficeOpenXmlChartPointStyles {
                     if (lineChild is A.NoFill) continue;
                     if (lineChild is A.SolidFill && !OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(lineChild) &&
                         OfficeOpenXmlThemeColorResolver.ResolveColor(lineChild, scheme).HasValue) continue;
-                    if (lineChild is A.Round or A.LineJoinBevel or A.Miter) continue;
+                    if (lineChild is A.Round or A.LineJoinBevel) continue;
+                    if (lineChild is A.Miter miter && !miter.HasAttributes && !miter.HasChildren) continue;
                     return false;
                 }
                 continue;

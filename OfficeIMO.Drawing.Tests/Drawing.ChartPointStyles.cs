@@ -5,6 +5,20 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPointStylesTests {
     [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Pie)]
+    public void LegendWidthRespectsConfiguredChartRatio(OfficeChartKind kind) {
+        var data = new OfficeChartData(new[] { "A long category", "B" },
+            new[] { new OfficeChartSeries("A long series name", new[] { 3d, 2d }) });
+        var layout = new OfficeChartLayout(seriesLegendWidthRatio: 0.1, categoryLegendWidthRatio: 0.1);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Legend", null,
+            kind, data, 400, 240, layout: layout));
+        string name = kind == OfficeChartKind.Pie ? "A long category" : "A long series name";
+        OfficeDrawingText legend = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == name);
+        Assert.True(legend.Width < 40, $"Legend text width {legend.Width} exceeds the 40-point legend budget.");
+    }
+
+    [Theory]
     [InlineData(OfficeChartKind.Pie, false)]
     [InlineData(OfficeChartKind.Pie, true)]
     [InlineData(OfficeChartKind.Doughnut, false)]

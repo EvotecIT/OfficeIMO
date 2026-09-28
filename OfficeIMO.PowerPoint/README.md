@@ -410,7 +410,7 @@ slide.AddChartCm(OfficeChartKind.Doughnut, mix,
 
 Attach `OfficeChartSeries.WithPointStyles` when authoring shared chart data, or call
 `chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to edit an existing native chart.
-Styles support solid fill, explicit no-fill, outlines, and six hatch patterns from
+Styles support solid fill, explicit no-fill, outlines, and seven hatch patterns from
 `OfficeIMO.Drawing.OfficeChartHatchPattern`. A null style clears the point's fill and outline
 overrides. Values remain unchanged and the chart remains editable in PowerPoint.
 

@@ -79,7 +79,7 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static double BoundLegendWidth(double desired, double chartWidth, double ratio) =>
-        Math.Min(desired, Math.Max(chartWidth * ratio, Math.Min(desired, chartWidth * 0.5D)));
+        Math.Min(desired, chartWidth * ratio);
 
     private static void AddSeriesLegend(OfficeDrawing drawing, IReadOnlyList<OfficeChartSeries> series, double x, double y, double width, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         List<int> legendIndexes = GetLegendSeriesIndexes(series);

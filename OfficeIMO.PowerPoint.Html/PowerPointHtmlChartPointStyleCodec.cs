@@ -21,6 +21,7 @@ internal static class PowerPointHtmlChartPointStyleCodec {
         if (style.OutlineColor.HasValue) Attribute("outline-color", style.OutlineColor.Value.ToString());
         if (style.OutlineWidth.HasValue) Attribute("outline-width", style.OutlineWidth.Value.ToString("G17", CultureInfo.InvariantCulture));
         if (style.ShowOutline.HasValue) Attribute("show-outline", style.ShowOutline.Value ? "true" : "false");
+        if (style.OutlineJoin.HasValue) Attribute("outline-join", style.OutlineJoin.Value.ToString());
     }
 
     internal static bool TryRead(IElement cell, out OfficeChartPointStyle? style) {
@@ -28,9 +29,9 @@ internal static class PowerPointHtmlChartPointStyleCodec {
         string? Get(string key) => cell.GetAttribute("data-officeimo-point-" + key);
         string? rawFill = Get("fill"), rawNoFill = Get("no-fill"), rawHatch = Get("hatch"),
             rawHatchColor = Get("hatch-color"), rawOutline = Get("outline-color"),
-            rawWidth = Get("outline-width"), rawShow = Get("show-outline");
+            rawWidth = Get("outline-width"), rawShow = Get("show-outline"), rawJoin = Get("outline-join");
         if (rawFill == null && rawNoFill == null && rawHatch == null && rawHatchColor == null &&
-            rawOutline == null && rawWidth == null && rawShow == null) return true;
+            rawOutline == null && rawWidth == null && rawShow == null && rawJoin == null) return true;
         bool Color(string? raw, out OfficeColor? color) {
             color = null;
             if (raw == null) return true;
@@ -58,8 +59,14 @@ internal static class PowerPointHtmlChartPointStyleCodec {
             if (!double.TryParse(rawWidth, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) return false;
             width = parsed;
         }
+        OfficeStrokeLineJoin? join = null;
+        if (rawJoin != null) {
+            if (!Enum.TryParse(rawJoin, out OfficeStrokeLineJoin parsed) ||
+                !Enum.IsDefined(typeof(OfficeStrokeLineJoin), parsed)) return false;
+            join = parsed;
+        }
         try {
-            style = new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, outline, width, show);
+            style = new OfficeChartPointStyle(fill, noFill, hatch, hatchColor, outline, width, show, join);
             return true;
         } catch (ArgumentException) { return false; }
     }

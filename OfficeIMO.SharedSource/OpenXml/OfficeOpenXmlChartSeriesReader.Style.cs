@@ -14,6 +14,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new NotSupportedException("Per-entry legend text formatting cannot be projected.");
             foreach (C.Title title in chart.Descendants<C.Title>()) {
                 if (title.GetFirstChild<C.ChartShapeProperties>() is not C.ChartShapeProperties titleShape) continue;
+                if (!titleShape.HasChildren && !titleShape.HasAttributes) continue;
                 Surface titleSurface = ReadSurface(titleShape, scheme);
                 if (!titleSurface.NoFill || !titleSurface.NoOutline || titleSurface.Fill.HasValue || titleSurface.Stroke.HasValue)
                     throw new NotSupportedException("The title shape appearance cannot be projected.");
@@ -101,6 +102,9 @@ namespace OfficeIMO.OpenXml.Internal {
             if (OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(properties.GetFirstChild<A.SolidFill>()) ||
                 OfficeOpenXmlThemeColorResolver.HasUnsupportedTransforms(outline?.GetFirstChild<A.SolidFill>()))
                 throw new NotSupportedException("The chart surface has an unsupported colour transform.");
+            if (outline?.GetFirstChild<A.NoFill>() == null &&
+                (outline?.GetFirstChild<A.Round>() != null || outline?.GetFirstChild<A.Bevel>() != null || outline?.GetFirstChild<A.Miter>() != null))
+                throw new NotSupportedException("The chart surface outline join cannot be projected.");
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
             OfficeColor? stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
             if (properties.GetFirstChild<A.SolidFill>() != null && !fill.HasValue || outline?.GetFirstChild<A.SolidFill>() != null && !stroke.HasValue)
