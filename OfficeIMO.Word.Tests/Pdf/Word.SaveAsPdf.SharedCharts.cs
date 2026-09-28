@@ -6,11 +6,41 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 
 namespace OfficeIMO.Tests;
 
 public sealed class WordSharedChartPdfTests {
+    [Theory]
+    [InlineData("empty")]
+    [InlineData("noFill")]
+    [InlineData("noFillOutline")]
+    public void DefaultLegendShapeDoesNotDisableSingleChartPdfWithDataTable(string appearance) {
+        using var document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Count", new[] { 4d }) }));
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        native.PlotArea!.AddChild(new C.DataTable(), true);
+        C.Legend legend = native.GetFirstChild<C.Legend>()!;
+        var properties = new C.ChartShapeProperties();
+        if (appearance != "empty") properties.Append(new A.NoFill());
+        if (appearance == "noFillOutline") properties.Append(new A.Outline(new A.NoFill()));
+        legend.AddChild(properties, true);
+
+        MethodInfo factory = typeof(WordPdfConverterExtensions).GetMethod("TryCreateNativeWordChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        object?[] arguments = { chart, null, null };
+        Assert.True((bool)factory.Invoke(null, arguments)!);
+        Assert.IsType<OfficeChartSnapshot>(arguments[1]);
+        var options = new WordToPdfOptions { IncludePageNumbers = false };
+        byte[] pdfBytes = document.ToPdfBytes(options);
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+        using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
+        Assert.Single(pdf.GetPages());
+    }
+
     [Fact]
     public void ImportedPieLegendFrameUsesQualifiedSharedStyleInPdf() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "LibreOffice", "status-pie.docx");
