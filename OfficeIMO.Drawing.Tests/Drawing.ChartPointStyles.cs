@@ -4,6 +4,24 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingChartPointStylesTests {
+    [Fact]
+    public void DoughnutLegendUsesTheFirstRenderableRingWhenOnlyInnerRingHasPointStyles() {
+        var outer = new OfficeChartSeries("Outer", new[] { 3d, 2d }, null, OfficeColor.Parse("#1845A3"));
+        var inner = new OfficeChartSeries("Inner", new[] { 4d, 1d })
+            .WithPointStyles(new OfficeChartPointStyle?[] {
+                new(fillColor: OfficeColor.Parse("#D02020")), null
+            });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Doughnut, new OfficeChartData(new[] { "A", "B" }, new[] { outer, inner }),
+            480, 300, layout: new OfficeChartLayout(showLegend: true)));
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        Assert.Contains("#1845A3", svg, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("#D02020", svg, StringComparison.OrdinalIgnoreCase);
+        var legend = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "A");
+        Assert.Contains(drawing.Shapes, shape => shape.Y <= legend.Y + legend.Height &&
+            shape.Y + shape.Shape.Height >= legend.Y && shape.Shape.FillColor == OfficeColor.Parse("#1845A3"));
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Pie)]
