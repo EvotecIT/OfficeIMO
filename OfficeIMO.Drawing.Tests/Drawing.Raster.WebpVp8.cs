@@ -214,6 +214,57 @@ public sealed class DrawingWebpVp8Tests {
         Assert.False(OfficeWebpCodec.TryDecode(encoded, out _));
         Assert.False(OfficeRasterImageDecoder.TryDecode(encoded, out _));
         Assert.False(OfficeImageReader.TryValidateContent(encoded, null, out _));
+        var drawing = new OfficeDrawing(1, 1).AddImage(encoded, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { ImageCodec = new UnexpectedWebpCodec() });
+        Assert.Equal(OfficeColor.Transparent, rendered.GetPixel(0, 0));
+    }
+
+    private sealed class UnexpectedWebpCodec : IOfficeRasterImageCodec {
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            throw new InvalidOperationException("Malformed opaque VP8 must not reach the caller codec.");
+        }
+    }
+
+    [Fact]
+    public void StaticLossyWebpWithSeparateAlphaPlaneCanUseCallerCodec() {
+        byte[] opaque = ReadFixture("independent-vp8-pattern.webp");
+        const int width = 48;
+        const int height = 32;
+        int alphaLength = 1 + width * height;
+        byte[] encoded = new byte[12 + 18 + 8 + alphaLength + (alphaLength & 1) + opaque.Length - 12];
+        Array.Copy(opaque, encoded, 12);
+        WriteLength(encoded, 4, encoded.Length - 8);
+        Array.Copy(System.Text.Encoding.ASCII.GetBytes("VP8X"), 0, encoded, 12, 4);
+        WriteLength(encoded, 16, 10);
+        encoded[20] = 0x10; // Alpha flag.
+        encoded[24] = width - 1;
+        encoded[27] = height - 1;
+        int alphaChunk = 30;
+        Array.Copy(System.Text.Encoding.ASCII.GetBytes("ALPH"), 0, encoded, alphaChunk, 4);
+        WriteLength(encoded, alphaChunk + 4, alphaLength);
+        for (int index = alphaChunk + 9; index < alphaChunk + 8 + alphaLength; index++) encoded[index] = 255;
+        Array.Copy(opaque, 12, encoded, alphaChunk + 8 + alphaLength + (alphaLength & 1), opaque.Length - 12);
+
+        Assert.True(OfficeImageReader.TryIdentifyByContent(encoded, null, out _));
+        Assert.False(OfficeRasterImageDecoder.TryDecode(encoded, out _));
+        var codec = new SolidWebpCodec();
+        var drawing = new OfficeDrawing(1, 1).AddImage(encoded, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+        OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
+            new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
+        Assert.Equal(1, codec.Calls);
+        Assert.Equal(OfficeColor.Red, rendered.GetPixel(0, 0));
+    }
+
+    private sealed class SolidWebpCodec : IOfficeRasterImageCodec {
+        internal int Calls;
+        public bool TryDecode(byte[] encodedBytes, string? contentType, out OfficeRasterImage? image) {
+            Calls++;
+            image = new OfficeRasterImage(48, 32, OfficeColor.Red);
+            return true;
+        }
     }
 
     [Fact]
