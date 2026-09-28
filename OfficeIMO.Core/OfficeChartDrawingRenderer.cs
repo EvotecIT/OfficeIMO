@@ -969,20 +969,9 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static OfficeChartSeries? GetCategoryLegendSeries(IReadOnlyList<OfficeChartSeries> series) {
-        for (int i = 0; i < series.Count; i++) {
-            if (series[i].PointColors != null || series[i].PointStyles != null) {
-                return series[i];
-
-            }
-        }
-
-        for (int i = 0; i < series.Count; i++) {
-            if (series[i].Color.HasValue) {
-                return series[i];
-            }
-        }
-
-        return null;
+        // A doughnut has one category legend, and its swatches describe the
+        // first visible ring even when only an inner ring has overrides.
+        return series.Count == 0 ? null : series[0];
     }
 
     private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft,

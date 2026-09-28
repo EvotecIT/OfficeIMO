@@ -12,6 +12,30 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartPointStylesTests {
     [Fact]
+    public void MarkerOwnedPointHatchRemainsExportable() {
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Line", new[] { 1d, 2d })
+        });
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelSheet sheet = document.AddWorksheet("Markers");
+        ExcelChart chart = sheet.AddChart(OfficeChartKind.Line, data, 1, 4);
+        ChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ChartParts);
+        C.LineChartSeries nativeSeries = Assert.Single(part.ChartSpace!.Descendants<C.LineChartSeries>());
+        nativeSeries.InsertBefore(new C.DataPoint(new C.Index { Val = 0U },
+            new C.Marker(new C.ChartShapeProperties())), nativeSeries.GetFirstChild<C.CategoryAxisData>());
+        var hatch = new OfficeChartPointStyle(OfficeColor.White,
+            hatch: OfficeChartHatchPattern.Cross, hatchColor: OfficeColor.Parse("#7300A3"));
+        chart.SetDataPointStyle(0, 0, hatch);
+
+        Assert.NotNull(Assert.Single(nativeSeries.Elements<C.DataPoint>())
+            .GetFirstChild<C.Marker>()!.ChartShapeProperties!.GetFirstChild<A.PatternFill>());
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(hatch.Hatch, snapshot.Data.Series[0].PointStyles![0]!.Hatch);
+        Assert.Contains("#7300A3", System.Text.Encoding.UTF8.GetString(
+            chart.ExportImage(OfficeImageExportFormat.Svg).Bytes), System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void SharedComboPointStylesFollowNativeChartIndexesAcrossLayers() {
         var data = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
             new OfficeChartSeries("Columns A", new[] { 12D, 18D }, null, null, null, true,
