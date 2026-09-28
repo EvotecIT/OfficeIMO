@@ -30,94 +30,70 @@ public static partial class OfficeChartDrawingRenderer {
                 ? layout.HorizontalAxisMinimum.HasValue || layout.HorizontalAxisMaximum.HasValue
                 : layout.VerticalAxisMinimum.HasValue || layout.VerticalAxisMaximum.HasValue;
 
-    private static double ToUnclampedPlotY(double value, double min, double max, double plotTop, double plotHeight) =>
-        FinitePlotCoordinate(plotTop + plotHeight * (1D - UnclampedPlotRatio(value, min, max)));
-
-    private static double ToUnclampedPlotX(double value, double min, double max, double plotLeft, double plotWidth) =>
-        FinitePlotCoordinate(plotLeft + plotWidth * UnclampedPlotRatio(value, min, max));
-
-    private static double UnclampedPlotRatio(double value, double min, double max) {
-        double range = max - min;
-        if (range <= 0D || double.IsInfinity(range)) return 0.5D;
-        double ratio = (value - min) / range;
-        if (double.IsNaN(ratio)) return 0.5D;
-        if (double.IsInfinity(ratio))
-            throw new NotSupportedException("The chart value is too far outside the explicit plot bounds to render faithfully.");
-        return ratio;
-    }
-
-    private static double FinitePlotCoordinate(double coordinate) {
-        if (double.IsNaN(coordinate) || double.IsInfinity(coordinate))
-            throw new NotSupportedException("The chart value is too far outside the explicit plot bounds to render faithfully.");
-        return coordinate;
-    }
-
-    private static bool TryClipPlotSegment(OfficePoint from, OfficePoint to, ChartPlotBounds bounds,
-        out OfficePoint start, out OfficePoint end) {
+    private static bool TryClipValueSegment(OfficePoint from, OfficePoint to, ValueRange range,
+        ChartPlotBounds bounds, out OfficePoint start, out OfficePoint end) {
         start = default;
         end = default;
-        double x0 = (from.X - bounds.Left) / bounds.Width;
-        double y0 = (from.Y - bounds.Top) / bounds.Height;
-        double x1 = (to.X - bounds.Left) / bounds.Width;
-        double y1 = (to.Y - bounds.Top) / bounds.Height;
-        double dx = x1 - x0, dy = y1 - y0;
-        if (double.IsNaN(dx) || double.IsNaN(dy) || double.IsInfinity(dx) || double.IsInfinity(dy))
-            throw new NotSupportedException("The chart segment cannot be clipped faithfully at these values.");
+        double scale = Math.Max(1D, Math.Max(Math.Max(Math.Abs(from.Y), Math.Abs(to.Y)),
+            Math.Max(Math.Abs(range.Min), Math.Abs(range.Max))));
+        double y0 = from.Y / scale, y1 = to.Y / scale;
+        double lower = range.Min / scale, upper = range.Max / scale;
+        double delta = y1 - y0;
         double entry = 0D, exit = 1D;
-        if (!Clip(-dx, x0, ref entry, ref exit) || !Clip(dx, 1D - x0, ref entry, ref exit) ||
-            !Clip(-dy, y0, ref entry, ref exit) || !Clip(dy, 1D - y0, ref entry, ref exit)) return false;
-        start = new OfficePoint(bounds.Left + bounds.Width * Math.Max(0D, Math.Min(1D, x0 + entry * dx)),
-            bounds.Top + bounds.Height * Math.Max(0D, Math.Min(1D, y0 + entry * dy)));
-        end = new OfficePoint(bounds.Left + bounds.Width * Math.Max(0D, Math.Min(1D, x0 + exit * dx)),
-            bounds.Top + bounds.Height * Math.Max(0D, Math.Min(1D, y0 + exit * dy)));
+        if (!Clip(-delta, y0 - lower, ref entry, ref exit) ||
+            !Clip(delta, upper - y0, ref entry, ref exit)) return false;
+        double width = to.X - from.X;
+        double firstValue = entry == 0D ? from.Y : from.Y < range.Min ? range.Min : range.Max;
+        double lastValue = exit == 1D ? to.Y : to.Y < range.Min ? range.Min : range.Max;
+        start = new OfficePoint(from.X + width * entry,
+            ToPlotY(firstValue, range.Min, range.Max, bounds.Top, bounds.Height));
+        end = new OfficePoint(from.X + width * exit,
+            ToPlotY(lastValue, range.Min, range.Max, bounds.Top, bounds.Height));
         return true;
     }
 
-    private static void AddClippedPointLine(OfficeDrawing drawing, IReadOnlyList<OfficePoint> points,
-        OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle, ChartPlotBounds bounds) {
-        for (int index = 1; index < points.Count; index++)
-            if (TryClipPlotSegment(points[index - 1], points[index], bounds,
-                    out OfficePoint start, out OfficePoint end) &&
-                (start.X != end.X || start.Y != end.Y))
-                AddPointLine(drawing, new[] { start, end }, color, strokeWidth, dashStyle);
+    private static List<OfficePoint> ClipValuePolygon(List<OfficePoint> polygon,
+        ValueRange range, ChartPlotBounds bounds) {
+        polygon = ClipValueEdge(polygon, range.Min, keepGreater: true);
+        polygon = ClipValueEdge(polygon, range.Max, keepGreater: false);
+        for (int index = 0; index < polygon.Count; index++) {
+            OfficePoint point = polygon[index];
+            polygon[index] = new OfficePoint(point.X,
+                ToPlotY(point.Y, range.Min, range.Max, bounds.Top, bounds.Height));
+        }
+        return polygon;
     }
 
-    private static List<OfficePoint> ClipPlotPolygon(List<OfficePoint> polygon, ChartPlotBounds bounds) {
-        polygon = ClipEdge(polygon, bounds.Left, vertical: true, keepGreater: true);
-        polygon = ClipEdge(polygon, bounds.Left + bounds.Width, vertical: true, keepGreater: false);
-        polygon = ClipEdge(polygon, bounds.Top, vertical: false, keepGreater: true);
-        return ClipEdge(polygon, bounds.Top + bounds.Height, vertical: false, keepGreater: false);
-    }
-
-    private static List<OfficePoint> ClipEdge(List<OfficePoint> polygon, double edge,
-        bool vertical, bool keepGreater) {
+    private static List<OfficePoint> ClipValueEdge(List<OfficePoint> polygon,
+        double edge, bool keepGreater) {
         var clipped = new List<OfficePoint>();
         if (polygon.Count == 0) return clipped;
         OfficePoint previous = polygon[polygon.Count - 1];
-        bool previousInside = Inside(previous);
+        bool previousInside = keepGreater ? previous.Y >= edge : previous.Y <= edge;
         foreach (OfficePoint current in polygon) {
-            bool currentInside = Inside(current);
-            if (currentInside != previousInside) clipped.Add(Intersection(previous, current));
+            bool currentInside = keepGreater ? current.Y >= edge : current.Y <= edge;
+            if (currentInside != previousInside) {
+                double scale = Math.Max(1D, Math.Max(Math.Abs(previous.Y),
+                    Math.Max(Math.Abs(current.Y), Math.Abs(edge))));
+                double from = previous.Y / scale, to = current.Y / scale;
+                double fraction = (edge / scale - from) / (to - from);
+                clipped.Add(new OfficePoint(previous.X + (current.X - previous.X) * fraction, edge));
+            }
             if (currentInside) clipped.Add(current);
             previous = current;
             previousInside = currentInside;
         }
         return clipped;
+    }
 
-        bool Inside(OfficePoint point) => keepGreater
-            ? (vertical ? point.X : point.Y) >= edge
-            : (vertical ? point.X : point.Y) <= edge;
-        OfficePoint Intersection(OfficePoint from, OfficePoint to) {
-            double fromCoordinate = vertical ? from.X : from.Y;
-            double toCoordinate = vertical ? to.X : to.Y;
-            double difference = toCoordinate - fromCoordinate;
-            if (double.IsInfinity(difference))
-                throw new NotSupportedException("The chart area cannot be clipped faithfully at these values.");
-            double fraction = (edge - fromCoordinate) / difference;
-            return vertical
-                ? new OfficePoint(edge, from.Y + fraction * (to.Y - from.Y))
-                : new OfficePoint(from.X + fraction * (to.X - from.X), edge);
-        }
+    private static void AddClippedValueLine(OfficeDrawing drawing,
+        IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth,
+        OfficeStrokeDashStyle dashStyle, ValueRange range, ChartPlotBounds bounds) {
+        for (int index = 1; index < points.Count; index++)
+            if (TryClipValueSegment(points[index - 1], points[index], range, bounds,
+                    out OfficePoint start, out OfficePoint end) &&
+                (start.X != end.X || start.Y != end.Y))
+                AddPointLine(drawing, new[] { start, end }, color, strokeWidth, dashStyle);
     }
 
     private static void AddScatterPlotLine(OfficeDrawing drawing, System.Collections.Generic.IReadOnlyList<OfficePoint> points,

@@ -8,6 +8,26 @@ namespace OfficeIMO.Tests;
 public sealed class DrawingChartPlotClippingTests {
     [Theory]
     [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Area)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void FiniteExtremeOutlierClipsBeforePixelConversion(OfficeChartKind kind) {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var series = kind == OfficeChartKind.Scatter
+            ? new OfficeChartSeries("Series", new[] { double.MaxValue, .5d },
+                new[] { double.MaxValue, .5d }, ink)
+            : new OfficeChartSeries("Series", new[] { double.MaxValue, .5d }, null, ink);
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] { series });
+        var layout = new OfficeChartLayout(showLegend: false,
+            horizontalAxisMinimum: 0, horizontalAxisMaximum: 1,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 1);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, 360, 240, layout: layout));
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingGroup>(), group =>
+            group.Drawing.Shapes.Any(shape => shape.Shape.StrokeColor == ink || shape.Shape.FillColor == ink));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
     [InlineData(OfficeChartKind.Scatter)]
     public void OneSidedBoundOutsideDataStillClipsSeries(OfficeChartKind kind) {
         OfficeColor ink = OfficeColor.Parse("#D900AA");
