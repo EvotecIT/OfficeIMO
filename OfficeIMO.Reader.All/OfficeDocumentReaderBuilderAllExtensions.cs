@@ -5,6 +5,7 @@ using OfficeIMO.Reader.Email;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Excel;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.IWork;
 using OfficeIMO.Reader.Image;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Latex;
@@ -59,6 +60,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
         }
         builder
             .AddHtmlHandler(configured.Html)
+            .AddIWorkHandler(configured.IWork)
             .AddImageHandler(configured.Image)
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)

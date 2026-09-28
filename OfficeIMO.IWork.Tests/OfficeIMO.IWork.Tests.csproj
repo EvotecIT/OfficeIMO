@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.IWork\OfficeIMO.IWork.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.IWork\OfficeIMO.Reader.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.IWork\OfficeIMO.Word.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.IWork\OfficeIMO.Excel.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.IWork\OfficeIMO.PowerPoint.IWork.csproj" />

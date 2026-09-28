@@ -37,7 +37,7 @@ public sealed class ReaderContractTests {
     [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
-        Assert.Equal(7, OfficeDocumentReadResultSchema.CurrentVersion);
+        Assert.Equal(8, OfficeDocumentReadResultSchema.CurrentVersion);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id, 5));
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
@@ -288,7 +288,7 @@ public sealed class ReaderContractTests {
     [Theory]
     [InlineData("other.schema", 5)]
     [InlineData("officeimo.document.read-result", 4)]
-    [InlineData("officeimo.document.read-result", 8)]
+    [InlineData("officeimo.document.read-result", 9)]
     public void OfficeDocumentReadResultJson_RejectsUnsupportedSchemaHeaders(string schemaId, int schemaVersion) {
         string json = $"{{\"schemaId\":\"{schemaId}\",\"schemaVersion\":{schemaVersion}}}";
 
@@ -421,6 +421,26 @@ public sealed class ReaderContractTests {
             OfficeDocumentReadResultJson.Deserialize(invalid.ToJsonString()));
         Assert.Contains("schema version 6", readException.Message,
             StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void OfficeDocumentReadResultJson_ReservesIWorkForVersion8() {
+        var current = new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.IWork,
+            Chunks = new[] { new ReaderChunk { Id = "pages", Kind = ReaderInputKind.IWork } }
+        };
+        OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(
+            OfficeDocumentReadResultJson.Serialize(current));
+        Assert.Equal(8, restored.SchemaVersion);
+        Assert.Equal(ReaderInputKind.IWork, restored.Kind);
+
+        using JsonDocument previousSchema = JsonDocument.Parse(
+            OfficeDocumentReadResultSchema.GetJsonSchema(7));
+        Assert.DoesNotContain(nameof(ReaderInputKind.IWork),
+            previousSchema.RootElement.GetProperty("properties").GetProperty("kind")
+                .GetProperty("enum").EnumerateArray().Select(value => value.GetString()));
+        current.SchemaVersion = 7;
+        Assert.Throws<JsonException>(() => OfficeDocumentReadResultJson.Serialize(current));
     }
 
     [Fact]
