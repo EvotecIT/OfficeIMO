@@ -46,6 +46,44 @@ public sealed class DrawingChartPlotClippingTests {
         Assert.InRange(line.Shape.Height, 0D, 1D);
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Area)]
+    public void ExtremeCategoryOutliersKeepTrueCrossingNearSecondCategory(OfficeChartKind kind) {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Series", new[] { -1e12, 1e9 }, null, ink)
+        });
+        var layout = new OfficeChartLayout(showLegend: false,
+            verticalAxisMinimum: 0, verticalAxisMaximum: 1);
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            kind, data, 360, 240, layout: layout));
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>(),
+            item => item.Drawing.Shapes.Any(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
+                shape.Shape.StrokeColor == ink));
+        OfficeDrawingShape line = Assert.Single(group.Drawing.Shapes,
+            shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+        Assert.True(line.X > group.X + group.ClipPath.Width * .9d);
+        Assert.True(line.Shape.Width < group.ClipPath.Width * .1d);
+    }
+
+    [Fact]
+    public void HorizontalBarBoundsClipMixedPrimaryLine() {
+        OfficeColor ink = OfficeColor.Parse("#D900AA");
+        var data = new OfficeChartData(new[] { "A", "B" }, new OfficeChartSeries[] {
+            new("Bars", new[] { 1d, 2d }),
+            new("Trend", new[] { 10d, 20d }, null, ink, null, true,
+                renderKind: OfficeChartKind.Line)
+        });
+        var layout = new OfficeChartLayout(showLegend: false, horizontalAxisMaximum: 5);
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.BarClustered, data, 360, 240, layout: layout));
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        for (int y = 0; y < raster.Height; y++)
+            for (int x = 0; x < raster.Width; x++)
+                Assert.NotEqual(ink, raster.GetPixel(x, y));
+    }
+
     [Fact]
     public void MixedBubblePaddingDoesNotExposeOffscaleScatterLine() {
         OfficeColor lineInk = OfficeColor.Parse("#D900AA");
