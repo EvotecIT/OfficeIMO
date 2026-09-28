@@ -647,6 +647,7 @@ internal static partial class PdfWriter {
         var lineAlignments = new System.Collections.Generic.List<PdfAlign?>();
         var lineXOffsets = new System.Collections.Generic.List<double>();
         var lineWidths = new System.Collections.Generic.List<double>();
+        double topSpacing = 0D;
         for (int paragraphIndex = 0; paragraphIndex < paragraphs.Count; paragraphIndex++) {
             PdfTableCellParagraph paragraph = paragraphs[paragraphIndex];
             PdfParagraphStyle paragraphStyle = CreateTableCellParagraphStyle(paragraph, cellInnerWidth);
@@ -675,8 +676,12 @@ internal static partial class PdfWriter {
             }
 
             int firstNewLineIndex = lines.Count;
-            if (paragraph.SpacingBefore > 0D && lineHeights.Count > 0) {
-                lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore;
+            if (paragraph.SpacingBefore > 0D) {
+                if (lineHeights.Count > 0) {
+                    lineHeights[lineHeights.Count - 1] += paragraph.SpacingBefore;
+                } else {
+                    topSpacing = paragraph.SpacingBefore;
+                }
             }
 
             lines.AddRange(wrap.Lines);
@@ -706,7 +711,7 @@ internal static partial class PdfWriter {
             lineWidths.Add(wrapWidth);
         }
 
-        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths);
+        return new TableCellTextLayout(lines, lineHeights, lineAlignments, lineXOffsets, lineWidths, topSpacing);
     }
 
     private static PdfParagraphStyle CreateTableCellParagraphStyle(PdfTableCellParagraph paragraph, double availableWidth) {
@@ -752,7 +757,7 @@ internal static partial class PdfWriter {
 
     private static int LimitTableCellLineCountToHeight(TableCellTextLayout lines, int startLine, int requestedLineCount, double fallbackLeading, double availableHeight) {
         int maximumLineCount = System.Math.Max(0, System.Math.Min(requestedLineCount, lines.LineCount - startLine));
-        double consumedHeight = 0D;
+        double consumedHeight = startLine == 0 ? lines.TopSpacing : 0D;
         int visibleLineCount = 0;
         for (int offset = 0; offset < maximumLineCount; offset++) {
             double lineHeight = GetRichLineHeight(lines.LineHeights, startLine + offset, fallbackLeading);
@@ -783,7 +788,7 @@ internal static partial class PdfWriter {
             return fallbackLeading;
         }
 
-        double height = 0D;
+        double height = startLine == 0 ? layout.TopSpacing : 0D;
         for (int i = 0; i < visible; i++) {
             int lineIndex = startLine + i;
             height += lineIndex < layout.LineHeights.Count ? layout.LineHeights[lineIndex] : fallbackLeading;
