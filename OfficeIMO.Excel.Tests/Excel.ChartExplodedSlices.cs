@@ -54,6 +54,21 @@ public sealed class ExcelChartExplodedSlicesTests {
     }
 
     [Fact]
+    public void MultiRingDoughnutWithExplicitSliceFillsDoesNotNeedTheTransformedPalette() {
+        OfficeColor?[] colors = { OfficeColor.Parse("#234567"), OfficeColor.Parse("#89ABCD") };
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Doughnut,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Inner", new[] { 7d, 3d }, null, null, colors),
+                new OfficeChartSeries("Outer", new[] { 2d, 8d }, null, null, colors)
+            }), 1, 1);
+        chart.ApplyStylePreset();
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.All(snapshot.Data.Series, series =>
+            Assert.Equal(new[] { "234567", "89ABCD" }, series.PointColorArgb));
+    }
+
+    [Fact]
     public void ModernPaletteRejectsNonAutomaticDataPointFill() {
         using var document = ExcelDocument.Create();
         ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,

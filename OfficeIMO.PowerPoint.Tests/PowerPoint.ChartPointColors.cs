@@ -216,6 +216,20 @@ namespace OfficeIMO.Tests {
             Assert.Empty(presentation.ValidateDocument());
         }
 
+        [Fact]
+        public void MultiRingDoughnutProjectsWhenEverySliceHasAnExplicitFill() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            OfficeColor?[] colors = { OfficeColor.Parse("#234567"), OfficeColor.Parse("#89ABCD") };
+            PowerPointChart chart = presentation.AddSlide().AddChartCm(OfficeChartKind.Doughnut,
+                new OfficeChartData(new[] { "A", "B" }, new[] {
+                    new OfficeChartSeries("Inner", new[] { 3d, 2d }, null, null, colors),
+                    new OfficeChartSeries("Outer", new[] { 4d, 1d }, null, null, colors)
+                }), 1, 1, 20, 10);
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+            Assert.Equal(2, snapshot.Data.Series.Count);
+            Assert.All(snapshot.Data.Series, series => Assert.Equal(colors, series.PointColors));
+        }
+
         [Theory]
         [InlineData(OfficeChartKind.Pie)]
         [InlineData(OfficeChartKind.Doughnut)]
