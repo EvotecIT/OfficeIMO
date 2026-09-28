@@ -36,6 +36,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Theory]
     [InlineData("<span style='float:left;width:100px;height:150px;background:#ddd'></span>", "width:100px;height:60px", 100D, 0D, 100D)]
+    [InlineData("<span style='float:left;width:100px;height:150px;background:#ddd'></span>", "width:400px;height:60px", 0D, 150D, 400D)]
     [InlineData("<span style='float:left;width:300px;height:150px;background:#ddd'></span>", "min-width:50px;height:60px", 0D, 150D, 300D)]
     [InlineData("<span style='float:right;width:100px;height:100px;background:#ddd'></span><span style='float:left;width:250px;height:100px;background:#ccc'></span>", "height:150px", 250D, 100D, 50D)]
     public void HtmlFloat_PagedFormattingBlockUsesAFreeBandForItsWholeBox(
@@ -57,6 +58,54 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(expectedX, block.X, 1);
         Assert.Equal(expectedY, block.Y, 1);
         Assert.Equal(expectedWidth, block.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_PagedShortAutoFormattingBlockStaysBesideFloat() {
+        const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:260px'>Prelude</div>"
+            + "<p style='margin:0'><span style='float:right;width:100px;height:200px;background:#ddd'></span></p>"
+            + "<p style='height:80px;margin:0'>Text</p>"
+            + "<div id='bfc' style='overflow:auto;background:#faa;font-size:14px;line-height:16px'>Short</div>"
+            + "</article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape block = FindPositionedShape(rendered, "div#bfc");
+
+        Assert.Equal(0D, block.X, 1);
+        Assert.Equal(80D, block.Y, 1);
+        Assert.Equal(200D, block.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFloat_PagedTallAutoFormattingBlockMovesToTheNextFreeBand() {
+        const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"
+            + "<div style='height:460px'>Prelude</div>"
+            + "<p style='margin:0'><span style='float:right;width:100px;height:200px;background:#ddd'></span>"
+            + "<span style='float:left;width:250px;height:100px;background:#ccc'></span></p>"
+            + "<p style='height:80px;margin:0'>Text</p>"
+            + "<div id='bfc' style='overflow:auto;background:#faa;font-size:14px;line-height:16px'>"
+            + "Short<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line<br>Line"
+            + "</div></article></main></body>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(300D / HtmlRenderOptions.CssPixelsPerInch, 500D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
+        HtmlRenderShape block = FindPositionedShape(rendered, "div#bfc");
+
+        Assert.Equal(250D, block.X, 1);
+        Assert.Equal(200D, block.Y, 1);
+        Assert.Equal(50D, block.Width, 1);
     }
 
     [Fact]

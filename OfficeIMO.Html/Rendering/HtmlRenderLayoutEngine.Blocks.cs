@@ -168,15 +168,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     if (inlineHeight > 0D) {
                         adjoiningMargins.Clear();
                     }
+                    HtmlRenderBoxStyle unavoidedStyle = childStyle.Clone();
                     childStyle = AvoidActiveFloatsForFormattingContext(
-                        childStyle, width, flowHeight, activeFloats);
+                        unavoidedStyle, width, flowHeight, activeFloats);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
                     List<HtmlFloatExclusion>? childFloats = pageBoundary.HasValue
                         && ContainsFloatingDescendant(element, width, childStyle, depth + 1)
                             ? new List<HtmlFloatExclusion>()
                             : null;
-                    HtmlRenderFlowBlock childBlock = LayoutElement(
+                    HtmlRenderFlowBlock LayoutPlacedChild() => LayoutElement(
                         element,
                         width,
                         childStyle,
@@ -185,10 +186,30 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         carriesContinuation ? continuationTarget : null,
                         carriesContinuation ? continuationLogicalCharacters : 0,
                         pageBoundary?.Shift(flowHeight),
-                        activeFloats?.Count > 0 ? activeFloats.Select(item => item.Shift(
+                        activeFloats?.Count > 0 && !EstablishesFloatContainingBlock(childStyle) ? activeFloats.Select(item => item.Shift(
                             -childStyle.MarginLeft - childStyle.BorderLeftWidth - childStyle.PaddingLeft,
                             -flowHeight - childStyle.MarginTop - childStyle.BorderTopWidth - childStyle.PaddingTop)).ToArray() : null,
                         childFloats);
+                    HtmlRenderFlowBlock childBlock = LayoutPlacedChild();
+                    if (activeFloats?.Count > 0 && EstablishesFloatContainingBlock(unavoidedStyle)
+                        && !unavoidedStyle.ExplicitHeight.HasValue) {
+                        // Auto height is only known after layout. Recheck the
+                        // float bands with that height so a short box can stay
+                        // beside a float without a taller box crossing a later one.
+                        for (int attempt = 0; attempt <= activeFloats.Count; attempt++) {
+                            double measuredHeight = Math.Max(0.01D,
+                                childBlock.Height - childStyle.MarginTop - childStyle.MarginBottom);
+                            HtmlRenderBoxStyle measuredStyle = AvoidActiveFloatsForFormattingContext(
+                                unavoidedStyle, width, flowHeight, activeFloats, measuredHeight);
+                            measuredStyle = ResolveNormalFlowHorizontalAutoMargins(element, measuredStyle, width);
+                            if (Math.Abs(measuredStyle.MarginTop - childStyle.MarginTop) <= 0.0001D
+                                && Math.Abs(measuredStyle.MarginLeft - childStyle.MarginLeft) <= 0.0001D
+                                && Math.Abs(measuredStyle.MarginRight - childStyle.MarginRight) <= 0.0001D) break;
+                            childStyle = measuredStyle;
+                            childFloats?.Clear();
+                            childBlock = LayoutPlacedChild();
+                        }
+                    }
                     if (carriesContinuation) {
                         continuationTarget = null;
                         continuationLogicalCharacters = 0;
