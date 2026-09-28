@@ -7,7 +7,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
-        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
+        internal static OfficeChartLayout ReadLayout(C.Chart chart, OfficeChartKind kind, OfficeChartData data, string? axisTitleFont = null, A.ColorScheme? scheme = null) {
             if (chart.PlotArea?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Title>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
                 chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.Layout>()?.GetFirstChild<C.ManualLayout>() != null ||
@@ -65,6 +65,15 @@ namespace OfficeIMO.OpenXml.Internal {
                     axis.GetFirstChild<C.Crosses>()?.Val?.Value == C.CrossesValues.Maximum)
                     throw new NotSupportedException("Maximum crossing for horizontal bar axes cannot be projected.");
             }
+            if (kind == OfficeChartKind.Radar &&
+                (horizontal?.GetFirstChild<C.Title>() != null || vertical?.GetFirstChild<C.Title>() != null ||
+                 vertical?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MinAxisValue>() != null ||
+                 vertical?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>() != null))
+                throw new NotSupportedException("Radar axis titles and explicit scales cannot be projected.");
+            if (kind is OfficeChartKind.BarClustered or OfficeChartKind.BarStacked or OfficeChartKind.BarStacked100 &&
+                vertical?.GetFirstChild<C.Crosses>()?.Val?.Value != C.CrossesValues.Minimum &&
+                (ReadLayoutMinimum(vertical) < 0D || data.Series.Any(series => series.Values.Any(value => value < 0D))))
+                throw new NotSupportedException("A horizontal bar axis crossing through negative values cannot be projected.");
             QualifySecondaryLayout(plot, vertical);
             // Titles, visibility and category direction describe logical roles;
             // scales and tick marks describe the physical horizontal/vertical axes.

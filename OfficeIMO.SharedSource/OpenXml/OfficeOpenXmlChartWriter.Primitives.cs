@@ -137,7 +137,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 new C.Delete { Val = false },
                 new C.AxisPosition { Val = axisPosition },
                 new C.MajorGridlines(),
-                new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
+                new C.NumberingFormat { FormatCode = "General", SourceLinked = false },
                 new C.MajorTickMark { Val = C.TickMarkValues.None },
                 new C.MinorTickMark { Val = C.TickMarkValues.None },
                 new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo },

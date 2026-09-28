@@ -255,6 +255,59 @@ public sealed class WordChartPresentationQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_RejectsBarAxisCrossingThroughNegativeValues() {
+        using var document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.BarClustered,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { -3d, 4d }) }));
+        var axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single();
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        axis.GetFirstChild<C.Crosses>()!.Val = C.CrossesValues.Minimum;
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_RejectsUnrepresentedRadarAxisSettings(bool title) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Radar);
+        var plot = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!.PlotArea!;
+        if (title) chart.SetXAxisTitle("Categories");
+        else plot.GetFirstChild<C.ValueAxis>()!.Scaling!.AddChild(new C.MaxAxisValue { Val = 10 }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Snapshot_RejectsUnsupportedChartSurfaceTransforms(bool outline) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Pie);
+        var color = new A.RgbColorModelHex { Val = "123456" };
+        color.Append(new A.HueOffset { Val = 60000 });
+        var fill = new A.SolidFill(color);
+        var shape = outline ? new C.ShapeProperties(new A.Outline(fill)) : new C.ShapeProperties(fill);
+        chart.ChartPart!.ChartSpace!.AddChild(shape, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Bubble)]
+    public void Snapshot_RejectsUnresolvedSourceLinkedAxisFormats(OfficeChartKind kind) {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            kind == OfficeChartKind.Bubble
+                ? OfficeChartSeries.CreateBubble("Values", new[] { 1d, 2d }, new[] { 3d, 4d }, new[] { 5d, 6d })
+                : new OfficeChartSeries("Values", new[] { 3d, 4d }) });
+        var chart = document.AddChart(kind, data);
+        var axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Last();
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        axis.NumberingFormat!.SourceLinked = true;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

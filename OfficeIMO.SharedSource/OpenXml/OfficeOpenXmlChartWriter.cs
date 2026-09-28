@@ -306,7 +306,7 @@ namespace OfficeIMO.OpenXml.Internal {
             new C.Scaling(new C.Orientation { Val = C.OrientationValues.MinMax }),
             new C.Delete { Val = secondary },
             new C.AxisPosition { Val = position },
-            new C.NumberingFormat { FormatCode = "General", SourceLinked = true },
+            new C.NumberingFormat { FormatCode = "General", SourceLinked = false },
             new C.MajorTickMark { Val = C.TickMarkValues.None },
             new C.MinorTickMark { Val = C.TickMarkValues.None },
             new C.TickLabelPosition { Val = secondary ? C.TickLabelPositionValues.None : C.TickLabelPositionValues.NextTo },
@@ -341,7 +341,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     axis.Append(new C.MajorGridlines());
                 }
             }
-            axis.Append(new C.NumberingFormat { FormatCode = "General", SourceLinked = true });
+            axis.Append(new C.NumberingFormat { FormatCode = "General", SourceLinked = false });
             axis.Append(new C.MajorTickMark { Val = C.TickMarkValues.None });
             axis.Append(new C.MinorTickMark { Val = C.TickMarkValues.None });
             axis.Append(new C.TickLabelPosition { Val = C.TickLabelPositionValues.NextTo });
