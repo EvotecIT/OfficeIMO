@@ -1,3 +1,4 @@
+using OfficeIMO.Excel;
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
@@ -18,11 +19,43 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback);
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Equal("Beforeafter", cell.Value);
-        Assert.False(cell.FormulaIsComplete);
+        Assert.True(cell.FormulaIsComplete);
+        Assert.False(cell.CachedValueIsComplete);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_FORMULA_CACHE_PARTIAL");
+        Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_FORMULA_PARTIAL");
         Assert.DoesNotContain(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
+
+        ExcelCellData exported = result.Value.Sheets[0].CellAt(1, 1).GetValue();
+        Assert.Equal(ExcelCellDataKind.Formula, exported.Kind);
+        Assert.Equal("1", result.Value.Sheets[0].GetFormulaText(1, 1));
+        Assert.Null(exported.Value);
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using ExcelDocument reopened = ExcelDocument.Load(saved);
+        ExcelCellData persisted = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        Assert.Equal(ExcelCellDataKind.Formula, persisted.Kind);
+        Assert.Equal("1", reopened.Sheets[0].GetFormulaText(1, 1));
+        Assert.Null(persisted.Value);
+    }
+
+    [Fact]
+    public void Partial_rich_formula_cache_without_an_expression_uses_visual_fallback() {
+        using MemoryStream package = CreateNumbersWithPartialRichCell(hasFormula: true,
+            includeFormulaRecord: false);
+
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(
+            result.Projection.Sheets).Tables).Cells);
+
+        Assert.True(result.IsVisualFallback);
+        Assert.False(cell.FormulaIsComplete);
+        Assert.False(cell.CachedValueIsComplete);
+        Assert.Contains(result.Projection.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_TABLE_FORMULA_CACHE_PARTIAL");
     }
 
     [Fact]
@@ -39,7 +72,8 @@ public sealed partial class IWorkBoundaryTests {
             diagnostic.Code == "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED");
     }
 
-    private static MemoryStream CreateNumbersWithPartialRichCell(bool hasFormula) {
+    private static MemoryStream CreateNumbersWithPartialRichCell(bool hasFormula,
+        bool includeFormulaRecord = true) {
         byte[] cell = new byte[hasFormula ? 20 : 16];
         cell[0] = 5;
         cell[1] = 9;
@@ -64,7 +98,7 @@ public sealed partial class IWorkBoundaryTests {
                 Message(VarintField(1, 1), ReferenceField(9, 14)))), new ulong[] { 14 }),
             ArchiveRecord(14, 6218, Message(ReferenceField(1, 15)), new ulong[] { 15 }),
             ArchiveRecord(15, 2001, Message(StringField(3, "Before\uFFFCafter"))),
-            hasFormula ? ArchiveRecord(16, 6201, Message(BytesField(3,
+            hasFormula && includeFormulaRecord ? ArchiveRecord(16, 6201, Message(BytesField(3,
                 Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))
                 : Array.Empty<byte>());
         return CreatePackage(("Index/Document.iwa", FrameIwa(records)),

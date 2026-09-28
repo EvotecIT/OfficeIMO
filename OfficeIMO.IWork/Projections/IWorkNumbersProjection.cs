@@ -732,8 +732,20 @@ internal static class IWorkNumbersReader {
                 $"{incompleteCachedFormulaCount} formulas in table '{name}' retain typed cached values because their expressions were not reconstructed completely.",
                 model.EntryPath, model.Identifier));
         }
+        int incompleteFormulaCacheCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
+            && !cell.CachedValueIsComplete && cell.Value != null);
+        if (incompleteFormulaCacheCount > 0) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_FORMULA_CACHE_PARTIAL",
+                $"{incompleteFormulaCacheCount} formula cached values in table '{name}' are partial; only complete expressions can be reconstructed as editable formulas.",
+                model.EntryPath, model.Identifier));
+            if (cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                && !cell.CachedValueIsComplete && !cell.FormulaIsComplete)) {
+                supportsEditableReconstruction = false;
+            }
+        }
         int incompleteUncachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
-            && !cell.FormulaIsComplete && cell.Value == null);
+            && (!cell.FormulaIsComplete || !cell.CachedValueIsComplete) && cell.Value == null);
         if (incompleteUncachedFormulaCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -1185,7 +1197,8 @@ internal static class IWorkNumbersReader {
         projectionBudget.AddTextItem();
         return new IWorkTableCell(row, column, IWorkCellKind.Formula, cachedValue,
             formula: formulaText, valueKind: cachedValueKind,
-            formulaIsComplete: result.IsComplete && cachedValueIsComplete);
+            formulaIsComplete: result.IsComplete,
+            cachedValueIsComplete: cachedValueIsComplete);
     }
 
     private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,

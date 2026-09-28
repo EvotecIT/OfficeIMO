@@ -89,12 +89,14 @@ public static partial class ExcelIWorkConverter {
                             } else if (cell.Kind == IWorkCellKind.Formula
                                 && cell.ValueKind == IWorkCellKind.Text
                                 && value is string cachedText
+                                && cell.CachedValueIsComplete
                                 && cell.FormulaIsComplete
                                 && !string.IsNullOrEmpty(cell.Formula)) {
                                 sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
                                     cell.Formula!, cachedText);
                                 formulaWritten = true;
-                            } else if (cell.Kind != IWorkCellKind.Formula || cell.Value != null) {
+                            } else if (cell.Kind != IWorkCellKind.Formula
+                                || cell.Value != null && cell.CachedValueIsComplete) {
                                 targetCell.SetValue(value);
                             }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
