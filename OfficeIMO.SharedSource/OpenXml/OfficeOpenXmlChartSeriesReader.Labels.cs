@@ -109,6 +109,6 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         LabelFlag<C.ShowLegendKey>(labels) || LabelFlag<C.ShowBubbleSize>(labels) ||
         labels.Elements<C.DataLabel>().Any(label => label.GetFirstChild<C.ChartText>() != null ||
             label.Descendants<C.BooleanType>().Any(flag => flag.Val?.Value != false &&
-                flag is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowLegendKey or C.ShowBubbleSize ||
-                radial && flag is C.ShowPercent));
+                (flag is C.ShowValue or C.ShowCategoryName or C.ShowSeriesName or C.ShowLegendKey or C.ShowBubbleSize ||
+                 radial && flag is C.ShowPercent)));
 }
