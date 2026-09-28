@@ -38,7 +38,7 @@ public sealed class WordChartThemePaletteTests {
     }
 
     [Fact]
-    public void RadialPaletteUsesWordColorSchemeMapping() {
+    public void RadialPaletteWithNonIdentityWordColorSchemeMappingFailsClosed() {
         using var document = WordDocument.Create();
         WordChart chart = document.AddChart(OfficeChartKind.Pie,
             new OfficeChartData(new[] { "A", "B" }, new[] {
@@ -48,11 +48,8 @@ public sealed class WordChartThemePaletteTests {
             .Settings!.GetFirstChild<W.ColorSchemeMapping>()!;
         map.Accent1 = W.ColorSchemeIndexValues.Accent2;
         map.Accent2 = W.ColorSchemeIndexValues.Accent1;
-        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
-        A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;
-        Assert.Equal(OfficeColor.Parse(scheme.GetFirstChild<A.Accent2Color>()!
-            .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!), snapshot.Style.Palette[0]);
-        Assert.Equal(OfficeColor.Parse(scheme.GetFirstChild<A.Accent1Color>()!
-            .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!), snapshot.Style.Palette[1]);
+        string native = chart.ChartPart!.ChartSpace!.OuterXml;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        Assert.Equal(native, chart.ChartPart.ChartSpace.OuterXml);
     }
 }

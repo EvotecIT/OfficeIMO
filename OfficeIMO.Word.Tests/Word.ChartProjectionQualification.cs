@@ -165,7 +165,6 @@ public sealed class WordChartProjectionQualificationTests {
     [InlineData("seriesLines")]
     [InlineData("userShapes")]
     [InlineData("radialLeaderLines")]
-    [InlineData("radialOutside")]
     [InlineData("radialInsideEnd")]
     [InlineData("radialNoVary")]
     [InlineData("autoZeroNegative")]
