@@ -48,7 +48,7 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
         Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout.DataLabelPosition);
         Assert.Equal(showLeaderLines, snapshot.Layout.ShowDataLabelLeaderLines);
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
-        Assert.Equal(showLeaderLines ? 3 : 0,
+        Assert.Equal(showLeaderLines ? 6 : 0,
             drawing.Shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Line));
         foreach (string category in new[] { "A", "B", "C" })
             Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text.Contains(category));
@@ -73,5 +73,27 @@ public sealed class PowerPointChartRadialOutsideLabelsTests {
         native.AddChild(labels, true);
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(18D, snapshot.Layout.DataLabelFontSize);
+    }
+
+    [Fact]
+    public void DataUpdatePreservesUnprojectedRadialPointLabels() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Status", new[] { 3d, 4d })
+        });
+        PowerPointChart chart = slide.AddChart(OfficeChartKind.Pie, data);
+        C.PieChart native = slide.SlidePart.ChartParts.Single().ChartSpace!
+            .Descendants<C.PieChart>().Single();
+        var labels = new C.DataLabels();
+        labels.AddChild(new C.ShowValue { Val = true }, true);
+        labels.AddChild(new C.DataLabel(new C.Index { Val = 0U },
+            new C.ShowValue { Val = false }), true);
+        native.AddChild(labels, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+        chart.UpdateData(new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Status", new[] { 5d, 6d })
+        }));
+        Assert.NotNull(native.GetFirstChild<C.DataLabels>()?.GetFirstChild<C.DataLabel>());
     }
 }
