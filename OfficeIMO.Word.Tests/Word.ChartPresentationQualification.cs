@@ -318,6 +318,11 @@ public sealed class WordChartPresentationQualificationTests {
         axis.NumberingFormat!.SourceLinked = true;
         Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
         Assert.Equal(OfficeChartKind.Line, snapshot.ChartKind);
+        chart.SetData(snapshot.ChartKind, snapshot.Data);
+        Assert.False(space.Descendants<C.ValueAxis>().Single().NumberingFormat!.SourceLinked!.Value);
+        using var package = document.ToStream();
+        using var reopened = WordDocument.Load(package);
+        Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out _));
     }
 
     [Theory]
