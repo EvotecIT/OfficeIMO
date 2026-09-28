@@ -636,6 +636,9 @@ from the top, from 0 through 360 degrees; hole size is an inner-to-outer diamete
 percentage from 10 through 90, with a default of 50.
 
 ```csharp
+var series = new OfficeChartSeries("Status", new[] { 7d, 3d })
+    .WithPointExplosions(new[] { 25, 0 });
+var data = new OfficeChartData(new[] { "Complete", "Pending" }, new[] { series });
 var radial = new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70);
 var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartKind.Doughnut,
     data, 400, 300, null, new OfficeChartLayout(showLegend: false), radial);
@@ -643,7 +646,11 @@ OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
 ```
 
 Multiple doughnut series form contiguous rings, starting with the first series at the
-inside. Value-label anchors sit at each ring's midpoint. Collision handling, outside
+inside. `WithPointExplosions` offsets selected pie or doughnut slices by a percentage
+of their radius while preserving their native editable point records in Word,
+PowerPoint, and Excel. Supply one value per point, from 0 through 400; an explicit
+zero resets an earlier offset. The renderer keeps exploded slices within the chart
+frame and moves their value-label anchors with them. Collision handling, outside
 labels and leader lines require additional layout support.
 
 ### Load first-party font programs for renderers

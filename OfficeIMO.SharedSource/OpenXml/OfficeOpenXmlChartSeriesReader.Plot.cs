@@ -99,7 +99,6 @@ namespace OfficeIMO.OpenXml.Internal {
                 // Radial default colouring is per category in the shared renderer.
                 if (layer.GetFirstChild<C.VaryColors>()?.Val?.Value == false &&
                     layer.Elements<C.PieChartSeries>().Any(series => series.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.SolidFill>() == null)) return true;
-                if (layer.Descendants<C.Explosion>().Any(explosion => explosion.Val?.Value != 0)) return true;
             } else if (layer is not C.BubbleChart && IsVaryColorsEnabled(layer.GetFirstChild<C.VaryColors>())) return true;
             if (layer is C.BarChart bars) {
                 if (bars.Descendants().Any(element => element.LocalName == "shape" &&

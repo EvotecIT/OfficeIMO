@@ -8,6 +8,8 @@ namespace OfficeIMO.Drawing;
 /// Dependency-free chart series values used by shared OfficeIMO visual renderers.
 /// </summary>
 public sealed class OfficeChartSeries {
+    /// <summary>Largest pie or doughnut point explosion that the shared renderer supports.</summary>
+    public const int MaximumPointExplosionPercent = 400;
     /// <summary>
     /// Initializes a chart series snapshot.
     /// </summary>
@@ -215,6 +217,9 @@ public sealed class OfficeChartSeries {
     /// <summary>Optional point styles aligned with the values; explicit fills override PointColors.</summary>
     public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
 
+    /// <summary>Optional pie or doughnut slice offsets, as percentages of the slice radius.</summary>
+    public IReadOnlyList<int>? PointExplosions { get; private set; }
+
     /// <summary>
     /// Returns a copy with aligned immutable point styles. Null removes shared style metadata;
     /// null entries inherit the series/theme appearance and any legacy PointColors entry.
@@ -224,17 +229,34 @@ public sealed class OfficeChartSeries {
             new ReadOnlyCollection<OfficeChartPointStyle?>(new List<OfficeChartPointStyle?>(pointStyles));
         if (styles != null && styles.Count != Values.Count)
             throw new ArgumentException("Point styles must match the number of series values.", nameof(pointStyles));
-        return CopyWithPresentation(styles, ShowInLegend);
+        return CopyWithPresentation(styles, PointExplosions, ShowInLegend);
+    }
+
+    /// <summary>Returns a copy with an explosion percentage for each pie or doughnut point. Null leaves native point offsets unchanged during data updates.</summary>
+    public OfficeChartSeries WithPointExplosions(IEnumerable<int>? pointExplosions) {
+        IReadOnlyList<int>? explosions = pointExplosions == null ? null :
+            new ReadOnlyCollection<int>(new List<int>(pointExplosions));
+        if (explosions != null) {
+            if (explosions.Count != Values.Count)
+                throw new ArgumentException("Point explosions must match the number of series values.", nameof(pointExplosions));
+            foreach (int explosion in explosions)
+                if (explosion < 0 || explosion > MaximumPointExplosionPercent)
+                    throw new ArgumentOutOfRangeException(nameof(pointExplosions),
+                        "Point explosions must be between zero and 400 percent.");
+        }
+        return CopyWithPresentation(PointStyles, explosions, ShowInLegend);
     }
 
     /// <summary>Returns a copy with the requested legend visibility and unchanged data and appearance.</summary>
-    public OfficeChartSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, showInLegend);
+    public OfficeChartSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, PointExplosions, showInLegend);
 
-    private OfficeChartSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles, bool showInLegend) {
+    private OfficeChartSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles,
+        IReadOnlyList<int>? explosions, bool showInLegend) {
         return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
             ShowMarkers, showInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
             MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
-            PointStyles = styles
+            PointStyles = styles,
+            PointExplosions = explosions
         };
     }
 

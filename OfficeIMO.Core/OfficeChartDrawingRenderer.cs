@@ -27,6 +27,9 @@ public static partial class OfficeChartDrawingRenderer {
         if (snapshot == null) {
             throw new ArgumentNullException(nameof(snapshot));
         }
+        if (!IsPieChart(snapshot.ChartKind) && !IsDoughnutChart(snapshot.ChartKind) &&
+            snapshot.Data.Series.Any(series => series.PointExplosions != null))
+            throw new NotSupportedException("Point explosions require a pie or doughnut chart.");
         if (HasUnsupportedAreaPointStyles(snapshot)) diagnostics?.Add(new OfficeImageExportDiagnostic(
             OfficeImageExportDiagnosticSeverity.Warning, "ChartPointStylesUnsupported", AreaPointStyleWarning,
             snapshot.Name, OfficeConversionLossKind.Approximation));

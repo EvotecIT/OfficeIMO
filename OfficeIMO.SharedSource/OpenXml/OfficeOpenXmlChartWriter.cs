@@ -134,6 +134,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 ApplySharedSeriesMarker(seriesElement, series, kind);
                 ApplySharedPointColors(seriesElement, series);
                 OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);
+                OfficeOpenXmlChartExplosions.ApplySeries(seriesElement, series);
             }
         }
 
