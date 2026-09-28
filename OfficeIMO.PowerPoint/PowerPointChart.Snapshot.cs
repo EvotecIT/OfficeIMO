@@ -453,7 +453,8 @@ namespace OfficeIMO.PowerPoint {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
                     OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ReadRadialPalette(
-                        GetChartPart(), radialSeries, data.Categories.Count, colorScheme);
+                        GetChartPart(), radialSeries, data.Categories.Count, colorScheme,
+                        requireQualifiedPalette: true);
                 if (palette != null) style = style.WithPalette(palette);
             }
             return new PowerPointChartSnapshot(
