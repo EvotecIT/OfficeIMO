@@ -148,6 +148,23 @@ public sealed class DrawingChartPointStylesTests {
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.DoesNotContain(">B<", svg, StringComparison.Ordinal);
     }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void PointStyles_UnfilledCategoryKeepsItsInheritedLegendOutline(OfficeChartKind kind) {
+        var series = new OfficeChartSeries("Results", new[] { 8D })
+            .WithPointStyles(new OfficeChartPointStyle?[] { new(noFill: true) });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Results", null, kind,
+            new OfficeChartData(new[] { "Could not evaluate" }, new[] { series }), 640D, 360D,
+            style: new OfficeChartStyle(backgroundColor: OfficeColor.Black),
+            layout: new OfficeChartLayout(showLegend: true)));
+        Assert.Contains(drawing.Shapes, shape =>
+            shape.Shape.FillColor == null &&
+            shape.Shape.StrokeColor == OfficeColor.White &&
+            shape.Shape.Width <= 20D && shape.Shape.Height <= 20D);
+    }
     // Thin hatch strokes blend with their background during antialiasing.
     private static bool IsPurpleStroke(OfficeColor pixel) =>
         pixel.R < 200 && pixel.G < 150 && pixel.B > pixel.G + 40 && pixel.R > pixel.G + 20;

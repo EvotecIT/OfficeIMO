@@ -80,9 +80,12 @@ public static partial class OfficeChartDrawingRenderer {
         for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
             OfficeChartSeries item = series[seriesIndex];
             if (item.BubbleSizes != null && item.PointStyles != null)
-                foreach (OfficeChartPointStyle? pointStyle in item.PointStyles)
+                for (int pointIndex = 0; pointIndex < Math.Min(item.BubbleSizes.Count, item.PointStyles.Count); pointIndex++) {
+                    if (item.BubbleSizes[pointIndex] <= 0D) continue;
+                    OfficeChartPointStyle? pointStyle = item.PointStyles[pointIndex];
                     if (pointStyle?.ShowOutline != false)
                         maximum = Math.Max(maximum, pointStyle?.OutlineWidth ?? 0);
+                }
             if (!item.ShowMarkerOutline || item.BubbleSizes == null ||
                 !item.BubbleSizes.Any(size => size > 0D)) {
                 continue;

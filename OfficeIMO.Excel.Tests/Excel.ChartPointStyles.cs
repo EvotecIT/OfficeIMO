@@ -1,13 +1,46 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartPointStylesTests {
+    [Fact]
+    public void SharedComboPointStylesFollowNativeChartIndexesAcrossLayers() {
+        var data = new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
+            new OfficeChartSeries("Columns A", new[] { 12D, 18D }, null, null, null, true,
+                renderKind: OfficeChartKind.ColumnClustered),
+            new OfficeChartSeries("Trend", new[] { 14D, 20D }, null, null, null, true,
+                renderKind: OfficeChartKind.Line)
+                .WithPointStyles(new OfficeChartPointStyle?[] {
+                    new(fillColor: OfficeColor.Parse("#AABBCC")), null
+                }),
+            new OfficeChartSeries("Columns B", new[] { 10D, 16D }, null, null, null, true,
+                renderKind: OfficeChartKind.ColumnClustered)
+        });
+        using ExcelDocument document = ExcelDocument.Create();
+        document.AddWorksheet("Shared").AddChart(OfficeChartKind.ColumnClustered, data, row: 1, column: 4);
+
+        using SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(document.ToBytes()), false);
+        ChartPart part = Assert.Single(package.WorkbookPart!.WorksheetParts
+            .SelectMany(sheet => sheet.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>()));
+        C.LineChartSeries line = Assert.Single(part.ChartSpace!.Descendants<C.LineChartSeries>());
+        Assert.Equal(1U, line.Index!.Val!.Value);
+        A.RgbColorModelHex color = Assert.Single(line.Elements<C.DataPoint>())
+            .GetFirstChild<C.ChartShapeProperties>()!.GetFirstChild<A.SolidFill>()!
+            .GetFirstChild<A.RgbColorModelHex>()!;
+        Assert.Equal("AABBCC", color.Val!.Value);
+        C.BarChartSeries[] columns = part.ChartSpace.Descendants<C.BarChartSeries>().ToArray();
+        Assert.Equal(2, columns.Length);
+        Assert.Empty(columns[1].Elements<C.DataPoint>());
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.Pie)]
     [InlineData(OfficeChartKind.Doughnut)]
