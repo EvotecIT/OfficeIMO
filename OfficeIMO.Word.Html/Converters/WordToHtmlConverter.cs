@@ -268,7 +268,7 @@ namespace OfficeIMO.Word.Html {
                     }
                     if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing) &&
                         (artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing chartDrawing &&
-                            chartDrawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any()
+                            WordParagraph.DrawingOwnsChart(chartDrawing)
                             ? new WordChart(run._document, run, chartDrawing) : includeAll ? run.Chart : null) is WordChart chart) {
                         IElement? chartImage = CreateChartImage(htmlDoc, chart, options, ref embeddedImageBytes);
                         if (chartImage != null) target.Add(chartImage);
@@ -541,10 +541,17 @@ namespace OfficeIMO.Word.Html {
                             AppendNode(expandedNode);
                         continue;
                     }
-                    bool multipleReferences = run._run?.ChildElements.Count(child =>
+                    Run? selectedRun = run._run;
+                    if (selectedRun != null && run._visibleRunSourceChildren != null) {
+                        selectedRun = (Run)selectedRun.CloneNode(false);
+                        foreach (var child in run._visibleRunSourceChildren)
+                            selectedRun.AppendChild(child.CloneNode(true));
+                    }
+                    bool multipleReferences = selectedRun?.ChildElements.Count(child =>
                         child is FootnoteReference or EndnoteReference or CommentReference) > 1;
-                    if ((run.IsChart || HasExtendedChart(run._run) || multipleReferences) && run._run != null) {
-                        foreach (INode expandedNode in CreateExpandedEquationContainerNodes(run._run, Array.Empty<WordEquationOccurrence>(), run)) {
+                    if ((run.IsChart || HasExtendedChart(selectedRun) ||
+                        selectedRun?.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any() == true || multipleReferences) && selectedRun != null) {
+                        foreach (INode expandedNode in CreateExpandedEquationContainerNodes(selectedRun, Array.Empty<WordEquationOccurrence>(), run)) {
                             AppendNode(expandedNode);
                         }
                         continue;
@@ -1538,6 +1545,7 @@ namespace OfficeIMO.Word.Html {
 
             CloseLists();
 
+            DiscoverTransitiveNotes(footnotes, footnoteMap, endnotes, endnoteMap, options, cancellationToken);
             AppendFootnotes(htmlDoc, body, footnotes, options, cancellationToken, (parent, paragraph) => AppendParagraph(parent, paragraph), CloseLists);
             AppendEndnotes(htmlDoc, body, endnotes, options, cancellationToken, (parent, paragraph) => AppendParagraph(parent, paragraph), CloseLists);
             AppendComments(htmlDoc, body, comments, options, cancellationToken);

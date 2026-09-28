@@ -10,6 +10,47 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlWordChartTests {
+    [Fact]
+    public void Export_ProjectsOnlyVisibleChartInSinglePhysicalFieldRun() {
+        using var document = WordDocument.Create();
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        document.AddChart(OfficeChartKind.ColumnClustered, Data());
+        var paragraphs = document.Paragraphs.ToArray();
+        var visibleRun = paragraphs[0].GetRuns().Single()._run!;
+        var hiddenRun = paragraphs[1].GetRuns().Single()._run!;
+        var hiddenDrawing = hiddenRun.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
+        hiddenDrawing.Remove();
+        var visibleDrawing = visibleRun.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
+        visibleDrawing.Remove();
+        visibleRun.Append(
+            new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.Begin },
+            hiddenDrawing,
+            new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.Separate },
+            visibleDrawing,
+            new DocumentFormat.OpenXml.Wordprocessing.FieldChar { FieldCharType = DocumentFormat.OpenXml.Wordprocessing.FieldCharValues.End });
+
+        var result = document.ToHtmlResult();
+        var html = new HtmlParser().ParseDocument(result.RequireValue());
+        Assert.Single(html.QuerySelectorAll("img"));
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
+
+    [Fact]
+    public void Export_NestedTextBoxChartDoesNotTurnOuterDrawingIntoChart() {
+        using var document = WordDocument.Create();
+        WordTextBox box = document.AddTextBox("Text box content");
+        box.Paragraphs.First().AddChart(OfficeChartKind.ColumnClustered, Data());
+        var outer = document.Paragraphs.First().GetRuns().First();
+        Assert.Null(outer.Chart);
+
+        var result = document.ToHtmlResult();
+        var html = new HtmlParser().ParseDocument(result.RequireValue());
+        Assert.Contains("Text box content", html.Body!.TextContent);
+        Assert.Single(html.QuerySelectorAll("img"));
+        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == "WordChartOmitted");
+    }
+
+
     [Theory]
     [InlineData("Code")]
     [InlineData("HTMLPreformatted")]

@@ -132,6 +132,53 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
+        private static void DiscoverTransitiveNotes(
+            List<(int Number, WordFootNote Note)> footnotes, Dictionary<long, int> footnoteMap,
+            List<(int Number, WordEndNote Note)> endnotes, Dictionary<long, int> endnoteMap,
+            WordToHtmlOptions options, CancellationToken cancellationToken) {
+            int footIndex = 0, endIndex = 0;
+            while (footIndex < footnotes.Count || endIndex < endnotes.Count) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (footIndex < footnotes.Count)
+                    Scan(footnotes[footIndex++].Note.Paragraphs?.Skip(1));
+                if (endIndex < endnotes.Count)
+                    Scan(endnotes[endIndex++].Note.Paragraphs?.Skip(1));
+            }
+
+            void Scan(IEnumerable<WordParagraph>? paragraphs) {
+                foreach (WordParagraph paragraph in paragraphs ?? Enumerable.Empty<WordParagraph>()) {
+                    foreach (WordParagraph run in paragraph.GetRuns()) {
+                        IEnumerable<OpenXmlElement> children = run._visibleRunSourceChildren ??
+                            (IEnumerable<OpenXmlElement>?)run._run?.ChildElements ?? Array.Empty<OpenXmlElement>();
+                        foreach (OpenXmlElement child in children) {
+                            foreach (FootnoteReference reference in child is FootnoteReference directFootnote
+                                ? new[] { directFootnote } : child.Descendants<FootnoteReference>()) {
+                                if (!options.ExportFootnotes) continue;
+                                var note = new WordFootNote(run._document, run._paragraph,
+                                    new Run((FootnoteReference)reference.CloneNode(true)));
+                                long id = note.ReferenceId ?? 0;
+                                if (footnoteMap.ContainsKey(id)) continue;
+                                int number = footnotes.Count + 1;
+                                footnoteMap.Add(id, number);
+                                footnotes.Add((number, note));
+                            }
+                            foreach (EndnoteReference reference in child is EndnoteReference directEndnote
+                                ? new[] { directEndnote } : child.Descendants<EndnoteReference>()) {
+                                if (!options.ExportEndnotes) continue;
+                                var note = new WordEndNote(run._document, run._paragraph,
+                                    new Run((EndnoteReference)reference.CloneNode(true)));
+                                long id = note.ReferenceId ?? 0;
+                                if (endnoteMap.ContainsKey(id)) continue;
+                                int number = endnotes.Count + 1;
+                                endnoteMap.Add(id, number);
+                                endnotes.Add((number, note));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         private static bool TryReplaceLastNodeWithAbbreviation(string? characterStyleId, IDocument htmlDoc, List<INode> nodes, IEnumerable<string?>? noteParagraphs) {
             if (!string.Equals(characterStyleId, "HtmlAbbr", StringComparison.OrdinalIgnoreCase) || nodes.Count == 0) {
                 return false;
