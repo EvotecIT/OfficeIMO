@@ -20,6 +20,13 @@ namespace OfficeIMO.OpenXml.Internal {
             ISet<uint> preservedSeriesIndexes, IDictionary<uint, uint> axisBindings) {
             List<OpenXmlCompositeElement> sourceLayers = source.ChildElements
                 .OfType<OpenXmlCompositeElement>().Where(IsSharedChartLayer).ToList();
+            var requestedSeries = replacement.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(IsSharedChartLayer)
+                .SelectMany(layer => layer.ChildElements.OfType<OpenXmlCompositeElement>()
+                    .Where(IsSharedSeriesElement)
+                    .Select(series => (LayerType: layer.GetType(), Index: series.GetFirstChild<C.Index>()?.Val?.Value,
+                        Group: OfficeOpenXmlChartAxisGroups.Read(replacement, layer))))
+                .Where(item => item.Index.HasValue).ToList();
             var usedLayers = new HashSet<OpenXmlCompositeElement>();
             var sourceOrder = new Dictionary<OpenXmlCompositeElement, int>();
             foreach (OpenXmlCompositeElement generated in replacement.ChildElements
@@ -52,6 +59,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 }
                 generated.Remove();
             }
+            if (sourceLayers.Where(layer => !usedLayers.Contains(layer)).Any(layer =>
+                layer.ChildElements.OfType<OpenXmlCompositeElement>().Where(IsSharedSeriesElement)
+                    .Any(series => requestedSeries.Any(requested => requested.LayerType == layer.GetType() &&
+                        requested.Index == series.GetFirstChild<C.Index>()?.Val?.Value &&
+                        requested.Group != OfficeOpenXmlChartAxisGroups.Read(source, layer)))))
+                throw new NotSupportedException("A native chart layer with a distinct axis pair cannot be flattened during a shared data update.");
             // Retained layers keep their source-relative overlap order. Keep unmatched
             // generated layers in their original slots so a newly added area layer can
             // still sit behind an existing line rather than being moved to the end.
