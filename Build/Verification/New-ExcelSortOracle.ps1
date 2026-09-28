@@ -74,6 +74,7 @@ try {
         (Add-OracleCase 'BlankText' @(@('pear',1),@($null,2),@('apple',3)) '=SORT(A1:B3,1,1)' 3 2),
         (Add-OracleCase 'BlankTextDescending' @(@('pear',1),@($null,2),@('apple',3)) '=SORT(A1:B3,1,-1)' 3 2),
         (Add-OracleCase 'TextByColumns' @(@('pear','apple','banana'),@(1,2,3)) '=SORT(A1:C2,1,1,TRUE)' 2 3),
+        (Add-OracleCase 'MixedByColumnsDescending' @(@($false,'a',1,$true,$null),@(1,2,3,4,5)) '=SORT(A1:E2,1,-1,TRUE)' 2 5),
         (Add-OracleCase 'TextCaseTies' @(@('apple',1),@('Apple',2),@('APPLE',3)) '=SORT(A1:B3,1,1)' 3 2)
     )
     $excel.CalculateFullRebuild()
@@ -112,12 +113,21 @@ try {
     Write-Output "Created $($evidence.file) with $($cases.Count) Excel-calculated cases; SHA-256 $($evidence.sha256)."
 }
 finally {
-    if ($workbook -ne $null) {
-        if (-not $closed) { $workbook.Close($false) }
-        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook)
-    }
-    if ($excel -ne $null) {
-        if ($isolated) { $excel.Quit() }
-        [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
+    try {
+        if ($workbook -ne $null) {
+            try {
+                if (-not $closed) { $workbook.Close($false) }
+            } finally {
+                [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($workbook)
+            }
+        }
+    } finally {
+        if ($excel -ne $null) {
+            try {
+                if ($isolated) { $excel.Quit() }
+            } finally {
+                [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($excel)
+            }
+        }
     }
 }

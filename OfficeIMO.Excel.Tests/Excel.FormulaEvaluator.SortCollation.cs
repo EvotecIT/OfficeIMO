@@ -15,6 +15,7 @@ namespace OfficeIMO.Tests {
         [InlineData("BlankText", "SORT(A1:B3,1,1)")]
         [InlineData("BlankTextDescending", "SORT(A1:B3,1,-1)")]
         [InlineData("TextByColumns", "SORT(A1:C2,1,1,TRUE)")]
+        [InlineData("MixedByColumnsDescending", "SORT(A1:E2,1,-1,TRUE)")]
         [InlineData("TextCaseTies", "SORT(A1:B3,1,1)")]
         public void ArraySort_MatchesExcelProducedCachesAfterNewCalculationAndReopen(string caseName, string formula) {
             string source = Path.Combine(AppDomain.CurrentDomain.BaseDirectory,
@@ -22,8 +23,8 @@ namespace OfficeIMO.Tests {
             object?[,] input, expected;
             using (var excel = ExcelDocumentReader.Open(source)) {
                 var sheet = excel.GetSheet(caseName);
-                input = sheet.ReadRange("A1:C5");
-                expected = sheet.ReadRange("G1:I5");
+                input = sheet.ReadRange("A1:E5");
+                expected = sheet.ReadRange("G1:K5");
             }
 
             string path = Path.Combine(_directoryWithFiles, "SortCollation-" + caseName + ".xlsx");
@@ -46,7 +47,7 @@ namespace OfficeIMO.Tests {
             }
 
             using var actualDocument = ExcelDocumentReader.Open(path);
-            object?[,] actual = actualDocument.GetSheet(caseName).ReadRange("G1:I5");
+            object?[,] actual = actualDocument.GetSheet(caseName).ReadRange("G1:K5");
             for (int row = 0; row < expected.GetLength(0); row++) {
                 for (int column = 0; column < expected.GetLength(1); column++) {
                     Assert.True(Equals(expected[row, column], actual[row, column]),

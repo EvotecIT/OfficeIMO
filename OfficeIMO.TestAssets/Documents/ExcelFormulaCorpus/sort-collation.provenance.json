@@ -1,250 +1,270 @@
 {
-    "producer":  "Microsoft Excel",
-    "version":  "16.0",
-    "build":  20326,
-    "generatedUtc":  "2026-09-28T11:14:40.9372266Z",
-    "file":  "sort-collation.xlsx",
-    "sha256":  "5505b1301394743983b3a90e6e7c0985677a557bcbf90111bf0418cc9af3b475",
-    "inputNote":  "Numeric and Boolean source cells are Excel-calculated constants; text cells are literals.",
-    "cases":  [
-                  {
-                      "name":  "TextAscending",
-                      "formula":  "=SORT(A1:B3,1,1)",
-                      "output":  [
-                                     [
-                                         "apple",
-                                         2
-                                     ],
-                                     [
-                                         "banana",
-                                         3
-                                     ],
-                                     [
-                                         "pear",
-                                         1
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "TextDescending",
-                      "formula":  "=SORT(A1:B3,1,-1)",
-                      "output":  [
-                                     [
-                                         "pear",
-                                         1
-                                     ],
-                                     [
-                                         "banana",
-                                         3
-                                     ],
-                                     [
-                                         "apple",
-                                         2
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "BlankNumeric",
-                      "formula":  "=SORT(A1:B3,1,1)",
-                      "output":  [
-                                     [
-                                         1,
-                                         3
-                                     ],
-                                     [
-                                         2,
-                                         1
-                                     ],
-                                     [
-                                         0,
-                                         2
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "BlankNumericDescending",
-                      "formula":  "=SORT(A1:B3,1,-1)",
-                      "output":  [
-                                     [
-                                         2,
-                                         1
-                                     ],
-                                     [
-                                         1,
-                                         3
-                                     ],
-                                     [
-                                         0,
-                                         2
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "MixedKeys",
-                      "formula":  "=SORT(A1:B4,1,1)",
-                      "output":  [
-                                     [
-                                         1,
-                                         3
-                                     ],
-                                     [
-                                         2,
-                                         1
-                                     ],
-                                     [
-                                         "a",
-                                         4
-                                     ],
-                                     [
-                                         "b",
-                                         2
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "MixedDescending",
-                      "formula":  "=SORT(A1:B4,1,-1)",
-                      "output":  [
-                                     [
-                                         "b",
-                                         2
-                                     ],
-                                     [
-                                         "a",
-                                         4
-                                     ],
-                                     [
-                                         2,
-                                         1
-                                     ],
-                                     [
-                                         1,
-                                         3
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "MixedBoolean",
-                      "formula":  "=SORT(A1:B5,1,1)",
-                      "output":  [
-                                     [
-                                         1,
-                                         3
-                                     ],
-                                     [
-                                         "a",
-                                         2
-                                     ],
-                                     [
-                                         false,
-                                         1
-                                     ],
-                                     [
-                                         true,
-                                         4
-                                     ],
-                                     [
-                                         0,
-                                         5
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "MixedBooleanDescending",
-                      "formula":  "=SORT(A1:B5,1,-1)",
-                      "output":  [
-                                     [
-                                         true,
-                                         4
-                                     ],
-                                     [
-                                         false,
-                                         1
-                                     ],
-                                     [
-                                         "a",
-                                         2
-                                     ],
-                                     [
-                                         1,
-                                         3
-                                     ],
-                                     [
-                                         0,
-                                         5
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "BlankText",
-                      "formula":  "=SORT(A1:B3,1,1)",
-                      "output":  [
-                                     [
-                                         "apple",
-                                         3
-                                     ],
-                                     [
-                                         "pear",
-                                         1
-                                     ],
-                                     [
-                                         0,
-                                         2
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "BlankTextDescending",
-                      "formula":  "=SORT(A1:B3,1,-1)",
-                      "output":  [
-                                     [
-                                         "pear",
-                                         1
-                                     ],
-                                     [
-                                         "apple",
-                                         3
-                                     ],
-                                     [
-                                         0,
-                                         2
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "TextByColumns",
-                      "formula":  "=SORT(A1:C2,1,1,TRUE)",
-                      "output":  [
-                                     [
-                                         "apple",
-                                         "banana",
-                                         "pear"
-                                     ],
-                                     [
-                                         2,
-                                         3,
-                                         1
-                                     ]
-                                 ]
-                  },
-                  {
-                      "name":  "TextCaseTies",
-                      "formula":  "=SORT(A1:B3,1,1)",
-                      "output":  [
-                                     [
-                                         "apple",
-                                         1
-                                     ],
-                                     [
-                                         "Apple",
-                                         2
-                                     ],
-                                     [
-                                         "APPLE",
-                                         3
-                                     ]
-                                 ]
-                  }
-              ],
-    "regeneration":  "Build/Verification/New-ExcelSortOracle.ps1"
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T11:26:38.7777184Z",
+  "file": "sort-collation.xlsx",
+  "sha256": "6680db033abbd3dfe667945d879a9fb855bac1b8d1daf9a220a6b3e72d07e149",
+  "inputNote": "Numeric and Boolean source cells are Excel-calculated constants; text cells are literals.",
+  "cases": [
+    {
+      "name": "TextAscending",
+      "formula": "=SORT(A1:B3,1,1)",
+      "output": [
+        [
+          "apple",
+          2.0
+        ],
+        [
+          "banana",
+          3.0
+        ],
+        [
+          "pear",
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "TextDescending",
+      "formula": "=SORT(A1:B3,1,-1)",
+      "output": [
+        [
+          "pear",
+          1.0
+        ],
+        [
+          "banana",
+          3.0
+        ],
+        [
+          "apple",
+          2.0
+        ]
+      ]
+    },
+    {
+      "name": "BlankNumeric",
+      "formula": "=SORT(A1:B3,1,1)",
+      "output": [
+        [
+          1.0,
+          3.0
+        ],
+        [
+          2.0,
+          1.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ]
+    },
+    {
+      "name": "BlankNumericDescending",
+      "formula": "=SORT(A1:B3,1,-1)",
+      "output": [
+        [
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ]
+    },
+    {
+      "name": "MixedKeys",
+      "formula": "=SORT(A1:B4,1,1)",
+      "output": [
+        [
+          1.0,
+          3.0
+        ],
+        [
+          2.0,
+          1.0
+        ],
+        [
+          "a",
+          4.0
+        ],
+        [
+          "b",
+          2.0
+        ]
+      ]
+    },
+    {
+      "name": "MixedDescending",
+      "formula": "=SORT(A1:B4,1,-1)",
+      "output": [
+        [
+          "b",
+          2.0
+        ],
+        [
+          "a",
+          4.0
+        ],
+        [
+          2.0,
+          1.0
+        ],
+        [
+          1.0,
+          3.0
+        ]
+      ]
+    },
+    {
+      "name": "MixedBoolean",
+      "formula": "=SORT(A1:B5,1,1)",
+      "output": [
+        [
+          1.0,
+          3.0
+        ],
+        [
+          "a",
+          2.0
+        ],
+        [
+          false,
+          1.0
+        ],
+        [
+          true,
+          4.0
+        ],
+        [
+          0.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "name": "MixedBooleanDescending",
+      "formula": "=SORT(A1:B5,1,-1)",
+      "output": [
+        [
+          true,
+          4.0
+        ],
+        [
+          false,
+          1.0
+        ],
+        [
+          "a",
+          2.0
+        ],
+        [
+          1.0,
+          3.0
+        ],
+        [
+          0.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "name": "BlankText",
+      "formula": "=SORT(A1:B3,1,1)",
+      "output": [
+        [
+          "apple",
+          3.0
+        ],
+        [
+          "pear",
+          1.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ]
+    },
+    {
+      "name": "BlankTextDescending",
+      "formula": "=SORT(A1:B3,1,-1)",
+      "output": [
+        [
+          "pear",
+          1.0
+        ],
+        [
+          "apple",
+          3.0
+        ],
+        [
+          0.0,
+          2.0
+        ]
+      ]
+    },
+    {
+      "name": "TextByColumns",
+      "formula": "=SORT(A1:C2,1,1,TRUE)",
+      "output": [
+        [
+          "apple",
+          "banana",
+          "pear"
+        ],
+        [
+          2.0,
+          3.0,
+          1.0
+        ]
+      ]
+    },
+    {
+      "name": "MixedByColumnsDescending",
+      "formula": "=SORT(A1:E2,1,-1,TRUE)",
+      "output": [
+        [
+          true,
+          false,
+          "a",
+          1.0,
+          0.0
+        ],
+        [
+          4.0,
+          1.0,
+          2.0,
+          3.0,
+          5.0
+        ]
+      ]
+    },
+    {
+      "name": "TextCaseTies",
+      "formula": "=SORT(A1:B3,1,1)",
+      "output": [
+        [
+          "apple",
+          1.0
+        ],
+        [
+          "Apple",
+          2.0
+        ],
+        [
+          "APPLE",
+          3.0
+        ]
+      ]
+    }
+  ],
+  "regeneration": "Build/Verification/New-ExcelSortOracle.ps1"
 }
