@@ -40,10 +40,11 @@ public static partial class OfficeChartDrawingRenderer {
             style.ChartBorderDashStyle ?? OfficeStrokeDashStyle.Solid);
         double contentTop = 0D;
         if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
-            double titleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
-            double titleTop = Math.Min(layout.TitleTopPadding, Math.Max(0D, height - titleHeight));
+            double defaultTitleHeight = Math.Min(22D, Math.Max(16D, height * 0.12D));
             string titleFontFamily = style.TitleFontFamily ?? style.FontFamily;
-            double titleFontSize = style.TitleFontSize ?? Math.Min(12D, Math.Max(8D, titleHeight - 7D));
+            double titleFontSize = style.TitleFontSize ?? Math.Min(12D, Math.Max(8D, defaultTitleHeight - 7D));
+            double titleHeight = Math.Min(height, Math.Max(defaultTitleHeight, titleFontSize * 1.25D + 4D));
+            double titleTop = Math.Min(layout.TitleTopPadding, Math.Max(0D, height - titleHeight));
             OfficeFontStyle titleFontStyle = style.TitleFontStyle ?? OfficeFontStyle.Bold;
             drawing.AddText(
                 snapshot.Title!,

@@ -7,6 +7,19 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class DrawingExportQualityTests {
+    [Fact]
+    public void ImportedLargeChartTitleReservesItsFullTextHeight() {
+        var snapshot = new OfficeChartSnapshot("Native chart", "Shared combination", OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1" }, new[] { new OfficeChartSeries("Volume", new[] { 100d }) }),
+            480, 300, style: new OfficeChartStyle(titleFontSize: 24),
+            layout: new OfficeChartLayout(showLegend: false));
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        OfficeDrawingText title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Shared combination");
+        Assert.Equal(24, title.Font.Size);
+        Assert.True(title.Height >= 30D);
+    }
+
     [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
