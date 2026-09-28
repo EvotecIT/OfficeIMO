@@ -130,7 +130,7 @@ namespace OfficeIMO.OpenXml.Internal {
                         : null;
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
                     fallbackSeriesColor);
-                ApplySharedSeriesMarker(seriesElement, series, kind);
+                ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor);
                 ApplySharedPointColors(seriesElement, series);
                 OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);
             }
