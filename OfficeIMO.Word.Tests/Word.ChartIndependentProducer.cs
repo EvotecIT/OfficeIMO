@@ -1,6 +1,8 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
@@ -47,6 +49,46 @@ public sealed class WordChartIndependentProducerTests {
         using WordDocument reopened = WordDocument.Load(package);
         Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out var second));
         Assert.Equal(OfficeChartHatchPattern.WideForwardDiagonal, second.Data.Series[0].PointStyles![1]!.Hatch);
+    }
+
+    [Fact]
+    public void LibreOfficeAreaPreservesNativePointRecordsAndRendersItsOpaqueSeriesFill() {
+        string path = Path.Combine(AppContext.BaseDirectory, "Documents", "Charts", "LibreOffice", "area-point.docx");
+        using WordDocument document = WordDocument.Load(path);
+        WordChart chart = Assert.Single(document.Charts);
+        string nativeXml = chart.ChartPart!.ChartSpace!.OuterXml;
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Equal(OfficeChartKind.Area, snapshot.ChartKind);
+        Assert.Equal(new[] { "A", "B", "C", "D" }, snapshot.Data.Categories);
+        OfficeChartSeries series = Assert.Single(snapshot.Data.Series);
+        Assert.Equal(OfficeColor.Parse("#004586"), series.Color);
+        Assert.False(series.ConnectLine);
+        Assert.Equal(4, series.PointStyles!.Count);
+        Assert.Equal(OfficeColor.Parse("#228844"), series.PointStyles[0]!.FillColor);
+
+        OfficeChartRenderingResult drawing = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
+        Assert.Contains(drawing.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.UnsupportedAppearance);
+        var exported = document.ExportImage(OfficeImageExportFormat.Png,
+            new WordImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true, RequireNoFailures = true } });
+        Assert.Contains(exported.Diagnostics, item => item.Code == "ChartPointStylesUnsupported");
+        Assert.True(OfficePngReader.TryDecode(exported.Bytes, out OfficeRasterImage? raster));
+        OfficeColor nativeFill = OfficeColor.Parse("#004586");
+        int bluePixels = 0;
+        for (int y = 0; y < raster!.Height; y++)
+            for (int x = 0; x < raster.Width; x++)
+                if (raster.GetPixel(x, y) == nativeFill) bluePixels++;
+        Assert.True(bluePixels > 1000, "Expected the opaque native series fill; actual pixels " + bluePixels);
+        Assert.Equal(nativeXml, chart.ChartPart.ChartSpace.OuterXml);
+
+        chart.SetData(snapshot.ChartKind, snapshot.Data);
+        Assert.NotNull(chart.ChartPart.ChartSpace.Descendants<C.AreaChartSeries>().Single()
+            .GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>());
+
+        using var package = document.ToStream();
+        using WordDocument reopened = WordDocument.Load(package);
+        Assert.True(Assert.Single(reopened.Charts).TryGetOfficeSnapshot(out var second));
+        Assert.Equal(4, second.Data.Series[0].PointStyles!.Count);
     }
 
     private static int CountColour(OfficeRasterImage image, string hex) {

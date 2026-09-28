@@ -26,11 +26,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             bool reenableConnectingLine = !IsFilledSharedKind(kind) && series.ConnectLine &&
                 properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
+            bool hideAreaOutline = IsAreaKind(kind) && !series.ConnectLine;
             if (!fillColor.HasValue && !outlineColor.HasValue && outlineWidth == null &&
                 (kind != OfficeChartKind.Bubble || series.ShowMarkerOutline) &&
                 series.StrokeDashStyle == null &&
                 (series.ConnectLine || IsFilledSharedKind(kind)) &&
-                !reenableBubbleOutline && !reenableConnectingLine) return;
+                !reenableBubbleOutline && !reenableConnectingLine && !hideAreaOutline) return;
             if (fillColor.HasValue && IsFilledSharedKind(kind)) {
                 properties.RemoveAllChildren<A.SolidFill>();
                 properties.RemoveAllChildren<A.NoFill>();
@@ -44,6 +45,7 @@ namespace OfficeIMO.OpenXml.Internal {
             bool replaceOutlineFill = reenableBubbleOutline || reenableConnectingLine ||
                 (kind == OfficeChartKind.Bubble && !series.ShowMarkerOutline) ||
                 (!series.ConnectLine && !IsFilledSharedKind(kind)) ||
+                hideAreaOutline ||
                 outlineColor.HasValue;
             if (replaceOutlineFill) {
                 outline.RemoveAllChildren<A.SolidFill>();
@@ -55,8 +57,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 if (kind == OfficeChartKind.Bubble &&
                     !series.ShowMarkerOutline) {
                     outline.AddChild(new A.NoFill(), true);
-                } else if (!series.ConnectLine &&
-                           !IsFilledSharedKind(kind)) {
+                } else if (hideAreaOutline || (!series.ConnectLine && !IsFilledSharedKind(kind))) {
                     outline.AddChild(new A.NoFill(), true);
                 } else if (outlineColor.HasValue) {
                     outline.AddChild(new A.SolidFill(CreateSharedRgbColor(outlineColor.Value)), true);

@@ -25,3 +25,27 @@ To reproduce, run `generate.py` in an isolated copy of this directory using
 `pdftoppm -f 1 -singlefile -png -r 72`. Recheck the native package and image
 contents before replacing the checked-in fixtures; the hashes above identify
 the exact qualified files.
+
+## Area point paint
+
+`generate-area.py` uses the same LibreOffice and Poppler versions. It assigns
+four different point fills to one editable area series and writes those `dPt`
+overrides into the DOCX. Both the source and reopened-DOCX references render
+one opaque blue series area: the point fills do not create colored area
+segments. The chart also has no series outline, midpoint category crossing,
+and textual A–D categories with an inert date format on the category axis.
+
+| File | Role | SHA-256 |
+| --- | --- | --- |
+| `area-point.docx` | Native package under test | `13B9ADF6B884607A08DB33B86D9210ABCBCEB69C8A073370903B3496B26AD0DE` |
+| `area-point.odt` | Producer's source package | `5AC9DE0A2B122055EC10B4CD37A8DEA4A666EBDA387E950F9A7C4D81877BEAEA` |
+| `area-point-source-reference.pdf` | Source Writer document | `0D57F1A543345FA37CE1BB2E609697D7ACEDE87040C767E83C6402E6F950D9FC` |
+| `area-point-source-reference.png` | Raster of source PDF | `662343E8A014375EDDBAC305A7EC43FD1C60DBBF9093F9158F388C57F35F3E1E` |
+| `area-point-docx-reference.pdf` | LibreOffice PDF after reopening the DOCX | `0C7930CC179DE6E5A748556FFABFF55C951CD82552F1BD3C8440182CD5D1499C` |
+| `area-point-docx-reference.png` | Raster of reopened-DOCX PDF | `38869BE99FDEBEEAA70F8B58A9319AE74416FA6597C85DACA81EBD2B57909AC0` |
+
+The static projection preserves the cached data and series fill, omits the
+native point fills with an explicit `ChartPointStylesUnsupported` diagnostic,
+and leaves the editable DOCX unchanged. The rendered area uses the opaque
+series fill and no outline. This fixture does not qualify automatic numeric
+tick spacing or page-level Word placement.

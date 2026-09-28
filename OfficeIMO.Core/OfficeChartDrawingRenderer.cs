@@ -1235,7 +1235,7 @@ public static partial class OfficeChartDrawingRenderer {
 
             for (int i = 0; i < categories.Count; i++) {
                 if (!TryGetSeriesValue(currentSeries, i, out double value)) {
-                    AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle);
+                    AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle, currentSeries.ConnectLine);
                     AddAreaRunDataLabels(drawing, layout, style, categories, series, sourceSeriesIndex, runCategoryIndices, topPoints);
                     topPoints.Clear();
                     bottomPoints.Clear();
@@ -1263,12 +1263,12 @@ public static partial class OfficeChartDrawingRenderer {
                 }
             }
 
-            AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle);
+            AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle, currentSeries.ConnectLine);
             AddAreaRunDataLabels(drawing, layout, style, categories, series, sourceSeriesIndex, runCategoryIndices, topPoints);
         }
     }
 
-    private static void AddAreaRun(OfficeDrawing drawing, IReadOnlyList<OfficePoint> topPoints, IReadOnlyList<OfficePoint> bottomPoints, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
+    private static void AddAreaRun(OfficeDrawing drawing, IReadOnlyList<OfficePoint> topPoints, IReadOnlyList<OfficePoint> bottomPoints, OfficeColor color, double strokeWidth, OfficeStrokeDashStyle dashStyle, bool showStroke) {
         if (topPoints.Count < 2 || bottomPoints.Count != topPoints.Count) {
             return;
         }
@@ -1279,8 +1279,8 @@ public static partial class OfficeChartDrawingRenderer {
             areaPoints.Add(bottomPoints[i]);
         }
 
-        AddPolygonShape(drawing, areaPoints, color, color, 0.5D, 0.32D);
-        AddPointLine(drawing, topPoints, color, strokeWidth, dashStyle);
+        AddPolygonShape(drawing, areaPoints, color, showStroke ? color : null, showStroke ? 0.5D : 0D);
+        if (showStroke) AddPointLine(drawing, topPoints, color, strokeWidth, dashStyle);
     }
 
     private static void AddAreaRunDataLabels(
