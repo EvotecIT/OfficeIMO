@@ -56,7 +56,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         if (normalizedType == "pie" || normalizedType == "donut" || normalizedType == "doughnut") {
             chart.SetDataLabels(showValue: true, showCategoryName: false);
-            chart.SetDataLabelTextStyle(fontSizePoints: 9, color: textColor, fontName: font);
+            chart.SetDataLabelTextStyle(fontSizePoints: 9, bold: false, italic: false, color: textColor, fontName: font);
             ApplyChartSemanticOptions(chart, source, normalizedType, font, textColor, gridColor);
             return;
         }
