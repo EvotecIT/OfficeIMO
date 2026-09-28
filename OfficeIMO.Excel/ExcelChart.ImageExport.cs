@@ -304,7 +304,6 @@ namespace OfficeIMO.Excel {
                 axisTitleFontFamily: axisTitleFontFamily,
                 axisTitleFontStyle: axisTitleFontStyle,
                 dataLabelPosition: MapDataLabelPosition(dataLabels?.GetFirstChild<C.DataLabelPosition>()?.Val?.Value),
-                showDataLabelLeaderLines: IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()),
                 dataLabelNumberFormat: dataLabels?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value,
                 categoryAxisTitle: categoryAxisTitle,
                 valueAxisTitle: valueAxisTitle,
@@ -342,7 +341,8 @@ namespace OfficeIMO.Excel {
                 showValueAxisLabels: showValueAxisLabels,
                 connectScatterPoints: connectScatterPoints,
                 overlayTitle: IsEnabled(title?.GetFirstChild<C.Overlay>()))
-                .WithSecondaryValueAxis(secondaryValueAxis);
+                .WithSecondaryValueAxis(secondaryValueAxis)
+                .WithDataLabelLeaderLines(IsEnabled(dataLabels?.GetFirstChild<C.ShowLeaderLines>()));
         }
 
         private OfficeChartValueAxisLayout? ReadImageExportSecondaryValueAxis(C.PlotArea plotArea) {
@@ -352,9 +352,10 @@ namespace OfficeIMO.Excel {
             string? numberFormat = GetImageExportAxisNumberFormat(axis);
             if (numberFormat != null && !IsSimpleSupportedImageExportAxisNumberFormat(numberFormat))
                 throw new NotSupportedException("The secondary axis number format cannot be rendered.");
-            return new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
+            var resolved = new OfficeChartValueAxisLayout(native.Minimum, native.Maximum, native.MajorUnit,
                 native.MinorUnit, numberFormat, native.MajorTickMark,
-                native.MinorTickMark).WithTitle(native.Title);
+                native.MinorTickMark);
+            return native.Title == null ? resolved : resolved.WithTitle(native.Title);
         }
 
         private static ExcelChartData ApplyImageExportSeriesStyles(ChartPart chartPart, ExcelChartData data, WorkbookPart workbookPart) {

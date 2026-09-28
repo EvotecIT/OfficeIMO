@@ -92,7 +92,6 @@ public sealed partial class OfficeChartLayout {
     /// <param name="dataLabelPointIndexes">Optional zero-based point indexes that should render data labels per series.</param>
     /// <param name="hiddenDataLabelPointIndexes">Optional zero-based point indexes that should suppress data labels per series.</param>
     /// <param name="hiddenCategoryLegendIndexes">Optional zero-based category or slice legend indexes that should be suppressed.</param>
-    /// <param name="showDataLabelLeaderLines">Whether outside radial labels should connect to their slices.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -169,8 +168,7 @@ public sealed partial class OfficeChartLayout {
         IReadOnlyCollection<int>? dataLabelSeriesIndexes = null,
         IReadOnlyDictionary<int, IReadOnlyCollection<int>>? dataLabelPointIndexes = null,
         IReadOnlyDictionary<int, IReadOnlyCollection<int>>? hiddenDataLabelPointIndexes = null,
-        IReadOnlyCollection<int>? hiddenCategoryLegendIndexes = null,
-        bool showDataLabelLeaderLines = true)
+        IReadOnlyCollection<int>? hiddenCategoryLegendIndexes = null)
         : this(
             overlayLegend: false,
             seriesLegendWidthRatio: seriesLegendWidthRatio,
@@ -248,8 +246,7 @@ public sealed partial class OfficeChartLayout {
             dataLabelSeriesIndexes: dataLabelSeriesIndexes,
             dataLabelPointIndexes: dataLabelPointIndexes,
             hiddenDataLabelPointIndexes: hiddenDataLabelPointIndexes,
-            hiddenCategoryLegendIndexes: hiddenCategoryLegendIndexes,
-            showDataLabelLeaderLines: showDataLabelLeaderLines) {
+            hiddenCategoryLegendIndexes: hiddenCategoryLegendIndexes) {
     }
 
     /// <summary>
@@ -332,7 +329,6 @@ public sealed partial class OfficeChartLayout {
     /// <param name="dataLabelPointIndexes">Optional zero-based point indexes that should render data labels per series.</param>
     /// <param name="hiddenDataLabelPointIndexes">Optional zero-based point indexes that should suppress data labels per series.</param>
     /// <param name="hiddenCategoryLegendIndexes">Optional zero-based category or slice legend indexes that should be suppressed.</param>
-    /// <param name="showDataLabelLeaderLines">Whether outside radial labels should connect to their slices.</param>
     public OfficeChartLayout(
         bool overlayLegend,
         double? seriesLegendWidthRatio = null,
@@ -410,8 +406,7 @@ public sealed partial class OfficeChartLayout {
         IReadOnlyCollection<int>? dataLabelSeriesIndexes = null,
         IReadOnlyDictionary<int, IReadOnlyCollection<int>>? dataLabelPointIndexes = null,
         IReadOnlyDictionary<int, IReadOnlyCollection<int>>? hiddenDataLabelPointIndexes = null,
-        IReadOnlyCollection<int>? hiddenCategoryLegendIndexes = null,
-        bool showDataLabelLeaderLines = true) {
+        IReadOnlyCollection<int>? hiddenCategoryLegendIndexes = null) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -445,7 +440,6 @@ public sealed partial class OfficeChartLayout {
         DataLabelFontFamily = string.IsNullOrWhiteSpace(dataLabelFontFamily) ? null : dataLabelFontFamily;
         DataLabelFontStyle = dataLabelFontStyle;
         DataLabelPosition = dataLabelPosition;
-        ShowDataLabelLeaderLines = showDataLabelLeaderLines;
         DataLabelNumberFormat = NormalizeNumberFormat(dataLabelNumberFormat);
         DataLabelSeriesIndexes = SnapshotIndexes(dataLabelSeriesIndexes);
         DataLabelPointIndexes = SnapshotIndexesBySeries(dataLabelPointIndexes);
@@ -595,7 +589,6 @@ public sealed partial class OfficeChartLayout {
     public OfficeChartDataLabelPosition DataLabelPosition { get; }
 
     /// <summary>Whether radial outside data labels connect to their slices with leader lines.</summary>
-    public bool ShowDataLabelLeaderLines { get; }
 
     /// <summary>Optional numeric format for data-label values.</summary>
     public string? DataLabelNumberFormat { get; }

@@ -602,7 +602,6 @@ namespace OfficeIMO.PowerPoint {
                 dataLabelSeparator: radialLabels?.Separator,
                 dataLabelNumberFormat: radialLabels?.NumberFormat,
                 dataLabelPosition: radialLabels?.Position ?? OfficeChartDataLabelPosition.BestFit,
-                showDataLabelLeaderLines: radialLabels?.LeaderLines == true,
                 categoryAxisTitle: horizontalAxisTitle,
                 valueAxisTitle: verticalAxisTitle,
                 horizontalAxisNumberFormat: horizontalAxisNumberFormat,
@@ -621,7 +620,8 @@ namespace OfficeIMO.PowerPoint {
                 verticalAxisMinorTickMark: verticalMinorTickMark,
                 axisTitleFontFamily: axisTitleFont)
                 .WithSecondaryValueAxis(forDataUpdate ? null :
-                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea));
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSecondaryAxis.Read(plotArea))
+                .WithDataLabelLeaderLines(radialLabels?.LeaderLines == true);
         }
 
         private static OfficeChartAxisTickMark ReadAxisTickMark(
