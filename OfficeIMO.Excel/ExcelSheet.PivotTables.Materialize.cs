@@ -131,9 +131,8 @@ namespace OfficeIMO.Excel {
             var manualGroupings = new Dictionary<int, PivotManualGrouping>();
             var sourceDateGroupings = new Dictionary<int, ExcelPivotGrouping>();
             for (int field = fieldCount; field < fields.Length; field++) {
-                if (!realFields.Contains(field)
-                    || pivotFields[field].Items?.Elements<Item>().Any(item => item.Hidden?.Value == true) == true)
-                    throw new NotSupportedException("Derived fields require a visible row or column axis.");
+                if (!realFields.Contains(field))
+                    throw new NotSupportedException("Derived fields require a row or column axis.");
                 if (IsDerivedDateGroup(fields[field])) {
                     var date = ReadPivotDateGrouping(fields, field, fieldCount);
                     dateGroupings.Add(field, date);
@@ -146,9 +145,8 @@ namespace OfficeIMO.Excel {
                 if (fields[field].FieldGroup == null) continue;
                 if (!realFields.Contains(field) && sourceDateGroupings.ContainsKey(field)) continue;
                 if (manualGroupings.Values.Any(group => group.SourceField == field)) continue;
-                if (!realFields.Contains(field) || pageFields.Contains(field)
-                    || pivotFields[field].Items?.Elements<Item>().Any(item => item.Hidden?.Value == true) == true)
-                    throw new NotSupportedException("Grouped fields require a visible row or column axis.");
+                if (!realFields.Contains(field) || pageFields.Contains(field))
+                    throw new NotSupportedException("Grouped fields require a row or column axis.");
                 groupings.Add(field, ReadPivotNumericGrouping(fields[field], field)!);
             }
             if (pivotFields.Where((field, index) => !realFields.Contains(index) && !pageFields.Contains(index))
@@ -188,7 +186,7 @@ namespace OfficeIMO.Excel {
             for (int field = fieldCount; field < fields.Length; field++)
                 displayMaps.Add(dateGroupings.TryGetValue(field, out var date) ? date.Labels : manualGroupings[field].Labels);
             var visibility = BuildPivotMaterializationVisibility(sourceSheet, fields, pivotFields, pages,
-                maps, realFields, r1, r2, c1, limit, token);
+                displayMaps, realFields, groupings, dateGroupings, manualGroupings, r1, r2, c1, limit, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
             // possible criterion combination usable, rather than accepting an unreadable view.
             foreach (var axis in new[] { rowAxis, columnAxis }) {

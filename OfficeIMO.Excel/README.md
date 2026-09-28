@@ -616,7 +616,8 @@ materialize the resulting two-level row view:
 sheet.Pivot("A1:B6").Rows("Product").Sum("Sales", "Metric")
     .Layout(ExcelPivotLayout.Tabular).At("E4", "SalesByProductGroup");
 sheet.AddPivotManualGrouping("SalesByProductGroup", "Product", "Product2",
-    new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } });
+    new Dictionary<string, string[]> { ["Fruit"] = new[] { "Apple", "Pear" } },
+    hiddenGroupItems: new[] { "Carrot" });
 sheet.MaterializePivotTable("SalesByProductGroup");
 var fruit = sheet.GetPivotData("SalesByProductGroup", "Metric",
     new Dictionary<string, object?> { ["Product2"] = "Fruit" });
@@ -631,14 +632,13 @@ Materialization supports up to 256 ordinary measures with unique captions, all e
 and multiple fields on each axis, with at most 256 cache fields in total. Numeric range groups with explicit finite
 bounds and intervals, including decimal intervals, are supported when each bound and interval is at most 9 × 10¹⁵
 in magnitude and the range has at most 99,998 buckets.
-Years/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Grouping on page fields is not.
+Years/Months date hierarchies and manual text groups with saved group labels are also supported on row and column axes. Hidden items on qualified manual, numeric, and date groups are applied to source records and saved views. Grouping on page fields is not.
 Date hierarchies require typed date source values. The saved group labels are retained, including labels created under
 a non-English Excel locale. It writes a tabular view in first-seen key order for ordinary fields and group-label order for groups,
 with selected page items, hidden row/column items, optional grand totals, typed values/errors, source cache
 records and consistent axis metadata. It saves a copy of the source records in
 the pivot cache and clears refresh-on-open. Source formulas must have saved
 cached results; materialization does not calculate them.
-Hidden item filters on grouped fields still require an Office refresh.
 Manual item filters retain their selected keys when source item order changes.
 New source keys remain excluded from a manually filtered field unless its
 `IncludeNewItemsInFilter` setting admits them. A filter that leaves no source

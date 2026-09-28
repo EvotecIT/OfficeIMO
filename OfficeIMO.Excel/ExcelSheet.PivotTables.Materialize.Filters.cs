@@ -13,6 +13,9 @@ namespace OfficeIMO.Excel {
         private PivotMaterializationVisibility BuildPivotMaterializationVisibility(
             ExcelSheet source, CacheField[] cacheFields, PivotField[] pivotFields, PageField[] pages,
             IReadOnlyList<PivotFieldValues> maps, IReadOnlyList<int> axisFields,
+            IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
+            IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
+            IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
             int firstRow, int lastRow, int firstColumn, int limit, CancellationToken token) {
             var result = new PivotMaterializationVisibility { IncludedRows = new bool[lastRow - firstRow] };
             var filtered = new HashSet<int>();
@@ -23,7 +26,10 @@ namespace OfficeIMO.Excel {
                 if (!hidden && page?.Item == null) continue;
                 if (items.Length > 100_001 || cacheFields[field].SharedItems?.ChildElements.Count > 100_000)
                     throw new NotSupportedException("The filtered pivot field exceeds materialization limits.");
-                OpenXmlElement[] shared = cacheFields[field].SharedItems?.ChildElements.ToArray()
+                OpenXmlElement[] shared = manualGroupings.TryGetValue(field, out var manual) ? manual.SavedItems
+                    : dateGroupings.TryGetValue(field, out var date) ? date.SavedItems
+                    : groupings.TryGetValue(field, out var numeric) ? numeric.SavedItems
+                    : cacheFields[field].SharedItems?.ChildElements.ToArray()
                     ?? Array.Empty<OpenXmlElement>();
                 if (shared.Length == 0 || items.Length == 0)
                     throw new NotSupportedException("The filtered pivot field has no saved item mapping.");
@@ -33,7 +39,8 @@ namespace OfficeIMO.Excel {
                     hiddenKeys.Add(OriginalPivotMaterializationKey(item, shared));
                 }
                 if (hiddenKeys.Count > 0 && pivotFields[field].IncludeNewItemsInFilter?.Value != true) {
-                    var known = new HashSet<PivotFieldValue>(shared.Select(OriginalPivotMaterializationKey));
+                    var known = new HashSet<PivotFieldValue>(items.Where(item => item.ItemType == null || item.ItemType.Value == ItemValues.Data)
+                        .Select(item => OriginalPivotMaterializationKey(item, shared)));
                     foreach (PivotFieldValue key in maps[field].Items)
                         if (!known.Contains(key)) hiddenKeys.Add(key);
                 }
@@ -58,7 +65,10 @@ namespace OfficeIMO.Excel {
                 token.ThrowIfCancellationRequested();
                 bool include = true;
                 foreach (int field in filtered) {
-                    PivotFieldValue key = source.GetPivotFieldValue(row, firstColumn + field, null);
+                    int sourceField = dateGroupings.TryGetValue(field, out var date) ? date.SourceField
+                        : manualGroupings.TryGetValue(field, out var manual) ? manual.SourceField : field;
+                    PivotFieldValue key = MaterializedPivotAxisKey(source, row, firstColumn + sourceField,
+                        field, groupings, dateGroupings, manualGroupings);
                     if (result.Hidden.TryGetValue(field, out var hiddenKeys) && hiddenKeys.Contains(key)
                         || result.SelectedPages.TryGetValue(field, out var selected) && !selected.Equals(key)) {
                         include = false;
@@ -79,6 +89,8 @@ namespace OfficeIMO.Excel {
         private static PivotFieldValue OriginalPivotMaterializationKey(Item item, OpenXmlElement[] shared) {
             if (item.Index == null || item.Index.Value >= shared.Length)
                 throw new NotSupportedException("The filtered pivot item has no valid shared key.");
+            string caption = PivotLookupAttribute(item, "n");
+            if (caption.Length != 0) return PivotFieldValue.FromText(caption);
             return OriginalPivotMaterializationKey(shared[item.Index.Value]);
         }
 

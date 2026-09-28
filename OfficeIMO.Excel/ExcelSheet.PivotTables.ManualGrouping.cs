@@ -7,10 +7,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Adds a derived manual text grouping field to a pivot that uses the source field on one axis.
         /// Named groups contain distinct source item captions; other items remain individual groups.
+        /// Optionally hides named or ungrouped items on the derived field.
         /// Materialize or refresh the pivot to populate its displayed values.
         /// </summary>
         public void AddPivotManualGrouping(string pivotTableName, string sourceFieldName, string groupFieldName,
-            IReadOnlyDictionary<string, string[]> groups) {
+            IReadOnlyDictionary<string, string[]> groups, IReadOnlyCollection<string>? hiddenGroupItems = null) {
             if (string.IsNullOrWhiteSpace(pivotTableName)) throw new ArgumentException("A pivot name is required.", nameof(pivotTableName));
             if (string.IsNullOrWhiteSpace(sourceFieldName)) throw new ArgumentException("A source field is required.", nameof(sourceFieldName));
             if (string.IsNullOrWhiteSpace(groupFieldName)) throw new ArgumentException("A group field name is required.", nameof(groupFieldName));
@@ -36,8 +37,8 @@ namespace OfficeIMO.Excel {
                 var column = definition.ColumnFields?.Elements<Field>().ToList() ?? new List<Field>();
                 bool onRow = row.Count(field => field.Index?.Value == source) == 1;
                 bool onColumn = column.Count(field => field.Index?.Value == source) == 1;
-                if (onRow == onColumn || pivotFields[source].Items?.Elements<Item>().Any(item => item.Hidden?.Value == true) == true)
-                    throw new NotSupportedException("Manual grouping requires a visible source field on one row or column axis.");
+                if (onRow == onColumn)
+                    throw new NotSupportedException("Manual grouping requires a source field on one row or column axis.");
                 OpenXmlElement[] sourceItems = fields[source].SharedItems?.ChildElements.ToArray() ?? Array.Empty<OpenXmlElement>();
                 if (sourceItems.Length == 0 || sourceItems.Length > 100_000 || sourceItems.Any(item => item is not StringItem))
                     throw new NotSupportedException("Manual grouping requires bounded text source items.");
@@ -69,6 +70,15 @@ namespace OfficeIMO.Excel {
                     assignments.Add(key, key);
                     labels.Add(key);
                 }
+                var hiddenLabels = new HashSet<PivotFieldValue>();
+                if (hiddenGroupItems != null) {
+                    foreach (string hidden in hiddenGroupItems) {
+                        if (string.IsNullOrWhiteSpace(hidden) || !hiddenLabels.Add(PivotFieldValue.FromText(hidden)))
+                            throw new ArgumentException("Hidden group items must be distinct nonempty labels.", nameof(hiddenGroupItems));
+                    }
+                }
+                if (hiddenLabels.Any(label => !usedLabels.Contains(label)) || hiddenLabels.Count == labels.Count)
+                    throw new ArgumentException("Hidden items must name existing groups and leave at least one visible item.", nameof(hiddenGroupItems));
                 var groupValues = new PivotFieldValues(labels);
                 var groupIndices = new Dictionary<PivotFieldValue, uint>();
                 for (uint i = 0; i < labels.Count; i++) groupIndices.Add(labels[(int)i], i);
@@ -86,7 +96,7 @@ namespace OfficeIMO.Excel {
                 pivotFields[source].ShowAll = false;
                 var newField = new PivotField { Axis = onRow ? PivotTableAxisValues.AxisRow : PivotTableAxisValues.AxisColumn,
                     ShowAll = false, Compact = false, Outline = false, DefaultSubtotal = true,
-                    Items = CreateMaterializedFilteredItems(groupValues, null, false, true) };
+                    Items = CreateMaterializedFilteredItems(groupValues, hiddenLabels, false, true) };
                 definition.PivotFields!.Append(newField);
                 definition.PivotFields.Count = (uint)(derived + 1);
                 OpenXmlCompositeElement axis = onRow ? definition.RowFields! : definition.ColumnFields!;
