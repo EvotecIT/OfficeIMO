@@ -17,9 +17,6 @@ namespace OfficeIMO.PowerPoint {
             OfficeOpenXmlChartWriter.PopulateSharedChart(part, relationship, data, kind);
         internal static void UpdateSharedChartData(ChartPart part, OfficeChartData data, OfficeChartKind kind) =>
             OfficeOpenXmlChartWriter.UpdateSharedChartData(part, data, kind);
-        internal static void ApplySharedChartSeriesStyle(ChartPart part, OfficeChartData data, OfficeChartKind kind,
-            bool materializeMissingBubbleColors, ISet<uint>? preservedSeriesIndexes = null) =>
-            OfficeOpenXmlChartWriter.ApplySharedChartSeriesStyle(part, data, kind, materializeMissingBubbleColors, preservedSeriesIndexes);
         internal static byte[] BuildBubbleChartWorkbook(OfficeChartData data) =>
             OfficeOpenXmlChartWriter.BuildWorkbook(data, OfficeChartKind.Bubble);
         internal static PowerPointChartData ToPowerPointChartData(OfficeChartData data) =>
