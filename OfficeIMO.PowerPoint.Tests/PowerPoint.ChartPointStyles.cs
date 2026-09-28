@@ -21,8 +21,10 @@ public sealed class PowerPointChartPointStylesTests {
         LineChartSeries series = presentation.Slides.Single().SlidePart.ChartParts.Single()
             .ChartSpace!.Descendants<LineChartSeries>().Single();
         var point = new DataPoint(new DocumentFormat.OpenXml.Drawing.Charts.Index { Val = 0U },
-            new ChartShapeProperties(new SolidFill(new RgbColorModelHex { Val = "FF0000" })),
-            new Marker(new ChartShapeProperties(new SolidFill(new RgbColorModelHex { Val = "0000FF" }))));
+            new Marker(new ChartShapeProperties(new SolidFill(new RgbColorModelHex { Val = "0000FF" }))),
+            new ChartShapeProperties(new SolidFill(new RgbColorModelHex { Val = "FF0000" })));
+        point.ChartShapeProperties!.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "bwMode", "", "black"));
+        point.Marker!.ChartShapeProperties!.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "bwMode", "", "gray"));
         series.AddChild(point, true);
 
         chart.SetDataPointStyle(0, 0, new OfficeChartPointStyle(OfficeColor.FromRgb(0, 128, 0)));
@@ -32,6 +34,8 @@ public sealed class PowerPointChartPointStylesTests {
         chart.SetDataPointStyle(0, 0, null);
         Assert.Null(point.ChartShapeProperties?.GetFirstChild<SolidFill>());
         Assert.Null(point.Marker?.ChartShapeProperties?.GetFirstChild<SolidFill>());
+        Assert.Equal("black", point.ChartShapeProperties!.GetAttribute("bwMode", "").Value);
+        Assert.Equal("gray", point.Marker!.ChartShapeProperties!.GetAttribute("bwMode", "").Value);
         Assert.Empty(presentation.ValidateDocument());
     }
 

@@ -22,6 +22,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 int seriesCount = layerIndex == scatterCharts.Count - 1
                     ? remainingSeries
                     : Math.Min(currentLayerSize, remainingSeries - reservedForLaterLayers);
+                C.ScatterStyle style = scatterChart.GetFirstChild<C.ScatterStyle>() ?? new C.ScatterStyle();
+                style.Val = style.Val?.Value == C.ScatterStyleValues.Smooth || style.Val?.Value == C.ScatterStyleValues.SmoothMarker
+                    ? C.ScatterStyleValues.SmoothMarker : C.ScatterStyleValues.LineMarker;
+                if (style.Parent == null) scatterChart.AddChild(style, true);
                 UpdateScatterChartSeries(scatterChart, data, seriesOffset, seriesCount);
                 seriesOffset += seriesCount;
             }

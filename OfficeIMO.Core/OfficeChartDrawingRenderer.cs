@@ -891,9 +891,12 @@ public static partial class OfficeChartDrawingRenderer {
         double left = point.X - diameter / 2D;
         double top = point.Y - diameter / 2D;
         OfficeColor markerStroke = pointStyle?.OutlineColor ?? series.MarkerOutlineColor ?? color;
+        // Line-only markers have no area in which to draw a hatch. Use its visible
+        // foreground rather than the hatch background for their strokes.
+        OfficeColor lineMarkerStroke = pointStyle?.OutlineColor ?? pointStyle?.HatchColor ?? series.MarkerOutlineColor ?? color;
         double markerStrokeWidth = pointStyle?.ShowOutline == false ? 0 : pointStyle?.OutlineWidth ?? series.MarkerOutlineWidth ?? strokeWidth;
         if (series.MarkerShape == OfficeChartMarkerShape.Dash) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, lineMarkerStroke, markerStrokeWidth);
             return;
         }
 
@@ -906,14 +909,14 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (series.MarkerShape == OfficeChartMarkerShape.Plus) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, markerStroke, markerStrokeWidth);
-            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, diameter), point.X, top, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, lineMarkerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, 0D, diameter), point.X, top, null, lineMarkerStroke, markerStrokeWidth);
             return;
         }
 
         if (series.MarkerShape == OfficeChartMarkerShape.X) {
-            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, diameter), left, top, null, markerStroke, markerStrokeWidth);
-            AddShape(drawing, OfficeShape.Line(0D, diameter, diameter, 0D), left, top, null, markerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, diameter), left, top, null, lineMarkerStroke, markerStrokeWidth);
+            AddShape(drawing, OfficeShape.Line(0D, diameter, diameter, 0D), left, top, null, lineMarkerStroke, markerStrokeWidth);
             return;
         }
 

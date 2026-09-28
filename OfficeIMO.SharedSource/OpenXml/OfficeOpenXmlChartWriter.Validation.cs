@@ -12,7 +12,7 @@ namespace OfficeIMO.OpenXml.Internal {
             if (data.Series.Any(series => series.RenderKind.HasValue && !Enum.IsDefined(typeof(OfficeChartKind), series.RenderKind.Value) ||
                 !Enum.IsDefined(typeof(OfficeChartAxisGroup), series.AxisGroup)))
                 throw new ArgumentException("Series chart kinds and axis groups must be supported values.", nameof(data));
-            ValidateSharedWorkbookDimensionsAndValues(data);
+            ValidateSharedWorkbookDimensionsAndValues(data, defaultKind);
             if (defaultKind == OfficeChartKind.Scatter && data.Series.Count > SpreadsheetMaximumColumns / 2)
                 throw new ArgumentException("Scatter chart data exceeds the embedded worksheet column limit.", nameof(data));
             if (defaultKind == OfficeChartKind.Bubble) {
@@ -78,12 +78,21 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         private static void ValidateSharedWorkbookDimensionsAndValues(
-            OfficeChartData data) {
+            OfficeChartData data, OfficeChartKind defaultKind) {
+            const int maximumCellTextLength = 32767;
             long totalPoints = data.Series.Sum(series =>
                 (long)series.Values.Count);
             ValidateSharedWorkbookDimensions(data.Categories.Count,
                 data.Series.Count, totalPoints);
+            if (data.Categories.Any(category => category != null && category.Length > maximumCellTextLength)) {
+                throw new ArgumentException("Chart category text exceeds the embedded worksheet cell limit.", nameof(data));
+            }
             foreach (OfficeChartSeries series in data.Series) {
+                int generatedHeaderLength = defaultKind == OfficeChartKind.Bubble ? 5 :
+                    defaultKind == OfficeChartKind.Scatter ? 2 : 0;
+                if (series.Name.Length > maximumCellTextLength - generatedHeaderLength) {
+                    throw new ArgumentException("Chart series text exceeds the embedded worksheet cell limit, including generated headers.", nameof(data));
+                }
                 if (series.Values.Any(value => double.IsNaN(value)
                         || double.IsInfinity(value))
                     || series.XValues?.Any(value => double.IsNaN(value)
