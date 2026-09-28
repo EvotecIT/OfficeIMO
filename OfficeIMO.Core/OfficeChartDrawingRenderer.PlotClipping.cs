@@ -114,6 +114,20 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange yRange, ChartPlotBounds bounds, out OfficePoint start, out OfficePoint end) {
         start = default;
         end = default;
+        // Parameter rounding loses the visible endpoint when a very distant point
+        // is first: the entry fraction can round all the way to one. Clip from
+        // the in-range endpoint so the small fraction remains representable.
+        bool fromInside = from.X >= xRange.Min && from.X <= xRange.Max &&
+            from.Y >= yRange.Min && from.Y <= yRange.Max;
+        bool toInside = to.X >= xRange.Min && to.X <= xRange.Max &&
+            to.Y >= yRange.Min && to.Y <= yRange.Max;
+        if (!fromInside && toInside) {
+            if (!TryClipScatterSegment(to, from, xRange, yRange, bounds,
+                    out OfficePoint reversedStart, out OfficePoint reversedEnd)) return false;
+            start = reversedEnd;
+            end = reversedStart;
+            return true;
+        }
         double x0 = (from.X - xRange.Min) / (xRange.Max - xRange.Min);
         double y0 = (from.Y - yRange.Min) / (yRange.Max - yRange.Min);
         double x1 = (to.X - xRange.Min) / (xRange.Max - xRange.Min);
