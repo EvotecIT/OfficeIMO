@@ -77,9 +77,9 @@ namespace OfficeIMO.OpenXml.Internal {
             OfficeChartSeries series, OfficeChartKind kind) {
             if (!IsMarkerKind(kind)) return;
             C.Marker marker = seriesElement.GetFirstChild<C.Marker>() ?? new C.Marker();
-            marker.Symbol = new C.Symbol {
-                Val = series.ShowMarkers ? MapMarker(series.MarkerShape) : C.MarkerStyleValues.None
-            };
+            if (!series.ShowMarkers) marker.Symbol = new C.Symbol { Val = C.MarkerStyleValues.None };
+            else if (series.MarkerShape.HasValue || marker.Symbol == null)
+                marker.Symbol = new C.Symbol { Val = MapMarker(series.MarkerShape) };
             if (series.MarkerSize.HasValue) marker.Size = new C.Size { Val = (byte)OfficeChartStyleBounds.ClampNativeMarkerSize(series.MarkerSize.Value) };
             if (series.Color.HasValue || series.MarkerOutlineColor.HasValue || series.MarkerOutlineWidth.HasValue) {
                 C.ChartShapeProperties properties = marker.ChartShapeProperties ?? new C.ChartShapeProperties();
