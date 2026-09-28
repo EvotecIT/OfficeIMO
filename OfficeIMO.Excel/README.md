@@ -653,17 +653,25 @@ records is rejected before changing the saved view.
 Materialization supports label equals, begins with, ends with, contains, and
 their negations on ordinary row or column fields with text, Boolean, blank,
 error, or numeric captions. Numeric captions use General, `#,##0`, `0.0`,
-`0.00`, `0.000`, `0.0%`, or `$#,##0.00` pivot-field formatting; other numeric formats and date
-captions remain unqualified. It also
-supports label greater/less comparisons and inclusive
+`0.00`, `0.000`, `0.0%`, or `$#,##0.00` pivot-field formatting; other numeric
+formats and date captions remain unqualified. It also supports label
+greater/less comparisons and inclusive
 between or exclusive not-between ranges when every caption and criterion uses
 ASCII letters. Other text is rejected because Excel's localized ordering can
 select different items. Qualified label comparisons use the current process
 culture, matching Excel's locale-dependent ordering when run under the same
 locale. Distinct numeric cache keys remain separate when the format gives them
 the same displayed caption: a label filter can select both rows, while typed
-numeric `GetPivotData` criteria still address each key. On a single ordinary
-axis field, it supports value equals,
+numeric `GetPivotData` criteria still address each key.
+
+Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,
+and not-between filters materialize on date-valued row or column fields.
+They compare complete date-time values in either workbook date system, so a
+midnight equality does not select a later time on the same day. Blank source
+dates do not match, including not-equals. Dynamic date filters and whole-day
+matching remain outside the qualified headless subset.
+
+On a single ordinary axis field, materialization also supports value equals,
 not equals, greater than, greater than or equal, less than, less than or
 equal, inclusive between, exclusive not-between, and top/bottom count,
 percent, and sum filters. Count filters include ties at the cutoff. Percent

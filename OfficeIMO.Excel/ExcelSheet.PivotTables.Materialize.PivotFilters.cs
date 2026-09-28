@@ -21,6 +21,34 @@ namespace OfficeIMO.Excel {
                 || (long)(lastRow - firstRow) * filters.Length > limit)
                 throw new NotSupportedException("The pivot filters exceed the qualified materialization budget or shape.");
 
+            foreach (var filter in filters.Where(IsMaterializedPivotFixedDateFilter)) {
+                int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
+                if (!maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Date)
+                    || maps[field].Items.Any(key => key.Kind != PivotFieldValueKind.Date && key.Kind != PivotFieldValueKind.Blank))
+                    throw new NotSupportedException("Fixed-date filter materialization requires a date-valued pivot field.");
+                PivotFilterValues type = filter.Type!.Value;
+                double first, second = 0;
+                if (type == PivotFilterValues.DateBetween || type == PivotFilterValues.DateNotBetween) {
+                    (first, second) = QualifiedPivotValueRange(filter);
+                } else {
+                    var predicate = QualifiedPivotCustomFilter(filter);
+                    if ((predicate.Operator?.Value ?? FilterOperatorValues.Equal) != ResolveSingleFilterOperator(type)
+                        || !TryFinitePivotThreshold(predicate.Val?.Value, out first)
+                        || (filter.StringValue1 != null && (!TryFinitePivotThreshold(filter.StringValue1.Value, out double savedFirst)
+                            || savedFirst != first)) || filter.StringValue2 != null)
+                        throw new NotSupportedException("The fixed-date filter has no qualified saved predicate.");
+                }
+                var included = new HashSet<PivotFieldValue>(maps[field].Items.Where(key => {
+                    if (key.Kind != PivotFieldValueKind.Date) return false;
+                    double serial = ExcelPivotCacheDateCodec.ToSerial(key.Date!.Value, _excelDocument.DateSystem);
+                    return type == PivotFilterValues.DateBetween ? serial >= first && serial <= second
+                        : type == PivotFilterValues.DateNotBetween ? serial < first || serial > second
+                        : MatchesMaterializedPivotValueComparison(serial, first, ResolveSingleFilterOperator(type));
+                }));
+                FilterMaterializedSourceRows(source, visibility.IncludedRows, included, field,
+                    groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
+            }
+
             foreach (var filter in filters.Where(IsMaterializedPivotLabelComparison)) {
                 int field = QualifiedPivotFilterField(filter, cacheFields, axisFields);
                 bool numericItems = maps[field].Items.Any(key => key.Kind == PivotFieldValueKind.Number);
@@ -140,7 +168,8 @@ namespace OfficeIMO.Excel {
                     groupings, dateGroupings, manualGroupings, firstRow, lastRow, firstColumn, token);
             }
 
-            if (filters.Any(filter => !IsMaterializedPivotLabelComparison(filter)
+            if (filters.Any(filter => !IsMaterializedPivotFixedDateFilter(filter)
+                && !IsMaterializedPivotLabelComparison(filter)
                 && !IsMaterializedPivotValueFilter(filter)))
                 throw new NotSupportedException("This pivot label or value filter is not qualified for materialization.");
             if (!visibility.IncludedRows.Any(include => include))
@@ -156,6 +185,14 @@ namespace OfficeIMO.Excel {
                 || type == PivotFilterValues.CaptionGreaterThan || type == PivotFilterValues.CaptionGreaterThanOrEqual
                 || type == PivotFilterValues.CaptionLessThan || type == PivotFilterValues.CaptionLessThanOrEqual
                 || type == PivotFilterValues.CaptionBetween || type == PivotFilterValues.CaptionNotBetween;
+        }
+
+        private static bool IsMaterializedPivotFixedDateFilter(PivotFilter filter) {
+            var type = filter.Type?.Value;
+            return type == PivotFilterValues.DateEqual || type == PivotFilterValues.DateNotEqual
+                || type == PivotFilterValues.DateNewerThan || type == PivotFilterValues.DateNewerThanOrEqual
+                || type == PivotFilterValues.DateOlderThan || type == PivotFilterValues.DateOlderThanOrEqual
+                || type == PivotFilterValues.DateBetween || type == PivotFilterValues.DateNotBetween;
         }
 
         private static bool IsMaterializedPivotLabelRange(PivotFilterValues type)
