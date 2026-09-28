@@ -268,7 +268,7 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
     }
 
     [Fact]
-    public void OutlineOnlyPointDoesNotInheritChartBackgroundNoFill() {
+    public void OutlineOnlyPointDoesNotInheritChartBackgroundFill() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         for (int index = 0; index < 2; index++) {
@@ -334,6 +334,14 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
         OdsChart chart = sheet.AddChart(type, "Data.$A$2:.$A$3",
             new[] { new OdsChartSeries("Data.$B$2:.$B$3", "Data.$B$1") },
             4, 2, OdfRect.FromCentimeters(1, 1, 10, 6), "Sales");
+
+        XDocument chartPart = XDocument.Parse(Encoding.UTF8.GetString(
+            document.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement background = Assert.Single(chartPart.Descendants(OdfNamespaces.Style + "style"),
+            definition => (string?)definition.Attribute(OdfNamespaces.Style + "name") == "ChartStyle")
+            .Element(OdfNamespaces.Style + "graphic-properties")!;
+        Assert.Equal("solid", (string?)background.Attribute(OdfNamespaces.Draw + "fill"));
+        Assert.Equal("#FFFFFF", (string?)background.Attribute(OdfNamespaces.Draw + "fill-color"));
 
         Assert.Equal(chartClass, chart.ChartClass);
         Assert.Equal(vertical, chart.VerticalBars);
