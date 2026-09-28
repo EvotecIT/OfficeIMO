@@ -111,7 +111,8 @@ public sealed class OdsChart {
                 bool pointStylesProjected = OdsChartPointStyles.TryRead(element, Style, defaultStyle,
                     hatches, out IReadOnlyList<OfficeChartPointStyle?>? pointStyles);
                 bool unprojectedAppearance = !pointStylesProjected ||
-                    OdsChartPointStyles.HasUnprojectedSeriesPieOffset(element, Style, defaultStyle);
+                    (chartClass is "chart:circle" or "chart:ring" &&
+                     OdsChartPointStyles.HasUnprojectedSeriesPieOffset(element, Style, defaultStyle));
                 return new OdsChartSeries(
                     (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
                     (string?)element.Attribute(chart + "label-cell-address"),

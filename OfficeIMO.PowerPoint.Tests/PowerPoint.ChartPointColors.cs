@@ -9,10 +9,27 @@ using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using P = DocumentFormat.OpenXml.Presentation;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests {
     public class PowerPointChartPointColorsTests {
+        [Fact]
+        public void NotesChartUsesNotesColorMapOverride() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.Notes.Text = "Notes";
+            NotesSlidePart notes = slide.SlidePart.NotesSlidePart!;
+            ChartPart chart = notes.AddNewPart<ChartPart>();
+            chart.ChartSpace = new C.ChartSpace();
+            notes.NotesSlide!.AddChild(new P.ColorMapOverride(new A.OverrideColorMapping {
+                Accent1 = A.ColorSchemeIndexValues.Accent2
+            }), true);
+
+            var map = OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chart);
+            Assert.Equal("accent2", OfficeIMO.OpenXml.Internal.OfficeOpenXmlThemeColorResolver.MapSchemeColor("accent1", map));
+        }
+
         private static readonly OfficeColor?[] Colors = {
             OfficeColor.FromRgb(18, 52, 86), null, OfficeColor.FromRgb(254, 220, 186)
         };

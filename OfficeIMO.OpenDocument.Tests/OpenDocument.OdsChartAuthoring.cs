@@ -11,6 +11,49 @@ using Xunit;
 namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdsChartAuthoringTests {
+    [Fact]
+    public void NewChartSkipsOccupiedObjectPrefixWithoutDirectoryEntry() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetNumber(1);
+        byte[] vendorStyles = Encoding.UTF8.GetBytes("<vendor-styles/>");
+        document.Package.AddOrReplaceEntry("Object 1/styles.xml", vendorStyles, "text/xml");
+
+        sheet.AddChart(OdsChartType.Column, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1") }, 2, 2,
+            OdfRect.FromCentimeters(1, 1, 8, 5));
+
+        Assert.Equal(vendorStyles, document.GetPackageEntryBytes("Object 1/styles.xml"));
+        Assert.NotEmpty(document.GetPackageEntryBytes("Object 2/content.xml"));
+        using var reopened = new MemoryStream(document.ToBytes());
+        OdsDocument loaded = OdsDocument.Load(reopened);
+        Assert.Equal(vendorStyles, loaded.GetPackageEntryBytes("Object 1/styles.xml"));
+        Assert.Single(loaded.GetSheet("Data")!.Charts);
+    }
+
+    [Fact]
+    public void CartesianChartIgnoresInheritedPieOffset() {
+        OdsDocument document = OdsDocument.Create();
+        OdsSheet sheet = document.AddSheet("Data");
+        sheet.Cell(0, 0).SetString("A");
+        sheet.Cell(0, 1).SetNumber(1);
+        sheet.AddChart(OdsChartType.Column, "Data.$A$1",
+            new[] { new OdsChartSeries("Data.$B$1") }, 2, 2,
+            OdfRect.FromCentimeters(1, 1, 8, 5));
+        XDocument content = XDocument.Parse(Encoding.UTF8.GetString(document.GetPackageEntryBytes("Object 1/content.xml")));
+        content.Root!.Element(OdfNamespaces.Office + "automatic-styles")!.AddFirst(
+            new XElement(OdfNamespaces.Style + "default-style",
+                new XAttribute(OdfNamespaces.Style + "family", "chart"),
+                new XElement(OdfNamespaces.Style + "chart-properties",
+                    new XAttribute(OdfNamespaces.Chart + "pie-offset", "25"))));
+        document.Package.AddOrReplaceEntry("Object 1/content.xml", Encoding.UTF8.GetBytes(content.ToString()), "text/xml");
+        using var package = new MemoryStream(document.ToBytes());
+        OdsDocument loaded = OdsDocument.Load(package);
+        OdsChart chart = Assert.Single(loaded.GetSheet("Data")!.Charts);
+        Assert.False(Assert.Single(chart.Series).HasUnprojectedAppearance);
+    }
+
     [Theory]
     [InlineData(OdsChartType.Pie)]
     [InlineData(OdsChartType.Doughnut)]

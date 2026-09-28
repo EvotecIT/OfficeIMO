@@ -38,7 +38,7 @@ public sealed partial class OdsSheet {
         int ordinal = 1;
         string directory;
         do { directory = "Object " + ordinal++.ToString(CultureInfo.InvariantCulture) + "/"; }
-        while (_document.Package.ContainsEntry(directory) || _document.Package.ContainsEntry(directory + "content.xml"));
+        while (_document.Package.Entries.Any(entry => entry.Name.StartsWith(directory, StringComparison.Ordinal)));
         string chartClass = type switch {
             OdsChartType.Line => "chart:line",
             OdsChartType.Pie => "chart:circle",
