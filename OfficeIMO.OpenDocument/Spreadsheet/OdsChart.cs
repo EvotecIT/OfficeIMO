@@ -107,11 +107,17 @@ public sealed class OdsChart {
             XElement? defaultStyle = FindChartDefaultStyle(part)
                 ?? (stylesPart == null ? null : FindChartDefaultStyle(stylesPart));
             IReadOnlyDictionary<string, XElement> hatches = OdsChartPointStyles.IndexHatches(part, stylesPart);
-            var series = seriesElements.Select(element => new OdsChartSeries(
-                (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
-                (string?)element.Attribute(chart + "label-cell-address"),
-                NormalizeChartClass(element, (string?)element.Attribute(chart + "class")),
-                OdsChartPointStyles.Read(element, Style, defaultStyle, hatches))).ToArray();
+            var series = seriesElements.Select(element => {
+                IReadOnlyList<OfficeChartPointStyle?>? pointStyles =
+                    OdsChartPointStyles.Read(element, Style, defaultStyle, hatches);
+                bool unprojectedPointStyles = pointStyles == null && element.Elements(chart + "data-point")
+                    .Any(point => point.Attribute(chart + "style-name") != null);
+                return new OdsChartSeries(
+                    (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
+                    (string?)element.Attribute(chart + "label-cell-address"),
+                    NormalizeChartClass(element, (string?)element.Attribute(chart + "class")),
+                    pointStyles, unprojectedPointStyles);
+            }).ToArray();
             var allProperties = new List<XElement>();
             bool AddStyleChain(string? name) {
                 var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -221,11 +227,12 @@ public sealed class OdsChartSeries {
         : this(valuesAddress, labelAddress, null) { }
 
     internal OdsChartSeries(string valuesAddress, string? labelAddress, string? chartClass,
-        IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null) {
+        IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, bool hasUnprojectedPointStyles = false) {
         ValuesAddress = valuesAddress;
         LabelAddress = labelAddress;
         ChartClass = chartClass;
         PointStyles = pointStyles == null ? null : Array.AsReadOnly(pointStyles.ToArray());
+        HasUnprojectedPointStyles = hasUnprojectedPointStyles;
     }
 
     /// <summary>ODF range containing the series values.</summary>
@@ -236,6 +243,7 @@ public sealed class OdsChartSeries {
     public string? ChartClass { get; }
     /// <summary>Supported native per-point fill, hatch, and outline overrides, when present.</summary>
     public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; }
+    internal bool HasUnprojectedPointStyles { get; }
 
     /// <summary>Returns a series with native per-point appearance overrides.</summary>
     public OdsChartSeries WithPointStyles(IReadOnlyList<OfficeChartPointStyle?>? styles) =>
