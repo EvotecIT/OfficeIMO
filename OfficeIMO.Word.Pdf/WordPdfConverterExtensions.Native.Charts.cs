@@ -133,9 +133,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool HasMaterialNativeLegendFrame(Chart? chart) {
             var properties = chart?.GetFirstChild<Legend>()?.GetFirstChild<ChartShapeProperties>();
-            return properties?.ChildElements.Any(child => child is not A.NoFill &&
-                (child is not A.Outline outline || outline.GetFirstChild<A.NoFill>() == null) &&
-                (child.HasAttributes || child.HasChildren)) == true;
+            return properties?.ChildElements.Any(child => child is A.Outline outline
+                ? outline.GetFirstChild<A.NoFill>() == null
+                : child is not A.NoFill && (child.HasAttributes || child.HasChildren)) == true;
         }
 
         private static bool IsNativeSupportedWordChartElement(OpenXmlElement element) =>

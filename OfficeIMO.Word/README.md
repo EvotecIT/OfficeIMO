@@ -503,7 +503,8 @@ outside or best-fit radial leader lines, unsupported effects, and unrepresented 
 without changing the native document. Native authoring remains available for these charts.
 Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
 axis crossing are preserved where the renderer supports them; automatic zero crossing through a negative
-value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements, title or legend shape fills,
+value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements,
+title shape fills or unsupported legend fills,
 manual title layouts, unsupported numeric formats, exploded slices, and nondefault bar spacing
 require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
 time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
