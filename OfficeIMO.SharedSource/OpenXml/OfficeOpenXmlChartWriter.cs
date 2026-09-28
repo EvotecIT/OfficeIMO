@@ -127,7 +127,7 @@ namespace OfficeIMO.OpenXml.Internal {
                     kind is not OfficeChartKind.Pie and not OfficeChartKind.Doughnut &&
                     !series.Color.HasValue
                         ? OfficeChartStyle.Default.GetSeriesColor(index)
-                        : null;
+                        : !series.Color.HasValue ? ReadDirectSeriesColor(seriesElement) : null;
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
                     fallbackSeriesColor);
                 ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor);
