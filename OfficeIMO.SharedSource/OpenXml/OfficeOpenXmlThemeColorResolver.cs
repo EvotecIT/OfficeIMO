@@ -85,7 +85,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return hasSeries;
     }
 
-    private static OpenXmlElement? ResolveChartColorMap(ChartPart chartPart) {
+    internal static OpenXmlElement? ResolveChartColorMap(ChartPart chartPart) {
         if (chartPart.ChartSpace?.GetFirstChild<C.ColorMapOverride>() is C.ColorMapOverride chartOverride)
             return chartOverride;
         foreach (OpenXmlPart owner in chartPart.GetParentParts()) {
@@ -109,7 +109,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return null;
     }
 
-    private static string MapSchemeColor(string scheme, OpenXmlElement? colorMap) {
+    internal static string MapSchemeColor(string scheme, OpenXmlElement? colorMap) {
         if (colorMap == null) return scheme;
         bool wordMap = colorMap is DocumentFormat.OpenXml.Wordprocessing.ColorSchemeMapping;
         string attribute = scheme.ToLowerInvariant() switch {

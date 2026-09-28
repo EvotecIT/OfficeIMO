@@ -31,6 +31,13 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
             if (rules.Length == 0) return default;
             if (rules.Length != 1) throw new NotSupportedException("Multiple chart data-label styles cannot be projected.");
             XElement rule = rules[0];
+            if (rule.HasAttributes || rule.Elements().Any(child =>
+                    child.Name != XName.Get("lnRef", chartStyleNamespace) &&
+                    child.Name != XName.Get("fillRef", chartStyleNamespace) &&
+                    child.Name != XName.Get("effectRef", chartStyleNamespace) &&
+                    child.Name != XName.Get("fontRef", chartStyleNamespace) &&
+                    child.Name != XName.Get("defRPr", chartStyleNamespace)))
+                throw new NotSupportedException("The chart data-label appearance cannot be projected.");
             if (rule.Element(XName.Get("spPr", chartStyleNamespace)) != null ||
                 rule.Element(XName.Get("lnRef", chartStyleNamespace))?.Attribute("idx")?.Value is string lineIndex && lineIndex != "0" ||
                 rule.Element(XName.Get("fillRef", chartStyleNamespace))?.Attribute("idx")?.Value is string fillIndex && fillIndex != "0" ||
@@ -54,6 +61,9 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 XElement element = colorElements[0];
                 if (element.Name.NamespaceName != drawingNamespace)
                     throw new NotSupportedException("The chart data-label font color cannot be projected.");
+                if (element.Name.LocalName == "schemeClr" && element.Attribute("val")?.Value is string token)
+                    element.SetAttributeValue("val", OfficeOpenXmlThemeColorResolver.MapSchemeColor(
+                        token, OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart)));
                 DocumentFormat.OpenXml.OpenXmlElement nativeColor = element.Name.LocalName switch {
                     "schemeClr" => new A.SchemeColor(element.ToString(SaveOptions.DisableFormatting)),
                     "srgbClr" => new A.RgbColorModelHex(element.ToString(SaveOptions.DisableFormatting)),
