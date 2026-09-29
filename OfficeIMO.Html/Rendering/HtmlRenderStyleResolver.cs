@@ -314,6 +314,12 @@ internal sealed partial class HtmlRenderStyleResolver {
         HtmlComputedStyle physicalComputed = PhysicalizeLogicalProperties(computed, writingMode, direction);
         if (!pseudoElement) ApplyDefaultMargins(tag, fontSize, style);
         ApplyBoxValues(physicalComputed, containingWidth, fontSize, style);
+        if (!pseudoElement && tag == "table"
+            && string.Equals(element.GetAttribute("align")?.Trim(), "center", StringComparison.OrdinalIgnoreCase)) {
+            // Legacy table alignment is a presentational hint. Authored CSS margins win.
+            if (!HasAuthoredValue(physicalComputed, "margin-left")) style.MarginLeftAuto = true;
+            if (!HasAuthoredValue(physicalComputed, "margin-right")) style.MarginRightAuto = true;
+        }
         ApplyDimensions(element, physicalComputed, containingWidth, fontSize, parent, style, !pseudoElement);
         ApplyReplacedElementValues(computed, fontSize, style);
         ApplyPaint(element, computed, style, pseudoElement);

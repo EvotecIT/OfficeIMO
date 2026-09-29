@@ -1,3 +1,4 @@
+using System.Text;
 using AngleSharp.Dom;
 
 namespace OfficeIMO.Html;
@@ -100,7 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, int depth, out double minimum, out double preferred) {
-        string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style);
+        string text = ApplyTextTransform(ResolveTableCellSizingText(cell, style, containingWidth, depth, out bool hasSizedNestedTable), style);
         // Cell content is text, not a CSS component value: quotes and parentheses
         // must not protect whitespace (including tabs) from intrinsic sizing.
         IReadOnlyList<string> tokens = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
@@ -109,18 +110,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
         minimum = tokens.Count == 0 ? insets + 1D : tokens.Max(token => MeasureInlineText(token, style)) + insets;
         preferred = Math.Max(minimum, MeasureInlineText(normalized, style) + insets);
         bool hasLineBreak = ContainsTableCellLineBreak(cell);
-        if (hasLineBreak) {
-            // TextContent drops forced line breaks. Use the existing in-flow run
-            // measurement so a navigation cell with <br> does not reserve one
-            // column as though all of its labels occupied a single line.
-            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(new FlexItem(cell, style, 0), containingWidth);
+        if (hasLineBreak || hasSizedNestedTable) {
+            // TextContent drops line boundaries between blocks and <br> nodes.
+            // Sized nested tables contribute separately as descendants.
+            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(
+                new FlexItem(cell, style, 0), containingWidth, skipSizedNestedTables: hasSizedNestedTable);
             minimum = Math.Max(1D, MeasureGridMinContentRuns(runs) + insets);
             preferred = Math.Max(minimum, MeasureGridMaxContentRuns(runs) + insets);
         }
-        if (!hasLineBreak && text.IndexOf('\t') >= 0) {
+        if (!hasLineBreak && !hasSizedNestedTable && text.IndexOf('\t') >= 0) {
             preferred = Math.Max(preferred, MeasureTabExpandedText(text, style, 0D) + insets);
         }
-        if (!hasLineBreak) {
+        if (!hasLineBreak && !hasSizedNestedTable) {
             // The in-flow runs already include generated content when a cell
             // contains a forced break; do not count it a second time.
             double generatedPreferred = 0D;
@@ -136,6 +137,37 @@ internal sealed partial class HtmlRenderLayoutEngine {
             preferred = Math.Max(preferred, authored);
         }
         ResolveTableDescendantIntrinsicWidths(cell, style, containingWidth, depth, insets, ref minimum, ref preferred);
+    }
+
+    private string ResolveTableCellSizingText(IElement cell, HtmlRenderBoxStyle cellStyle, double containingWidth, int depth, out bool hasSizedNestedTable) {
+        var text = new StringBuilder();
+        hasSizedNestedTable = false;
+        AppendTableCellSizingText(cell, cellStyle, containingWidth, depth, text, ref hasSizedNestedTable);
+        return text.ToString();
+    }
+
+    private void AppendTableCellSizingText(IElement parent, HtmlRenderBoxStyle parentStyle, double containingWidth, int depth, StringBuilder text, ref bool hasSizedNestedTable) {
+        foreach (INode node in parent.ChildNodes) {
+            if (node is IText literal) {
+                text.Append(literal.Data);
+                continue;
+            }
+            if (node is not IElement element) continue;
+            CheckCancellation();
+            EnsureDepth(depth + 1, element);
+            ChargeLayoutOperation(HtmlRenderStyleResolver.DescribeSource(element));
+            HtmlRenderBoxStyle elementStyle = _styleResolver.Resolve(element, containingWidth, parentStyle);
+            if (elementStyle.Display == "none" || ShouldExtractOutOfFlow(elementStyle)) continue;
+            if (string.Equals(element.LocalName, "table", StringComparison.OrdinalIgnoreCase)
+                && HtmlRenderStyleResolver.IsBlockElement(element, elementStyle)
+                && elementStyle.ExplicitWidth.HasValue && !elementStyle.ExplicitWidthUsesPercentage) {
+                // The nested table contributes its own measured width below. Its
+                // cells are separate lines, not one long line of outer-cell text.
+                hasSizedNestedTable = true;
+                continue;
+            }
+            AppendTableCellSizingText(element, elementStyle, containingWidth, depth + 1, text, ref hasSizedNestedTable);
+        }
     }
 
     private static bool ContainsTableCellLineBreak(IElement cell) {

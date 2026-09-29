@@ -443,12 +443,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(maximum, current);
     }
 
-    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1) {
+    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1, bool skipSizedNestedTables = false) {
         var rawRuns = new List<GridIntrinsicTextRun>();
         if (item.Element == null) {
             if (item.Style.Font.Size > 0D) rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
         } else {
-            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, depth, rawRuns);
+            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, depth, rawRuns, skipSizedNestedTables);
         }
 
         var normalized = new List<GridIntrinsicTextRun>();
@@ -529,7 +529,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle parentStyle,
         double availableSize,
         int depth,
-        ICollection<GridIntrinsicTextRun> result) {
+        ICollection<GridIntrinsicTextRun> result,
+        bool skipSizedNestedTables) {
         AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             if (node is IText text) {
@@ -540,6 +541,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             EnsureDepth(depth, child);
             HtmlRenderBoxStyle childStyle = _styleResolver.Resolve(child, availableSize, parentStyle);
             if (childStyle.Display == "none" || childStyle.Position == "absolute" || childStyle.Position == "fixed") continue;
+            if (skipSizedNestedTables && string.Equals(child.LocalName, "table", StringComparison.OrdinalIgnoreCase)
+                && HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
+                && childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
+                // Its width is measured separately, but it still separates text
+                // on either side into distinct block lines.
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                continue;
+            }
             if (string.Equals(child.LocalName, "br", StringComparison.OrdinalIgnoreCase)) {
                 result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
@@ -560,7 +569,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 GridIntrinsicContributions widths = ResolveInlineBlockIntrinsicContributions(atomic, availableSize, depth + 1);
                 result.Add(GridIntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));
             } else {
-                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result);
+                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result, skipSizedNestedTables);
             }
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
         }

@@ -113,6 +113,79 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlTables_LegacyCenterAlignUsesAutoMarginsUnlessCssOverridesThem() {
+        const string prefix = "<style>body{margin:0}main{width:500px}</style><main>";
+        const string suffix = "<tr><td>Cell</td></tr></table></main>";
+        var options = new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) };
+
+        HtmlRenderDocument auto = HtmlRenderTestDriver.Render(prefix + "<table align='center'>" + suffix, options);
+        HtmlRenderDocument fixedWidth = HtmlRenderTestDriver.Render(prefix + "<table align='center' style='width:160px'>" + suffix, options);
+        HtmlRenderDocument cssOverride = HtmlRenderTestDriver.Render(prefix + "<table align='center' style='width:160px;margin:0'>" + suffix, options);
+
+        HtmlRenderSemanticGroup autoTable = Assert.Single(EnumerateTablePaginationScene(auto.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+        HtmlRenderSemanticGroup fixedTable = Assert.Single(EnumerateTablePaginationScene(fixedWidth.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+        HtmlRenderSemanticGroup overriddenTable = Assert.Single(EnumerateTablePaginationScene(cssOverride.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Table);
+
+        Assert.Equal((500D - autoTable.Width) / 2D, autoTable.X, 1);
+        Assert.Equal(170D, fixedTable.X, 1);
+        Assert.Equal(0D, overriddenTable.X, 1);
+    }
+
+    [Theory]
+    [InlineData("width='200'")]
+    [InlineData("style='width:200px;border-spacing:0'")]
+    public void HtmlTables_ExplicitNestedTableDoesNotFlattenItsRowsIntoOuterPreferredWidth(string widthAttribute) {
+        string html = "<body style='margin:0'><main style='width:500px'>"
+            + "<table align='center' style='border-spacing:1px'><tr><td style='padding:0'>"
+            + "<table " + widthAttribute + "><tr><td>Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa</td></tr>"
+            + "<tr><td>Lambda Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon</td></tr></table>"
+            + "</td></tr></table></main></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderSemanticGroup[] tables = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table).ToArray();
+
+        Assert.Equal(2, tables.Length);
+        HtmlRenderSemanticGroup outer = tables.OrderByDescending(table => table.Width).First();
+        Assert.InRange(outer.Width, 200D, 230D);
+        Assert.Equal((500D - outer.Width) / 2D, outer.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_SizedNestedTableSeparatesSurroundingTextDuringOuterSizing() {
+        const string html = "<body style='margin:0'><main style='width:500px'>"
+            + "<table align='center' style='border-spacing:1px'><tr><td style='padding:0'>"
+            + "Before alpha beta gamma<table width='200'><tr><td>Inner</td></tr></table>After delta epsilon zeta"
+            + "</td></tr></table></main></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderSemanticGroup outer = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table)
+            .OrderByDescending(table => table.Width).First();
+
+        Assert.InRange(outer.Width, 200D, 230D);
+        Assert.Equal((500D - outer.Width) / 2D, outer.X, 1);
+    }
+
+    [Fact]
+    public void HtmlTables_InlineDisplayedNestedTableStaysInOuterTextSizing() {
+        const string html = "<body style='margin:0'><main style='width:500px'>"
+            + "<table style='border-spacing:1px'><tr><td style='padding:0'>"
+            + "Before alpha beta gamma<table style='display:inline;width:200px'><tr><td>Inner</td></tr></table>After delta epsilon zeta"
+            + "</td></tr></table></main></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 500D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderSemanticGroup outer = EnumerateTablePaginationScene(rendered.Pages[0].Scene)
+            .OfType<HtmlRenderSemanticGroup>().Where(group => group.Role == HtmlRenderSemanticGroupRole.Table)
+            .OrderByDescending(table => table.Width).First();
+
+        Assert.True(outer.Width > 250D);
+    }
+
+    [Fact]
     public void HtmlTables_RejectRowsAndColumnsBeforeAllocatingLayoutTracks() {
         var rowOptions = new HtmlRenderOptions { MaxTableRows = 1 };
         HtmlDomLimitException rowException = Assert.Throws<HtmlDomLimitException>(() =>
