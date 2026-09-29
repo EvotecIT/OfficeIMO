@@ -108,7 +108,11 @@ public enum ReaderInputKind {
     /// <summary>
     /// DocBook XML article or book.
     /// </summary>
-    DocBook = 24
+    DocBook = 24,
+    /// <summary>
+    /// Apple Pages, Numbers, or Keynote document.
+    /// </summary>
+    IWork = 25
 }
 
 /// <summary>

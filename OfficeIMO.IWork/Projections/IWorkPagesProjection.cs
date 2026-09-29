@@ -127,8 +127,11 @@ public sealed class IWorkPagesProjection {
 public sealed partial class IWorkSourceDocument {
     /// <summary>Reads a Pages package into a bounded semantic source projection.</summary>
     public IWorkPagesProjection ReadPages() {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Pages) throw new InvalidOperationException($"The source is {Kind}, not Pages.");
-        return IWorkPagesReader.Read(this);
+        IWorkPagesProjection projection = IWorkPagesReader.Read(this);
+        _cancellationToken.ThrowIfCancellationRequested();
+        return projection;
     }
 }
 
@@ -144,7 +147,8 @@ internal static class IWorkPagesReader {
 
     internal static IWorkPagesProjection Read(IWorkSourceDocument source) {
         var diagnostics = new List<IWorkDiagnostic>();
-        IWorkTextContent bodyContent = new(Array.Empty<IWorkTextParagraph>(), isComplete: false);
+        IWorkTextContent bodyContent = new(Array.Empty<IWorkTextParagraph>(),
+            isComplete: false, isTextComplete: false);
         var sections = new List<IWorkPagesSection>();
         var textBoxes = new List<IWorkTextBox>();
         var images = new List<IWorkImageAsset>();

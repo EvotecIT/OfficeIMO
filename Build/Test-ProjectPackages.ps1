@@ -120,6 +120,7 @@ try {
         'OfficeIMO.Provenance.C2pa' = @('OfficeIMO.Core')
         'OfficeIMO.Security' = @('OfficeIMO.Core')
         'OfficeIMO.IWork' = @('OfficeIMO.Core')
+        'OfficeIMO.Reader.IWork' = @('OfficeIMO.IWork', 'OfficeIMO.Reader.Core')
         'OfficeIMO.Word' = @('OfficeIMO.Core')
         'OfficeIMO.Excel' = @('OfficeIMO.Core')
         'OfficeIMO.PowerPoint' = @('OfficeIMO.Core')

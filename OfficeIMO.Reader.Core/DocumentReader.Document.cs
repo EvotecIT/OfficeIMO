@@ -262,7 +262,9 @@ internal static partial class DocumentReaderEngine {
     private static string? BuildChunkDocumentMarkdown(IReadOnlyList<ReaderChunk> chunks) {
         return JoinChunkMarkdown(
             chunks,
-            static (chunk, _) => string.IsNullOrWhiteSpace(chunk.Markdown) ? chunk.Text : chunk.Markdown);
+            static (chunk, _) => chunk.ContinuesPreviousChunk && chunk.Markdown == string.Empty
+                ? null
+                : string.IsNullOrWhiteSpace(chunk.Markdown) ? chunk.Text : chunk.Markdown);
     }
 
     private static string? JoinChunkMarkdown(
