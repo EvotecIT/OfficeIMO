@@ -20,6 +20,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(semanticOverflow.Visuals));
                 } else if (visual is HtmlRenderLayoutRegion regionOverflow) {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(regionOverflow.Visuals));
+                } else if (visual is HtmlRenderEffectGroup effectOverflow) {
+                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(effectOverflow.Visuals));
+                } else if (visual is HtmlRenderClipGroup { ClipVertical: false } visibleVerticalClip) {
+                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(visibleVerticalClip.Visuals));
                 }
                 double intersectionTop = Math.Max(start, visualTop);
                 double intersectionBottom = Math.Min(end, visualBottom);

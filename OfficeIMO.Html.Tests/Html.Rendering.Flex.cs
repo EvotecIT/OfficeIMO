@@ -683,11 +683,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void HtmlFlexSection_FixedHeightPaintOverflowSurvivesSemanticSlicing(bool editableRegions) {
-        const string html = "<style>body{margin:0}</style>"
-            + "<section style='display:flex;width:180px;height:100px;align-items:flex-start'>"
+    [InlineData(false, "")]
+    [InlineData(false, "opacity:.5;")]
+    [InlineData(false, "transform:translateX(1px);")]
+    [InlineData(false, "transform:translateY(1px);")]
+    [InlineData(false, "overflow-x:clip;overflow-y:visible;")]
+    [InlineData(true, "")]
+    public void HtmlFlexSection_FixedHeightPaintOverflowSurvivesSemanticSlicing(bool editableRegions, string effect) {
+        string html = "<style>body{margin:0}</style>"
+            + "<section style='display:flex;width:180px;height:100px;align-items:flex-start;" + effect + "'>"
             + "<div style='width:90px;line-height:50px;orphans:1;widows:1'>"
             + "First<br>Second<br>Third<br>Fourth<br>Fifth<br>Sixth<br>Seventh<br>Eighth<br>Ninth"
             + "</div></section><p style='margin:0'>Following sibling</p>";
@@ -699,12 +703,45 @@ public sealed partial class HtmlRenderingTests {
         };
         options.EnableEditableLayoutRegions = editableRegions;
 
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
 
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderText>(),
+            visual => visual.Text == "Ninth");
+        Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderText>(),
+            visual => visual.Text == "Ninth");
         Assert.Equal(2, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
         Assert.Contains("Ninth", text, StringComparison.Ordinal);
         Assert.Contains("Following sibling", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_DoesNotBreakNestedFixedHeightOverflowImage() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body{margin:0}</style>"
+            + "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:50px;orphans:1;widows:1'>"
+            + string.Join("<br>", Enumerable.Range(1, 9).Select(index => "Line" + index)) + "</div>"
+            + "<div style='width:90px'><div style='display:flex;width:90px;height:100px;align-items:flex-start'>"
+            + "<img id='nested-atomic' src='data:image/png;base64," + image
+            + "' style='width:90px;height:180px;margin-top:200px'></div></div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(),
+            visual => visual.Source == "img#nested-atomic");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderImage>(),
+            visual => visual.Source == "img#nested-atomic" && Math.Abs(visual.Height - 180D) < 0.01D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
     }
 
     [Fact]

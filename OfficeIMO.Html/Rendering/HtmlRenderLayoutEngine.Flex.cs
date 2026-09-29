@@ -316,7 +316,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double offset,
         IDictionary<HtmlRenderFlowBlock, double> atomicVisualBottoms,
         IDictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>> atomicVisualRanges) {
-        if (offset <= 0.0001D || offset >= item.Height - 0.0001D) return true;
+        if (offset <= 0.0001D || offset >= item.PagedPaintExtent - 0.0001D) return true;
         int precedingBreakIndex = UpperBound(item.BreakOffsets, offset + 0.0001D) - 1;
         if (precedingBreakIndex >= 0 && Math.Abs(item.BreakOffsets[precedingBreakIndex] - offset) <= 0.0001D) return true;
         // A stretched column can have a large painted but content-free tail. Its background
