@@ -275,7 +275,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlTables_AuthoredDescendantWidthContributesToAutoTrackSizingWithoutPercentFeedback() {
-        const string html = "<table style='width:360px;margin:0;table-layout:auto'><tr>"
+        const string html = "<style>td{border:1px solid gray}</style><table style='width:360px;margin:0;table-layout:auto'><tr>"
             + "<td id='fixed-cell'><div style='width:150px'>Fixed</div></td>"
             + "<td id='percent-cell'><div style='width:100%'>Percent</div><img style='width:100%;height:1px' alt=''></td>"
             + "<td id='out-of-flow-cell'><div style='position:absolute;width:1000px'></div>Flow</td>"

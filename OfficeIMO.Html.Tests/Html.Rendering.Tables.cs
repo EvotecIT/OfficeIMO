@@ -10,6 +10,26 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
     [Fact]
+    public void HtmlTables_WithoutAuthoredBordersDoNotPaintCellGrid() {
+        const string html = "<body style='margin:0'>"
+            + "<table><tr><td id='plain'>Plain</td></tr></table>"
+            + "<table border='0'><tr><td id='zero'>Zero</td></tr></table>"
+            + "<table><tr><td id='authored' style='border:1px solid red'>Authored</td></tr></table>"
+            + "<table id='outer' style='border:2px solid red'><tr><td id='outer-cell'>Outer only</td></tr></table>"
+            + "<table id='legacy' border='1'><tr><td id='legacy-cell'>Legacy grid</td></tr></table>"
+            + "</body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>().ToArray();
+
+        Assert.DoesNotContain(shapes, shape => shape.Source is "td#plain" or "td#zero" or "td#outer-cell");
+        Assert.Contains(shapes, shape => shape.Source == "td#authored");
+        Assert.Contains(shapes, shape => shape.Source == "table#outer");
+        Assert.Contains(shapes, shape => shape.Source == "table#legacy");
+        Assert.Contains(shapes, shape => shape.Source == "td#legacy-cell");
+    }
+
+    [Fact]
     public void HtmlTables_ApplyBrowserCaptionAndHeaderDefaultsWithoutOverridingAuthoredStyles() {
         const string prefix = "<body style='margin:0'><table style='width:240px;margin:0'>";
         const string suffix = "</table></body>";
@@ -394,7 +414,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal((4D, 3D, 44D), (first.X, first.Y, first.Width));
         Assert.Equal((52D, 3D, 44D), (second.X, second.Y, second.Width));
-        Assert.Equal(22D, third.Y, 3);
+        Assert.Equal(20D, third.Y, 3);
     }
 
     [Fact]

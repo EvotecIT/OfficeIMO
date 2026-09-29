@@ -272,7 +272,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlBorders_ExplicitNoneSuppressesSyntheticTableCellBorder() {
+    public void HtmlBorders_TableOuterBorderDoesNotCreateCellBorders() {
         const string html = "<table style='width:30px;border:2px solid red;border-collapse:separate'><tr>"
             + "<td id='plain-cell' style='height:10px'></td><td id='none-cell' style='height:10px;border:none'></td>"
             + "</tr></table>";
@@ -284,7 +284,8 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         });
 
-        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#plain-cell" && shape.Shape.StrokeWidth > 0D);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "table" && shape.Shape.StrokeWidth > 0D);
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#plain-cell" && shape.Shape.StrokeWidth > 0D);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#none-cell" && shape.Shape.StrokeWidth > 0D);
     }
 

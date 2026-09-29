@@ -11,6 +11,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         IElement? continuationTarget = null) {
         string source = HtmlRenderStyleResolver.DescribeSource(table);
+        int legacyBorderWidth = ReadLegacyTableBorderWidth(table);
+        if (legacyBorderWidth > 0 && !style.BorderDeclared) {
+            style.Borders = HtmlRenderBorderEdges.Uniform(legacyBorderWidth, "solid", OfficeColor.FromRgb(128, 128, 128));
+        }
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double tableWidth = ResolveBoxWidth(availableWidth, style);
         // CSS table width describes the used table border box. Normal block widths
@@ -164,7 +168,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
                 double cellOuterWidth = SumColumnWidths(columnWidths, column, columnSpan) + horizontalSpacing * (columnSpan - 1);
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, cellOuterWidth, rowStyle);
-                ApplyTableCellFallbackInsets(cellStyle, style);
+                ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
 
                 double cellContentWidth = Math.Max(1D, cellOuterWidth - cellStyle.HorizontalInsets);
                 HtmlInlineLayout inline = LayoutTableCellContent(cell, cellContentWidth, cellStyle, depth + 1);
@@ -436,17 +440,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             forcedBreaks: forcedBreaks);
     }
 
-    private static void ApplyTableCellFallbackInsets(HtmlRenderBoxStyle cellStyle, HtmlRenderBoxStyle tableStyle) {
+    private static int ReadLegacyTableBorderWidth(IElement table) {
+        string? value = table.GetAttribute("border");
+        if (value == null) return 0;
+        if (value.Length == 0) return 1;
+        return int.TryParse(value, out int width) && width > 0 ? width : 0;
+    }
+
+    private static void ApplyTableCellFallbackInsets(HtmlRenderBoxStyle cellStyle, int legacyBorderWidth) {
         if (cellStyle.PaddingTop == 0D && cellStyle.PaddingRight == 0D && cellStyle.PaddingBottom == 0D && cellStyle.PaddingLeft == 0D) {
             cellStyle.PaddingTop = cellStyle.PaddingRight = cellStyle.PaddingBottom = cellStyle.PaddingLeft = 2D;
         }
 
         if (!cellStyle.HasBorderLayout && !cellStyle.BorderDeclared) {
-            cellStyle.Borders = tableStyle.BorderCollapse == "collapse" && tableStyle.HasBorderLayout
-                ? HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color)
-                : tableStyle.HasBorderLayout
-                    ? tableStyle.Borders
-                    : HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(160, 160, 160));
+            cellStyle.Borders = legacyBorderWidth > 0
+                ? HtmlRenderBorderEdges.Uniform(1D, "solid", OfficeColor.FromRgb(128, 128, 128))
+                : HtmlRenderBorderEdges.Uniform(0D, "none", cellStyle.Color);
         }
     }
 

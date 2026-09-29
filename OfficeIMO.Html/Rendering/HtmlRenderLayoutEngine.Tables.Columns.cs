@@ -16,6 +16,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var preferred = Enumerable.Repeat(1D, columnCount).ToArray();
         ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred);
         var occupancy = new int[columnCount];
+        int legacyBorderWidth = ReadLegacyTableBorderWidth(table);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
             int column = 0;
             foreach (IElement cell in rows[rowIndex].Children.Where(IsTableCell)) {
@@ -24,7 +25,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, rowStyles[rows[rowIndex]]);
-                ApplyTableCellFallbackInsets(cellStyle, tableStyle);
+                ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
                 ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth, out double minimum, out double maximum);
                 ApplySpanningWidth(minimums, column, span, minimum);
                 ApplySpanningWidth(preferred, column, span, maximum);
