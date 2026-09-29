@@ -8,6 +8,83 @@ namespace OfficeIMO.Tests;
 
 public sealed class DrawingExportQualityTests {
     [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Radar)]
+    public void OverlayTitleRendersAboveThePlot(OfficeChartKind kind) {
+        var snapshot = new OfficeChartSnapshot("Native chart", "Overlay title", kind,
+            new OfficeChartData(new[] { "A", "B", "C" }, new[] {
+                new OfficeChartSeries("Values", new[] { 1d, 2d, 3d })
+            }), 360, 240,
+            style: new OfficeChartStyle(titleFontSize: 24,
+                plotAreaBackgroundColor: OfficeColor.Parse("#224466")),
+            layout: new OfficeChartLayout(overlayTitle: true, showLegend: false));
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        OfficeDrawingText title = Assert.IsType<OfficeDrawingText>(drawing.Elements.Last());
+        Assert.Equal("Overlay title", title.Text);
+    }
+
+    [Fact]
+    public void ImportedLargeChartTitleReservesItsFullTextHeight() {
+        var snapshot = new OfficeChartSnapshot("Native chart", "Shared combination", OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "Q1" }, new[] { new OfficeChartSeries("Volume", new[] { 100d }) }),
+            480, 300, style: new OfficeChartStyle(titleFontSize: 24),
+            layout: new OfficeChartLayout(showLegend: false));
+
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+        OfficeDrawingText title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Shared combination");
+        Assert.Equal(24, title.Font.Size);
+        Assert.True(title.Height >= 30D);
+    }
+
+    [Fact]
+    public void SmallAuthoredChartPreservesAbsoluteTitleFontSize() {
+        var snapshot = new OfficeChartSnapshot("Small chart", "Title", OfficeChartKind.Line,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }, null, null, null,
+                true, markerSize: 10, markerShape: OfficeChartMarkerShape.Circle, strokeWidth: 2) }), 90, 30,
+            style: new OfficeChartStyle(titleFontSize: 12), layout: new OfficeChartLayout(showLegend: false));
+        var drawing = OfficeChartDrawingRenderer.Render(snapshot, useMinimumCanvas: false);
+        var title = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Title");
+        Assert.Equal(12, title.Font.Size);
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Ellipse && shape.Shape.Width == 10);
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeWidth == 2);
+    }
+    [Fact]
+    public void QualityAnalysisIncludesTransformedGroupTextAndOverflow() {
+        var child = new OfficeDrawing(100, 100);
+        child.AddText("Nested", 10, 10, 40, 20);
+        child.AddShapeForClippedRendering(OfficeShape.Rectangle(30, 10), 90, 10);
+        var drawing = new OfficeDrawing(50, 50);
+        drawing.AddEffectDrawing(child, OfficeTransform.Scale(.5, .5));
+        drawing.AddText("Outer", 5, 5, 20, 10);
+        var issues = OfficeDrawingQualityAnalyzer.Analyze(drawing).Issues;
+        Assert.Contains(issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.TextOverlap && issue.ElementIndex == 0 && issue.RelatedElementIndex == 1);
+        Assert.Contains(issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.ElementOutsideBounds && issue.ElementIndex == 0);
+    }
+
+    [Fact]
+    public void SmallChartQualityRenderingStillReportsOverlappingPointLabels() {
+        var snapshot = new OfficeChartSnapshot("Small scatter", null, OfficeChartKind.Scatter,
+            new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeChartSeries("Values", new[] { 2d, 2d }, new[] { 1d, 1d }) }),
+            90, 30, layout: new OfficeChartLayout(showDataLabels: true, showDataLabelValues: true));
+        var result = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
+        Assert.Contains(result.QualityReport.Issues, issue => issue.Kind == OfficeDrawingQualityIssueKind.TextOverlap);
+    }
+
+    [Fact]
+    public void ChartQualityRenderingCanPreserveSmallAuthoredDimensions() {
+        var snapshot = new OfficeChartSnapshot("Small chart", null, OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 3d }) }), 90, 30);
+        var authored = OfficeChartDrawingRenderer.RenderWithQuality(snapshot, useMinimumCanvas: false);
+        Assert.Equal(90d, authored.Drawing.Width);
+        Assert.Equal(30d, authored.Drawing.Height);
+        var defaultCanvas = OfficeChartDrawingRenderer.RenderWithQuality(snapshot);
+        Assert.Equal(240d, defaultCanvas.Drawing.Width);
+        Assert.Equal(150d, defaultCanvas.Drawing.Height);
+    }
+
+    [Theory]
     [InlineData(OfficeImageExportFormat.Png)]
     [InlineData(OfficeImageExportFormat.Jpeg)]
     [InlineData(OfficeImageExportFormat.Tiff)]

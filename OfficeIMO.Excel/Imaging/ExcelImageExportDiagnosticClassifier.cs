@@ -94,6 +94,7 @@ namespace OfficeIMO.Excel {
                 case ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartSnapshotUnavailable:
                 case ExcelImageExportDiagnosticCodes.ChartKindUnsupported:
+                case ExcelImageExportDiagnosticCodes.ChartAxisUnitUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartTrendlineUnsupported:
                 case ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported:
                 case ExcelImageExportDiagnosticCodes.PrintTitlesUnsupported:

@@ -130,7 +130,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets the relationship id of the embedded image.
         /// </summary>
-        public string? RelationshipId => GetBlip()?.Embed?.Value;
+        public string? RelationshipId => _vmlImageData?.RelationshipId?.Value ?? GetBlip()?.Embed?.Value;
 
         /// <summary>
         /// Gets the relationship id of an externally linked image, if any.
@@ -168,9 +168,19 @@ namespace OfficeIMO.Word {
         /// Get or sets the image's file name
         /// </summary>
         public string? FileName {
-            get => GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
+            get {
+                if (_vmlShape == null) return GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
+                string? title = _vmlImageData?.Title?.Value;
+                return !string.IsNullOrWhiteSpace(title)
+                    ? title
+                    : _imagePart?.Uri.ToString().Split('/').LastOrDefault();
+            }
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
+                if (_vmlShape != null) {
+                    if (_vmlImageData != null) _vmlImageData.Title = value;
+                    return;
+                }
                 var drawingProperties = GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties;
                 if (drawingProperties != null) {
                     drawingProperties.Name = value;
@@ -182,8 +192,13 @@ namespace OfficeIMO.Word {
         /// Gets or sets the image's description.
         /// </summary>
         public string? Description {
-            get => GetDocProperties()?.Description;
-            set => GetWritableDocProperties()?.Description = value;
+            get => _vmlShape != null ? _vmlShape.GetAttributes().FirstOrDefault(attribute => attribute.LocalName == "alt").Value : GetDocProperties()?.Description;
+            set {
+                if (_vmlShape != null) {
+                    if (string.IsNullOrEmpty(value)) _vmlShape.RemoveAttribute("alt", "");
+                    else _vmlShape.SetAttribute(new OpenXmlAttribute("", "alt", "", value));
+                } else GetWritableDocProperties()?.Description = value;
+            }
         }
 
         /// <summary>
@@ -227,6 +242,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? Width {
             get {
+                if (_vmlShape != null) return ReadVmlDimension("width");
                 var inlineCx = _Image.Inline?.Extent?.Cx?.Value;
                 if (inlineCx.HasValue) {
                     return inlineCx.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
@@ -239,6 +255,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
+                if (_vmlShape != null) {
+                    WriteVmlDimension("width", value.Value);
+                    return;
+                }
                 double emuWidth = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                 if (_Image.Inline?.Extent != null) {
                     _Image.Inline.Extent.Cx = (long)emuWidth;
@@ -269,6 +289,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? Height {
             get {
+                if (_vmlShape != null) return ReadVmlDimension("height");
                 var inlineCy = _Image.Inline?.Extent?.Cy?.Value;
                 if (inlineCy.HasValue) {
                     return inlineCy.Value / EnglishMetricUnitsPerInch * PixelsPerInch;
@@ -281,6 +302,10 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
+                if (_vmlShape != null) {
+                    WriteVmlDimension("height", value.Value);
+                    return;
+                }
                 if (_Image.Inline?.Extent != null) {
                     double emuHeight = value.Value * EnglishMetricUnitsPerInch / PixelsPerInch;
                     _Image.Inline.Extent.Cy = (Int64Value)emuHeight;

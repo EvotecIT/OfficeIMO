@@ -194,19 +194,20 @@ public class DrawingChartBubbleTests {
                 heightPoints: 60D,
                 layout: new OfficeChartLayout(showLegend: false)),
             useMinimumCanvas: false);
-        OfficeDrawingShape horizontalAxis = drawing.Shapes
+        OfficeDrawing scene = drawing;
+        OfficeDrawingShape horizontalAxis = scene.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                             shape.Shape.Width > 10D &&
                             shape.Shape.Height == 0D)
             .OrderByDescending(shape => shape.Shape.Width)
             .First();
-        OfficeDrawingShape verticalAxis = drawing.Shapes
+        OfficeDrawingShape verticalAxis = scene.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line &&
                             shape.Shape.Width == 0D &&
                             shape.Shape.Height > 10D)
             .OrderByDescending(shape => shape.Shape.Height)
             .First();
-        OfficeDrawingShape bubble = Assert.Single(GetBubbles(drawing));
+        OfficeDrawingShape bubble = Assert.Single(GetBubbles(scene));
         double centerX = bubble.X + bubble.Shape.Width / 2D;
         double centerY = bubble.Y + bubble.Shape.Height / 2D;
 
@@ -216,6 +217,30 @@ public class DrawingChartBubbleTests {
             verticalAxis.Y + verticalAxis.Shape.Height);
         Assert.InRange(centerX, 0D, drawing.Width);
         Assert.InRange(centerY, 0D, drawing.Height);
+    }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_IgnoresInvisibleBubbleOutlineWhenPaddingThePlot() {
+        OfficeDrawing Render(bool styleZeroBubble) {
+            OfficeChartSeries series = OfficeChartSeries.CreateBubble(
+                "Bubbles", new[] { 1D, 2D }, new[] { 1D, 2D },
+                new[] { 0D, 100D }, OfficeColor.Parse("#2A9D8F"));
+            if (styleZeroBubble)
+                series = series.WithPointStyles(new OfficeChartPointStyle?[] {
+                    new(outlineWidth: 1584D), null
+                });
+            return OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+                "Bubbles", null, OfficeChartKind.Bubble,
+                new OfficeChartData(new[] { "A", "B" }, new[] { series }),
+                420D, 260D, layout: new OfficeChartLayout(showLegend: false)));
+        }
+
+        OfficeDrawingShape baseline = Assert.Single(GetBubbles(Render(false)));
+        OfficeDrawingShape styled = Assert.Single(GetBubbles(Render(true)));
+        Assert.Equal(baseline.X, styled.X, precision: 6);
+        Assert.Equal(baseline.Y, styled.Y, precision: 6);
+        Assert.Equal(baseline.Shape.Width, styled.Shape.Width, precision: 6);
+        Assert.Equal(baseline.Shape.Height, styled.Shape.Height, precision: 6);
     }
 
     [Fact]

@@ -258,6 +258,7 @@ public static class OfficeDocumentReadResultPdfExtensions {
         ReaderInputKind.VCard => OfficeDocumentFormat.VCard,
         ReaderInputKind.Opml => OfficeDocumentFormat.Opml,
         ReaderInputKind.DocBook => OfficeDocumentFormat.DocBook,
+        ReaderInputKind.IWork => OfficeDocumentFormat.IWork,
         _ => OfficeDocumentFormat.Unknown
     };
 

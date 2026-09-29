@@ -45,15 +45,18 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             var color = seriesColors[index % seriesColors.Count];
             if (normalizedType == "line") {
                 chart.SetSeriesLineColor(index, color, widthPoints: 2.25);
+                chart.SetSeriesMarker(index, OfficeChartMarkerShape.Circle, fillColor: color, lineColor: color);
             } else {
                 chart.SetSeriesFillColor(index, color);
                 chart.SetSeriesLineColor(index, color, widthPoints: 0.5);
+                if (normalizedType == "scatter")
+                    chart.SetSeriesMarker(index, OfficeChartMarkerShape.Circle, fillColor: color, lineColor: color);
             }
         }
 
         if (normalizedType == "pie" || normalizedType == "donut" || normalizedType == "doughnut") {
             chart.SetDataLabels(showValue: true, showCategoryName: false);
-            chart.SetDataLabelTextStyle(fontSizePoints: 9, color: textColor, fontName: font);
+            chart.SetDataLabelTextStyle(fontSizePoints: 9, bold: false, italic: false, color: textColor, fontName: font);
             ApplyChartSemanticOptions(chart, source, normalizedType, font, textColor, gridColor);
             return;
         }

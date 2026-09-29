@@ -183,6 +183,7 @@ jobs:
           name: officeimo-markup-vsix
           path: OfficeIMO.Markup.VSCode/dist/*.vsix
           if-no-files-found: error
+          retention-days: 7
 
   publish-marketplace:
     name: Publish VSIX Marketplace

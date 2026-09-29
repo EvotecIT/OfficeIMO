@@ -14,6 +14,7 @@ namespace OfficeIMO.Drawing;
 /// keeps <see cref="IOfficeTextShapingProvider"/> as the single shaping contract used by Drawing and PDF.
 /// </remarks>
 public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvider, IOfficeTextShapingProviderMetadata {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<byte[], LatinFont> LatinFonts = new();
     /// <summary>Shared stateless provider instance.</summary>
     public static OfficeManagedTextShapingProvider Instance { get; } = new OfficeManagedTextShapingProvider();
 
@@ -29,26 +30,30 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Direction == OfficeTextDirection.TopToBottom ||
             string.IsNullOrEmpty(request.Text) ||
-            !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault ||
-            OfficeTextElements.ContainsVariationSelector(request.Text) ||
+            !OfficeManagedTextShaper.RequiresComplexLayout(request.Text) && request.FeatureSettings.IsDefault && !request.ApplyDefaultLatinLigatures ||
+            !request.ApplyDefaultLatinLigatures && (OfficeTextElements.ContainsVariationSelector(request.Text) ||
             OfficeTextElements.ContainsZeroWidthJoinerSequence(request.Text) ||
             OfficeTextElements.ContainsShapingRequiredScript(request.Text) ||
             (OfficeTextElements.ContainsJoiningScript(request.Text) &&
-             !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text))) {
+             !OfficeArabicTextShaper.CanShapeAllJoiningCharacters(request.Text)))) {
             return null;
         }
 
-        IOfficeFontProgram? font = request.IsOpenTypeCff
+        LatinFont? latinFont = request.ApplyDefaultLatinLigatures
+            ? LatinFonts.GetValue(request.FontDataForShaping, data => new LatinFont(data, request.IsOpenTypeCff)) : null;
+        IOfficeFontProgram? font = latinFont?.Font ?? (request.IsOpenTypeCff
             ? OfficeOpenTypeCffFont.TryLoad(request.FontDataForShaping, request.VariationCoordinatesForShaping, out _)
-            : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex);
+            : OfficeTrueTypeFont.TryLoad(request.FontDataForShaping, request.FontCollectionIndex));
         if (font == null) return null;
 
-        string contextual = OfficeArabicTextShaper.Shape(request.Text);
+        OfficeTextDirection resolvedDirection = request.Direction == OfficeTextDirection.Auto
+            ? OfficeTextElements.ResolveBaseDirection(request.Text) : request.Direction;
+        string contextual = request.ApplyDefaultLatinLigatures ? request.Text : OfficeArabicTextShaper.Shape(request.Text);
         IReadOnlyList<VisualTextElement> visualElements = MapVisualElements(
             request.Text,
             contextual,
-            request.Direction,
-            request.CancellationToken);
+            resolvedDirection,
+            request.CancellationToken, reorder: !request.ApplyDefaultLatinLigatures || request.Direction != OfficeTextDirection.Auto);
         if (visualElements.Count == 0) return null;
         string visual = string.Concat(visualElements.Select(static element => element.VisualText));
         if (!font.HasGlyphs(visual)) return null;
@@ -58,10 +63,15 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             if (!TryAddElementGlyphs(font, element, tokens)) return null;
         }
 
-        OfficeOpenTypeSubstitution? substitution = OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
-        if (substitution != null && !substitution.CanApply(request.FeatureSettings)) return null;
-        substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
-        bool kerningEnabled = !request.FeatureSettings.TryGetValue("kern", out int kerningValue) || kerningValue != 0;
+        OfficeOpenTypeSubstitution? substitution = latinFont?.Substitution ?? OfficeOpenTypeSubstitution.TryCreate(request.FontDataForShaping);
+        if (request.ApplyDefaultLatinLigatures) {
+            if (substitution != null && !substitution.ApplyLatinDefaults(tokens, request.FeatureSettings, request.CancellationToken, request.Text)) return null;
+        } else {
+            if (substitution != null && !substitution.CanApply(request.FeatureSettings)) return null;
+            substitution?.Apply(tokens, request.FeatureSettings, request.CancellationToken);
+        }
+        bool kerningEnabled = request.FeatureSettings.TryGetValue("kern", out int kerningValue)
+            ? kerningValue != 0 : !request.ApplyDefaultLatinLigatures;
         var glyphIds = new int[tokens.Count];
         var scalars = new int[tokens.Count];
         for (int index = 0; index < tokens.Count; index++) {
@@ -90,14 +100,17 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             advanceAdjustments.Add(positioning[index].XAdvance);
         }
 
-        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, request.Direction);
+        int[]? clusterStarts = tokens.Any(token => token.ClusterStart != token.TextIndex)
+            ? tokens.Select(token => token.ClusterStart).ToArray() : null;
+        return glyphs.Count == 0 ? null : new OfficeTextShapingResult(glyphs, advanceAdjustments, resolvedDirection, clusterStarts);
     }
 
     private static IReadOnlyList<VisualTextElement> MapVisualElements(
         string logical,
         string contextual,
         OfficeTextDirection direction,
-        System.Threading.CancellationToken cancellationToken) {
+        System.Threading.CancellationToken cancellationToken,
+        bool reorder = true) {
         var logicalElements = new List<VisualTextElement>();
         int logicalIndex = 0;
         foreach (string contextualElement in OfficeTextElements.Enumerate(contextual)) {
@@ -110,6 +123,7 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
             logicalIndex += length;
         }
 
+        if (!reorder) return logicalElements;
         return OfficeBidiTextResolver.ToVisualOrder(
             contextual,
             logicalElements,
@@ -163,6 +177,15 @@ public sealed class OfficeManagedTextShapingProvider : IOfficeTextShapingProvide
                char.IsLowSurrogate(text[index])
             ? char.ConvertToUtf32(first, text[index++])
             : first;
+    }
+
+    private sealed class LatinFont {
+        internal LatinFont(byte[] data, bool isCff) {
+            Substitution = OfficeOpenTypeSubstitution.TryCreate(data);
+            Font = isCff ? OfficeOpenTypeCffFont.TryLoad(data, null, out _) : OfficeTrueTypeFont.TryLoad(data);
+        }
+        internal IOfficeFontProgram? Font { get; }
+        internal OfficeOpenTypeSubstitution? Substitution { get; }
     }
 
     private readonly struct VisualTextElement {

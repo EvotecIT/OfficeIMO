@@ -830,6 +830,50 @@ public partial class HtmlOfficeAdapters {
     }
 
     [Fact]
+    public void ExcelHtml_OmitsMixedRadialChartBeforeCreatingNativeArtifact() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("Mixed");
+        sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
+            new ExcelChartSeries("Slice", new[] { 2D, 3D }, ExcelChartType.Pie)
+        }), row: 1, column: 1, type: ExcelChartType.Pie, title: "Mixed chart");
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+        int rowType = html.IndexOf("<tr data-officeimo-chart-type=\"Pie\"", StringComparison.Ordinal);
+        Assert.True(rowType >= 0);
+        html = html.Remove(rowType, "<tr data-officeimo-chart-type=\"Pie\"".Length)
+            .Insert(rowType, "<tr data-officeimo-chart-type=\"Line\"");
+
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        using ExcelDocument imported = result.Value;
+        Assert.Empty(imported.Sheets.Single(item => item.Name == "Mixed").Charts);
+        Assert.Equal(0, result.Charts);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
+    }
+
+    [Fact]
+    public void ExcelHtml_OmitsRadialSeriesUnderNonRadialChartBeforeCreatingNativeArtifact() {
+        using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = workbook.AddWorksheet("Mixed");
+        sheet.AddChart(new ExcelChartData(new[] { "A", "B" }, new[] {
+            new ExcelChartSeries("Slice", new[] { 2D, 3D }, ExcelChartType.Line)
+        }), row: 1, column: 1, type: ExcelChartType.Line, title: "Mixed chart");
+        string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
+            Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
+        });
+        int rowType = html.IndexOf("<tr data-officeimo-chart-type=\"Line\"", StringComparison.Ordinal);
+        Assert.True(rowType >= 0);
+        html = html.Remove(rowType, "<tr data-officeimo-chart-type=\"Line\"".Length)
+            .Insert(rowType, "<tr data-officeimo-chart-type=\"Pie\"");
+
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        using ExcelDocument imported = result.Value;
+        Assert.Empty(imported.Sheets.Single(item => item.Name == "Mixed").Charts);
+        Assert.Equal(0, result.Charts);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted);
+    }
+
+    [Fact]
     public void PowerPointHtml_RoundTripsScatterChartXValuesInSemanticChartData() {
         using PowerPointPresentation presentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide slide = presentation.AddSlide();

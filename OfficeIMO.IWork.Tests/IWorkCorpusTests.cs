@@ -219,6 +219,41 @@ public sealed class IWorkCorpusTests {
     }
 
     [Fact]
+    public void Pages_resolves_rich_text_table_cells_from_the_independent_corpus() {
+        IWorkPagesProjection pages = IWorkSourceDocument.Open(
+            Fixture("picodocs/sample-v14.4.pages")).ReadPages();
+        IWorkTable table = pages.Tables[0];
+
+        string?[][] expected = {
+            new[] { "Feature", "Expected import", "Sample value", "Notes" },
+            new[] { "Paragraph", "Text + style", "Heading 1", "Preserve reading order" },
+            new[] { "Image", "Binary asset", "PNG 1000×520", "Alt text may or may not survive conversion" },
+            new[] { "Hyperlink", "URL target", "https://developer.apple.com", "External link relationship" },
+            new[] { "Empty cell", null, null, "Importer should not crash" }
+        };
+        for (int row = 1; row <= expected.Length; row++) {
+            for (int column = 1; column <= expected[row - 1].Length; column++) {
+                Assert.Equal(expected[row - 1][column - 1], table.GetCell(row, column)?.DisplayText);
+            }
+        }
+        Assert.Equal("Column A", pages.Tables[1].GetCell(1, 1)?.DisplayText);
+        Assert.Equal("Column F", pages.Tables[1].GetCell(1, 6)?.DisplayText);
+        Assert.Equal("Item 1", pages.Tables[2].GetCell(2, 1)?.DisplayText);
+        Assert.Equal("Date", pages.Tables[2].GetCell(1, 2)?.DisplayText);
+        Assert.DoesNotContain(pages.Tables.SelectMany(candidate => candidate.Cells),
+            cell => cell.Kind == IWorkCellKind.Text && cell.DisplayText.Length == 0);
+        IWorkTableCell[] richCells = pages.Tables.SelectMany(candidate => candidate.Cells)
+            .Where(cell => cell.RichText != null).ToArray();
+        Assert.NotEmpty(richCells);
+        Assert.All(richCells, cell => Assert.Equal(cell.DisplayText, cell.RichText!.PlainText));
+        IWorkTextRun headerRun = Assert.Single(Assert.Single(
+            table.GetCell(1, 1)!.RichText!.Paragraphs).Runs);
+        Assert.Equal("Feature", headerRun.Text);
+        Assert.True(headerRun.Style.Bold);
+        Assert.Equal(10.5d, headerRun.Style.FontSizePoints);
+    }
+
+    [Fact]
     public void Pages_owner_projects_tables_and_embedded_image_into_word() {
         using var result = WordIWorkConverter.ConvertPagesToWordResult(Fixture("picodocs/sample-v14.4.pages"));
 

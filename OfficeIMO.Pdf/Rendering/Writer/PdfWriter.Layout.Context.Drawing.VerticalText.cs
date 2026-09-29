@@ -92,7 +92,7 @@ internal static partial class PdfWriter {
                     .EndPath()
                     .FillColor(ToPdfColor(paintColor) ?? PdfColor.Black)
                     .BeginText()
-                    .Font(fontResource, size);
+                    .Font(fontResource, size, currentOpts.NeedsSyntheticOblique(font, namedFont));
                 for (int index = 0; index < glyphRun.Glyphs.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     PdfGlyphInfo glyph = glyphRun.Glyphs[index];

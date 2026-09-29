@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void StaticLossyWebpStillUsesCallerCodecAfterManagedInspectionDeclines() {
+        public void StaticLossyWebpUsesOwnedDecoderBeforeCallerCodec() {
             byte[] webp = Convert.FromBase64String(
                 "UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
             Assert.True(OfficeImageReader.TryIdentifyByContent(webp, null, out OfficeImageInfo info));
@@ -37,8 +37,11 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
                 new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
 
-            Assert.Equal(1, codec.Calls);
-            Assert.Equal(OfficeColor.Red, rendered.GetPixel(0, 0));
+            Assert.Equal(0, codec.Calls);
+            OfficeColor color = rendered.GetPixel(0, 0);
+            Assert.InRange((int)color.R, 254, 255);
+            Assert.InRange((int)color.G, 0, 2);
+            Assert.InRange((int)color.B, 0, 1);
         }
 
         [Fact]

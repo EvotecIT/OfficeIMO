@@ -19,11 +19,9 @@ namespace OfficeIMO.Word.Pdf {
         private const double MinNativeWordChartHeightPoints = 150D;
         private const double MaxNativeWordChartHeightPoints = 260D;
         private const double NativeWordChartTitleTopPadding = 31D;
-        private const double NativeWordChartSpacingAfter = NativeDefaultParagraphSpacingAfter;
-
-        private static bool RenderNativeChart(INativePdfFlow pdf, WordChart? chart, PdfCore.PdfAlign align, WordToPdfOptions? options, string source) {
+        private static OfficeDrawing? PrepareNativeChart(WordChart? chart, WordToPdfOptions? options, string source) {
             if (chart == null) {
-                return false;
+                return null;
             }
 
             if (!TryCreateNativeWordChartSnapshot(chart, out OfficeChartSnapshot? snapshot, out string? warning)) {
@@ -35,7 +33,7 @@ namespace OfficeIMO.Word.Pdf {
                         warning ?? "Word chart data is not mapped by the OfficeIMO PDF engine yet.");
                 }
 
-                return false;
+                return null;
             }
 
             if (!string.IsNullOrWhiteSpace(warning) && options != null) {
@@ -55,8 +53,7 @@ namespace OfficeIMO.Word.Pdf {
                     "Exported Word chart '" + GetNativeWordChartDisplayName(snapshot!) + "' with shared drawing quality warnings: " + string.Join("; ", rendering.QualityReport.Issues.Select(issue => issue.ToString())));
             }
 
-            pdf.Drawing(rendering.Drawing, align, spacingBefore: 2D, spacingAfter: NativeWordChartSpacingAfter);
-            return true;
+            return rendering.Drawing;
         }
 
         private static bool TryCreateNativeWordChartSnapshot(WordChart chart, out OfficeChartSnapshot? snapshot, out string? warning) {
@@ -74,11 +71,12 @@ namespace OfficeIMO.Word.Pdf {
             List<OpenXmlElement> allChartElements = plotArea.ChildElements
                 .Where(IsNativeWordChartElement)
                 .ToList();
-            if (allChartElements.Count > 1) {
-                warning = "Word combo charts are not partially exported because omitting a plot can misrepresent the source data.";
-                return false;
+            // The shared reader owns qualified legend-frame appearance, including its native
+            // fill and outline. Keep the PDF chart on that same projection when it is styled.
+            if (allChartElements.Count > 1 || allChartElements.Any(element => element is BubbleChart) ||
+                HasMaterialNativeLegendFrame(openXmlChart)) {
+                return TryCreateSharedNativeWordChartSnapshot(chart, out snapshot, out warning);
             }
-
             List<OpenXmlElement> chartElements = allChartElements
                 .Where(IsNativeSupportedWordChartElement)
                 .ToList();
@@ -95,7 +93,9 @@ namespace OfficeIMO.Word.Pdf {
 
             try {
                 IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors = GetNativeDrawingThemeColors(chartPart);
-                IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, out IReadOnlyList<string> categories);
+                A.ColorScheme? pointColorScheme = (chartPart?.OpenXmlPackage as WordprocessingDocument)?
+                    .MainDocumentPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+                IReadOnlyList<OfficeChartSeries> series = ExtractNativeWordChartSeries(openXmlChart!, chartElement, chartKind, themeColors, pointColorScheme, out IReadOnlyList<string> categories);
                 if (categories.Count == 0 || series.Count == 0) {
                     warning = "Word chart does not contain cached categories and values that can be rendered without Office.";
                     return false;
@@ -106,6 +106,13 @@ namespace OfficeIMO.Word.Pdf {
                 string name = GetNativeWordChartName(chart, chartPart, title);
                 OfficeChartStyle? style = CreateNativeWordChartStyle(openXmlChart!, chartElement, plotArea, chartKind, categories.Count, series.Count, themeColors);
                 OfficeChartLayout? layout = CreateNativeWordChartLayout(openXmlChart!, chartElement, plotArea, chartKind, categories.Count);
+                OfficeChartRadialLayout radialLayout;
+                try {
+                    radialLayout = chart.RadialLayout;
+                } catch (Exception exception) when (exception is ArgumentOutOfRangeException || exception is FormatException || exception is OverflowException) {
+                    warning = "Word chart contains invalid pie rotation or doughnut hole metadata and cannot be rendered.";
+                    return false;
+                }
                 snapshot = new OfficeChartSnapshot(
                     name,
                     title,
@@ -114,13 +121,21 @@ namespace OfficeIMO.Word.Pdf {
                     width,
                     height,
                     style: style,
-                    layout: layout);
+                    layout: layout,
+                    radialLayout: radialLayout);
             } catch (NativeWordChartLimitException ex) {
                 warning = ex.Message;
                 return false;
             }
 
             return true;
+        }
+
+        private static bool HasMaterialNativeLegendFrame(Chart? chart) {
+            var properties = chart?.GetFirstChild<Legend>()?.GetFirstChild<ChartShapeProperties>();
+            return properties?.ChildElements.Any(child => child is A.Outline outline
+                ? outline.GetFirstChild<A.NoFill>() == null
+                : child is not A.NoFill && (child.HasAttributes || child.HasChildren)) == true;
         }
 
         private static bool IsNativeSupportedWordChartElement(OpenXmlElement element) =>
@@ -200,7 +215,7 @@ namespace OfficeIMO.Word.Pdf {
             return OfficeChartKind.Area;
         }
 
-        private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, out IReadOnlyList<string> categories) {
+        internal static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors, A.ColorScheme? pointColorScheme, out IReadOnlyList<string> categories) {
             var series = new List<OfficeChartSeries>();
             var categoryList = new List<string>();
             bool isScatter = chartKind == OfficeChartKind.Scatter;
@@ -249,7 +264,9 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
 
-                IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(seriesElement, values.Count, themeColors);
+                IReadOnlyList<DataPoint> pointOverrides = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles
+                    .GetBoundedPoints(seriesElement);
+                IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(pointOverrides, values.Count, themeColors);
                 if (pointColors == null && varyColorsByPoint && seriesIndex == 0) {
                     pointColors = CreateNativeWordChartVaryPointColors(values.Count);
                 }
@@ -260,7 +277,7 @@ namespace OfficeIMO.Word.Pdf {
                     seriesColor = pieLikeSeriesColor;
                 }
 
-                series.Add(new OfficeChartSeries(
+                OfficeChartSeries projected = new OfficeChartSeries(
                     GetNativeWordChartSeriesName(seriesElement, seriesIndex),
                     values,
                     xValues,
@@ -268,7 +285,17 @@ namespace OfficeIMO.Word.Pdf {
                     pointColors,
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
-                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>())));
+                    !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()))
+                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count,
+                        pointColorScheme, seriesElement.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true));
+                if (IsNativeWordPieLikeChart(chartKind)) {
+                    if (!OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartExplosions.TryRead(
+                            (OpenXmlCompositeElement)seriesElement, pointOverrides, values.Count,
+                            out int[]? explosions))
+                        throw new NativeWordChartLimitException("Word chart contains unsupported slice explosion metadata.");
+                    projected = projected.WithPointExplosions(explosions);
+                }
+                series.Add(projected);
                 seriesIndex++;
             }
 
@@ -789,14 +816,14 @@ namespace OfficeIMO.Word.Pdf {
             chartKind == OfficeChartKind.Scatter ||
             chartKind == OfficeChartKind.Radar;
 
-        private static IReadOnlyList<OfficeColor?>? ExtractNativeWordChartPointColors(OpenXmlElement seriesElement, int valueCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
+        private static IReadOnlyList<OfficeColor?>? ExtractNativeWordChartPointColors(IReadOnlyList<DataPoint> points, int valueCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
             if (valueCount <= 0) {
                 return null;
             }
 
             OfficeColor?[] colors = new OfficeColor?[valueCount];
             bool anyColor = false;
-            foreach (DataPoint point in seriesElement.Elements<DataPoint>()) {
+            foreach (DataPoint point in points) {
                 uint? index = point.Index?.Val?.Value;
                 if (!index.HasValue || index.Value >= valueCount) {
                     continue;

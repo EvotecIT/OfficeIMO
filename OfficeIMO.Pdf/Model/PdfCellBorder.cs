@@ -94,6 +94,22 @@ public sealed class PdfCellBorder {
     /// <summary>Whether to draw the diagonal-down line from top-left to bottom-right.</summary>
     public bool DiagonalDown { get; set; }
 
+    /// <summary>Zero-based row segments to omit from the right side of a vertically merged cell.</summary>
+    public System.Collections.Generic.HashSet<int>? HiddenRightRowSegments { get; set; }
+
+    /// <summary>Zero-based row segments to omit from the left side of a vertically merged cell.</summary>
+    public System.Collections.Generic.HashSet<int>? HiddenLeftRowSegments { get; set; }
+
+    /// <summary>Zero-based column segments to omit from the top side of a horizontally merged cell.</summary>
+    public System.Collections.Generic.HashSet<int>? HiddenTopColumnSegments { get; set; }
+
+    /// <summary>Zero-based column segments to omit from the bottom side of a horizontally merged cell.</summary>
+    public System.Collections.Generic.HashSet<int>? HiddenBottomColumnSegments { get; set; }
+
+    internal bool HasHiddenSegments =>
+        HiddenRightRowSegments?.Count > 0 || HiddenLeftRowSegments?.Count > 0 ||
+        HiddenTopColumnSegments?.Count > 0 || HiddenBottomColumnSegments?.Count > 0;
+
     /// <summary>Creates a deep copy of this border style.</summary>
     public PdfCellBorder Clone() => new PdfCellBorder {
         Color = Color,
@@ -111,6 +127,10 @@ public sealed class PdfCellBorder {
         Bottom = Bottom,
         Left = Left,
         DiagonalUp = DiagonalUp,
-        DiagonalDown = DiagonalDown
+        DiagonalDown = DiagonalDown,
+        HiddenRightRowSegments = HiddenRightRowSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenRightRowSegments),
+        HiddenLeftRowSegments = HiddenLeftRowSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenLeftRowSegments),
+        HiddenTopColumnSegments = HiddenTopColumnSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenTopColumnSegments),
+        HiddenBottomColumnSegments = HiddenBottomColumnSegments == null ? null : new System.Collections.Generic.HashSet<int>(HiddenBottomColumnSegments)
     };
 }

@@ -301,10 +301,10 @@ public sealed partial class PdfOptions {
     public PdfOptions EmbedStandardFont(PdfStandardFont font, byte[] data, string? fontName = null) =>
         EmbedStandardFontCore(font, data, fontName, cloneData: true);
 
-    internal PdfOptions EmbedStandardFontSnapshot(PdfStandardFont font, byte[] data, string? fontName = null) =>
-        EmbedStandardFontCore(font, data, fontName, cloneData: false);
+    internal PdfOptions EmbedStandardFontSnapshot(PdfStandardFont font, byte[] data, string? fontName = null, bool syntheticOblique = false) =>
+        EmbedStandardFontCore(font, data, fontName, cloneData: false, syntheticOblique);
 
-    private PdfOptions EmbedStandardFontCore(PdfStandardFont font, byte[] data, string? fontName, bool cloneData) {
+    private PdfOptions EmbedStandardFontCore(PdfStandardFont font, byte[] data, string? fontName, bool cloneData, bool syntheticOblique = false) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font mapping must target one of the supported standard PDF font slots.");
         Guard.NotNull(data, nameof(data));
         if (data.Length == 0) {
@@ -316,11 +316,12 @@ public sealed partial class PdfOptions {
         string? normalizedFontName = string.IsNullOrWhiteSpace(fontName) ? null : fontName;
         if (_embeddedFonts != null &&
             _embeddedFonts.TryGetValue(font, out PdfEmbeddedFont? existingFont) &&
-            EmbeddedFontMatches(existingFont, data, normalizedFontName)) {
+            EmbeddedFontMatches(existingFont, data, normalizedFontName) &&
+            existingFont.SyntheticOblique == syntheticOblique) {
             return this;
         }
 
-        var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData);
+        var embeddedFont = new PdfEmbeddedFont(font, data, normalizedFontName, cloneData, syntheticOblique);
         (_embeddedFonts ??= new System.Collections.Generic.Dictionary<PdfStandardFont, PdfEmbeddedFont>())[font] = embeddedFont;
         _embeddedFontPrograms?.Remove(font);
         _embeddedOpenTypeCffFontPrograms?.Remove(font);

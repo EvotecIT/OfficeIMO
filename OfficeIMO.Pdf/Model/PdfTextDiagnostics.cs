@@ -589,29 +589,29 @@ internal static class PdfTextDiagnostics {
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
     }
 
-    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0) {
+    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
         PdfOpenTypeFontInfo? info = TrueTypeLayoutInfoCache.GetValue(
             font,
             static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
-        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
-    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0) {
+    internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
         PdfOpenTypeFontInfo? info = CffLayoutInfoCache.GetValue(
             font,
             static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
-        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset);
+        return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
-    private static List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeFontInfo? info, string source, int indexOffset) {
+    private static List<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeFontInfo? info, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
         var diagnostics = new List<PdfTextShapingDiagnostic>(AnalyzeAdvancedTextLayoutCore(text, source, indexOffset));
         if (info == null) return diagnostics;
         var reportedCodes = new HashSet<string>(diagnostics.Select(diagnostic => diagnostic.Code), StringComparer.Ordinal);
-        AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset);
+        AddFontLayoutDiagnostics(text, info, diagnostics, reportedCodes, source, indexOffset, featureSettings);
         return diagnostics;
     }
 
@@ -668,7 +668,7 @@ internal static class PdfTextDiagnostics {
             }
 
             if (info != null) {
-                AddFontLayoutDiagnostics(run.Text, info, diagnostics, reportedCodes, source, indexOffset: 0);
+                AddFontLayoutDiagnostics(run.Text, info, diagnostics, reportedCodes, source, indexOffset: 0, featureSettings: run.FeatureSettings);
             }
         }
 
@@ -1179,8 +1179,20 @@ internal static class PdfTextDiagnostics {
         }
     }
 
-    private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset) {
-        if (HasAnyFeature(info.GlyphSubstitutionFeatureTags, "liga", "clig", "dlig", "rlig")) {
+    private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
+        // Preflight the same selected language-system lookups used by the shared shaper.
+        // A rejected required feature or custom ligature need not contain ff/fi/fl.
+        int latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+        if (latinInputIndex >= 0 && info.LatinSubstitution != null &&
+            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(),
+                featureSettings ?? OfficeTextFeatureSettings.Default, default)) {
+            AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
+                "OpenType GSUB", "unsupported-font-ligature-substitution",
+                "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
+        }
+        if (HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "liga", "clig", "rlig") ||
+            HasAnyFeature(info.LatinGlyphSubstitutionFeatureTags, "dlig") && featureSettings != null &&
+            featureSettings.TryGetValue("dlig", out int discretionaryValue) && discretionaryValue > 0) {
             int ligatureIndex = FindLatinLigatureSequenceIndex(text);
             if (ligatureIndex >= 0) {
                 int sourceIndex = ligatureIndex + indexOffset;
@@ -1196,7 +1208,7 @@ internal static class PdfTextDiagnostics {
                     scalar,
                     "OpenType GSUB ligature",
                     "unsupported-font-ligature-substitution",
-                    "Text contains a Latin ligature sequence at index " + sourceIndex.ToString(CultureInfo.InvariantCulture) + ", and embedded font '" + info.FontName + "' advertises GSUB ligature features. OfficeIMO.Pdf currently writes scalar glyph ids without applying OpenType ligature substitution, so generated output may be visually simplified.",
+                    "Text contains a Latin ligature sequence at index " + sourceIndex.ToString(CultureInfo.InvariantCulture) + ", and embedded font '" + info.FontName + "' advertises default Latin GSUB ligature features that this output path has not applied. Generated output may be visually simplified.",
                     isCoveredByBuiltInShaping);
             }
         }

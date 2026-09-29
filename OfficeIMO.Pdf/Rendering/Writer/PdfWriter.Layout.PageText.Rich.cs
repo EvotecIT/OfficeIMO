@@ -167,7 +167,20 @@ internal static partial class PdfWriter {
                 if (width > 0D && (run.Underline || run.Strike)) {
                     double decorationWidth = Math.Max(0.45D, effectiveFontSize * 0.055D);
                     if (run.Underline) {
-                        AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D), decorationWidth, decorationColor, run.UnderlineStyle);
+                        double underlineY = baselines[lineIndex] + textRise - Math.Max(0.8D, effectiveFontSize * 0.1D);
+                        if (run.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
+                            for (int index = 0; index < text.Length;) {
+                                while (index < text.Length && char.IsWhiteSpace(text[index])) index++;
+                                if (index == text.Length) break;
+                                int start = index;
+                                while (index < text.Length && !char.IsWhiteSpace(text[index])) index++;
+                                double before = MeasureRichText(text.Substring(0, start), runFont, namedFont, requestedFontSize, run.Baseline, options);
+                                double end = MeasureRichText(text.Substring(0, index), runFont, namedFont, requestedFontSize, run.Baseline, options);
+                                AppendPageTextDecorationLine(sb, cursorX + before, cursorX + end, underlineY, decorationWidth, decorationColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single);
+                            }
+                        } else {
+                            AppendPageTextDecorationLine(sb, cursorX, cursorX + width, underlineY, decorationWidth, decorationColor, run.UnderlineStyle);
+                        }
                     }
                     if (run.Strike) {
                         AppendPageTextDecorationLine(sb, cursorX, cursorX + width, baselines[lineIndex] + textRise + (effectiveFontSize * 0.28D), decorationWidth, decorationColor, run.StrikeStyle);

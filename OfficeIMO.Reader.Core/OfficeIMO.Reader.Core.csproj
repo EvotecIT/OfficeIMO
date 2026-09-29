@@ -3,7 +3,7 @@
     <Description>Dependency-light contracts, routing, processing, and normalized document models for modular OfficeIMO readers.</Description>
     <AssemblyName>OfficeIMO.Reader.Core</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Core</AssemblyTitle>
-    <VersionPrefix>3.4.3</VersionPrefix>
+    <VersionPrefix>3.4.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -58,6 +58,13 @@
     <EmbeddedResource Include="Schemas\officeimo.document.read-result.v7.schema.json">
       <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v7.schema.json</LogicalName>
     </EmbeddedResource>
+    <None Include="Schemas\officeimo.document.read-result.v8.schema.json">
+      <Pack>True</Pack>
+      <PackagePath>schemas\officeimo.document.read-result.v8.schema.json</PackagePath>
+    </None>
+    <EmbeddedResource Include="Schemas\officeimo.document.read-result.v8.schema.json">
+      <LogicalName>OfficeIMO.Reader.Schemas.officeimo.document.read-result.v8.schema.json</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -94,5 +101,6 @@
     <InternalsVisibleTo Include="OfficeIMO.Reader.Zip" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.Opml" />
     <InternalsVisibleTo Include="OfficeIMO.Reader.DocBook" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
   </ItemGroup>
 </Project>

@@ -23,6 +23,8 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues, ExcelChartType? chartType, OfficeChartAxisGroup axisGroup, string? seriesColorArgb, double? seriesLineWidth, OfficeStrokeDashStyle? seriesLineDashStyle, IReadOnlyList<string?>? pointColorArgb, bool showMarkers, bool connectLine, int? markerSize, OfficeChartMarkerShape? markerShape, string? markerOutlineColorArgb, double? markerOutlineWidth, bool ownsValues) {
+            OfficeChartStyleBounds.ValidateLineWidth(seriesLineWidth, nameof(seriesLineWidth), allowZero: true);
+            OfficeChartStyleBounds.ValidateLineWidth(markerOutlineWidth, nameof(markerOutlineWidth), allowZero: true);
             Name = name ?? string.Empty;
             Values = values ?? Array.Empty<double>();
             XValues = xValues;
@@ -56,6 +58,25 @@ namespace OfficeIMO.Excel {
         /// Gets the series name.
         /// </summary>
         public string Name { get; }
+
+        internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
+        internal IReadOnlyList<int>? PointExplosions { get; private set; }
+
+        internal ExcelChartSeries WithPointStyles(IReadOnlyList<OfficeChartPointStyle?>? styles) =>
+            new ExcelChartSeries(Name, Values, XValues, ChartType, AxisGroup, SeriesColorArgb,
+                SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine,
+                MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false) {
+                PointStyles = styles,
+                PointExplosions = PointExplosions
+            };
+
+        internal ExcelChartSeries WithPointExplosions(IReadOnlyList<int>? explosions) =>
+            new ExcelChartSeries(Name, Values, XValues, ChartType, AxisGroup, SeriesColorArgb,
+                SeriesLineWidth, SeriesLineDashStyle, PointColorArgb, ShowMarkers, ConnectLine,
+                MarkerSize, MarkerShape, MarkerOutlineColorArgb, MarkerOutlineWidth, ownsValues: false) {
+                PointStyles = PointStyles,
+                PointExplosions = explosions
+            };
 
         /// <summary>
         /// Gets the series values.

@@ -3,7 +3,7 @@
     <Description>Bounded read-only Apple iWork package and IWA inspection with Pages, Numbers, and Keynote source projections.</Description>
     <AssemblyName>OfficeIMO.IWork</AssemblyName>
     <AssemblyTitle>OfficeIMO.IWork</AssemblyTitle>
-    <VersionPrefix>3.4.3</VersionPrefix>
+    <VersionPrefix>3.4.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -32,6 +32,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Excel.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.IWork.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.PowerPoint.IWork" />
     <InternalsVisibleTo Include="OfficeIMO.Word.IWork" />
   </ItemGroup>

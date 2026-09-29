@@ -1,12 +1,18 @@
+using System.Threading;
+
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkPdfInfo {
-    internal static bool IsComplete(byte[] bytes) {
+    internal static bool IsComplete(byte[] bytes) => IsComplete(bytes, CancellationToken.None);
+
+    internal static bool IsComplete(byte[] bytes, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (bytes.Length < 20 || !HasValidHeader(bytes)) return false;
 
-        int eof = LastIndexOf(bytes, "%%EOF");
-        if (eof < 0 || !ContainsOnlyTrailingWhitespace(bytes, eof + 5)) return false;
-        int startXref = LastIndexOf(bytes, "startxref", eof);
+        int eof = LastIndexOf(bytes, "%%EOF", cancellationToken: cancellationToken);
+        if (eof < 0 || !ContainsOnlyTrailingWhitespace(bytes, eof + 5,
+                cancellationToken)) return false;
+        int startXref = LastIndexOf(bytes, "startxref", eof, cancellationToken);
         if (startXref < 0 || startXref + 9 >= eof
             || !IsWhitespace(bytes[startXref + 9])) return false;
 
@@ -17,14 +23,16 @@ internal static partial class IWorkPdfInfo {
 
         int xref = (int)xrefOffset;
         SkipWhitespace(bytes, ref xref, startXref);
-        if (StartsWith(bytes, xref, "xref")) return IsClassicXref(bytes, xref, startXref);
+        if (StartsWith(bytes, xref, "xref")) return IsClassicXref(bytes, xref,
+            startXref, cancellationToken);
         // XRef streams may be filtered, use predictors, and reference compressed object
         // streams. Accepting them without decoding their entries would make separately
         // searchable object text look authoritative, so the bounded validator fails closed.
         return false;
     }
 
-    private static bool IsClassicXref(byte[] bytes, int offset, int limit) {
+    private static bool IsClassicXref(byte[] bytes, int offset, int limit,
+        CancellationToken cancellationToken) {
         var inUseOffsets = new Dictionary<(long Object, long Generation), int>();
         var seenObjects = new HashSet<long>();
         var visitedXrefs = new HashSet<int>();
@@ -36,11 +44,12 @@ internal static partial class IWorkPdfInfo {
         int currentXref = offset;
         bool chainComplete = false;
         for (int depth = 0; depth < 128; depth++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!visitedXrefs.Add(currentXref)
                 || !TryReadClassicXref(bytes, currentXref, limit, inUseOffsets,
                     seenObjects, ref totalEntries, out int trailerOffset, out long sectionSize,
                     out bool hasRoot, out long sectionRootObject, out long sectionRootGeneration,
-                    out bool hasPrevious, out long previousOffset)) return false;
+                    out bool hasPrevious, out long previousOffset, cancellationToken)) return false;
             objectLimit = objectLimit < 0 ? trailerOffset : objectLimit;
             size ??= sectionSize;
             if (!rootObject.HasValue && hasRoot) {
@@ -58,10 +67,10 @@ internal static partial class IWorkPdfInfo {
         }
         if (!chainComplete || !size.HasValue || !rootObject.HasValue
             || rootObject.Value <= 0 || rootObject.Value >= size.Value
-            || seenObjects.Any(objectNumber => objectNumber >= size.Value)
+            || HasOutOfRangeObject(seenObjects, size.Value, cancellationToken)
             || !inUseOffsets.TryGetValue((rootObject.Value, rootGeneration), out int rootOffset)) return false;
-        int[] orderedObjectOffsets = inUseOffsets.Values.Concat(visitedXrefs)
-            .Distinct().OrderBy(value => value).ToArray();
+        int[] orderedObjectOffsets = SortObjectOffsets(inUseOffsets.Values,
+            visitedXrefs, cancellationToken);
         if (!IsCatalogObjectAt(bytes, orderedObjectOffsets, rootOffset, objectLimit,
                 rootObject.Value, rootGeneration,
                 out long pagesObject, out long pagesGeneration)
@@ -69,8 +78,41 @@ internal static partial class IWorkPdfInfo {
         var visited = new HashSet<(long Object, long Generation)>();
         return IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, pagesOffset, objectLimit,
             pagesObject, pagesGeneration, parent: null, hasInheritedMediaBox: false,
-            inheritedResources: default, new ResourceValidationState(), visited,
-            depth: 0, out _);
+            inheritedResources: default, new ResourceValidationState(cancellationToken), visited,
+            depth: 0, out _, cancellationToken);
+    }
+
+    private static bool HasOutOfRangeObject(IEnumerable<long> objectNumbers,
+        long size, CancellationToken cancellationToken) {
+        int visited = 0;
+        foreach (long objectNumber in objectNumbers) {
+            if ((visited++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            if (objectNumber >= size) return true;
+        }
+        return false;
+    }
+
+    private static int[] SortObjectOffsets(IEnumerable<int> objectOffsets,
+        IEnumerable<int> crossReferenceOffsets, CancellationToken cancellationToken) {
+        var unique = new HashSet<int>();
+        int visited = 0;
+        foreach (int offset in objectOffsets.Concat(crossReferenceOffsets)) {
+            if ((visited++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+            unique.Add(offset);
+        }
+        int[] offsets = unique.ToArray();
+        int comparisons = 0;
+        try {
+            Array.Sort(offsets, (left, right) => {
+                if ((comparisons++ & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
+                return left.CompareTo(right);
+            });
+        } catch (InvalidOperationException) when (cancellationToken.IsCancellationRequested) {
+            cancellationToken.ThrowIfCancellationRequested();
+            throw;
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return offsets;
     }
 
     private static bool HasValidHeader(byte[] bytes) {
@@ -86,7 +128,8 @@ internal static partial class IWorkPdfInfo {
         IDictionary<(long Object, long Generation), int> inUseOffsets,
         ISet<long> seenObjects, ref long totalEntries, out int trailerOffset,
         out long size, out bool hasRoot, out long rootObject, out long rootGeneration,
-        out bool hasPrevious, out long previousOffset) {
+        out bool hasPrevious, out long previousOffset,
+        CancellationToken cancellationToken) {
         trailerOffset = -1;
         size = 0;
         hasRoot = false;
@@ -109,6 +152,7 @@ internal static partial class IWorkPdfInfo {
             totalEntries += entryCount;
             hasSubsection = true;
             for (long index = 0; index < entryCount; index++) {
+                if ((index & 1023) == 0) cancellationToken.ThrowIfCancellationRequested();
                 SkipWhitespace(bytes, ref offset, limit);
                 if (!TryReadFixedDecimal(bytes, ref offset, limit, 10, out long objectOffset)) return false;
                 SkipHorizontalWhitespace(bytes, ref offset, limit);
@@ -220,7 +264,9 @@ internal static partial class IWorkPdfInfo {
         bool hasInheritedMediaBox,
         ResourceDictionary inheritedResources,
         ResourceValidationState resourceValidation,
-        ISet<(long Object, long Generation)> visited, int depth, out long pageCount) {
+        ISet<(long Object, long Generation)> visited, int depth, out long pageCount,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         pageCount = 0;
         if (depth > 256 || !visited.Add((expectedObject, expectedGeneration))) return false;
         int objectLimit = GetObjectLimit(orderedObjectOffsets, offset, limit);
@@ -241,7 +287,7 @@ internal static partial class IWorkPdfInfo {
                     out long parentObject, out long parentGeneration)
                 || parentObject != parent.Value.Object || parentGeneration != parent.Value.Generation
                 || !HasCompletePageContents(bytes, inUseOffsets, orderedObjectOffsets,
-                    dictionaryStart, dictionaryEnd, limit)) {
+                    dictionaryStart, dictionaryEnd, limit, cancellationToken)) {
                 return false;
             }
             pageCount = 1;
@@ -254,14 +300,16 @@ internal static partial class IWorkPdfInfo {
             || !TryReadDictionaryInteger(bytes, dictionaryStart, dictionaryEnd, "/Count", out long declaredCount)
             || declaredCount < 0
             || !TryReadDictionaryReferenceArray(bytes, dictionaryStart, dictionaryEnd, "/Kids",
-                out IReadOnlyList<(long Object, long Generation)> children)) return false;
+                out IReadOnlyList<(long Object, long Generation)> children,
+                cancellationToken)) return false;
         long total = 0;
         foreach ((long childObject, long childGeneration) in children) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!inUseOffsets.TryGetValue((childObject, childGeneration), out int childOffset)
                 || !IsCompletePageTree(bytes, inUseOffsets, orderedObjectOffsets, childOffset, limit,
                     childObject, childGeneration, (expectedObject, expectedGeneration),
                     hasMediaBox, resources, resourceValidation, visited,
-                    depth + 1, out long childCount)
+                    depth + 1, out long childCount, cancellationToken)
                 || total > long.MaxValue - childCount) return false;
             total += childCount;
         }
@@ -319,7 +367,8 @@ internal static partial class IWorkPdfInfo {
     private static bool HasCompletePageContents(byte[] bytes,
         IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
         int[] orderedObjectOffsets,
-        int dictionaryStart, int dictionaryEnd, int limit) {
+        int dictionaryStart, int dictionaryEnd, int limit,
+        CancellationToken cancellationToken) {
         int contentsOffset = FindDictionaryName(bytes, "/Contents", dictionaryStart,
             dictionaryEnd, out int contentsCount);
         if (contentsCount == 0) return true;
@@ -330,12 +379,13 @@ internal static partial class IWorkPdfInfo {
                 out long contentObject, out long contentGeneration)) {
             references = new[] { (contentObject, contentGeneration) };
         } else if (!TryReadDictionaryReferenceArray(bytes, dictionaryStart, dictionaryEnd,
-                       "/Contents", out references)) {
+                       "/Contents", out references, cancellationToken)) {
             return false;
         }
 
         var validated = new HashSet<(long Object, long Generation)>();
         foreach ((long referencedObject, long referencedGeneration) in references) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!inUseOffsets.TryGetValue((referencedObject, referencedGeneration), out int contentOffset)
                 || validated.Add((referencedObject, referencedGeneration))
                 && !IsCompleteStreamObject(bytes, inUseOffsets, orderedObjectOffsets,
@@ -422,7 +472,8 @@ internal static partial class IWorkPdfInfo {
     }
 
     private static bool TryReadDictionaryReferenceArray(byte[] bytes, int start, int end,
-        string name, out IReadOnlyList<(long Object, long Generation)> references) {
+        string name, out IReadOnlyList<(long Object, long Generation)> references,
+        CancellationToken cancellationToken) {
         var result = new List<(long Object, long Generation)>();
         references = result;
         int offset = FindDictionaryName(bytes, name, start, end, out int count);
@@ -431,6 +482,7 @@ internal static partial class IWorkPdfInfo {
         SkipWhitespace(bytes, ref offset, end);
         if (offset >= end || bytes[offset++] != (byte)'[') return false;
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             SkipWhitespace(bytes, ref offset, end);
             if (offset >= end) return false;
             if (bytes[offset] == (byte)']') {
@@ -726,8 +778,10 @@ internal static partial class IWorkPdfInfo {
         return true;
     }
 
-    private static bool ContainsOnlyTrailingWhitespace(byte[] bytes, int offset) {
+    private static bool ContainsOnlyTrailingWhitespace(byte[] bytes, int offset,
+        CancellationToken cancellationToken) {
         for (int index = offset; index < bytes.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (!IsWhitespace(bytes[index]) && bytes[index] != 0) return false;
         }
         return true;
@@ -736,18 +790,22 @@ internal static partial class IWorkPdfInfo {
     private static bool IsWhitespace(byte value) =>
         value is 0x09 or 0x0a or 0x0c or 0x0d or 0x20;
 
-    private static int LastIndexOf(byte[] bytes, string value, int? before = null) {
+    private static int LastIndexOf(byte[] bytes, string value, int? before = null,
+        CancellationToken cancellationToken = default) {
         int last = -1;
         int limit = Math.Min(before ?? bytes.Length, bytes.Length);
         for (int index = 0; index <= limit - value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (StartsWith(bytes, index, value)) last = index;
         }
         return last;
     }
 
-    private static int IndexOf(byte[] bytes, string value, int start, int limit) {
+    private static int IndexOf(byte[] bytes, string value, int start, int limit,
+        CancellationToken cancellationToken = default) {
         int end = Math.Min(limit, bytes.Length);
         for (int index = Math.Max(0, start); index <= end - value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (StartsWith(bytes, index, value)) return index;
         }
         return -1;

@@ -5,6 +5,9 @@ namespace OfficeIMO.Word {
     /// Manages run property settings.
     /// </summary>
     public partial class WordParagraph {
+        private RunProperties? ScopedRunProperties => _stdRun != null
+            ? _stdRun.SdtContentRun?.Descendants<Run>().FirstOrDefault()?.GetFirstChild<RunProperties>()
+            : IsHyperLink ? Hyperlink?._runProperties : _runProperties;
         private static bool IsOnOffPropertyEnabled(OnOffType? property) {
             return property != null && (property.Val == null || property.Val.Value);
         }
@@ -14,12 +17,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Bold {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Bold);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -45,12 +48,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Italic {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Italic);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -69,7 +72,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordUnderlineStyle? Underline {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Underline != null) {
                     return runProperties.Underline.Val?.Value.ToOfficeEnum();
                 }
@@ -77,7 +80,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -100,12 +103,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DoNotCheckSpellingOrGrammar {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.NoProof);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -124,7 +127,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public int? Spacing {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Spacing != null) {
                     return runProperties.Spacing.Val?.Value;
                 }
@@ -132,7 +135,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -153,12 +156,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Strike {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Strike);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -177,12 +180,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool DoubleStrike {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.DoubleStrike);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -201,12 +204,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Outline {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Outline);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -225,12 +228,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Shadow {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Shadow);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -249,12 +252,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool Emboss {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Emboss);
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -285,7 +288,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public double? FontSizePoints {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 string? value = runProperties?.FontSize?.Val?.Value;
                 return int.TryParse(value, System.Globalization.NumberStyles.Integer,
                     System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)
@@ -294,7 +297,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -337,7 +340,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string ColorHex {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Color != null) {
                     return runProperties.Color.Val?.Value ?? "";
                 }
@@ -345,7 +348,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -366,7 +369,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordThemeColor? ThemeColor {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Color != null && runProperties.Color.ThemeColor != null) {
                     return runProperties.Color.ThemeColor?.Value.ToOfficeEnum();
                 }
@@ -374,7 +377,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -398,21 +401,21 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordHighlightColor? Highlight {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.Highlight != null) {
                     return runProperties.Highlight.Val?.Value.ToOfficeEnum();
                 }
                 return null;
             }
             set {
-                RunProperties? existingRunProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                RunProperties? existingRunProperties = ScopedRunProperties;
                 if (!value.HasValue) {
                     existingRunProperties?.Highlight?.Remove();
                     return;
                 }
 
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -430,7 +433,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCapsStyle CapsStyle {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (IsOnOffPropertyEnabled(runProperties?.Caps)) {
                     return WordCapsStyle.Caps;
                 } else if (IsOnOffPropertyEnabled(runProperties?.SmallCaps)) {
@@ -441,7 +444,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -470,7 +473,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? FontFamily {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.Ascii;
                 }
@@ -478,7 +481,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -507,7 +510,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? FontFamilyHighAnsi {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.HighAnsi;
                 }
@@ -515,7 +518,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -538,7 +541,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? FontFamilyEastAsia {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.EastAsia;
                 }
@@ -546,7 +549,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -569,7 +572,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? FontFamilyComplexScript {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.RunFonts != null) {
                     return runProperties.RunFonts.ComplexScript;
                 }
@@ -577,7 +580,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -600,12 +603,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? Language {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return runProperties?.Languages?.Val;
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -630,7 +633,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordCharacterStyles? CharacterStyle {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 if (runProperties != null && runProperties.RunStyle != null) {
                     var styleId = runProperties.RunStyle.Val;
                     if (!string.IsNullOrEmpty(styleId)) {
@@ -641,7 +644,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {
@@ -662,12 +665,12 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? CharacterStyleId {
             get {
-                var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
+                var runProperties = ScopedRunProperties;
                 return runProperties?.RunStyle?.Val;
             }
             set {
                 RunProperties runProperties;
-                if (IsHyperLink) {
+                if (IsHyperLink && _stdRun == null) {
                     var hyperlink = this.Hyperlink!;
                     runProperties = VerifyRunProperties(hyperlink._hyperlink!, hyperlink._run!, hyperlink._runProperties);
                 } else {

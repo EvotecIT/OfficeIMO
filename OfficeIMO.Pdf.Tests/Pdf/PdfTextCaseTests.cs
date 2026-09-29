@@ -1,12 +1,134 @@
 using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
+using OfficeIMO.Tests.Pdf;
 using System.Text;
 using System.Reflection;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Xunit;
 
 namespace OfficeIMO.Pdf.Tests;
 
 public class PdfTextCaseTests {
+    [Theory]
+    [InlineData(true, true, 3)]
+    [InlineData(true, false, 2)]
+    [InlineData(false, true, 1)]
+    public void RichParagraphUnderlinesSpacesUsingTheirSourceRun(bool firstUnderlined, bool secondUnderlined, int expectedLineCount) {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Paragraph(paragraph => {
+                if (firstUnderlined) paragraph.Underlined("Elite ");
+                else paragraph.Text("Elite ");
+                if (secondUnderlined) paragraph.Underlined("Performance");
+                else paragraph.Text("Performance");
+            })
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        MatchCollection strokes = Regex.Matches(raw, @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(expectedLineCount, strokes.Count);
+        if (firstUnderlined) {
+            double firstEnd = double.Parse(strokes[0].Groups["end"].Value, CultureInfo.InvariantCulture);
+            double spaceStart = double.Parse(strokes[1].Groups["start"].Value, CultureInfo.InvariantCulture);
+            Assert.InRange(Math.Abs(firstEnd - spaceStart), 0, 0.01);
+            if (secondUnderlined) {
+                double spaceEnd = double.Parse(strokes[1].Groups["end"].Value, CultureInfo.InvariantCulture);
+                double secondStart = double.Parse(strokes[2].Groups["start"].Value, CultureInfo.InvariantCulture);
+                Assert.InRange(Math.Abs(spaceEnd - secondStart), 0, 0.01);
+            }
+        }
+    }
+
+    [Fact]
+    public void RichParagraphWordsUnderlineLeavesSpacesClear() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Paragraph(paragraph => paragraph.Underlined("Elite Performance", OfficeTextDecorationStyle.Words))
+            .ToBytes();
+        MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(2, strokes.Count);
+        double firstEnd = double.Parse(strokes[0].Groups["end"].Value, CultureInfo.InvariantCulture);
+        double secondStart = double.Parse(strokes[1].Groups["start"].Value, CultureInfo.InvariantCulture);
+        Assert.True(secondStart - firstEnd > 1);
+    }
+
+    [Theory]
+    [InlineData(PdfTextBaseline.Superscript)]
+    [InlineData(PdfTextBaseline.Subscript)]
+    public void UnderlinedScriptSpaceUsesTheSourceRunBaseline(PdfTextBaseline baseline) {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Paragraph(paragraph => paragraph.Runs(new[] {
+                new PdfTextRun("Elite ", underlineStyle: OfficeTextDecorationStyle.Single, baseline: baseline, fontSize: 18),
+                new PdfTextRun("Performance", fontSize: 18)
+            }))
+            .ToBytes();
+
+        MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(2, strokes.Count);
+        double wordY = double.Parse(strokes[0].Groups["y"].Value, CultureInfo.InvariantCulture);
+        double gapY = double.Parse(strokes[1].Groups["y"].Value, CultureInfo.InvariantCulture);
+        Assert.InRange(Math.Abs(wordY - gapY), 0, 0.02);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DrawingWordsUnderlineLeavesSpacesClear(bool wrapText) {
+        var drawing = new OfficeDrawing(240, 45).AddStyledText(
+            "Elite Performance", 5, 4, 220, 34, new OfficeFontInfo("Arial", 15), OfficeColor.Black,
+            OfficeTextAlignment.Left, null, OfficeTextVerticalAlignment.Top, 0, null, null,
+            wrapText, false, false, false, false, null, null,
+            OfficeTextDecorationStyle.Words, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Canvas(canvas => canvas.Drawing(drawing, 10, 10, 240, 45))
+            .ToBytes();
+
+        MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(2, strokes.Count);
+        double firstEnd = double.Parse(strokes[0].Groups["end"].Value, CultureInfo.InvariantCulture);
+        double secondStart = double.Parse(strokes[1].Groups["start"].Value, CultureInfo.InvariantCulture);
+        Assert.True(secondStart - firstEnd > 1);
+    }
+
+    [Fact]
+    public void ShapedRightToLeftWordsUnderlineFollowsVisualWordOrder() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) return;
+        const string text = "שלום ים";
+        byte[] fontData = File.ReadAllBytes(fontPath);
+        PdfTrueTypeFontProgram font = PdfTrueTypeFontProgram.Parse(fontData, "RTL underline test");
+        if (PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, font).Count > 0) return;
+
+        var drawing = new OfficeDrawing(240, 45).AddStyledText(
+            text, 5, 4, 220, 34, new OfficeFontInfo("Arial", 18), OfficeColor.Black,
+            OfficeTextAlignment.Left, null, OfficeTextVerticalAlignment.Top, 0, null, null,
+            false, false, false, false, false, null, null,
+            OfficeTextDecorationStyle.Words, OfficeTextDecorationStyle.None, OfficeTextBaseline.Normal);
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }
+                .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "RTL underline test")
+                .SetTextShapingProvider(OfficeManagedTextShapingProvider.Instance))
+            .Canvas(canvas => canvas.Drawing(drawing, 10, 10, 240, 45))
+            .ToBytes();
+
+        MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(2, strokes.Count);
+        double firstStart = double.Parse(strokes[0].Groups["start"].Value, CultureInfo.InvariantCulture);
+        double firstEnd = double.Parse(strokes[0].Groups["end"].Value, CultureInfo.InvariantCulture);
+        double secondStart = double.Parse(strokes[1].Groups["start"].Value, CultureInfo.InvariantCulture);
+        double secondEnd = double.Parse(strokes[1].Groups["end"].Value, CultureInfo.InvariantCulture);
+        Assert.True(firstEnd - firstStart < secondEnd - secondStart);
+        Assert.True(secondStart - firstEnd > 1);
+    }
+
+    [Fact]
+    public void HeaderWordsUnderlineLeavesSpacesClear() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions { CompressContentStreams = false })
+            .Header(header => header.Text(text => text.Run(new PdfTextRun("Elite Performance", underlineStyle: OfficeTextDecorationStyle.Words))))
+            .Paragraph(paragraph => paragraph.Text("Body"))
+            .ToBytes();
+        MatchCollection strokes = Regex.Matches(Encoding.ASCII.GetString(bytes), @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(2, strokes.Count);
+    }
+
     [Fact]
     public void PreTypographyTabAlignedConstructorRemainsBinaryDiscoverable() {
         ConstructorInfo? constructor = typeof(PdfTextRun).GetConstructor(new[] {

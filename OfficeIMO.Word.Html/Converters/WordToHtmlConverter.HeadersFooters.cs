@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Html {
             if (contentRoot != null) {
                 ReserveOutputCharacters(
                     htmlDoc,
-                    MeasureOutputContentCharacters(contentRoot),
+                    MeasureOutputContentCharacters(contentRoot, options.TrackedChangePolicy),
                     "Repeated Word header or footer content exceeds the configured HTML output-character limit before DOM construction.",
                     "HeaderFooter:" + tagName + ":" + type + ":section-" + sectionIndex.ToString(CultureInfo.InvariantCulture));
             }
@@ -102,6 +102,6 @@ namespace OfficeIMO.Word.Html {
         private static bool IsRenderableHeaderFooterParagraph(WordParagraph paragraph) =>
             !string.IsNullOrWhiteSpace(paragraph.Text) ||
             paragraph.IsListItem ||
-            paragraph.GetRuns().Any(run => run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
+            paragraph.GetRuns().Any(run => run.IsChart || HasExtendedChart(run._run) || run.IsImage || run.IsStructuredDocumentTag || run.IsCheckBox || run.IsDropDownList || run.IsComboBox || run.IsDatePicker);
     }
 }

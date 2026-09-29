@@ -1,11 +1,56 @@
+using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Color = OfficeIMO.Drawing.OfficeColor;
+using V = DocumentFormat.OpenXml.Vml;
 using Xunit;
 using Path = System.IO.Path;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+        [Fact]
+        public void VmlImageFileNameFallsBackToEmbeddedPartWhenTitleIsAbsent() {
+            string assets = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../..", "Assets"));
+            string source = Path.Combine(assets, "OfficeIMO.png");
+            string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+            try {
+                using (WordDocument document = WordDocument.Create(output)) {
+                    document.AddImageVml(source);
+                    document.Save();
+                }
+                string expected;
+                using (WordprocessingDocument native = WordprocessingDocument.Open(output, true)) {
+                    V.ImageData image = native.MainDocumentPart!.Document!.Descendants<V.ImageData>().Single();
+                    expected = Path.GetFileName(native.MainDocumentPart.GetPartById(image.RelationshipId!.Value!).Uri.ToString());
+                    image.Title = null;
+                    native.MainDocumentPart.Document.Save();
+                }
+                using WordDocument reopened = WordDocument.Load(output);
+                Assert.Equal(expected, Assert.Single(reopened.Images).FileName);
+            } finally { if (File.Exists(output)) File.Delete(output); }
+        }
+
+        [Fact]
+        public void VmlImageFileNameRoundTripsThroughItsPublicProperty() {
+            string assets = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../..", "Assets"));
+            string source = Path.Combine(assets, "OfficeIMO.png");
+            string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+            try {
+                using (WordDocument document = WordDocument.Create(output)) {
+                    document.AddImageVml(source);
+                    WordImage image = Assert.Single(document.Images);
+                    Assert.Equal("OfficeIMO.png", image.FileName);
+                    image.FileName = "renamed.png";
+                    Assert.Equal("renamed.png", image.FileName);
+                    document.Save();
+                }
+                using WordDocument reopened = WordDocument.Load(output);
+                Assert.Equal("renamed.png", Assert.Single(reopened.Images).FileName);
+            } finally { if (File.Exists(output)) File.Delete(output); }
+        }
+
         [Fact]
         public void Test_DrawingVsVmlCounts() {
             string assets = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../..", "Assets"));

@@ -8,6 +8,8 @@ namespace OfficeIMO.Drawing;
 /// Dependency-free chart series values used by shared OfficeIMO visual renderers.
 /// </summary>
 public sealed class OfficeChartSeries {
+    /// <summary>Largest pie or doughnut point explosion that the shared renderer supports.</summary>
+    public const int MaximumPointExplosionPercent = 400;
     /// <summary>
     /// Initializes a chart series snapshot.
     /// </summary>
@@ -60,8 +62,8 @@ public sealed class OfficeChartSeries {
     /// <param name="markerSize">Optional source-defined marker diameter in drawing units.</param>
     /// <param name="markerShape">Optional source-defined marker shape.</param>
     /// <param name="markerOutlineColor">Optional source-defined marker outline color.</param>
-    /// <param name="markerOutlineWidth">Optional source-defined marker outline width in drawing units.</param>
-    /// <param name="strokeWidth">Optional source-defined series stroke width in drawing units.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined marker outline width in points, greater than zero and at most 1584.</param>
+    /// <param name="strokeWidth">Optional source-defined series stroke width in points, greater than zero and at most 1584.</param>
     /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
     /// <param name="renderKind">Optional per-series chart kind used by mixed/combo chart renderers.</param>
     /// <param name="axisGroup">Primary or secondary value axis used by combo chart renderers.</param>
@@ -82,7 +84,7 @@ public sealed class OfficeChartSeries {
     /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
-    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in points, greater than zero and at most 1584.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color,
         IEnumerable<OfficeColor?>? pointColors, bool showInLegend,
@@ -102,7 +104,7 @@ public sealed class OfficeChartSeries {
     /// <param name="pointColors">Optional source-defined colors aligned with individual bubbles.</param>
     /// <param name="showInLegend">Whether this series should appear in rendered legends.</param>
     /// <param name="markerOutlineColor">Optional source-defined bubble outline color.</param>
-    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in drawing units.</param>
+    /// <param name="markerOutlineWidth">Optional source-defined bubble outline width in points, greater than zero and at most 1584.</param>
     /// <param name="showMarkerOutline">Whether the bubble outline should be rendered.</param>
     public static OfficeChartSeries CreateBubble(string name, IEnumerable<double> xValues,
         IEnumerable<double> yValues, IEnumerable<double> bubbleSizes, OfficeColor? color = null,
@@ -134,16 +136,8 @@ public sealed class OfficeChartSeries {
         if (markerSize is <= 0) {
             throw new ArgumentOutOfRangeException(nameof(markerSize), "Marker size must be greater than zero.");
         }
-        if (markerOutlineWidth.HasValue &&
-            (double.IsNaN(markerOutlineWidth.Value) ||
-             double.IsInfinity(markerOutlineWidth.Value) ||
-             markerOutlineWidth.Value <= 0D)) {
-            throw new ArgumentOutOfRangeException(nameof(markerOutlineWidth),
-                "Marker outline width must be finite and greater than zero.");
-        }
-        if (strokeWidth is <= 0D) {
-            throw new ArgumentOutOfRangeException(nameof(strokeWidth), "Series stroke width must be greater than zero.");
-        }
+        OfficeChartStyleBounds.ValidateLineWidth(markerOutlineWidth, nameof(markerOutlineWidth));
+        OfficeChartStyleBounds.ValidateLineWidth(strokeWidth, nameof(strokeWidth));
 
         Name = name ?? string.Empty;
         Values = new ReadOnlyCollection<double>(new List<double>(values));
@@ -220,6 +214,52 @@ public sealed class OfficeChartSeries {
     /// <summary>Optional source-defined colors aligned with individual series values.</summary>
     public IReadOnlyList<OfficeColor?>? PointColors { get; }
 
+    /// <summary>Optional point styles aligned with the values; explicit fills override PointColors.</summary>
+    public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; private set; }
+
+    /// <summary>Optional pie or doughnut slice offsets, as percentages of the slice radius.</summary>
+    public IReadOnlyList<int>? PointExplosions { get; private set; }
+
+    /// <summary>
+    /// Returns a copy with aligned immutable point styles. Null removes shared style metadata;
+    /// null entries inherit the series/theme appearance and any legacy PointColors entry.
+    /// </summary>
+    public OfficeChartSeries WithPointStyles(IEnumerable<OfficeChartPointStyle?>? pointStyles) {
+        IReadOnlyList<OfficeChartPointStyle?>? styles = pointStyles == null ? null :
+            new ReadOnlyCollection<OfficeChartPointStyle?>(new List<OfficeChartPointStyle?>(pointStyles));
+        if (styles != null && styles.Count != Values.Count)
+            throw new ArgumentException("Point styles must match the number of series values.", nameof(pointStyles));
+        return CopyWithPresentation(styles, PointExplosions, ShowInLegend);
+    }
+
+    /// <summary>Returns a copy with an explosion percentage for each pie or doughnut point. Null leaves native point offsets unchanged during data updates.</summary>
+    public OfficeChartSeries WithPointExplosions(IEnumerable<int>? pointExplosions) {
+        IReadOnlyList<int>? explosions = pointExplosions == null ? null :
+            new ReadOnlyCollection<int>(new List<int>(pointExplosions));
+        if (explosions != null) {
+            if (explosions.Count != Values.Count)
+                throw new ArgumentException("Point explosions must match the number of series values.", nameof(pointExplosions));
+            foreach (int explosion in explosions)
+                if (explosion < 0 || explosion > MaximumPointExplosionPercent)
+                    throw new ArgumentOutOfRangeException(nameof(pointExplosions),
+                        "Point explosions must be between zero and 400 percent.");
+        }
+        return CopyWithPresentation(PointStyles, explosions, ShowInLegend);
+    }
+
+    /// <summary>Returns a copy with the requested legend visibility and unchanged data and appearance.</summary>
+    public OfficeChartSeries WithLegendVisibility(bool showInLegend) => CopyWithPresentation(PointStyles, PointExplosions, showInLegend);
+
+    private OfficeChartSeries CopyWithPresentation(IReadOnlyList<OfficeChartPointStyle?>? styles,
+        IReadOnlyList<int>? explosions, bool showInLegend) {
+        return new OfficeChartSeries(Name, Values, XValues, BubbleSizes, Color, PointColors,
+            ShowMarkers, showInLegend, ConnectLine, MarkerSize, MarkerShape, MarkerOutlineColor,
+            MarkerOutlineWidth, StrokeWidth, StrokeDashStyle, RenderKind, AxisGroup, ShowMarkerOutline) {
+            PointStyles = styles,
+            PointExplosions = explosions
+        };
+    }
+
     /// <summary>Whether this series should render markers when the chart layout enables markers.</summary>
     public bool ShowMarkers { get; }
 
@@ -232,13 +272,13 @@ public sealed class OfficeChartSeries {
     /// <summary>Optional source-defined marker outline color.</summary>
     public OfficeColor? MarkerOutlineColor { get; }
 
-    /// <summary>Optional source-defined marker outline width in drawing units.</summary>
+    /// <summary>Optional source-defined marker outline width in points, greater than zero and at most 1584.</summary>
     public double? MarkerOutlineWidth { get; }
 
     /// <summary>Whether the marker or bubble outline should be rendered.</summary>
     public bool ShowMarkerOutline { get; }
 
-    /// <summary>Optional source-defined series stroke width in drawing units.</summary>
+    /// <summary>Optional source-defined series stroke width in points, greater than zero and at most 1584.</summary>
     public double? StrokeWidth { get; }
 
     /// <summary>Optional source-defined series stroke dash style.</summary>

@@ -193,7 +193,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
     }
 
-    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool, bool>? providerShapedTextRecorder, string? language = null) {
         Guard.NotNull(text, nameof(text));
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder, language)).ToGlyphHex();
     }
@@ -243,7 +243,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
             ? text
             : null;
-        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText);
+        return new PdfGlyphRun(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText, preserveGlyphUnicode:
+            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
     }
 
     public double GetAscender(double fontSize) =>

@@ -1941,9 +1941,11 @@ internal static partial class PdfWriter {
             content.GraphicsState(graphicsStateName!);
         }
 
+        // One logical replacement preserves rotated reading order across fallback faces.
+        sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(watermark.Text)).Append(" >> BDC\n");
         content
             .BeginText()
-            .Font(fontAlias, watermark.FontSize)
+            .Font(fontAlias, watermark.FontSize, options.NeedsSyntheticOblique(baseFont))
             .FillColor(watermark.Color)
             .TextMatrix(cos, sin, -sin, cos, originX, originY);
         foreach (PdfTextRun run in runs) {
@@ -1956,12 +1958,13 @@ internal static partial class PdfWriter {
             string runFontResource = ResolvePageTextFontResource(fontResources, runFont);
             double runFontSize = run.FontSize ?? watermark.FontSize;
             content
-                .Font(runFontResource, runFontSize)
-                .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize);
+                .Font(runFontResource, runFontSize, options.NeedsSyntheticOblique(runFont))
+                .ShowText(EncodeTextShowCommand(text, runFont, options), runFontSize, suppressActualText: true);
         }
 
-        content.EndText()
-            .RestoreState();
+        content.EndText();
+        sb.Append("EMC\n");
+        content.RestoreState();
     }
 
     private static System.Collections.Generic.IReadOnlyList<PdfTextRun> BuildTextWatermarkRuns(PdfTextWatermark watermark, PdfOptions options) {

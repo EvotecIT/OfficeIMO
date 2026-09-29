@@ -20,6 +20,10 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            // Combo layers may contain nonconsecutive native series indexes. Search all
+            // layers before using a positional fallback from any individual layer.
+            if (ApplySeriesByChartIndex(seriesIndex, apply)) return true;
+
             if (ApplySeriesByIndex(plotArea.Elements<C.BarChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.Bar3DChart>(), seriesIndex, apply)) return true;
             if (ApplySeriesByIndex(plotArea.Elements<C.LineChart>(), seriesIndex, apply)) return true;

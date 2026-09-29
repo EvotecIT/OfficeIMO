@@ -23,3 +23,8 @@ NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPO
 NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
 DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
 OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+## WebM VP8 reference
+
+The managed VP8 decoder follows RFC 6386 and was checked against the WebM libwebp reference. The WebM reference license and patent grant are retained in `Licenses/libvpx-LICENSE.txt` and `Licenses/libvpx-PATENTS.txt`. No libwebp or libvpx runtime dependency is introduced.

@@ -61,6 +61,7 @@ jobs:
           name: studio-tests-${{ matrix.os }}
           path: TestResults/Studio
           if-no-files-found: ignore
+          retention-days: 7
 
   studio-locked-restore:
     name: 'Studio locked restore (${{ matrix.os }})'
@@ -755,6 +756,7 @@ jobs:
           path: |
             **/*.trx
             TestResults/visual-baselines/**
+          retention-days: 7
 
   word-vba-office-sip:
     name: 'Managed VBA / Microsoft Office SIP differential'
@@ -1451,6 +1453,7 @@ jobs:
           path: |
             **/*.trx
             TestResults/visual-baselines/**
+          retention-days: 7
       - name: Upload coverage to Codecov
         if: ${{ matrix.collectCoverage }}
         uses: codecov/codecov-action@v7
@@ -1710,6 +1713,7 @@ jobs:
         with:
           name: test-results-macos-${{ matrix.framework }}
           path: '**/*.trx'
+          retention-days: 7
 
   test-macos:
     name: 'macOS'

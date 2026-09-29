@@ -11188,9 +11188,9 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
-        <c:gapWidth val="200" />
+        <c:gapWidth val="150" />
         <c:overlap val="0" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921729" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921730" />
@@ -11245,7 +11245,7 @@
       <c:layout />
       <c:barChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
         <c:barDir val="bar" />
-        <c:grouping val="standard" />
+        <c:grouping val="clustered" />
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />
@@ -11299,9 +11299,9 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
-        <c:gapWidth val="200" />
+        <c:gapWidth val="150" />
         <c:overlap val="0" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921731" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921732" />
@@ -11312,7 +11312,7 @@
           <c:orientation val="minMax" />
         </c:scaling>
         <c:delete val="0" />
-        <c:axPos val="b" />
+        <c:axPos val="l" />
         <c:majorTickMark val="out" />
         <c:minorTickMark val="none" />
         <c:tickLblPos val="nextTo" />
@@ -11329,7 +11329,7 @@
           <c:orientation val="minMax" />
         </c:scaling>
         <c:delete val="0" />
-        <c:axPos val="l" />
+        <c:axPos val="b" />
         <c:majorGridlines />
         <c:numFmt formatCode="General" sourceLinked="0" />
         <c:majorTickMark val="out" />
@@ -11355,6 +11355,7 @@
     <c:plotArea>
       <c:layout />
       <c:pieChart xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart">
+        <c:varyColors val="1" />
         <c:ser>
           <c:idx val="0" />
           <c:order val="0" />
@@ -11405,7 +11406,7 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
       </c:pieChart>
     </c:plotArea>
@@ -11443,6 +11444,9 @@
               <a:srgbClr val="008000" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11497,6 +11501,9 @@
               <a:srgbClr val="A52A2A" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11551,6 +11558,9 @@
               <a:srgbClr val="F0F8FF" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11594,7 +11604,7 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921733" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921734" />
@@ -11667,6 +11677,9 @@
               <a:srgbClr val="008000" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11721,6 +11734,9 @@
               <a:srgbClr val="A52A2A" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11775,6 +11791,9 @@
               <a:srgbClr val="F0F8FF" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11818,7 +11837,7 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921735" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921736" />
@@ -11892,6 +11911,9 @@
               <a:srgbClr val="800080" />
             </a:solidFill>
           </c:spPr>
+          <c:marker>
+            <c:symbol val="none" />
+          </c:marker>
           <c:cat>
             <c:strLit>
               <c:ptCount val="4" />
@@ -11935,7 +11957,7 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
         <c:gapDepth val="150" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921737" />
@@ -12055,7 +12077,7 @@
           <c:showSerName val="0" />
           <c:showPercent val="1" />
           <c:showBubbleSize val="0" />
-          <c:showLeaderLines val="1" />
+          <c:showLeaderLines val="0" />
         </c:dLbls>
         <c:gapDepth val="150" />
         <c:axId xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart" val="148921740" />

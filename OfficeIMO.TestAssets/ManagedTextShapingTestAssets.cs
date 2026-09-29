@@ -7,7 +7,7 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.TestAssets;
 
-internal static class ManagedTextShapingTestAssets {
+internal static partial class ManagedTextShapingTestAssets {
     internal const string FamilyName = "OfficeIMO Shaping Test";
 
     internal static byte[] CreateFont(params int[] scalars) {
@@ -32,12 +32,12 @@ internal static class ManagedTextShapingTestAssets {
             kern: CreateKernTable(1, 2, adjustment));
     }
 
-    internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga") {
+    internal static byte[] CreateFontWithLigature(int firstScalar, int secondScalar, string featureTag = "liga", string? scriptTag = null, ushort lookupFlags = 0) {
         if (firstScalar == secondScalar) throw new ArgumentException("Ligature test scalars must be distinct.", nameof(secondScalar));
         return CreateFontFromCmap(
-            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2),
-            glyphCount: 4,
-            gsub: CreateLigatureGsub(featureTag, 1, 2, 3));
+            CreateFormat12Cmap(firstScalar, 1, secondScalar, 2, 32, 4),
+            glyphCount: 5,
+            gsub: CreateLigatureGsub(featureTag, 1, 2, 3, scriptTag, lookupFlags));
     }
 
     internal static byte[] CreateFontWithSelfReferentialLigature(int firstScalar, int secondScalar) {
@@ -80,11 +80,26 @@ internal static class ManagedTextShapingTestAssets {
             gpos: CreatePairPositioningGpos());
     }
 
-    internal static byte[] CreateFontWithMultipleSubstitution(int scalar) =>
-        CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub());
+    internal static byte[] CreateFontWithMultipleSubstitution(int scalar, string? scriptTag = null, string featureTag = "ccmp") =>
+        CreateFontFromCmap(scalar == 32 ? CreateFormat12Cmap(new[] { scalar }) : CreateFormat12Cmap(scalar, 1, 32, 2), glyphCount: 5, gsub: CreateMultipleGsub(scriptTag: scriptTag, featureTag: featureTag));
 
     internal static byte[] CreateFontWithSelfReferentialMultipleSubstitution(int scalar) =>
         CreateFontFromCmap(CreateFormat12Cmap(new[] { scalar }), glyphCount: 5, gsub: CreateMultipleGsub(2, 1));
+
+    internal static byte[] CreateFontWithComposedMultipleLigature(int secondScalar, bool continuationOnly) {
+        var gsub = new byte[116];
+        WriteUInt32(gsub, 0, 0x00010000);
+        WriteUInt16(gsub, 4, 10); WriteUInt16(gsub, 6, 30); WriteUInt16(gsub, 8, 46);
+        WriteUInt16(gsub, 10, 1); WriteTag(gsub, 12, "latn"); WriteUInt16(gsub, 16, 8);
+        WriteUInt16(gsub, 18, 4); WriteUInt16(gsub, 24, 0xFFFF); WriteUInt16(gsub, 26, 1);
+        WriteUInt16(gsub, 30, 1); WriteTag(gsub, 32, "liga"); WriteUInt16(gsub, 36, 8);
+        WriteUInt16(gsub, 40, 2); WriteUInt16(gsub, 44, 1);
+        WriteUInt16(gsub, 46, 2); WriteUInt16(gsub, 48, 6); WriteUInt16(gsub, 50, 38);
+        Array.Copy(CreateMultipleGsub(), 30, gsub, 52, 30);
+        WriteUInt16(gsub, 76, 3); WriteUInt16(gsub, 78, 3); WriteUInt16(gsub, 80, 4); WriteUInt16(gsub, 82, 5);
+        Array.Copy(CreateLigatureGsub("liga", continuationOnly ? (ushort)4 : (ushort)5, continuationOnly ? (ushort)5 : (ushort)2, 6), 30, gsub, 84, 32);
+        return CreateFontFromCmap(secondScalar == 32 ? CreateFormat12Cmap('A', 1, 32, 2) : CreateFormat12Cmap('A', 1, secondScalar, 2, 32, 2), glyphCount: 7, gsub: gsub);
+    }
 
     internal static byte[] CreateFontWithContextualSubstitution(int firstScalar, int secondScalar) =>
         CreateFontFromCmap(
@@ -320,15 +335,15 @@ internal static class ManagedTextShapingTestAssets {
         return table;
     }
 
-    private static byte[] CreateMultipleGsub(ushort firstReplacement = 3, ushort secondReplacement = 4) {
-        var data = new byte[60];
+    private static byte[] CreateMultipleGsub(ushort firstReplacement = 3, ushort secondReplacement = 4, string? scriptTag = null, string featureTag = "ccmp") {
+        var data = new byte[scriptTag == null ? 60 : 80];
         WriteUInt32(data, 0, 0x00010000);
         WriteUInt16(data, 4, 10);
         WriteUInt16(data, 6, 12);
         WriteUInt16(data, 8, 26);
         WriteUInt16(data, 10, 0);
         WriteUInt16(data, 12, 1);
-        WriteTag(data, 14, "ccmp");
+        WriteTag(data, 14, featureTag);
         WriteUInt16(data, 18, 8);
         WriteUInt16(data, 20, 0);
         WriteUInt16(data, 22, 1);
@@ -349,6 +364,11 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 54, 2);
         WriteUInt16(data, 56, firstReplacement);
         WriteUInt16(data, 58, secondReplacement);
+        if (scriptTag != null) {
+            WriteUInt16(data, 4, 60); WriteUInt16(data, 60, 1); WriteTag(data, 62, scriptTag);
+            WriteUInt16(data, 66, 8); WriteUInt16(data, 68, 4); WriteUInt16(data, 70, 0);
+            WriteUInt16(data, 72, 0); WriteUInt16(data, 74, 0xFFFF); WriteUInt16(data, 76, 1); WriteUInt16(data, 78, 0);
+        }
         return data;
     }
 
@@ -645,20 +665,24 @@ internal static class ManagedTextShapingTestAssets {
         int firstScalar,
         int firstGlyph,
         int secondScalar,
-        int secondGlyph) {
-        var mappings = new[] {
+        int secondGlyph, int? thirdScalar = null, int thirdGlyph = 0) {
+        var mappings = thirdScalar.HasValue ? new[] {
+            (Scalar: firstScalar, Glyph: firstGlyph),
+            (Scalar: secondScalar, Glyph: secondGlyph),
+            (Scalar: thirdScalar.Value, Glyph: thirdGlyph)
+        } : new[] {
             (Scalar: firstScalar, Glyph: firstGlyph),
             (Scalar: secondScalar, Glyph: secondGlyph)
         };
         Array.Sort(mappings, static (left, right) => left.Scalar.CompareTo(right.Scalar));
-        var data = new byte[52];
+        var data = new byte[28 + mappings.Length * 12];
         WriteUInt16(data, 2, 1);
         WriteUInt16(data, 4, 3);
         WriteUInt16(data, 6, 10);
         WriteUInt32(data, 8, 12);
         WriteUInt16(data, 12, 12);
-        WriteUInt32(data, 16, 40);
-        WriteUInt32(data, 24, 2);
+        WriteUInt32(data, 16, (uint)(16 + mappings.Length * 12));
+        WriteUInt32(data, 24, (uint)mappings.Length);
         for (int index = 0; index < mappings.Length; index++) {
             int offset = 28 + (index * 12);
             WriteUInt32(data, offset, checked((uint)mappings[index].Scalar));
@@ -681,9 +705,9 @@ internal static class ManagedTextShapingTestAssets {
         return data;
     }
 
-    private static byte[] CreateLigatureGsub(string featureTag, ushort firstGlyph, ushort secondGlyph, ushort ligatureGlyph) {
+    private static byte[] CreateLigatureGsub(string featureTag, ushort firstGlyph, ushort secondGlyph, ushort ligatureGlyph, string? scriptTag = null, ushort lookupFlags = 0) {
         if (featureTag == null || featureTag.Length != 4) throw new ArgumentException("Feature tags must contain four characters.", nameof(featureTag));
-        var data = new byte[62];
+        var data = new byte[scriptTag == null ? 62 : 82];
         WriteUInt32(data, 0, 0x00010000);
         WriteUInt16(data, 4, 10);
         WriteUInt16(data, 6, 12);
@@ -698,7 +722,7 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 26, 1);
         WriteUInt16(data, 28, 4);
         WriteUInt16(data, 30, 4);
-        WriteUInt16(data, 32, 0);
+        WriteUInt16(data, 32, lookupFlags);
         WriteUInt16(data, 34, 1);
         WriteUInt16(data, 36, 8);
         WriteUInt16(data, 38, 1);
@@ -713,6 +737,18 @@ internal static class ManagedTextShapingTestAssets {
         WriteUInt16(data, 56, 1);
         WriteUInt16(data, 58, 1);
         WriteUInt16(data, 60, firstGlyph);
+        if (scriptTag != null) {
+            WriteUInt16(data, 4, 62);
+            WriteUInt16(data, 62, 1);
+            WriteTag(data, 64, scriptTag);
+            WriteUInt16(data, 68, 8);
+            WriteUInt16(data, 70, 4);
+            WriteUInt16(data, 72, 0);
+            WriteUInt16(data, 74, 0);
+            WriteUInt16(data, 76, 0xFFFF);
+            WriteUInt16(data, 78, 1);
+            WriteUInt16(data, 80, 0);
+        }
         return data;
     }
 

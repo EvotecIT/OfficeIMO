@@ -25,7 +25,8 @@ namespace OfficeIMO.Word.Markdown {
             options ??= new WordToMarkdownOptions();
 
             var markdown = MarkdownDoc.Create();
-            BuildMarkdownDocument(document, markdown, options, cancellationToken);
+            using (WordComplexFieldRunVisibility.BeginConversionScope())
+                BuildMarkdownDocument(document, markdown, options, cancellationToken);
             return markdown;
         }
 

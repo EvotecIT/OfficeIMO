@@ -167,14 +167,16 @@ namespace OfficeIMO.PowerPoint {
             byte[] original;
             using (Stream stream = embedded.GetStream(FileMode.Open,
                        FileAccess.Read)) {
-                original = PowerPointChartWorkbookSecurity.ReadAndValidate(
+                original = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
                     stream);
             }
             byte[] workbook = PowerPointChartWorkbookEditor.Update(original,
                 data);
+            Action preserveBindings = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+                chartPart, data.Series.Select(item => item.Values.Count).ToArray());
             using (var validation = new MemoryStream(workbook,
                        writable: false)) {
-                _ = PowerPointChartWorkbookSecurity.ReadAndValidate(
+                _ = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(
                     validation);
             }
             C.ChartSpace originalChartSpace = (C.ChartSpace)chartPart
@@ -195,6 +197,7 @@ namespace OfficeIMO.PowerPoint {
                         $"Sheet1!${column}$2:${column}${lastRow}",
                         item.Values);
                 }
+                preserveBindings();
                 using var replacement = new MemoryStream(workbook,
                     writable: false);
                 embedded.FeedData(replacement);

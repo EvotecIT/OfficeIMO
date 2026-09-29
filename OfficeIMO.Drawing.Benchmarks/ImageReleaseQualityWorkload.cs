@@ -181,7 +181,13 @@ public sealed class ImageReleaseQualityWorkload {
             OfficeRasterImageEncoder.Encode(_source, _format, _options, 8L));
         if (limit.LimitName != nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes))
             throw new InvalidOperationException("The bounded encoder reported the wrong public limit.");
-        CancellationLatencyMilliseconds = MeasureEncodeCancellation();
+        // The 1024-pixel WebP corpus can finish before a Windows cancellation worker
+        // wakes up. Use a longer encode for this independent cancellation probe.
+        OfficeRasterImage cancellationSource = _format == OfficeImageExportFormat.Webp
+            ? ImageBenchmarkCorpus.CreatePattern(4096, 2049)
+            : _source;
+        CancellationLatencyMilliseconds = ImageCancellationEvidence.MeasureRepresentativeLatency(
+            () => MeasureEncodeCancellation(cancellationSource));
     }
 
     private void ValidateDecode(OfficeRasterImage decoded) {
@@ -237,7 +243,7 @@ public sealed class ImageReleaseQualityWorkload {
         EncodedBytes = pixels.LongLength;
         OutputSha256 = Convert.ToHexString(SHA256.HashData(pixels));
         Deterministic = pixels.AsSpan().SequenceEqual(repeated) ? 1 : 0;
-        CancellationLatencyMilliseconds = MeasureResizeCancellation();
+        CancellationLatencyMilliseconds = ImageCancellationEvidence.MeasureRepresentativeLatency(MeasureResizeCancellation);
     }
 
     private void RecordEncoded(byte[] bytes, bool deterministic) {
@@ -258,7 +264,7 @@ public sealed class ImageReleaseQualityWorkload {
         }
     }
 
-    private double MeasureEncodeCancellation() {
+    private double MeasureEncodeCancellation(OfficeRasterImage cancellationSource) {
         OfficeRasterEncodingCheckpoint expected = _format switch {
             OfficeImageExportFormat.Png => OfficeRasterEncodingCheckpoint.PngCompressionRow,
             OfficeImageExportFormat.Jpeg => OfficeRasterEncodingCheckpoint.JpegCoefficientRow,
@@ -280,17 +286,19 @@ public sealed class ImageReleaseQualityWorkload {
         }) { IsBackground = true };
         thread.Start();
         int checkpoints = 0;
+        long observedAt;
         try {
             using var output = new MemoryStream();
             ExpectException<OperationCanceledException>(() => OfficeRasterImageEncoder.EncodeTo(
-                _source, _format, output, _options, long.MaxValue, cancellation.Token,
+                cancellationSource, _format, output, _options, long.MaxValue, cancellation.Token,
                 checkpoint => {
                     if (checkpoint != expected || Interlocked.Increment(ref checkpoints) != 2) return;
                     started.Set();
                 }));
+            observedAt = Stopwatch.GetTimestamp();
         } finally { started.Set(); thread.Join(); }
         if (checkpoints < 2 || requestedAt == 0L) throw new InvalidOperationException("The encoder did not reach its cancellation checkpoint.");
-        return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
+        return Stopwatch.GetElapsedTime(requestedAt, observedAt).TotalMilliseconds;
     }
 
     private double MeasureResizeCancellation() {
@@ -303,6 +311,7 @@ public sealed class ImageReleaseQualityWorkload {
             cancellation.Cancel();
         }) { IsBackground = true };
         thread.Start();
+        long observedAt;
         try {
             ExpectException<OperationCanceledException>(() => OfficeRasterResampler.Resize(
                 _source,
@@ -313,12 +322,13 @@ public sealed class ImageReleaseQualityWorkload {
                 retainedManagedBytes: 0L,
                 cancellationToken: cancellation.Token,
                 resamplingWorkStarted: started.Set));
+            observedAt = Stopwatch.GetTimestamp();
         } finally {
             started.Set();
             thread.Join();
         }
         if (requestedAt == 0L) throw new InvalidOperationException("The resampler did not begin pixel filtering before cancellation was requested.");
-        return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
+        return Stopwatch.GetElapsedTime(requestedAt, observedAt).TotalMilliseconds;
     }
 
     private OfficeImageOptimizationRequest CreateOptimizationRequest() => new(Math.Max(1, _source.Width / 2), Math.Max(1, _source.Height / 2)) {
