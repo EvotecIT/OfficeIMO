@@ -146,6 +146,12 @@ namespace OfficeIMO.PowerPoint {
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
+            if (GetChartPart().ChartSpace?.GetFirstChild<C.Chart>() is C.Chart nativeChart &&
+                OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(nativeChart,
+                    snapshot.Data.Series.SelectMany(series => series.Values))) {
+                snapshot = null!;
+                return false;
+            }
             if (HasUnprojectedNativeAxisUnits(snapshot.Layout) ||
                 OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;

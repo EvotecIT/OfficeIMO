@@ -9,6 +9,36 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartWorkbookBindingsTests {
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Scatter)]
+    [InlineData(OfficeChartKind.Radar)]
+    public void SharedUpdate_PreservesDivergentNativeFillAndLineWhenColorIsUnspecified(OfficeChartKind kind) {
+        using WordDocument document = WordDocument.Create();
+        var original = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d },
+                kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) });
+        WordChart chart = document.AddChart(kind, original);
+        var series = chart.ChartPart!.ChartSpace!.Descendants()
+            .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(element => element.LocalName == "ser");
+        C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+        properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?.Remove();
+        properties.AddChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
+            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "00AA00" }), true);
+        var outline = properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()!;
+        outline.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?.Remove();
+        outline.AddChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
+            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "AA0000" }), true);
+        string before = properties.OuterXml;
+        var replacement = new OfficeChartData(original.Categories, new[] {
+            new OfficeChartSeries("Updated", new[] { 3d, 4d },
+                kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) });
+        chart.SetData(kind, replacement);
+        Assert.Equal(before, chart.ChartPart.ChartSpace.Descendants()
+            .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(element => element.LocalName == "ser")
+            .GetFirstChild<C.ChartShapeProperties>()!.OuterXml);
+    }
+
     [Fact]
     public void SharedPieAuthoringRejectsMultipleSeriesInsteadOfSilentlyOmittingOneInSnapshots() {
         using WordDocument document = WordDocument.Create();
