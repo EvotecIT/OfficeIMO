@@ -20,9 +20,11 @@ internal static class OfficeOpenXmlChartPointStyles {
         return points;
     }
 
-    internal static bool IsSupported(C.ChartShapeProperties properties, A.ColorScheme? scheme) {
+    internal static bool IsSupported(C.ChartShapeProperties properties, A.ColorScheme? scheme, bool flattenThreeDimensional = false) {
         if (properties.HasAttributes) return false;
         foreach (OpenXmlElement child in properties.ChildElements) {
+            if (child is A.EffectList && !child.HasChildren && !child.HasAttributes) continue;
+            if (flattenThreeDimensional && child is A.Shape3DType) continue;
             if (child is A.NoFill) continue;
             if (child is A.SolidFill) {
                 if (!OfficeOpenXmlThemeColorResolver.ResolveColor(child, scheme).HasValue) return false;
@@ -51,13 +53,18 @@ internal static class OfficeOpenXmlChartPointStyles {
 
     internal static IReadOnlyList<OfficeChartPointStyle?>? Read(OpenXmlElement series, int count, A.ColorScheme? scheme) {
         OfficeChartPointStyle?[]? styles = null;
+        bool flattenThreeDimensional = series.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true;
         foreach (C.DataPoint point in GetBoundedPoints(series)) {
             uint? index = point.Index?.Val?.Value;
             if (!index.HasValue || index.Value >= (uint)count) continue;
-            C.ChartShapeProperties? properties = point.GetFirstChild<C.Marker>()?
-                .GetFirstChild<C.ChartShapeProperties>() ?? point.GetFirstChild<C.ChartShapeProperties>();
+            C.Marker? marker = point.GetFirstChild<C.Marker>();
+            C.ChartShapeProperties? direct = point.GetFirstChild<C.ChartShapeProperties>();
+            C.ChartShapeProperties? markerProperties = marker?.GetFirstChild<C.ChartShapeProperties>();
+            if (markerProperties != null && direct != null && (direct.HasChildren || direct.HasAttributes))
+                throw new System.IO.InvalidDataException("The native point has two unprojected shape-property owners.");
+            C.ChartShapeProperties? properties = markerProperties ?? direct;
             if (properties == null) continue;
-            if (!IsSupported(properties, scheme))
+            if (!IsSupported(properties, scheme, flattenThreeDimensional))
                 throw new System.IO.InvalidDataException("The native point appearance cannot be projected by the shared chart model.");
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
             bool noFill = properties.GetFirstChild<A.NoFill>() != null;
