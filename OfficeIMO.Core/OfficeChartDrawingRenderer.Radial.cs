@@ -117,7 +117,7 @@ public static partial class OfficeChartDrawingRenderer {
                 OfficeColor sliceColor = GetPointColor(style, values, i);
                 AddStyledPointPolygon(drawing, points, sliceColor, GetPointStyle(values, i), OfficeColor.White, 0.5D);
                 if (ShouldShowDataLabel(layout, 0, i)) {
-                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, style, categories[i], values,
                         value, total, sliceCenterX, sliceCenterY, radius, middle, hasSlice: true,
                         percentageRatio: ratio);
                     else AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, radius * 0.58D, middle, zeroLabelIndex: null, percentageRatio: ratio);
@@ -125,7 +125,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                 start = end;
             } else if (ShouldShowDataLabel(layout, 0, i)) {
-                if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                if (outsideLabels) QueueRadialOutsideLabel(outside, layout, style, categories[i], values,
                     0D, total, centerX, centerY, radius, GetFirstSliceAngle(snapshot.RadialLayout), hasSlice: false,
                     percentageRatio: 0D);
                 else AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, radius * 0.9D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);
@@ -236,7 +236,7 @@ public static partial class OfficeChartDrawingRenderer {
                     OfficeColor sliceColor = GetPointColor(style, values, i);
                     AddDoughnutSlice(drawing, sliceCenterX, sliceCenterY, outerRadius, innerRadius, start, sweep, sliceColor, GetPointStyle(values, i));
                     if (ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                        if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                        if (outsideLabels) QueueRadialOutsideLabel(outside, layout, style, categories[i], values,
                             value, total, sliceCenterX, sliceCenterY, outerRadius, middle, hasSlice: true,
                             percentageRatio: ratio);
                         else AddPieDataLabel(drawing, layout, style, GetPointDataLabelColor(style, values, i), categories[i], values, value, total, sliceCenterX, sliceCenterY, (innerRadius + outerRadius) / 2D, middle, zeroLabelIndex: null, percentageRatio: ratio);
@@ -244,7 +244,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                     start = end;
                 } else if (s == 0 && ShouldShowDataLabel(layout, sourceSeriesIndex, i)) {
-                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, categories[i], values,
+                    if (outsideLabels) QueueRadialOutsideLabel(outside, layout, style, categories[i], values,
                         0D, total, centerX, centerY, outerRadius, GetFirstSliceAngle(snapshot.RadialLayout), hasSlice: false,
                         percentageRatio: 0D);
                     else AddPieDataLabel(drawing, layout, style, zeroLabelColor, categories[i], values, 0D, total, centerX, centerY, (innerRadius + outerRadius) / 2D, GetFirstSliceAngle(snapshot.RadialLayout), zeroLabelIndex, percentageRatio: 0D);

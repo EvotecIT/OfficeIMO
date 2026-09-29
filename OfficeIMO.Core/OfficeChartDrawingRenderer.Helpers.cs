@@ -389,6 +389,16 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange primary = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondary);
         if (ExceedsAxisUnitBudget(primary, GetValueAxisMajorUnit(layout, barChart), 32) ||
             ExceedsAxisUnitBudget(primary, GetValueAxisMinorUnit(layout, barChart), 96)) return true;
+        if (hasSecondary && layout.SecondaryValueAxis is OfficeChartValueAxisLayout secondary) {
+            var secondaryLayout = new OfficeChartLayout(
+                horizontalAxisMinimum: secondary.Minimum, horizontalAxisMaximum: secondary.Maximum,
+                verticalAxisMinimum: secondary.Minimum, verticalAxisMaximum: secondary.Maximum);
+            ValueRange secondaryRange = ApplyValueAxisScale(
+                GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary),
+                secondaryLayout, horizontal: barChart);
+            if (ExceedsAxisUnitBudget(secondaryRange, secondary.MajorUnit, 32) ||
+                ExceedsAxisUnitBudget(secondaryRange, secondary.MinorUnit, 96)) return true;
+        }
         if (!IsScatterChart(snapshot.ChartKind)) return false;
         IReadOnlyList<double> sharedX = GetScatterXValues(snapshot.Data.Categories);
         List<OfficeChartSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();

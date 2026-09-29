@@ -9,6 +9,7 @@ namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal static OfficeChartStyle ReadStyle(DocumentFormat.OpenXml.Packaging.ChartPart chartPart, C.Chart chart, OfficeChartKind kind, A.ColorScheme? scheme, OfficeChartStyle? textStyle = null,
             int radialPointCount = 0) {
+            OpenXmlElement? colorMap = OfficeOpenXmlThemeColorResolver.ResolveChartColorMap(chartPart);
             if (chart.Parent?.GetFirstChild<C.RoundedCorners>()?.Val?.Value == true)
                 throw new NotSupportedException("Rounded native chart frames cannot be projected.");
             if (chart.GetFirstChild<C.Legend>()?.Elements<C.LegendEntry>().Any(entry => entry.GetFirstChild<C.TextProperties>() != null) == true)
@@ -16,12 +17,12 @@ namespace OfficeIMO.OpenXml.Internal {
             foreach (C.Title title in chart.Descendants<C.Title>()) {
                 if (title.GetFirstChild<C.ChartShapeProperties>() is not C.ChartShapeProperties titleShape) continue;
                 if (!titleShape.HasChildren && !titleShape.HasAttributes) continue;
-                Surface titleSurface = ReadSurface(titleShape, scheme);
+                Surface titleSurface = ReadSurface(titleShape, scheme, colorMap);
                 if (!titleSurface.NoFill || !titleSurface.NoOutline || titleSurface.Fill.HasValue || titleSurface.Stroke.HasValue)
                     throw new NotSupportedException("The title shape appearance cannot be projected.");
             }
             var legendShape = chart.GetFirstChild<C.Legend>()?.GetFirstChild<C.ChartShapeProperties>();
-            var legendSurface = ReadSurface(legendShape, scheme);
+            var legendSurface = ReadSurface(legendShape, scheme, colorMap);
             if (legendSurface.Dash is OfficeStrokeDashStyle legendDash && legendDash != OfficeStrokeDashStyle.Solid)
                 throw new NotSupportedException("The legend border dash cannot be projected.");
             var titleText = ReadNativeText(chart, chart.GetFirstChild<C.Title>(), scheme);
@@ -30,9 +31,9 @@ namespace OfficeIMO.OpenXml.Internal {
             var legendText = ReadNativeText(chart, chart.GetFirstChild<C.Legend>(), scheme);
             var axisText = ReadUniformNativeText(chart, TextAxes(chart), scheme);
             var axisTitleText = ReadUniformNativeText(chart, TextAxes(chart).Select(axis => axis.GetFirstChild<C.Title>()).Where(title => title != null).Cast<OpenXmlElement>(), scheme);
-            var area = ReadSurface(chart.Parent?.GetFirstChild<C.ShapeProperties>(), scheme);
+            var area = ReadSurface(chart.Parent?.GetFirstChild<C.ShapeProperties>(), scheme, colorMap);
             var plot = chart.PlotArea;
-            var plotStyle = ReadSurface(plot?.GetFirstChild<C.ShapeProperties>(), scheme);
+            var plotStyle = ReadSurface(plot?.GetFirstChild<C.ShapeProperties>(), scheme, colorMap);
             OpenXmlCompositeElement? categoryAxis = null, valueAxis = null;
             if (plot != null && kind != OfficeChartKind.Pie && kind != OfficeChartKind.Doughnut) {
                 var groups = OfficeOpenXmlChartAxisGroups.Create(plot);
@@ -43,16 +44,16 @@ namespace OfficeIMO.OpenXml.Internal {
                 categoryAxis = numeric ? axes?.FirstOrDefault() : axes?.FirstOrDefault(axis => axis is C.CategoryAxis || axis is C.DateAxis);
                 valueAxis = numeric ? axes?.Skip(1).FirstOrDefault() : axes?.FirstOrDefault(axis => axis is C.ValueAxis);
             }
-            var category = ReadSurface(categoryAxis?.GetFirstChild<C.ChartShapeProperties>(), scheme);
-            var value = ReadSurface(valueAxis?.GetFirstChild<C.ChartShapeProperties>(), scheme);
+            var category = ReadSurface(categoryAxis?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
+            var value = ReadSurface(valueAxis?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
             var categoryMajor = categoryAxis?.GetFirstChild<C.MajorGridlines>();
             var valueMajor = valueAxis?.GetFirstChild<C.MajorGridlines>();
             var categoryMinor = categoryAxis?.GetFirstChild<C.MinorGridlines>();
             var valueMinor = valueAxis?.GetFirstChild<C.MinorGridlines>();
-            var categoryGrid = ReadSurface(categoryMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
-            var valueGrid = ReadSurface(valueMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
-            var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
-            var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme);
+            var categoryGrid = ReadSurface(categoryMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
+            var valueGrid = ReadSurface(valueMajor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
+            var categoryMinorGrid = ReadSurface(categoryMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
+            var valueMinorGrid = ReadSurface(valueMinor?.GetFirstChild<C.ChartShapeProperties>(), scheme, colorMap);
             C.PieChartSeries? radialSeries = kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut
                 ? plot?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
             OfficeColor[]? radialPalette = radialSeries == null ? null :
@@ -97,7 +98,7 @@ namespace OfficeIMO.OpenXml.Internal {
             internal bool NoOutline { get; }
         }
 
-        private static Surface ReadSurface(OpenXmlElement? properties, A.ColorScheme? scheme) {
+        private static Surface ReadSurface(OpenXmlElement? properties, A.ColorScheme? scheme, OpenXmlElement? colorMap) {
             if (properties == null) return default;
             if (properties.ChildElements.Any(child => child is not A.SolidFill && child is not A.NoFill && child is not A.Outline))
                 throw new NotSupportedException("The chart surface has an unsupported fill or effect.");
@@ -112,8 +113,8 @@ namespace OfficeIMO.OpenXml.Internal {
             if (outline?.GetFirstChild<A.NoFill>() == null &&
                 (outline?.GetFirstChild<A.Round>() != null || outline?.GetFirstChild<A.Bevel>() != null || outline?.GetFirstChild<A.Miter>() != null))
                 throw new NotSupportedException("The chart surface outline join cannot be projected.");
-            OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
-            OfficeColor? stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme);
+            OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme, colorMap: colorMap);
+            OfficeColor? stroke = OfficeOpenXmlThemeColorResolver.ResolveColor(outline?.GetFirstChild<A.SolidFill>(), scheme, colorMap: colorMap);
             if (properties.GetFirstChild<A.SolidFill>() != null && !fill.HasValue || outline?.GetFirstChild<A.SolidFill>() != null && !stroke.HasValue)
                 throw new NotSupportedException("The chart surface colour cannot be resolved.");
             if (outline != null && outline.GetFirstChild<A.NoFill>() == null && !stroke.HasValue)

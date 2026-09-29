@@ -1,4 +1,5 @@
 using System.Linq;
+using System;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using DocumentFormat.OpenXml.Packaging;
@@ -9,6 +10,21 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class PowerPointChartRadialOutsideLabelsTests {
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void OutsideLabelsRejectNamesThatCannotFitWithoutTruncation(OfficeChartKind kind) {
+        using var presentation = PowerPointPresentation.Create();
+        PowerPointChart chart = presentation.AddSlide().AddChart(kind,
+            new OfficeChartData(new[] { "A category name that cannot fit the outside gutter", "B" },
+                new[] { new OfficeChartSeries("Status", new[] { 3d, 4d }) }));
+        chart.SetDataLabels(showValue: false, showCategoryName: true)
+            .SetDataLabelPosition(OfficeChartDataLabelPosition.OutsideEnd);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+        Assert.Throws<NotSupportedException>(() => OfficeChartDrawingRenderer.Render(snapshot));
+    }
+
     [Fact]
     public void AuthoredEmptyLeaderLinesContainerProjectsOutsideLabels() {
         using var presentation = PowerPointPresentation.Create();

@@ -100,6 +100,12 @@ namespace OfficeIMO.Tests {
             Assert.Same(style, overridden.Style);
             Assert.Equal(Colors, overridden.Data.Series[0].PointColors);
             Assert.All(overridden.Data.Series, series => Assert.Null(series.Color));
+            using var bytes = new MemoryStream(presentation.ToBytes());
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            Assert.True(reopened.Slides.Single().Charts.Single().TryGetSnapshot(out PowerPointChartSnapshot persisted));
+            OfficeChartSnapshot persistedOverride = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
+                persisted, 400, 200, new PowerPointToPdfOptions { ChartStyle = style });
+            Assert.All(persistedOverride.Data.Series, series => Assert.Null(series.Color));
         }
 
         [Fact]
@@ -115,6 +121,12 @@ namespace OfficeIMO.Tests {
             OfficeChartSnapshot projected = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native,
                 600, 320, new PowerPointToPdfOptions { ChartStyle = customStyle });
             Assert.Equal(explicitColor, projected.Data.Series[0].Color);
+            using var bytes = new MemoryStream(presentation.ToBytes());
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(bytes);
+            Assert.True(reopened.Slides.Single().Charts.Single().TryGetSnapshot(out PowerPointChartSnapshot persisted));
+            OfficeChartSnapshot persistedOverride = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(
+                persisted, 600, 320, new PowerPointToPdfOptions { ChartStyle = customStyle });
+            Assert.Equal(explicitColor, persistedOverride.Data.Series[0].Color);
         }
 
         [Fact]
@@ -266,12 +278,17 @@ namespace OfficeIMO.Tests {
                 Hyperlink = A.ColorSchemeIndexValues.Hyperlink,
                 FollowedHyperlink = A.ColorSchemeIndexValues.FollowedHyperlink
             }, true);
+            chart.SetChartAreaStyle(fillColor: "ABCDEF");
+            C.ShapeProperties area = part.ChartSpace.GetFirstChild<C.ShapeProperties>()!;
+            area.GetFirstChild<A.SolidFill>()!.Remove();
+            area.AddChild(new A.SolidFill(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }), true);
 
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
             A.ColorScheme scheme = presentation.OpenXmlDocument.PresentationPart.ThemePart!.Theme.ThemeElements!.ColorScheme!;
             OfficeColor expected = OfficeColor.Parse(scheme.GetFirstChild<A.Accent2Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value!);
             Assert.Equal(expected, snapshot.Style.Palette[0]);
+            Assert.Equal(expected, snapshot.Style.BackgroundColor);
             Assert.Empty(presentation.ValidateDocument());
         }
 

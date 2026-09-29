@@ -185,6 +185,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Native series appearance retained by the canonical series reader.</summary>
         internal OfficeChartSeries? SharedAppearance { get; set; }
         internal bool HasUnsupportedSharedAppearance { get; set; }
+        internal bool HasAutomaticSeriesColor { get; set; }
 
         /// <summary>
         /// Optional chart kind for mixed/combo chart rendering.

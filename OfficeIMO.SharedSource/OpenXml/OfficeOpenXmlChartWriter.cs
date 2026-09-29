@@ -131,6 +131,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 ApplySharedSeriesShapeStyle(seriesElement, series, kind,
                     fallbackSeriesColor ?? (!newSeries && !series.Color.HasValue
                         ? ReadDirectSeriesColor(seriesElement) : null));
+                if (fallbackSeriesColor.HasValue || series.Color.HasValue)
+                    SetAutomaticSeriesColor(seriesElement, fallbackSeriesColor.HasValue);
                 ApplySharedSeriesMarker(seriesElement, series, kind, fallbackSeriesColor);
                 ApplySharedPointColors(seriesElement, series);
                 OfficeOpenXmlChartPointStyles.ApplySeries(seriesElement, series);

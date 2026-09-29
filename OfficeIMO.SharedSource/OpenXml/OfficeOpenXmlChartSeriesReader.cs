@@ -12,13 +12,16 @@ namespace OfficeIMO.OpenXml.Internal {
     /// <summary>Reads cached series into the shared model without format-specific chart types.</summary>
     internal static partial class OfficeOpenXmlChartSeriesReader {
         internal sealed class Series {
-            internal Series(uint sourceIndex, OfficeChartSeries data, bool hasUnsupportedAppearance = false, uint? sourceOrder = null) {
-                SourceIndex = sourceIndex; Data = data; HasUnsupportedAppearance = hasUnsupportedAppearance; SourceOrder = sourceOrder;
+            internal Series(uint sourceIndex, OfficeChartSeries data, bool hasUnsupportedAppearance = false,
+                uint? sourceOrder = null, bool hasAutomaticColor = false) {
+                SourceIndex = sourceIndex; Data = data; HasUnsupportedAppearance = hasUnsupportedAppearance;
+                SourceOrder = sourceOrder; HasAutomaticColor = hasAutomaticColor;
             }
             internal uint SourceIndex { get; }
             internal uint? SourceOrder { get; }
             internal OfficeChartSeries Data { get; }
             internal bool HasUnsupportedAppearance { get; }
+            internal bool HasAutomaticColor { get; }
         }
 
         internal sealed class Result {
@@ -231,7 +234,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 else unsupported = true;
             }
             return new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)fallbackIndex, data, unsupported,
-                element.GetFirstChild<C.Order>()?.Val?.Value);
+                element.GetFirstChild<C.Order>()?.Val?.Value,
+                OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element));
         }
 
         private static OfficeStrokeDashStyle? ReadDash(A.Outline? outline) => outline?.GetFirstChild<A.PresetDash>()?.Val?.InnerText switch {

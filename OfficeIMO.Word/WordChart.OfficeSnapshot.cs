@@ -48,8 +48,7 @@ public partial class WordChart {
                 OfficeOpenXmlChartSeriesReader.ReadStyle(_chartPart, chart, kind, scheme, textStyle, data.Categories.Count),
                 OfficeOpenXmlChartSeriesReader.ReadLayout(chart, kind, officeData, axisTitleFont, scheme),
                 bubbleScale, bubbleMode, OfficeOpenXmlChartRadialLayout.Read(chart));
-            if (HasUnclippedExplicitScale(snapshot) ||
-                OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
+            if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;
                 return false;
             }
