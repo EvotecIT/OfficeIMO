@@ -161,6 +161,7 @@ internal static partial class DocumentReaderEngine {
         if (contentOverridesExtension) {
             if (hasExtensionHandler && ValidateExtensionHandler(path, extensionHandler, options, cancellationToken)) {
                 handler = extensionHandler;
+                ReconcileValidatedExtension(detection, handler);
             } else if (!TryResolveDetectedHandler(detection, pathInput: true, out handler)) {
                 return false;
             }
@@ -203,6 +204,7 @@ internal static partial class DocumentReaderEngine {
         if (contentOverridesExtension) {
             if (hasExtensionHandler && ValidateExtensionHandler(stream, sourceName, extensionHandler, options, cancellationToken)) {
                 handler = extensionHandler;
+                ReconcileValidatedExtension(detection, handler);
             } else if (!TryResolveDetectedHandler(detection, pathInput: false, out handler)) {
                 return false;
             }
@@ -232,6 +234,15 @@ internal static partial class DocumentReaderEngine {
         }
 
         return TryResolveCustomHandlerByKind(ReaderInputKind.Zip, pathInput, out handler);
+    }
+
+    private static void ReconcileValidatedExtension(ReaderDetectionResult detection,
+        ReaderHandlerDescriptor handler) {
+        detection.ContentKind = handler.Kind;
+        detection.ContentConfidence = ReaderDetectionConfidence.High;
+        detection.Kind = handler.Kind;
+        detection.Confidence = ReaderDetectionConfidence.High;
+        detection.Evidence = detection.Evidence.Concat(new[] { "extension-validation-probe" }).ToArray();
     }
 
     private static bool CanUseZipContainerFallback(ReaderDetectionResult detection) {
@@ -910,6 +921,7 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind.Opml => "text/x-opml",
             ReaderInputKind.DocBook => "application/docbook+xml",
             ReaderInputKind.OneNote => "application/onenote",
+            ReaderInputKind.IWork => "application/octet-stream",
             ReaderInputKind.Text => "text/plain",
             ReaderInputKind.Csv => "text/csv",
             ReaderInputKind.Json => "application/json",
@@ -961,6 +973,9 @@ internal static partial class DocumentReaderEngine {
             ".odt" => "application/vnd.oasis.opendocument.text",
             ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
             ".odp" => "application/vnd.oasis.opendocument.presentation",
+            ".pages" => "application/vnd.apple.pages",
+            ".numbers" => "application/vnd.apple.numbers",
+            ".key" => "application/vnd.apple.keynote",
             _ => GetMediaType(kind)
         };
     }

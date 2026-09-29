@@ -323,7 +323,7 @@ internal static partial class PdfWriter {
                     else if (verticalAlign == PdfCellVerticalAlign.Bottom) verticalOffset = unusedTextHeight;
                 }
 
-                double firstBaseline = state.Y - cellPadTop - verticalOffset - GetAscenderForOptions(cellFont, rowSize, currentOpts) + tableStyle.RowBaselineOffset;
+                double firstBaseline = state.Y - cellPadTop - verticalOffset - (sourceStartLine == 0 ? lines.TopSpacing : 0D) - GetAscenderForOptions(cellFont, rowSize, currentOpts) + tableStyle.RowBaselineOffset;
 
                 pageDirty = true;
                 MarkRichFonts(cell.Runs, forceBold: rowUsesBold);

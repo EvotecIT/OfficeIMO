@@ -82,6 +82,59 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_AppliesSpacingBeforeFirstCellParagraph() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeFirstCellParagraphSpacing.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeFirstCellParagraphSpacing.pdf");
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordTable table = document.AddTable(1, 2);
+            WordParagraph plain = table.Rows[0].Cells[0].Paragraphs[0];
+            plain.Text = "NoBefore";
+            plain.LineSpacingBeforePoints = 0D;
+            plain.LineSpacingAfterPoints = 0D;
+            WordParagraph spaced = table.Rows[0].Cells[1].Paragraphs[0];
+            spaced.Text = "FiveBefore";
+            spaced.LineSpacingBeforePoints = 5D;
+            spaced.LineSpacingAfterPoints = 5D;
+            document.Save();
+            document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+        var words = pdf.GetPage(1).GetWords().ToList();
+        double plainY = Assert.Single(words, word => word.Text == "NoBefore").BoundingBox.Bottom;
+        double spacedY = Assert.Single(words, word => word.Text == "FiveBefore").BoundingBox.Bottom;
+        Assert.InRange(plainY - spacedY, 4.5D, 5.5D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_AppliesSpacingAfterLastCellParagraph() {
+        double[] rowGaps = new double[2];
+        for (int variant = 0; variant < 2; variant++) {
+            string docPath = Path.Combine(_directoryWithFiles, $"PdfNativeCellAfter{variant}.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, $"PdfNativeCellAfter{variant}.pdf");
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                WordTable table = document.AddTable(2, 1);
+                WordParagraph first = table.Rows[0].Cells[0].Paragraphs[0];
+                first.Text = "FirstRow";
+                first.LineSpacingBeforePoints = 5D;
+                first.LineSpacingAfterPoints = variant == 0 ? 0D : 5D;
+                table.Rows[1].Cells[0].Paragraphs[0].Text = "SecondRow";
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+            }
+
+            using PdfPigDocument pdf = PdfPigDocument.Open(pdfPath);
+            var words = pdf.GetPage(1).GetWords().ToList();
+            double firstY = Assert.Single(words, word => word.Text == "FirstRow").BoundingBox.Bottom;
+            double secondY = Assert.Single(words, word => word.Text == "SecondRow").BoundingBox.Bottom;
+            rowGaps[variant] = firstY - secondY;
+        }
+
+        Assert.InRange(rowGaps[1] - rowGaps[0], 4.5D, 5.5D);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Renders_Table_Cell_Spacing() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellSpacing.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeTableCellSpacing.pdf");

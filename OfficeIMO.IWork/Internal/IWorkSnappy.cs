@@ -1,7 +1,11 @@
+using System.Threading;
+
 namespace OfficeIMO.IWork.Internal;
 
 internal static class IWorkSnappy {
-    internal static byte[] DecodeIwa(byte[] data, IWorkReadOptions options, long remainingTotalBytes) {
+    internal static byte[] DecodeIwa(byte[] data, IWorkReadOptions options, long remainingTotalBytes,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (data.Length > options.MaximumIwaBytes) {
             throw new InvalidDataException($"IWA entry size {data.Length} exceeds the configured limit of {options.MaximumIwaBytes} bytes.");
         }
@@ -15,6 +19,7 @@ internal static class IWorkSnappy {
         using var output = new MemoryStream(Math.Min(data.Length, maximumOutputBytes));
         int offset = 0;
         while (offset < data.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (data.Length - offset < 4) throw new InvalidDataException($"Truncated IWA chunk header at offset {offset}.");
             byte chunkType = data[offset];
             int length = data[offset + 1] | data[offset + 2] << 8 | data[offset + 3] << 16;
@@ -24,7 +29,7 @@ internal static class IWorkSnappy {
 
             int remainingEntryBytes = maximumOutputBytes - checked((int)output.Length);
             byte[] block = DecodeRaw(data, offset, length,
-                Math.Min(options.MaximumSnappyChunkBytes, remainingEntryBytes));
+                Math.Min(options.MaximumSnappyChunkBytes, remainingEntryBytes), cancellationToken);
             if (output.Length > maximumOutputBytes - block.Length) {
                 throw new InvalidDataException($"Decompressed IWA data exceeds the applicable entry or source-wide limit of {maximumOutputBytes} bytes.");
             }
@@ -34,7 +39,8 @@ internal static class IWorkSnappy {
         return output.ToArray();
     }
 
-    private static byte[] DecodeRaw(byte[] input, int start, int length, int maximumOutputBytes) {
+    private static byte[] DecodeRaw(byte[] input, int start, int length, int maximumOutputBytes,
+        CancellationToken cancellationToken) {
         int offset = start;
         int end = start + length;
         ulong declared = ReadVarint(input, ref offset, end);
@@ -45,6 +51,7 @@ internal static class IWorkSnappy {
         var output = new byte[(int)declared];
         int written = 0;
         while (offset < end && written < output.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte tag = input[offset++];
             int kind = tag & 3;
             if (kind == 0) {

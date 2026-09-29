@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Threading;
 using OfficeIMO.Core.Internal;
 using OfficeIMO.Internal;
 
@@ -15,9 +16,11 @@ internal sealed class IWorkPackageData {
 }
 
 internal static class IWorkContainerReader {
-    internal static IWorkPackageData Read(string path, IWorkReadOptions options) {
+    internal static IWorkPackageData Read(string path, IWorkReadOptions options,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A source path is required.", nameof(path));
-        if (Directory.Exists(path)) return ReadDirectory(path, options);
+        if (Directory.Exists(path)) return ReadDirectory(path, options, cancellationToken);
         if (!File.Exists(path)) throw new FileNotFoundException("The iWork source was not found.", path);
 
         string fullPath = Path.GetFullPath(path);
@@ -29,18 +32,21 @@ internal static class IWorkContainerReader {
         string physicalRoot = OfficePathIdentity.ResolvePhysicalPath(parent);
         using FileStream stream = OfficePathIdentity.OpenRegularFileForRead(
             fullPath, physicalRoot, 81920);
-        return Read(stream, options);
+        return Read(stream, options, cancellationToken);
     }
 
-    internal static IWorkPackageData Read(Stream stream, IWorkReadOptions options) {
+    internal static IWorkPackageData Read(Stream stream, IWorkReadOptions options,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
-        byte[] package = ReadBounded(stream, options.MaximumPackageBytes, "package");
+        byte[] package = ReadBounded(stream, options.MaximumPackageBytes, "package", cancellationToken);
         using var copy = new MemoryStream(package, writable: false);
-        return ReadZip(copy, options);
+        return ReadZip(copy, options, cancellationToken);
     }
 
-    private static IWorkPackageData ReadDirectory(string path, IWorkReadOptions options) {
+    private static IWorkPackageData ReadDirectory(string path, IWorkReadOptions options,
+        CancellationToken cancellationToken) {
         using var rootHandle = OfficePathIdentity.OpenDirectoryForIdentity(path,
             out string physicalRoot);
         string root = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
@@ -54,10 +60,12 @@ internal static class IWorkContainerReader {
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
         while (directories.Count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             string directory = directories.Pop();
             OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
             foreach (string fileSystemEntry in Directory.EnumerateFileSystemEntries(
                          directory, "*", SearchOption.TopDirectoryOnly)) {
+                cancellationToken.ThrowIfCancellationRequested();
                 EnforceEntryCount(ref nodeCount, options);
                 OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 FileAttributes attributes = File.GetAttributes(fileSystemEntry);
@@ -86,7 +94,7 @@ internal static class IWorkContainerReader {
                 }
                 byte[] bytes;
                 using (FileStream input = OfficePathIdentity.OpenRegularFileForRead(full, physicalRoot, 81920)) {
-                    bytes = ReadBounded(input, readLimit, relative);
+                    bytes = ReadBounded(input, readLimit, relative, cancellationToken);
                 }
                 OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 EnforceEntryBounds(bytes.LongLength, ref total, options, relative);
@@ -95,42 +103,45 @@ internal static class IWorkContainerReader {
             OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         }
         OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
-        ExpandNestedIndex(entries, ref total, ref nodeCount, options);
+        ExpandNestedIndex(entries, ref total, ref nodeCount, options, cancellationToken);
         return new IWorkPackageData(IWorkContainerKind.DirectoryBundle,
             entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());
     }
 
-    private static IWorkPackageData ReadZip(Stream stream, IWorkReadOptions options) {
+    private static IWorkPackageData ReadZip(Stream stream, IWorkReadOptions options,
+        CancellationToken cancellationToken) {
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
         long total = 0;
         int nodeCount = 0;
         ValidateZipCentralDirectory(stream, options.MaximumEntryCount - nodeCount,
-            options.MaximumEntryCount);
+            options.MaximumEntryCount, cancellationToken);
         using (var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true)) {
-            ReadArchiveEntries(archive, entries, prefix: null, ref total, ref nodeCount, options);
+            ReadArchiveEntries(archive, entries, prefix: null, ref total, ref nodeCount, options,
+                cancellationToken);
         }
         bool nested = entries.ContainsKey("Index.zip");
-        ExpandNestedIndex(entries, ref total, ref nodeCount, options);
+        ExpandNestedIndex(entries, ref total, ref nodeCount, options, cancellationToken);
         return new IWorkPackageData(
             nested ? IWorkContainerKind.ZipPackageWithNestedIndex : IWorkContainerKind.ZipPackage,
             entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray());
     }
 
     private static void ExpandNestedIndex(Dictionary<string, IWorkPackageEntry> entries, ref long total,
-        ref int nodeCount, IWorkReadOptions options) {
+        ref int nodeCount, IWorkReadOptions options, CancellationToken cancellationToken) {
         if (!entries.TryGetValue("Index.zip", out IWorkPackageEntry? nested)) return;
         using var stream = new MemoryStream(nested.Bytes, writable: false);
         ValidateZipCentralDirectory(stream, options.MaximumEntryCount - nodeCount,
-            options.MaximumEntryCount);
+            options.MaximumEntryCount, cancellationToken);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
-        ReadArchiveEntries(archive, entries, "Index", ref total, ref nodeCount, options);
+        ReadArchiveEntries(archive, entries, "Index", ref total, ref nodeCount, options,
+            cancellationToken);
     }
 
     private static void ValidateZipCentralDirectory(Stream stream, int remainingEntries,
-        int maximumEntries) {
+        int maximumEntries, CancellationToken cancellationToken) {
         OfficeArchiveSafety.ZipCentralDirectoryScanResult directory =
             OfficeArchiveSafety.ScanZipCentralDirectory(stream,
-                stream.Length - stream.Position, Math.Max(0, remainingEntries));
+                stream.Length - stream.Position, Math.Max(0, remainingEntries), cancellationToken);
         if (!directory.IsValid) {
             throw new InvalidDataException(directory.Error
                 ?? "The ZIP central directory is malformed.");
@@ -142,8 +153,10 @@ internal static class IWorkContainerReader {
     }
 
     private static void ReadArchiveEntries(ZipArchive archive, Dictionary<string, IWorkPackageEntry> entries,
-        string? prefix, ref long total, ref int nodeCount, IWorkReadOptions options) {
+        string? prefix, ref long total, ref int nodeCount, IWorkReadOptions options,
+        CancellationToken cancellationToken) {
         foreach (ZipArchiveEntry entry in archive.Entries) {
+            cancellationToken.ThrowIfCancellationRequested();
             EnforceEntryCount(ref nodeCount, options);
             if (string.IsNullOrEmpty(entry.Name)) {
                 string directoryPath = entry.FullName.TrimEnd('/', '\\');
@@ -156,7 +169,8 @@ internal static class IWorkContainerReader {
             }
             EnforceEntryBounds(entry.Length, ref total, options, normalized);
             using Stream input = entry.Open();
-            byte[] bytes = ReadBounded(input, Math.Min(options.MaximumEntryBytes, entry.Length), normalized);
+            byte[] bytes = ReadBounded(input, Math.Min(options.MaximumEntryBytes, entry.Length),
+                normalized, cancellationToken);
             if (bytes.LongLength != entry.Length) throw new InvalidDataException($"Entry {normalized} changed length while it was read.");
             AddEntry(entries, normalized, bytes);
         }
@@ -179,10 +193,12 @@ internal static class IWorkContainerReader {
         total += length;
     }
 
-    private static byte[] ReadBounded(Stream stream, long maximumBytes, string label) {
+    private static byte[] ReadBounded(Stream stream, long maximumBytes, string label,
+        CancellationToken cancellationToken) {
         using var output = new MemoryStream();
         var buffer = new byte[81920];
         while (true) {
+            cancellationToken.ThrowIfCancellationRequested();
             int read = stream.Read(buffer, 0, buffer.Length);
             if (read == 0) break;
             if (output.Length > maximumBytes - read) {
