@@ -92,6 +92,13 @@ public sealed class ExcelChartRadialOutsideLabelsTests {
         Assert.DoesNotContain(result.Diagnostics, item =>
             item.Code == ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported);
 
+        labels.GetFirstChild<C.ShowLeaderLines>()!.Val = null;
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot inheritedSnapshot));
+        Assert.True(inheritedSnapshot.Layout!.ShowDataLabelLeaderLines);
+        result = chart.ExportImage(OfficeImageExportFormat.Png);
+        Assert.DoesNotContain(result.Diagnostics, item =>
+            item.Code == ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported);
+
         labels.GetFirstChild<C.LeaderLines>()!.AddChild(new C.ChartShapeProperties(new A.Outline()), true);
         result = chart.ExportImage(OfficeImageExportFormat.Png);
         Assert.Contains(result.Diagnostics, item =>

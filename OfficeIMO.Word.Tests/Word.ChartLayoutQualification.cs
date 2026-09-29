@@ -8,6 +8,31 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordChartLayoutQualificationTests {
     [Fact]
+    public void Snapshot_RejectsRadarAxisUnitsThatTheRendererCannotDraw() {
+        using var document = WordDocument.Create();
+        WordChart chart = Create(document, OfficeChartKind.Radar);
+        C.ValueAxis axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.AddChild(new C.MajorUnit { Val = 1 }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
+    public void Snapshot_RejectsSuppressedLabelsBeyondExplicitValueMaximum() {
+        using var document = WordDocument.Create();
+        WordChart chart = Create(document, OfficeChartKind.ColumnClustered);
+        C.Chart native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        C.ValueAxis axis = native.PlotArea!.Elements<C.ValueAxis>().Single();
+        axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
+        axis.Scaling!.AddChild(new C.MaxAxisValue { Val = 1.5 }, true);
+        native.PlotArea.GetFirstChild<C.BarChart>()!
+            .AddChild(new C.DataLabels(new C.ShowValue { Val = true }), true);
+        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = true;
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        native.GetFirstChild<C.ShowDataLabelsOverMaximum>()!.Val = false;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
+    [Fact]
     public void Snapshot_RejectsMajorUnitBeyondRendererTickBudget() {
         using var document = WordDocument.Create();
         WordChart chart = Create(document, OfficeChartKind.Line);

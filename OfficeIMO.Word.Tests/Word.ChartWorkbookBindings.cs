@@ -9,6 +9,47 @@ using DocumentFormat.OpenXml.Packaging;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartWorkbookBindingsTests {
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Scatter)]
+    [InlineData(OfficeChartKind.Radar)]
+    public void SharedUpdate_PreservesDivergentNativeFillAndLineWhenColorIsUnspecified(OfficeChartKind kind) {
+        using WordDocument document = WordDocument.Create();
+        var original = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("Values", new[] { 1d, 2d },
+                kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) });
+        WordChart chart = document.AddChart(kind, original);
+        var series = chart.ChartPart!.ChartSpace!.Descendants()
+            .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(element => element.LocalName == "ser");
+        C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>()!;
+        properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?.Remove();
+        properties.AddChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
+            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "00AA00" }), true);
+        var outline = properties.GetFirstChild<DocumentFormat.OpenXml.Drawing.Outline>()!;
+        outline.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()?.Remove();
+        outline.AddChild(new DocumentFormat.OpenXml.Drawing.SolidFill(
+            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex { Val = "AA0000" }), true);
+        string before = properties.OuterXml;
+        var replacement = new OfficeChartData(original.Categories, new[] {
+            new OfficeChartSeries("Updated", new[] { 3d, 4d },
+                kind == OfficeChartKind.Scatter ? new[] { 1d, 2d } : null) });
+        chart.SetData(kind, replacement);
+        Assert.Equal(before, chart.ChartPart.ChartSpace.Descendants()
+            .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(element => element.LocalName == "ser")
+            .GetFirstChild<C.ChartShapeProperties>()!.OuterXml);
+    }
+
+    [Fact]
+    public void SharedPieAuthoringRejectsMultipleSeriesInsteadOfSilentlyOmittingOneInSnapshots() {
+        using WordDocument document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" }, new[] {
+            new OfficeChartSeries("First", new[] { 1d, 2d }),
+            new OfficeChartSeries("Second", new[] { 3d, 4d }) });
+        Assert.Throws<System.NotSupportedException>(() => document.AddChart(OfficeChartKind.Pie, data));
+        var doughnut = document.AddChart(OfficeChartKind.Doughnut, data);
+        Assert.Equal(2, doughnut.ChartPart!.ChartSpace!.Descendants<C.PieChartSeries>().Count());
+    }
+
     [Fact]
     public void ScatterWorkbook_StoresOnlyActualPointsInUnequalLengthSeries() {
         var data = new OfficeChartData(new[] { "1", "2", "3" }, new[] {
@@ -58,6 +99,27 @@ public sealed class WordChartWorkbookBindingsTests {
         string before = chart.ChartPart.ChartSpace.OuterXml;
         byte[] workbook = Workbook(chart);
         Assert.Throws<System.NotSupportedException>(() => chart.SetData(OfficeChartKind.Line, Data()));
+        Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
+        Assert.Equal(workbook, Workbook(chart));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public void SharedUpdate_RejectsErrorBarCachesWithDifferentReplacementLengthBeforeMutation(int replacementCount) {
+        using WordDocument document = WordDocument.Create();
+        var chart = document.AddChart(OfficeChartKind.Line, Data());
+        chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single().AddChild(new C.ErrorBars(
+            new C.ErrorBarType { Val = C.ErrorBarValues.Both }, new C.ErrorBarValueType { Val = C.ErrorValues.Custom },
+            new C.Plus(new C.NumberReference(new C.Formula { Text = "Sheet1!$Z$2:$Z$3" },
+                new C.NumberingCache(new C.PointCount { Val = 2 },
+                    new C.NumericPoint { Index = 0, NumericValue = new C.NumericValue { Text = "0.5" } },
+                    new C.NumericPoint { Index = 1, NumericValue = new C.NumericValue { Text = "1.5" } })))), true);
+        string before = chart.ChartPart.ChartSpace.OuterXml;
+        byte[] workbook = Workbook(chart);
+        var replacement = new OfficeChartData(Enumerable.Range(0, replacementCount).Select(index => $"C{index}"),
+            new[] { new OfficeChartSeries("Updated", Enumerable.Range(0, replacementCount).Select(index => (double)index)) });
+        Assert.Throws<System.NotSupportedException>(() => chart.SetData(OfficeChartKind.Line, replacement));
         Assert.Equal(before, chart.ChartPart.ChartSpace.OuterXml);
         Assert.Equal(workbook, Workbook(chart));
     }

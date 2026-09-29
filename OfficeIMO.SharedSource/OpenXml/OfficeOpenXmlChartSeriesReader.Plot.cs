@@ -85,9 +85,26 @@ namespace OfficeIMO.OpenXml.Internal {
                     !hidden.Contains((uint)index))), item.HasUnsupportedAppearance, item.SourceOrder,
                 item.HasAutomaticColor)).ToList();
             var result = new Result(categories, series);
+            if (HasSuppressedOverMaximumDataLabels(chart,
+                    series.SelectMany(item => item.Data.Values)))
+                return null;
             // The same authoring contract declares supported family/axis combinations.
             OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);
             return result;
+        }
+
+        internal static bool HasSuppressedOverMaximumDataLabels(C.Chart chart, IEnumerable<double> values) {
+            // Office suppresses labels beyond an explicit value-axis maximum when
+            // showDLblsOverMax is false. The shared renderer cannot model that
+            // per-point suppression, so keep the native chart unprojected.
+            if (chart.GetFirstChild<C.ShowDataLabelsOverMaximum>()?.Val?.Value != false ||
+                chart.PlotArea?.Descendants<C.DataLabels>().Any() != true) return false;
+            double lowestMaximum = chart.PlotArea.Descendants<C.ValueAxis>()
+                .Select(axis => axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value)
+                .Where(maximum => maximum.HasValue)
+                .Select(maximum => maximum!.Value)
+                .DefaultIfEmpty(double.PositiveInfinity).Min();
+            return values.Any(value => value > lowestMaximum);
         }
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {

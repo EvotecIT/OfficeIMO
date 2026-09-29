@@ -10,10 +10,34 @@ using System.Text.RegularExpressions;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+
+    [Fact]
+    public void SaveAsPdf_PlainPieRetainsOutsideLabelsAndLeaderLines() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 3d, 4d }) }), 1, 1);
+        C.PieChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.PieChart>().Single();
+        native.GetFirstChild<C.DataLabels>()!.AddChild(
+            new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd }, true);
+        native.GetFirstChild<C.DataLabels>()!.AddChild(new C.ShowCategoryName { Val = true }, true);
+        native.GetFirstChild<C.DataLabels>()!.AddChild(new C.ShowLeaderLines { Val = true }, true);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout!.DataLabelPosition);
+        MethodInfo mapper = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        OfficeChartSnapshot pdfSnapshot = Assert.IsType<OfficeChartSnapshot>(
+            mapper.Invoke(null, new object[] { snapshot, new ExcelToPdfOptions() }));
+        Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, pdfSnapshot.Layout.DataLabelPosition);
+        Assert.True(pdfSnapshot.Layout.ShowDataLabelLeaderLines);
+    }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Exports_Worksheet_Chart_Snapshots() {

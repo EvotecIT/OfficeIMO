@@ -886,7 +886,8 @@ public static partial class OfficeChartDrawingRenderer {
         OfficeColor markerStroke = pointStyle?.OutlineColor ?? series.MarkerOutlineColor ?? color;
         // Line-only markers have no area in which to draw a hatch. Use its visible
         // foreground rather than the hatch background for their strokes.
-        OfficeColor lineMarkerStroke = pointStyle?.OutlineColor ?? pointStyle?.HatchColor ?? series.MarkerOutlineColor ?? color;
+        OfficeColor lineMarkerStroke = pointStyle?.OutlineColor ?? pointStyle?.HatchColor ??
+            pointStyle?.FillColor ?? series.MarkerOutlineColor ?? color;
         double markerStrokeWidth = pointStyle?.ShowOutline == false ? 0 : pointStyle?.OutlineWidth ?? series.MarkerOutlineWidth ?? strokeWidth;
         if (series.MarkerShape == OfficeChartMarkerShape.Dash) {
             AddShape(drawing, OfficeShape.Line(0D, 0D, diameter, 0D), left, point.Y, null, lineMarkerStroke, markerStrokeWidth);

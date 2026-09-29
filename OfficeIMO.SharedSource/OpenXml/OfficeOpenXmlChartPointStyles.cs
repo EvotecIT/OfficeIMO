@@ -20,6 +20,7 @@ internal static class OfficeOpenXmlChartPointStyles {
     }
 
     internal static bool IsSupported(C.ChartShapeProperties properties, A.ColorScheme? scheme, bool flattenThreeDimensional = false) {
+        if (properties.HasAttributes) return false;
         foreach (OpenXmlElement child in properties.ChildElements) {
             if (child is A.EffectList && !child.HasChildren && !child.HasAttributes) continue;
             if (child is A.Shape3DType && !child.HasChildren && !child.HasAttributes) continue;
