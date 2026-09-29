@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
             var rows = ThreeLevelSourceRows(topCount);
             string file = ThreeLevelPivotFile(topCount);
             string path = ThreeLevelPivotOraclePath(file);
-            VerifyThreeLevelPivotOracle(path, viewRange, topCount);
+            VerifyThreeLevelPivotOracle(path, viewRange, 1, topCount);
             using var oracle = ExcelDocumentReader.Open(path);
             var expectedView = oracle.GetSheet("Grouped").ReadRange(viewRange);
             string lookupRange = $"B1:B{rows.Length + 1}";
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             var rows = ThreeLevelSourceRows(topCount);
             string file = ThreeLevelPivotFile(topCount);
             string path = ThreeLevelPivotOraclePath(file);
-            VerifyThreeLevelPivotOracle(path, oracleRange, topCount);
+            VerifyThreeLevelPivotOracle(path, oracleRange, 1, topCount);
             using var oracle = ExcelDocumentReader.Open(path);
             var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
             var expectedLookups = oracle.GetSheet("Lookups").ReadRange($"B1:B{rows.Length + 1}");
@@ -90,14 +90,85 @@ namespace OfficeIMO.Tests {
             AssertThreeLevelPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange));
         }
 
-        [Fact]
-        public void Test_PivotThreeLevelValue_UnqualifiedTopCountFailsClosed() {
+        [Theory]
+        [InlineData("bottom1", "A4:D15", "F4:I15", 2, 1d, 35d)]
+        [InlineData("greater15", "A4:D18", "F4:I18", 9, 15d, 215d)]
+        [InlineData("between15and30", "A4:D17", "F4:I17", 13, 15d, 125d)]
+        public void Test_PivotThreeLevelValue_AdditionalRulesMatchExcel(
+            string kind, string oracleRange, string authoredRange, int filterType, double threshold, double total) {
+            string file = $"pivot-value-three-level-{kind}-conformance.xlsx";
+            string path = ThreeLevelPivotOraclePath(file);
+            VerifyThreeLevelPivotOracle(path, oracleRange, filterType, threshold);
+            using var oracle = ExcelDocumentReader.Open(path);
+            var expectedView = oracle.GetSheet("Grouped").ReadRange(oracleRange);
+            var expectedLookups = oracle.GetSheet("Lookups").ReadRange("B1:B13");
+            AssertPivotLookupOracleValue(total, expectedLookups[0, 0]);
+
+            string importedOutput = Path.Combine(_directoryWithFiles, "Imported." + file);
+            using (var document = ExcelDocument.Load(path)) {
+                var grouped = document.GetSheet("Grouped");
+                AssertPivotLookupOracleValue(total, grouped.GetPivotData("ValuePivot", "Metric").Value);
+                var result = grouped.MaterializePivotTable("ValuePivot");
+                Assert.Equal(oracleRange, result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid);
+                var lookups = document.GetSheet("Lookups");
+                lookups.ClearCachedFormulaResults();
+                Assert.Equal(13, lookups.RecalculateSupportedFormulas());
+                document.Save(importedOutput);
+            }
+            using (var imported = ExcelDocumentReader.Open(importedOutput)) {
+                AssertThreeLevelPivotView(expectedView, imported.GetSheet("Grouped").ReadRange(oracleRange));
+                var actualLookups = imported.GetSheet("Lookups").ReadRange("B1:B13");
+                for (int row = 0; row < 13; row++)
+                    AssertPivotLookupOracleValue(expectedLookups[row, 0], actualLookups[row, 0]);
+            }
+
+            string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
+            using (var document = ExcelDocument.Create()) {
+                var source = document.AddWorksheet("Source");
+                PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
+                ExcelPivotFilter filter = kind switch {
+                    "bottom1" => ExcelPivotFilter.BottomCount("Channel", "Metric", 1),
+                    "greater15" => ExcelPivotFilter.ValueGreaterThan("Channel", "Metric", 15d),
+                    "between15and30" => ExcelPivotFilter.ValueBetween("Channel", "Metric", 15d, 30d),
+                    _ => throw new ArgumentOutOfRangeException(nameof(kind))
+                };
+                source.Pivot("A1:D13").Rows("Region", "Product", "Channel")
+                    .Sum("Sales", "Metric").Layout(ExcelPivotLayout.Tabular)
+                    .Filter(filter).At("F4", "ValuePivot");
+                var result = source.MaterializePivotTable("ValuePivot");
+                Assert.Equal(authoredRange, result.OutputRange);
+                Assert.True(result.Mutation.PackageIsValid);
+                document.Save(authoredOutput);
+            }
+            using (var reopened = ExcelDocument.Load(authoredOutput)) {
+                Assert.Empty(reopened.ValidateOpenXml());
+                var source = reopened.GetSheet("Source");
+                AssertPivotLookupOracleValue(expectedLookups[0, 0], source.GetPivotData("ValuePivot", "Metric").Value);
+                for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++) {
+                    var row = ThreeLevelTopTwoRows[index];
+                    var actual = source.GetPivotData("ValuePivot", "Metric", new Dictionary<string, object?> {
+                        ["Region"] = row.Region, ["Product"] = row.Product, ["Channel"] = row.Channel
+                    });
+                    AssertPivotLookupOracleValue(expectedLookups[index + 1, 0], actual.Value);
+                }
+            }
+            using var authored = ExcelDocumentReader.Open(authoredOutput);
+            AssertThreeLevelPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange));
+        }
+
+        [Theory]
+        [InlineData(true, 3)]
+        [InlineData(false, 2)]
+        public void Test_PivotThreeLevelValue_UnqualifiedCountFailsClosed(bool top, int count) {
             using var document = ExcelDocument.Create();
             var source = document.AddWorksheet("Source");
             PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
+            var filter = top ? ExcelPivotFilter.TopCount("Channel", "Metric", count)
+                : ExcelPivotFilter.BottomCount("Channel", "Metric", count);
             source.Pivot("A1:D13").Rows("Region", "Product", "Channel")
                 .Sum("Sales", "Metric").Layout(ExcelPivotLayout.Tabular)
-                .Filter(ExcelPivotFilter.TopCount("Channel", "Metric", 3))
+                .Filter(filter)
                 .At("F4", "ValuePivot");
             var error = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
             Assert.Contains("qualified axis rule", error.Message, StringComparison.Ordinal);
@@ -132,14 +203,15 @@ namespace OfficeIMO.Tests {
         private static string ThreeLevelPivotOraclePath(string file) => Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory, "Documents", "ExcelPivotCorpus", file);
 
-        private static void VerifyThreeLevelPivotOracle(string path, string expectedRange, int topCount) {
+        private static void VerifyThreeLevelPivotOracle(string path, string expectedRange, int filterType, double threshold) {
             using var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json")));
             using var sha = SHA256.Create();
             using var stream = File.OpenRead(path);
             string hash = BitConverter.ToString(sha.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
             Assert.Equal("Microsoft Excel", provenance.RootElement.GetProperty("producer").GetString());
             Assert.Equal(provenance.RootElement.GetProperty("sha256").GetString(), hash);
-            Assert.Equal(topCount, provenance.RootElement.GetProperty("threshold").GetInt32());
+            Assert.Equal(filterType, provenance.RootElement.GetProperty("filterType").GetInt32());
+            Assert.Equal(threshold, provenance.RootElement.GetProperty("threshold").GetDouble());
             Assert.Equal(expectedRange, provenance.RootElement.GetProperty("outputRange").GetString());
         }
 

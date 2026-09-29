@@ -181,12 +181,16 @@ namespace OfficeIMO.Excel {
                         || !TryFinitePivotThreshold(custom.Val?.Value, out first))
                         throw new NotSupportedException("The value filter does not have a qualified finite comparison threshold.");
                 }
-                bool qualifiedThreeLevelTopCount = axisFields.Count == 3
+                bool qualifiedThreeLevelValueFilter = axisFields.Count == 3
                     && rowAxisFields.Length == 3 && columnAxisFields.Length == 0
                     && fieldPrefix.Length == 3 && measures.Length == 1
-                    && type == PivotFilterValues.Count && ranking != null
-                    && ranking.Top?.Value != false && ranking.Val?.Value is >= 1d and <= 2d;
-                if (axisFields.Count > 1 && !qualifiedThreeLevelTopCount
+                    && (type == PivotFilterValues.ValueGreaterThan
+                        || type == PivotFilterValues.ValueBetween
+                        || (type == PivotFilterValues.Count && ranking != null
+                            && (ranking.Top?.Value == false
+                                ? ranking.Val?.Value == 1d
+                                : ranking.Val?.Value is >= 1d and <= 2d)));
+                if (axisFields.Count > 1 && !qualifiedThreeLevelValueFilter
                     && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified axis rule.");
                 var measure = measures[filter.MeasureField.Value];

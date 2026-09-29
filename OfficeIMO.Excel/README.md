@@ -716,8 +716,9 @@ aggregate across its children. Two column fields support the same comparisons,
 ranges, and top/bottom count, percent, and sum filters on either field. With
 one row and one column field, the same value comparisons, ranges,
 and top/bottom count, percent, and sum filters can target either field. With
-three row fields and one measure, Top 1 and Top 2 count on the innermost field
-are qualified against Excel-produced views and `GETPIVOTDATA` results. Other
+three row fields and one measure, Top 1, Top 2, and Bottom 1 count, numeric
+greater-than, and numeric between filters on the innermost field are qualified
+against Excel-produced views and `GETPIVOTDATA` results. Other
 three-or-more-field value rules and multi-measure filter interactions remain
 outside this qualified profile. Signed and zero child aggregates, nonpositive outer-field
 totals, three siblings per parent, mixed numeric/error ranking, and classic
