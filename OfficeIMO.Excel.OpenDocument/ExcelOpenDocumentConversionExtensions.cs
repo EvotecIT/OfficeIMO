@@ -313,7 +313,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         }
 
         int convertedCharts = ConvertExcelCharts(source, target, effective, convertedCellsBySheet,
-            ref materializedCells, ref truncated, out int sourceChartFrames);
+            ref materializedCells, ref truncated, out int sourceChartFrames,
+            out int unsupportedRadialGeometry);
         int convertedPivots = ConvertExcelPivots(source, snapshot, target, effective, convertedCellsBySheet);
         foreach (NamedRangeConversionEntry named in namedRangePlan.Entries) {
             target.AddNamedRange(named.OutputName, named.Address);
@@ -377,6 +378,8 @@ public static partial class ExcelOpenDocumentConversionExtensions {
             Math.Max(0, snapshot.ChartPartCount - CountReferencedChartParts(source));
         AddUnsupported(report, "charts", Math.Max(0, sourceChartObjects - convertedCharts),
             "Excel charts outside the bounded worksheet-linked column, bar, line, pie, and doughnut subset, including unsupported point appearances, are not translated to ODS.");
+        AddUnsupported(report, "chart-radial-layout", unsupportedRadialGeometry,
+            "The current ODS chart model does not preserve a nondefault pie rotation or doughnut hole size; these charts were not translated.");
         if (convertedPivots > 0) report.Add("pivot-tables", OdfConversionMappingStatus.Approximated, convertedPivots,
             "Worksheet-source pivots with row/column fields and one aggregate become ODF data pilots. Excel cache, style, sorting, subtotal, and interaction details are not transferred.");
         AddUnsupported(report, "pivot-tables", Math.Max(0, snapshot.PivotTablePartCount - convertedPivots),

@@ -195,6 +195,13 @@ internal static class OdsChartPointStyles {
                     unprojectedPieOffset = !IsZeroPieOffset(attribute.Value);
                 continue;
             }
+            if (attribute.Name == OdfNamespaces.Chart + "stacked" ||
+                attribute.Name == OdfNamespaces.Chart + "percentage" ||
+                attribute.Name == OdfNamespaces.Chart + "three-dimensional") {
+                if (OdfBoolean.TryParseXml(attribute.Value, out bool enabled) && !enabled)
+                    continue;
+                return true;
+            }
             if (attribute.Name == OdfNamespaces.Chart + "solid-type" && attribute.Value == "cuboid" ||
                 attribute.Name == OdfNamespaces.Chart + "link-data-style-to-source" &&
                     OdfBoolean.TryParseXml(attribute.Value, out bool linked) && linked) continue;

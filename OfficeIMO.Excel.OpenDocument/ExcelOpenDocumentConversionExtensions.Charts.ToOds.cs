@@ -12,9 +12,11 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     private static int ConvertExcelCharts(ExcelDocument source, OdsDocument target,
         ExcelOpenDocumentConversionOptions options,
         Dictionary<string, HashSet<(int Row, int Column)>> convertedCellsBySheet,
-        ref long materializedCells, ref bool truncated, out int sourceChartFrames) {
+        ref long materializedCells, ref bool truncated, out int sourceChartFrames,
+        out int unsupportedRadialGeometry) {
         int converted = 0;
         sourceChartFrames = 0;
+        unsupportedRadialGeometry = 0;
         foreach (ExcelSheet sourceSheet in source.Sheets) {
             ExcelChart[] charts = sourceSheet.Charts.ToArray();
             sourceChartFrames += charts.Length;
@@ -25,8 +27,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 try {
                     if (chart.IsPivotChart || chart.HasAbsoluteAnchor
                         || !TryGetOdsChartType(chart.ChartType, out OdsChartType type)
-                        || !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)
-                        || chart.DataRange is not ExcelChartDataRange range
+                        || !chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) continue;
+                    if ((type == OdsChartType.Pie || type == OdsChartType.Doughnut) &&
+                        (snapshot.RadialLayout.FirstSliceAngleDegrees != OfficeChartRadialLayout.Default.FirstSliceAngleDegrees ||
+                         type == OdsChartType.Doughnut && snapshot.RadialLayout.DoughnutHolePercent !=
+                            OfficeChartRadialLayout.Default.DoughnutHolePercent)) {
+                        unsupportedRadialGeometry++;
+                        continue;
+                    }
+                    if (chart.DataRange is not ExcelChartDataRange range
                         || !chart.HasCanonicalWorksheetReferences()
                         || !range.HasHeaderRow
                         || range.CategoryCount < 1 || range.CategoryCount > MaximumConvertedChartPoints

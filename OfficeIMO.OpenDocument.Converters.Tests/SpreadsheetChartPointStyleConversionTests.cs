@@ -125,6 +125,25 @@ public sealed class SpreadsheetChartPointStyleConversionTests {
         Assert.True(OdsDocument.Load(new MemoryStream(result.Value.ToBytes())).Validate().IsValid);
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.Pie)]
+    [InlineData(OfficeChartKind.Doughnut)]
+    public void ExcelNondefaultRadialGeometryReportsChartLoss(OfficeChartKind sourceType) {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Summary");
+        var data = new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Values", new[] { 3d, 4d }) });
+        sheet.AddChart(sourceType, data, row: 2, column: 4)
+            .SetRadialLayout(new OfficeChartRadialLayout(
+                sourceType == OfficeChartKind.Pie ? 45 : 0,
+                sourceType == OfficeChartKind.Doughnut ? 65 : 50));
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "chart-radial-layout" && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
     [Fact]
     public void UnsupportedOdsPointAppearanceReportsTheWholeChartAsLoss() {
         OdsDocument source = CreateStyledOdsChart(OdsChartType.Pie);

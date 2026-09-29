@@ -33,6 +33,29 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
             out _));
     }
 
+    [Theory]
+    [InlineData("stacked")]
+    [InlineData("percentage")]
+    [InlineData("three-dimensional")]
+    public void PointStylesAcceptExplicitFalseSeriesChartFlags(string flag) {
+        var definition = new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "family", "chart"),
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + flag, "false")),
+            new XElement(OdfNamespaces.Style + "graphic-properties",
+                new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                new XAttribute(OdfNamespaces.Draw + "fill-color", "#228844")));
+        var series = new XElement(OdfNamespaces.Chart + "series",
+            new XAttribute(OdfNamespaces.Chart + "values-cell-range-address", "Data.$B$1"),
+            new XAttribute(OdfNamespaces.Chart + "style-name", "SeriesStyle"),
+            new XElement(OdfNamespaces.Chart + "data-point",
+                new XAttribute(OdfNamespaces.Chart + "style-name", "SeriesStyle")));
+        XElement? Find(string? name) => name == "SeriesStyle" ? definition : null;
+        Assert.True(OdsChartPointStyles.TryRead(series, Find, null,
+            new System.Collections.Generic.Dictionary<string, XElement>(), radial: true, out var styles));
+        Assert.Equal(OfficeColor.Parse("#228844"), Assert.Single(styles!)!.FillColor);
+    }
+
     [Fact]
     public void NewChartSkipsOccupiedObjectPrefixWithoutDirectoryEntry() {
         OdsDocument document = OdsDocument.Create();
