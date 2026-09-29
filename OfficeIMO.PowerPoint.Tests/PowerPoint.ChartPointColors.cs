@@ -99,6 +99,7 @@ namespace OfficeIMO.Tests {
                 new PowerPointToPdfOptions { ChartStyle = style });
             Assert.Same(style, overridden.Style);
             Assert.Equal(Colors, overridden.Data.Series[0].PointColors);
+            Assert.All(overridden.Data.Series, series => Assert.Null(series.Color));
         }
 
         [Fact]

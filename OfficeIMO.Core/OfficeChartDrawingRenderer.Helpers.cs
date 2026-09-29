@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -366,6 +367,31 @@ public static partial class OfficeChartDrawingRenderer {
     private static double? GetValueAxisMinorUnit(OfficeChartLayout layout, bool horizontal) =>
         horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit;
 
+    internal static bool HasUnsupportedAxisUnitBudget(OfficeChartSnapshot snapshot) {
+        if (IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind) || IsRadarChart(snapshot.ChartKind))
+            return false;
+        OfficeChartLayout layout = snapshot.Layout;
+        bool barChart = IsBarChart(snapshot.ChartKind);
+        bool hasSecondary = snapshot.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
+        ValueRange primary = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondary);
+        if (ExceedsAxisUnitBudget(primary, GetValueAxisMajorUnit(layout, barChart), 32) ||
+            ExceedsAxisUnitBudget(primary, GetValueAxisMinorUnit(layout, barChart), 96)) return true;
+        if (!IsScatterChart(snapshot.ChartKind)) return false;
+        IReadOnlyList<double> sharedX = GetScatterXValues(snapshot.Data.Categories);
+        List<OfficeChartSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+        ValueRange horizontal = ApplyValueAxisScale(GetScatterPointRanges(series, sharedX).XRange,
+            layout, horizontal: true);
+        return ExceedsAxisUnitBudget(horizontal, layout.HorizontalAxisMajorUnit, 32) ||
+            ExceedsAxisUnitBudget(horizontal, layout.HorizontalAxisMinorUnit, 96);
+    }
+
+    private static bool ExceedsAxisUnitBudget(ValueRange range, double? unit, int maximumTicks) {
+        if (!unit.HasValue || unit.Value <= 0D) return false;
+        double intervals = (range.Max - range.Min) / unit.Value;
+        return double.IsNaN(intervals) || double.IsInfinity(intervals) ||
+            intervals < 1D || intervals >= maximumTicks;
+    }
+
     private static IReadOnlyList<double> GetValueAxisMajorTicks(ValueRange range, double? majorUnit) {
         if (!majorUnit.HasValue || majorUnit.Value <= 0D) {
             return new[] {
@@ -382,10 +408,10 @@ public static partial class OfficeChartDrawingRenderer {
             return new[] { range.Min, range.Max };
         }
 
+        if (ExceedsAxisUnitBudget(range, majorUnit, 32))
+            throw new NotSupportedException("The chart major-axis unit exceeds the renderer tick budget.");
+
         int tickCount = (int)Math.Floor(span / majorUnit.Value) + 1;
-        if (tickCount < 2 || tickCount > 32) {
-            return new[] { range.Min, range.Max };
-        }
 
         var ticks = new List<double>(tickCount + 1);
         for (int i = 0; i < tickCount; i++) {
@@ -417,10 +443,10 @@ public static partial class OfficeChartDrawingRenderer {
             return Array.Empty<double>();
         }
 
+        if (ExceedsAxisUnitBudget(range, minorUnit, 96))
+            throw new NotSupportedException("The chart minor-axis unit exceeds the renderer tick budget.");
+
         int tickCount = (int)Math.Floor(span / minorUnit.Value) + 1;
-        if (tickCount < 2 || tickCount > 96) {
-            return Array.Empty<double>();
-        }
 
         var ticks = new List<double>(tickCount);
         for (int i = 0; i < tickCount; i++) {

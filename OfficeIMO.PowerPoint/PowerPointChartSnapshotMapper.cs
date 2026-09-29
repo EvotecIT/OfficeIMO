@@ -7,19 +7,21 @@ namespace OfficeIMO.PowerPoint {
     internal static class PowerPointChartSnapshotMapper {
         internal static OfficeChartSnapshot ToOfficeSnapshot(PowerPointChartSnapshot snapshot,
             double width, double height, OfficeChartStyle? style = null, OfficeChartLayout? layout = null) {
+            // A caller-supplied style owns series palette colors for this projection.
+            // Native per-point appearances remain explicit and keep their precedence.
             var series = snapshot.Data.Series.Select(item => item.BubbleSizes != null
                 ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
-                    item.BubbleSizes, item.Color, item.PointColors,
+                    item.BubbleSizes, style == null ? item.Color : null, item.PointColors,
                     showInLegend: item.ShowInLegend,
-                    markerOutlineColor: item.StrokeColor ?? item.Color,
+                    markerOutlineColor: style == null ? item.StrokeColor ?? item.Color : null,
                     markerOutlineWidth: item.StrokeWidth,
                     showMarkerOutline: item.ShowStroke)
-                : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
+                : new OfficeChartSeries(item.Name, item.Values, item.XValues, style == null ? item.Color : null,
                     pointColors: item.PointColors, showMarkers: item.SharedAppearance?.ShowMarkers ?? true,
                     showInLegend: item.ShowInLegend, connectLine: item.SharedAppearance?.ConnectLine ?? true,
                     markerSize: item.SharedAppearance?.MarkerSize,
                     markerShape: item.SharedAppearance?.MarkerShape,
-                    markerOutlineColor: item.SharedAppearance?.MarkerOutlineColor ?? item.StrokeColor ?? item.Color,
+                    markerOutlineColor: style == null ? item.SharedAppearance?.MarkerOutlineColor ?? item.StrokeColor ?? item.Color : null,
                     markerOutlineWidth: item.SharedAppearance?.MarkerOutlineWidth,
                     strokeWidth: item.StrokeWidth,
                     strokeDashStyle: item.SharedAppearance?.StrokeDashStyle,
