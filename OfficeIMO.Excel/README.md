@@ -681,9 +681,9 @@ Native fixed-date equals/not-equals, older/newer, inclusive-bound, between,
 and not-between filters materialize on date-valued row or column fields.
 By default they compare complete date-time values in either workbook date
 system, so a midnight equality does not select a later time on the same day.
-Pass `wholeDay: true`, for example
-`ExcelPivotFilter.DateEquals("OrderDate", day, wholeDay: true)`, to include
-every time on the selected date. The same option applies to the other
+Call `WithWholeDay()`, for example
+`ExcelPivotFilter.DateEquals("OrderDate", day).WithWholeDay()`, to include
+every time on the selected date. The same modifier applies to the other
 fixed-date predicates; it is saved in Excel's pivot-filter extension and
 survives a workbook reload. `GetPivotTables()` exposes the setting through
 each filter's `WholeDay` property. All-years

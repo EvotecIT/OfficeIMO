@@ -75,6 +75,15 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets whether a fixed-date filter matches the entire calendar day.</summary>
         public bool WholeDay { get; }
 
+        /// <summary>Returns a fixed-date filter that matches entire calendar days.</summary>
+        public ExcelPivotFilter WithWholeDay() {
+            if (!IsFixedDateFilter(_type))
+                throw new InvalidOperationException("Whole-day matching requires a fixed-date pivot filter.");
+            if (WholeDay) return this;
+            return new ExcelPivotFilter(FieldName, _type, Value1, Value2, DataFieldName, Name,
+                Description, IsTop, IsPercent, FilterValue, DateValue1, DateValue2, wholeDay: true);
+        }
+
         /// <summary>Creates a label-equals pivot filter.</summary>
         public static ExcelPivotFilter LabelEquals(string fieldName, string value, string? name = null, string? description = null)
             => Label(fieldName, PivotFilterValues.CaptionEqual, value, null, name, description);
@@ -189,67 +198,35 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Creates a date-equals pivot filter.</summary>
         public static ExcelPivotFilter DateEquals(string fieldName, DateTime value, string? name = null, string? description = null)
-            => DateEquals(fieldName, value, false, name, description);
-
-        /// <summary>Creates a date-equals pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateEquals(string fieldName, DateTime value, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateEqual, value, null, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateEqual, value, null, name, description);
 
         /// <summary>Creates a date-not-equals pivot filter.</summary>
         public static ExcelPivotFilter DateNotEquals(string fieldName, DateTime value, string? name = null, string? description = null)
-            => DateNotEquals(fieldName, value, false, name, description);
-
-        /// <summary>Creates a date-not-equals pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateNotEquals(string fieldName, DateTime value, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateNotEqual, value, null, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateNotEqual, value, null, name, description);
 
         /// <summary>Creates a date-newer-than pivot filter.</summary>
         public static ExcelPivotFilter DateNewerThan(string fieldName, DateTime value, string? name = null, string? description = null)
-            => DateNewerThan(fieldName, value, false, name, description);
-
-        /// <summary>Creates a date-newer-than pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateNewerThan(string fieldName, DateTime value, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateNewerThan, value, null, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateNewerThan, value, null, name, description);
 
         /// <summary>Creates a date-newer-than-or-equal pivot filter.</summary>
         public static ExcelPivotFilter DateNewerThanOrEqual(string fieldName, DateTime value, string? name = null, string? description = null)
-            => DateNewerThanOrEqual(fieldName, value, false, name, description);
-
-        /// <summary>Creates a date-newer-than-or-equal pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateNewerThanOrEqual(string fieldName, DateTime value, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateNewerThanOrEqual, value, null, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateNewerThanOrEqual, value, null, name, description);
 
         /// <summary>Creates a date-older-than pivot filter.</summary>
         public static ExcelPivotFilter DateOlderThan(string fieldName, DateTime value, string? name = null, string? description = null)
-            => DateOlderThan(fieldName, value, false, name, description);
-
-        /// <summary>Creates a date-older-than pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateOlderThan(string fieldName, DateTime value, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateOlderThan, value, null, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateOlderThan, value, null, name, description);
 
         /// <summary>Creates a date-older-than-or-equal pivot filter.</summary>
         public static ExcelPivotFilter DateOlderThanOrEqual(string fieldName, DateTime value, string? name = null, string? description = null)
-            => DateOlderThanOrEqual(fieldName, value, false, name, description);
-
-        /// <summary>Creates a date-older-than-or-equal pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateOlderThanOrEqual(string fieldName, DateTime value, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateOlderThanOrEqual, value, null, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateOlderThanOrEqual, value, null, name, description);
 
         /// <summary>Creates a date-between pivot filter.</summary>
         public static ExcelPivotFilter DateBetween(string fieldName, DateTime from, DateTime to, string? name = null, string? description = null)
-            => DateBetween(fieldName, from, to, false, name, description);
-
-        /// <summary>Creates a date-between pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateBetween(string fieldName, DateTime from, DateTime to, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateBetween, from, to, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateBetween, from, to, name, description);
 
         /// <summary>Creates a date-not-between pivot filter.</summary>
         public static ExcelPivotFilter DateNotBetween(string fieldName, DateTime from, DateTime to, string? name = null, string? description = null)
-            => DateNotBetween(fieldName, from, to, false, name, description);
-
-        /// <summary>Creates a date-not-between pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter DateNotBetween(string fieldName, DateTime from, DateTime to, bool wholeDay, string? name = null, string? description = null)
-            => Date(fieldName, PivotFilterValues.DateNotBetween, from, to, name, description, wholeDay);
+            => Date(fieldName, PivotFilterValues.DateNotBetween, from, to, name, description);
 
         /// <summary>Creates a dynamic date filter for today.</summary>
         public static ExcelPivotFilter DateToday(string fieldName, string? name = null, string? description = null)
@@ -367,15 +344,10 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Creates a fixed date pivot filter using a supported Open XML pivot filter type.</summary>
         public static ExcelPivotFilter Date(string fieldName, ExcelPivotFilterType type, DateTime value1, DateTime? value2 = null, string? name = null, string? description = null) {
-            return Date(fieldName, type, value1, false, value2, name, description);
+            return Date(fieldName, type.ToOpenXml(), value1, value2, name, description);
         }
 
-        /// <summary>Creates a fixed date pivot filter with optional whole-day matching.</summary>
-        public static ExcelPivotFilter Date(string fieldName, ExcelPivotFilterType type, DateTime value1, bool wholeDay, DateTime? value2 = null, string? name = null, string? description = null) {
-            return Date(fieldName, type.ToOpenXml(), value1, value2, name, description, wholeDay);
-        }
-
-        private static ExcelPivotFilter Date(string fieldName, PivotFilterValues type, DateTime value1, DateTime? value2 = null, string? name = null, string? description = null, bool wholeDay = false) {
+        private static ExcelPivotFilter Date(string fieldName, PivotFilterValues type, DateTime value1, DateTime? value2 = null, string? name = null, string? description = null) {
             if (!IsFixedDateFilter(type)) {
                 throw new ArgumentException($"Pivot filter type '{type}' is not a supported fixed date filter.", nameof(type));
             }
@@ -383,7 +355,7 @@ namespace OfficeIMO.Excel {
             string first = FormatDateFilterValue(value1);
             string? second = value2.HasValue ? FormatDateFilterValue(value2.Value) : null;
             return new ExcelPivotFilter(fieldName, type, first, second, null, name, description,
-                dateValue1: value1, dateValue2: value2, wholeDay: wholeDay);
+                dateValue1: value1, dateValue2: value2);
         }
 
         /// <summary>Creates a dynamic date pivot filter using a supported Open XML pivot filter type.</summary>

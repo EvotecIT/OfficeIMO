@@ -73,15 +73,15 @@ namespace OfficeIMO.Tests {
                 }
                 ExcelPivotFilter filter = caseName switch {
                     "equal-times" or "equal-times-1904" or "equal-blank"
-                        => ExcelPivotFilter.DateEquals("OrderDate", first, wholeDay: true),
+                        => ExcelPivotFilter.DateEquals("OrderDate", first).WithWholeDay(),
                     "not-equal-times" or "not-equal-blank"
-                        => ExcelPivotFilter.DateNotEquals("OrderDate", first, wholeDay: true),
-                    "before-times" => ExcelPivotFilter.DateOlderThan("OrderDate", last, wholeDay: true),
-                    "before-equal-times" => ExcelPivotFilter.DateOlderThanOrEqual("OrderDate", last, wholeDay: true),
-                    "after-times" => ExcelPivotFilter.DateNewerThan("OrderDate", first, wholeDay: true),
-                    "after-equal-times" => ExcelPivotFilter.DateNewerThanOrEqual("OrderDate", first, wholeDay: true),
-                    "between-times" => ExcelPivotFilter.DateBetween("OrderDate", first, middle, wholeDay: true),
-                    "not-between-times" => ExcelPivotFilter.DateNotBetween("OrderDate", first, middle, wholeDay: true),
+                        => ExcelPivotFilter.DateNotEquals("OrderDate", first).WithWholeDay(),
+                    "before-times" => ExcelPivotFilter.DateOlderThan("OrderDate", last).WithWholeDay(),
+                    "before-equal-times" => ExcelPivotFilter.DateOlderThanOrEqual("OrderDate", last).WithWholeDay(),
+                    "after-times" => ExcelPivotFilter.DateNewerThan("OrderDate", first).WithWholeDay(),
+                    "after-equal-times" => ExcelPivotFilter.DateNewerThanOrEqual("OrderDate", first).WithWholeDay(),
+                    "between-times" => ExcelPivotFilter.DateBetween("OrderDate", first, middle).WithWholeDay(),
+                    "not-between-times" => ExcelPivotFilter.DateNotBetween("OrderDate", first, middle).WithWholeDay(),
                     _ => throw new InvalidOperationException("Unexpected Excel whole-day oracle case.")
                 };
                 Assert.True(filter.WholeDay);
