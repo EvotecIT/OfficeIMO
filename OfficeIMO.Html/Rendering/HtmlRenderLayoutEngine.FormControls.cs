@@ -47,6 +47,26 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         string source = HtmlRenderStyleResolver.DescribeSource(element);
         HtmlRenderBoxStyle style = CreateFormControlStyle(element, authoredStyle);
+        if (string.Equals(element.LocalName, "button", StringComparison.OrdinalIgnoreCase)
+            && style.Display is "flex" or "inline-flex") {
+            HtmlRenderBoxStyle flexStyle = style.Clone();
+            if (!flexStyle.ExplicitWidth.HasValue) {
+                double flexAvailableWidth = Math.Max(1D, containingWidth - flexStyle.MarginLeft - flexStyle.MarginRight);
+                double contentWidth = ResolveDefaultFormControlContentWidth(element, flexStyle, flexAvailableWidth);
+                double intrinsicBoxWidth = ResolveFormControlBoxWidth(flexStyle, contentWidth, flexAvailableWidth);
+                flexStyle.ExplicitWidth = flexStyle.BorderBox
+                    ? intrinsicBoxWidth
+                    : Math.Max(0.01D, intrinsicBoxWidth - flexStyle.HorizontalInsets);
+            }
+            if (!flexStyle.ExplicitHeight.HasValue) {
+                double defaultHeight = ResolveDefaultFormControlContentHeight(element, flexStyle);
+                double minimumHeight = defaultHeight + (flexStyle.BorderBox ? flexStyle.VerticalInsets : 0D);
+                flexStyle.MinHeight = Math.Max(flexStyle.MinHeight ?? 0D, minimumHeight);
+            }
+            if (TryLayoutFlexContainer(element, containingWidth, flexStyle, 0, null, null, out HtmlRenderFlowBlock flexButton)) {
+                return flexButton;
+            }
+        }
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double defaultContentWidth = ResolveDefaultFormControlContentWidth(element, style, availableWidth);
         double boxWidth = ResolveFormControlBoxWidth(style, defaultContentWidth, availableWidth);

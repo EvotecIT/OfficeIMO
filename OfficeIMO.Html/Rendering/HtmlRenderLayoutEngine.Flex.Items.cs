@@ -187,7 +187,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         LineHeight = parentStyle.LineHeight,
         PreserveWhitespace = parentStyle.PreserveWhitespace,
         TextTransform = parentStyle.TextTransform,
-        SemanticRole = "anonymous-flex-item",
+        SemanticRole = parentStyle.SemanticRole == "form-control" ? "form-control" : "anonymous-flex-item",
         Orphans = parentStyle.Orphans,
         Widows = parentStyle.Widows,
         PageName = parentStyle.PageName

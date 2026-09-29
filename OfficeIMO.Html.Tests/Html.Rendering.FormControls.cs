@@ -410,6 +410,54 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_FlexButtonKeepsColumnIconsInsideItsControlBox() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>.menu{display:flex;align-items:center;width:18px;height:18px;border:unset;padding:unset;background:unset}" +
+            ".icon{display:flex;flex-direction:column}.bar{display:block;width:12px;height:2px;background:#fff;margin-bottom:3px}</style>" +
+            "<button id='menu' class='menu' aria-label='Menu'><span class='icon'>" +
+            "<i id='top' class='bar'></i><i id='middle' class='bar'></i><i id='bottom' class='bar'></i>" +
+            "</span></button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape[] bars = rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>()
+            .Where(shape => shape.Source is "i#top" or "i#middle" or "i#bottom")
+            .OrderBy(shape => shape.Y).ToArray();
+        Assert.Equal(3, bars.Length);
+        Assert.True(bars[2].Y + bars[2].Height - bars[0].Y <= 18D);
+        Assert.All(bars, bar => Assert.Equal(12D, bar.Width, 1));
+    }
+
+    [Theory]
+    [InlineData("flex")]
+    [InlineData("inline-flex")]
+    public void HtmlRendering_AutoSizedFlexButtonRetainsControlSizeAndTextRole(string display) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            $"<button id='save' style='display:{display}'>Save</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#save" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 44D, 100D);
+        Assert.True(button.Height >= 20D);
+        HtmlRenderText label = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderText>(), text => text.Text == "Save");
+        Assert.Equal("form-control", label.SemanticRole);
+    }
+
+    [Fact]
+    public void HtmlRendering_BorderBoxFlexButtonIncludesControlInsetsInIntrinsicSize() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<button id='save' style='display:flex;box-sizing:border-box;padding:4px 6px;border:1px solid #000'>Save</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape button = Assert.Single(rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>(), shape => shape.Source == "button#save" && shape.Shape.FillColor.HasValue);
+        Assert.InRange(button.Width, 58D, 100D);
+        Assert.True(button.Height >= 30D);
+    }
+
+    [Fact]
     public void HtmlRendering_ButtonPaintsGeneratedContentInsideItsChild() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<style>.icon::before{content:'★';color:#123456}</style>" +
