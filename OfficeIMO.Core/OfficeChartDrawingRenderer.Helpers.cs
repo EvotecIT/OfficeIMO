@@ -381,7 +381,10 @@ public static partial class OfficeChartDrawingRenderer {
         horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit;
 
     internal static bool HasUnsupportedAxisUnitBudget(OfficeChartSnapshot snapshot) {
-        if (IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind) || IsRadarChart(snapshot.ChartKind))
+        if (IsRadarChart(snapshot.ChartKind))
+            return snapshot.Layout.HorizontalAxisMajorUnit.HasValue || snapshot.Layout.HorizontalAxisMinorUnit.HasValue ||
+                snapshot.Layout.VerticalAxisMajorUnit.HasValue || snapshot.Layout.VerticalAxisMinorUnit.HasValue;
+        if (IsPieChart(snapshot.ChartKind) || IsDoughnutChart(snapshot.ChartKind))
             return false;
         OfficeChartLayout layout = snapshot.Layout;
         bool barChart = IsBarChart(snapshot.ChartKind);

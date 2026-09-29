@@ -35,7 +35,8 @@ namespace OfficeIMO.PowerPoint {
                     "Bubble chart data cannot be updated without an embedded workbook.");
             }
             byte[]? workbookBytes = embedded != null ? OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind) : null;
-            Action? preserveBindings = embedded != null ? OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart) : null;
+            Action? preserveBindings = embedded != null ? OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+                chartPart, data.Series.Select(series => series.Values.Count).ToArray()) : null;
             OfficeOpenXmlChartWriter.UpdateSharedChartData(chartPart, data, chartKind);
             preserveBindings?.Invoke();
 
@@ -145,6 +146,12 @@ namespace OfficeIMO.PowerPoint {
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
+            if (GetChartPart().ChartSpace?.GetFirstChild<C.Chart>() is C.Chart nativeChart &&
+                OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(nativeChart,
+                    snapshot.Data.Series.SelectMany(series => series.Values))) {
+                snapshot = null!;
+                return false;
+            }
             if (HasUnprojectedNativeAxisUnits(snapshot.Layout) ||
                 OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
                 snapshot = null!;

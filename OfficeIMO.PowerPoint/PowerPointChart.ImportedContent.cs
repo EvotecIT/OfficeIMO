@@ -172,7 +172,8 @@ namespace OfficeIMO.PowerPoint {
             }
             byte[] workbook = PowerPointChartWorkbookEditor.Update(original,
                 data);
-            Action preserveBindings = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart);
+            Action preserveBindings = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+                chartPart, data.Series.Select(item => item.Values.Count).ToArray());
             using (var validation = new MemoryStream(workbook,
                        writable: false)) {
                 _ = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(

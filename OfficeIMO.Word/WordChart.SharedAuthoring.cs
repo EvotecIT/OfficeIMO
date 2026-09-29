@@ -40,7 +40,8 @@ public partial class WordChart {
     internal WordChart ConfigureSharedData(OfficeChartKind chartKind, OfficeChartData data, byte[] workbook) {
         ChartPart part = _chartPart ?? throw new InvalidOperationException("The chart has no native drawing part.");
         ChartSpace source = part.ChartSpace ?? throw new InvalidOperationException("The chart has no native chart space.");
-        var preserveBindings = OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(part);
+        var preserveBindings = OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+            part, data.Series.Select(series => series.Values.Count).ToArray());
         EmbeddedPackagePart? embedded = OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(part);
         bool rounded = source.GetFirstChild<RoundedCorners>()?.Val?.Value ?? false;
         if (source.GetFirstChild<Chart>() == null) {
