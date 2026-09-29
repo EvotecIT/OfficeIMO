@@ -29,22 +29,22 @@
     {
       "Kind": "speed-comparison",
       "RowCount": 25000,
-      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2\\officeimo.excel.comparison-speed-25000.json"
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2/officeimo.excel.comparison-speed-25000.json"
     },
     {
       "Kind": "summary-markdown",
       "RowCount": 0,
-      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2\\officeimo.excel.comparison-summary.md"
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2/officeimo.excel.comparison-summary.md"
     },
     {
       "Kind": "summary-csv",
       "RowCount": 0,
-      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2\\officeimo.excel.comparison-summary.csv"
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2/officeimo.excel.comparison-summary.csv"
     },
     {
       "Kind": "summary-json",
       "RowCount": 0,
-      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2\\officeimo.excel.comparison-summary.json"
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/b2/officeimo.excel.comparison-summary.json"
     }
   ]
 }

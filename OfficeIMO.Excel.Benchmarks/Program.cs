@@ -486,7 +486,9 @@ if (IsCommand(args, "--anti-cheat-suite", "anti-cheat-suite", "robustness-suite"
         ScenarioFilters = scenarioFilters,
         PackageScenarioFilters = packageScenarioFilters,
         DenseHelloWorldScenarios = [],
-        Artifacts = artifacts
+        Artifacts = artifacts.Select(artifact => artifact with {
+            Path = ExcelBenchmarkArtifactPath.ForPublishedEvidence(artifact.Path)
+        }).ToList()
     };
     File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
     Console.WriteLine($"Anti-cheat suite manifest written to '{manifestPath}'.");
@@ -584,7 +586,9 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
         ScenarioFilters = scenarioFilters,
         PackageScenarioFilters = packageScenarioFilters,
         DenseHelloWorldScenarios = runHelloWorldSeparately ? helloWorldScenarios : [],
-        Artifacts = artifacts
+        Artifacts = artifacts.Select(artifact => artifact with {
+            Path = ExcelBenchmarkArtifactPath.ForPublishedEvidence(artifact.Path)
+        }).ToList()
     };
     File.WriteAllText(manifestPath, JsonSerializer.Serialize(manifest, new JsonSerializerOptions { WriteIndented = true }));
     Console.WriteLine($"Comparison suite manifest written to '{manifestPath}'.");
