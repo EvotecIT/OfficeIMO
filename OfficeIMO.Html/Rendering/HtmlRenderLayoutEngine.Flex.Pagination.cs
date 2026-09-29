@@ -42,7 +42,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double baselineEnd = FindFragmentEnd(block, blockOffset, available, fullPageHeight: pageHeight);
         // A full relayout is warranted for a visibly stranded region, not for
         // ordinary line-height slack at every page boundary of a long document.
-        if (baselineEnd >= blockOffset + available - Math.Max(16D, pageHeight * 0.2D)) return false;
+        if (baselineEnd >= blockOffset + available - Math.Max(16D, pageHeight * 0.15D)) return false;
 
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
         bool isRoot = ReferenceEquals(block.OwnerElement, root);
@@ -87,7 +87,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (rowAvailable <= 0D) continue;
             double rowEnd = FindFragmentEnd(entry.Value, rowOffset, rowAvailable, fullPageHeight: pageHeight);
             double rowSlack = boundary - start - rowEnd;
-            if (rowSlack > Math.Max(16D, pageHeight * 0.2D)
+            if (rowSlack > Math.Max(16D, pageHeight * 0.15D)
                 && _pagedRowFlexLines.TryGetValue(entry.Key, out FlexLine? line)
                 && WouldAlignPagedRowFlexItems(line,
                     new PagedFloatBoundary(boundary - start, pageHeight, blockOffset - start))) return true;
@@ -153,6 +153,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (!canAdvance) break;
 
+            // A completed column can contribute its far endpoint while another
+            // column still needs an early cut. Do not stretch that sibling through
+            // a large empty region solely to match the completed column's end.
+            bool completedItem = line.Items.Any(item => item.Block!.Height <= cursor + available + 0.0001D);
+            bool continuingItem = line.Items.Any(item => item.Block!.Height > cursor + available + 0.0001D);
+            if (completedItem && continuingItem
+                && cuts.Max() - cuts.Min() > Math.Max(16D, boundary.PageHeight * 0.25D)
+                && HasUnalignedSharedFlexRowBreak(line, cursor, available, boundary.PageHeight)) break;
+
             double sharedEnd = cuts.Max();
             if (sharedEnd <= cursor + 0.0001D || sharedEnd > cursor + available + 0.0001D) break;
             for (int index = 0; index < line.Items.Count; index++) {
@@ -169,6 +178,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         if (changed) line.CrossSize = line.Items.Max(item => item.Block!.Height);
         return changed;
+    }
+
+    private static bool HasUnalignedSharedFlexRowBreak(FlexLine line, double cursor, double available, double pageHeight) {
+        var atomicVisualBottoms = new Dictionary<HtmlRenderFlowBlock, double>();
+        var atomicVisualRanges = new Dictionary<HtmlRenderFlowBlock, IReadOnlyList<(double Top, double Bottom)>>();
+        return line.Items.SelectMany(item => item.Block!.BreakOffsets)
+            .Where(offset => offset > cursor + 0.0001D && offset <= cursor + available + 0.0001D)
+            .Distinct()
+            .Any(offset => line.Items.All(item => {
+                HtmlRenderFlowBlock block = item.Block!;
+                return IsSafeFlexRowBreak(block, offset, atomicVisualBottoms, atomicVisualRanges)
+                    && IsAllowedLineBreak(block, cursor, offset, checkInteriorBreaks: true)
+                    && !(block.AvoidBreakInside && block.Height <= pageHeight + 0.0001D
+                        && offset > 0.0001D && offset < block.Height - 0.0001D)
+                    && !BreaksAvoidedRangeThatFitsPage(block, cursor, offset, pageHeight);
+            }));
     }
 
     private HtmlRenderFlowBlock InsertFlexItemBreakGap(HtmlRenderFlowBlock block, double cut, double gap) {

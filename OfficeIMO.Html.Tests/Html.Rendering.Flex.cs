@@ -618,6 +618,32 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_AlignsColumnsWhenStoppingWouldSplitAtomicImages() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body{margin:0}</style>"
+            + "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px'><img id='first' src='data:image/png;base64," + image
+            + "' style='display:block;width:90px;height:600px'></div>"
+            + "<div style='width:90px'><div style='height:200px'>Intro</div>"
+            + "<img id='second' src='data:image/png;base64," + image
+            + "' style='display:block;width:90px;height:700px'></div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 800D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderImage[] first = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToArray();
+        HtmlRenderImage[] second = rendered.Pages[1].Visuals.OfType<HtmlRenderImage>().ToArray();
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(first, visual => visual.Source == "img#first" && Math.Abs(visual.Height - 600D) < 0.01D);
+        Assert.Contains(second, visual => visual.Source == "img#second" && Math.Abs(visual.Height - 700D) < 0.01D);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
     public void HtmlFlexRow_AlignsIndependentRowsInOnePagedRoot() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string Row(int index) => "<div style='display:flex;width:180px;align-items:flex-start'>"
