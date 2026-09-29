@@ -39,7 +39,21 @@ internal static class ImageCancellationEvidence {
         return Measure(OfficeRasterImageEncoder.Encode(source, format, options));
     }
 
-    private static TimeSpan Measure(byte[] encoded) {
+    private static TimeSpan Measure(byte[] encoded) => TimeSpan.FromMilliseconds(
+        MeasureRepresentativeLatency(() => MeasureSingle(encoded).TotalMilliseconds));
+
+    // A single observation can include an unrelated OS scheduling pause. The median
+    // still exposes a persistent cancellation slowdown to the regression gate.
+    internal static double MeasureRepresentativeLatency(Func<double> measure) {
+        double first = measure();
+        double second = measure();
+        double third = measure();
+        if (first > second) (first, second) = (second, first);
+        if (second > third) (second, third) = (third, second);
+        return Math.Max(first, second);
+    }
+
+    private static TimeSpan MeasureSingle(byte[] encoded) {
         using var cancellation = new CancellationTokenSource();
         var options = new OfficeRasterDecodeOptions {
             CancellationToken = cancellation.Token,

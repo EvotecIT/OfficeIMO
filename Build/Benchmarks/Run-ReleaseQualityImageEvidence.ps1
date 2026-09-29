@@ -32,7 +32,7 @@ if (-not $Plan -and $ReferenceSummaryPath) {
     }
     $referenceMetadata = Get-Content -LiteralPath $referenceMetadataPath -Raw | ConvertFrom-Json
     $currentMetadata = Get-Content -LiteralPath $result.Artifacts['metadata.json'] -Raw | ConvertFrom-Json
-    foreach ($key in @('benchmark.MemoryMeasurementContract', 'memoryCleanup',
+    foreach ($key in @('benchmark.MemoryMeasurementContract', 'benchmark.CancellationMeasurementContract', 'memoryCleanup',
             'warmupCount', 'iterationCount', 'runOrder', 'outlierMode', 'pwsh', 'osLabel', 'processArchitecture', 'benchmark.Runtime')) {
         $referenceValue = $referenceMetadata.PSObject.Properties[$key].Value
         $currentValue = $currentMetadata.PSObject.Properties[$key].Value

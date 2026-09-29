@@ -10,6 +10,7 @@ New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $re
     Add-BenchmarkMetadata BenchmarkAssemblySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Drawing.Benchmarks.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata CoreAssemblySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Core.dll') -Algorithm SHA256).Hash
     Add-BenchmarkMetadata MemoryMeasurementContract 'operation-only-after-before-iteration-GC-v2'
+    Add-BenchmarkMetadata CancellationMeasurementContract 'median-of-three-independent-requests-v1'
     Add-BenchmarkMetadata OperatingSystem ([Runtime.InteropServices.RuntimeInformation]::OSDescription)
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
     Add-BenchmarkCaseSource {

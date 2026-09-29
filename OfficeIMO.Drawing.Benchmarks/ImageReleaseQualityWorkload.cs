@@ -181,7 +181,7 @@ public sealed class ImageReleaseQualityWorkload {
             OfficeRasterImageEncoder.Encode(_source, _format, _options, 8L));
         if (limit.LimitName != nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes))
             throw new InvalidOperationException("The bounded encoder reported the wrong public limit.");
-        CancellationLatencyMilliseconds = MeasureEncodeCancellation();
+        CancellationLatencyMilliseconds = ImageCancellationEvidence.MeasureRepresentativeLatency(MeasureEncodeCancellation);
     }
 
     private void ValidateDecode(OfficeRasterImage decoded) {
@@ -237,7 +237,7 @@ public sealed class ImageReleaseQualityWorkload {
         EncodedBytes = pixels.LongLength;
         OutputSha256 = Convert.ToHexString(SHA256.HashData(pixels));
         Deterministic = pixels.AsSpan().SequenceEqual(repeated) ? 1 : 0;
-        CancellationLatencyMilliseconds = MeasureResizeCancellation();
+        CancellationLatencyMilliseconds = ImageCancellationEvidence.MeasureRepresentativeLatency(MeasureResizeCancellation);
     }
 
     private void RecordEncoded(byte[] bytes, bool deterministic) {
