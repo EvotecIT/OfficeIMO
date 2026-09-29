@@ -571,6 +571,196 @@
         }
       ],
       "fullArtifactsRetained": true
+    },
+    {
+      "evidenceDirectory": "h10-budget-nist-macos-fbf4fb1c4-run3",
+      "caseId": "nist-si-guide-chapter-4",
+      "sourceCommit": "fbf4fb1c4f16a0b600277b4502a70e380da13e97",
+      "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+      "archiveSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "framework": ".NET 10.0.11",
+      "processorCount": 10,
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 2014.5201,
+          "managedAllocatedBytes": 841337584,
+          "peakWorkingSetBytes": 402554880,
+          "pageCount": 9,
+          "artifactSha256": "0559e158d4b4b0c591b7a081c40983a6c10b7f981aa7bc3d976db4136c943bd5",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 9866.0152,
+          "managedAllocatedBytes": 4950347480,
+          "peakWorkingSetBytes": 551485440,
+          "pageCount": 8,
+          "artifactSha256": "87df0cceca26d3e241ff2ef77177f179c446ba416010d69665bd1a2e1edba0f0",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 8278.3138,
+          "managedAllocatedBytes": 3497583280,
+          "peakWorkingSetBytes": 558284800,
+          "pageCount": 10,
+          "artifactSha256": "d14fa5d6b8ca83c2c4084aa2296d8a6a6e0994a482cdde1dcc4c16047a111a66",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 2329.8039,
+          "managedAllocatedBytes": 604022280,
+          "peakWorkingSetBytes": 324485120,
+          "pageCount": null,
+          "artifactSha256": "9c6c0ca60631a66731889590d462c96e601136cc232a7d8fe93fd3046dd1a3a8",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3717.7711,
+          "managedAllocatedBytes": 948118304,
+          "peakWorkingSetBytes": 291143680,
+          "pageCount": null,
+          "artifactSha256": "d89828e8203409413c356a64cf796f64aff8f6e24bfb391024a345f6246a9ade",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 3827.9026,
+          "managedAllocatedBytes": 1012391064,
+          "peakWorkingSetBytes": 285081600,
+          "pageCount": null,
+          "artifactSha256": "b9d756be4d2cdf94120c9a2bd23e7eb0f86496b81d430ef06a4559285f165e1b",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 2967.7497,
+          "managedAllocatedBytes": 883415008,
+          "peakWorkingSetBytes": 284508160,
+          "pageCount": null,
+          "artifactSha256": "f93fd2333aa2f926e8b9ce1abaeac065b80aef2acfe3a48b64dd73aa7021ebbc",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3051.1557,
+          "managedAllocatedBytes": 892818624,
+          "peakWorkingSetBytes": 284196864,
+          "pageCount": null,
+          "artifactSha256": "e0fc81fe33e7bbbe5d418582bf1793fb2cf0dd53ed08725cabcef8e48783573e",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 3290.2142,
+          "managedAllocatedBytes": 837988504,
+          "peakWorkingSetBytes": 283262976,
+          "pageCount": null,
+          "artifactSha256": "9b2f754c4b30e1d617a3505d124fc60f1e943cbcf6432575a3b89a0e03e1da27",
+          "hasLoss": true
+        }
+      ],
+      "fullArtifactsRetained": false
+    },
+    {
+      "evidenceDirectory": "h10-budget-nist-macos-fbf4fb1c4-run4",
+      "caseId": "nist-si-guide-chapter-4",
+      "sourceCommit": "fbf4fb1c4f16a0b600277b4502a70e380da13e97",
+      "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+      "archiveSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "framework": ".NET 10.0.11",
+      "processorCount": 10,
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 1890.039,
+          "managedAllocatedBytes": 841298528,
+          "peakWorkingSetBytes": 398376960,
+          "pageCount": 9,
+          "artifactSha256": "0559e158d4b4b0c591b7a081c40983a6c10b7f981aa7bc3d976db4136c943bd5",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 9228.1475,
+          "managedAllocatedBytes": 4936870008,
+          "peakWorkingSetBytes": 549584896,
+          "pageCount": 8,
+          "artifactSha256": "87df0cceca26d3e241ff2ef77177f179c446ba416010d69665bd1a2e1edba0f0",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7981.4135,
+          "managedAllocatedBytes": 3497297680,
+          "peakWorkingSetBytes": 579371008,
+          "pageCount": 10,
+          "artifactSha256": "d14fa5d6b8ca83c2c4084aa2296d8a6a6e0994a482cdde1dcc4c16047a111a66",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 2256.0878,
+          "managedAllocatedBytes": 603677160,
+          "peakWorkingSetBytes": 323796992,
+          "pageCount": null,
+          "artifactSha256": "352f01034dd0f857cd79847f335835e55c0fefbdcd14cd8ccda50111946b87ee",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3707.5143,
+          "managedAllocatedBytes": 947229048,
+          "peakWorkingSetBytes": 288456704,
+          "pageCount": null,
+          "artifactSha256": "c0d1a8c7057b67e89e8d97de4a4943f8ed6202e2283266fbbd6169caa0acb78a",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 3929.3888,
+          "managedAllocatedBytes": 1011911848,
+          "peakWorkingSetBytes": 283344896,
+          "pageCount": null,
+          "artifactSha256": "4abd9f7828ec3d9ec8d271a5c1e7e1222e8ad1e208a51f3df046669da04971f9",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3292.2478,
+          "managedAllocatedBytes": 883237848,
+          "peakWorkingSetBytes": 281444352,
+          "pageCount": null,
+          "artifactSha256": "f2cefcdd371b14e3d6152570e1610597ae74a049d08d51ddcdcc00b6a9aa1549",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 2923.8524,
+          "managedAllocatedBytes": 891769000,
+          "peakWorkingSetBytes": 281214976,
+          "pageCount": null,
+          "artifactSha256": "e0fc81fe33e7bbbe5d418582bf1793fb2cf0dd53ed08725cabcef8e48783573e",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 3287.5123,
+          "managedAllocatedBytes": 838410816,
+          "peakWorkingSetBytes": 282411008,
+          "pageCount": null,
+          "artifactSha256": "9b2f754c4b30e1d617a3505d124fc60f1e943cbcf6432575a3b89a0e03e1da27",
+          "hasLoss": true
+        }
+      ],
+      "fullArtifactsRetained": true
     }
   ]
 }
