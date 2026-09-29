@@ -21,6 +21,7 @@ internal static class OfficeOpenXmlChartPointStyles {
     }
 
     internal static bool IsSupported(C.ChartShapeProperties properties, A.ColorScheme? scheme) {
+        if (properties.HasAttributes) return false;
         foreach (OpenXmlElement child in properties.ChildElements) {
             if (child is A.NoFill) continue;
             if (child is A.SolidFill) {
@@ -56,6 +57,8 @@ internal static class OfficeOpenXmlChartPointStyles {
             C.ChartShapeProperties? properties = point.GetFirstChild<C.Marker>()?
                 .GetFirstChild<C.ChartShapeProperties>() ?? point.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) continue;
+            if (!IsSupported(properties, scheme))
+                throw new System.IO.InvalidDataException("The native point appearance cannot be projected by the shared chart model.");
             OfficeColor? fill = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), scheme);
             bool noFill = properties.GetFirstChild<A.NoFill>() != null;
             A.PatternFill? pattern = properties.GetFirstChild<A.PatternFill>();

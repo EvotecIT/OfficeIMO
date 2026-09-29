@@ -171,6 +171,21 @@ public sealed class DrawingChartPointStylesTests {
         Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
     }
 
+    [Theory]
+    [InlineData(OfficeChartMarkerShape.Dash)]
+    [InlineData(OfficeChartMarkerShape.Plus)]
+    [InlineData(OfficeChartMarkerShape.X)]
+    public void PointStyles_LineOnlyScatterMarkersUsePointFillWhenNoOutlineIsSpecified(OfficeChartMarkerShape markerShape) {
+        OfficeColor ink = OfficeColor.Parse("#B900D0");
+        var series = new OfficeChartSeries("Results", new[] { 4d }, new[] { 2d }, null, null,
+            showMarkers: true, connectLine: false, markerShape: markerShape)
+            .WithPointStyles(new OfficeChartPointStyle?[] { new(fillColor: ink) });
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("", null,
+            OfficeChartKind.Scatter, new OfficeChartData(new[] { "2" }, new[] { series }), 320, 240,
+            layout: new OfficeChartLayout(showLegend: false)));
+        Assert.Contains(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == ink);
+    }
+
     [Fact]
     public void PointStyles_EnableBubbleOutlineOverDisabledSeriesOutline() {
         var series = OfficeChartSeries.CreateBubble("Results", new[] { 1d }, new[] { 2d }, new[] { 3d },

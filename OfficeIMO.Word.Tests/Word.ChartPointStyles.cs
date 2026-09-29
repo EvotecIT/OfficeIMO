@@ -5,11 +5,24 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartPointStylesTests {
+    [Fact]
+    public void PointStyles_RejectUnprojectedNativeShapeAttributes() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart("Status", false, 360, 180);
+        chart.AddPie("Pass", 3).AddPie("Fail", 1);
+        chart.SetDataPointStyle(0, 0, new(OfficeColor.White));
+        C.ChartShapeProperties properties = chart.ChartPart!.ChartSpace!
+            .Descendants<C.DataPoint>().Single().ChartShapeProperties!;
+        properties.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "bwMode", "", "black"));
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
     [Fact]
     public void PointStyles_PreserveNativePieAppearanceAndPdfAfterReopen() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");

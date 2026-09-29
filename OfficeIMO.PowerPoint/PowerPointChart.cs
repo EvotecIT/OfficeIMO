@@ -36,7 +36,8 @@ namespace OfficeIMO.PowerPoint {
             ChartPart chartPart = GetChartPart();
             EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
             byte[]? workbookBytes = embedded != null ? PowerPointUtils.BuildChartWorkbook(data) : null;
-            Action? preserveBindings = embedded != null ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart) : null;
+            Action? preserveBindings = embedded != null ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+                chartPart, data.Series.Select(series => series.Values.Count).ToArray()) : null;
             PowerPointUtils.UpdateChartData(chartPart, data);
             preserveBindings?.Invoke();
             if (embedded != null) {
@@ -59,7 +60,8 @@ namespace OfficeIMO.PowerPoint {
             ChartPart chartPart = GetChartPart();
             EmbeddedPackagePart? embedded = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.GetSharedEmbeddedWorkbook(chartPart);
             byte[]? workbookBytes = embedded != null ? PowerPointUtils.BuildChartWorkbook(data) : null;
-            Action? preserveBindings = embedded != null ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(chartPart) : null;
+            Action? preserveBindings = embedded != null ? OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWriter.PrepareSharedWorkbookBindings(
+                chartPart, data.Series.Select(series => series.YValues.Count).ToArray()) : null;
             PowerPointUtils.UpdateChartData(chartPart, data);
             preserveBindings?.Invoke();
             if (embedded != null) {
