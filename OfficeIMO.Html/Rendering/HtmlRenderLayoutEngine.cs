@@ -705,6 +705,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
             if (deferredFloat) block = floatAwareBlock;
 
+            if (hasPageContent
+                && !deferredFloat
+                && !HasInternalForcedBreak(block)
+                && ShouldMoveTopLevelKeepWithNext(blocks, index, block, remainingHeight, pageGeometry, pages.Count + 2)) {
+                CommitPage(pages, visuals, pageGeometry, currentPageName);
+                BeginPage(block.PageName);
+                currentPageName = block.PageName;
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
+                hasPageContent = false;
+            }
+
             if (block.Height <= contentHeight
                 && hasPageContent
                 && !deferredFloat

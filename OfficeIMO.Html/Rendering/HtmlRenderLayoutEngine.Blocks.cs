@@ -513,6 +513,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                             : 0D));
                 }
                 childPaintLayers.Add(new FlowPaintLayer(child, 0D, childStart, childPaintLayers.Count));
+                AppendKeepWithNextRange(children, childIndex, childStart, contentAvoidBreakRanges);
 
                 contentHeight += child.Height;
                 if (child.BreakAfter != HtmlPageBreakTarget.None) {

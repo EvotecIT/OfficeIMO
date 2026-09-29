@@ -101,7 +101,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (run.ClearSide == "none"
                     && pageBoundary.HasValue
                     && pageBoundary.Value.ShouldDefer(y, floatingBlock.Height)) {
-                    placements.Add(context.Place(run, pageBoundary.Value.RemainingHeight));
+                    InlineFloatPlacement deferred = context.Place(run, pageBoundary.Value.RemainingHeight);
+                    placements.Add(deferred);
+                    double available = pageBoundary.Value.RemainingHeight - y;
+                    if (!floatingBlock.AvoidBreakInside
+                        && floatingBlock.AvoidBreakRanges.Any(range =>
+                            range.Start < available - 0.0001D && range.End > available + 0.0001D)
+                        && FindFragmentEnd(floatingBlock, 0D, available,
+                            fullPageHeight: pageBoundary.Value.PageHeight) <= 0.01D + 0.0001D) {
+                        context.ReserveOriginatingPageExclusion(deferred, y, pageBoundary.Value.RemainingHeight);
+                    }
                     _pagedFloatDeferredInRelayout = true;
                     continue;
                 }
@@ -296,7 +305,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             && lines[0].Width > lines[0].AvailableWidth + 0.0001D) {
             ApplyEndEllipsis(lines[0], width, completeLogicalProgress: 0);
         }
-        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom);
+        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer, placements, context.Bottom,
+            flowExclusions: context.OriginatingPageExclusions);
     }
 
     private static bool FinalizeFloatNoWrapRange(
@@ -406,7 +416,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IReadOnlyList<InlineFloatPlacement>? floatPlacements = null,
         double minimumHeight = 0D,
         bool supportsContinuationReflow = false,
-        bool isInlineContinuation = false) {
+        bool isInlineContinuation = false,
+        IReadOnlyList<HtmlFloatExclusion>? flowExclusions = null) {
         var visuals = new List<HtmlRenderVisual>();
         var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
         var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
@@ -690,8 +701,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
             supportsContinuationReflow,
             flowY,
             lineBreakOffsets,
-            floatPlacements?.Select(placement => new HtmlFloatExclusion(
-                placement.X, placement.Y, placement.Width, placement.Height, placement.Run.FloatSide)));
+            (floatPlacements?.Select(placement => new HtmlFloatExclusion(
+                placement.X, placement.Y, placement.Width, placement.Height, placement.Run.FloatSide))
+                ?? Enumerable.Empty<HtmlFloatExclusion>()).Concat(flowExclusions ?? Array.Empty<HtmlFloatExclusion>()));
     }
 
     private HtmlRenderVisual CreateLeaderVisual(
@@ -784,6 +796,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class InlineFloatContext {
         private readonly double _width;
         private readonly List<InlineFloatPlacement> _placements = new List<InlineFloatPlacement>();
+        private readonly List<HtmlFloatExclusion> _originatingPageExclusions = new List<HtmlFloatExclusion>();
         private readonly IReadOnlyList<HtmlFloatExclusion> _inheritedFloats;
 
         internal InlineFloatContext(double width, IReadOnlyList<HtmlFloatExclusion>? inheritedFloats) {
@@ -792,6 +805,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         internal double Bottom => _placements.Count == 0 ? 0D : _placements.Max(item => item.Bottom);
+        internal IReadOnlyList<HtmlFloatExclusion> OriginatingPageExclusions => _originatingPageExclusions;
+
+        internal void ReserveOriginatingPageExclusion(InlineFloatPlacement placement, double start, double end) {
+            if (end <= start + 0.0001D) return;
+            _originatingPageExclusions.Add(new HtmlFloatExclusion(
+                placement.X, start, placement.Width, end - start, placement.Run.FloatSide));
+        }
 
         internal InlineFloatPlacement Place(HtmlInlineRun run, double requestedY) {
             HtmlRenderFlowBlock block = run.FloatingBlock!;
@@ -837,6 +857,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (exclusion.Side == "right") right = Math.Min(right, exclusion.X);
                 else left = Math.Max(left, exclusion.Right);
             }
+            foreach (HtmlFloatExclusion exclusion in _originatingPageExclusions) {
+                if (exclusion.Y >= bottom - 0.0001D || exclusion.Bottom <= y + 0.0001D) continue;
+                if (exclusion.Side == "right") right = Math.Min(right, exclusion.X);
+                else left = Math.Max(left, exclusion.Right);
+            }
             foreach (InlineFloatPlacement placement in _placements) {
                 if (placement.Y >= bottom - 0.0001D || placement.Bottom <= y + 0.0001D) continue;
                 if (placement.Run.FloatSide == "right") right = Math.Min(right, placement.X);
@@ -847,6 +872,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal double NextBottomAfter(double y) => _placements.Select(item => item.Bottom)
             .Concat(_inheritedFloats.Select(item => item.Bottom))
+            .Concat(_originatingPageExclusions.Select(item => item.Bottom))
             .Where(bottom => bottom > y + 0.0001D)
             .DefaultIfEmpty(y)
             .Min();
@@ -856,6 +882,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return _placements.Where(item => clearSide == "both" || item.Run.FloatSide == clearSide)
                 .Select(item => item.Bottom)
                 .Concat(_inheritedFloats.Where(item => clearSide == "both" || item.Side == clearSide)
+                    .Select(item => item.Bottom))
+                .Concat(_originatingPageExclusions.Where(item => clearSide == "both" || item.Side == clearSide)
                     .Select(item => item.Bottom))
                 .DefaultIfEmpty(0D)
                 .Max();
