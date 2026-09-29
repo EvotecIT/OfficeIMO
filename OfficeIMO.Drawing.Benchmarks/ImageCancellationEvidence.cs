@@ -59,23 +59,27 @@ internal static class ImageCancellationEvidence {
         };
         cancellationThread.Start();
         beginDecode.Set();
+        bool cancelled = false;
+        long observedAt = 0L;
         try {
             OfficeRasterImageDecoder.TryDecode(encoded, options, out _, out _);
         } catch (OperationCanceledException) {
+            observedAt = Stopwatch.GetTimestamp();
+            cancelled = true;
+        } finally {
             cancellationThread.Join();
-            long requestedAt = Volatile.Read(ref cancellationTimestamp);
-            if (requestedAt == 0L) {
-                throw new InvalidOperationException("Cancellation was observed before the synchronized request.");
-            }
-            TimeSpan elapsed = Stopwatch.GetElapsedTime(requestedAt);
-            if (elapsed > MaximumObservedLatency) {
-                throw new InvalidOperationException(
-                    $"Cancellation took {elapsed.TotalMilliseconds:N1} ms, above the evidence ceiling of {MaximumObservedLatency.TotalMilliseconds:N0} ms.");
-            }
-            return elapsed;
         }
-        cancellationThread.Join();
-        throw new InvalidOperationException("The bounded decoder completed without observing scheduled cancellation.");
+        if (!cancelled) throw new InvalidOperationException("The bounded decoder completed without observing scheduled cancellation.");
+        long requestedAt = Volatile.Read(ref cancellationTimestamp);
+        if (requestedAt == 0L) {
+            throw new InvalidOperationException("Cancellation was observed before the synchronized request.");
+        }
+        TimeSpan elapsed = Stopwatch.GetElapsedTime(requestedAt, observedAt);
+        if (elapsed > MaximumObservedLatency) {
+            throw new InvalidOperationException(
+                $"Cancellation took {elapsed.TotalMilliseconds:N1} ms, above the evidence ceiling of {MaximumObservedLatency.TotalMilliseconds:N0} ms.");
+        }
+        return elapsed;
     }
 
     private static void WriteResult(TextWriter writer, string format, TimeSpan elapsed) =>

@@ -280,6 +280,7 @@ public sealed class ImageReleaseQualityWorkload {
         }) { IsBackground = true };
         thread.Start();
         int checkpoints = 0;
+        long observedAt;
         try {
             using var output = new MemoryStream();
             ExpectException<OperationCanceledException>(() => OfficeRasterImageEncoder.EncodeTo(
@@ -288,9 +289,10 @@ public sealed class ImageReleaseQualityWorkload {
                     if (checkpoint != expected || Interlocked.Increment(ref checkpoints) != 2) return;
                     started.Set();
                 }));
+            observedAt = Stopwatch.GetTimestamp();
         } finally { started.Set(); thread.Join(); }
         if (checkpoints < 2 || requestedAt == 0L) throw new InvalidOperationException("The encoder did not reach its cancellation checkpoint.");
-        return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
+        return Stopwatch.GetElapsedTime(requestedAt, observedAt).TotalMilliseconds;
     }
 
     private double MeasureResizeCancellation() {
@@ -303,6 +305,7 @@ public sealed class ImageReleaseQualityWorkload {
             cancellation.Cancel();
         }) { IsBackground = true };
         thread.Start();
+        long observedAt;
         try {
             ExpectException<OperationCanceledException>(() => OfficeRasterResampler.Resize(
                 _source,
@@ -313,12 +316,13 @@ public sealed class ImageReleaseQualityWorkload {
                 retainedManagedBytes: 0L,
                 cancellationToken: cancellation.Token,
                 resamplingWorkStarted: started.Set));
+            observedAt = Stopwatch.GetTimestamp();
         } finally {
             started.Set();
             thread.Join();
         }
         if (requestedAt == 0L) throw new InvalidOperationException("The resampler did not begin pixel filtering before cancellation was requested.");
-        return Stopwatch.GetElapsedTime(requestedAt).TotalMilliseconds;
+        return Stopwatch.GetElapsedTime(requestedAt, observedAt).TotalMilliseconds;
     }
 
     private OfficeImageOptimizationRequest CreateOptimizationRequest() => new(Math.Max(1, _source.Width / 2), Math.Max(1, _source.Height / 2)) {

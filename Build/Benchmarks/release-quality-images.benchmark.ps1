@@ -5,9 +5,11 @@ if ([Environment]::Version.Major -lt 10) { throw 'Run this suite with PowerShell
 [void] [Reflection.Assembly]::LoadFrom((Join-Path $binaryRoot 'OfficeIMO.Drawing.Benchmarks.dll'))
 
 New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $repositoryRoot '.validation/release-quality-images') {
-    Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -OutlierMode None
+    Set-BenchmarkPolicy -Warmup 1 -Iteration 3 -Order Rotated -MemoryCleanup BeforeIteration -OutlierMode None
     Add-BenchmarkMetadata Contract 'Provenance-bound encode, decode, metadata, optimization, and resampling evidence with fidelity, determinism, cancellation, elapsed time, allocation, peak process memory, and a diagnostic native-memory estimate.'
     Add-BenchmarkMetadata BenchmarkAssemblySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Drawing.Benchmarks.dll') -Algorithm SHA256).Hash
+    Add-BenchmarkMetadata CoreAssemblySha256 (Get-FileHash (Join-Path $binaryRoot 'OfficeIMO.Core.dll') -Algorithm SHA256).Hash
+    Add-BenchmarkMetadata MemoryMeasurementContract 'operation-only-after-before-iteration-GC-v2'
     Add-BenchmarkMetadata OperatingSystem ([Runtime.InteropServices.RuntimeInformation]::OSDescription)
     Add-BenchmarkMetadata Runtime ([Runtime.InteropServices.RuntimeInformation]::FrameworkDescription)
     Add-BenchmarkCaseSource {
@@ -35,14 +37,17 @@ New-BenchmarkSuite 'officeimo-release-quality-images' -OutputRoot (Join-Path $re
     Set-BenchmarkSetup {
         param($case, $run)
         $run.Workload = [OfficeIMO.Drawing.Benchmarks.ImageReleaseQualityWorkload]::new($case.Asset, $case.Format, $case.Workload)
-        if ($run.Iteration -ge 0) { $run.Workload.BeginMeasurement() }
     }
     Add-BenchmarkEngine SharedImageEngine {
-        Add-BenchmarkOperation Execute { param($case, $run) $run.Workload.Execute() }
+        Add-BenchmarkOperation Execute {
+            param($case, $run)
+            if ($run.Iteration -ge 0) { $run.Workload.BeginMeasurement() }
+            try { $run.Workload.Execute() }
+            finally { $run.Workload.CompleteMeasurement() }
+        }
     }
     Add-BenchmarkValidation {
         param($case, $run)
-        $run.Workload.CompleteMeasurement()
         $run.Workload.Validate()
     }
     Add-BenchmarkMetric EncodedBytes { param($case, $run) $run.Workload.EncodedBytes }
