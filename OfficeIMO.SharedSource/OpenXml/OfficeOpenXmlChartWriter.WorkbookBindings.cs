@@ -13,19 +13,23 @@ namespace OfficeIMO.OpenXml.Internal {
         /// Prepares titles, custom labels and custom error bars for replacing the embedded worksheet.
         /// Every binding is checked before detaching cached content from its old workbook formula.
         /// </summary>
-        internal static Action PrepareSharedWorkbookBindings(ChartPart part) {
-            _ = GetSharedWorkbookBindings(part);
+        internal static Action PrepareSharedWorkbookBindings(ChartPart part, IReadOnlyList<int> replacementPointCounts) {
+            _ = GetSharedWorkbookBindings(part, replacementPointCounts);
             return () => {
                 // Native updates can clone preserved series and axes. Resolve the current
                 // text nodes after that update so cloned bindings are materialized too.
-                foreach (var replacement in GetSharedWorkbookBindings(part)) {
+                foreach (var replacement in GetSharedWorkbookBindings(part, replacementPointCounts)) {
                     replacement.Key.Parent!.ReplaceChild(replacement.Value, replacement.Key);
                 }
             };
         }
 
-        private static List<KeyValuePair<OpenXmlElement, OpenXmlElement>> GetSharedWorkbookBindings(ChartPart part) {
+        private static List<KeyValuePair<OpenXmlElement, OpenXmlElement>> GetSharedWorkbookBindings(
+            ChartPart part, IReadOnlyList<int> replacementPointCounts) {
             var replacements = new List<KeyValuePair<OpenXmlElement, OpenXmlElement>>();
+            List<OpenXmlCompositeElement> sourceSeries = part.ChartSpace!.Descendants()
+                .OfType<OpenXmlCompositeElement>()
+                .Where(element => element.LocalName == "ser").ToList();
             foreach (C.ChartText text in part.ChartSpace!.Descendants<C.ChartText>()) {
                 C.StringReference? reference = text.GetFirstChild<C.StringReference>();
                 if (reference == null) continue;
@@ -45,6 +49,12 @@ namespace OfficeIMO.OpenXml.Internal {
                 List<C.NumericPoint> points = cache?.Elements<C.NumericPoint>().Take(MaximumSharedChartPoints + 1).ToList() ?? new List<C.NumericPoint>();
                 totalErrorPoints += points.Count;
                 uint? count = cache?.PointCount?.Val?.Value;
+                OpenXmlCompositeElement? ownerSeries = reference.Ancestors()
+                    .OfType<OpenXmlCompositeElement>().FirstOrDefault(element => element.LocalName == "ser");
+                int seriesIndex = ownerSeries == null ? -1 : sourceSeries.IndexOf(ownerSeries);
+                if (seriesIndex < 0 || seriesIndex >= replacementPointCounts.Count ||
+                    count != (uint)replacementPointCounts[seriesIndex])
+                    throw new NotSupportedException("Custom error-bar caches must match the replacement series point count.");
                 if (cache == null || !count.HasValue || totalErrorPoints > MaximumSharedChartPoints ||
                     count.Value > MaximumSharedChartPoints || (uint)points.Count != count.Value)
                     throw new NotSupportedException("Replacing a chart workbook requires bounded cached values for custom error bars.");
