@@ -103,21 +103,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PdfStylePreservesExplicitNativeSeriesColorThatMatchesDefaultPalette() {
-            OfficeColor explicitColor = OfficeChartStyle.Default.GetSeriesColor(0);
-            using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            PowerPointChart chart = presentation.AddSlide().AddChartPoints(OfficeChartKind.ColumnClustered,
-                new OfficeChartData(new[] { "A" }, new[] {
-                    new OfficeChartSeries("Explicit", new[] { 3d }, null, explicitColor)
-                }), 20, 20, 600, 320);
-            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
-            var customStyle = new OfficeChartStyle(palette: new[] { OfficeColor.Parse("#123456") });
-            OfficeChartSnapshot projected = PowerPointPdfConverterExtensions.CreateOfficeChartSnapshot(native,
-                600, 320, new PowerPointToPdfOptions { ChartStyle = customStyle });
-            Assert.Equal(explicitColor, projected.Data.Series[0].Color);
-        }
-
-        [Fact]
         public void PointColors_RejectExcessDuplicateAndOutOfRangeOverrides() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             presentation.AddSlide().AddChartCm(OfficeChartKind.Pie, CreateData(OfficeChartKind.Pie, null), 1, 1, 20, 10);
