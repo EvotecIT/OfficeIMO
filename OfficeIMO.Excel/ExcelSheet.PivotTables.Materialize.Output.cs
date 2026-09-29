@@ -53,7 +53,7 @@ namespace OfficeIMO.Excel {
             } else if (columns.Layout.Fields.Length == 0 && !dateRowValues) values[dataRow - 1, dataColumn] = PivotMaterializedText(caption);
             void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, int[]? rowKeys, bool dateRowLayout, bool firstMeasureRow,
                 Action<int, ExcelCellData, bool, uint?> put) {
-                if (axis.Layout.HasValues && (dateRowLayout || rowValuesPosition == 0)
+                if (axis.Layout.HasValues && (dateRowLayout || rowValuesPosition >= 0)
                     && entry.Type == ItemValues.Grand) {
                     put(0, PivotMaterializedText("Total " + (measures[entry.Measure].Name?.Value ?? "")), false, null);
                     return;
@@ -65,9 +65,8 @@ namespace OfficeIMO.Excel {
                     int field = axis.Layout.Fields[level];
                     if (field == -2) {
                         string measureCaption = measures[entry.Measure].Name?.Value ?? "";
-                        if (rowValuesPosition == 0
-                            ? entry.Type == ItemValues.Data && firstMeasureRow
-                            : !dateRowLayout || entry.Type == ItemValues.Data && firstMeasureRow)
+                        if ((rowValuesPosition < 0 && !dateRowLayout)
+                            || entry.Type == ItemValues.Data && firstMeasureRow)
                             put(level, PivotMaterializedText(measureCaption), false, null);
                         continue;
                     }
@@ -84,7 +83,7 @@ namespace OfficeIMO.Excel {
                         uint? fieldFormatId = field < pivotFields.Length ? pivotFields[field].NumberFormatId?.Value : null;
                         if (subtotalLabel) {
                             string text = renamed ? displayName! : DisplayCaption(key, fieldFormatId);
-                            label = PivotMaterializedText(dateRowLayout && axis.Layout.HasValues && rowValuesPosition > 0
+                            label = PivotMaterializedText(axis.Layout.HasValues && rowValuesPosition > 0
                                 ? text + " " + (measures[entry.Measure].Name?.Value ?? "") : text + " Total");
                         }
                         uint? formatId = !renamed && !subtotalLabel

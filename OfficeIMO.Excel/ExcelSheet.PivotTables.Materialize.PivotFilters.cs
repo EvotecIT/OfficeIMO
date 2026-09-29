@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             DataField[] measures, IReadOnlyList<int> axisFields,
             int[] rowAxisFields, int[] columnAxisFields, bool qualifiedValuesPlacement,
-            bool valuesFirstOnRows,
+            bool valuesBeforeInnerRowField,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
             IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
@@ -214,7 +214,7 @@ namespace OfficeIMO.Excel {
                     && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified axis rule.");
                 var measure = measures[filter.MeasureField.Value];
-                if (valuesFirstOnRows && qualifiedTwoMeasureMixedTopCount) {
+                if (valuesBeforeInnerRowField && qualifiedTwoMeasureMixedTopCount) {
                     var measureRows = new bool[measures.Length][];
                     for (int index = 0; index < measureRows.Length; index++)
                         measureRows[index] = (bool[])visibility.IncludedRows.Clone();

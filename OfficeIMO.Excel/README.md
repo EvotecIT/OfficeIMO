@@ -730,10 +730,11 @@ reverse filter order can select different cells, as in Excel. Other
 three-or-more-field value rules remain outside this qualified profile. With
 two row fields, one column field, and two Sum measures, an inner-row Top 1
 filter can select either named measure. Excel-produced views and lookups qualify
-both selections with Values before or after Channel on columns, or before Region
-or after Product on rows. Use `ValuesPosition(0)` on the fluent pivot builder to
-place Values first. With Values first on rows, the Top 1 filter selects items
-only for its named measure; the other measure keeps its full source rows. Other
+both selections with Values before or after Channel on columns, or before Region,
+between Region and Product, or after Product on rows. Use `ValuesPosition(0)` or
+`ValuesPosition(1)` on the fluent pivot builder to place Values first or between
+the two row fields. When Values precedes Product on rows, the Top 1 filter selects
+items only for its named measure; the other measure keeps its full source rows. Other
 multi-measure filter interactions remain outside this profile.
 Signed and zero child aggregates, nonpositive outer-field totals, three siblings
 per parent, mixed numeric/error ranking, and classic
