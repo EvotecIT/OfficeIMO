@@ -32,9 +32,9 @@ namespace OfficeIMO.Tests {
             }
             DateTime referenceDate = DateTime.ParseExact(manifest.RootElement.GetProperty("referenceDate").GetString()!,
                 "yyyy-MM-dd", CultureInfo.InvariantCulture);
+            // Excel stores these as wall-clock dates; offset-bearing fixture values must not shift with the runner time zone.
             DateTime[] sourceDates = manifest.RootElement.GetProperty("sourceDates").EnumerateArray()
-                .Select(value => DateTime.Parse(value.GetString()!, CultureInfo.InvariantCulture,
-                    DateTimeStyles.RoundtripKind)).ToArray();
+                .Select(value => DateTimeOffset.Parse(value.GetString()!, CultureInfo.InvariantCulture).DateTime).ToArray();
             string expectedRange = oracleCase.GetProperty("outputRange").GetString()!;
             double expectedTotal = oracleCase.GetProperty("grandTotal").GetDouble();
             string? siblingRange = oracleCase.GetProperty("siblingRange").GetString();
