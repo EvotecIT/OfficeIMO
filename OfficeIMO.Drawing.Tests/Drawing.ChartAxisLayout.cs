@@ -264,6 +264,44 @@ public class DrawingChartAxisLayoutTests {
         Assert.All(axisAlignedBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeChartDrawingRenderer_AlignsMixedLinePointsWithColumnCategoryCenters(bool reverseCategoryAxis) {
+        OfficeColor columnColor = OfficeColor.ParseHex("#2563EB");
+        OfficeColor lineColor = OfficeColor.ParseHex("#DC2626");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Mixed column line",
+            "Mixed Column Line",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Columns", new[] { 10D, 12D, 14D }, null, columnColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Line", new[] { 6D, 6D, 6D }, null, lineColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.Line)
+                }),
+            widthPoints: 360D,
+            heightPoints: 220D,
+            layout: new OfficeChartLayout(showLegend: false, reverseCategoryAxis: reverseCategoryAxis)));
+
+        OfficeDrawingShape[] columns = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == columnColor)
+            .OrderBy(shape => shape.X)
+            .ToArray();
+        OfficeDrawingShape[] lineSegments = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == lineColor)
+            .OrderBy(shape => shape.X)
+            .ToArray();
+
+        Assert.Equal(3, columns.Length);
+        Assert.Equal(2, lineSegments.Length);
+        Assert.Equal(columns[0].X + columns[0].Shape.Width / 2D, lineSegments[0].X, 6);
+        Assert.Equal(columns[2].X + columns[2].Shape.Width / 2D,
+            lineSegments[1].X + lineSegments[1].Shape.Width, 6);
+    }
+
     [Fact]
     public void OfficeChartDrawingRenderer_FiltersUnsupportedMixedScatterSeriesFromLegend() {
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(

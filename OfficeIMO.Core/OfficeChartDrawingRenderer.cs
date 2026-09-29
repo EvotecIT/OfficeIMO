@@ -1202,7 +1202,6 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         ValueRange range = sharedValueAxisRange ?? ApplyValueAxisScale(GetAreaSeriesRenderRange(snapshot, areaSeries, categories.Count, layout), layout, horizontal: false);
-        double step = plotWidth / (categories.Count - 1);
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var stackedSeriesByKind = areaSeries
@@ -1241,7 +1240,7 @@ public static partial class OfficeChartDrawingRenderer {
                     : 0D;
                 double topValue = baseline + rawValue;
 
-                double x = GetCategoryPointX(plotLeft, step, i, categories.Count, layout);
+                double x = GetCartesianCategoryPointX(snapshot, plotLeft, plotWidth, i, categories.Count, layout);
                 topPoints.Add(new OfficePoint(x, ToPlotY(topValue, range.Min, range.Max, plotTop, plotHeight)));
                 bottomPoints.Add(new OfficePoint(x, ToPlotY(baseline, range.Min, range.Max, plotTop, plotHeight)));
                 runCategoryIndices.Add(i);
@@ -1319,7 +1318,6 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         ValueRange range = sharedValueAxisRange ?? ApplyValueAxisScale(GetLineSeriesRenderRange(snapshot, lineSeries, categories.Count, layout), layout, horizontal: false);
-        double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var stackedSeriesByKind = lineSeries
@@ -1350,7 +1348,7 @@ public static partial class OfficeChartDrawingRenderer {
                     : 0D;
                 double plottedValue = currentStacked ? baseline + rawValue : value;
 
-                points[i] = new OfficePoint(GetCategoryPointX(plotLeft, step, i, categories.Count, layout), ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
+                points[i] = new OfficePoint(GetCartesianCategoryPointX(snapshot, plotLeft, plotWidth, i, categories.Count, layout), ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
                 plotted[i] = true;
             }
 

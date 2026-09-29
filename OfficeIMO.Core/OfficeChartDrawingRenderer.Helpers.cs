@@ -492,6 +492,18 @@ public static partial class OfficeChartDrawingRenderer {
     private static double GetCategoryPointX(double plotLeft, double step, int categoryIndex, int categoryCount, OfficeChartLayout layout) =>
         plotLeft + step * GetCategorySlotIndex(categoryIndex, categoryCount, layout);
 
+    private static double GetCartesianCategoryPointX(OfficeChartSnapshot snapshot, double plotLeft, double plotWidth,
+        int categoryIndex, int categoryCount, OfficeChartLayout layout) {
+        // A column plot uses category slots. Its line and area companions must
+        // pass through the same slot centers, including on a reversed axis.
+        if (snapshot.Data.Series.Any(series => IsColumnChart(GetEffectiveSeriesKind(snapshot, series)))) {
+            return GetCategorySlotCenterX(plotLeft, plotWidth / categoryCount, categoryIndex, categoryCount, layout);
+        }
+
+        double step = categoryCount > 1 ? plotWidth / (categoryCount - 1) : 0D;
+        return GetCategoryPointX(plotLeft, step, categoryIndex, categoryCount, layout);
+    }
+
     private static ValueRange GetFiniteRange(IReadOnlyList<double> values) {
         bool any = false;
         double min = 0D;
