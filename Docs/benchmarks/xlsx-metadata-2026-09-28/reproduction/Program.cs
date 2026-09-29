@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using OfficeIMO.Excel;
 
-if (args.Length != 3 || args[0] is not ("typed-scan" or "sheet-names-100"))
+if (args.Length != 3 || args[0] is not ("typed-scan" or "sheet-names-100" or "open-only"))
     throw new ArgumentException("Pass profile, XLSX fixture path, and hexadecimal processor affinity mask.");
 
 if (OperatingSystem.IsWindows())
@@ -10,7 +10,18 @@ if (OperatingSystem.IsWindows())
 Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.Normal;
 Console.WriteLine("profile,iteration,elapsedMs,allocatedBytes,checksum");
 
-if (args[0] == "sheet-names-100") {
+if (args[0] == "open-only") {
+    for (int iteration = 0; iteration < 24; iteration++) {
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        long started = Stopwatch.GetTimestamp();
+        using var reader = ExcelDocument.OpenDataReader(args[1], new ExcelReadOptions { NumericAsDecimal = true });
+        if (reader.FieldCount != 14 || string.IsNullOrEmpty(reader.GetName(0)))
+            throw new InvalidDataException("Unexpected worksheet schema.");
+        reader.Dispose();
+        Console.WriteLine(FormattableString.Invariant(
+            $"open-only,{iteration},{Stopwatch.GetElapsedTime(started).TotalMilliseconds:F3},{GC.GetAllocatedBytesForCurrentThread() - before},"));
+    }
+} else if (args[0] == "sheet-names-100") {
     for (int batch = 0; batch < 21; batch++) {
         long before = GC.GetAllocatedBytesForCurrentThread();
         long started = Stopwatch.GetTimestamp();
