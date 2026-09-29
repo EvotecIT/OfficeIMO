@@ -125,6 +125,8 @@ var paragraph = document.AddParagraph();
 paragraph.AddImage("logo.png", width: 160, height: 64);
 ```
 
+Supported static WebP images are decoded by OfficeIMO.Core and embedded as PNG because Word image parts do not accept WebP. Animated or undecodable WebP input is rejected rather than silently reduced to one frame.
+
 ### Hyperlinks and bookmarks
 
 ```csharp
