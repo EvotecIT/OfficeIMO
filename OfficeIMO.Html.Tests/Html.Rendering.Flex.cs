@@ -847,6 +847,38 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_StretchedShortSidebarDoesNotAddEmptyContinuationPage() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body,p{margin:0}</style><main><div style='height:20px'>Before</div>"
+            + "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:26px;orphans:1;widows:1'>First<br>Second<br>Third<br>Fourth</div>"
+            + "<div style='width:90px'><img src='data:image/png;base64," + image
+            + "' style='display:block;width:90px;height:40px'><p style='line-height:20px'>Caption</p>"
+            + "<img src='data:image/png;base64," + image + "' style='display:block;width:90px;height:40px'></div></div>"
+            + "<div style='display:flex;width:180px'>"
+            + "<div style='width:90px;line-height:25px;orphans:1;widows:1'>A<br>B<br>C<br>D<br>E<br>F<br>G<br>H</div>"
+            + "<div style='width:90px;background:#eee'><p style='line-height:9px'>Sidebar</p><p style='line-height:9px'>Tail</p></div></div>"
+            + "<div id='after' style='height:20px'>After row</div></main>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Equal(4, rendered.Pages.Count);
+        HtmlRenderText[] texts = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        foreach (string marker in new[] { "First", "Fourth", "A", "H", "Sidebar", "Tail", "After row" })
+            Assert.Single(texts, text => text.Text == marker);
+        HtmlRenderText after = Assert.Single(rendered.Pages[3].Visuals.OfType<HtmlRenderText>(), text => text.Text == "After row");
+        Assert.True(after.Y < 75D, "A stretched, content-free sidebar tail moved the next block; y=" + after.Y);
+        Assert.Equal(2, rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>().Count());
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
+    [Fact]
     public void HtmlFlexRow_DoesNotSplitAnAtomicSidebarImageAtSiblingTextBreak() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<style>body{margin:0}</style><div style='height:45px'>Before</div>"

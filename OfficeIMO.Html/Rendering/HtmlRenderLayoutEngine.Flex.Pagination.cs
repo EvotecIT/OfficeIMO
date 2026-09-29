@@ -167,7 +167,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
             for (int index = 0; index < line.Items.Count; index++) {
                 HtmlRenderFlowBlock item = line.Items[index].Block!;
                 double gap = sharedEnd - cuts[index];
+                // A stretched background can outlive its last text or image.
+                // Do not shift a large content-free tail and strand the next block.
                 if (gap <= 0.0001D || item.Height <= cuts[index] + 0.0001D) continue;
+                if (gap > Math.Max(16D, boundary.PageHeight * 0.25D)
+                    && LastAtomicFlexVisualBottom(item.Visuals) <= cuts[index] + 0.0001D) continue;
                 line.Items[index].Block = InsertFlexItemBreakGap(item, cuts[index], gap);
                 changed = true;
             }
