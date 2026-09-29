@@ -130,7 +130,7 @@ internal static class OfficeOpenXmlChartPointStyles {
         if (style?.OutlineWidth > 1584) throw new ArgumentOutOfRangeException(nameof(style), "Native chart outlines cannot exceed 1584 points.");
         if (!SupportsDataPoints(series))
             throw new NotSupportedException("Point styles are not supported by this native chart series.");
-        C.DataPoint? point = series.Elements<C.DataPoint>().FirstOrDefault(item => item.Index?.Val?.Value == index);
+        C.DataPoint? point = GetBoundedPoints(series).FirstOrDefault(item => item.Index?.Val?.Value == index);
         if (point == null && style == null && !legacyColor.HasValue) return;
         ApplyPointCore(series, index, style, legacyColor, point, FindPointAnchor(series));
     }

@@ -1977,6 +1977,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportReportsAxisUnitsBeyondRendererBudget() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorksheet("AxisBudget");
+            sheet.CellValue(1, 1, "Month");
+            sheet.CellValue(1, 2, "Actual");
+            sheet.CellValue(2, 1, "Jan");
+            sheet.CellValue(2, 2, 20);
+            sheet.CellValue(3, 1, "Feb");
+            sheet.CellValue(3, 2, 80);
+            ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4,
+                widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Axis Budget");
+            chart.SetValueAxisScale(minimum: 0D, maximum: 100D, majorUnit: 2D);
+
+            OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(
+                OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics,
+                item => item.Code == ExcelImageExportDiagnosticCodes.ChartAxisUnitUnsupported);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Warning, diagnostic.Severity);
+            Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportCarriesChartAxisDisplayUnitsIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
