@@ -528,6 +528,113 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_PaginatesColumnsAtTheirOwnSafeBreaks() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body,p{margin:0}</style><div style='height:20px'>Before</div>"
+            + "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:26px;orphans:1;widows:1'>First<br>Second<br>Third<br>Fourth</div>"
+            + "<div style='width:90px'>"
+            + "<img id='first-figure' src='data:image/png;base64," + image + "' style='display:block;width:90px;height:40px'>"
+            + "<p style='line-height:20px'>Caption</p>"
+            + "<img id='second-figure' src='data:image/png;base64," + image + "' style='display:block;width:90px;height:40px'>"
+            + "</div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.True(rendered.Pages.Count == 2,
+            "Expected two pages; actual page text: " + string.Join(" | ", rendered.Pages.Select(page =>
+                string.Join(", ", EnumerateRenderVisuals(page.Scene).OfType<HtmlRenderText>().Select(text => text.Text))))
+                + "; diagnostics: " + string.Join(", ", rendered.Diagnostics.Select(diagnostic => diagnostic.Code)));
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Third");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Caption");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#first-figure");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#second-figure");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Fourth");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderImage>(), image => image.Source == "img#second-figure");
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_PreservesEachColumnAcrossThreePages() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string[] lines = Enumerable.Range(1, 9).Select(index => "Line" + index).ToArray();
+        string html = "<style>body,p{margin:0}</style><div style='height:20px'>Before</div>"
+            + "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:26px;orphans:1;widows:1'>" + string.Join("<br>", lines) + "</div>"
+            + "<div style='width:90px'>"
+            + string.Concat(Enumerable.Range(1, 3).Select(index =>
+                "<img id='figure-" + index + "' src='data:image/png;base64," + image
+                + "' style='display:block;width:90px;height:60px'><p style='line-height:20px'>Caption" + index + "</p>"))
+            + "</div></div>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderText[] texts = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderImage[] images = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>().ToArray();
+
+        Assert.True(rendered.Pages.Count == 3, "Expected three pages; actual page text: "
+            + string.Join(" | ", rendered.Pages.Select(page => string.Join(", ",
+                page.Visuals.OfType<HtmlRenderText>().Select(text => text.Text))))
+            + "; diagnostics: " + string.Join(", ", rendered.Diagnostics.Select(diagnostic => diagnostic.Code)));
+        foreach (string line in lines) Assert.Single(texts, text => text.Text == line);
+        foreach (int index in Enumerable.Range(1, 3)) {
+            Assert.Single(texts, text => text.Text == "Caption" + index);
+            Assert.Single(images, visual => visual.Source == "img#figure-" + index);
+        }
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_AlignsIndependentRowsInOnePagedRoot() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string Row(int index) => "<div style='display:flex;width:180px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:26px;orphans:1;widows:1'>Row" + index + "First<br>Row" + index
+            + "Second<br>Row" + index + "Third<br>Row" + index + "Fourth</div>"
+            + "<div style='width:90px'><img id='row" + index + "first' src='data:image/png;base64," + image
+            + "' style='display:block;width:90px;height:40px'><p style='line-height:20px'>Row" + index + "Caption</p>"
+            + "<img id='row" + index + "second' src='data:image/png;base64," + image
+            + "' style='display:block;width:90px;height:40px'></div></div>";
+        string html = "<style>body,p{margin:0}</style><div style='height:20px'>Before</div>" + Row(1) + Row(2);
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 100D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        options.UseBrowserUserAgentStyles();
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderText[] texts = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderImage[] images = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>().ToArray();
+        Assert.True(rendered.Pages.Count == 3,
+            "Actual page text: " + string.Join(" | ", rendered.Pages.Select(page =>
+                string.Join(", ", page.Visuals.OfType<HtmlRenderText>().Select(text => text.Text)))));
+        foreach (int index in Enumerable.Range(1, 2)) {
+            Assert.Single(texts, text => text.Text == "Row" + index + "Fourth");
+            Assert.Single(texts, text => text.Text == "Row" + index + "Caption");
+            Assert.Single(images, visual => visual.Source == "img#row" + index + "second");
+        }
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
     public void HtmlFlexRow_DoesNotSplitAnAtomicSidebarImageAtSiblingTextBreak() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<style>body{margin:0}</style><div style='height:45px'>Before</div>"
@@ -598,9 +705,10 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
-        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "First");
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "First");
         Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(), shape => shape.IsAtomicReplacedPlaceholder);
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(), shape => shape.IsAtomicReplacedPlaceholder);
+        Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text == "Sixth");
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
     }
 

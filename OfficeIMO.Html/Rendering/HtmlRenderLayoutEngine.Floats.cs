@@ -762,15 +762,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private readonly struct PagedFloatBoundary {
-        internal PagedFloatBoundary(double remainingHeight, double pageHeight) {
+        internal PagedFloatBoundary(double remainingHeight, double pageHeight, double fragmentStart = 0D) {
             RemainingHeight = remainingHeight;
             PageHeight = pageHeight;
+            FragmentStart = fragmentStart;
         }
 
         internal double RemainingHeight { get; }
         internal double PageHeight { get; }
+        internal double FragmentStart { get; }
 
-        internal PagedFloatBoundary Shift(double offset) => new PagedFloatBoundary(RemainingHeight - offset, PageHeight);
+        internal PagedFloatBoundary Shift(double offset) => new PagedFloatBoundary(RemainingHeight - offset, PageHeight, FragmentStart - offset);
 
         internal bool ShouldDefer(double y, double floatHeight) =>
             RemainingHeight > 0.0001D

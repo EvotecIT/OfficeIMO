@@ -60,6 +60,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement? continuationTarget,
         PagedFloatBoundary? pageBoundary,
         out HtmlRenderFlowBlock block) {
+        if (_options.Mode == HtmlRenderMode.Paged) _pagedRowFlexElements.Add(element);
         double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
         double boxWidth = ResolveBoxWidth(availableWidth, style);
         double contentWidth = Math.Max(1D, boxWidth - style.HorizontalInsets);
@@ -113,7 +114,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double[] previousItemOffsets = lines.SelectMany(line => line.Items.Select(item => item.CrossOffset)).ToArray();
                 foreach (FlexLine line in lines) {
                     foreach (FlexItem item in line.Items) {
-                        if (item.Element == null || !ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1)) continue;
+                        if (item.Element == null || (!ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1)
+                            && !_pagedRowFlexElements.Any(row => ContainsElementOrSelf(item.Element, row)))) continue;
                         if (!style.ExplicitHeight.HasValue && !item.HasExplicitCrossSize && item.Style.ExplicitHeight.HasValue) {
                             HtmlRenderBoxStyle autoHeight = item.Style.Clone();
                             autoHeight.ExplicitHeight = null;
@@ -140,6 +142,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (lineGeometryStable && currentItemOffsets.Select((offset, index) =>
                         Math.Abs(offset - previousItemOffsets[index])).All(change => change <= 0.0001D)) break;
             }
+        }
+
+        if (pageBoundary.HasValue && style.FlexWrap == "nowrap" && lines.Count == 1
+            && CanAlignPagedRowFlex(element, style, lines[0])
+            && TryAlignPagedRowFlexItems(lines[0], pageBoundary.Value.Shift(
+                style.MarginTop + style.BorderTopWidth + style.PaddingTop + lines[0].CrossOffset))) {
+            naturalCrossSize = lines[0].CrossSize;
+            crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
+            ResolveFlexLineOffsets(lines, style, crossSize, rowGap, HtmlRenderStyleResolver.DescribeSource(element));
+            _pagedFlexAlignedInRelayout = true;
         }
 
         double boxHeight = ResolveBoxHeight(crossSize, boxWidth, style);
@@ -233,6 +245,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 outerHeight),
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
+        if (_options.Mode == HtmlRenderMode.Paged) {
+            _pagedRowFlexBlocks[element] = block;
+            if (style.FlexWrap == "nowrap" && lines.Count == 1 && CanAlignPagedRowFlex(element, style, lines[0])) {
+                _pagedRowFlexEligibleElements.Add(element);
+                _pagedRowFlexLines[element] = lines[0];
+            }
+        }
         return true;
     }
 

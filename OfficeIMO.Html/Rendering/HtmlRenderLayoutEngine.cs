@@ -44,6 +44,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly HashSet<IElement> _inlineStackingElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _suppressedEditableLayoutRegionMarkers = new HashSet<IElement>();
     private readonly Dictionary<IElement, HtmlRenderBoxStyle> _layoutStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
+    private readonly HashSet<IElement> _pagedRowFlexElements = new HashSet<IElement>();
+    private readonly HashSet<IElement> _pagedRowFlexEligibleElements = new HashSet<IElement>();
+    private readonly Dictionary<IElement, HtmlRenderFlowBlock> _pagedRowFlexBlocks = new Dictionary<IElement, HtmlRenderFlowBlock>();
+    private readonly Dictionary<IElement, FlexLine> _pagedRowFlexLines = new Dictionary<IElement, FlexLine>();
+    private readonly HashSet<HtmlRenderFlowBlock> _pagedFlexAlignedBlocks = new HashSet<HtmlRenderFlowBlock>();
+    private bool _pagedFlexAlignedInRelayout;
     private readonly Dictionary<IElement, bool> _containsInFlowFloatCache = new Dictionary<IElement, bool>();
     private readonly Dictionary<IElement, double> _inlineFloatOverhangs = new Dictionary<IElement, double>();
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
@@ -453,6 +459,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         && Math.Abs(left.Margins.Bottom - right.Margins.Bottom) <= 0.0001D;
 
     private void ResetLayoutPassState() {
+        _pagedRowFlexElements.Clear();
+        _pagedRowFlexEligibleElements.Clear();
+        _pagedRowFlexBlocks.Clear();
+        _pagedRowFlexLines.Clear();
+        _pagedFlexAlignedBlocks.Clear();
+        _pagedFlexAlignedInRelayout = false;
         _surfaceRootElement = null;
         _surfaceRootStyle = null;
         _viewportOverflowElement = null;
@@ -712,6 +724,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 double blockOffset = 0D;
                 while (blockOffset < block.Height - 0.0001D) {
                     CheckCancellation();
+                    double flexAvailable = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
+                    if (!_pagedFlexAlignedBlocks.Contains(block)
+                        && flexAvailable > 0.0001D
+                        && block.Height > blockOffset + flexAvailable + 0.0001D
+                        && TryRelayoutBlockForFlexPagination(block, blockOffset, flexAvailable, contentHeight,
+                            pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock alignedFlexBlock)) {
+                        block = alignedFlexBlock;
+                        _pagedFlexAlignedBlocks.Add(block);
+                    }
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
                     bool repeatContinuation = blockOffset > 0.0001D && continuationGroup != null && continuationGroup.Visuals.Count > 0 && continuationGroup.Height > 0D;
                     double continuationHeight = repeatContinuation ? continuationGroup!.Height : 0D;
