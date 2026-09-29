@@ -26,6 +26,20 @@ if (-not $Plan -and $ReferenceSummaryPath) {
     $ReferenceSummaryPath = (Resolve-Path -LiteralPath $ReferenceSummaryPath).Path
     $summaryPath = $result.Artifacts['summary.json']
     $gateRoot = Split-Path -Parent $summaryPath
+    $referenceMetadataPath = Join-Path (Split-Path -Parent $ReferenceSummaryPath) 'metadata.json'
+    if (-not (Test-Path -LiteralPath $referenceMetadataPath)) {
+        throw 'Release-quality image reference metadata is missing; the measurement contracts cannot be compared.'
+    }
+    $referenceMetadata = Get-Content -LiteralPath $referenceMetadataPath -Raw | ConvertFrom-Json
+    $currentMetadata = Get-Content -LiteralPath $result.Artifacts['metadata.json'] -Raw | ConvertFrom-Json
+    foreach ($key in @('benchmark.MemoryMeasurementContract', 'benchmark.CancellationMeasurementContract', 'memoryCleanup',
+            'warmupCount', 'iterationCount', 'runOrder', 'outlierMode', 'pwsh', 'osLabel', 'processArchitecture', 'benchmark.Runtime')) {
+        $referenceValue = $referenceMetadata.PSObject.Properties[$key].Value
+        $currentValue = $currentMetadata.PSObject.Properties[$key].Value
+        if ([string]::IsNullOrWhiteSpace([string] $referenceValue) -or $referenceValue -ne $currentValue) {
+            throw "Release-quality image reference has a different measurement contract for $key; performance comparison is not valid."
+        }
+    }
     $referenceRows = @(Get-Content -LiteralPath $ReferenceSummaryPath -Raw | ConvertFrom-Json)
     $currentRows = @(Get-Content -LiteralPath $summaryPath -Raw | ConvertFrom-Json)
 

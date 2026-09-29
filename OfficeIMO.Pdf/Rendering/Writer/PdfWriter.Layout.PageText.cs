@@ -706,7 +706,7 @@ internal static partial class PdfWriter {
 
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(baseFontResource, fontSize)
+            .Font(baseFontResource, fontSize, opts.NeedsSyntheticOblique(baseFont))
             .FillColor(ResolvePageTextColor(color, opts))
             .TextLeading(fontSize * 1.2D);
 
@@ -743,7 +743,7 @@ internal static partial class PdfWriter {
                 double requestedFontSize = run.FontSize ?? fontSize;
                 double runFontSize = EffectiveRichFontSize(requestedFontSize, run.Baseline);
                 double textRise = TextRiseForBaseline(requestedFontSize, run.Baseline);
-                content.Font(fontResource, runFontSize);
+                content.Font(fontResource, runFontSize, opts.NeedsSyntheticOblique(runFont, namedFont));
                 if (Math.Abs(textRise - currentTextRise) > 0.0001D) {
                     content.TextRise(textRise);
                     currentTextRise = textRise;
@@ -797,7 +797,7 @@ internal static partial class PdfWriter {
     private static void AppendPageText(StringBuilder sb, string text, PdfStandardFont font, string fontResource, double fontSize, PdfColor? color, double x, double y, PdfOptions opts) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(fontResource, fontSize)
+            .Font(fontResource, fontSize, opts.NeedsSyntheticOblique(font))
             .FillColor(ResolvePageTextColor(color, opts));
 
         content

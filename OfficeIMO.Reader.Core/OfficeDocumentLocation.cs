@@ -155,6 +155,7 @@ public static partial class OfficeDocumentReadResultExtensions {
             case ReaderInputKind.Visio:
             case ReaderInputKind.OneNote:
             case ReaderInputKind.Epub:
+            case ReaderInputKind.IWork:
                 return OfficeDocumentPageProvenance.LogicalContainer;
             default:
                 return OfficeDocumentPageProvenance.Unknown;

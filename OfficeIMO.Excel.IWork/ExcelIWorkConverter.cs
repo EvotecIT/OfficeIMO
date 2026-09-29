@@ -26,6 +26,17 @@ public static partial class ExcelIWorkConverter {
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED", destinationLimitation) };
+        if (editable
+            && projection.Sheets.SelectMany(sheet => sheet.Tables)
+            .SelectMany(table => table.Cells)
+            .Any(cell => cell.RichText != null
+                && HasUnsupportedRichText(cell.RichText, cell.Kind == IWorkCellKind.Formula))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL",
+                    "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
+            }).ToArray();
+        }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Numbers source has no supported editable content.");
@@ -89,13 +100,27 @@ public static partial class ExcelIWorkConverter {
                             } else if (cell.Kind == IWorkCellKind.Formula
                                 && cell.ValueKind == IWorkCellKind.Text
                                 && value is string cachedText
+                                && cell.CachedValueIsComplete
                                 && cell.FormulaIsComplete
                                 && !string.IsNullOrEmpty(cell.Formula)) {
                                 sheet.CellFormulaWithTextCache(cell.Row, cell.Column,
                                     cell.Formula!, cachedText);
                                 formulaWritten = true;
-                            } else if (cell.Kind != IWorkCellKind.Formula || cell.Value != null) {
+                            } else if (cell.Kind != IWorkCellKind.Formula
+                                || cell.Value != null && cell.CachedValueIsComplete) {
                                 targetCell.SetValue(value);
+                            }
+                            if (cell.Kind != IWorkCellKind.Formula
+                                && cell.RichText is { Paragraphs.Count: > 0 } richText) {
+                                string? hyperlink = UniformCellHyperlink(richText);
+                                if (hyperlink != null) {
+                                    sheet.SetHyperlink(cell.Row, cell.Column, hyperlink,
+                                        display: null, style: false);
+                                }
+                                bool headerCell = cell.Row <= table.HeaderRowCount
+                                    || cell.Column <= table.HeaderColumnCount
+                                    || cell.Row > table.RowCount - table.FooterRowCount;
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell));
                             }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
@@ -142,6 +167,66 @@ public static partial class ExcelIWorkConverter {
     private static string ErrorText(IWorkTableCell cell) => cell.Kind == IWorkCellKind.Formula
             ? cell.CachedDisplayText
             : cell.DisplayText;
+
+    internal static bool HasUnsupportedRichText(IWorkTextContent content, bool formula) =>
+        formula
+        || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+            .Any(run => run.Hyperlink != null)
+            && UniformCellHyperlink(content) == null
+        || content.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+            .Any(run => run.Style.BackgroundColor != null
+                || run.Style.Color is { Alpha: < byte.MaxValue })
+        || content.Paragraphs.Any(paragraph =>
+            paragraph.ListLevel >= 0 || !string.IsNullOrEmpty(paragraph.ListLabel)
+            || paragraph.Style.Alignment.HasValue
+            || paragraph.Style.FirstLineIndentPoints.HasValue
+            || paragraph.Style.LeftIndentPoints.HasValue
+            || paragraph.Style.RightIndentPoints.HasValue
+            || paragraph.Style.SpaceBeforePoints.HasValue
+            || paragraph.Style.SpaceAfterPoints.HasValue
+            || paragraph.Style.PageBreakBefore.HasValue
+            || paragraph.Style.KeepWithNext.HasValue
+            || paragraph.Style.KeepLinesTogether.HasValue
+            || paragraph.BreakKind is IWorkParagraphBreakKind.Section
+                or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
+
+    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold) {
+        var runs = new List<ExcelRichTextRun>();
+        for (int paragraphIndex = 0; paragraphIndex < content.Paragraphs.Count; paragraphIndex++) {
+            if (paragraphIndex > 0) {
+                var separator = new ExcelRichTextRun("\n");
+                if (forceBold) separator.Bold = true;
+                runs.Add(separator);
+            }
+            foreach (IWorkTextRun source in content.Paragraphs[paragraphIndex].Runs) {
+                var run = new ExcelRichTextRun(source.Text);
+                if (forceBold) run.Bold = true;
+                else if (source.Style.Bold.HasValue) run.Bold = source.Style.Bold.Value;
+                if (source.Style.Italic.HasValue) run.Italic = source.Style.Italic.Value;
+                if (source.Style.Underline.HasValue) run.Underline = source.Style.Underline.Value;
+                if (source.Style.Strikethrough.HasValue) run.Strikethrough = source.Style.Strikethrough.Value;
+                run.FontSize = source.Style.FontSizePoints;
+                run.FontName = source.Style.FontName;
+                run.FontColor = source.Style.Color?.RgbHex;
+                runs.Add(run);
+            }
+        }
+        return runs.ToArray();
+    }
+
+    private static string? UniformCellHyperlink(IWorkTextContent content) {
+        string? hyperlink = null;
+        foreach (IWorkTextRun run in content.Paragraphs.SelectMany(paragraph => paragraph.Runs)) {
+            if (run.Text.Length == 0) continue;
+            if (run.Hyperlink == null) return null;
+            if (hyperlink != null && !string.Equals(hyperlink, run.Hyperlink,
+                    StringComparison.Ordinal)) return null;
+            hyperlink = run.Hyperlink;
+        }
+        return hyperlink != null && Uri.TryCreate(hyperlink, UriKind.Absolute, out _)
+            ? hyperlink
+            : null;
+    }
 
     private static bool IsNativeExcelError(string value) => value is
             "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?"
@@ -193,6 +278,12 @@ public static partial class ExcelIWorkConverter {
                     }
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
+                    if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
+                        && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
+                            .Any(run => run.Style.FontSizePoints is double size
+                                && (!IsFinite(size) || size < 1d || size > 409d))) {
+                        return $"Numbers table '{table.Name}' contains a rich-text font size outside the XLSX-supported range of 1 to 409 points.";
+                    }
                     string? text = cell.Kind == IWorkCellKind.Error
                         ? cell.DisplayText
                         : cell.Value as string ?? (cell.Kind == IWorkCellKind.Formula ? cell.DisplayText : null);
