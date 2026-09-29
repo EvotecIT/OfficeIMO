@@ -723,7 +723,10 @@ one column field, and one measure, numeric greater-than, numeric between, and
 Top/Bottom 1 count on the inner row field, plus numeric greater-than and
 Top/Bottom 1 count on the column field, are qualified against complete
 Excel-produced views and lookups. Top 1 includes tied column items at the
-cutoff. Other three-or-more-field value rules and multi-measure filter
+cutoff, and the qualified inner-row Top 1 case retains tied siblings. A saved
+inner-row Top 1 followed by column Bottom 1 is evaluated in that order; the
+reverse filter order can select different cells, as in Excel. Other
+three-or-more-field value rules and multi-measure filter
 interactions remain outside this qualified profile.
 Signed and zero child aggregates, nonpositive outer-field totals, three siblings
 per parent, mixed numeric/error ranking, and classic

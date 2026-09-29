@@ -1,12 +1,13 @@
 <#
 .SYNOPSIS
-Creates an independent Excel fixture for a value filter at the third row level.
+Creates independent Excel fixtures for three-field pivot value filters.
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('top1', 'top2', 'bottom1', 'greater15', 'between15and30',
-        'mixed-row-greater50', 'mixed-row-between45and65', 'mixed-row-top1', 'mixed-row-bottom1',
-        'mixed-column-bottom1', 'mixed-column-greater85', 'mixed-column-top1')]
+        'mixed-row-greater50', 'mixed-row-between45and65', 'mixed-row-top1', 'mixed-row-top1-tie', 'mixed-row-bottom1',
+        'mixed-column-bottom1', 'mixed-column-greater85', 'mixed-column-top1',
+        'mixed-row-top1-column-bottom1', 'mixed-column-bottom1-row-top1')]
     [string] $Kind = 'top1',
     [string] $OutputDirectory
 )
@@ -69,6 +70,7 @@ try {
             @('West', 'B', 'Retail', 35.0), @('West', 'B', 'Online', 15.0)
         )
     }
+    if ($Kind -eq 'mixed-row-top1-tie') { $rows[0][3] = 15.0 }
     for ($row = 0; $row -lt $rows.Count; $row++) {
         for ($column = 0; $column -lt 4; $column++) {
             if ($column -eq 3) {
@@ -105,16 +107,34 @@ try {
         'mixed-row-greater50' { @{ Type = 9; First = 50.0; Grand = 220.0; Field = 'Product' } }
         'mixed-row-between45and65' { @{ Type = 13; First = 45.0; Second = 65.0; Grand = 170.0; Field = 'Product' } }
         'mixed-row-top1' { @{ Type = 1; First = 1.0; Grand = 160.0; Field = 'Product' } }
+        'mixed-row-top1-tie' { @{ Type = 1; First = 1.0; Grand = 225.0; Field = 'Product' } }
         'mixed-row-bottom1' { @{ Type = 2; First = 1.0; Grand = 105.0; Field = 'Product' } }
         'mixed-column-bottom1' { @{ Type = 2; First = 1.0; Grand = 85.0; Field = 'Channel' } }
         'mixed-column-greater85' { @{ Type = 9; First = 85.0; Grand = 180.0; Field = 'Channel' } }
         'mixed-column-top1' { @{ Type = 1; First = 1.0; Grand = 180.0; Field = 'Channel' } }
+        'mixed-row-top1-column-bottom1' { @{ Grand = 35.0 } }
+        'mixed-column-bottom1-row-top1' { @{ Grand = 65.0 } }
     }
-    $filteredField = if ($rule.ContainsKey('Field')) { $rule.Field } else { 'Channel' }
-    if ($rule.ContainsKey('Second')) {
-        [void]$pivot.PivotFields($filteredField).PivotFilters.Add2($rule.Type, $metric, $rule.First, $rule.Second)
-    } else {
-        [void]$pivot.PivotFields($filteredField).PivotFilters.Add2($rule.Type, $metric, $rule.First)
+    $rules = if ($Kind -eq 'mixed-row-top1-column-bottom1') {
+        @(
+            @{ Type = 1; First = 1.0; Field = 'Product' },
+            @{ Type = 2; First = 1.0; Field = 'Channel' }
+        )
+    } elseif ($Kind -eq 'mixed-column-bottom1-row-top1') {
+        @(
+            @{ Type = 2; First = 1.0; Field = 'Channel' },
+            @{ Type = 1; First = 1.0; Field = 'Product' }
+        )
+    } else { @($rule) }
+    foreach ($savedRule in $rules) {
+        $filteredField = if ($savedRule.ContainsKey('Field')) { $savedRule.Field } else { 'Channel' }
+        if ($savedRule.ContainsKey('Second')) {
+            [void]$pivot.PivotFields($filteredField).PivotFilters.Add2(
+                $savedRule.Type, $metric, $savedRule.First, $savedRule.Second)
+        } else {
+            [void]$pivot.PivotFields($filteredField).PivotFilters.Add2(
+                $savedRule.Type, $metric, $savedRule.First)
+        }
     }
     $lookups = $workbook.Worksheets.Add()
     $lookups.Name = 'Lookups'
@@ -140,10 +160,17 @@ try {
         generatedUtc = [DateTime]::UtcNow.ToString('o')
         regeneration = 'Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1'
         file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-        sourceRange = "Source!A1:D$lastSourceRow"; filteredField = $filteredField
+        sourceRange = "Source!A1:D$lastSourceRow"
+        filteredField = if ($rules.Count -eq 1) { $filteredField } else { 'Multiple' }
         axis = if ($mixedAxes) { 'Mixed' } else { 'Row' }
-        filterType = $rule.Type; threshold = $rule.First
+        filterType = if ($rules.Count -eq 1) { $rule.Type } else { $null }
+        threshold = if ($rules.Count -eq 1) { $rule.First } else { $null }
         threshold2 = if ($rule.ContainsKey('Second')) { $rule.Second } else { $null }
+        filters = @($rules | ForEach-Object {
+            [ordered]@{ field = if ($_.ContainsKey('Field')) { $_.Field } else { 'Channel' }
+                type = $_.Type; threshold = $_.First
+                threshold2 = if ($_.ContainsKey('Second')) { $_.Second } else { $null } }
+        })
         outputRange = $range; grandTotal = $grand
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $directory "pivot-value-three-level-$Kind-conformance.provenance.json") -Encoding utf8
     [pscustomobject]@{ File = $file; Range = $range; Grand = $grand }
