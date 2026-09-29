@@ -748,7 +748,8 @@ namespace OfficeIMO.PowerPoint {
 
         private string? ReadAxisNumberFormat(C.ValueAxis axis, bool forDataUpdate) {
             if (forDataUpdate) return null;
-            if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true &&
+            if ((axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value != true ||
+                    GetChartPart().ChartSpace?.GetFirstChild<C.ExternalData>() == null) &&
                 OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.HasUnsupportedSharedAxisNumberFormat(axis))
                 throw new NotSupportedException("The native axis number format cannot be projected.");
             if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true) {
