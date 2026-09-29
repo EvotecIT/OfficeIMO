@@ -47,6 +47,12 @@
       "rightsUrl": "https://www.nps.gov/aboutus/disclaimer.htm",
       "rightsNotes": "NPS-created material is generally public domain; third-party content and government marks are exceptions. Retain source bytes only in ignored local evidence and record any excluded resource after capture.",
       "requiredVisibleMarkers": ["Photo Galleries", "Yellowstone National Park", "Wildlife Photos"],
+      "pdfIntentSelectionDate": "2026-09-29",
+      "pdfIntents": [
+        {"intent": "print-reflow", "inspect": ["breadcrumb and gallery order", "photo and caption pairing", "all-page footer flow", "link destinations"]},
+        {"intent": "screen-media-pagination", "inspect": ["gallery card grouping and image placement", "off-canvas controls", "page-boundary integrity"]},
+        {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "gallery and footer visibility", "slice-boundary image integrity"]}
+      ],
       "editableTargetSelectionDate": "2026-09-24",
       "editableTargets": [
         {
