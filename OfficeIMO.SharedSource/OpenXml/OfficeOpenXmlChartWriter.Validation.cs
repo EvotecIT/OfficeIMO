@@ -45,6 +45,8 @@ namespace OfficeIMO.OpenXml.Internal {
             }
 
             List<SharedSeriesDescriptor> descriptors = DescribeSharedSeries(data, defaultKind);
+            if (descriptors.Count(item => item.Kind == OfficeChartKind.Pie) > 1)
+                throw new NotSupportedException("A pie chart supports one series; use a doughnut chart for multiple rings.");
             bool hasSecondary = descriptors.Any(item => item.AxisGroup == OfficeChartAxisGroup.Secondary);
             if (hasSecondary && descriptors.All(item => item.AxisGroup == OfficeChartAxisGroup.Secondary)) {
                 throw new NotSupportedException("A secondary-axis chart requires at least one primary-axis series.");
