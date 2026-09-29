@@ -11,6 +11,8 @@ namespace OfficeIMO.Tests {
         [InlineData("units-row-values", "UnitsMetric", 110d, 60d, true, false, "A4:G15", "G4:M15")]
         [InlineData("metric-column-values-first", "Metric", 160d, 33d, false, true, "A4:J11", "G4:P11")]
         [InlineData("units-column-values-first", "UnitsMetric", 110d, 60d, false, true, "A4:J11", "G4:P11")]
+        [InlineData("metric-row-values-first", "Metric", 160d, 66d, true, true, "A4:G17", "G4:M17")]
+        [InlineData("units-row-values-first", "UnitsMetric", 265d, 60d, true, true, "A4:G17", "G4:M17")]
         public void Test_PivotThreeLevelMixedValue_TwoMeasuresSelectsNamedMeasure(
             string kind, string selectedMeasure, double metricTotal, double unitsTotal,
             bool valuesOnRows, bool valuesFirst, string oracleRange, string authoredRange) {
@@ -125,37 +127,12 @@ namespace OfficeIMO.Tests {
             Assert.Empty(document.ValidateOpenXml());
         }
 
-        [Theory]
-        [InlineData("metric", 160d, 66d)]
-        [InlineData("units", 265d, 60d)]
-        public void Test_PivotThreeLevelMixedValue_ValuesFirstOnRowsRetainsMeasureSpecificFilterBoundary(
-            string kind, double metricTotal, double unitsTotal) {
-            string file = $"pivot-value-three-level-mixed-{kind}-row-values-first-top1-two-measures-conformance.xlsx";
-            string path = ThreeLevelPivotOraclePath(file);
-            using (var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json")))) {
-                var root = provenance.RootElement;
-                Assert.Equal(1, root.GetProperty("valuesPosition").GetInt32());
-                Assert.True(root.GetProperty("valuesOnRows").GetBoolean());
-                Assert.Equal(metricTotal, root.GetProperty("grandTotal").GetDouble());
-                Assert.Equal(unitsTotal, root.GetProperty("unitsGrandTotal").GetDouble());
-                Assert.Equal("A4:G17", root.GetProperty("outputRange").GetString());
-            }
-            using var oracle = ExcelDocumentReader.Open(path);
-            var excelView = oracle.GetSheet("Grouped").ReadRange("A4:G17");
-            AssertPivotLookupOracleValue(metricTotal, excelView[12, 6]);
-            AssertPivotLookupOracleValue(unitsTotal, excelView[13, 6]);
-            using var imported = ExcelDocument.Load(path);
-            var grouped = imported.GetSheet("Grouped");
-            Assert.Equal(0, Assert.Single(grouped.GetPivotTables()).ValuesAxisPosition);
-            Assert.Throws<NotSupportedException>(() => grouped.MaterializePivotTable("ValuePivot"));
-            Assert.Empty(imported.ValidateOpenXml());
-        }
-
         private static void AssertTwoMeasureMixedPivotView(object?[,] expected, object?[,] actual, bool valuesOnRows, bool valuesFirst) {
             Assert.Equal(expected.GetLength(0), actual.GetLength(0));
             Assert.Equal(expected.GetLength(1), actual.GetLength(1));
             if (valuesOnRows) {
-                AssertTwoMeasureRowValuesView(expected, actual);
+                if (valuesFirst) AssertTwoMeasureFirstRowValuesView(expected, actual);
+                else AssertTwoMeasureRowValuesView(expected, actual);
                 return;
             }
             Dictionary<string, string> Cells(object?[,] view) {
@@ -185,6 +162,36 @@ namespace OfficeIMO.Tests {
                             ? $"Grand Total/{measure}" : $"{channel}/{measure}";
                         Assert.False(columnKey.StartsWith("/", StringComparison.Ordinal));
                         string key = $"{rowKey}/{columnKey}";
+                        Assert.False(cells.ContainsKey(key), $"Duplicate pivot cell {key}.");
+                        cells.Add(key, JsonSerializer.Serialize(view[row, column]));
+                    }
+                }
+                return cells;
+            }
+            Assert.Equal(Cells(expected).OrderBy(pair => pair.Key, StringComparer.Ordinal),
+                Cells(actual).OrderBy(pair => pair.Key, StringComparer.Ordinal));
+        }
+
+        private static void AssertTwoMeasureFirstRowValuesView(object?[,] expected, object?[,] actual) {
+            Dictionary<string, string> Cells(object?[,] view) {
+                var cells = new Dictionary<string, string>(StringComparer.Ordinal);
+                string? measure = null, region = null;
+                for (int row = 2; row < view.GetLength(0); row++) {
+                    string first = view[row, 0]?.ToString() ?? "";
+                    string second = view[row, 1]?.ToString() ?? "";
+                    string product = view[row, 2]?.ToString() ?? "";
+                    if (first is "Metric" or "UnitsMetric") measure = first;
+                    if (second is "East" or "West") region = second;
+                    string rowKey = first.StartsWith("Total ", StringComparison.Ordinal)
+                        ? "Grand Total/" + first.Substring("Total ".Length)
+                        : second.EndsWith(" Total", StringComparison.Ordinal)
+                            ? $"{measure}/{second}"
+                            : $"{measure}/{region}/{product}";
+                    Assert.False(rowKey.EndsWith("/", StringComparison.Ordinal));
+                    for (int column = 3; column < view.GetLength(1); column++) {
+                        string channel = view[1, column]?.ToString() ?? "";
+                        Assert.NotEmpty(channel);
+                        string key = $"{rowKey}/{channel}";
                         Assert.False(cells.ContainsKey(key), $"Duplicate pivot cell {key}.");
                         cells.Add(key, JsonSerializer.Serialize(view[row, column]));
                     }

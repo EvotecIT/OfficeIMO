@@ -53,7 +53,8 @@ namespace OfficeIMO.Excel {
             } else if (columns.Layout.Fields.Length == 0 && !dateRowValues) values[dataRow - 1, dataColumn] = PivotMaterializedText(caption);
             void Labels(PivotHierarchyAxis axis, PivotHierarchyEntry entry, int[]? rowKeys, bool dateRowLayout, bool firstMeasureRow,
                 Action<int, ExcelCellData, bool, uint?> put) {
-                if (dateRowLayout && axis.Layout.HasValues && entry.Type == ItemValues.Grand) {
+                if (axis.Layout.HasValues && (dateRowLayout || rowValuesPosition == 0)
+                    && entry.Type == ItemValues.Grand) {
                     put(0, PivotMaterializedText("Total " + (measures[entry.Measure].Name?.Value ?? "")), false, null);
                     return;
                 }
@@ -64,7 +65,9 @@ namespace OfficeIMO.Excel {
                     int field = axis.Layout.Fields[level];
                     if (field == -2) {
                         string measureCaption = measures[entry.Measure].Name?.Value ?? "";
-                        if (!dateRowLayout || entry.Type == ItemValues.Data && firstMeasureRow)
+                        if (rowValuesPosition == 0
+                            ? entry.Type == ItemValues.Data && firstMeasureRow
+                            : !dateRowLayout || entry.Type == ItemValues.Data && firstMeasureRow)
                             put(level, PivotMaterializedText(measureCaption), false, null);
                         continue;
                     }

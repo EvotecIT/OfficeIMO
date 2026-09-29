@@ -325,7 +325,8 @@ namespace OfficeIMO.Excel {
             ApplyMaterializedPivotFilters(sourceSheet, definition, fields, displayMaps, captions, measures,
                 realFields, rowAxis.RealFields, columnAxis.RealFields,
                 (columnAxis.Fields.Length == 2 && (columnAxis.Fields[0] == -2 || columnAxis.Fields[1] == -2))
-                    || (rowAxis.Fields.Length == 3 && rowAxis.Fields[2] == -2),
+                    || (rowAxis.Fields.Length == 3 && (rowAxis.Fields[0] == -2 || rowAxis.Fields[2] == -2)),
+                rowAxis.Fields.Length == 3 && rowAxis.Fields[0] == -2,
                 groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit,
                 referenceDate, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every
@@ -338,10 +339,10 @@ namespace OfficeIMO.Excel {
             }
             var rows = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, displayMaps, rowAxis, pivotFields,
                 groupings, dateGroupings, manualGroupings, dateFieldOrders,
-                visibility.IncludedRows, measures.Length, rowTotal, token);
+                visibility.IncludedRows, visibility.MeasureIncludedRows, measures.Length, rowTotal, token);
             var columns = BuildMaterializedHierarchyAxis(sourceSheet, r1, r2, c1, displayMaps, columnAxis, pivotFields,
                 groupings, dateGroupings, manualGroupings, dateFieldOrders,
-                visibility.IncludedRows, measures.Length, columnTotal, token);
+                visibility.IncludedRows, null, measures.Length, columnTotal, token);
             int dataRow = columnField >= 0 ? columnAxis.Fields.Length + 1 : 1;
             int dataColumn = rowAxis.Fields.Length > 0 ? rowAxis.Fields.Length : measures.Length == 1 && columnField >= 0 ? 1 : 0;
             int height = dataRow + rows.Entries.Count;
@@ -361,7 +362,7 @@ namespace OfficeIMO.Excel {
                 MeasureInputVisits = visits };
             UpdateMaterializedPivotRelativeDateBounds(plan.Definition, referenceDate, _excelDocument.DateSystem);
             var aggregates = AggregateMaterializedHierarchy(sourceSheet, r1, c1, r2, rows, columns,
-                visibility.IncludedRows, measures, limit, token);
+                visibility.IncludedRows, visibility.MeasureIncludedRows, measures, limit, token);
             bool dateRowHierarchy = rowAxis.RealFields.Length > 1 && rowAxis.RealFields.All(dateGroupings.ContainsKey);
             bool dateColumnHierarchy = columnAxis.RealFields.Length > 1 && columnAxis.RealFields.All(dateGroupings.ContainsKey);
             bool manualRowHierarchy = rowAxis.RealFields.Length == 2 && manualGroupings.TryGetValue(rowAxis.RealFields[0], out var rowManual)

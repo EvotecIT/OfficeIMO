@@ -6,6 +6,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private sealed class PivotMaterializationVisibility {
             internal bool[] IncludedRows = Array.Empty<bool>();
+            internal bool[][]? MeasureIncludedRows;
             internal readonly Dictionary<int, HashSet<PivotFieldValue>> Hidden = new();
             internal readonly Dictionary<int, PivotFieldValue> SelectedPages = new();
         }

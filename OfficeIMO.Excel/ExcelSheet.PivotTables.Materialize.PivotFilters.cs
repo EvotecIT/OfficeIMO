@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             DataField[] measures, IReadOnlyList<int> axisFields,
             int[] rowAxisFields, int[] columnAxisFields, bool qualifiedValuesPlacement,
+            bool valuesFirstOnRows,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
             IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
@@ -213,9 +214,21 @@ namespace OfficeIMO.Excel {
                     && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified axis rule.");
                 var measure = measures[filter.MeasureField.Value];
-                ApplyMaterializedPivotValueFilter(source, visibility.IncludedRows, fieldPrefix, measure,
-                    type, first, second, ranking, groupings, dateGroupings, manualGroupings,
-                    firstRow, lastRow, firstColumn, limit, token);
+                if (valuesFirstOnRows && qualifiedTwoMeasureMixedTopCount) {
+                    var measureRows = new bool[measures.Length][];
+                    for (int index = 0; index < measureRows.Length; index++)
+                        measureRows[index] = (bool[])visibility.IncludedRows.Clone();
+                    ApplyMaterializedPivotValueFilter(source, measureRows[filter.MeasureField.Value], fieldPrefix, measure,
+                        type, first, second, ranking, groupings, dateGroupings, manualGroupings,
+                        firstRow, lastRow, firstColumn, limit, token);
+                    if (!measureRows[filter.MeasureField.Value].Any(include => include))
+                        throw new NotSupportedException("The selected pivot measure has no source records after filtering.");
+                    visibility.MeasureIncludedRows = measureRows;
+                } else {
+                    ApplyMaterializedPivotValueFilter(source, visibility.IncludedRows, fieldPrefix, measure,
+                        type, first, second, ranking, groupings, dateGroupings, manualGroupings,
+                        firstRow, lastRow, firstColumn, limit, token);
+                }
             }
 
             if (filters.Any(filter => !IsMaterializedPivotFixedDateFilter(filter)

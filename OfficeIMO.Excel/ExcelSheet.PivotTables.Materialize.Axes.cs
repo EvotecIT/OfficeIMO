@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private sealed class PivotHierarchyNode {
             internal int Id, Key, Depth;
+            internal byte MeasureMask;
             internal PivotHierarchyNode? Parent;
             internal Dictionary<int, PivotHierarchyNode>? ChildrenByKey;
             internal List<PivotHierarchyNode>? Children;
@@ -48,8 +49,11 @@ namespace OfficeIMO.Excel {
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
             IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
-            IReadOnlyDictionary<int, int[]> fieldOrders, bool[] includedRows,
+            IReadOnlyDictionary<int, int[]> fieldOrders, bool[] includedRows, bool[][]? measureIncludedRows,
             int measures, bool total, CancellationToken token) {
+            if (measureIncludedRows != null && (measures != 2 || measureIncludedRows.Length != measures
+                || measureIncludedRows.Any(rows => rows.Length != includedRows.Length)))
+                throw new InvalidOperationException("Measure-specific pivot visibility requires two aligned measure masks.");
             var result = new PivotHierarchyAxis { Layout = layout, GrandTotal = total,
                 Subtotals = layout.RealFields.Select(field => MaterializedAutomaticSubtotal(fields[field])).ToArray() };
             if (layout.RealFields.Length > 0) {
@@ -58,7 +62,11 @@ namespace OfficeIMO.Excel {
                 int nodeId = 0;
                 for (int row = firstRow + 1; row <= lastRow; row++) {
                     token.ThrowIfCancellationRequested();
-                    if (!includedRows[row - firstRow - 1]) continue;
+                    int record = row - firstRow - 1;
+                    if (!includedRows[record]) continue;
+                    byte measureMask = measureIncludedRows == null ? (byte)0
+                        : (byte)((measureIncludedRows[0][record] ? 1 : 0)
+                            | (measureIncludedRows[1][record] ? 2 : 0));
                     var node = result.Root;
                     for (int depth = 0; depth < layout.RealFields.Length; depth++) {
                         int field = layout.RealFields[depth];
@@ -72,8 +80,9 @@ namespace OfficeIMO.Excel {
                             (node.Children ??= new List<PivotHierarchyNode>()).Add(child);
                         }
                         node = child;
+                        node.MeasureMask |= measureMask;
                     }
-                    result.Leaves[row - firstRow - 1] = node;
+                    result.Leaves[record] = node;
                 }
             }
             var orderRanks = new Dictionary<int, int[]>();
@@ -107,6 +116,8 @@ namespace OfficeIMO.Excel {
                     for (int value = 0; value < measures; value++) Visit(node, position + 1, value, true);
                 } else {
                     foreach (var child in node.Children!) {
+                        if (measureIncludedRows != null && hasMeasure
+                            && (child.MeasureMask & (1 << measure)) == 0) continue;
                         Visit(child, position + 1, measure, hasMeasure);
                         if (child.Depth < layout.RealFields.Length && result.Subtotals[child.Depth - 1]) {
                             if (layout.HasValues && !hasMeasure) for (int value = 0; value < measures; value++) Add(child, value, ItemValues.Default);

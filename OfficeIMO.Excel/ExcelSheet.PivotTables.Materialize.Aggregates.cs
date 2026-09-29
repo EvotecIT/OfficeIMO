@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]> AggregateMaterializedHierarchy(
             ExcelSheet source, int firstRow, int firstColumn, int lastRow, PivotHierarchyAxis rows, PivotHierarchyAxis columns,
-            bool[] includedRows, DataField[] measures, int limit, CancellationToken token) {
+            bool[] includedRows, bool[][]? measureIncludedRows, DataField[] measures, int limit, CancellationToken token) {
             var groups = new Dictionary<(int Row, int Column), ExcelPivotAggregateAccumulator[]>();
             var values = new object?[measures.Length];
             var errors = new bool[measures.Length];
@@ -14,6 +14,7 @@ namespace OfficeIMO.Excel {
                 token.ThrowIfCancellationRequested();
                 if (!includedRows[row - firstRow - 1]) continue;
                 for (int measure = 0; measure < measures.Length; measure++) {
+                    if (measureIncludedRows != null && !measureIncludedRows[measure][row - firstRow - 1]) continue;
                     var cell = source.TryGetExistingCell(row, firstColumn + (int)measures[measure].Field!.Value);
                     values[measure] = source.GetCellValueSnapshot(cell).Value;
                     errors[measure] = cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.Error;
@@ -34,7 +35,10 @@ namespace OfficeIMO.Excel {
                             groups.Add((rowNode.Id, columnNode.Id), group);
                             if (leaf) leafGroups++;
                         }
-                        for (int measure = 0; measure < measures.Length; measure++) group[measure].Add(values[measure], errors[measure]);
+                        for (int measure = 0; measure < measures.Length; measure++) {
+                            if (measureIncludedRows == null || measureIncludedRows[measure][row - firstRow - 1])
+                                group[measure].Add(values[measure], errors[measure]);
+                        }
                     }
                 }
             }
