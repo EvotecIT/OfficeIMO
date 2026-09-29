@@ -342,7 +342,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return !CrossesAtomicFlexVisual(ranges, offset);
     }
 
-    private static double LastAtomicFlexVisualBottom(IEnumerable<HtmlRenderVisual> visuals) {
+    private static double LastAtomicFlexVisualBottom(IEnumerable<HtmlRenderVisual> visuals, double verticalTranslation = 0D) {
         double bottom = 0D;
         foreach (HtmlRenderVisual visual in visuals) {
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
@@ -354,10 +354,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderSemanticGroup group => group.Visuals,
                 _ => null
             };
-            if (children != null) bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children));
+            if (children != null) {
+                double childTranslation = verticalTranslation;
+                if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double effectTranslation)) {
+                    childTranslation += effectTranslation;
+                }
+                bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children, childTranslation));
+            }
             else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
                      or HtmlRenderShape { IsAtomicReplacedPlaceholder: true })
-                bottom = Math.Max(bottom, visual.LayoutY + visual.LayoutHeight);
+                bottom = Math.Max(bottom, visual.LayoutY + visual.LayoutHeight + verticalTranslation);
         }
         return bottom;
     }
@@ -378,7 +384,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return merged;
     }
 
-    private static void AppendAtomicFlexVisualRanges(IEnumerable<HtmlRenderVisual> visuals, ICollection<(double Top, double Bottom)> ranges) {
+    private static void AppendAtomicFlexVisualRanges(IEnumerable<HtmlRenderVisual> visuals, ICollection<(double Top, double Bottom)> ranges,
+        double verticalTranslation = 0D) {
         foreach (HtmlRenderVisual visual in visuals) {
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
                 HtmlRenderClipGroup group => group.Visuals,
@@ -389,10 +396,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderSemanticGroup group => group.Visuals,
                 _ => null
             };
-            if (children != null) AppendAtomicFlexVisualRanges(children, ranges);
+            if (children != null) {
+                double childTranslation = verticalTranslation;
+                if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double effectTranslation)) {
+                    childTranslation += effectTranslation;
+                }
+                AppendAtomicFlexVisualRanges(children, ranges, childTranslation);
+            }
             else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
                      or HtmlRenderShape { IsAtomicReplacedPlaceholder: true })
-                ranges.Add((visual.LayoutY, visual.LayoutY + visual.LayoutHeight));
+                ranges.Add((visual.LayoutY + verticalTranslation, visual.LayoutY + visual.LayoutHeight + verticalTranslation));
         }
     }
 

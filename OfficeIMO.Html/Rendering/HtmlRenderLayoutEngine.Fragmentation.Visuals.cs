@@ -21,7 +21,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 } else if (visual is HtmlRenderLayoutRegion regionOverflow) {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(regionOverflow.Visuals));
                 } else if (visual is HtmlRenderEffectGroup effectOverflow) {
-                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(effectOverflow.Visuals));
+                    visualBottom = Math.Max(visualBottom, MaximumScrollBottom(new[] { effectOverflow }));
                 } else if (visual is HtmlRenderClipGroup { ClipVertical: false } visibleVerticalClip) {
                     visualBottom = Math.Max(visualBottom, MaximumScrollBottom(visibleVerticalClip.Visuals));
                 }
@@ -133,8 +133,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderEffectGroup effectGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, start, end);
+                    bool translated = TryGetVerticalPaintTranslation(effectGroup.Transform, out double verticalTranslation);
+                    double childStart = translated ? start - verticalTranslation : start;
+                    double childEnd = translated ? end - verticalTranslation : end;
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, childStart, childEnd);
                     if (children.Count > 0) {
+                        if (translated && Math.Abs(verticalTranslation) > 0.0001D) {
+                            // Child fragments are rebased to their pre-transform window;
+                            // move them back to this page before applying the effect.
+                            children = children.Select((child, index) =>
+                                child.Translate(0D, -verticalTranslation, index)).ToList();
+                        }
                         double translatedY = -start;
                         OfficeTransform transform = OfficeTransform.Translate(0D, -translatedY)
                             .Then(effectGroup.Transform)

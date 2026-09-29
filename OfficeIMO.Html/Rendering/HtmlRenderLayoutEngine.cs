@@ -635,10 +635,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 HtmlRenderFormField form => form.Visuals,
                 _ => null
             };
-            if (children != null) bottom = Math.Max(bottom, MaximumScrollBottom(children));
+            if (children != null) {
+                double childBottom = MaximumScrollBottom(children);
+                if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double translation)) {
+                    childBottom += translation;
+                }
+                bottom = Math.Max(bottom, childBottom);
+            }
             maximum = Math.Max(maximum, bottom);
         }
         return maximum;
+    }
+
+    private static bool TryGetVerticalPaintTranslation(OfficeTransform transform, out double translation) {
+        translation = transform.OffsetY;
+        return Math.Abs(transform.M12) < 0.000001D && Math.Abs(transform.M22 - 1D) < 0.000001D;
     }
 
     private HtmlRenderDocument RenderPaged(IReadOnlyList<HtmlRenderFlowBlock> blocks) {

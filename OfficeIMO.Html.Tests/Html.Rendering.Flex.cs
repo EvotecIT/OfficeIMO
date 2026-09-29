@@ -717,6 +717,47 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("Following sibling", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(400)]
+    [InlineData(1200)]
+    public void HtmlFlexRow_TranslatedFixedHeightOverflowPaintsAllContentInsidePdfPages(int translation) {
+        string html = "<style>@page{size:A4;margin:0}html,body{margin:0;padding:0}"
+            + ".row{display:flex;width:400px;height:300px;align-items:flex-start;transform:translateY(" + translation + "px)}"
+            + ".column{width:200px}.line{height:300px;line-height:300px}"
+            + ".media{height:800px;background:#ccc}</style>"
+            + "<div class='row'><div class='column'>"
+            + string.Concat(Enumerable.Range(1, 9).Select(index => "<div class='line'>Line" + index + "</div>"))
+            + "</div><div class='column'>"
+            + string.Concat(Enumerable.Range(1, 3).Select(index => "<div class='media'>Figure" + index + "</div>"))
+            + "</div></div><div>Following sibling</div>";
+        var options = new HtmlToPdfOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(8.27D, 11.69D),
+            HonorCssPageRules = true,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        PdfCore.PdfReadDocument pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(options));
+        Assert.True(rendered.Pages.Count >= 4);
+        Assert.Equal(rendered.Pages.Count, pdf.Pages.Count);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        var visibleText = new List<string>();
+        foreach (PdfCore.PdfReadPage page in pdf.Pages) {
+            double pageHeight = page.GetPageSize().Height;
+            foreach (PdfCore.PdfTextSpan span in page.GetTextSpans()) {
+                if (!span.Text.StartsWith("Line", StringComparison.Ordinal)
+                    && !span.Text.StartsWith("Figure", StringComparison.Ordinal)) continue;
+                Assert.InRange(span.Y, 0D, pageHeight);
+                visibleText.Add(span.Text);
+            }
+        }
+        foreach (int index in Enumerable.Range(1, 9)) Assert.Equal(1, visibleText.Count(text => text == "Line" + index));
+        foreach (int index in Enumerable.Range(1, 3)) Assert.Equal(1, visibleText.Count(text => text == "Figure" + index));
+        Assert.Contains(pdf.Pages[0].GetTextSpans(), span => span.Text == "Following sibling");
+    }
+
     [Fact]
     public void HtmlFlexRow_DoesNotBreakNestedFixedHeightOverflowImage() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));

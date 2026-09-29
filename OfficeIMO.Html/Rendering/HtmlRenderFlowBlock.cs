@@ -266,7 +266,8 @@ internal sealed class HtmlRenderFlowBlock {
             pagedPaintExtent: PagedPaintExtent);
     }
 
-    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null) =>
+    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null,
+        double pagedBreakTranslation = 0D) =>
         new HtmlRenderFlowBlock(
             Width,
             Height,
@@ -275,8 +276,13 @@ internal sealed class HtmlRenderFlowBlock {
             BreakAfter,
             AvoidBreakInside,
             Source,
-            BreakOffsets,
-            lineBreakGroups: LineBreakGroups,
+            pagedBreakTranslation > 0D
+                ? BreakOffsets.Select(offset => offset > 0.0001D ? offset + pagedBreakTranslation : offset)
+                    .Concat(new[] { pagedBreakTranslation })
+                : BreakOffsets,
+            lineBreakGroups: pagedBreakTranslation > 0D
+                ? LineBreakGroups.Select(group => group.Translate(pagedBreakTranslation))
+                : LineBreakGroups,
             continuationGroups: ContinuationGroups,
             trailingGroups: TrailingGroups,
             pageName: PageName,
@@ -298,7 +304,9 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges,
+            avoidBreakRanges: pagedBreakTranslation > 0D
+                ? AvoidBreakRanges.Select(range => range.Translate(pagedBreakTranslation))
+                : AvoidBreakRanges,
             pagedPaintExtent: pagedPaintExtent ?? PagedPaintExtent);
 
     internal HtmlRenderFlowBlock ForPagination() {

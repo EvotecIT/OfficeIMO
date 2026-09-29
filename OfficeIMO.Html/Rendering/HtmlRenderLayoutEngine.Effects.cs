@@ -109,7 +109,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             effectVisuals,
             0,
             source);
-        return block.WithVisuals(new[] { group });
+        // A visible fixed-height box keeps its CSS flow height, but translated
+        // overflowing children still need pages on which they can be painted.
+        double pagedPaintExtent = block.PagedPaintExtent;
+        double pagedBreakTranslation = 0D;
+        if (_options.Mode == HtmlRenderMode.Paged && block.PagedPaintExtent > block.Height + 0.0001D
+            && TryGetVerticalPaintTranslation(transform, out double translation) && translation > 0D) {
+            pagedPaintExtent = Math.Max(pagedPaintExtent, MaximumScrollBottom(new[] { group }));
+            pagedBreakTranslation = translation;
+        }
+        return block.WithVisuals(new[] { group }, pagedPaintExtent, pagedBreakTranslation);
     }
 
     private IReadOnlyList<HtmlRenderVisual> ReplaceDescendantFormFieldsForPaintEffect(
