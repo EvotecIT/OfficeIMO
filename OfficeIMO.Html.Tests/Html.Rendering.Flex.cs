@@ -180,6 +180,24 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_ShrinkWeightExcludesItemMargins() {
+        const string html = """
+            <div style="display:flex;width:768px">
+              <div id="article" style="flex:0 1 768px;min-width:0;margin-right:32px;height:20px;background:#ff0000"></div>
+              <div id="figure" style="flex:0 1 400px;min-width:0;height:20px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 768D);
+
+        HtmlRenderShape article = FindFlexShape(rendered, "div#article");
+        HtmlRenderShape figure = FindFlexShape(rendered, "div#figure");
+        Assert.Equal(768D - 432D * 768D / 1168D, article.Width, 3);
+        Assert.Equal(400D - 432D * 400D / 1168D, figure.Width, 3);
+        Assert.Equal(article.X + article.Width + 32D, figure.X, 2);
+    }
+
+    [Fact]
     public void HtmlFlexRow_PercentageWidthImageUsesIntrinsicMaximumAndFlexibleMinimum() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(250, 100));
         string html = "<style>body:not(.reference-template-default) .row{display:flex;gap:80px}</style><div class='row' style='width:600px'>"

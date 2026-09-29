@@ -522,7 +522,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         var unfrozen = new HashSet<FlexItem>(items);
         foreach (FlexItem item in items) {
             item.MainSize = ClampFlexMainSize(item, item.Basis, vertical);
-            double factor = growing ? item.Style.FlexGrow : item.Style.FlexShrink * item.Basis;
+            double factor = growing ? item.Style.FlexGrow : ResolveScaledShrinkFactor(item, vertical);
             bool constrainedAgainstGrowth = growing && item.MainSize + 0.0001D < item.Basis;
             bool constrainedAgainstShrink = shrinking && item.MainSize > item.Basis + 0.0001D;
             if (!growing && !shrinking || factor <= 0D || constrainedAgainstGrowth || constrainedAgainstShrink) {
@@ -538,14 +538,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (maximumFactor <= 0D || double.IsNaN(maximumFactor) || double.IsInfinity(maximumFactor)) break;
             double factorTotal = unfrozen.Sum(item => {
                 double normalized = (growing ? item.Style.FlexGrow : item.Style.FlexShrink) / maximumFactor;
-                return growing ? normalized : normalized * item.Basis;
+                return growing ? normalized : normalized * ResolveFlexBaseSizeWithoutMargins(item, vertical);
             });
             if (factorTotal <= 0D) break;
 
             var newlyFrozen = new List<FlexItem>();
             foreach (FlexItem item in unfrozen) {
                 double normalized = (growing ? item.Style.FlexGrow : item.Style.FlexShrink) / maximumFactor;
-                double factor = growing ? normalized : normalized * item.Basis;
+                double factor = growing ? normalized : normalized * ResolveFlexBaseSizeWithoutMargins(item, vertical);
                 double proposed = item.Basis + remaining * factor / factorTotal;
                 if (double.IsNaN(proposed) || double.IsInfinity(proposed)) proposed = item.Basis;
                 double clamped = ClampFlexMainSize(item, proposed, vertical);
@@ -557,6 +557,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             foreach (FlexItem item in newlyFrozen) unfrozen.Remove(item);
         }
     }
+
+    private static double ResolveScaledShrinkFactor(FlexItem item, bool vertical) =>
+        item.Style.FlexShrink * ResolveFlexBaseSizeWithoutMargins(item, vertical);
+
+    private static double ResolveFlexBaseSizeWithoutMargins(FlexItem item, bool vertical) =>
+        Math.Max(0D, item.Basis - (vertical
+            ? item.Style.MarginTop + item.Style.MarginBottom
+            : item.Style.MarginLeft + item.Style.MarginRight));
 
     private static double ClampFlexMainSize(FlexItem item, double value, bool vertical) {
         HtmlRenderBoxStyle style = item.Style;
