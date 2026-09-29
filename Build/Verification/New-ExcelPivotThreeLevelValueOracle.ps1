@@ -7,6 +7,7 @@ param(
     [ValidateSet('top1', 'top2', 'bottom1', 'greater15', 'between15and30',
         'mixed-row-greater50', 'mixed-row-between45and65', 'mixed-row-top1', 'mixed-row-top1-tie', 'mixed-row-bottom1',
         'mixed-column-bottom1', 'mixed-column-greater85', 'mixed-column-top1',
+        'mixed-row-top1-error', 'mixed-column-top1-error',
         'mixed-row-top1-column-bottom1', 'mixed-column-bottom1-row-top1')]
     [string] $Kind = 'top1',
     [string] $OutputDirectory
@@ -71,10 +72,15 @@ try {
         )
     }
     if ($Kind -eq 'mixed-row-top1-tie') { $rows[0][3] = 15.0 }
+    if ($Kind -in @('mixed-row-top1-error', 'mixed-column-top1-error')) { $rows[3][3] = '=1/0' }
     for ($row = 0; $row -lt $rows.Count; $row++) {
         for ($column = 0; $column -lt 4; $column++) {
             if ($column -eq 3) {
-                $source.Cells.Item($row + 2, $column + 1).Value2 = [double]$rows[$row][$column]
+                if ($rows[$row][$column] -is [string]) {
+                    $source.Cells.Item($row + 2, $column + 1).Formula = [string]$rows[$row][$column]
+                } else {
+                    $source.Cells.Item($row + 2, $column + 1).Value2 = [double]$rows[$row][$column]
+                }
             } else {
                 $source.Cells.Item($row + 2, $column + 1).Value2 = [string]$rows[$row][$column]
             }
@@ -112,6 +118,8 @@ try {
         'mixed-column-bottom1' { @{ Type = 2; First = 1.0; Grand = 85.0; Field = 'Channel' } }
         'mixed-column-greater85' { @{ Type = 9; First = 85.0; Grand = 180.0; Field = 'Channel' } }
         'mixed-column-top1' { @{ Type = 1; First = 1.0; Grand = 180.0; Field = 'Channel' } }
+        'mixed-row-top1-error' { @{ Type = 1; First = 1.0; Grand = 155.0; Field = 'Product' } }
+        'mixed-column-top1-error' { @{ Type = 1; First = 1.0; Grand = 90.0; Field = 'Channel' } }
         'mixed-row-top1-column-bottom1' { @{ Grand = 35.0 } }
         'mixed-column-bottom1-row-top1' { @{ Grand = 65.0 } }
     }
@@ -161,10 +169,12 @@ try {
         regeneration = 'Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1'
         file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
         sourceRange = "Source!A1:D$lastSourceRow"
-        filteredField = if ($rules.Count -eq 1) { $filteredField } else { 'Multiple' }
+        errorCells = if ($Kind -in @('mixed-row-top1-error', 'mixed-column-top1-error')) { 'Source!D5' } else { $null }
+        errorFormula = if ($Kind -in @('mixed-row-top1-error', 'mixed-column-top1-error')) { '=1/0' } else { $null }
+        filteredField = if (@($rules).Count -eq 1) { $filteredField } else { 'Multiple' }
         axis = if ($mixedAxes) { 'Mixed' } else { 'Row' }
-        filterType = if ($rules.Count -eq 1) { $rule.Type } else { $null }
-        threshold = if ($rules.Count -eq 1) { $rule.First } else { $null }
+        filterType = if (@($rules).Count -eq 1) { $rule.Type } else { $null }
+        threshold = if (@($rules).Count -eq 1) { $rule.First } else { $null }
         threshold2 = if ($rule.ContainsKey('Second')) { $rule.Second } else { $null }
         filters = @($rules | ForEach-Object {
             [ordered]@{ field = if ($_.ContainsKey('Field')) { $_.Field } else { 'Channel' }

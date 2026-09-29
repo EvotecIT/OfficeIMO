@@ -9,15 +9,22 @@ namespace OfficeIMO.Tests {
         [InlineData("mixed-row-between45and65", "A4:F11", "F4:K11", 13, 45d, 170d)]
         [InlineData("mixed-row-top1", "A4:F10", "F4:K10", 1, 1d, 160d)]
         [InlineData("mixed-row-top1-tie", "A4:F11", "F4:K11", 1, 1d, 225d)]
+        [InlineData("mixed-row-top1-error", "A4:F10", "F4:K10", 1, 1d, 155d)]
         [InlineData("mixed-row-bottom1", "A4:F10", "F4:K10", 2, 1d, 105d)]
         [InlineData("mixed-column-bottom1", "A4:D12", "F4:I12", 2, 1d, 85d)]
         [InlineData("mixed-column-greater85", "A4:E12", "F4:J12", 9, 85d, 180d)]
         [InlineData("mixed-column-top1", "A4:E12", "F4:J12", 1, 1d, 180d)]
+        [InlineData("mixed-column-top1-error", "A4:D12", "F4:I12", 1, 1d, 90d)]
         public void Test_PivotThreeLevelMixedValue_MatchesExcel(
             string kind, string oracleRange, string authoredRange, int filterType, double threshold, double total) {
             string file = $"pivot-value-three-level-{kind}-conformance.xlsx";
             string path = ThreeLevelPivotOraclePath(file);
             VerifyThreeLevelPivotOracle(path, oracleRange, filterType, threshold);
+            if (kind.EndsWith("-error", StringComparison.Ordinal)) {
+                using var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json")));
+                Assert.Equal("Source!D5", provenance.RootElement.GetProperty("errorCells").GetString());
+                Assert.Equal("=1/0", provenance.RootElement.GetProperty("errorFormula").GetString());
+            }
             var sourceRows = ThreeLevelTopTwoRows.ToArray();
             if (kind == "mixed-row-top1-tie") sourceRows[0] = ("East", "A", "Retail", 15d);
             using var oracle = ExcelDocumentReader.Open(path);
@@ -48,15 +55,18 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create()) {
                 var source = document.AddWorksheet("Source");
                 PopulateThreeLevelPivotSource(source, sourceRows);
+                if (kind.EndsWith("-error", StringComparison.Ordinal)) source.CellError(5, 4, "#DIV/0!");
                 ExcelPivotFilter filter = kind switch {
                     "mixed-row-greater50" => ExcelPivotFilter.ValueGreaterThan("Product", "Metric", 50d),
                     "mixed-row-between45and65" => ExcelPivotFilter.ValueBetween("Product", "Metric", 45d, 65d),
                     "mixed-row-top1" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
                     "mixed-row-top1-tie" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
+                    "mixed-row-top1-error" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
                     "mixed-row-bottom1" => ExcelPivotFilter.BottomCount("Product", "Metric", 1),
                     "mixed-column-bottom1" => ExcelPivotFilter.BottomCount("Channel", "Metric", 1),
                     "mixed-column-greater85" => ExcelPivotFilter.ValueGreaterThan("Channel", "Metric", 85d),
                     "mixed-column-top1" => ExcelPivotFilter.TopCount("Channel", "Metric", 1),
+                    "mixed-column-top1-error" => ExcelPivotFilter.TopCount("Channel", "Metric", 1),
                     _ => throw new ArgumentOutOfRangeException(nameof(kind))
                 };
                 source.Pivot("A1:D13").Rows("Region", "Product").Columns("Channel")
