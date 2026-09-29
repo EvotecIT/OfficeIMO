@@ -230,6 +230,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(line => new HtmlInlineBreakProgress(contentY + line.CrossOffset, 0, line.Items[0].Element))
                 .ToList()
             : Array.Empty<HtmlInlineBreakProgress>();
+        // A single flex line that fits the page body should move together when
+        // the current page has too little room. Oversized lines retain their
+        // item break offsets so they can still fragment across pages.
+        IEnumerable<HtmlRenderAvoidBreakRange> lineKeepRanges = _options.Mode == HtmlRenderMode.Paged
+            && style.FlexWrap == "nowrap"
+            && lines.Count == 1
+            && lines[0].Items.All(item => item.Block!.ForcedBreaks.Count == 0)
+            && lines[0].Items.All(item => item.Element == null
+                || !ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1))
+            ? new[] { new HtmlRenderAvoidBreakRange(contentY + lines[0].CrossOffset,
+                contentY + lines[0].CrossOffset + lines[0].CrossSize) }
+            : Array.Empty<HtmlRenderAvoidBreakRange>();
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -256,7 +268,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Concat(positionedRunningStringAssignments),
                 outerHeight),
             inlineBreakProgress: continuationBreakProgress,
-            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0);
+            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
+            avoidBreakRanges: lineKeepRanges);
         if (_options.Mode == HtmlRenderMode.Paged) {
             _pagedRowFlexBlocks[element] = block;
             if (style.FlexWrap == "nowrap" && lines.Count == 1 && CanAlignPagedRowFlex(element, style, lines[0])) {
