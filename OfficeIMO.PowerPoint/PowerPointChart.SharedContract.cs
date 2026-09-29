@@ -161,17 +161,23 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private bool HasUnprojectedNativeAxisUnits(OfficeChartLayout layout) {
+            C.ValueAxis? secondaryAxis = OfficeOpenXmlChartSecondaryAxis.Resolve(GetChart().PlotArea);
             foreach (C.ValueAxis axis in GetChartPart().ChartSpace?.Descendants<C.ValueAxis>() ??
                 Enumerable.Empty<C.ValueAxis>()) {
+                bool secondary = ReferenceEquals(axis, secondaryAxis);
                 C.AxisPositionValues? position = axis.AxisPosition?.Val?.Value;
                 if (position == null && (axis.GetFirstChild<C.MajorUnit>() != null ||
                     axis.GetFirstChild<C.MinorUnit>() != null)) return true;
                 bool horizontal = position == C.AxisPositionValues.Bottom ||
                     position == C.AxisPositionValues.Top;
+                double? projectedMajor = secondary ? layout.SecondaryValueAxis?.MajorUnit :
+                    horizontal ? layout.HorizontalAxisMajorUnit : layout.VerticalAxisMajorUnit;
+                double? projectedMinor = secondary ? layout.SecondaryValueAxis?.MinorUnit :
+                    horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit;
                 if (axis.GetFirstChild<C.MajorUnit>()?.Val?.Value is double major &&
-                    major != (horizontal ? layout.HorizontalAxisMajorUnit : layout.VerticalAxisMajorUnit) ||
+                    major != projectedMajor ||
                     axis.GetFirstChild<C.MinorUnit>()?.Val?.Value is double minor &&
-                    minor != (horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit)) return true;
+                    minor != projectedMinor) return true;
             }
             return false;
         }

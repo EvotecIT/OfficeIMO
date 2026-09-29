@@ -339,7 +339,9 @@ namespace OfficeIMO.Word.Html {
                             } else if (!options.EmbedImagesAsBase64) {
                                 src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                             } else {
-                                var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
+                                var mime = string.IsNullOrWhiteSpace(imgObj.ContentType)
+                                    ? MimeFromFileName(imgObj.FileName ?? string.Empty)
+                                    : imgObj.ContentType;
                                 var bytes = ReadEmbeddedImageBytes(imgObj, imgObj.FileName ?? "image", mime);
                                 src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                             }

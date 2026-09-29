@@ -391,7 +391,23 @@ public static partial class OfficeChartDrawingRenderer {
         bool hasSecondary = snapshot.Data.Series.Any(series => series.AxisGroup == OfficeChartAxisGroup.Secondary);
         ValueRange primary = GetPrimaryValueAxisRange(snapshot, layout, barChart, hasSecondary);
         if (ExceedsAxisUnitBudget(primary, GetValueAxisMajorUnit(layout, barChart), 32) ||
-            ExceedsAxisUnitBudget(primary, GetValueAxisMinorUnit(layout, barChart), 96)) return true;
+            ExceedsMinorAxisUnitBudget(primary, GetValueAxisMajorUnit(layout, barChart),
+                GetValueAxisMinorUnit(layout, barChart), barChart
+                    ? layout.HorizontalAxisMinorTickMark != OfficeChartAxisTickMark.None
+                    : layout.VerticalAxisMinorTickMark != OfficeChartAxisTickMark.None)) return true;
+        if (hasSecondary && layout.SecondaryValueAxis is OfficeChartValueAxisLayout secondary) {
+            var secondaryLayout = new OfficeChartLayout(
+                horizontalAxisMinimum: secondary.Minimum, horizontalAxisMaximum: secondary.Maximum,
+                verticalAxisMinimum: secondary.Minimum, verticalAxisMaximum: secondary.Maximum);
+            ValueRange secondaryRange = ApplyValueAxisScale(
+                GetMixedCartesianValueRange(snapshot, OfficeChartAxisGroup.Secondary),
+                secondaryLayout, horizontal: barChart);
+            if (ExceedsAxisUnitBudget(secondaryRange, secondary.MajorUnit, 32) ||
+                ExceedsMinorAxisUnitBudget(secondaryRange, secondary.MajorUnit,
+                    secondary.MinorUnit, (secondary.MinorTickMark ?? layout.VerticalAxisMinorTickMark) !=
+                        OfficeChartAxisTickMark.None || (secondary.MinorTickMark ?? layout.HorizontalAxisMinorTickMark) !=
+                        OfficeChartAxisTickMark.None)) return true;
+        }
         if (!IsScatterChart(snapshot.ChartKind)) return false;
         IReadOnlyList<double> sharedX = GetScatterXValues(snapshot.Data.Categories);
         List<OfficeChartSeries> series = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
@@ -406,6 +422,13 @@ public static partial class OfficeChartDrawingRenderer {
         double intervals = (range.Max - range.Min) / unit.Value;
         return double.IsNaN(intervals) || double.IsInfinity(intervals) ||
             intervals < 1D || intervals >= maximumTicks;
+    }
+
+    private static bool ExceedsMinorAxisUnitBudget(ValueRange range, double? majorUnit,
+        double? minorUnit, bool automaticWhenVisible) {
+        if (!minorUnit.HasValue && automaticWhenVisible)
+            minorUnit = (majorUnit ?? (range.Max - range.Min) / 4D) / 5D;
+        return ExceedsAxisUnitBudget(range, minorUnit, 96);
     }
 
     private static IReadOnlyList<double> GetValueAxisMajorTicks(ValueRange range, double? majorUnit) {
