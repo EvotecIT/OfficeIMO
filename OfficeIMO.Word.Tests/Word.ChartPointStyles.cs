@@ -5,12 +5,29 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartPointStylesTests {
+    [Fact]
+    public void PointStyles_RejectConflictingDirectAndMarkerShapeOwners() {
+        using WordDocument document = WordDocument.Create();
+        WordChart chart = document.AddChart(OfficeChartKind.Line,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Measured", new[] { 2d, 3d }) }));
+        C.LineChartSeries native = chart.ChartPart!.ChartSpace!.Descendants<C.LineChartSeries>().Single();
+        var point = new C.DataPoint(new C.Index { Val = 0 });
+        point.AddChild(new C.Marker(new C.ChartShapeProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = "0000FF" }))), true);
+        point.AddChild(new C.ChartShapeProperties(
+            new A.SolidFill(new A.RgbColorModelHex { Val = "FF0000" })), true);
+        native.AddChild(point, true);
+        Assert.False(chart.TryGetSnapshot(out _));
+    }
+
     [Fact]
     public void PointStyles_RejectUnprojectedNativeShapeAttributes() {
         using WordDocument document = WordDocument.Create();

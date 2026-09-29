@@ -1220,7 +1220,6 @@ public static partial class OfficeChartDrawingRenderer {
         var plotBounds = new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight);
         OfficeDrawing geometry = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         OfficeDrawing labels = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
-        double step = plotWidth / (categories.Count - 1);
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var stackedSeriesByKind = areaSeries
@@ -1261,7 +1260,7 @@ public static partial class OfficeChartDrawingRenderer {
                     : 0D;
                 double topValue = baseline + rawValue;
 
-                double x = GetCategoryPointX(plotLeft, step, i, categories.Count, layout);
+                double x = GetCartesianCategoryPointX(snapshot, plotLeft, plotWidth, i, categories.Count, layout);
                 topPoints.Add(new OfficePoint(x, clipPlot
                     ? topValue
                     : ToPlotY(topValue, range.Min, range.Max, plotTop, plotHeight)));
@@ -1375,7 +1374,6 @@ public static partial class OfficeChartDrawingRenderer {
         var plotBounds = new ChartPlotBounds(plotLeft, plotTop, plotWidth, plotHeight);
         OfficeDrawing geometry = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
         OfficeDrawing labels = clipPlot ? new OfficeDrawing(drawing.Width, drawing.Height) : drawing;
-        double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var stackedSeriesByKind = lineSeries
@@ -1406,7 +1404,7 @@ public static partial class OfficeChartDrawingRenderer {
                     : 0D;
                 double plottedValue = currentStacked ? baseline + rawValue : value;
 
-                points[i] = new OfficePoint(GetCategoryPointX(plotLeft, step, i, categories.Count, layout),
+                points[i] = new OfficePoint(GetCartesianCategoryPointX(snapshot, plotLeft, plotWidth, i, categories.Count, layout),
                     clipPlot ? plottedValue
                         : ToPlotY(plottedValue, range.Min, range.Max, plotTop, plotHeight));
                 plotted[i] = true;

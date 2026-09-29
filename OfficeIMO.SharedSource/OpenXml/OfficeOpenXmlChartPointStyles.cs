@@ -75,7 +75,8 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (pointMarker != null && (pointMarker.HasAttributes ||
                 pointMarker.ChildElements.Any(child => child is not C.ChartShapeProperties) ||
                 pointMarker.ChartShapeProperties != null &&
-                point.GetFirstChild<C.ChartShapeProperties>()?.HasChildren == true))
+                point.GetFirstChild<C.ChartShapeProperties>() is C.ChartShapeProperties direct &&
+                (direct.HasChildren || direct.HasAttributes)))
                 throw new System.IO.InvalidDataException("The native point marker has an unprojected appearance.");
             C.ChartShapeProperties? properties = pointMarker?.ChartShapeProperties ??
                 point.GetFirstChild<C.ChartShapeProperties>();
