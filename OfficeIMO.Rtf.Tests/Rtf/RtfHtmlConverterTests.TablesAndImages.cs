@@ -1,5 +1,6 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Html;
+using OfficeIMO.Drawing;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
@@ -338,6 +339,30 @@ public partial class RtfHtmlConverterTests {
         Assert.Equal(48, roundTripImage.SourceHeight);
         Assert.Equal(2400, roundTripImage.DesiredWidthTwips);
         Assert.Equal(1200, roundTripImage.DesiredHeightTwips);
+    }
+
+    [Fact]
+    public void Html_ToRtfDocument_Fits_Unstyled_Large_Image_Within_Page_Text_Area() {
+        byte[] photo = OfficePngWriter.Encode(new OfficeRasterImage(960, 640, OfficeColor.White));
+        byte[] icon = OfficePngWriter.Encode(new OfficeRasterImage(16, 11, OfficeColor.White));
+        string html = "<p><img src=\"data:image/png;base64," + Convert.ToBase64String(photo)
+            + "\" alt=\"Photo\"></p><p><img src=\"data:image/png;base64," + Convert.ToBase64String(icon)
+            + "\" alt=\"Icon\"></p>";
+
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        RtfImage large = Assert.Single(result.RequireValue().Paragraphs[0].Inlines.OfType<RtfImage>());
+        RtfImage small = Assert.Single(result.RequireValue().Paragraphs[1].Inlines.OfType<RtfImage>());
+
+        Assert.Equal(960, large.SourceWidth);
+        Assert.Equal(640, large.SourceHeight);
+        Assert.Equal(9000, large.DesiredWidthTwips);
+        Assert.Equal(6000, large.DesiredHeightTwips);
+        Assert.Null(small.DesiredWidthTwips);
+        Assert.Null(small.DesiredHeightTwips);
+        Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "HtmlRtfImageFittedToPage");
+        RtfImage reopened = Assert.IsType<RtfImage>(RtfDocument.Read(result.RequireValue().ToRtf()).Document.Blocks[0]);
+        Assert.Equal(large.DesiredWidthTwips, reopened.DesiredWidthTwips);
+        Assert.Equal(large.DesiredHeightTwips, reopened.DesiredHeightTwips);
     }
 
     [Fact]
