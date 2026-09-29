@@ -1,9 +1,55 @@
+using OfficeIMO.Drawing;
 using OfficeIMO.Html;
+using OfficeIMO.TestAssets;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void HtmlInlineFlex_MaxContentWidthFitsTextMeasuredByTokens() {
+        const string labelText = "Page Last Updated:";
+        const string html = """
+            <style>
+              body { margin: 0; font-size: 16px; }
+              li { display: inline-flex; font-family: 'OfficeIMO Shaping Test'; font-size: .9rem; }
+              #label { padding-right: 8px; }
+            </style>
+            <li><div id="label">Page Last Updated:</div><div>Jan 28, 2026</div></li>
+            """;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 768D,
+            Margins = HtmlRenderMargins.All(0D),
+            TextShapingProvider = new IntrinsicWidthShaper()
+        };
+        options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
+            ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((labelText + "Jan 28, 2026")
+                .Distinct().Select(character => (int)character).ToArray()));
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderText[] label = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+            .Where(text => text.Text.Contains("Page", StringComparison.Ordinal)
+                || text.Text.Contains("Updated", StringComparison.Ordinal))
+            .ToArray();
+        Assert.NotEmpty(label);
+        Assert.Single(label.Select(text => Math.Round(text.Y, 3)).Distinct());
+    }
+
+    private sealed class IntrinsicWidthShaper : IOfficeTextShapingProvider {
+        public OfficeTextShapingResult ShapeText(OfficeTextShapingRequest request) {
+            var glyphs = new List<OfficeShapedGlyph>();
+            int index = 0;
+            bool first = true;
+            foreach (string element in OfficeTextElements.Enumerate(request.Text)) {
+                int advance = first && request.Text.Trim().Contains(' ') ? 490 : 500;
+                glyphs.Add(new OfficeShapedGlyph(1, element, index, advance));
+                first = false;
+                index += element.Length;
+            }
+            return new OfficeTextShapingResult(glyphs);
+        }
+    }
+
     [Fact]
     public void HtmlFlexRow_InlineBlockPaddingContributesToNestedIntrinsicWidth() {
         HtmlRenderDocument rendered = RenderFlex("""

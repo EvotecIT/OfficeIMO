@@ -438,9 +438,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 ? run.ReplacedWidth
                 : run.Text.IndexOf('\t') >= 0
                     ? MeasureTabExpandedText(run.Text, run.Style, current)
-                    : MeasureInlineText(run.Text, run.Style);
+                    : MeasureMaxContentTextRun(run);
         }
         return Math.Max(maximum, current);
+    }
+
+    private double MeasureMaxContentTextRun(GridIntrinsicTextRun run) {
+        double fullWidth = MeasureInlineText(run.Text, run.Style);
+        if (!run.Text.Any(char.IsWhiteSpace)) return fullWidth;
+
+        // Inline layout measures separate words and spaces. Some font shapers
+        // return a slightly smaller width for the whole string, which can make
+        // an auto-sized flex/grid item wrap despite using its max-content width.
+        double inlineWidth = 0D;
+        foreach (string token in Tokenize(run.Text, run.Style.PreserveWhitespace, run.Style.BreakSpaces)) {
+            inlineWidth += MeasureInlineText(!run.Style.PreserveWhitespace && IsWhitespaceToken(token) ? " " : token, run.Style);
+        }
+        return Math.Max(fullWidth, inlineWidth);
     }
 
     private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1, bool skipSizedNestedTables = false, bool includeDescendantInsets = false) {
