@@ -55,6 +55,7 @@ February 29 and maps to February 28 when read as `DateTime`. Modern dates and
 the 1904 date system keep their existing serials. Negative serials in the 1900
 system extend the December 31, 1899 epoch backwards, including fractional days;
 they no longer use OLE Automation's negative-fraction convention.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds
