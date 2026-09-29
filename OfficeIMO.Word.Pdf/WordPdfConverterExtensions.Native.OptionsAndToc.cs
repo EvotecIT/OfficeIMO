@@ -809,7 +809,7 @@ namespace OfficeIMO.Word.Pdf {
                 return EstimateNativeLineCount(text, contentWidth, headingSize) * headingSize * 1.25D + 8D;
             }
 
-            double fontSize = paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0 ? paragraph.FontSize.Value : 11D;
+            double fontSize = paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0 ? paragraph.FontSizePoints.Value : 11D;
             double height = EstimateNativeLineCount(text, contentWidth, fontSize) * fontSize * NativeDefaultParagraphLineHeight + NativeDefaultParagraphSpacingAfter;
             NativeParagraphBorders borders = GetNativeEffectiveParagraphBorders(paragraph);
             if (!string.IsNullOrWhiteSpace(GetNativeEffectiveParagraphShadingFill(paragraph)) ||

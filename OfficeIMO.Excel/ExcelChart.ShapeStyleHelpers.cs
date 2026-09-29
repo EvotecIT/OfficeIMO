@@ -15,6 +15,7 @@ namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
         private static void ApplyGridlines(OpenXmlCompositeElement axis, bool showMajor, bool showMinor,
             string? lineColor, double? lineWidthPoints) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
             if (showMajor) {
                 C.MajorGridlines major = axis.GetFirstChild<C.MajorGridlines>() ?? new C.MajorGridlines();
                 ApplyGridlineStyle(major, lineColor, lineWidthPoints);
@@ -39,6 +40,7 @@ namespace OfficeIMO.Excel {
         private static void ApplyTrendline(OpenXmlCompositeElement series, OfficeChartTrendlineType type, int? order, int? period,
             double? forward, double? backward, double? intercept, bool displayEquation, bool displayRSquared,
             string? lineColor, double? lineWidthPoints) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
             if (!IsTrendlineSupportedSeries(series)) {
                 throw new InvalidOperationException("Trendlines are only supported for line, bar/column, area, scatter, and bubble series.");
             }
@@ -349,6 +351,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyLine(OpenXmlCompositeElement props, string color, double? widthPoints) {
+            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             RemoveShapeFillChoices(outline);
             outline.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = color }));
@@ -362,6 +365,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyOptionalLine(OpenXmlCompositeElement props, string? color, double? widthPoints) {
+            OfficeChartStyleBounds.ValidateLineWidth(widthPoints, nameof(widthPoints), allowZero: true);
             A.Outline outline = props.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (color != null) {
                 RemoveShapeFillChoices(outline);
@@ -376,6 +380,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyMarker(C.Marker marker, OfficeChartMarkerShape style, int? size, string? fillColor, string? lineColor, double? lineWidthPoints) {
+            OfficeChartStyleBounds.ValidateLineWidth(lineWidthPoints, nameof(lineWidthPoints), allowZero: true);
+            if (size is < 2 or > 72) throw new ArgumentOutOfRangeException(nameof(size), "Native marker sizes must be between 2 and 72.");
             marker.Symbol = new C.Symbol { Val = style.ToOpenXml() };
             if (size != null) {
                 marker.Size = new C.Size { Val = (byte)size.Value };

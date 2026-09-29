@@ -105,7 +105,7 @@ namespace OfficeIMO.Excel {
 
             OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(
                 officeSnapshot,
-                useMinimumCanvas: false);
+                useMinimumCanvas: false, diagnostics);
             drawing.Fonts.AddRange(options.Fonts);
             string source = _sheetName + "!" + snapshot.Name;
             drawing.AppendFontDiagnostics(diagnostics, source);

@@ -469,32 +469,7 @@ public static partial class PowerPointHtmlConverterExtensions {
         }
 
         try {
-            var series = snapshot.Data.Series
-                .Select(item => item.BubbleSizes != null
-                    ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
-                        item.BubbleSizes, item.Color, item.PointColors,
-                        showInLegend: item.ShowInLegend,
-                        markerOutlineColor: item.StrokeColor ?? item.Color,
-                        markerOutlineWidth: item.StrokeWidth,
-                        showMarkerOutline: item.ShowStroke)
-                    : new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color,
-                        pointColors: null, showMarkers: true,
-                        showInLegend: item.ShowInLegend, strokeWidth: item.StrokeWidth,
-                        renderKind: item.ChartKind.HasValue ? MapChartKind(item.ChartKind.Value) : null,
-                        axisGroup: item.AxisGroup))
-                .ToList();
-            var data = new OfficeChartData(snapshot.Data.Categories, series);
-            officeSnapshot = new OfficeChartSnapshot(
-                snapshot.Name,
-                snapshot.Title,
-                MapChartKind(snapshot.ChartKind),
-                data,
-                Math.Max(1D, width),
-                Math.Max(1D, height),
-                style: null,
-                layout: snapshot.Layout,
-                bubbleScalePercent: snapshot.BubbleScalePercent,
-                bubbleSizeMode: snapshot.BubbleSizeMode);
+            officeSnapshot = PptCore.PowerPointChartSnapshotMapper.ToOfficeSnapshot(snapshot, Math.Max(1D, width), Math.Max(1D, height));
             return true;
         } catch (Exception ex) {
             warning = "Chart snapshot could not be mapped to the shared Drawing chart model: " + ex.Message;
@@ -574,6 +549,9 @@ public static partial class PowerPointHtmlConverterExtensions {
         StringBuilder body, PptCore.PowerPointChartSnapshot snapshot) {
         PptCore.PowerPointChartData data = snapshot.Data;
         body.Append("<table class=\"officeimo-chart-data\"");
+        if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Pie || snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Doughnut) {
+            OfficeHtmlChartRadialLayout.AppendAttributes(body, snapshot.RadialLayout);
+        }
         if (snapshot.ChartKind == PptCore.PowerPointChartSnapshotKind.Bubble) {
             body.Append(" data-officeimo-bubble-scale=\"")
                 .Append(snapshot.BubbleScalePercent.ToString("G17", CultureInfo.InvariantCulture))
@@ -629,6 +607,9 @@ public static partial class PowerPointHtmlConverterExtensions {
                 .Append("</th>");
             for (int i = 0; i < series.Values.Count; i++) {
                 body.Append("<td");
+                PowerPointHtmlChartPointStyleCodec.Write(body, series.PointStyles != null && i < series.PointStyles.Count ? series.PointStyles[i] : null);
+                if (series.BubbleSizes == null && series.PointColors != null && i < series.PointColors.Count && series.PointColors[i].HasValue)
+                    body.Append(" data-officeimo-point-color=\"").Append(OfficeHtmlText.EscapeAttribute(series.PointColors[i]!.Value.ToString())).Append('"');
                 if (series.XValues != null && i < series.XValues.Count) {
                     body.Append(" data-officeimo-x=\"")
                         .Append(OfficeHtmlText.EscapeAttribute(series.XValues[i].ToString("G17", CultureInfo.InvariantCulture)))

@@ -75,6 +75,7 @@ Each named profile uses the shared responsive OfficeIMO document shell and accep
 
 - HTML headings, paragraphs, inline formatting, links, images, SVG, lists, tables, captions, form controls, notes, headers, footers, and sections into Word content where supported.
 - Word document metadata, paragraph/run styles, lists, tables, images, SVG, footnotes, endnotes, disabled form controls, comments, headers, footers, and optional CSS back to HTML.
+- Supported Word charts as static SVG images using the shared Drawing projection, including pie/doughnut point styles, bubbles, and supported combinations. Generated chart images are embedded in the HTML, including when `EmbedImagesAsBase64` is false for source images. `WordChartRenderedAsImage` reports the loss of native editability; unprojectable charts report `WordChartOmitted`. Chart images share the per-image, aggregate image-byte, and HTML output-character limits.
 - Stylesheets, inline CSS, local/remote resources, image policies, resource limits, and diagnostics through explicit options.
 - Document language metadata between HTML `lang` and Word settings.
 

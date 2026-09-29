@@ -625,6 +625,17 @@ public sealed class PackageDependencyGuardrailTests {
             .OrderBy(static path => path, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
+        // Native chart codecs are one approved internal owner, split by semantic
+        // responsibility. Their implementation files must never expose public types.
+        string[] chartFiles = files.Where(static path => path.StartsWith(
+            "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlChart", StringComparison.Ordinal)).ToArray();
+        foreach (string path in chartFiles) {
+            string source = File.ReadAllText(GetRepositoryPath(path));
+            Assert.Contains("namespace OfficeIMO.OpenXml.Internal", source, StringComparison.Ordinal);
+            Assert.DoesNotMatch(@"(?m)^\s*public\s+(?:(?:sealed|static|partial|abstract|readonly)\s+)*(?:class|struct|enum|interface|record)\b", source);
+        }
+        files = files.Except(chartFiles, StringComparer.Ordinal).ToArray();
+
         Assert.Equal(
             new[] {
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",

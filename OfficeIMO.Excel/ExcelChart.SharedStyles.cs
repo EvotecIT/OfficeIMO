@@ -29,20 +29,20 @@ namespace OfficeIMO.Excel {
                 changed |= ApplySeriesMarkerByChartIndex(seriesIndex, marker => ApplyMarker(
                     marker,
                     style.ShowMarkers ? MapMarkerStyle(style.MarkerShape).ToOfficeEnum() : OfficeChartMarkerShape.None,
-                    style.MarkerSize.HasValue ? System.Math.Min(72, style.MarkerSize.Value) : (int?)null,
+                    style.MarkerSize.HasValue ? OfficeChartStyleBounds.ClampNativeMarkerSize(style.MarkerSize.Value) : (int?)null,
                     style.ShowMarkers ? style.SeriesColorArgb : null,
                     style.ShowMarkers ? style.MarkerOutlineColorArgb : null,
                     style.ShowMarkers ? style.MarkerOutlineWidth : null));
             }
 
             if (seriesLegendVisibility != null) {
-                changed |= ApplySeriesLegendVisibility(seriesLegendVisibility);
+                changed |= ApplySeriesLegendVisibility(seriesLegendVisibility, seriesStyles);
             }
 
             if (changed) Save();
         }
 
-        private bool ApplySeriesLegendVisibility(IReadOnlyList<bool> seriesLegendVisibility) {
+        private bool ApplySeriesLegendVisibility(IReadOnlyList<bool> seriesLegendVisibility, IReadOnlyList<ExcelChartSeries> seriesStyles) {
             C.Chart chart = GetChart();
             C.Legend? legend = chart.GetFirstChild<C.Legend>();
             bool hasHiddenSeries = false;
@@ -70,8 +70,10 @@ namespace OfficeIMO.Excel {
                 existing.Remove();
                 changed = true;
             }
-            for (int index = 0; index < seriesLegendVisibility.Count; index++) {
-                if (seriesLegendVisibility[index]) continue;
+            bool radial = ChartType == ExcelChartType.Pie || ChartType == ExcelChartType.Doughnut;
+            int entryCount = radial ? (seriesStyles.Count == 0 ? 0 : seriesStyles[0].Values.Count) : seriesLegendVisibility.Count;
+            for (int index = 0; index < entryCount; index++) {
+                if (radial ? !hasHiddenSeries : seriesLegendVisibility[index]) continue;
                 var entry = new C.LegendEntry(new C.Index { Val = (uint)index }, new C.Delete { Val = true });
                 OpenXmlElement? insertBefore = legend.GetFirstChild<C.Layout>();
                 insertBefore ??= legend.GetFirstChild<C.Overlay>();
@@ -84,12 +86,15 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyAuthoredSeriesStyle(OpenXmlCompositeElement series,
             ExcelChartSeries style) {
+            bool reenableLine = style.ConnectLine && (series is C.LineChartSeries || series is C.ScatterChartSeries || series is C.RadarChartSeries) &&
+                series.GetFirstChild<C.ChartShapeProperties>()?.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>() != null;
             bool hasShapeStyle = !string.IsNullOrWhiteSpace(style.SeriesColorArgb) ||
                                  style.SeriesLineWidth.HasValue || style.SeriesLineDashStyle.HasValue ||
-                                 !style.ConnectLine;
+                                 !style.ConnectLine || reenableLine;
             if (!hasShapeStyle) return;
 
             C.ChartShapeProperties properties = EnsureChartShapeProperties(series);
+            if (reenableLine) properties.GetFirstChild<A.Outline>()!.RemoveAllChildren<A.NoFill>();
             if (!string.IsNullOrWhiteSpace(style.SeriesColorArgb)) {
                 string color = NormalizeHexColor(style.SeriesColorArgb!);
                 ApplySolidFill(properties, color);

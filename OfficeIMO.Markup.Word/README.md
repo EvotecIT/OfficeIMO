@@ -36,6 +36,7 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 - Images resolved relative to the markup file when an input path is supplied.
 - Page breaks, sections, headers, footers, and table-of-contents directives.
 - Inline chart data mapped to native Word chart output.
+- `::chart type=doughnut` and `type=donut` produce native doughnut charts; `type=pie` produces a pie chart.
 
 ## Boundaries
 

@@ -192,11 +192,10 @@ public class PdfDocumentChartDrawingTests {
             new BarGrouping { Val = BarGroupingValues.Clustered },
             CreateBarSeries(0U, new[] { "Q1", "Q2" }, new[] { 1D, 2D }),
             CreateBarSeries(1U, new[] { "Q1", "Q2", "Q3", "Q4" }, new[] { 3D, 4D, 5D, 6D }));
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
 
-        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
-        var categories = (IReadOnlyList<string>)args[4]!;
+        var series = WordPdfConverterExtensions.ExtractNativeWordChartSeries(new Chart(), chart, kind,
+            new Dictionary<A.SchemeColorValues, OfficeColor>(), null, out IReadOnlyList<string> categories);
 
         Assert.Equal(2, series.Count);
         Assert.Equal(new[] { "Q1", "Q2", "Q3", "Q4" }, categories);
@@ -211,12 +210,11 @@ public class PdfDocumentChartDrawingTests {
             chart.Append(CreateBarSeries(index, new[] { "Q1" }, new[] { 1D }));
         }
 
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
 
-        TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() => method.Invoke(null, args));
+        Exception exception = Assert.ThrowsAny<Exception>(() => ExtractNativeWordChartSeries(new Chart(), chart, kind));
 
-        Assert.Contains("maximum supported series count", exception.InnerException?.Message);
+        Assert.Contains("maximum supported series count", exception.Message);
     }
 
     [Fact]
@@ -230,10 +228,9 @@ public class PdfDocumentChartDrawingTests {
             new BarDirection { Val = BarDirectionValues.Column },
             new BarGrouping { Val = BarGroupingValues.Clustered },
             barSeries);
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
 
-        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+        var series = ExtractNativeWordChartSeries(new Chart(), chart, kind);
 
         OfficeChartSeries extracted = Assert.Single(series);
         Assert.NotNull(extracted.PointColors);
@@ -248,10 +245,9 @@ public class PdfDocumentChartDrawingTests {
             new BarGrouping { Val = BarGroupingValues.Clustered },
             new VaryColors { Val = true },
             CreateBarSeries(0U, new[] { "Q1", "Q2", "Q3" }, new[] { 1D, 2D, 3D }));
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { new Chart(), chart, OfficeChartKind.ColumnClustered, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        OfficeChartKind kind = OfficeChartKind.ColumnClustered;
 
-        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+        var series = ExtractNativeWordChartSeries(new Chart(), chart, kind);
 
         OfficeChartSeries extracted = Assert.Single(series);
         Assert.NotNull(extracted.PointColors);
@@ -266,10 +262,9 @@ public class PdfDocumentChartDrawingTests {
         var hidden = CreateLineSeries(1U, new[] { "Q1", "Q2" }, new[] { 3D, 4D });
         hidden.InsertBefore(new Marker(new Symbol { Val = MarkerStyleValues.None }), hidden.GetFirstChild<CategoryAxisData>());
         var chart = new LineChart(visible, hidden);
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] args = { new Chart(), chart, OfficeChartKind.Line, new Dictionary<A.SchemeColorValues, OfficeColor>(), null };
+        OfficeChartKind kind = OfficeChartKind.Line;
 
-        var series = (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, args)!;
+        var series = ExtractNativeWordChartSeries(new Chart(), chart, kind);
 
         Assert.Equal(2, series.Count);
         Assert.True(series[0].ShowMarkers);
@@ -1768,16 +1763,8 @@ public class PdfDocumentChartDrawingTests {
     }
 
     private static IReadOnlyList<OfficeChartSeries> ExtractNativeWordChartSeries(Chart chart, OpenXmlElement chartElement, OfficeChartKind chartKind) {
-        MethodInfo method = typeof(WordPdfConverterExtensions).GetMethod("ExtractNativeWordChartSeries", BindingFlags.NonPublic | BindingFlags.Static)!;
-        object?[] arguments = {
-            chart,
-            chartElement,
-            chartKind,
-            new Dictionary<A.SchemeColorValues, OfficeColor>(),
-            null
-        };
-
-        return (IReadOnlyList<OfficeChartSeries>)method.Invoke(null, arguments)!;
+        return WordPdfConverterExtensions.ExtractNativeWordChartSeries(chart, chartElement, chartKind,
+            new Dictionary<A.SchemeColorValues, OfficeColor>(), null, out _);
     }
 
     private static OfficeChartStyle CreateNativeWordChartStyle(Chart chart, OpenXmlElement chartElement, PlotArea plotArea, OfficeChartKind chartKind, int categoryCount, int seriesCount) {

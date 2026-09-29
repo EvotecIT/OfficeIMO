@@ -473,7 +473,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append("x")
                     .Append(snapshot.HeightPixels.ToString(CultureInfo.InvariantCulture))
                     .Append("</div>");
-                AppendChartDataTable(body, snapshot.Data, snapshot.ChartType);
+                AppendChartDataTable(body, snapshot);
             } else {
                 diagnostics.Add(new HtmlDiagnostic(
                     "OfficeIMO.Excel.Html",
@@ -491,8 +491,13 @@ public static partial class ExcelHtmlConverterExtensions {
         body.Append("</ul></section>");
     }
 
-    private static void AppendChartDataTable(StringBuilder body, ExcelChartData data, ExcelChartType defaultChartType) {
-        body.Append("<table class=\"officeimo-chart-data\"><thead><tr><th>Series</th>");
+    private static void AppendChartDataTable(StringBuilder body, ExcelChartSnapshot snapshot) {
+        ExcelChartData data = snapshot.Data;
+        ExcelChartType defaultChartType = snapshot.ChartType;
+        body.Append("<table class=\"officeimo-chart-data\"");
+        if (defaultChartType == ExcelChartType.Pie || defaultChartType == ExcelChartType.Doughnut)
+            OfficeHtmlChartRadialLayout.AppendAttributes(body, snapshot.RadialLayout);
+        body.Append("><thead><tr><th>Series</th>");
         foreach (string category in data.Categories) {
             body.Append("<th>")
                 .Append(OfficeHtmlText.Escape(category))

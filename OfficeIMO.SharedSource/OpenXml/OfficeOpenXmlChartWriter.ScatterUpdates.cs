@@ -1,0 +1,77 @@
+using System;
+using OfficeIMO.Drawing;
+using System.Collections.Generic;
+using System.Linq;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
+
+namespace OfficeIMO.OpenXml.Internal {
+    internal static partial class OfficeOpenXmlChartWriter {
+        private static void UpdateScatterChartLayers(C.PlotArea plotArea,
+            IReadOnlyList<C.ScatterChart> scatterCharts, OfficeChartData data) {
+            int seriesOffset = 0;
+            for (int layerIndex = 0; layerIndex < scatterCharts.Count; layerIndex++) {
+                C.ScatterChart scatterChart = scatterCharts[layerIndex];
+                int remainingSeries = data.Series.Count - seriesOffset;
+                if (remainingSeries <= 0) {
+                    scatterChart.Remove();
+                    continue;
+                }
+
+                int currentLayerSize = Math.Max(1, scatterChart.Elements<C.ScatterChartSeries>().Count());
+                int reservedForLaterLayers = Math.Min(scatterCharts.Count - layerIndex - 1, remainingSeries - 1);
+                int seriesCount = layerIndex == scatterCharts.Count - 1
+                    ? remainingSeries
+                    : Math.Min(currentLayerSize, remainingSeries - reservedForLaterLayers);
+                C.ScatterStyle style = scatterChart.GetFirstChild<C.ScatterStyle>() ?? new C.ScatterStyle();
+                style.Val = style.Val?.Value == C.ScatterStyleValues.Smooth || style.Val?.Value == C.ScatterStyleValues.SmoothMarker
+                    ? C.ScatterStyleValues.SmoothMarker : C.ScatterStyleValues.LineMarker;
+                if (style.Parent == null) scatterChart.AddChild(style, true);
+                UpdateScatterChartSeries(scatterChart, data, seriesOffset, seriesCount);
+                seriesOffset += seriesCount;
+            }
+
+            RemoveUnusedScatterAxes(plotArea);
+        }
+
+        private static void UpdateScatterChartSeries(C.ScatterChart scatterChart,
+            OfficeChartData data, int seriesOffset, int seriesCount) {
+            List<C.ScatterChartSeries> existingSeries = scatterChart.Elements<C.ScatterChartSeries>().ToList();
+            C.ScatterChartSeries? template = existingSeries.LastOrDefault();
+
+            for (int localIndex = 0; localIndex < seriesCount; localIndex++) {
+                C.ScatterChartSeries seriesElement;
+                if (localIndex < existingSeries.Count) {
+                    seriesElement = existingSeries[localIndex];
+                } else {
+                    seriesElement = template != null
+                        ? (C.ScatterChartSeries)template.CloneNode(true)
+                        : new C.ScatterChartSeries();
+                    ClearAddedSeriesMetadata(seriesElement);
+                    InsertSeries(scatterChart, seriesElement);
+                    existingSeries.Add(seriesElement);
+                }
+
+                int seriesIndex = seriesOffset + localIndex;
+                UpdateSeriesIndexOrder(seriesElement, seriesIndex);
+                UpdateScatterSeriesText(seriesElement, seriesIndex, data.Series[seriesIndex].Name);
+                UpdateXValues(seriesElement, seriesIndex, data.Series[seriesIndex].XValues!);
+                UpdateYValues(seriesElement, seriesIndex, data.Series[seriesIndex].Values);
+            }
+
+            for (int localIndex = existingSeries.Count - 1; localIndex >= seriesCount; localIndex--) {
+                existingSeries[localIndex].Remove();
+            }
+        }
+
+        private static void RemoveUnusedScatterAxes(C.PlotArea plotArea) {
+            var usedAxisIds = new HashSet<uint>(plotArea.Elements<C.ScatterChart>()
+                .SelectMany(chart => chart.Elements<C.AxisId>())
+                .Where(axis => axis.Val?.Value != null)
+                .Select(axis => axis.Val!.Value));
+            foreach (C.ValueAxis axis in plotArea.Elements<C.ValueAxis>().ToList()) {
+                uint? axisId = axis.AxisId?.Val?.Value;
+                if (axisId.HasValue && !usedAxisIds.Contains(axisId.Value)) axis.Remove();
+            }
+        }
+    }
+}

@@ -19,7 +19,7 @@ public sealed class OfficeRichTextSegment {
     /// Creates a measured rich text segment.
     /// </summary>
     public OfficeRichTextSegment(string text, double width, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string fontFamily, bool strikethrough = false, OfficeColor? backgroundColor = null, OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None, OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None, OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
-        if (underlineStyle < OfficeTextDecorationStyle.None || underlineStyle > OfficeTextDecorationStyle.Wavy) {
+        if (underlineStyle < OfficeTextDecorationStyle.None || underlineStyle > OfficeTextDecorationStyle.Words) {
             throw new System.ArgumentOutOfRangeException(nameof(underlineStyle));
         }
         if (strikethroughStyle < OfficeTextDecorationStyle.None || strikethroughStyle > OfficeTextDecorationStyle.Wavy) {

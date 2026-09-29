@@ -166,7 +166,7 @@ internal static class IWorkDrawingReader {
             (int? candidateWidth, int? candidateHeight) = IWorkImageInfo.Read(
                 candidateEntry.Bytes, candidateMediaType,
                 projectionBudget.RemainingDecodedImageBytes, out long candidateDecodedBytes,
-                out _);
+                source.CancellationToken);
             projectionBudget.AddDecodedImageBytes(candidateDecodedBytes);
             if (!candidateWidth.HasValue || !candidateHeight.HasValue) {
                 continue;

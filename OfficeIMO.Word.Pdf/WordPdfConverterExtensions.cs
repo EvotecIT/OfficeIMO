@@ -32,7 +32,13 @@ namespace OfficeIMO.Word.Pdf {
             WordToPdfOptions operation = (options ?? new WordToPdfOptions()).CloneForConversion();
             operation.CancellationToken = cancellationToken;
             operation.CancellationToken.ThrowIfCancellationRequested();
-            PdfCore.PdfDocument pdf = CreateOfficeIMOPdfDocument(document, operation);
+            if (operation.DateTimeFieldUpdateOptions != null) {
+                document.UpdateFieldsAndGetReport(operation.DateTimeFieldUpdateOptions);
+                operation.CancellationToken.ThrowIfCancellationRequested();
+            }
+            PdfCore.PdfDocument pdf;
+            using (WordComplexFieldRunVisibility.BeginConversionScope())
+                pdf = CreateOfficeIMOPdfDocument(document, operation);
             operation.CancellationToken.ThrowIfCancellationRequested();
             return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
         }

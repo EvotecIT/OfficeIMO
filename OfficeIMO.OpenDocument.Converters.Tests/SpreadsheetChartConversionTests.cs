@@ -50,7 +50,7 @@ public sealed class SpreadsheetChartConversionTests {
     public void UnsupportedOdsChartClassRemainsAnExplicitLoss() {
         byte[] package = RewritePart("Object 1/content.xml", xml => {
             XNamespace chart = "urn:oasis:names:tc:opendocument:xmlns:chart:1.0";
-            xml.Descendants(chart + "chart").Single().SetAttributeValue(chart + "class", "chart:circle");
+            xml.Descendants(chart + "chart").Single().SetAttributeValue(chart + "class", "chart:radar");
         });
         OdsDocument source = OdsDocument.Load(new MemoryStream(package));
         OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();

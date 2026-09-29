@@ -47,6 +47,28 @@ var options = new WordToPdfOptions {
 document.SaveAsPdf("proposal.pdf", options);
 ```
 
+### Refresh date fields before export
+
+PDF export uses the field results stored in the Word document by default. To refresh dynamic `DATE` and `TIME` fields for the PDF, set `DateTimeFieldUpdateOptions`:
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var document = WordDocument.Load("report.docx");
+document.SaveAsPdf("report.pdf", new WordToPdfOptions {
+    DateTimeFieldUpdateOptions = new WordFieldUpdateOptions()
+});
+```
+
+`DATE` and `TIME` use the current local clock during the refresh. Set `CurrentDateTime` on `WordFieldUpdateOptions` when the export needs a fixed value. The refresh updates the in-memory Word document; it does not save the `.docx` file or change other fields. `CREATEDATE` and `SAVEDATE` continue to use their cached results unless explicitly refreshed through the general Word field API.
+
+Table borders follow the Word style and direct cell settings: `nil` suppresses a shared edge while `none` yields to the opposing border. Set `DefaultTableBorders = true` only when you want a fallback grid on otherwise borderless tables.
+
+Ordinary underlining includes spaces between words. Word's explicit *underline words only* style continues to leave those spaces clear.
+
+Positioned tables in ordinary document flow preserve page, margin, or text anchors, explicit offsets, and text clearances. Following paragraphs use the available space beside the table and return to full width below it. Headings, lists, images, and other structured blocks move below an intersecting table. Positioned tables in multi-column sections retain an approximation warning.
+
 ### Export to bytes or streams
 
 ```csharp

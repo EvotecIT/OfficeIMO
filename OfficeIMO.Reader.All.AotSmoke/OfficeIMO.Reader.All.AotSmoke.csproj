@@ -10,4 +10,8 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Reader.All\OfficeIMO.Reader.All.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\nim-iwork\simple.pages"
+          Link="simple.pages" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

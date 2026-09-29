@@ -1,4 +1,5 @@
 using System.Globalization;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Spreadsheet;
@@ -37,7 +38,13 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     truncated = true;
                     continue;
                 }
-                excelSheet.AddChart(data!, row, column, width, height, chartType, chart.Title);
+                ExcelChart convertedChart = excelSheet.AddChart(data!, row, column, width, height,
+                    chartType, chart.Title);
+                if (data.Series.Any(item => item.PointStyles != null)) {
+                    convertedChart.ApplySharedPointStyles(data.Series.Select(item =>
+                        new OfficeChartSeries(item.Name, item.Values)
+                            .WithPointStyles(item.PointStyles)).ToArray());
+                }
                 expandedCells += chartCells;
                 nextChartDataRow += reservedRows;
                 converted++;
@@ -73,8 +80,15 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                 type = chart.VerticalBars == true ? ExcelChartType.BarClustered : ExcelChartType.ColumnClustered;
                 break;
             case "chart:line": type = ExcelChartType.Line; break;
+            case "chart:circle":
+                if (chart.Series.Count != 1) return false;
+                type = ExcelChartType.Pie;
+                break;
+            case "chart:ring": type = ExcelChartType.Doughnut; break;
             default: return false;
         }
+        if (type == ExcelChartType.Line && chart.Series.Any(series =>
+                series.PointStyles?.Any(style => style != null) == true)) return false;
         if (!TryReadChartCells(document, hostSheetName, chart.CategoriesAddress, options, readers,
             out OdsCellValue[] categories, out bool categoryLimitExceeded)) {
             sourceLimitExceeded = categoryLimitExceeded;
@@ -89,7 +103,10 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var series = new List<ExcelChartSeries>(chart.Series.Count);
         for (int seriesIndex = 0; seriesIndex < chart.Series.Count; seriesIndex++) {
             OdsChartSeries sourceSeries = chart.Series[seriesIndex];
-            if (sourceSeries.ChartClass != null && sourceSeries.ChartClass != chart.ChartClass) return false;
+            string expectedSeriesClass = chart.ChartClass == "chart:ring" ? "chart:circle" : chart.ChartClass;
+            if (sourceSeries.ChartClass != null && sourceSeries.ChartClass != expectedSeriesClass) return false;
+            if (sourceSeries.HasUnprojectedAppearance ||
+                sourceSeries.PointStyles != null && sourceSeries.PointStyles.Count != labels.Length) return false;
             if (!TryReadChartCells(document, hostSheetName, sourceSeries.ValuesAddress, options, readers,
                 out OdsCellValue[] values, out bool valuesLimitExceeded)) {
                 sourceLimitExceeded = valuesLimitExceeded;
@@ -115,7 +132,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                     || double.IsNaN(number) || double.IsInfinity(number)) return false;
                 numbers[index] = number;
             }
-            series.Add(new ExcelChartSeries(name, numbers));
+            series.Add(new ExcelChartSeries(name, numbers).WithPointStyles(sourceSeries.PointStyles));
         }
         data = new ExcelChartData(labels, series);
         row = checked((int)chart.AnchorRow.Value + 1);

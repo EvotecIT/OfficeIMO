@@ -8,5 +8,8 @@ public enum OfficeDrawingQualityIssueKind {
     ElementOutsideBounds,
 
     /// <summary>Two text boxes overlap in a way that can lead to unreadable output.</summary>
-    TextOverlap
+    TextOverlap,
+
+    /// <summary>Source appearance is preserved as metadata but is not applied by the renderer.</summary>
+    UnsupportedAppearance
 }

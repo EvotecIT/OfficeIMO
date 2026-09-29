@@ -865,7 +865,8 @@ namespace OfficeIMO.Word.Markdown {
                 return true;
             }
 
-            return run._run?.Descendants<Break>().Any(br => br.Type?.Value == BreakValues.Page) == true;
+            return (run._visibleRun ?? run._run)?.Descendants<Break>()
+                .Any(br => br.Type?.Value == BreakValues.Page) == true;
         }
 
         private void AppendParagraphBlocksFromSegment(
@@ -1288,41 +1289,6 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private bool TryCreateChartSvgFallbackBlock(
-            WordChart chart,
-            WordToMarkdownOptions options,
-            out IMarkdownBlock block) {
-            block = null!;
-
-            if (!chart.TryGetSnapshot(out var snapshot)) {
-                options.OnWarning?.Invoke("Word chart could not be rendered as an SVG Markdown image because its cached chart data could not be read.");
-                return false;
-            }
-
-            try {
-                OfficeChartSnapshot officeSnapshot = CreateOfficeChartSnapshot(snapshot);
-                OfficeChartRenderingResult rendering = OfficeChartDrawingRenderer.RenderWithQuality(officeSnapshot);
-                if (rendering.QualityReport.HasIssues) {
-                    options.OnWarning?.Invoke("Rendered Word chart '" + GetChartDisplayName(snapshot) + "' with shared drawing quality warnings: " + FormatQualityIssues(rendering.QualityReport));
-                }
-
-                byte[] svgBytes = OfficeDrawingSvgExporter.ToSvgBytes(rendering.Drawing);
-                string displayName = GetChartDisplayName(snapshot);
-                string source = options.VisualFallbackMode == MarkdownVisualFallbackMode.SvgFile
-                    ? WriteVisualFallbackSvgResource(svgBytes, displayName, options)
-                    : "data:image/svg+xml;base64," + System.Convert.ToBase64String(svgBytes);
-                string alt = string.IsNullOrWhiteSpace(snapshot.Title) ? "Word chart" : snapshot.Title!;
-                var sequence = new InlineSequence { AutoSpacing = false };
-                sequence.AddRaw(new ImageInline(alt, source, title: null, plainAlt: alt));
-                block = new ParagraphBlock(sequence);
-                options.OnWarning?.Invoke("Rendered Word chart '" + displayName + "' as an SVG Markdown image fallback.");
-                return true;
-            } catch (Exception ex) {
-                options.OnWarning?.Invoke("Word chart could not be rendered as an SVG Markdown image fallback. " + ex.Message);
-                return false;
-            }
-        }
-
         private string WriteVisualFallbackSvgResource(byte[] svgBytes, string displayName, WordToMarkdownOptions options) {
             string directory = string.IsNullOrWhiteSpace(options.VisualFallbackDirectory)
                 ? Directory.GetCurrentDirectory()
@@ -1371,78 +1337,11 @@ namespace OfficeIMO.Word.Markdown {
             return path!.Trim().TrimEnd('/', '\\').Replace('\\', '/');
         }
 
-        private static OfficeChartSnapshot CreateOfficeChartSnapshot(WordChartSnapshot snapshot) {
-            var series = snapshot.Data.Series
-                .Select(item => new OfficeChartSeries(item.Name, item.Values, item.XValues, item.Color, item.PointColors))
-                .ToList();
-            var data = new OfficeChartData(snapshot.Data.Categories, series);
-            var style = CreateOfficeChartStyle(snapshot);
-            return new OfficeChartSnapshot(
-                snapshot.Name,
-                snapshot.Title,
-                MapChartKind(snapshot.ChartKind),
-                data,
-                snapshot.WidthPoints,
-                snapshot.HeightPoints,
-                style);
-        }
-
-        private static OfficeChartStyle? CreateOfficeChartStyle(WordChartSnapshot snapshot) {
-            bool hasExplicitColor = snapshot.Data.Series.Any(item => item.Color.HasValue);
-            if (!hasExplicitColor) {
-                return null;
-            }
-
-            var palette = snapshot.Data.Series
-                .Select((item, index) => item.Color ?? OfficeChartDrawingRenderer.GetSeriesColor(index))
-                .ToList();
-            return new OfficeChartStyle(palette: palette);
-        }
-
-        private static OfficeChartKind MapChartKind(WordChartSnapshotKind kind) {
-            switch (kind) {
-                case WordChartSnapshotKind.ClusteredColumn:
-                    return OfficeChartKind.ColumnClustered;
-                case WordChartSnapshotKind.StackedColumn:
-                    return OfficeChartKind.ColumnStacked;
-                case WordChartSnapshotKind.StackedColumn100:
-                    return OfficeChartKind.ColumnStacked100;
-                case WordChartSnapshotKind.ClusteredBar:
-                    return OfficeChartKind.BarClustered;
-                case WordChartSnapshotKind.StackedBar:
-                    return OfficeChartKind.BarStacked;
-                case WordChartSnapshotKind.StackedBar100:
-                    return OfficeChartKind.BarStacked100;
-                case WordChartSnapshotKind.Line:
-                    return OfficeChartKind.Line;
-                case WordChartSnapshotKind.StackedLine:
-                    return OfficeChartKind.LineStacked;
-                case WordChartSnapshotKind.StackedLine100:
-                    return OfficeChartKind.LineStacked100;
-                case WordChartSnapshotKind.Area:
-                    return OfficeChartKind.Area;
-                case WordChartSnapshotKind.StackedArea:
-                    return OfficeChartKind.AreaStacked;
-                case WordChartSnapshotKind.StackedArea100:
-                    return OfficeChartKind.AreaStacked100;
-                case WordChartSnapshotKind.Radar:
-                    return OfficeChartKind.Radar;
-                case WordChartSnapshotKind.Scatter:
-                    return OfficeChartKind.Scatter;
-                case WordChartSnapshotKind.Pie:
-                    return OfficeChartKind.Pie;
-                case WordChartSnapshotKind.Doughnut:
-                    return OfficeChartKind.Doughnut;
-                default:
-                    throw new NotSupportedException("Word chart kind '" + kind + "' is not supported by the shared OfficeIMO chart renderer.");
-            }
-        }
-
         private static string FormatQualityIssues(OfficeDrawingQualityReport qualityReport) {
             return string.Join("; ", qualityReport.Issues.Select(issue => issue.ToString()));
         }
 
-        private static string GetChartDisplayName(WordChartSnapshot snapshot) {
+        private static string GetChartDisplayName(OfficeChartSnapshot snapshot) {
             if (!string.IsNullOrWhiteSpace(snapshot.Title)) {
                 return snapshot.Title!;
             }
@@ -1752,6 +1651,17 @@ namespace OfficeIMO.Word.Markdown {
                 return markdownTable;
             }
 
+            bool hasMergedCells = table.Rows.Any(row => row.Cells.Any(cell =>
+                cell.ColumnSpan > 1 || cell.RowSpan > 1 ||
+                cell.HasHorizontalMerge || cell.HasVerticalMerge));
+            bool hasCellBorders = table.Rows.Any(row => row.Cells.Any(cell =>
+                cell._tableCell.TableCellProperties?.TableCellBorders?.ChildElements.Count > 0));
+            bool hasTableBorders = HasAuthoredTableBorders(table);
+            if (hasMergedCells)
+                options.OnWarning?.Invoke("Word table cell merges cannot be represented by a Markdown table; cell layout was flattened.");
+            if (hasCellBorders || hasTableBorders)
+                options.OnWarning?.Invoke("Word table borders cannot be represented by a Markdown table; border formatting was omitted.");
+
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 var row = table.Rows[rowIndex];
                 var structuredCells = new List<OmdTableCell>(row.Cells.Count);
@@ -1781,6 +1691,49 @@ namespace OfficeIMO.Word.Markdown {
 
             markdownTable.SetStructuredCells(structuredHeaders, structuredRows, markdownTable.ComputeContentSignature());
             return markdownTable;
+        }
+
+        private static bool HasAuthoredTableBorders(WordTable table) {
+            if (table._tableProperties?.TableBorders?.ChildElements.Count > 0) return true;
+
+            Styles? styles = table.Document._wordprocessingDocument.MainDocumentPart?
+                .StyleDefinitionsPart?.Styles;
+            if (styles == null) return false;
+            string? styleId = table._tableProperties?.TableStyle?.Val?.Value
+                ?? styles.Elements<Style>().FirstOrDefault(style =>
+                    style.Type?.Value == StyleValues.Table && style.Default?.Value == true)?.StyleId?.Value;
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
+                Style? style = styles.Elements<Style>().FirstOrDefault(candidate =>
+                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
+                if (style == null) break;
+                if (style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>()?.ChildElements.Count > 0)
+                    return true;
+                if (style.Elements<TableStyleProperties>().Any(properties =>
+                    IsActiveConditionalTableStyle(properties.Type?.Value, table) &&
+                    (properties.Descendants<TableBorders>().Any(borders => borders.HasChildren) ||
+                     properties.Descendants<TableCellBorders>().Any(borders => borders.HasChildren))))
+                    return true;
+                styleId = style.BasedOn?.Val?.Value;
+            }
+            return false;
+        }
+
+        private static bool IsActiveConditionalTableStyle(TableStyleOverrideValues? type, WordTable table) {
+            if (type == TableStyleOverrideValues.WholeTable) return true;
+            if (type == TableStyleOverrideValues.FirstRow) return table.ConditionalFormattingFirstRow == true;
+            if (type == TableStyleOverrideValues.LastRow) return table.ConditionalFormattingLastRow == true;
+            if (type == TableStyleOverrideValues.FirstColumn) return table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.LastColumn) return table.ConditionalFormattingLastColumn == true;
+            if (type == TableStyleOverrideValues.Band1Horizontal) return table.ConditionalFormattingNoHorizontalBand != true;
+            if (type == TableStyleOverrideValues.Band2Horizontal) return table.ConditionalFormattingNoHorizontalBand != true && table.Rows.Count > 1;
+            if (type == TableStyleOverrideValues.Band1Vertical) return table.ConditionalFormattingNoVerticalBand != true;
+            if (type == TableStyleOverrideValues.Band2Vertical) return table.ConditionalFormattingNoVerticalBand != true && table.Rows.Any(row => row.Cells.Count > 1);
+            if (type == TableStyleOverrideValues.NorthWestCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.NorthEastCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingLastColumn == true;
+            if (type == TableStyleOverrideValues.SouthWestCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.SouthEastCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingLastColumn == true;
+            return false;
         }
 
         private OmdTableCell BuildTableCell(WordTableCell cell, WordToMarkdownOptions options) {

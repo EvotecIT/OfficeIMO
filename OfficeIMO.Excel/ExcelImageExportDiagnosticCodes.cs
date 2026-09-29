@@ -132,6 +132,9 @@ public static class ExcelImageExportDiagnosticCodes {
     /// <summary>Chart kind is not rendered by the dependency-free image exporter yet.</summary>
     public const string ChartKindUnsupported = "ExcelChartKindUnsupported";
 
+    /// <summary>Chart axis units would exceed the shared renderer tick budget.</summary>
+    public const string ChartAxisUnitUnsupported = "ExcelChartAxisUnitUnsupported";
+
     /// <summary>Chart trendline rendering is not supported yet.</summary>
     public const string ChartTrendlineUnsupported = "ExcelChartTrendlineUnsupported";
 

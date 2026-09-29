@@ -70,6 +70,13 @@ namespace OfficeIMO.Word.Pdf {
         public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
 
         /// <summary>
+        /// Optional DATE and TIME field refresh before PDF conversion. When null, cached Word field results are used.
+        /// Other field results remain unchanged. The refresh updates the source <see cref="WordDocument"/> in memory
+        /// without saving the Word file. Set <see cref="WordFieldUpdateOptions.CurrentDateTime"/> for a fixed value.
+        /// </summary>
+        public WordFieldUpdateOptions? DateTimeFieldUpdateOptions { get; set; }
+
+        /// <summary>
         /// Optional page size in PDF points. The supplied geometry is preserved unless <see cref="Orientation"/> is also set.
         /// </summary>
         public PdfCore.PageSize? PageSize { get; set; }
@@ -235,6 +242,7 @@ namespace OfficeIMO.Word.Pdf {
                 FontFamily = FontFamily,
                 ResourcePolicy = ResourcePolicy.Clone(),
                 TextFallbacks = TextFallbacks,
+                DateTimeFieldUpdateOptions = DateTimeFieldUpdateOptions == null ? null : new WordFieldUpdateOptions { CurrentDateTime = DateTimeFieldUpdateOptions.CurrentDateTime, DateTimeFieldsOnly = true },
                 PageSize = PageSize,
                 Margins = Margins,
                 Orientation = Orientation,

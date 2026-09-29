@@ -17,6 +17,7 @@ internal static partial class PdfWriter {
             }
 
             EnsurePage();
+            RecordFlowPlacement(y);
             double x = GetAlignedObjectX(currentOpts.MarginLeft, contentWidth, annotation.Width, annotation.Align);
             double bottomY = y - annotation.Height;
             AddTextAnnotation(x, bottomY, annotation.Width, annotation.Height, annotation.Contents, annotation.Icon, annotation.Color, annotation.Open);
@@ -39,6 +40,7 @@ internal static partial class PdfWriter {
             }
 
             EnsurePage();
+            RecordFlowPlacement(y);
             double x = GetAlignedObjectX(currentOpts.MarginLeft, contentWidth, annotation.Width, annotation.Align);
             double bottomY = y - annotation.Height;
             AddFreeTextAnnotation(x, bottomY, annotation.Width, annotation.Height, annotation.Contents, annotation.FontSize, annotation.TextColor, annotation.BorderColor, annotation.BorderWidth, annotation.FillColor, annotation.TextAlign, annotation.Padding, annotation.LineHeight);
@@ -61,6 +63,7 @@ internal static partial class PdfWriter {
             }
 
             EnsurePage();
+            RecordFlowPlacement(y);
             double x = GetAlignedObjectX(currentOpts.MarginLeft, contentWidth, annotation.Width, annotation.Align);
             double bottomY = y - annotation.Height;
             AddHighlightAnnotation(x, bottomY, annotation.Width, annotation.Height, annotation.Contents, annotation.Color);

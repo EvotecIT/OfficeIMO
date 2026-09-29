@@ -39,7 +39,7 @@ public class PdfFontFamilyExplicitLigatureTests {
 
         Assert.Contains("/FontFile3", raw, StringComparison.Ordinal);
         Assert.Contains("/ToUnicode", raw, StringComparison.Ordinal);
-        Assert.Contains("Explicit ligatures:ff|fi|fl|ffi|ffl", extracted, StringComparison.Ordinal);
+        Assert.Contains("Explicit ligatures:\uFB00|\uFB01|\uFB02|\uFB03|\uFB04", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-font-ligature-substitution");
     }
 

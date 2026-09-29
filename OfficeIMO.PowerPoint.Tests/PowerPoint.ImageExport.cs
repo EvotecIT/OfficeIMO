@@ -3317,7 +3317,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_SkipsChartFramesTooSmallForSafeRendering() {
+        public void PowerPointSlide_RendersSmallAuthoredChartFrames() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(120, 80);
@@ -3329,8 +3329,9 @@ namespace OfficeIMO.Tests {
 
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
 
-            Assert.Contains(snapshot.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic =>
                 diagnostic.Code == PowerPointImageExportDiagnosticCodes.UnsupportedShape);
+            Assert.NotEmpty(snapshot.Drawing.Elements);
         }
 
         [Fact]

@@ -4,7 +4,7 @@
     <Description>Composition-only preset for registering OfficeIMO.Reader's local format adapters.</Description>
     <AssemblyName>OfficeIMO.Reader.All</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.All</AssemblyTitle>
-    <VersionPrefix>3.4.3</VersionPrefix>
+    <VersionPrefix>3.4.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -35,6 +35,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.IWork\OfficeIMO.Reader.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Image\OfficeIMO.Reader.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />

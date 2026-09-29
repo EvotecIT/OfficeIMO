@@ -3829,7 +3829,7 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 180);
             sheet.CellValue(4, 1, "Mar");
             sheet.CellValue(4, 2, 160);
-            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.ColumnClustered, title: "Gridlines");
+            ExcelChart chart = sheet.AddChartFromRange("A1:B4", row: 1, column: 4, widthPixels: 250, heightPixels: 165, type: ExcelChartType.Line, title: "Gridlines");
             chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: "DC2626");
             chart.SetValueAxisGridlines(showMajor: true, showMinor: false, lineColor: "A855F7");
 

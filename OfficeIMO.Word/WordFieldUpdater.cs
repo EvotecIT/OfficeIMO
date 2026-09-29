@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
             MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("MainDocumentPart is missing.");
 
-            int totalPages = EstimateTotalPages(document);
+            int totalPages = options.DateTimeFieldsOnly ? 0 : EstimateTotalPages(document);
             DateTime updateDateTime = options.CurrentDateTime ?? DateTime.Now;
             WordFieldEvaluationReason dateTimeEvaluationReason = options.CurrentDateTime.HasValue
                 ? WordFieldEvaluationReason.CallerProvidedDateTime
@@ -25,6 +25,14 @@ namespace OfficeIMO.Word {
             }
 
             foreach (MutableFieldCandidate candidate in SortFieldsForEvaluation(candidates)) {
+                if (options.DateTimeFieldsOnly) {
+                    WordFieldType? fieldType = WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType;
+                    if (fieldType is not (WordFieldType.Date or WordFieldType.Time)) {
+                        results.Add(candidate.ToResult(fieldType, WordFieldUpdateStatus.Skipped, null,
+                            "Field was left unchanged because only DATE and TIME fields were selected."));
+                        continue;
+                    }
+                }
                 if (IsNestedInsideReplacedField(candidate, replacedContainingFields)) {
                     results.Add(candidate.ToResult(
                         WordFieldInventory.ParseInstruction(candidate.InstructionText).FieldType,
