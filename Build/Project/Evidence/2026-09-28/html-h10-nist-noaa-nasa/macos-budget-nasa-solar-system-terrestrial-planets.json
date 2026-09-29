@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
-  "caseSha256": "ac593713485ea5bb4d577d02e6f30b1d8479963d8dcc9b8d0e33a1a437238189",
+  "caseSha256": "3040fa21e310e602b848bcfec809e6173cc8141982e9eeb15bf0bdd92ef466db",
   "platforms": [
     {
       "osFamily": "macOS",
@@ -12,6 +12,12 @@
           "conversionMilliseconds": 7500,
           "managedAllocatedBytes": 3556769792,
           "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-print-zero-margin",
+          "conversionMilliseconds": 7000,
+          "managedAllocatedBytes": 2617245696,
+          "peakWorkingSetBytes": 671088640
         },
         {
           "name": "pdf-screen-media",
