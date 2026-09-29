@@ -14,6 +14,7 @@ public sealed partial class HtmlResourceSession {
     private readonly HashSet<string> _attempted = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
     private readonly HashSet<string> _budgetedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
     private readonly HashSet<string> _rejectedStylesheets = new HashSet<string>(HtmlResourceIdentityComparer.Instance);
+    private readonly Dictionary<string, List<int>> _missingCssImageDiagnostics = new Dictionary<string, List<int>>(HtmlResourceIdentityComparer.Instance);
     private readonly List<HtmlResourceSessionEntry> _entries = new List<HtmlResourceSessionEntry>();
     private readonly IReadOnlyList<HtmlResourceSessionEntry> _readOnlyEntries;
 
@@ -132,6 +133,45 @@ public sealed partial class HtmlResourceSession {
     internal void MarkAttempted(HtmlResourceReference reference) {
         if (reference.Source.Length > 0) _attempted.Add(reference.Source);
         if (reference.ResolvedSource.Length > 0) _attempted.Add(reference.ResolvedSource);
+    }
+
+    internal void RecordMissingCssImage(HtmlResourceReference reference) {
+        if (reference.Kind != HtmlResourceKind.Image
+            || !(reference.AttributeName.StartsWith("css-", StringComparison.Ordinal)
+                || reference.AttributeName.StartsWith("style-", StringComparison.Ordinal))) return;
+        int index = Diagnostics.Count - 1;
+        AddMissingCssImageAlias(reference.ResolvedSource, index);
+    }
+
+    private void AddMissingCssImageAlias(string source, int index) {
+        if (source.Length == 0) return;
+        if (!_missingCssImageDiagnostics.TryGetValue(source, out List<int>? indices)) {
+            indices = new List<int>();
+            _missingCssImageDiagnostics.Add(source, indices);
+        }
+        indices.Add(index);
+    }
+
+    internal void DeferMissingCssImageLoss() {
+        foreach (int index in _missingCssImageDiagnostics.Values.SelectMany(static indices => indices).Distinct()) {
+            HtmlDiagnostic diagnostic = Diagnostics[index];
+            Diagnostics.Replace(index, diagnostic.WithImpact(HtmlDiagnosticSeverity.Info, OfficeConversionLossKind.None));
+        }
+    }
+
+    internal void MarkImageUsed(string? resolvedSource) {
+        PromoteMissingCssImage(resolvedSource);
+    }
+
+    private void PromoteMissingCssImage(string? source) {
+        if (string.IsNullOrWhiteSpace(source)
+            || !_missingCssImageDiagnostics.TryGetValue(source!, out List<int>? indices)) return;
+        foreach (int index in indices) {
+            HtmlDiagnostic diagnostic = Diagnostics[index];
+            if (diagnostic.Severity == HtmlDiagnosticSeverity.Info) {
+                Diagnostics.Replace(index, diagnostic.WithImpact(HtmlDiagnosticSeverity.Warning, OfficeConversionLossKind.Omission));
+            }
+        }
     }
 
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
@@ -611,6 +651,7 @@ internal static class HtmlRenderResourceLoader {
                     diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceUnavailable, "The configured resource resolver did not return content.",
                         fontCandidate ? HtmlDiagnosticSeverity.Info : HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource,
                         fontCandidate ? OfficeConversionLossKind.None : OfficeConversionLossKind.Omission);
+                    result.RecordMissingCssImage(reference);
                     continue;
                 }
 

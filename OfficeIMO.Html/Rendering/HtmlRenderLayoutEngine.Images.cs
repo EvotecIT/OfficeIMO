@@ -473,6 +473,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         contentType = string.Empty;
         imageInfo = null;
         string resolvedSource = HtmlUrlPolicyEvaluator.ResolveUrl(source, _baseUri, _resourceUrlPolicy);
+        _resources.MarkImageUsed(resolvedSource);
         string extension = string.Empty;
         if (_resources.TryGet(source, resolvedSource, out HtmlResolvedResource resolvedResource)) {
             bytes = resolvedResource.EncodedBytes;

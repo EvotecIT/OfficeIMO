@@ -174,6 +174,7 @@ public static class HtmlRenderEngine {
             limits,
             cancellationToken,
             cssBudget);
+        resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
@@ -323,6 +324,7 @@ public static class HtmlRenderEngine {
         diagnostics.AddRange(manifest.Diagnostics);
         HtmlCssByteBudget cssBudget = HtmlRenderStylesheetApplier.CreateBudget(document, limits, resolved);
         HtmlResourceSession resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, limits, cancellationToken, cssBudget).ConfigureAwait(false);
+        resources.DeferMissingCssImageLoss();
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, limits, cssBudget, diagnostics);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);
