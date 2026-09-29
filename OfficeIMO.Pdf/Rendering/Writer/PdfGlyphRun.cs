@@ -89,19 +89,21 @@ internal sealed class PdfGlyphRun {
             throw new InvalidOperationException("PDF horizontal text operators cannot publish a top-to-bottom shaped glyph run. Use the diagnosed vertical drawing route.");
         }
         return new PdfTextShowCommand(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText,
-            PreserveGlyphUnicode ? Glyphs : null, TotalAdvanceWidth1000);
+            PreserveGlyphUnicode ? Glyphs : null, TotalAdvanceWidth1000, visualGlyphs: Glyphs);
     }
 }
 
 internal sealed class PdfTextShowCommand {
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null) {
         LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
+        VisualGlyphs = visualGlyphs;
         GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
     }
 
     internal IReadOnlyList<PdfGlyphInfo>? LogicalGlyphs { get; }
+    internal IReadOnlyList<PdfGlyphInfo>? VisualGlyphs { get; }
     internal double? AdvanceWidth1000 { get; }
     internal int WordSpaceCount { get; }
     internal string GlyphHex { get; }

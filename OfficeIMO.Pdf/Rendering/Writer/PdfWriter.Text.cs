@@ -428,7 +428,11 @@ internal static partial class PdfWriter {
             PdfColor? decorationColor = null,
             OfficeTextFeatureSettings? featureSettings = null,
             OfficeTextDirection textDirection = OfficeTextDirection.Auto,
-            PdfTabStop? leadingTabStop = null) {
+            PdfTabStop? leadingTabStop = null,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle leadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            PdfColor? leadingDecorationColor = null,
+            double leadingDecorationFontSize = 0,
+            double leadingDecorationTextRise = 0) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -446,6 +450,10 @@ internal static partial class PdfWriter {
             LeadingSpace = leadingSpace;
             LeadingAdvance = leadingAdvance;
             LeadingTabStop = leadingTabStop;
+            LeadingUnderlineStyle = leadingUnderlineStyle;
+            LeadingDecorationColor = leadingDecorationColor;
+            LeadingDecorationFontSize = leadingDecorationFontSize;
+            LeadingDecorationTextRise = leadingDecorationTextRise;
             LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
             LeadingTabLeader = leadingTabLeader;
             EndsWithHardBreak = endsWithHardBreak;
@@ -501,6 +509,10 @@ internal static partial class PdfWriter {
 
         public double LeadingAdvance { get; }
         public PdfTabStop? LeadingTabStop { get; }
+        public OfficeIMO.Drawing.OfficeTextDecorationStyle LeadingUnderlineStyle { get; }
+        public PdfColor? LeadingDecorationColor { get; }
+        public double LeadingDecorationFontSize { get; }
+        public double LeadingDecorationTextRise { get; }
 
         public bool LeadingSpaceIsExpandable { get; }
 
@@ -519,16 +531,16 @@ internal static partial class PdfWriter {
         public OfficeTextDirection TextDirection { get; }
 
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
 
         public RichSeg WithLeadingAdvance(double advance) =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
     }
 
     private static void MarkRichLineTextSeparator(System.Collections.Generic.IList<RichSeg> line) {
@@ -684,6 +696,10 @@ internal static partial class PdfWriter {
         var heights = new System.Collections.Generic.List<double>();
         double lineWidth = 0;
         double pendingLeadingAdvance = 0;
+        OfficeIMO.Drawing.OfficeTextDecorationStyle pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        PdfColor? pendingLeadingDecorationColor = null;
+        double pendingLeadingDecorationFontSize = 0;
+        double pendingLeadingDecorationTextRise = 0;
         bool pendingLeadingIsExpandable = true;
         bool pendingLeadingIsTab = false;
         PdfTabAlignment pendingLeadingTabAlignment = PdfTabAlignment.Left;
@@ -699,6 +715,10 @@ internal static partial class PdfWriter {
         PdfNamedFontFace? currentRunNamedFont = null;
         PdfColor? currentRunDecorationColor = null;
         OfficeTextFeatureSettings currentRunFeatureSettings = OfficeTextFeatureSettings.Default;
+        OfficeIMO.Drawing.OfficeTextDecorationStyle currentRunUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+        PdfColor? currentRunUnderlineColor = null;
+        double currentRunDecorationFontSize = 0;
+        double currentRunDecorationTextRise = 0;
         double CurrentMaxWidth() => currentFrame?.Width ?? (lines.Count == 1 ? firstLineWidthPts ?? maxWidthPts : maxWidthPts);
         double CurrentLineOriginOffset() => currentFrame?.Origin ?? (lines.Count == 1 ? firstLineOriginOffsetPts ?? 0D : 0D);
         void RegisterLineHeight(double runFontSize) {
@@ -777,6 +797,10 @@ internal static partial class PdfWriter {
 
         void ResetPendingLeading() {
             pendingLeadingAdvance = 0;
+            pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+            pendingLeadingDecorationColor = null;
+            pendingLeadingDecorationFontSize = 0;
+            pendingLeadingDecorationTextRise = 0;
             pendingLeadingIsExpandable = true;
             pendingLeadingIsTab = false;
             pendingLeadingTabAlignment = PdfTabAlignment.Left;
@@ -796,6 +820,10 @@ internal static partial class PdfWriter {
         void SetPendingSeparator(bool hadTab, double spaceW, PdfTabAlignment tabAlignment, PdfTabLeaderStyle tabLeader) {
             if (!hadTab) {
                 pendingLeadingAdvance = spaceW;
+                pendingLeadingUnderlineStyle = currentRunUnderlineStyle;
+                pendingLeadingDecorationColor = currentRunUnderlineColor;
+                pendingLeadingDecorationFontSize = currentRunDecorationFontSize;
+                pendingLeadingDecorationTextRise = currentRunDecorationTextRise;
                 pendingLeadingIsExpandable = true;
                 pendingLeadingIsTab = false;
                 pendingLeadingTabAlignment = PdfTabAlignment.Left;
@@ -809,6 +837,7 @@ internal static partial class PdfWriter {
             pendingLeadingTabLeader = explicitTabStop?.Leader ?? tabLeader;
             pendingLeadingTabStop = explicitTabStop;
             pendingLeadingAdvance = CalculateTabAdvance(lineWidth, 0D, spaceW, pendingLeadingTabAlignment, tabStopWidth, options: options, maxWidth: CurrentMaxWidth(), explicitTabStop: pendingLeadingTabStop, lineOriginOffset: CurrentLineOriginOffset(), followingNamedFont: currentRunNamedFont, featureSettings: currentRunFeatureSettings);
+            pendingLeadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
             pendingLeadingIsExpandable = false;
             pendingLeadingIsTab = true;
         }
@@ -835,10 +864,14 @@ internal static partial class PdfWriter {
             var backgroundColor = run.BackgroundColor;
             currentRunDecorationColor = run.DecorationColor;
             currentRunFeatureSettings = run.FeatureSettings;
+            currentRunUnderlineStyle = underline && underlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.Words ? (underlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.None ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : underlineStyle) : OfficeIMO.Drawing.OfficeTextDecorationStyle.None;
+            currentRunUnderlineColor = run.DecorationColor ?? color;
             string? uri = run.LinkUri;
             string? destinationName = run.LinkDestinationName;
             string? contents = run.LinkContents;
             var baseline = run.Baseline;
+            currentRunDecorationFontSize = EffectiveRichFontSize(run.FontSize ?? fontSize, baseline);
+            currentRunDecorationTextRise = TextRiseForBaseline(run.FontSize ?? fontSize, baseline);
             var tabLeader = run.TabLeader;
             var tabAlignment = run.TabAlignment;
             var runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
@@ -908,7 +941,11 @@ internal static partial class PdfWriter {
                     strikeStyle: strikeStyle,
                     decorationColor: currentRunDecorationColor,
                     featureSettings: currentRunFeatureSettings,
-                    leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null));
+                    leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null,
+                    leadingUnderlineStyle: leadingAdvance > 0D ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+                    leadingDecorationColor: pendingLeadingDecorationColor,
+                    leadingDecorationFontSize: pendingLeadingDecorationFontSize,
+                    leadingDecorationTextRise: pendingLeadingDecorationTextRise));
                 lineWidth += leadingAdvance + inlineElement.Width;
                 RegisterInlineLineHeight(inlineElement);
                 ResetPendingLeading();
@@ -1053,7 +1090,7 @@ internal static partial class PdfWriter {
                     double leadingAdvance = needsLeadingSpace ? pendingLeadingAdvance : 0;
                     double segmentWidth = tokenW + leadingAdvance;
                     var segmentLeader = needsLeadingSpace ? pendingLeadingTabLeader : PdfTabLeaderStyle.None;
-                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null));
+                    lines[lines.Count - 1].Add(new RichSeg(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline, tokenW, needsLeadingSpace, leadingAdvance, pendingLeadingIsExpandable, segmentLeader, namedFont: currentRunNamedFont, underlineStyle: underlineStyle, strikeStyle: strikeStyle, decorationColor: currentRunDecorationColor, featureSettings: currentRunFeatureSettings, leadingTabStop: pendingLeadingIsTab ? pendingLeadingTabStop : null, leadingUnderlineStyle: needsLeadingSpace ? pendingLeadingUnderlineStyle : OfficeIMO.Drawing.OfficeTextDecorationStyle.None, leadingDecorationColor: pendingLeadingDecorationColor, leadingDecorationFontSize: pendingLeadingDecorationFontSize, leadingDecorationTextRise: pendingLeadingDecorationTextRise));
                     RegisterLineHeight(runFontSize);
                     lineWidth += segmentWidth;
                     ResetPendingLeading();
@@ -2036,6 +2073,12 @@ internal static partial class PdfWriter {
                 if (s.LeadingSpace) {
                     double baseGap = s.LeadingAdvance > 0 ? s.LeadingAdvance : MeasureRichText(" ", s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings);
                     double gap = baseGap + (s.LeadingSpaceIsExpandable ? wordSpacing : 0);
+                    if (s.LeadingUnderlineStyle != OfficeIMO.Drawing.OfficeTextDecorationStyle.None && s.LeadingTabLeader == PdfTabLeaderStyle.None && s.LeadingSpaceIsExpandable) {
+                        PdfColor underlineColor = s.LeadingDecorationColor ?? block.DefaultColor ?? opts.DefaultTextColor ?? PdfColor.Black;
+                        double underlineY = lineY + s.LeadingDecorationTextRise - s.LeadingDecorationFontSize * 0.15;
+                        (underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
+                            .Add((lineXOrigin + xCursor, lineXOrigin + xCursor + gap, underlineY, underlineColor, s.LeadingUnderlineStyle));
+                    }
 
                     if (s.LeadingTabLeader != PdfTabLeaderStyle.None) {
                         string leader = BuildTabLeaderText(gap, s.Font, s.FontSize, s.Baseline, s.LeadingTabLeader, opts);
@@ -2098,6 +2141,7 @@ internal static partial class PdfWriter {
                 }
 
                 double segmentStartX = xCursor;
+                PdfTextShowCommand textCommand = EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection);
                 if (linkMarkedContentId.HasValue) {
                     content.EndText();
                     if (textMarkedContentOpen) {
@@ -2118,7 +2162,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection), runFontSize, textRise, suppressActualText)
+                        .ShowText(textCommand, runFontSize, textRise, suppressActualText)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -2132,7 +2176,7 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, s.NamedFont, opts, s.FeatureSettings, s.TextDirection), runFontSize, textRise, suppressActualText);
+                    content.ShowText(textCommand, runFontSize, textRise, suppressActualText);
                 }
 
                 double baselineY = lineY + textRise;
@@ -2140,8 +2184,41 @@ internal static partial class PdfWriter {
                 if (s.Underline) {
                     var ulColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;
                     double yLine = baselineY - runFontSize * 0.15;
-                    (underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>())
-                        .Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, ulColor, s.UnderlineStyle));
+                    underlines ??= new System.Collections.Generic.List<(double X1, double X2, double Y, PdfColor Color, OfficeIMO.Drawing.OfficeTextDecorationStyle Style)>();
+                    if (s.UnderlineStyle == OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
+                        if (textCommand.VisualGlyphs is { Count: > 0 } glyphs) {
+                            double advance = 0;
+                            double? wordStart = null;
+                            foreach (PdfGlyphInfo glyph in glyphs) {
+                                bool whitespace = glyph.TextIndex >= 0 && glyph.TextIndex < s.Text.Length && char.IsWhiteSpace(s.Text[glyph.TextIndex]);
+                                if (whitespace) {
+                                    if (wordStart.HasValue) {
+                                        underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
+                                        wordStart = null;
+                                    }
+                                } else if (!wordStart.HasValue) {
+                                    wordStart = advance;
+                                }
+                                advance += glyph.AdvanceWidth1000 * runFontSize / 1000D;
+                            }
+                            if (wordStart.HasValue) {
+                                underlines.Add((lineXOrigin + segmentStartX + wordStart.Value, lineXOrigin + segmentStartX + advance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
+                            }
+                        } else {
+                            for (int wordStart = 0; wordStart < s.Text.Length;) {
+                                while (wordStart < s.Text.Length && char.IsWhiteSpace(s.Text[wordStart])) wordStart++;
+                                if (wordStart == s.Text.Length) break;
+                                int wordEnd = wordStart;
+                                while (wordEnd < s.Text.Length && !char.IsWhiteSpace(s.Text[wordEnd])) wordEnd++;
+                                double startAdvance = MeasurePositionedTextWidth(s.Text.Substring(0, wordStart), s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection);
+                                double endAdvance = MeasurePositionedTextWidth(s.Text.Substring(0, wordEnd), s.Font, s.NamedFont, s.FontSize, s.Baseline, opts, s.FeatureSettings, s.TextDirection);
+                                underlines.Add((lineXOrigin + segmentStartX + startAdvance, lineXOrigin + segmentStartX + endAdvance, yLine, ulColor, OfficeIMO.Drawing.OfficeTextDecorationStyle.Single));
+                                wordStart = wordEnd;
+                            }
+                        }
+                    } else {
+                        underlines.Add((lineXOrigin + segmentStartX, lineXOrigin + segmentStartX + wSeg, yLine, ulColor, s.UnderlineStyle));
+                    }
                 }
                 if (s.Strike) {
                     var stColor = (s.DecorationColor ?? s.Color ?? block.DefaultColor ?? opts.DefaultTextColor) ?? PdfColor.Black;

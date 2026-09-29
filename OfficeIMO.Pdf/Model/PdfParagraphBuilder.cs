@@ -56,7 +56,7 @@ public sealed class PdfParagraphBuilder {
     /// <summary>Enables or disables underline for subsequent runs.</summary>
     public PdfParagraphBuilder Underline(bool enable = true) { _currentUnderline = enable; _currentUnderlineStyle = enable ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None; return this; }
     /// <summary>Sets the underline pattern for subsequent runs.</summary>
-    public PdfParagraphBuilder Underline(OfficeIMO.Drawing.OfficeTextDecorationStyle style) { ValidateDecorationStyle(style, nameof(style)); _currentUnderlineStyle = style; _currentUnderline = style != OfficeIMO.Drawing.OfficeTextDecorationStyle.None; return this; }
+    public PdfParagraphBuilder Underline(OfficeIMO.Drawing.OfficeTextDecorationStyle style) { ValidateDecorationStyle(style, nameof(style), allowWords: true); _currentUnderlineStyle = style; _currentUnderline = style != OfficeIMO.Drawing.OfficeTextDecorationStyle.None; return this; }
     /// <summary>Enables or disables strikethrough for subsequent runs.</summary>
     public PdfParagraphBuilder Strike(bool enable = true) { _currentStrike = enable; _currentStrikeStyle = enable ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Single : OfficeIMO.Drawing.OfficeTextDecorationStyle.None; return this; }
     /// <summary>Sets the strikethrough pattern for subsequent runs.</summary>
@@ -144,8 +144,8 @@ public sealed class PdfParagraphBuilder {
             underlineStyle: _currentUnderlineStyle,
             strikeStyle: _currentStrikeStyle);
 
-    private static void ValidateDecorationStyle(OfficeIMO.Drawing.OfficeTextDecorationStyle style, string parameterName) {
-        if (style < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || style > OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+    private static void ValidateDecorationStyle(OfficeIMO.Drawing.OfficeTextDecorationStyle style, string parameterName, bool allowWords = false) {
+        if (style < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || style > (allowWords ? OfficeIMO.Drawing.OfficeTextDecorationStyle.Words : OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy)) {
             throw new System.ArgumentOutOfRangeException(parameterName);
         }
     }

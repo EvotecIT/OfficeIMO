@@ -1238,6 +1238,7 @@ namespace OfficeIMO.Word.Pdf {
             if (underline == null) return null;
             W.UnderlineValues value = underline.Val?.Value ?? W.UnderlineValues.Single;
             if (value == W.UnderlineValues.None) return OfficeTextDecorationStyle.None;
+            if (value == W.UnderlineValues.Words) return OfficeTextDecorationStyle.Words;
             if (value == W.UnderlineValues.Double || value == W.UnderlineValues.WavyDouble) return OfficeTextDecorationStyle.Double;
             if (value == W.UnderlineValues.Dotted || value == W.UnderlineValues.DottedHeavy) return OfficeTextDecorationStyle.Dotted;
             if (value == W.UnderlineValues.Wave || value == W.UnderlineValues.WavyHeavy) return OfficeTextDecorationStyle.Wavy;

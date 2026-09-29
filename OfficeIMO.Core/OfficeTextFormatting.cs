@@ -17,7 +17,9 @@ public enum OfficeTextDecorationStyle {
     /// <summary>A dashed decoration line.</summary>
     Dashed,
     /// <summary>A wavy decoration line.</summary>
-    Wavy
+    Wavy,
+    /// <summary>One solid line beneath each word, leaving whitespace undecorated.</summary>
+    Words
 }
 
 /// <summary>
