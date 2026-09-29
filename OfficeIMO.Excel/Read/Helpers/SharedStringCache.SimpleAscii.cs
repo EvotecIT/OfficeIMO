@@ -30,9 +30,12 @@ namespace OfficeIMO.Excel {
             long totalCharacters = 0;
             while (!Consume(bytes, length, ref position, "</sst>")) {
                 _cancellationToken.ThrowIfCancellationRequested();
-                if (!Consume(bytes, length, ref position, "<si><t>")
-                    && !Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
-                    return false;
+                bool preservesWhitespace = false;
+                if (!Consume(bytes, length, ref position, "<si><t>")) {
+                    if (!Consume(bytes, length, ref position, "<si><t xml:space=\"preserve\">")) {
+                        return false;
+                    }
+                    preservesWhitespace = true;
                 }
 
                 int textStart = position;
@@ -48,6 +51,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 int textLength = position - textStart;
+                if (!preservesWhitespace && textLength > 0) {
+                    bool onlyWhitespace = true;
+                    for (int index = textStart; index < position; index++) {
+                        if (bytes[index] != (byte)' ') {
+                            onlyWhitespace = false;
+                            break;
+                        }
+                    }
+                    if (onlyWhitespace) return false;
+                }
                 if (!Consume(bytes, length, ref position, "</t></si>")) {
                     return false;
                 }
