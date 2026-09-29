@@ -80,7 +80,8 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Null(cell.Value);
-        Assert.False(cell.FormulaIsComplete);
+        Assert.True(cell.FormulaIsComplete);
+        Assert.False(cell.CachedValueIsComplete);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_FORMULA_UNSUPPORTED");
     }

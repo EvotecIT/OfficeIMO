@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace OfficeIMO.Reader;
 
@@ -37,10 +38,17 @@ public static class ReaderTableExport {
     /// Serializes a reader table as a GitHub-style Markdown table.
     /// </summary>
     /// <param name="table">Table to serialize.</param>
-    public static string ToMarkdownTable(this ReaderTable table) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
+    public static string ToMarkdownTable(this ReaderTable table) =>
+        ToMarkdownTable(table, CancellationToken.None);
 
-        int columnCount = GetColumnCount(table);
+    /// <summary>Serializes a reader table as a GitHub-style Markdown table with cancellation.</summary>
+    /// <param name="table">Table to serialize.</param>
+    /// <param name="cancellationToken">Cancellation token checked while writing rows.</param>
+    public static string ToMarkdownTable(this ReaderTable table, CancellationToken cancellationToken) {
+        if (table == null) throw new ArgumentNullException(nameof(table));
+        cancellationToken.ThrowIfCancellationRequested();
+
+        int columnCount = GetColumnCount(table, cancellationToken);
         if (columnCount == 0) {
             return string.Empty;
         }
@@ -52,6 +60,7 @@ public static class ReaderTableExport {
 
         IReadOnlyList<IReadOnlyList<string>> rows = table.Rows ?? Array.Empty<IReadOnlyList<string>>();
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             builder.AppendLine();
             AppendMarkdownRow(builder, NormalizeRow(rows[rowIndex], columnCount));
         }
@@ -114,10 +123,11 @@ public static class ReaderTableExport {
         writer.WriteEndObject();
     }
 
-    private static int GetColumnCount(ReaderTable table) {
+    private static int GetColumnCount(ReaderTable table, CancellationToken cancellationToken = default) {
         int columnCount = table.Columns?.Count ?? 0;
         IReadOnlyList<IReadOnlyList<string>> rows = table.Rows ?? Array.Empty<IReadOnlyList<string>>();
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (rows[rowIndex] != null && rows[rowIndex].Count > columnCount) {
                 columnCount = rows[rowIndex].Count;
             }

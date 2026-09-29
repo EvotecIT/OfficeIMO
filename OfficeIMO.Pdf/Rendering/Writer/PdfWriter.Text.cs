@@ -52,9 +52,9 @@ internal static partial class PdfWriter {
             if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
-                string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText);
+                string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
                 options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-                return new PdfTextShowCommand(glyphHex, null, actualText);
+                return new PdfTextShowCommand(glyphHex, null, actualText, advanceWidth1000: advanceWidth1000);
             }
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
@@ -131,9 +131,9 @@ internal static partial class PdfWriter {
             if (renderOptions.ShapingProvider == null && renderOptions.FeatureSettings.IsDefault && renderOptions.Direction == OfficeTextDirection.Auto && renderOptions.ShapingMode != PdfTextShapingMode.OpenTypeLigatures) {
                 // The external shaper will not engage, and scalar shaping never positions glyphs, so emit
                 // the hex show-string directly without materializing a per-run PdfGlyphRun.
-                string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText);
+                string glyphHex = PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int advanceWidth1000);
                 options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
-                return new PdfTextShowCommand(glyphHex, null, actualText);
+                return new PdfTextShowCommand(glyphHex, null, actualText, advanceWidth1000: advanceWidth1000);
             }
 
             PdfGlyphRun glyphRun = fontProgram.ShapeText(text, renderOptions);
@@ -538,6 +538,15 @@ internal static partial class PdfWriter {
 
         int lastIndex = line.Count - 1;
         line[lastIndex] = line[lastIndex].WithEndsWithTextSeparator();
+    }
+
+    private static void MarkRichLineHardBreak(System.Collections.Generic.IList<RichSeg> line) {
+        if (line.Count == 0) {
+            return;
+        }
+
+        int lastIndex = line.Count - 1;
+        line[lastIndex] = line[lastIndex].WithEndsWithHardBreak();
     }
 
     private static double MeasureRichText(string text, PdfStandardFont font, double fontSize, PdfOptions? options = null) =>
@@ -1995,7 +2004,8 @@ internal static partial class PdfWriter {
                 string fontRes = GetFontResourceName(s.Font, s.NamedFont, ChooseNormal(opts.DefaultFont));
                 double runFontSize = EffectiveRichFontSize(s.FontSize, s.Baseline);
                 double textRise = TextRiseForBaseline(s.FontSize, s.Baseline);
-                content.Font(fontRes, runFontSize);
+                bool syntheticOblique = opts.NeedsSyntheticOblique(s.Font, s.NamedFont);
+                content.Font(fontRes, runFontSize, syntheticOblique);
                 if (Math.Abs(textRise - currentTextRise) > 0.0001) {
                     content.TextRise(textRise);
                     currentTextRise = textRise;
@@ -2017,6 +2027,7 @@ internal static partial class PdfWriter {
                         lineY,
                         wordSpacing,
                         fontRes,
+                        syntheticOblique,
                         runFontSize,
                         textRise,
                         color ?? PdfColor.Black);
@@ -2100,7 +2111,7 @@ internal static partial class PdfWriter {
                         .TextLeading(defaultLeading)
                         .TextMatrix(lineXOrigin + xCursor, lineY)
                         .WordSpacing(wordSpacing)
-                        .Font(fontRes, runFontSize);
+                        .Font(fontRes, runFontSize, syntheticOblique);
                     if (Math.Abs(textRise) > 0.0001) {
                         content.TextRise(textRise);
                     }
@@ -2156,7 +2167,7 @@ internal static partial class PdfWriter {
                 string separatorFontResource = GetFontResourceName(last.Font, last.NamedFont, ChooseNormal(opts.DefaultFont));
                 double separatorFontSize = EffectiveRichFontSize(last.FontSize, last.Baseline);
                 double separatorTextRise = TextRiseForBaseline(last.FontSize, last.Baseline);
-                content.Font(separatorFontResource, separatorFontSize);
+                content.Font(separatorFontResource, separatorFontSize, opts.NeedsSyntheticOblique(last.Font, last.NamedFont));
                 if (Math.Abs(separatorTextRise - currentTextRise) > 0.0001) {
                     content.TextRise(separatorTextRise);
                     currentTextRise = separatorTextRise;
@@ -2223,6 +2234,7 @@ internal static partial class PdfWriter {
         double y,
         double wordSpacing,
         string fontRes,
+        bool syntheticOblique,
         double fontSize,
         double textRise,
         PdfColor fillColor) {
@@ -2251,7 +2263,7 @@ internal static partial class PdfWriter {
             .TextLeading(defaultLeading)
             .TextMatrix(x, y)
             .WordSpacing(wordSpacing)
-            .Font(fontRes, fontSize)
+            .Font(fontRes, fontSize, syntheticOblique)
             .FillColor(fillColor);
         if (Math.Abs(textRise) > 0.0001) {
             content.TextRise(textRise);

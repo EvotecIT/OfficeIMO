@@ -310,8 +310,8 @@ public sealed partial class ReaderRegistryTests {
 
         Assert.Equal(0, dispatchCount);
 
-        int permissiveDispatchCount = 0;
-        OfficeDocumentReader permissiveReader = new OfficeDocumentReaderBuilder()
+        int mismatchedDispatchCount = 0;
+        OfficeDocumentReader boundedExtensionReader = new OfficeDocumentReaderBuilder()
             .AddHandler(new ReaderHandlerRegistration {
                 Id = "officeimo.tests.extension-bounded",
                 Kind = ReaderInputKind.Text,
@@ -326,11 +326,11 @@ public sealed partial class ReaderRegistryTests {
                 Extensions = new[] { ".permissivepdf" },
                 MaxInputBytesCeiling = 1_024,
                 ReadPath = (path, readerOptions, cancellationToken) => {
-                    permissiveDispatchCount++;
+                    mismatchedDispatchCount++;
                     return Array.Empty<ReaderChunk>();
                 },
                 ReadStream = (stream, sourceName, readerOptions, cancellationToken) => {
-                    permissiveDispatchCount++;
+                    mismatchedDispatchCount++;
                     return Array.Empty<ReaderChunk>();
                 }
             })
@@ -340,37 +340,61 @@ public sealed partial class ReaderRegistryTests {
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                Assert.Empty(permissiveReader.Read(stream, "sample.wrong", options));
+                Assert.Throws<IOException>(() => boundedExtensionReader.Read(stream, "sample.wrong", options).ToArray());
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                _ = permissiveReader.ReadDocument(stream, "sample.wrong", options);
+                Assert.Throws<IOException>(() => boundedExtensionReader.ReadDocument(stream, "sample.wrong", options));
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                Assert.Empty(await permissiveReader.ReadAsync(stream, "sample.wrong", options));
+                await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadAsync(stream, "sample.wrong", options));
             }
             using (Stream stream = nonSeekable
                        ? new NonSeekableReadStream(source)
                        : new MemoryStream(source, writable: false)) {
-                _ = await permissiveReader.ReadDocumentAsync(stream, "sample.wrong", options);
+                await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadDocumentAsync(stream, "sample.wrong", options));
             }
         }
 
         string permissivePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".wrong");
         try {
             File.WriteAllBytes(permissivePath, source);
-            Assert.Empty(permissiveReader.Read(permissivePath, options));
-            _ = permissiveReader.ReadDocument(permissivePath, options);
-            Assert.Empty(await permissiveReader.ReadAsync(permissivePath, options));
-            _ = await permissiveReader.ReadDocumentAsync(permissivePath, options);
+            Assert.Throws<IOException>(() => boundedExtensionReader.Read(permissivePath, options).ToArray());
+            Assert.Throws<IOException>(() => boundedExtensionReader.ReadDocument(permissivePath, options));
+            await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadAsync(permissivePath, options));
+            await Assert.ThrowsAsync<IOException>(() => boundedExtensionReader.ReadDocumentAsync(permissivePath, options));
         } finally {
             if (File.Exists(permissivePath)) File.Delete(permissivePath);
         }
 
-        Assert.Equal(12, permissiveDispatchCount);
+        Assert.Equal(0, mismatchedDispatchCount);
+    }
+
+    [Fact]
+    public void PreferContentExplicitBudgetCannotBypassExtensionCeilingBeforeSnapshot() {
+        int dispatchCount = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.explicit-ceiling",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { ".tiny" },
+                MaxInputBytesCeiling = 8,
+                ReadStream = (_, _, _, _) => {
+                    dispatchCount++;
+                    return Array.Empty<ReaderChunk>();
+                }
+            }).Build();
+        using var stream = new NonSeekableReadStream(Encoding.ASCII.GetBytes(
+            "This payload exceeds the registered ceiling"));
+
+        Assert.Throws<IOException>(() => reader.Read(stream, "input.tiny", new ReaderOptions {
+            DetectionMode = ReaderDetectionMode.PreferContent,
+            MaxInputBytes = 1024
+        }).ToArray());
+        Assert.Equal(0, dispatchCount);
     }
 
     [Fact]

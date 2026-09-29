@@ -39,7 +39,21 @@ internal static class ImageCancellationEvidence {
         return Measure(OfficeRasterImageEncoder.Encode(source, format, options));
     }
 
-    private static TimeSpan Measure(byte[] encoded) {
+    private static TimeSpan Measure(byte[] encoded) => TimeSpan.FromMilliseconds(
+        MeasureRepresentativeLatency(() => MeasureSingle(encoded).TotalMilliseconds));
+
+    // A single observation can include an unrelated OS scheduling pause. The median
+    // still exposes a persistent cancellation slowdown to the regression gate.
+    internal static double MeasureRepresentativeLatency(Func<double> measure) {
+        double first = measure();
+        double second = measure();
+        double third = measure();
+        if (first > second) (first, second) = (second, first);
+        if (second > third) (second, third) = (third, second);
+        return Math.Max(first, second);
+    }
+
+    private static TimeSpan MeasureSingle(byte[] encoded) {
         using var cancellation = new CancellationTokenSource();
         var options = new OfficeRasterDecodeOptions {
             CancellationToken = cancellation.Token,
@@ -59,23 +73,27 @@ internal static class ImageCancellationEvidence {
         };
         cancellationThread.Start();
         beginDecode.Set();
+        bool cancelled = false;
+        long observedAt = 0L;
         try {
             OfficeRasterImageDecoder.TryDecode(encoded, options, out _, out _);
         } catch (OperationCanceledException) {
+            observedAt = Stopwatch.GetTimestamp();
+            cancelled = true;
+        } finally {
             cancellationThread.Join();
-            long requestedAt = Volatile.Read(ref cancellationTimestamp);
-            if (requestedAt == 0L) {
-                throw new InvalidOperationException("Cancellation was observed before the synchronized request.");
-            }
-            TimeSpan elapsed = Stopwatch.GetElapsedTime(requestedAt);
-            if (elapsed > MaximumObservedLatency) {
-                throw new InvalidOperationException(
-                    $"Cancellation took {elapsed.TotalMilliseconds:N1} ms, above the evidence ceiling of {MaximumObservedLatency.TotalMilliseconds:N0} ms.");
-            }
-            return elapsed;
         }
-        cancellationThread.Join();
-        throw new InvalidOperationException("The bounded decoder completed without observing scheduled cancellation.");
+        if (!cancelled) throw new InvalidOperationException("The bounded decoder completed without observing scheduled cancellation.");
+        long requestedAt = Volatile.Read(ref cancellationTimestamp);
+        if (requestedAt == 0L) {
+            throw new InvalidOperationException("Cancellation was observed before the synchronized request.");
+        }
+        TimeSpan elapsed = Stopwatch.GetElapsedTime(requestedAt, observedAt);
+        if (elapsed > MaximumObservedLatency) {
+            throw new InvalidOperationException(
+                $"Cancellation took {elapsed.TotalMilliseconds:N1} ms, above the evidence ceiling of {MaximumObservedLatency.TotalMilliseconds:N0} ms.");
+        }
+        return elapsed;
     }
 
     private static void WriteResult(TextWriter writer, string format, TimeSpan elapsed) =>

@@ -1,3 +1,5 @@
+using System.Threading;
+
 namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkObjectIndex {
@@ -5,11 +7,15 @@ internal sealed class IWorkObjectIndex {
     private readonly Dictionary<IWorkArchiveRecord, IWorkWireMessage> _messages = new();
     private readonly object _messageLock = new();
     private readonly IWorkReadOptions _options;
+    private readonly CancellationToken _cancellationToken;
 
-    internal IWorkObjectIndex(IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options) {
+    internal IWorkObjectIndex(IReadOnlyList<IWorkArchiveRecord> records, IWorkReadOptions options,
+        CancellationToken cancellationToken = default) {
         _options = options;
+        _cancellationToken = cancellationToken;
         _objects = new Dictionary<ulong, IWorkArchiveRecord>();
         foreach (IWorkArchiveRecord record in records) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (!record.IsPrimary) continue;
             if (_objects.ContainsKey(record.Identifier)) {
                 throw new InvalidDataException(
@@ -22,6 +28,7 @@ internal sealed class IWorkObjectIndex {
     internal IEnumerable<IWorkArchiveRecord> PrimaryRecords => _objects.Values;
 
     internal IWorkWireMessage Message(IWorkArchiveRecord record) {
+        _cancellationToken.ThrowIfCancellationRequested();
         lock (_messageLock) {
             if (_messages.TryGetValue(record, out IWorkWireMessage? cached)) return cached;
             IWorkWireMessage parsed = IWorkProtobuf.Parse(record.Payload, _options);
@@ -46,6 +53,7 @@ internal sealed class IWorkObjectIndex {
         var result = new Dictionary<ulong, IWorkArchiveRecord>();
         var pending = new Stack<IWorkArchiveRecord>(roots);
         while (pending.Count > 0) {
+            _cancellationToken.ThrowIfCancellationRequested();
             IWorkArchiveRecord record = pending.Pop();
             if (result.ContainsKey(record.Identifier)) continue;
             result.Add(record.Identifier, record);
@@ -130,17 +138,19 @@ internal sealed class IWorkObjectIndex {
 
 internal static class IWorkArchiveParser {
     internal static IReadOnlyList<IWorkArchiveRecord> Parse(IReadOnlyList<IWorkPackageEntry> entries,
-        IWorkReadOptions options) {
+        IWorkReadOptions options, CancellationToken cancellationToken = default) {
         var records = new List<IWorkArchiveRecord>();
         long totalDecompressedBytes = 0;
         int archiveReferenceCount = 0;
         foreach (IWorkPackageEntry entry in entries.Where(candidate => IsIndexArchivePath(candidate.Path))) {
+            cancellationToken.ThrowIfCancellationRequested();
             byte[] stream;
             try {
                 long remaining = options.MaximumTotalDecompressedIwaBytes - totalDecompressedBytes;
-                stream = IWorkSnappy.DecodeIwa(entry.Bytes, options, remaining);
+                stream = IWorkSnappy.DecodeIwa(entry.Bytes, options, remaining, cancellationToken);
                 totalDecompressedBytes = checked(totalDecompressedBytes + stream.LongLength);
-                ParseStream(stream, entry.Path, records, options, ref archiveReferenceCount);
+                ParseStream(stream, entry.Path, records, options, ref archiveReferenceCount,
+                    cancellationToken);
             } catch (Exception exception) when (exception is InvalidDataException or OverflowException) {
                 throw new InvalidDataException($"Failed to read IWA entry {entry.Path}: {exception.Message}", exception);
             }
@@ -153,9 +163,10 @@ internal static class IWorkArchiveParser {
         && path.EndsWith(".iwa", StringComparison.OrdinalIgnoreCase);
 
     private static void ParseStream(byte[] stream, string entryPath, List<IWorkArchiveRecord> records,
-        IWorkReadOptions options, ref int archiveReferenceCount) {
+        IWorkReadOptions options, ref int archiveReferenceCount, CancellationToken cancellationToken) {
         int offset = 0;
         while (offset < stream.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             ulong rawInfoLength = IWorkProtobuf.ReadVarint(stream, ref offset);
             if (rawInfoLength > (ulong)options.MaximumArchiveInfoBytes || rawInfoLength > int.MaxValue) {
                 throw new InvalidDataException($"ArchiveInfo length {rawInfoLength} exceeds the configured limit.");
@@ -187,6 +198,7 @@ internal static class IWorkArchiveParser {
                 throw new InvalidDataException($"ArchiveInfo {identifier.Value} contains malformed MessageInfo entries.");
             }
             for (int payloadIndex = 0; payloadIndex < messages.Count; payloadIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 IWorkWireMessage messageInfo = messages[payloadIndex];
                 if (messageInfo.FieldCount(1) != 1 || messageInfo.FieldCount(3) != 1
                     || messageInfo.HasUnexpectedWireKind(1, IWorkWireKind.Varint)

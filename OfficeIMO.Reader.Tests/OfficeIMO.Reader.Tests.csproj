@@ -50,6 +50,7 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Excel\OfficeIMO.Reader.Excel.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.IWork\OfficeIMO.Reader.IWork.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Image\OfficeIMO.Reader.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Markdown\OfficeIMO.Reader.Markdown.csproj" />
@@ -94,6 +95,7 @@
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\Fixtures\Interoperability\**\*" Link="PdfInteroperability\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.Pdf.Tests\Pdf\ReferenceBaselines\*.pdf" Link="PdfReferenceBaselines\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.OneNote.Tests\Fixtures\*.one" Link="OneNoteFixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\IWorkCorpus\**" Link="Documents\IWorkCorpus\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Update="ReaderGolden\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
