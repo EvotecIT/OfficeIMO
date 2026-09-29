@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel {
                     && rowAxisFields.Length == 3 && columnAxisFields.Length == 0
                     && fieldPrefix.Length == 3 && measures.Length == 1
                     && type == PivotFilterValues.Count && ranking != null
-                    && ranking.Top?.Value != false && ranking.Val?.Value == 1d;
+                    && ranking.Top?.Value != false && ranking.Val?.Value is >= 1d and <= 2d;
                 if (axisFields.Count > 1 && !qualifiedThreeLevelTopCount
                     && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified axis rule.");
