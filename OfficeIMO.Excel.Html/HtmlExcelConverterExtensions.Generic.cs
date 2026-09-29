@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using OfficeIMO.Html;
 using OfficeIMO.Drawing;
 
@@ -68,6 +69,7 @@ public static partial class HtmlExcelConverterExtensions {
             .Any(HasSectionNarrative);
         ExcelSheet? narrativeSheet = null;
         int row = 1;
+        var placedImages = new HashSet<HtmlSemanticResource>();
         if (hasNarrative) {
             if (!budget.TryReserveSemanticContainer(out string textContainerLimit)) {
                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -75,28 +77,49 @@ public static partial class HtmlExcelConverterExtensions {
                     HtmlDiagnosticSeverity.Error, OfficeConversionLossKind.Omission, detail: textContainerLimit);
             } else {
                 narrativeSheet = workbook.AddWorksheet(GetUniqueSheetName("Imported", usedNames));
+                narrativeSheet.SetColumnWidth(1, 75D);
                 result.Sheets++;
                 int maxTableCells = budget.Limits.MaxTableCells;
+                int narrativeCells = 0;
                 foreach (HtmlSemanticSection section in document.Sections) {
-                    if (row > maxTableCells || row > A1.MaxRows) break;
+                    if (narrativeCells >= maxTableCells || row > A1.MaxRows) break;
                     bool sectionHasNarrative = HasSectionNarrative(section);
-                    if (!sectionHasNarrative && tables.Count > 0) continue;
+                    if (!sectionHasNarrative && tables.Count > 0) {
+                        if (options.ImportImages) {
+                            foreach (HtmlSemanticBlock block in section.Blocks) {
+                                ImportBlockImages(block, narrativeSheet, result, budget, placedImages, ref row);
+                            }
+                        }
+                        continue;
+                    }
                     if (TrySetCellTextValue(narrativeSheet, row, 1, section.Title, result, budget)) {
                         narrativeSheet.CellAt(row, 1).SetBold();
+                        narrativeSheet.CellWrapText(row, 1);
                         row++;
                         result.Cells++;
+                        narrativeCells++;
                     }
                     foreach (HtmlSemanticBlock block in section.Blocks) {
-                        if (!IsSectionNarrativeBlock(section, block)) continue;
-                        if (row > maxTableCells || row > A1.MaxRows) {
+                        if (!IsSectionNarrativeBlock(section, block)) {
+                            if (options.ImportImages) {
+                                ImportBlockImages(block, narrativeSheet, result, budget, placedImages, ref row);
+                            }
+                            continue;
+                        }
+                        if (narrativeCells >= maxTableCells || row > A1.MaxRows) {
                             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
                                 "Remaining HTML text blocks were omitted because the configured cell limit was reached.",
                                 lossKind: OfficeConversionLossKind.Omission, detail: "limit=" + maxTableCells);
                             break;
                         }
+                        if (options.ImportImages) {
+                            ImportBlockImages(block, narrativeSheet, result, budget, placedImages, ref row,
+                                beforeText: true);
+                        }
                         if (TrySetCellTextValue(narrativeSheet, row, 1, block.Text, result, budget)) {
                             ApplySemanticCellFormatting(narrativeSheet, row, 1, block.Runs,
                                 block.Kind == HtmlSemanticBlockKind.Heading, block.Style, result, budget);
+                            narrativeSheet.CellWrapText(row, 1);
                             if (block.Kind == HtmlSemanticBlockKind.Form) {
                                 AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
                                     "An HTML form was imported as editable visible text without its interactive controls.",
@@ -105,6 +128,11 @@ public static partial class HtmlExcelConverterExtensions {
                             }
                             row++;
                             result.Cells++;
+                            narrativeCells++;
+                        }
+                        if (options.ImportImages) {
+                            ImportBlockImages(block, narrativeSheet, result, budget, placedImages, ref row,
+                                beforeText: false);
                         }
                     }
                 }
@@ -118,7 +146,7 @@ public static partial class HtmlExcelConverterExtensions {
                 && A1.TryParseRange(imageSheet.UsedRangeA1, out _, out _, out int lastRow, out _)) {
                 imageRow = Math.Min(A1.MaxRows, lastRow + 2);
             }
-            ImportGenericImages(document, imageSheet, result, budget, ref imageRow);
+            ImportGenericImages(document, imageSheet, result, budget, placedImages, ref imageRow);
         }
 
         if (editableLayout?.Regions.Count > 0) {
@@ -393,44 +421,129 @@ public static partial class HtmlExcelConverterExtensions {
         (section.Blocks.Count == 0 && section.TitleSource == HtmlSemanticSectionTitleSource.Heading)
         || section.Blocks.Any(block => IsSectionNarrativeBlock(section, block));
 
+    private static void ImportBlockImages(
+        HtmlSemanticBlock block,
+        ExcelSheet sheet,
+        HtmlToExcelResult result,
+        HtmlImportBudget budget,
+        HashSet<HtmlSemanticResource> placedImages,
+        ref int row,
+        bool? beforeText = null) {
+        if (beforeText != false && block.Resource is { Kind: HtmlResourceKind.Image } resource
+            && placedImages.Add(resource)) {
+            ImportGenericImage(resource, sheet, result, budget, ref row);
+        }
+        (int leadingImages, bool interleavedText) = beforeText.HasValue
+            && block.InlineResources.Any(item => item.Kind == HtmlResourceKind.Image)
+            ? AnalyzeInlineImages(block.SourceElement)
+            : (0, false);
+        if (beforeText == false && interleavedText) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Text on both sides of an inline image was kept together in one editable cell before the picture.",
+                lossKind: OfficeConversionLossKind.Approximation,
+                detail: "block=" + block.Kind + "; placement=text-before-image");
+        }
+        int imageIndex = 0;
+        foreach (HtmlSemanticResource inline in block.InlineResources) {
+            if (inline.Kind != HtmlResourceKind.Image) continue;
+            bool leading = imageIndex++ < leadingImages;
+            if (beforeText.HasValue && leading != beforeText.Value) continue;
+            if (placedImages.Add(inline)) ImportGenericImage(inline, sheet, result, budget, ref row);
+        }
+        if (beforeText == true) return;
+        if (beforeText == false && block.Children.Any(ContainsImageResource)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentApproximated,
+                "Images inside nested list or form content were placed after the parent's combined text cell.",
+                lossKind: OfficeConversionLossKind.Approximation,
+                detail: "block=" + block.Kind + "; placement=nested-image-after-aggregate-text");
+        }
+        foreach (HtmlSemanticBlock child in block.Children) {
+            ImportBlockImages(child, sheet, result, budget, placedImages, ref row);
+        }
+    }
+
+    private static bool ContainsImageResource(HtmlSemanticBlock block) =>
+        block.Resource?.Kind == HtmlResourceKind.Image
+        || block.InlineResources.Any(resource => resource.Kind == HtmlResourceKind.Image)
+        || block.Children.Any(ContainsImageResource);
+
+    private static (int LeadingImages, bool InterleavedText) AnalyzeInlineImages(IElement owner) {
+        int count = 0;
+        bool hasText = false;
+        bool hasImageAfterText = false;
+        bool interleavedText = false;
+        Visit(owner);
+        return (count, interleavedText);
+
+        void Visit(INode node) {
+            if (node is IText text) {
+                if (!string.IsNullOrWhiteSpace(text.Data)) {
+                    if (hasImageAfterText) interleavedText = true;
+                    hasText = true;
+                }
+                return;
+            }
+            if (node is not IElement element) return;
+            if (string.Equals(element.LocalName, "img", StringComparison.OrdinalIgnoreCase)) {
+                if (!string.IsNullOrWhiteSpace(element.GetAttribute("src") ?? element.GetAttribute("data"))) {
+                    if (!hasText) count++;
+                    else hasImageAfterText = true;
+                }
+                return;
+            }
+            foreach (INode child in element.ChildNodes) Visit(child);
+        }
+    }
+
     private static void ImportGenericImages(
         HtmlSemanticDocument document,
         ExcelSheet sheet,
         HtmlToExcelResult result,
         HtmlImportBudget budget,
+        HashSet<HtmlSemanticResource> placedImages,
         ref int row) {
         foreach (HtmlSemanticResource resource in document.ResourceOccurrences.Where(item => item.Kind == HtmlResourceKind.Image)) {
-            if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
-                    "A generic worksheet image was omitted because synchronous native import currently requires a bounded image data URI.",
-                    lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
-                continue;
-            }
-            if (!IsSupportedExcelImage(dataUri, result, resource.Source)) continue;
-            if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
-                    "An embedded generic worksheet image was omitted because the shared image or drawing limit was reached.",
-                    lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
-                continue;
-            }
-            using HtmlImportBudgetReservation imageReservationScope = imageReservation;
-            if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
-                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
-                    "An embedded generic worksheet image could not be decoded.",
-                    lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
-                continue;
-            }
-            if (row > A1.MaxRows) break;
-            int width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
-            int height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
-            sheet.AddImage(row, 1, bytes, dataUri.MediaType, width, height,
-                name: null,
-                altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
-            ReportImageHyperlinkLoss(resource.Hyperlink, result);
-            result.Images++;
-            imageReservation.Commit();
-            row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
+            if (!placedImages.Add(resource)) continue;
+            ImportGenericImage(resource, sheet, result, budget, ref row);
         }
+    }
+
+    private static void ImportGenericImage(
+        HtmlSemanticResource resource,
+        ExcelSheet sheet,
+        HtmlToExcelResult result,
+        HtmlImportBudget budget,
+        ref int row) {
+        if (!HtmlImageDataUri.TryParse(resource.Source, out HtmlImageDataUri dataUri)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceTypeUnsupported,
+                "A generic worksheet image was omitted because synchronous native import currently requires a bounded image data URI.",
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
+            return;
+        }
+        if (!IsSupportedExcelImage(dataUri, result, resource.Source)) return;
+        if (!budget.TryReserveImageWithShape(dataUri, out HtmlImportBudgetReservation imageReservation, out string imageLimit)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
+                "An embedded generic worksheet image was omitted because the shared image or drawing limit was reached.",
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source, detail: imageLimit);
+            return;
+        }
+        using HtmlImportBudgetReservation imageReservationScope = imageReservation;
+        if (!dataUri.TryDecodeBytes(out byte[] bytes)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ResourceDecodeFailed,
+                "An embedded generic worksheet image could not be decoded.",
+                lossKind: OfficeConversionLossKind.Omission, source: resource.Source);
+            return;
+        }
+        if (row > A1.MaxRows) return;
+        int width = ReadGenericImageDimension(resource.WidthPixels, "width", 160, budget, result);
+        int height = ReadGenericImageDimension(resource.HeightPixels, "height", 90, budget, result);
+        sheet.AddImage(row, 1, bytes, dataUri.MediaType, width, height,
+            name: null,
+            altText: string.IsNullOrWhiteSpace(resource.AlternateText) ? null : resource.AlternateText);
+        ReportImageHyperlinkLoss(resource.Hyperlink, result);
+        result.Images++;
+        imageReservation.Commit();
+        row = Math.Min(A1.MaxRows + 1, row + Math.Max(2, (height + 19) / 20 + 1));
     }
 
     private static int ReadGenericImageDimension(

@@ -8,6 +8,107 @@ namespace OfficeIMO.Html.Tests;
 
 public sealed class HtmlEditableLayoutExcelTests {
     [Fact]
+    public void GenericArticlePicturesStayWithTheirCaptionsAfterReopen() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<article><h1>Field report</h1><p>Opening paragraph</p>"
+            + "<figure><img alt='First photograph' src='" + image + "' width='40' height='40'>"
+            + "<figcaption>First photograph credit</figcaption></figure>"
+            + "<p>Middle paragraph</p>"
+            + "<figure><img alt='Second photograph' src='" + image + "' width='40' height='40'>"
+            + "<figcaption>Second photograph credit</figcaption></figure>"
+            + "<p>Closing paragraph</p></article>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using var artifact = new MemoryStream();
+        using (ExcelDocument workbook = result.Value) workbook.Save(artifact);
+        using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
+        ExcelSheet sheet = Assert.Single(reopened.Sheets);
+        ExcelImage[] pictures = sheet.Images.ToArray();
+        Assert.Equal(2, pictures.Length);
+        int openingRow = Assert.NotNull(FindCellText(sheet, "Opening paragraph")).Row;
+        int firstCaptionRow = Assert.NotNull(FindCellText(sheet, "First photograph credit")).Row;
+        int middleRow = Assert.NotNull(FindCellText(sheet, "Middle paragraph")).Row;
+        int secondCaptionRow = Assert.NotNull(FindCellText(sheet, "Second photograph credit")).Row;
+        int closingRow = Assert.NotNull(FindCellText(sheet, "Closing paragraph")).Row;
+        Assert.True(openingRow < pictures[0].RowIndex && pictures[0].RowIndex < firstCaptionRow);
+        Assert.True(firstCaptionRow < middleRow && middleRow < pictures[1].RowIndex);
+        Assert.True(pictures[1].RowIndex < secondCaptionRow && secondCaptionRow < closingRow);
+        Assert.True(sheet.GetCellStyle(firstCaptionRow, 1).WrapText);
+        Assert.True(sheet.GetCellStyle(middleRow, 1).WrapText);
+    }
+
+    [Fact]
+    public void GenericInlinePicturesDoNotMoveBeforeEarlierText() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<p>Text before <img src='" + image + "'> text after</p>"
+            + "<p><img src='" + image + "'>Leading picture credit</p>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        ExcelImage[] pictures = sheet.Images.ToArray();
+        Assert.Equal(2, pictures.Length);
+        int firstTextRow = Assert.NotNull(FindCellText(sheet, "Text before")).Row;
+        int creditRow = Assert.NotNull(FindCellText(sheet, "Leading picture credit")).Row;
+        Assert.True(firstTextRow < pictures[0].RowIndex);
+        Assert.True(pictures[1].RowIndex < creditRow);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.Detail?.Contains("placement=text-before-image", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void GenericImageSpacingDoesNotConsumeTheTextCellLimit() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<p>Before picture</p><img src='" + image
+            + "' width='200' height='200'><p>After picture</p>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 3 });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        ExcelImage picture = Assert.Single(sheet.Images);
+        int beforeRow = Assert.NotNull(FindCellText(sheet, "Before picture")).Row;
+        int afterRow = Assert.NotNull(FindCellText(sheet, "After picture")).Row;
+        Assert.True(beforeRow < picture.RowIndex && picture.RowIndex < afterRow);
+    }
+
+    [Fact]
+    public void LaterListPictureDoesNotPrecedeEarlierListText() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<ul><li>First item</li><li><img src='" + image + "'>Second item</li></ul>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet sheet = Assert.Single(workbook.Sheets);
+        int listRow = Assert.NotNull(FindCellText(sheet, "First item")).Row;
+        ExcelImage picture = Assert.Single(sheet.Images);
+        Assert.True(listRow < picture.RowIndex);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
+            && diagnostic.Detail?.Contains("nested-image-after-aggregate-text", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void ImageOnlySectionPrecedesLaterNarrativeWhenTablesArePresent() {
+        string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<section><img src='" + image + "' width='40' height='40'></section>"
+            + "<section><p>Later narrative</p></section>"
+            + "<table><tr><td>Table data</td></tr></table>";
+
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html)
+            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = result.Value;
+        ExcelSheet narrative = Assert.Single(workbook.Sheets, sheet => sheet.Name == "Imported");
+        ExcelImage picture = Assert.Single(narrative.Images);
+        int textRow = Assert.NotNull(FindCellText(narrative, "Later narrative")).Row;
+        Assert.True(picture.RowIndex < textRow);
+    }
+
+    [Fact]
     public void ExplicitGenericModeProjectsRegionsInsideSemanticLookingSheetClasses() {
         const string html = "<section class='officeimo-sheet'><h1>Generic sheet</h1>" +
             "<div style='position:absolute;width:140px;height:40px'>Generic region</div></section>";
