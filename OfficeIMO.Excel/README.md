@@ -718,10 +718,13 @@ one row and one column field, the same value comparisons, ranges,
 and top/bottom count, percent, and sum filters can target either field. With
 three row fields and one measure, Top 1, Top 2, and Bottom 1 count, numeric
 greater-than, and numeric between filters on the innermost field are qualified
-against Excel-produced views and `GETPIVOTDATA` results. Other
-three-or-more-field value rules and multi-measure filter interactions remain
-outside this qualified profile. Signed and zero child aggregates, nonpositive outer-field
-totals, three siblings per parent, mixed numeric/error ranking, and classic
+against Excel-produced views and `GETPIVOTDATA` results. With two row fields,
+one column field, and one measure, numeric greater-than on the inner row field
+and Bottom 1 count on the column field are also qualified against complete
+Excel-produced views and lookups. Other three-or-more-field value rules and
+multi-measure filter interactions remain outside this qualified profile.
+Signed and zero child aggregates, nonpositive outer-field totals, three siblings
+per parent, mixed numeric/error ranking, and classic
 all-error parent top/bottom count ranking have Excel-produced examples.
 All-error parent percent/sum ranking and broader sign/error mixes still need
 independent evidence.

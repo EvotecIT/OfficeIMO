@@ -190,7 +190,15 @@ namespace OfficeIMO.Excel {
                             && (ranking.Top?.Value == false
                                 ? ranking.Val?.Value == 1d
                                 : ranking.Val?.Value is >= 1d and <= 2d)));
-                if (axisFields.Count > 1 && !qualifiedThreeLevelValueFilter
+                bool qualifiedThreeLevelMixedValueFilter = axisFields.Count == 3
+                    && rowAxisFields.Length == 2 && columnAxisFields.Length == 1
+                    && measures.Length == 1
+                    && ((rowPosition == 1 && fieldPrefix.Length == 2
+                            && type == PivotFilterValues.ValueGreaterThan)
+                        || (rowPosition < 0 && fieldPrefix.Length == 1
+                            && type == PivotFilterValues.Count && ranking?.Top?.Value == false
+                            && ranking.Val?.Value == 1d));
+                if (axisFields.Count > 1 && !qualifiedThreeLevelValueFilter && !qualifiedThreeLevelMixedValueFilter
                     && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified axis rule.");
                 var measure = measures[filter.MeasureField.Value];

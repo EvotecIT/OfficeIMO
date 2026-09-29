@@ -4,7 +4,8 @@ Creates an independent Excel fixture for a value filter at the third row level.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('top1', 'top2', 'bottom1', 'greater15', 'between15and30')]
+    [ValidateSet('top1', 'top2', 'bottom1', 'greater15', 'between15and30',
+        'mixed-row-greater50', 'mixed-column-bottom1')]
     [string] $Kind = 'top1',
     [string] $OutputDirectory
 )
@@ -81,10 +82,14 @@ try {
     $lastSourceRow = $rows.Count + 1
     $cache = $workbook.PivotCaches().Create(1, "'Source'!R1C1:R$($lastSourceRow)C4", 6)
     $pivot = $cache.CreatePivotTable($view.Range('A4'), 'ValuePivot')
+    $mixedAxes = $Kind.StartsWith('mixed-', [StringComparison]::Ordinal)
     foreach ($fieldName in @('Region', 'Product', 'Channel')) {
         $field = $pivot.PivotFields($fieldName)
-        $field.Orientation = 1
-        $field.Position = [array]::IndexOf(@('Region', 'Product', 'Channel'), $fieldName) + 1
+        $field.Orientation = if ($mixedAxes -and $fieldName -eq 'Channel') { 2 } else { 1 }
+        $field.Position = if ($fieldName -eq 'Region') { 1 }
+            elseif ($fieldName -eq 'Product') { 2 }
+            elseif ($mixedAxes) { 1 }
+            else { 3 }
     }
     $metric = $pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
     $pivot.RowAxisLayout(1)
@@ -96,11 +101,14 @@ try {
         'bottom1'       { @{ Type = 2; First = 1.0; Grand = 35.0 } }
         'greater15'     { @{ Type = 9; First = 15.0; Grand = 215.0 } }
         'between15and30' { @{ Type = 13; First = 15.0; Second = 30.0; Grand = 125.0 } }
+        'mixed-row-greater50' { @{ Type = 9; First = 50.0; Grand = 220.0; Field = 'Product' } }
+        'mixed-column-bottom1' { @{ Type = 2; First = 1.0; Grand = 85.0; Field = 'Channel' } }
     }
+    $filteredField = if ($rule.ContainsKey('Field')) { $rule.Field } else { 'Channel' }
     if ($rule.ContainsKey('Second')) {
-        [void]$pivot.PivotFields('Channel').PivotFilters.Add2($rule.Type, $metric, $rule.First, $rule.Second)
+        [void]$pivot.PivotFields($filteredField).PivotFilters.Add2($rule.Type, $metric, $rule.First, $rule.Second)
     } else {
-        [void]$pivot.PivotFields('Channel').PivotFilters.Add2($rule.Type, $metric, $rule.First)
+        [void]$pivot.PivotFields($filteredField).PivotFilters.Add2($rule.Type, $metric, $rule.First)
     }
     $lookups = $workbook.Worksheets.Add()
     $lookups.Name = 'Lookups'
@@ -126,7 +134,8 @@ try {
         generatedUtc = [DateTime]::UtcNow.ToString('o')
         regeneration = 'Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1'
         file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-        sourceRange = "Source!A1:D$lastSourceRow"; filteredField = 'Channel'; axis = 'Row'
+        sourceRange = "Source!A1:D$lastSourceRow"; filteredField = $filteredField
+        axis = if ($mixedAxes) { 'Mixed' } else { 'Row' }
         filterType = $rule.Type; threshold = $rule.First
         threshold2 = if ($rule.ContainsKey('Second')) { $rule.Second } else { $null }
         outputRange = $range; grandTotal = $grand
