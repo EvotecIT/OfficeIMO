@@ -36,7 +36,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.MarginTop + style.BorderTopWidth,
             Math.Max(0.01D, boxWidth - style.BorderLeftWidth - style.BorderRightWidth),
             Math.Max(0.01D, boxHeight - style.BorderTopWidth - style.BorderBottomWidth));
-        return block.WithVisuals(outside);
+        return block.WithVisuals(outside, style.OverflowY == "visible" ? null : block.Height);
     }
 
     private void ReportUnsupportedOverflowValues(IElement element, HtmlRenderBoxStyle style) {

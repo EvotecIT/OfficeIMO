@@ -325,7 +325,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
         }
         if (_options.Mode == HtmlRenderMode.Paged || !HasAuthoredRootBoxGeometry(root, rootStyle)) {
-            return BuildChildBlocks(root, contentWidth, rootStyle, 0);
+            IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(root, contentWidth, rootStyle, 0);
+            // Overflowing top-level siblings must share one positioned paint
+            // surface; paginating them separately would move later siblings.
+            if (_options.Mode == HtmlRenderMode.Paged
+                && children.Any(child => child.PagedPaintExtent > child.Height + 0.0001D)) {
+                return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
+            }
+            return children;
         }
         return new[] { LayoutRootElement(root, contentWidth, rootStyle) };
     }
@@ -673,10 +680,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (!string.Equals(currentPageName, block.PageName, StringComparison.Ordinal)) {
                 if (hasPageContent) CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
-                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
                 hasPageContent = false;
             } else {
-                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
             }
 
             if (!hasPageContent) currentPageName = block.PageName;
@@ -689,7 +696,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 contentHeight = ResolvePageBodyContentHeight(pages.Count + 1, pageGeometry);
                 hasPageContent = y > pageGeometry.Margins.Top + 0.0001D;
                 currentPageName = block.PageName;
-                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
             }
 
             double remainingHeight = ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y;
@@ -703,7 +710,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         block, pageGeometry, remainingHeight, contentHeight, out floatAwareBlock);
                 }
             }
-            if (deferredFloat) block = floatAwareBlock;
+            if (deferredFloat) block = floatAwareBlock.ForPagination();
 
             if (hasPageContent
                 && !deferredFloat
@@ -712,7 +719,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 currentPageName = block.PageName;
-                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
                 hasPageContent = false;
             }
 
@@ -726,7 +733,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 currentPageName = block.PageName;
-                block = RelayoutTopLevelBlockForPage(block, pageGeometry);
+                block = RelayoutTopLevelBlockForPage(block, pageGeometry).ForPagination();
             }
 
             if (block.Height <= ResolvePageBodyBottom(pages.Count + 1, pageGeometry) - y && !HasInternalForcedBreak(block)) {
@@ -743,7 +750,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         && block.Height > blockOffset + flexAvailable + 0.0001D
                         && TryRelayoutBlockForFlexPagination(block, blockOffset, flexAvailable, contentHeight,
                             pages.Count + 1, pageGeometry, out HtmlRenderFlowBlock alignedFlexBlock)) {
-                        block = alignedFlexBlock;
+                        block = alignedFlexBlock.ForPagination();
                         _pagedFlexAlignedBlocks.Add(block);
                     }
                     HtmlRenderContinuationGroup? continuationGroup = block.ContinuationGroups.FirstOrDefault(group => group.AppliesAt(blockOffset));
@@ -870,7 +877,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         if (RequiresPageRelayout(block, pageGeometry)) {
                             if (continuationProgress.HasValue
                                 && TryRelayoutInlineContinuation(block, pageGeometry, continuationProgress.Value, out HtmlRenderFlowBlock reflowed)) {
-                                block = reflowed;
+                                block = reflowed.ForPagination();
                                 blockOffset = 0D;
                             } else {
                                 ReportPageContinuationReflowPending(block, pageGeometry);

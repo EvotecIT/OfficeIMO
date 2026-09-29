@@ -667,6 +667,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
+            ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
+                Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
+            : outerHeight;
         if (style.ExplicitHeight == null && contentHeight > 0.0001D
             && style.PaddingBottom + style.BorderBottomWidth > 0.0001D) {
             double finalContentStart = contentBreakOffsets
@@ -682,6 +686,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         IEnumerable<double> breakOffsets = contentBreakOffsets.Select(offset => contentYForBreaks + offset)
             .Concat(new[] { outerHeight });
+        if (pagedPaintExtent > outerHeight + 0.0001D) {
+            IReadOnlyList<(double Top, double Bottom)> atomicRanges = CollectAtomicFlexVisualRanges(visuals);
+            breakOffsets = breakOffsets.Where(offset => !CrossesAtomicFlexVisual(atomicRanges, offset));
+        }
         IEnumerable<double> adjustedLineBreakOffsets = lineBreakOffsets.Select(offset => contentYForBreaks + offset);
         IEnumerable<HtmlRenderLineBreakGroup> adjustedLineBreakGroups = lineBreakGroups.Select(group => group.Translate(contentYForBreaks));
         IEnumerable<HtmlRenderContinuationGroup> adjustedContinuationGroups = continuationGroups.Select(group => group.Translate(contentX, contentYForBreaks));
@@ -722,7 +730,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
                 || continuationBreakProgress.Any(progress => progress.OwnerElement != null),
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
-            avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)));
+            avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
+            pagedPaintExtent: pagedPaintExtent);
         block = ApplyElementSemantics(block, element, style);
         bool collapsesThrough = CanCollapseThroughEmptyBlock(style, usesBlockFormatting, children, contentVisuals, contentHeight);
         return StampViewport(AttachElementMargins(ApplyElementPositioning(block, style, containingWidth, containingHeight, element),

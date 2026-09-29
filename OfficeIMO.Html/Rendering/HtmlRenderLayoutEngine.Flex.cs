@@ -250,6 +250,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }))
             : Array.Empty<HtmlRenderAvoidBreakRange>();
 
+        // An explicit flex height controls sibling placement, but visible child
+        // paint can continue onto later printed pages.
+        double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged
+            && style.ExplicitHeight.HasValue && style.OverflowY == "visible"
+            ? Math.Max(outerHeight, MaximumScrollBottom(visuals))
+            : outerHeight;
+
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -276,7 +283,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 outerHeight),
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
-            avoidBreakRanges: lineKeepRanges.Concat(itemKeepRanges));
+            avoidBreakRanges: lineKeepRanges.Concat(itemKeepRanges),
+            pagedPaintExtent: pagedPaintExtent);
         if (_options.Mode == HtmlRenderMode.Paged) {
             _pagedRowFlexBlocks[element] = block;
             if (style.FlexWrap == "nowrap" && lines.Count == 1 && CanAlignPagedRowFlex(element, style, lines[0])) {
@@ -360,7 +368,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         ranges.Sort((left, right) => left.Top.CompareTo(right.Top));
         var merged = new List<(double Top, double Bottom)>();
         foreach ((double top, double bottom) in ranges) {
-            if (merged.Count > 0 && top <= merged[merged.Count - 1].Bottom + 0.0001D) {
+            if (merged.Count > 0 && top < merged[merged.Count - 1].Bottom - 0.0001D) {
                 (double previousTop, double previousBottom) = merged[merged.Count - 1];
                 merged[merged.Count - 1] = (previousTop, Math.Max(previousBottom, bottom));
             } else {

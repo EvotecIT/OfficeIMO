@@ -390,6 +390,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+
     }
 
     [Fact]
@@ -615,6 +616,95 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_FixedHeightPaintOverflowContinuesWithoutMovingFollowingSibling() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body,p{margin:0}</style>"
+            + "<div style='display:flex;width:180px;height:100px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:50px;orphans:1;widows:1'>"
+            + string.Join("<br>", Enumerable.Range(1, 9).Select(index => "Line" + index)) + "</div>"
+            + "<div style='width:90px'>"
+            + string.Concat(Enumerable.Range(1, 4).Select(index =>
+                "<img id='figure-" + index + "' src='data:image/png;base64," + image
+                + "' style='display:block;width:90px;height:100px'>"))
+            + "</div></div><p>Following sibling</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlRenderText[] texts = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>().ToArray();
+        HtmlRenderImage[] images = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderImage>().ToArray();
+
+        Assert.Equal(2, rendered.Pages.Count);
+        foreach (int index in Enumerable.Range(1, 9)) Assert.Single(texts, text => text.Text == "Line" + index);
+        foreach (int index in Enumerable.Range(1, 4)) Assert.True(
+            images.Count(visual => visual.Source == "img#figure-" + index) == 1,
+            "Missing figure-" + index + "; actual: " + string.Join(", ", images.Select(visual => visual.Source))
+            + "; diagnostics: " + string.Join(", ", rendered.Diagnostics.Select(diagnostic => diagnostic.Code)));
+        HtmlRenderText following = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Following sibling");
+        Assert.Equal(100D, following.Y, 1);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+        Assert.Equal(2, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        string pdfText = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Line9", pdfText, StringComparison.Ordinal);
+        Assert.Contains("Following sibling", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_HiddenFixedHeightOverflowDoesNotCreatePrintPages() {
+        const string html = "<style>body{margin:0}</style>"
+            + "<div style='display:flex;width:180px;height:100px;overflow:hidden'>"
+            + "<div style='width:90px;line-height:50px'>"
+            + "First<br>Second<br>Third<br>Fourth<br>Fifth<br>Sixth<br>Seventh</div></div>"
+            + "<p style='margin:0'>Following sibling</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+
+        Assert.Single(rendered.Pages);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Following sibling" && Math.Abs(text.Y - 100D) < 0.1D);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlFlexSection_FixedHeightPaintOverflowSurvivesSemanticSlicing(bool editableRegions) {
+        const string html = "<style>body{margin:0}</style>"
+            + "<section style='display:flex;width:180px;height:100px;align-items:flex-start'>"
+            + "<div style='width:90px;line-height:50px;orphans:1;widows:1'>"
+            + "First<br>Second<br>Third<br>Fourth<br>Fifth<br>Sixth<br>Seventh<br>Eighth<br>Ninth"
+            + "</div></section><p style='margin:0'>Following sibling</p>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 300D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+        options.EnableEditableLayoutRegions = editableRegions;
+
+        byte[] pdf = HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions(options));
+
+        Assert.Equal(2, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        string text = PdfCore.PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("Ninth", text, StringComparison.Ordinal);
+        Assert.Contains("Following sibling", text, StringComparison.Ordinal);
     }
 
     [Fact]

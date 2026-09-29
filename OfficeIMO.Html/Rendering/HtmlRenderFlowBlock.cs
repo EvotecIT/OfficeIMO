@@ -40,9 +40,13 @@ internal sealed class HtmlRenderFlowBlock {
         double leadingFlowAdjustment = 0D,
         HtmlCollapsedMargin? collapsibleMarginTopGroup = null,
         HtmlCollapsedMargin? collapsibleMarginBottomGroup = null,
-        IEnumerable<HtmlRenderAvoidBreakRange>? avoidBreakRanges = null) {
+        IEnumerable<HtmlRenderAvoidBreakRange>? avoidBreakRanges = null,
+        double? pagedPaintExtent = null) {
         Width = width;
         Height = height;
+        PagedPaintExtent = pagedPaintExtent.HasValue && !double.IsNaN(pagedPaintExtent.Value) && !double.IsInfinity(pagedPaintExtent.Value)
+            ? Math.Max(height, pagedPaintExtent.Value)
+            : height;
         UnclampedHeight = unclampedHeight.HasValue && !double.IsNaN(unclampedHeight.Value) && !double.IsInfinity(unclampedHeight.Value)
             ? unclampedHeight.Value
             : height;
@@ -51,16 +55,16 @@ internal sealed class HtmlRenderFlowBlock {
         BreakAfter = breakAfter;
         AvoidBreakInside = avoidBreakInside;
         Source = source;
-        var offsets = new SortedSet<double> { 0D, height };
+        var offsets = new SortedSet<double> { 0D, PagedPaintExtent };
         if (breakOffsets != null) {
             foreach (double offset in breakOffsets) {
-                if (offset > 0D && offset < height && !double.IsNaN(offset) && !double.IsInfinity(offset)) offsets.Add(offset);
+                if (offset > 0D && offset < PagedPaintExtent && !double.IsNaN(offset) && !double.IsInfinity(offset)) offsets.Add(offset);
             }
         }
 
         BreakOffsets = offsets.ToList().AsReadOnly();
         AvoidBreakRanges = new List<HtmlRenderAvoidBreakRange>(avoidBreakRanges ?? Array.Empty<HtmlRenderAvoidBreakRange>())
-            .Where(range => range.Start >= -0.0001D && range.End <= height + 0.0001D && range.End > range.Start + 0.0001D)
+            .Where(range => range.Start >= -0.0001D && range.End <= PagedPaintExtent + 0.0001D && range.End > range.Start + 0.0001D)
             .ToList()
             .AsReadOnly();
         ForcedBreaks = new List<HtmlRenderForcedBreak>(forcedBreaks ?? Array.Empty<HtmlRenderForcedBreak>())
@@ -68,7 +72,7 @@ internal sealed class HtmlRenderFlowBlock {
                 && !double.IsNaN(item.Offset)
                 && !double.IsInfinity(item.Offset)
                 && item.Offset >= -0.0001D
-                && item.Offset <= height + 0.0001D)
+                && item.Offset <= PagedPaintExtent + 0.0001D)
             .OrderBy(item => item.Offset)
             .ToList()
             .AsReadOnly();
@@ -77,8 +81,8 @@ internal sealed class HtmlRenderFlowBlock {
         if (lineBreakOffsets != null) {
             foreach (double offset in lineBreakOffsets) {
                 if (offset <= 0D || double.IsNaN(offset) || double.IsInfinity(offset)) continue;
-                if (offset < height - 0.0001D) lineOffsets.Add(offset);
-                else if (offset <= height + 0.0001D) hasImplicitFinalLine = true;
+                if (offset < PagedPaintExtent - 0.0001D) lineOffsets.Add(offset);
+                else if (offset <= PagedPaintExtent + 0.0001D) hasImplicitFinalLine = true;
             }
         }
 
@@ -90,7 +94,7 @@ internal sealed class HtmlRenderFlowBlock {
         if (groups.Count == 0 && resolvedLineOffsets.Count > 0) groups.Add(new HtmlRenderLineBreakGroup(
             resolvedLineOffsets, resolvedOrphans, resolvedWidows, hasImplicitFinalLine,
             start: 0D,
-            end: hasImplicitFinalLine ? height : resolvedLineOffsets[resolvedLineOffsets.Count - 1]));
+            end: hasImplicitFinalLine ? PagedPaintExtent : resolvedLineOffsets[resolvedLineOffsets.Count - 1]));
         LineBreakGroups = groups.AsReadOnly();
         IReadOnlyList<HtmlRenderVisual> repeatedVisuals = new List<HtmlRenderVisual>(continuationVisuals ?? Array.Empty<HtmlRenderVisual>()).AsReadOnly();
         double repeatedHeight = Math.Max(0D, continuationHeight);
@@ -123,6 +127,8 @@ internal sealed class HtmlRenderFlowBlock {
 
     internal double Width { get; }
     internal double Height { get; }
+    // CSS flow advances by Height; visible painted overflow may need later print pages.
+    internal double PagedPaintExtent { get; }
     internal double UnclampedHeight { get; }
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
     internal HtmlPageBreakTarget BreakBefore { get; }
@@ -185,7 +191,8 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges);
+            avoidBreakRanges: AvoidBreakRanges,
+            pagedPaintExtent: PagedPaintExtent);
 
     internal HtmlRenderFlowBlock TranslatePaint(double offsetX, double offsetY) =>
         new HtmlRenderFlowBlock(
@@ -219,7 +226,8 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges);
+            avoidBreakRanges: AvoidBreakRanges,
+            pagedPaintExtent: PagedPaintExtent);
 
     internal HtmlRenderFlowBlock WithStacking(int zIndex, int sourceOrder) {
         var context = new HtmlRenderStackingContext(zIndex, sourceOrder);
@@ -254,10 +262,11 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges);
+            avoidBreakRanges: AvoidBreakRanges,
+            pagedPaintExtent: PagedPaintExtent);
     }
 
-    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals) =>
+    internal HtmlRenderFlowBlock WithVisuals(IEnumerable<HtmlRenderVisual> visuals, double? pagedPaintExtent = null) =>
         new HtmlRenderFlowBlock(
             Width,
             Height,
@@ -289,7 +298,44 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
+            avoidBreakRanges: AvoidBreakRanges,
+            pagedPaintExtent: pagedPaintExtent ?? PagedPaintExtent);
+
+    internal HtmlRenderFlowBlock ForPagination() {
+        if (PagedPaintExtent <= Height + 0.0001D) return this;
+        return new HtmlRenderFlowBlock(
+            Width,
+            PagedPaintExtent,
+            Visuals,
+            BreakBefore,
+            BreakAfter,
+            AvoidBreakInside,
+            Source,
+            BreakOffsets,
+            lineBreakGroups: LineBreakGroups,
+            continuationGroups: ContinuationGroups,
+            trailingGroups: TrailingGroups,
+            pageName: PageName,
+            stackingZIndex: StackingZIndex,
+            stackingSourceOrder: StackingSourceOrder,
+            hasCollapsibleMargins: HasCollapsibleMargins,
+            collapsibleMarginTop: CollapsibleMarginTop,
+            collapsibleMarginBottom: CollapsibleMarginBottom,
+            ownerElement: OwnerElement,
+            collapsesThrough: CollapsesThrough,
+            unclampedHeight: UnclampedHeight,
+            runningStringAssignments: RunningStringAssignments,
+            inlineBreakProgress: InlineBreakProgress,
+            inlineContinuationStart: InlineContinuationStart,
+            supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
+            forcedBreaks: ForcedBreaks,
+            layoutViewportWidth: LayoutViewportWidth,
+            layoutViewportHeight: LayoutViewportHeight,
+            leadingFlowAdjustment: LeadingFlowAdjustment,
+            collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
+            collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges);
+    }
 
     internal HtmlRenderFlowBlock AdjustLeadingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
@@ -327,7 +373,8 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
-                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment)));
+                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment)),
+            pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment));
     }
 
     internal HtmlRenderFlowBlock WithCollapsibleMargins(double top, double bottom, IElement ownerElement,
@@ -363,7 +410,8 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: topGroup,
             collapsibleMarginBottomGroup: bottomGroup,
-            avoidBreakRanges: AvoidBreakRanges);
+            avoidBreakRanges: AvoidBreakRanges,
+            pagedPaintExtent: PagedPaintExtent);
 
     internal HtmlRenderFlowBlock WithRunningStringAssignments(IEnumerable<HtmlCssRunningStringAssignment> assignments) =>
         new HtmlRenderFlowBlock(
@@ -397,12 +445,14 @@ internal sealed class HtmlRenderFlowBlock {
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges);
+            avoidBreakRanges: AvoidBreakRanges,
+            pagedPaintExtent: PagedPaintExtent);
 
     internal HtmlRenderFlowBlock AdjustTrailingFlowSpace(double adjustment) {
         if (Math.Abs(adjustment) <= 0.0001D) return this;
         double adjustedUnclampedHeight = UnclampedHeight - adjustment;
         double adjustedHeight = Math.Max(0.01D, adjustedUnclampedHeight);
+        double adjustedPaintExtent = Math.Max(adjustedHeight, PagedPaintExtent - adjustment);
         return new HtmlRenderFlowBlock(
             Width,
             adjustedHeight,
@@ -411,7 +461,7 @@ internal sealed class HtmlRenderFlowBlock {
             BreakAfter,
             AvoidBreakInside,
             Source,
-            BreakOffsets.Where(offset => offset <= adjustedHeight + 0.0001D),
+            BreakOffsets.Where(offset => offset <= adjustedPaintExtent + 0.0001D),
             lineBreakGroups: LineBreakGroups,
             continuationGroups: ContinuationGroups,
             trailingGroups: TrailingGroups,
@@ -424,17 +474,18 @@ internal sealed class HtmlRenderFlowBlock {
             ownerElement: OwnerElement,
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
-            runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedHeight + 0.0001D),
-            inlineBreakProgress: InlineBreakProgress.Where(progress => progress.Offset <= adjustedHeight + 0.0001D),
+            runningStringAssignments: RunningStringAssignments.Where(assignment => assignment.Offset <= adjustedPaintExtent + 0.0001D),
+            inlineBreakProgress: InlineBreakProgress.Where(progress => progress.Offset <= adjustedPaintExtent + 0.0001D),
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
-            forcedBreaks: ForcedBreaks.Where(item => item.Offset <= adjustedHeight + 0.0001D),
+            forcedBreaks: ForcedBreaks.Where(item => item.Offset <= adjustedPaintExtent + 0.0001D),
             layoutViewportWidth: LayoutViewportWidth,
             layoutViewportHeight: LayoutViewportHeight,
             leadingFlowAdjustment: LeadingFlowAdjustment,
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
-            avoidBreakRanges: AvoidBreakRanges.Select(range => range.WithEnd(Math.Min(range.End, adjustedHeight))));
+            avoidBreakRanges: AvoidBreakRanges.Select(range => range.WithEnd(Math.Min(range.End, adjustedPaintExtent))),
+            pagedPaintExtent: adjustedPaintExtent);
     }
 }
 
