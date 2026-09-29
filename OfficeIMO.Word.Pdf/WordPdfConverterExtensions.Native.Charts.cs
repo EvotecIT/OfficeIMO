@@ -286,7 +286,8 @@ namespace OfficeIMO.Word.Pdf {
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
                     !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()))
-                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, pointColorScheme));
+                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count,
+                        pointColorScheme, seriesElement.Parent?.LocalName.EndsWith("3DChart", StringComparison.Ordinal) == true));
                 if (IsNativeWordPieLikeChart(chartKind)) {
                     if (!OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartExplosions.TryRead(
                             (OpenXmlCompositeElement)seriesElement, pointOverrides, values.Count,
