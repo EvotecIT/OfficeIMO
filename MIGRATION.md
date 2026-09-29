@@ -9,6 +9,18 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## CSV asynchronous stream saves
+
+`CsvDocument.SaveAsync(Stream, ...)` writes records incrementally instead of
+serializing the complete CSV before the first write. If formatting, cancellation,
+or destination I/O fails, a caller-owned stream can contain partial output. Save
+to a path when replacement must be staged before commit. Appending to an existing
+path also writes directly and can leave a partial append on failure.
+
+`Append` and `NoClobber` are path-only options. Passing either to
+`SaveAsync(Stream, ...)` now throws `ArgumentException` instead of silently
+ignoring it.
+
 ## Excel typed formula caches
 
 OfficeIMO calculation now saves Boolean formulas as Boolean cached values.

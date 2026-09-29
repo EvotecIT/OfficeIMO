@@ -495,7 +495,8 @@ Use `CsvDocument.Load` when an editable materialized document is required.
 at a time through asynchronous destination I/O, without buffering the complete
 serialized file. Its temporary memory follows the largest record. Path replacements
 stage output before committing it; appends write directly and can leave a partial
-append on failure. Caller-owned streams stay open.
+append on failure. Caller-owned streams stay open and can contain partial output
+after cancellation, formatting failure, or destination I/O failure.
 
 Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
 `RecordNumber` is the one-based data-record number, while
