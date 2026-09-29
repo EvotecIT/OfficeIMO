@@ -720,7 +720,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 && hasPageContent
                 && !deferredFloat
                 && !HasInternalForcedBreak(block)
-                && y + block.Height > ResolvePageBodyBottom(pages.Count + 1, pageGeometry)) {
+                && y + block.Height > ResolvePageBodyBottom(pages.Count + 1, pageGeometry)
+                && (block.AvoidBreakInside
+                    || FindFragmentEnd(block, 0D, remainingHeight, fullPageHeight: contentHeight) <= 0.0001D)) {
                 CommitPage(pages, visuals, pageGeometry, currentPageName);
                 BeginPage(block.PageName);
                 currentPageName = block.PageName;

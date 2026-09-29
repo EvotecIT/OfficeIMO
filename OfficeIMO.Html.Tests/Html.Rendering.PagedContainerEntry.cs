@@ -4,6 +4,20 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Fact]
+    public void PagedRendererFragmentsFittingFooterWhenEarlierPageHasRoom() {
+        const string html = "<style>@page{size:300px 200px;margin:0}html,body{margin:0}"
+            + "#lead{height:120px}footer div{height:50px;font:12px Arial}</style>"
+            + "<div id='lead'>Lead</div><footer><div>Feedback</div>"
+            + "<div>Social links</div><div>Agency links</div></footer>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Feedback");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Agency links");
+    }
+
     [Theory]
     [InlineData(0, 1)]
     [InlineData(20, 2)]
