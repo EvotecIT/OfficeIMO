@@ -487,7 +487,7 @@ The exact cases and feature forms below describe each selected evidence claim. T
 | ResourcePolicy | `StylesheetResourceRejectedByPolicy` | Warning | A stylesheet was rejected before loading because its URI is not allowed by policy. | Use caller-provided stylesheet contents for untrusted HTML, or allow the stylesheet scheme and host for trusted documents. |
 | Safety | `CssDeclarationLimitExceeded` | Error | CSS declarations exceeded the shared complexity budget. | Reduce CSS declaration volume or raise MaxCssDeclarations only for trusted input. |
 | Safety | `CssNestingDepthLimitExceeded` | Error | Nested CSS rule blocks exceeded the shared depth budget. | Flatten nested media, supports, or rule blocks, or raise MaxCssNestingDepth only for trusted input. |
-| Safety | `CssRuleLimitExceeded` | Error | Active CSS rules exceeded the shared complexity budget. | Reduce CSS rule volume or raise MaxCssRules only for trusted input. |
+| Safety | `CssRuleLimitExceeded` | Error | Active CSS rules exceeded the shared complexity budget. | Reduce CSS rule volume or, for trusted input, raise the limit named in the diagnostic (MaxCssRules or MaxCssRuleCandidates). |
 | Safety | `CssSelectorEvaluationLimitExceeded` | Error | Selector matching exceeded the shared evaluation budget. | Simplify selectors or raise MaxSelectorEvaluations only for trusted input. |
 | Safety | `CssSelectorExpansionLimitExceeded` | Error | Resolved CSS nesting exceeded the shared selector expansion budget. | Reduce selector-list branching or raise the matching CSS selector expansion limit only for trusted input. |
 | Safety | `CssSizeLimitExceeded` | Error | One embedded stylesheet exceeded the shared byte budget. | Reduce the stylesheet or raise MaxCssBytes only for trusted input. |

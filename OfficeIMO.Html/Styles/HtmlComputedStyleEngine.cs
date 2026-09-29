@@ -415,7 +415,8 @@ public static partial class HtmlComputedStyleEngine {
             throw new ArgumentNullException(nameof(document));
         }
 
-        var budget = new HtmlCssProcessingBudget(limits, MatchProviderSelectorFragment);
+        var budget = new HtmlCssProcessingBudget(limits, MatchProviderSelectorFragment,
+            new DocumentSelectorPresence(document).CanMatch);
         IReadOnlyDictionary<string, CustomPropertyRegistration> customPropertyRegistrations =
             ParseCustomPropertyRegistrations(document, environment, budget);
         budget.ValidateRegistrationFanout(customPropertyRegistrations.Count, document.QuerySelectorAll("*").Length);

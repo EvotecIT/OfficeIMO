@@ -296,7 +296,7 @@
       "url": "https://www.fws.gov/story/2026-05/wetland-dependent-wildlife",
       "rightsUrl": "https://www.fws.gov/disclaimer",
       "rightsNotes": "FWS says some site images and graphics are licensed and its official logo has restricted use. Keep the archive in ignored local evidence; inspect each image credit before publishing an excerpt and do not imply agency endorsement.",
-      "requiredVisibleMarkers": ["Wetland Dependent Wildlife", "Florida vole", "Image Details", "wetlands"],
+      "requiredVisibleMarkers": ["Wetland Dependent Wildlife", "Florida salt marsh vole", "Image Details", "wetlands"],
       "pdfIntents": [
         {"intent": "print-reflow", "inspect": ["species section order", "picture and caption or credit pairing", "all-page body and footer flow", "link destinations"]},
         {"intent": "screen-media-pagination", "inspect": ["article and picture placement", "off-canvas menu exclusion", "page-boundary image integrity"]},

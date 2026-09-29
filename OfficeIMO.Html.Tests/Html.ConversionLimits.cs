@@ -191,13 +191,26 @@ public sealed class HtmlConversionLimitTests {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<style>.a{color:red}.b{color:blue}</style><p class='a'>x</p>",
+            "<style>.a{color:red}.b{color:blue}</style><p class='a b'>x</p>",
             new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
 
-        Assert.Contains("class='a'", document.SourceHtml);
+        Assert.Contains("class='a b'", document.SourceHtml);
         Assert.NotNull(document.LogicalDocument);
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);
         Assert.Equal(HtmlConversionDiagnosticCodes.CssRuleLimitExceeded, exception.Code);
+    }
+
+    [Fact]
+    public void HtmlConversionDocument_RetainsOnlySelectorsWithPossibleDocumentOwners() {
+        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        limits.MaxCssRules = 1;
+        limits.MaxCssRuleCandidates = 3;
+        HtmlConversionDocument document = HtmlConversionDocument.Parse(
+            "<style>.absent{color:red}p{color:blue}</style><p>Text</p>",
+            new HtmlConversionDocumentOptions { Limits = limits });
+
+        _ = document.StyleSummary;
+        Assert.Equal("rgba(0, 0, 255, 1)", HtmlComputedStyleEngine.Compute(document)[document.Document.QuerySelector("p")!].GetValue("color"));
     }
 
     [Fact]
@@ -205,7 +218,7 @@ public sealed class HtmlConversionLimitTests {
         var limits = HtmlConversionLimits.CreateUntrustedProfile();
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
-            "<style>.a{x-officeimo-unknown-a:1}.b{x-officeimo-unknown-b:2}</style><p class='a'>x</p>",
+            "<style>.a{x-officeimo-unknown-a:1}.b{x-officeimo-unknown-b:2}</style><p class='a b'>x</p>",
             new HtmlConversionDocumentOptions { Limits = limits, IncludeNormalizedHtml = false });
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() => _ = document.StyleSummary);

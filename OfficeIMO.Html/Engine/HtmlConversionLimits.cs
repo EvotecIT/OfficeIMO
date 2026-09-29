@@ -22,6 +22,7 @@ public sealed class HtmlConversionLimits {
         MaxCssBytes = 72L * 1024L * 1024L,
         MaxTotalCssBytes = 72L * 1024L * 1024L,
         MaxCssRules = 10_000,
+        MaxCssRuleCandidates = 40_000,
         MaxCssDeclarations = 100_000,
         MaxCssTokens = 1_000_000,
         MaxCssNestingDepth = 64,
@@ -58,6 +59,10 @@ public sealed class HtmlConversionLimits {
     /// <remarks>A qualified rule with several selectors consumes one entry per selector after nesting
     /// is resolved. This bounds the entries retained for matching, not the stylesheet's raw block count.</remarks>
     public int? MaxCssRules { get; set; }
+
+    /// <summary>Maximum selector-expanded style entries examined before document-presence filtering, or <c>null</c> for no limit.</summary>
+    /// <remarks>This bounds parsing work even when selectors cannot match any element in the current document.</remarks>
+    public int? MaxCssRuleCandidates { get; set; }
 
     /// <summary>Maximum declarations across active, selector-expanded style entries, or <c>null</c> for no limit.</summary>
     public int? MaxCssDeclarations { get; set; }
@@ -97,6 +102,7 @@ public sealed class HtmlConversionLimits {
         MaxCssBytes = MaxCssBytes,
         MaxTotalCssBytes = MaxTotalCssBytes,
         MaxCssRules = MaxCssRules,
+        MaxCssRuleCandidates = MaxCssRuleCandidates,
         MaxCssDeclarations = MaxCssDeclarations,
         MaxCssTokens = MaxCssTokens,
         MaxCssNestingDepth = MaxCssNestingDepth,
@@ -122,6 +128,7 @@ public sealed class HtmlConversionLimits {
             MaxCssBytes = Minimum(left.MaxCssBytes, right.MaxCssBytes),
             MaxTotalCssBytes = Minimum(left.MaxTotalCssBytes, right.MaxTotalCssBytes),
             MaxCssRules = Minimum(left.MaxCssRules, right.MaxCssRules),
+            MaxCssRuleCandidates = Minimum(left.MaxCssRuleCandidates, right.MaxCssRuleCandidates),
             MaxCssDeclarations = Minimum(left.MaxCssDeclarations, right.MaxCssDeclarations),
             MaxCssTokens = Minimum(left.MaxCssTokens, right.MaxCssTokens),
             MaxCssNestingDepth = Minimum(left.MaxCssNestingDepth, right.MaxCssNestingDepth),
@@ -142,6 +149,7 @@ public sealed class HtmlConversionLimits {
         ValidatePositive(MaxCssBytes, nameof(MaxCssBytes));
         ValidatePositive(MaxTotalCssBytes, nameof(MaxTotalCssBytes));
         ValidatePositive(MaxCssRules, nameof(MaxCssRules));
+        ValidatePositive(MaxCssRuleCandidates, nameof(MaxCssRuleCandidates));
         ValidatePositive(MaxCssDeclarations, nameof(MaxCssDeclarations));
         ValidatePositive(MaxCssTokens, nameof(MaxCssTokens));
         ValidatePositive(MaxCssNestingDepth, nameof(MaxCssNestingDepth));

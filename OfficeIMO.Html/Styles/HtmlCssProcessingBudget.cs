@@ -4,14 +4,18 @@ namespace OfficeIMO.Html;
 internal sealed class HtmlCssProcessingBudget {
     private readonly HtmlConversionLimits _limits;
     private readonly bool _hasConfiguredLimits;
+    private readonly System.Func<string, bool>? _selectorPresence;
     private long _declarations;
     private long _rules;
+    private long _ruleCandidates;
     private long _selectorEvaluations;
 
     internal HtmlCssProcessingBudget(HtmlConversionLimits? limits,
-        System.Func<OfficeIMO.Html.Css.IHtmlCssSelectorElement, string, bool>? providerMatcher = null) {
+        System.Func<OfficeIMO.Html.Css.IHtmlCssSelectorElement, string, bool>? providerMatcher = null,
+        System.Func<string, bool>? selectorPresence = null) {
         _hasConfiguredLimits = limits != null;
         _limits = (limits ?? HtmlConversionLimits.CreateTrustedProfile()).Clone();
+        _selectorPresence = selectorPresence;
         SelectorMatchContext = new OfficeIMO.Html.Css.HtmlCssSelectorMatchContext(
             RecordSelectorEvaluation, default, providerMatcher);
     }
@@ -44,6 +48,19 @@ internal sealed class HtmlCssProcessingBudget {
     }
 
     internal bool HasDeclarationLimit => _limits.MaxCssDeclarations.HasValue;
+
+    internal bool CanRetainSelector(string selector) => _selectorPresence?.Invoke(selector) ?? true;
+
+    internal void RecordRuleCandidate() {
+        _ruleCandidates++;
+        if (_limits.MaxCssRuleCandidates.HasValue && _ruleCandidates > _limits.MaxCssRuleCandidates.Value) {
+            throw Limit(
+                HtmlConversionDiagnosticCodes.CssRuleLimitExceeded,
+                nameof(HtmlConversionLimits.MaxCssRuleCandidates),
+                _ruleCandidates,
+                _limits.MaxCssRuleCandidates.Value);
+        }
+    }
 
     internal void RecordRule(int declarationCount) {
         _rules++;

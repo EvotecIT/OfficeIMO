@@ -190,19 +190,25 @@ public static partial class HtmlComputedStyleEngine {
             : (ownedResolvedSelectors ?? resolvedSelectors).ToArray();
         bool useOwnedSelectors = CanUseOwnedSelectors(ownedSelectors, namespaceContext);
         bool useOwnedSelectorSources = useOwnedSelectors || CanUseHybridSelectors(ownedSelectors, namespaceContext);
-        Dictionary<string, StyleDeclaration>? ownedDeclarations = ownedRule == null
-            ? null
-            : ownedDeclarationsOverride ?? TryCreateOwnedDeclarations(ownedRule);
         string[] selectors = useOwnedSelectorSources ? ownedSelectors : providerSelectors;
         IReadOnlyList<AngleSharp.Css.Dom.ISelector?> providerSelectorObjects = useOwnedSelectors || !canUseProviderSelectorObjects
             ? Enumerable.Repeat<AngleSharp.Css.Dom.ISelector?>(null, selectors.Length).ToArray()
             : GetProviderSelectorObjects(styleRule, selectors);
+        bool[] retainedSelectors = selectors.Select(budget.CanRetainSelector).ToArray();
         for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
             string selector = selectors[selectorIndex];
-            budget.RecordRule(ownedDeclarations?.Count ?? styleRule.Style.Length);
+            budget.RecordRuleCandidate();
             if (recordParsedRule) {
                 RecordParsedRule(parsedRuleMatches, ParsedRuleKey(selector), providerSelectorObjects[selectorIndex]);
             }
+        }
+        if (!retainedSelectors.Any(retained => retained)) return;
+
+        Dictionary<string, StyleDeclaration>? ownedDeclarations = ownedRule == null
+            ? null
+            : ownedDeclarationsOverride ?? TryCreateOwnedDeclarations(ownedRule);
+        for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
+            if (retainedSelectors[selectorIndex]) budget.RecordRule(ownedDeclarations?.Count ?? styleRule.Style.Length);
         }
 
         var declarations = ownedDeclarations ?? new Dictionary<string, StyleDeclaration>(HtmlCssPropertyNameComparer.Instance);
@@ -252,7 +258,7 @@ public static partial class HtmlComputedStyleEngine {
 
         for (int selectorIndex = 0; selectorIndex < selectors.Length; selectorIndex++) {
             string selector = selectors[selectorIndex];
-            if (declarations.Count > 0) {
+            if (retainedSelectors[selectorIndex] && declarations.Count > 0) {
                 rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations, layerOrder,
                     layerName, containerConditions, namespaceContext, providerSelectorObjects[selectorIndex]));
                 if (declarations.ContainsKey("string-set")) {
@@ -920,10 +926,13 @@ public static partial class HtmlComputedStyleEngine {
                 parsedRuleMatches.TryConsume(parsedKeys[index], out providerSelector);
                 if (parsedRuleMatches.TryConsume(ParsedRetainedRuleKey(selector), out _)) continue;
             } else {
-                budget.RecordRule(declarations.Count);
+                budget.RecordRuleCandidate();
+                if (budget.CanRetainSelector(selector)) budget.RecordRule(declarations.Count);
             }
-            rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations,
-                namespaceContext: namespaceContext, providerSelector: providerSelector));
+            if (budget.CanRetainSelector(selector)) {
+                rules.Add(new StyleRule(selector, CalculateSpecificity(selector), rules.Count, declarations,
+                    namespaceContext: namespaceContext, providerSelector: providerSelector));
+            }
         }
     }
 
