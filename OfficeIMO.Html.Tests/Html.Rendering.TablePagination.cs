@@ -100,6 +100,7 @@ public sealed partial class HtmlRenderingTests {
     [Theory]
     [InlineData(8, 17, 10)]
     [InlineData(10, 11, 24)]
+    [InlineData(12, 12, 24)]
     public void HtmlTables_AdjacentPagedFlexTablesPreserveEveryBodyRow(int shortRows, int longRows, int shortFooterLineHeight) {
         static string Table(string name, int count) => "<table class='" + name + "' id='" + name + "'><thead><tr><th>" + name + "Header</th></tr></thead><tbody>"
             + string.Concat(Enumerable.Range(0, count).Select(index => "<tr><td>" + name + index.ToString("D2") + "</td></tr>"))
@@ -115,6 +116,18 @@ public sealed partial class HtmlRenderingTests {
             .Select(text => text.Text).ToArray();
         foreach (int index in Enumerable.Range(0, shortRows)) Assert.Single(allText, text => text == "Short" + index.ToString("D2"));
         foreach (int index in Enumerable.Range(0, longRows)) Assert.Single(allText, text => text == "Long" + index.ToString("D2"));
+        Assert.Single(allText, text => text == "ShortHeader");
+        Assert.Single(allText, text => text == "LongHeader");
+        Assert.Single(allText, text => text == "ShortFooter");
+        Assert.Single(allText, text => text == "LongFooter");
+
+        string pdfText = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(new HtmlToPdfOptions {
+            PageSize = new OfficePageSize(220D / HtmlRenderOptions.CssPixelsPerInch, 65D / HtmlRenderOptions.CssPixelsPerInch),
+            Margins = HtmlRenderMargins.All(0D),
+            HonorCssPageRules = true
+        })).ExtractText();
+        Assert.Contains("ShortFooter", pdfText, StringComparison.Ordinal);
+        Assert.Contains("LongFooter", pdfText, StringComparison.Ordinal);
     }
 
     [Theory]
