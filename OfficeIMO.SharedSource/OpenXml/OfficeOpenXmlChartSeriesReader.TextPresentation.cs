@@ -104,9 +104,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
         string? family = inherited.Family;
         string? latinTypeface = properties.GetFirstChild<A.LatinFont>()?.Typeface?.Value;
         if (latinTypeface != null) {
-            if (string.IsNullOrWhiteSpace(latinTypeface) || latinTypeface.StartsWith("+", StringComparison.Ordinal))
-                throw new NotSupportedException("The chart text typeface cannot be projected without a resolved font scheme.");
-            family = latinTypeface;
+            family = ResolveNativeTypeface(latinTypeface, scheme);
         }
         foreach (var attribute in properties.GetAttributes()) {
             if (attribute.LocalName == "sz") {
@@ -135,12 +133,27 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
                 color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill, scheme, colorMap: colorMap) ?? throw new NotSupportedException("The chart text colour cannot be resolved.");
             } else if (child is A.EastAsianFont or A.ComplexScriptFont) {
                 string? scriptTypeface = child is A.EastAsianFont eastAsian ? eastAsian.Typeface?.Value : ((A.ComplexScriptFont)child).Typeface?.Value;
-                if (string.IsNullOrWhiteSpace(latinTypeface) || !string.Equals(latinTypeface, scriptTypeface, StringComparison.OrdinalIgnoreCase))
+                if (string.IsNullOrWhiteSpace(latinTypeface) ||
+                    !string.Equals(family, ResolveNativeTypeface(scriptTypeface, scheme), StringComparison.OrdinalIgnoreCase))
                     throw new NotSupportedException("Different chart text script typefaces cannot be projected by one font family.");
             } else if (child is not A.LatinFont and not A.EastAsianFont and not A.ComplexScriptFont)
                 throw new NotSupportedException("The chart text appearance cannot be projected.");
         }
         return new NativeText(size, style, color, family);
+    }
+
+    private static string ResolveNativeTypeface(string? typeface, A.ColorScheme? scheme) {
+        if (string.IsNullOrWhiteSpace(typeface))
+            throw new NotSupportedException("The chart text typeface cannot be projected.");
+        if (!typeface.StartsWith("+", StringComparison.Ordinal)) return typeface;
+        A.FontScheme? fonts = scheme?.Parent?.GetFirstChild<A.FontScheme>();
+        string? resolved = typeface switch {
+            "+mj-lt" => fonts?.MajorFont?.LatinFont?.Typeface?.Value,
+            "+mn-lt" => fonts?.MinorFont?.LatinFont?.Typeface?.Value,
+            _ => null
+        };
+        return !string.IsNullOrWhiteSpace(resolved) ? resolved! :
+            throw new NotSupportedException("The chart text typeface cannot be projected without a resolved font scheme.");
     }
 
     private static System.Collections.Generic.IEnumerable<OpenXmlElement> TextAxes(C.Chart chart) =>

@@ -12,6 +12,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class ExcelChartExplodedSlicesTests {
     [Fact]
+    public void PieWithoutThemePartUsesSpreadsheetDefaultAccentPalette() {
+        using var document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 7d, 3d })
+            }), 1, 1);
+        WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
+        if (workbook.ThemePart is ThemePart theme) workbook.DeletePart(theme);
+
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(OfficeColor.Parse("#4F81BD"), snapshot.Style!.Palette[0]);
+        Assert.Equal(OfficeColor.Parse("#C0504D"), snapshot.Style.Palette[1]);
+    }
+
+    [Fact]
     public void CustomModernColorStyleControlsRadialPaletteWithoutAuthoringPointFills() {
         using var document = ExcelDocument.Create();
         ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,

@@ -22,7 +22,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
 
     /// <summary>Reads a bounded radial palette from a modern color style or classic style 2.</summary>
     internal static OfficeColor[]? ReadRadialPalette(ChartPart chartPart, OpenXmlCompositeElement series,
-        int pointCount, A.ColorScheme? scheme, bool requireQualifiedPalette = false) {
+        int pointCount, A.ColorScheme? scheme, bool requireQualifiedPalette = false,
+        bool useSpreadsheetDefaultTheme = false) {
         if (pointCount < 1 ||
             series.Parent is not C.PieChart and not C.DoughnutChart ||
             series.Parent.GetFirstChild<C.VaryColors>() is not C.VaryColors varyColors ||
@@ -32,7 +33,7 @@ internal static class OfficeOpenXmlThemeColorResolver {
         // An unsupported inherited palette is immaterial when every rendered ring has
         // an explicit appearance for every category.
         if (AllRadialPointsHaveExplicitFill((OpenXmlCompositeElement)series.Parent, pointCount)) return null;
-        if (scheme == null) {
+        if (scheme == null && !useSpreadsheetDefaultTheme) {
             if (requireQualifiedPalette)
                 throw new NotSupportedException("The inherited native radial palette has no qualified theme colors.");
             return null;
@@ -46,7 +47,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
             if (stylePart == null || !HasAutomaticDataPointFill(stylePart))
                 throw new NotSupportedException("The modern chart style does not use the automatic data-point palette.");
             bool multipleRings = series.Parent.Elements<C.PieChartSeries>().Skip(1).Any();
-            return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings, colorMap)
+            return ReadModernRadialPalette(colorStylePart, pointCount, scheme, multipleRings, colorMap,
+                useSpreadsheetDefaultTheme)
                 ?? throw new NotSupportedException("The modern radial color style cannot be projected.");
         }
         if (chartPart.GetPartsOfType<ChartStylePart>().Any()) {
@@ -63,8 +65,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
         }
         var colors = new OfficeColor[pointCount];
         for (int index = 0; index < pointCount; index++) {
-            OfficeColor? color = ResolveSchemeColor(scheme,
-                MapSchemeColor("accent" + (index + 1), colorMap));
+            string? token = MapSchemeColor("accent" + (index + 1), colorMap);
+            OfficeColor? color = ResolveSchemeColor(scheme, token) ??
+                (useSpreadsheetDefaultTheme ? ResolveDefaultSpreadsheetSchemeColor(token) : null);
             if (!color.HasValue) {
                 if (requireQualifiedPalette)
                     throw new NotSupportedException("The native radial palette contains an unresolved theme color.");
@@ -173,7 +176,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
     }
 
     private static OfficeColor[]? ReadModernRadialPalette(ChartColorStylePart part,
-        int pointCount, A.ColorScheme scheme, bool multipleRings, OpenXmlElement? colorMap) {
+        int pointCount, A.ColorScheme? scheme, bool multipleRings, OpenXmlElement? colorMap,
+        bool useSpreadsheetDefaultTheme) {
         const string chartStyleNamespace = "http://schemas.microsoft.com/office/drawing/2012/chartStyle";
         const string drawingNamespace = "http://schemas.openxmlformats.org/drawingml/2006/main";
         try {
@@ -198,8 +202,9 @@ internal static class OfficeOpenXmlThemeColorResolver {
                 XElement entry = entries[index];
                 if (entry.Name != XName.Get("schemeClr", drawingNamespace) || entry.HasElements) return null;
                 string? token = (string?)entry.Attribute("val");
-                OfficeColor? color = ResolveSchemeColor(scheme,
-                    token == null ? null : MapSchemeColor(token, colorMap));
+                string? mappedToken = token == null ? null : MapSchemeColor(token, colorMap);
+                OfficeColor? color = ResolveSchemeColor(scheme, mappedToken) ??
+                    (useSpreadsheetDefaultTheme ? ResolveDefaultSpreadsheetSchemeColor(mappedToken) : null);
                 if (!color.HasValue) return null;
                 colors[index] = color.Value;
             }
@@ -280,6 +285,25 @@ internal static class OfficeOpenXmlThemeColorResolver {
         return OfficeColor.TryParseHex(DefaultSpreadsheetThemeColors[themeIndex], out OfficeColor fallback)
             ? fallback
             : (OfficeColor?)null;
+    }
+
+    private static OfficeColor? ResolveDefaultSpreadsheetSchemeColor(string? token) {
+        uint? index = token switch {
+            "light1" or "lt1" => 0U,
+            "dark1" or "dk1" => 1U,
+            "light2" or "lt2" => 2U,
+            "dark2" or "dk2" => 3U,
+            "accent1" => 4U,
+            "accent2" => 5U,
+            "accent3" => 6U,
+            "accent4" => 7U,
+            "accent5" => 8U,
+            "accent6" => 9U,
+            "hyperlink" or "hlink" => 10U,
+            "followedHyperlink" or "folHlink" => 11U,
+            _ => null
+        };
+        return index.HasValue ? ResolveSpreadsheetThemeColor(null, index.Value) : null;
     }
 
     private static OfficeColor? ResolveColorElement(

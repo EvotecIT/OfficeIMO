@@ -305,6 +305,28 @@ public sealed class WordChartPresentationQualificationTests {
     }
 
     [Theory]
+    [InlineData("+mn-lt", false)]
+    [InlineData("+mj-lt", true)]
+    public void Snapshot_ResolvesThemeTypefaceTokensInLegendText(string token, bool major) {
+        using var document = WordDocument.Create();
+        var chart = Create(document, OfficeChartKind.Line);
+        var native = chart.ChartPart!.ChartSpace!.GetFirstChild<C.Chart>()!;
+        OpenXmlCompositeElement[] owners = new OpenXmlCompositeElement[] { native.Legend! }
+            .Concat(native.PlotArea!.ChildElements.OfType<OpenXmlCompositeElement>()
+                .Where(axis => axis is C.CategoryAxis or C.ValueAxis)).ToArray();
+        foreach (OpenXmlCompositeElement owner in owners)
+            owner.AddChild(new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
+                new A.Paragraph(new A.ParagraphProperties(
+                    new A.DefaultRunProperties(new A.LatinFont { Typeface = token })))), true);
+
+        Assert.True(chart.TryGetOfficeSnapshot(out var snapshot));
+        A.FontScheme fonts = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.FontScheme!;
+        string? expected = major ? fonts.MajorFont!.LatinFont!.Typeface!.Value :
+            fonts.MinorFont!.LatinFont!.Typeface!.Value;
+        Assert.Equal(expected, snapshot.Layout.LegendFontFamily);
+    }
+
+    [Theory]
     [InlineData("legend")]
     [InlineData("axis")]
     public void Snapshot_MapsListLevelTextDefaults(string ownerName) {
