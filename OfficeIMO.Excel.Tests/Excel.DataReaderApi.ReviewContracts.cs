@@ -111,6 +111,50 @@ public partial class Excel {
     }
 
     [Fact]
+    public void OpenDataReader_PreservesSmallSharedStringsAndXmlFallback() {
+        string path = Path.Combine(
+            Path.GetTempPath(),
+            $"OfficeIMO.Excel.SmallSharedStrings.{Guid.NewGuid():N}.xlsx");
+        try {
+            using (var document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Value");
+                sheet.CellValue(2, 1, "Plain");
+                sheet.CellValue(3, 1, "Trailing ");
+                document.Save();
+            }
+
+            const string root = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+                + "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"3\" uniqueCount=\"3\">";
+            const string suffix = "<si><t xml:space=\"preserve\">Trailing </t></si></sst>";
+            const string entryName = "xl/sharedStrings.xml";
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(
+                root + "<si><t>Value</t></si><si><t>Plain</t></si>" + suffix));
+
+            using (DbDataReader reader = ExcelDocument.OpenDataReader(path)) {
+                Assert.True(reader.Read());
+                Assert.Equal("Plain", reader.GetString(0));
+                Assert.True(reader.Read());
+                Assert.Equal("Trailing ", reader.GetString(0));
+                Assert.False(reader.Read());
+            }
+            Assert.Throws<InvalidDataException>(() => ExcelDocument.OpenDataReader(
+                path, new ExcelReadOptions { MaxSharedStringItems = 2 }));
+
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(
+                root + "<si><t>Value</t></si><si><t>A&amp;B</t></si>" + suffix));
+            using DbDataReader fallbackReader = ExcelDocument.OpenDataReader(path);
+            Assert.True(fallbackReader.Read());
+            Assert.Equal("A&B", fallbackReader.GetString(0));
+            Assert.True(fallbackReader.Read());
+            Assert.Equal("Trailing ", fallbackReader.GetString(0));
+            Assert.False(fallbackReader.Read());
+        } finally {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void OpenDataReader_RejectsForeignNamespaceSharedStringValuesOnIndexedPath() {
         string path = Path.Combine(
             Path.GetTempPath(),
