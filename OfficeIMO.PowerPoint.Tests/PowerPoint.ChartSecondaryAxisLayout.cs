@@ -25,6 +25,23 @@ public sealed class PowerPointChartSecondaryAxisLayoutTests {
         Assert.Equal("General", snapshot.Layout.VerticalAxisNumberFormat);
     }
 
+    [Fact]
+    public void CacheOnlySourceLinkedPrimaryFormatMustBeRenderable() {
+        using var presentation = PowerPointPresentation.Create();
+        var slide = presentation.AddSlide();
+        var chart = slide.AddChart(OfficeChartKind.ColumnClustered,
+            new OfficeChartData(new[] { "A" }, new[] { new OfficeChartSeries("Values", new[] { 12d }) }));
+        var space = slide.SlidePart.ChartParts.Single().ChartSpace!;
+        space.GetFirstChild<C.ExternalData>()!.Remove();
+        C.NumberingFormat format = space.Descendants<C.ValueAxis>().Single().GetFirstChild<C.NumberingFormat>()!;
+        format.SourceLinked = true;
+        format.FormatCode = "0.0";
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+
+        format.FormatCode = "[Red]0";
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

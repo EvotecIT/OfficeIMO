@@ -73,7 +73,8 @@ namespace OfficeIMO.Excel {
                 ? plotArea?.Descendants<C.PieChartSeries>().FirstOrDefault() : null;
             OfficeColor[]? radialPalette = radialSeries == null ? null :
                 OfficeOpenXmlThemeColorResolver.ReadRadialPalette(GetChartPart(), radialSeries,
-                    radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme);
+                    radialPointCount, workbookPart.ThemePart?.Theme?.ThemeElements?.ColorScheme,
+                    useSpreadsheetDefaultTheme: true);
             if (radialPalette == null && chartFill == null &&
                 chartLine == null &&
                 plotFill == null &&

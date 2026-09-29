@@ -69,7 +69,8 @@ internal static class OfficeOpenXmlChartPointStyles {
             if (child is C.Explosion && point.Parent is C.PieChartSeries) continue;
             if (child is C.Marker marker && !marker.HasAttributes &&
                 marker.ChildElements.All(markerChild => markerChild is C.ChartShapeProperties) &&
-                (marker.ChartShapeProperties == null || point.ChartShapeProperties?.HasChildren != true)) continue;
+                (marker.ChartShapeProperties == null || point.ChartShapeProperties is not C.ChartShapeProperties direct ||
+                    !direct.HasChildren && !direct.HasAttributes)) continue;
             if (child is C.InvertIfNegative invert && invert.Val?.Value == false) continue;
             if (child is C.Bubble3D bubble && bubble.Val?.Value == false) continue;
             if (child is C.ExtensionList extensions && HasOnlyUniqueIdMetadata(extensions)) continue;

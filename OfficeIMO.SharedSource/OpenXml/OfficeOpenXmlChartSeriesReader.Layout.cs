@@ -104,8 +104,10 @@ namespace OfficeIMO.OpenXml.Internal {
                 vertical = categoryAxis;
             }
             return new OfficeChartLayout(overlayLegend: legend?.GetFirstChild<C.Overlay>() is C.Overlay overlay && overlay.Val?.Value != false,
-                legendFontSize: legendText.Size, legendFontStyle: legendText.Style,
-                axisLabelFontSize: axisText.Size, axisTextFontStyle: axisText.Style,
+                legendFontSize: legendText.Size, legendFontFamily: legendText.Family,
+                legendFontStyle: legendText.Style,
+                axisLabelFontSize: axisText.Size, axisTextFontFamily: axisText.Family,
+                axisTextFontStyle: axisText.Style,
                 axisTitleFontSize: axisTitleText.Size, axisTitleFontStyle: axisTitleText.Style,
                 dataLabelFontSize: labels.FontSize ?? defaultText.Size,
                 dataLabelFontFamily: labels.FontFamily ?? defaultText.Family,
