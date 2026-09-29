@@ -160,6 +160,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .OrderBy(offset => offset);
         IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = lines.SelectMany(line => line.Items.SelectMany(item =>
             item.Block!.LineBreakGroups.Select(group => group.Translate(contentY + item.MainOffset))));
+        // Wrapped columns share one page offset but contain independent vertical
+        // flows. Only a single column can safely lend repeat groups to it.
+        IEnumerable<FlexLine> repeatLines = lines.Count == 1 ? lines : Array.Empty<FlexLine>();
+        IEnumerable<HtmlRenderContinuationGroup> continuationGroups = repeatLines.SelectMany(line => line.Items.SelectMany(item =>
+            item.Block!.ContinuationGroups.Select(group => group.Translate(
+                contentX + line.CrossOffset + item.CrossOffset, contentY + item.MainOffset))));
+        IEnumerable<HtmlRenderTrailingGroup> trailingGroups = repeatLines.SelectMany(line => line.Items.SelectMany(item =>
+            item.Block!.TrailingGroups.Select(group => group.Translate(
+                contentX + line.CrossOffset + item.CrossOffset, contentY + item.MainOffset))));
         block = new HtmlRenderFlowBlock(
             containingWidth,
             outerHeight,
@@ -170,6 +179,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             source,
             breakOffsets,
             lineBreakGroups: lineBreakGroups,
+            continuationGroups: continuationGroups,
+            trailingGroups: trailingGroups,
             pageName: style.PageName,
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(

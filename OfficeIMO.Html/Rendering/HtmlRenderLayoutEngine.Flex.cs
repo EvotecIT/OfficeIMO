@@ -214,6 +214,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
             .OrderBy(offset => offset);
         IEnumerable<HtmlRenderLineBreakGroup> lineBreakGroups = lines.SelectMany(line => line.Items.SelectMany(item =>
             item.Block!.LineBreakGroups.Select(group => group.Translate(contentY + line.CrossOffset + item.CrossOffset).WithInteriorBreaks())));
+        IReadOnlyList<(FlexLine Line, FlexItem Item)> repeatingItems = ResolveRepeatableRowFlexItems(lines);
+        IEnumerable<HtmlRenderContinuationGroup> continuationGroups = repeatingItems.SelectMany(pair =>
+            pair.Item.Block!.ContinuationGroups.Select(group => group.Translate(
+                contentX + pair.Item.MainOffset, contentY + pair.Line.CrossOffset + pair.Item.CrossOffset)));
+        IEnumerable<HtmlRenderTrailingGroup> trailingGroups = repeatingItems.SelectMany(pair =>
+            pair.Item.Block!.TrailingGroups.Where(group => pair.Item.CrossOffset + group.SourceEndsAt >= pair.Line.CrossSize - 0.0001D)
+                .Where(group => pair.Line.Items.All(other => ReferenceEquals(other, pair.Item)
+                    || other.CrossOffset + other.Block!.Height <= pair.Item.CrossOffset + group.ContentEndsAt + 0.0001D))
+                .Select(group => group.Translate(
+                    contentX + pair.Item.MainOffset, contentY + pair.Line.CrossOffset + pair.Item.CrossOffset)));
         IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = style.FlexWrap == "wrap"
             ? lines.Skip(1)
                 .Where(line => line.Items.Count > 0 && line.Items[0].Element != null)
@@ -231,6 +241,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             HtmlRenderStyleResolver.DescribeSource(element),
             breakOffsets,
             lineBreakGroups: lineBreakGroups,
+            continuationGroups: continuationGroups,
+            trailingGroups: trailingGroups,
             pageName: style.PageName,
             runningStringAssignments: NormalizeRunningElementAssignmentOrder(
                 PlaceDirectRunningElementAssignments(
@@ -253,6 +265,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         return true;
+    }
+
+    private static IReadOnlyList<(FlexLine Line, FlexItem Item)> ResolveRepeatableRowFlexItems(IEnumerable<FlexLine> lines) {
+        var repeating = new List<(FlexLine Line, FlexItem Item)>();
+        foreach (FlexLine line in lines) {
+            FlexItem[] candidates = line.Items.Where(item => item.Block!.ContinuationGroups.Count > 0
+                || item.Block.TrailingGroups.Count > 0).ToArray();
+            // The paginator advances a shared Y offset for a flex row. A repeated
+            // group can own that offset only when it is the sole paged item and
+            // reaches the line's end; parallel tables need independent slices.
+            if (candidates.Length == 1
+                && candidates[0].CrossOffset + candidates[0].Block!.Height >= line.CrossSize - 0.0001D) {
+                repeating.Add((line, candidates[0]));
+            }
+        }
+        return repeating;
     }
 
     private static bool IsSafeFlexRowBreak(

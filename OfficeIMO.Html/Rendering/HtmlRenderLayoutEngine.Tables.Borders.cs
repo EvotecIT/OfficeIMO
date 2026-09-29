@@ -77,6 +77,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
+    private static void AppendRepeatedCollapsedBorders(
+        ICollection<HtmlRenderVisual> repeated,
+        IEnumerable<HtmlRenderVisual> borders,
+        double start,
+        double end) {
+        HtmlRenderShape[] strokes = borders.OfType<HtmlRenderShape>().ToArray();
+        var includedHorizontalBorders = new HashSet<string>(strokes
+            .Where(border => border.Source?.Contains(":collapsed-border-h-", StringComparison.Ordinal) == true)
+            .GroupBy(border => CollapsedBorderStrokeSource(border.Source!))
+            .Where(group => group.Any(border => border.Y >= start - 0.0001D && border.Y <= end + 0.0001D))
+            .Select(group => group.Key), StringComparer.Ordinal);
+        foreach (HtmlRenderShape border in strokes) {
+            bool horizontal = border.Source?.Contains(":collapsed-border-h-", StringComparison.Ordinal) == true;
+            bool vertical = border.Source?.Contains(":collapsed-border-v-", StringComparison.Ordinal) == true;
+            if (horizontal) {
+                if (!includedHorizontalBorders.Contains(CollapsedBorderStrokeSource(border.Source!))) continue;
+            } else if (!vertical || border.Y < start - 0.0001D
+                || border.Y + border.LayoutHeight > end + 0.0001D) continue;
+            repeated.Add(border.Translate(0D, -start, repeated.Count));
+        }
+    }
+
+    private static string CollapsedBorderStrokeSource(string source) =>
+        source.EndsWith("-outer", StringComparison.Ordinal) ? source.Substring(0, source.Length - 6)
+        : source.EndsWith("-inner", StringComparison.Ordinal) ? source.Substring(0, source.Length - 6)
+        : source;
+
     private void AddCollapsedColumnBorders(
         IDictionary<CollapsedBorderKey, CollapsedBorderCandidate> winners,
         IElement table,

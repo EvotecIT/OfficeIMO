@@ -70,6 +70,79 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(4, tagged.StructureElements.Count(element => element.StructureType == "TH"));
     }
 
+    [Theory]
+    [InlineData("row")]
+    [InlineData("column-reverse")]
+    public void HtmlTables_HeaderAndFooterRepeatInsidePagedFlexItem(string direction) {
+        string rows = string.Concat(Enumerable.Range(0, 14).Select(index =>
+            "<tr><td>Body" + index.ToString("D2") + "</td><td>Value</td></tr>"));
+        string html = "<style>@page{size:200px 80px;margin:0}body{margin:0}"
+            + $".columns{{display:flex;flex-direction:{direction};flex-wrap:wrap;align-items:flex-start}}"
+            + ".article{width:160px}.side{width:30px}"
+            + "table{width:150px;margin:0;border-collapse:collapse}"
+            + "th,td{font-size:8px;line-height:10px;padding:2px;border:1px solid #456}</style>"
+            + "<div class='columns'><main class='article'><table><thead><tr><th>Header</th><th>Value</th></tr></thead>"
+            + "<tbody>" + rows + "</tbody><tfoot><tr><td>Footer</td><td>End</td></tr></tfoot>"
+            + "</table></main><aside class='side'>Aside</aside></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        IReadOnlyList<HtmlRenderPage> bodyPages = rendered.Pages
+            .Where(page => page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text.StartsWith("Body", StringComparison.Ordinal)))
+            .ToList();
+
+        Assert.True(bodyPages.Count >= 2);
+        Assert.All(bodyPages, page => Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Header"));
+        Assert.All(bodyPages, page => Assert.Contains(page.Visuals.OfType<HtmlRenderText>(), text => text.Text == "Footer"));
+        Assert.All(bodyPages.Skip(1), page => Assert.Contains(EnumerateTablePaginationScene(page.Scene)
+            .OfType<HtmlRenderShape>(), shape => shape.Source?.Contains(":collapsed-border-h-0-", StringComparison.Ordinal) == true));
+    }
+
+    [Theory]
+    [InlineData(8, 17, 10)]
+    [InlineData(10, 11, 24)]
+    public void HtmlTables_AdjacentPagedFlexTablesPreserveEveryBodyRow(int shortRows, int longRows, int shortFooterLineHeight) {
+        static string Table(string name, int count) => "<table class='" + name + "' id='" + name + "'><thead><tr><th>" + name + "Header</th></tr></thead><tbody>"
+            + string.Concat(Enumerable.Range(0, count).Select(index => "<tr><td>" + name + index.ToString("D2") + "</td></tr>"))
+            + "</tbody><tfoot><tr><td>" + name + "Footer</td></tr></tfoot></table>";
+        string html = "<style>@page{size:220px 65px;margin:0}body{margin:0}"
+            + ".columns{display:flex;align-items:flex-start}table{width:105px;border-collapse:collapse}"
+            + "th,td{font-size:8px;line-height:10px;padding:2px;border:1px solid #456}"
+            + $".Short tfoot td{{line-height:{shortFooterLineHeight}px}}</style>"
+            + "<div class='columns'>" + Table("Short", shortRows) + Table("Long", longRows) + "</div>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        string[] allText = rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+            .Select(text => text.Text).ToArray();
+        foreach (int index in Enumerable.Range(0, shortRows)) Assert.Single(allText, text => text == "Short" + index.ToString("D2"));
+        foreach (int index in Enumerable.Range(0, longRows)) Assert.Single(allText, text => text == "Long" + index.ToString("D2"));
+    }
+
+    [Theory]
+    [InlineData("ridge")]
+    [InlineData("groove")]
+    [InlineData("double")]
+    public void HtmlTables_RepeatedCollapsedHeaderKeepsBothBorderStrokes(string borderStyle) {
+        string rows = string.Concat(Enumerable.Range(0, 12).Select(index =>
+            "<tr><td>Body" + index.ToString("D2") + "</td></tr>"));
+        string html = "<style>@page{size:180px 65px;margin:0}table{border-collapse:collapse;width:160px}"
+            + "th,td{font-size:8px;line-height:10px;padding:2px;border:1px solid #456}"
+            + $"th{{border-top:4px {borderStyle} #456;border-bottom:4px {borderStyle} #456}}</style>"
+            + "<table id='grid'><thead><tr><th>Header</th></tr></thead><tbody>" + rows + "</tbody></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+        Assert.True(rendered.Pages.Count > 1);
+        foreach (HtmlRenderPage page in rendered.Pages.Skip(1)
+            .Where(page => page.Visuals.OfType<HtmlRenderText>().Any(text => text.Text.StartsWith("Body", StringComparison.Ordinal)))) {
+            foreach (string boundary in new[] { "h-0-", "h-1-" }) {
+                HtmlRenderShape[] headerBorders = EnumerateTablePaginationScene(page.Scene).OfType<HtmlRenderShape>()
+                    .Where(shape => shape.Source?.StartsWith("table#grid:collapsed-border-" + boundary, StringComparison.Ordinal) == true)
+                    .ToArray();
+                Assert.Contains(headerBorders, border => border.Source!.EndsWith("-outer", StringComparison.Ordinal));
+                Assert.Contains(headerBorders, border => border.Source!.EndsWith("-inner", StringComparison.Ordinal));
+            }
+        }
+    }
+
     [Fact]
     public void HtmlTables_RowSpanAndBreakAvoidBoundariesMoveCohesiveGroups() {
         const string html = "<style>@page{size:180px 50px;margin:0}table{margin:0;border-collapse:collapse}"

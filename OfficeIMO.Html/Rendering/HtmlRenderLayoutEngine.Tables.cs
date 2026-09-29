@@ -348,7 +348,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }
         }
         if (style.BorderCollapse == "collapse") {
+            int borderVisualStart = visuals.Count;
             AddCollapsedTableBorders(visuals, table, style, rowLayouts, columnWidths, columnOffsets, contentX, tableY + style.BorderTopWidth + style.PaddingTop);
+            IReadOnlyList<HtmlRenderVisual> collapsedBorders = visuals.Skip(borderVisualStart).ToArray();
+            if (continuationVisuals.Count > 0) {
+                AppendRepeatedCollapsedBorders(continuationVisuals, collapsedBorders,
+                    headerStart, headerStart + continuationHeight);
+            }
+            if (trailingVisuals.Count > 0) {
+                AppendRepeatedCollapsedBorders(trailingVisuals, collapsedBorders,
+                    trailingStart, trailingStart + trailingHeight);
+            }
         }
         AddBoxOutlinePaint(visuals, style, style.MarginLeft, tableY, tableWidth, tableHeight, table);
         if (caption != null && caption.Side == "bottom") AppendTableCaption(visuals, caption, style.MarginLeft, tableY + tableHeight);
