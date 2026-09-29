@@ -27,6 +27,29 @@ namespace OfficeIMO.Tests {
             Assert.Empty(sheet.WorksheetPart.PivotTableParts);
         }
 
+        [Theory]
+        [InlineData(false, false, 2)]
+        [InlineData(true, false, 2)]
+        [InlineData(false, true, 0)]
+        public void Test_AddPivotTable_RejectsInvalidValuesPositionBeforeCreatingParts(
+            bool valuesOnRows, bool singleMeasure, int position) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Source");
+            sheet.CellValue(1, 1, "Region"); sheet.CellValue(1, 2, "Channel"); sheet.CellValue(1, 3, "Sales");
+            sheet.CellValue(2, 1, "East"); sheet.CellValue(2, 2, "Retail"); sheet.CellValue(2, 3, 10d);
+            var measures = new List<ExcelPivotDataField> {
+                new("Sales", ExcelPivotDataFunction.Sum, "Metric")
+            };
+            if (!singleMeasure) measures.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Count, "Count"));
+            Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddPivotTable("A1:C2", "E1", "Pivot",
+                rowFields: new[] { "Region" }, columnFields: new[] { "Channel" }, dataFields: measures,
+                dataOnRows: valuesOnRows, valuesAxisPosition: position));
+            Assert.Empty(sheet.WorksheetPart.PivotTableParts);
+            Assert.Null(document.WorkbookPartRoot.Workbook.PivotCaches);
+            Assert.Empty(sheet.GetPivotTables());
+            Assert.Empty(document.ValidateOpenXml());
+        }
+
         [Fact]
         public void Test_PivotLayoutLookup_RejectsRepeatedPrefixWithoutPreviousItem() {
             using var document = ExcelDocument.Load(PivotLayoutOraclePath);

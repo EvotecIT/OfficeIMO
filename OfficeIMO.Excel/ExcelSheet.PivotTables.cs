@@ -346,6 +346,12 @@ namespace OfficeIMO.Excel {
                         throw new ArgumentException("Pivot measures require unique non-empty captions.", nameof(dataFields));
                     dataFieldIndices.Add(idx);
                 }
+                if (valuesAxisPosition.HasValue) {
+                    int axisFieldCount = dataOnRows == true ? rowFieldIndices.Count : columnFieldIndices.Count;
+                    if (dataFieldList.Count < 2 || valuesAxisPosition.Value < 0 || valuesAxisPosition.Value > axisFieldCount)
+                        throw new ArgumentOutOfRangeException(nameof(valuesAxisPosition),
+                            "Values placement requires multiple measures and a position within the selected axis.");
+                }
 
                 var fieldOptionMap = BuildPivotFieldOptionMap(fieldOptions, headerIndex);
                 bool[] sourceSharedItemRequirements = BuildPivotSharedItemRequirements(
@@ -521,12 +527,6 @@ namespace OfficeIMO.Excel {
                 var columnFieldsElement = columnFieldIndices.Count > 0 ? new ColumnFields { Count = (uint)columnFieldIndices.Count } : null;
                 if (columnFieldsElement != null) {
                     foreach (int idx in columnFieldIndices) columnFieldsElement.Append(new Field { Index = idx });
-                }
-                if (valuesAxisPosition.HasValue) {
-                    int axisFieldCount = dataOnRows == true ? rowFieldIndices.Count : columnFieldIndices.Count;
-                    if (dataFieldList.Count < 2 || valuesAxisPosition.Value < 0 || valuesAxisPosition.Value > axisFieldCount)
-                        throw new ArgumentOutOfRangeException(nameof(valuesAxisPosition),
-                            "Values placement requires multiple measures and a position within the selected axis.");
                 }
                 if (dataFieldList.Count > 1) {
                     if (dataOnRows == true) {
