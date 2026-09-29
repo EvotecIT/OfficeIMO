@@ -108,15 +108,18 @@ public sealed class OdsChart {
                 ?? (stylesPart == null ? null : FindChartDefaultStyle(stylesPart));
             IReadOnlyDictionary<string, XElement> hatches = OdsChartPointStyles.IndexHatches(part, stylesPart);
             var series = seriesElements.Select(element => {
+                string? seriesClass = NormalizeChartClass(element,
+                    (string?)element.Attribute(chart + "class")) ?? chartClass;
+                bool radial = seriesClass is "chart:circle" or "chart:ring";
                 bool pointStylesProjected = OdsChartPointStyles.TryRead(element, Style, defaultStyle,
-                    hatches, out IReadOnlyList<OfficeChartPointStyle?>? pointStyles);
+                    hatches, radial, out IReadOnlyList<OfficeChartPointStyle?>? pointStyles);
                 bool unprojectedAppearance = !pointStylesProjected ||
-                    (chartClass is "chart:circle" or "chart:ring" &&
+                    (radial &&
                      OdsChartPointStyles.HasUnprojectedSeriesPieOffset(element, Style, defaultStyle));
                 return new OdsChartSeries(
                     (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
                     (string?)element.Attribute(chart + "label-cell-address"),
-                    NormalizeChartClass(element, (string?)element.Attribute(chart + "class")),
+                    seriesClass,
                     pointStyles, unprojectedAppearance);
             }).ToArray();
             var allProperties = new List<XElement>();

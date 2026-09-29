@@ -15,6 +15,50 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.OpenDocument.Converters.Tests;
 
 public sealed class SpreadsheetChartPointStyleConversionTests {
+    [Fact]
+    public void ExcelPointBlackWhiteModeReportsChartLossInsteadOfDroppingAppearance() {
+        using ExcelDocument source = ExcelDocument.Create();
+        ExcelSheet sheet = source.AddWorksheet("Summary");
+        sheet.AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "Pass", "Fail" }, new[] {
+                new OfficeChartSeries("Status", new[] { 3d, 4d })
+                    .WithPointStyles(new OfficeChartPointStyle?[] {
+                        new(fillColor: OfficeColor.Parse("#228844")), null
+                    }) }), row: 2, column: 4);
+        C.ChartShapeProperties properties = source.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.DataPoint>().Single().ChartShapeProperties!;
+        properties.SetAttribute(new DocumentFormat.OpenXml.OpenXmlAttribute("", "bwMode", "", "black"));
+
+        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
+        Assert.Contains(result.Report.Mappings, mapping =>
+            mapping.Feature == "charts" && mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
+    [Fact]
+    public void OdsColumnPointStyleIgnoresInheritedRadialOffsetDuringExcelConversion() {
+        OdsDocument source = CreateStyledOdsChart(OdsChartType.Column);
+        XDocument part = XDocument.Parse(Encoding.UTF8.GetString(
+            source.GetPackageEntryBytes("Object 1/content.xml")));
+        XElement point = Assert.Single(part.Descendants(OdfNamespaces.Chart + "series"))
+            .Elements(OdfNamespaces.Chart + "data-point").First();
+        string name = (string)point.Attribute(OdfNamespaces.Chart + "style-name")!;
+        XElement definition = Assert.Single(part.Descendants(OdfNamespaces.Style + "style"),
+            item => (string?)item.Attribute(OdfNamespaces.Style + "name") == name);
+        definition.Add(new XElement(OdfNamespaces.Style + "chart-properties",
+            new XAttribute(OdfNamespaces.Chart + "pie-offset", "25")));
+        source.Package.AddOrReplaceEntry("Object 1/content.xml",
+            Encoding.UTF8.GetBytes(part.ToString(SaveOptions.DisableFormatting)), "text/xml");
+
+        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        using ExcelDocument converted = result.Value;
+        Assert.Single(converted["Data"].Charts);
+        Assert.DoesNotContain(result.Report.Mappings, mapping =>
+            mapping.Feature == "source-embedded-objects" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+    }
+
     [Theory]
     [InlineData(OdsChartType.Pie, ExcelChartType.Pie)]
     [InlineData(OdsChartType.Doughnut, ExcelChartType.Doughnut)]

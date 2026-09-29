@@ -9,7 +9,7 @@ internal static class OdsChartPointStyles {
 
     internal static bool TryRead(XElement series,
         Func<string?, XElement?> findStyle, XElement? defaultStyle,
-        IReadOnlyDictionary<string, XElement> hatches,
+        IReadOnlyDictionary<string, XElement> hatches, bool radial,
         out IReadOnlyList<OfficeChartPointStyle?>? styles) {
         styles = null;
         XName dataPointName = OdfNamespaces.Chart + "data-point";
@@ -27,7 +27,7 @@ internal static class OdsChartPointStyles {
             if (count > pointCount - result.Count) return false;
             string? name = (string?)point.Attribute(OdfNamespaces.Chart + "style-name");
             OfficeChartPointStyle? appearance = null;
-            if (name != null && !TryReadStyle(name, series, findStyle, defaultStyle, hatches,
+            if (name != null && !TryReadStyle(name, series, findStyle, defaultStyle, hatches, radial,
                     out appearance)) return false;
             for (int index = 0; index < count; index++) result.Add(appearance);
         }
@@ -55,13 +55,13 @@ internal static class OdsChartPointStyles {
 
     private static bool TryReadStyle(string name, XElement series,
         Func<string?, XElement?> findStyle, XElement? defaultStyle,
-        IReadOnlyDictionary<string, XElement> hatches, out OfficeChartPointStyle? appearance) {
+        IReadOnlyDictionary<string, XElement> hatches, bool radial, out OfficeChartPointStyle? appearance) {
         appearance = null;
         var attributes = new Dictionary<XName, string>();
         bool unsupportedChartProperties = false;
         bool? unprojectedPieOffset = null;
         void AddAttributes(XElement definition, bool pointOrSeries) {
-            if (pointOrSeries && HasUnsupportedChartProperties(definition, ref unprojectedPieOffset))
+            if (pointOrSeries && HasUnsupportedChartProperties(definition, radial, ref unprojectedPieOffset))
                 unsupportedChartProperties = true;
             XElement? graphic = definition.Element(OdfNamespaces.Style + "graphic-properties");
             if (graphic != null)
@@ -186,12 +186,12 @@ internal static class OdsChartPointStyles {
         return offset == null ? null : !IsZeroPieOffset(offset);
     }
 
-    private static bool HasUnsupportedChartProperties(XElement definition, ref bool? unprojectedPieOffset) {
+    private static bool HasUnsupportedChartProperties(XElement definition, bool radial, ref bool? unprojectedPieOffset) {
         XElement? properties = definition.Element(OdfNamespaces.Style + "chart-properties");
         if (properties == null) return false;
         foreach (XAttribute attribute in properties.Attributes()) {
             if (attribute.Name == OdfNamespaces.Chart + "pie-offset") {
-                if (!unprojectedPieOffset.HasValue)
+                if (radial && !unprojectedPieOffset.HasValue)
                     unprojectedPieOffset = !IsZeroPieOffset(attribute.Value);
                 continue;
             }

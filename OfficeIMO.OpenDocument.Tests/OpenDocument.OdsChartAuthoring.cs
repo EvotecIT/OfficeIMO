@@ -12,6 +12,28 @@ namespace OfficeIMO.OpenDocument.Tests;
 
 public sealed class OpenDocumentOdsChartAuthoringTests {
     [Fact]
+    public void CartesianPointStyleIgnoresInheritedPieOffset() {
+        var definition = new XElement(OdfNamespaces.Style + "style",
+            new XAttribute(OdfNamespaces.Style + "family", "chart"),
+            new XElement(OdfNamespaces.Style + "chart-properties",
+                new XAttribute(OdfNamespaces.Chart + "pie-offset", "25")),
+            new XElement(OdfNamespaces.Style + "graphic-properties",
+                new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                new XAttribute(OdfNamespaces.Draw + "fill-color", "#228844")));
+        var series = new XElement(OdfNamespaces.Chart + "series",
+            new XAttribute(OdfNamespaces.Chart + "values-cell-range-address", "Data.$B$1"),
+            new XElement(OdfNamespaces.Chart + "data-point",
+                new XAttribute(OdfNamespaces.Chart + "style-name", "PointStyle")));
+        XElement? Find(string? name) => name == "PointStyle" ? definition : null;
+        var hatches = new System.Collections.Generic.Dictionary<string, XElement>();
+        Assert.True(OdsChartPointStyles.TryRead(series, Find, null, hatches, radial: false,
+            out var cartesian));
+        Assert.Equal(OfficeColor.Parse("#228844"), Assert.Single(cartesian!)!.FillColor);
+        Assert.False(OdsChartPointStyles.TryRead(series, Find, null, hatches, radial: true,
+            out _));
+    }
+
+    [Fact]
     public void NewChartSkipsOccupiedObjectPrefixWithoutDirectoryEntry() {
         OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
@@ -304,7 +326,7 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
 
         Assert.False(OdsChartPointStyles.HasUnprojectedSeriesPieOffset(series, Find, defaultStyle));
         Assert.True(OdsChartPointStyles.TryRead(series, Find, defaultStyle,
-            new System.Collections.Generic.Dictionary<string, XElement>(), out var styles));
+            new System.Collections.Generic.Dictionary<string, XElement>(), radial: true, out var styles));
         Assert.Equal(OfficeColor.Parse("#228844"), Assert.Single(styles!)!.FillColor);
     }
 
@@ -334,7 +356,7 @@ public sealed class OpenDocumentOdsChartAuthoringTests {
 
         Assert.False(OdsChartPointStyles.HasUnprojectedSeriesPieOffset(series, Find, null));
         Assert.True(OdsChartPointStyles.TryRead(series, Find, null,
-            new System.Collections.Generic.Dictionary<string, XElement>(), out var styles));
+            new System.Collections.Generic.Dictionary<string, XElement>(), radial: true, out var styles));
         Assert.Equal(3, styles!.Count);
         Assert.All(styles, point => Assert.Equal(OfficeColor.Parse("#228844"), point!.FillColor));
     }
