@@ -60,11 +60,25 @@ internal static class EditableTargetExporter {
                 string artifact = Path.Combine(output, documentName + ".one");
                 result.RequireValue().Save(artifact);
                 OneNoteSection loaded = OneNoteSectionReader.Read(artifact);
+                int imageIndex = 0;
                 return new EditableExport(result.Report, artifact, loaded.ToHtmlDocument(new OneNoteMarkdownOptions {
-                    AssetUriResolver = element => element is OneNoteImage { Payload: not null } image
-                        && image.MediaType is "image/png" or "image/jpeg" or "image/gif" or "image/webp"
-                        ? "data:" + image.MediaType + ";base64," + Convert.ToBase64String(image.Payload!.ToArray(16 * 1024 * 1024))
-                        : null
+                    AssetUriResolver = element => {
+                        if (element is not OneNoteImage { Payload: not null } image) return null;
+                        string? extension = image.MediaType switch {
+                            "image/png" => ".png",
+                            "image/jpeg" => ".jpg",
+                            "image/gif" => ".gif",
+                            "image/webp" => ".webp",
+                            _ => null
+                        };
+                        if (extension == null || image.Payload!.Length > 16 * 1024 * 1024) return null;
+                        byte[] bytes = image.Payload.ToArray(16 * 1024 * 1024);
+                        string directory = Path.Combine(output, "assets");
+                        Directory.CreateDirectory(directory);
+                        string fileName = $"image-{++imageIndex:D4}{extension}";
+                        File.WriteAllBytes(Path.Combine(directory, fileName), bytes);
+                        return "assets/" + fileName;
+                    }
                 }));
             }
             case "rtf": {
