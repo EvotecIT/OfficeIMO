@@ -3,47 +3,57 @@ using System.Threading;
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfReadPage {
-    internal (bool HasDeviceRgb, bool HasDeviceIndependent, bool HasTransparency) GetDefiniteUnlayeredPrintColorUse(
+    internal (bool HasDeviceRgb, bool HasDeviceIndependent, bool HasTransparency) GetDefinitePrintVisibleColorUse(
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (HasEffectiveOptionalContentEntry(_pageDict)) return (false, false, false);
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        if (!IsDefinitelyPrintVisible(_pageDict, resources)) return (false, false, false);
         var budget = new PageContentBudget(this, cancellationToken);
         bool foundRgb = false;
         bool foundIndependent = false;
         bool foundTransparency = false;
         var activeForms = new HashSet<PdfStream>();
+        var type3GlyphBudget = new Type3GlyphBudget(_limits.MaxType3GlyphInvocationsPerPage);
         Scan(GetContentStreamContent(budget), resources, false, false, false, false,
-            (Fill: false, Stroke: false, Blend: false, SoftMask: false), 0);
+            (Fill: false, Stroke: false, Blend: false, SoftMask: false),
+            initialTextMode: 0, initialFont: null, depth: 0);
         return (foundRgb, foundIndependent, foundTransparency);
 
         void Scan(string content, PdfDictionary? currentResources, bool initialFillRgb,
             bool initialStrokeRgb, bool initialFillIndependent, bool initialStrokeIndependent,
-            (bool Fill, bool Stroke, bool Blend, bool SoftMask) initialTransparency, int depth) {
+            (bool Fill, bool Stroke, bool Blend, bool SoftMask) initialTransparency,
+            int initialTextMode, PdfDictionary? initialFont, int depth) {
             EnsureContentNestingBudget(depth);
             PdfDictionary? colorSpaces = ResolveDictionary(
                 currentResources?.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) == true
                     ? colorSpaceObject : null);
+            PdfDictionary? fonts = ResolveDictionary(
+                currentResources?.Items.TryGetValue("Font", out PdfObject? fontsObject) == true
+                    ? fontsObject : null);
             var selectedColorSpaces = new Dictionary<string, (bool UsesDeviceRgb, bool UsesDeviceIndependent)>(StringComparer.Ordinal);
             bool fillRgb = initialFillRgb;
             bool strokeRgb = initialStrokeRgb;
             bool fillIndependent = initialFillIndependent;
             bool strokeIndependent = initialStrokeIndependent;
             var transparency = initialTransparency;
-            int textMode = 0;
+            int textMode = initialTextMode;
+            PdfDictionary? selectedFont = initialFont;
             int layeredDepth = 0;
             var markedContent = new Stack<bool>();
+            PdfPageOptionalContentVisibility? visibility = GetOptionalContentVisibility(currentResources);
             var states = new Stack<(bool FillRgb, bool StrokeRgb,
                 bool FillIndependent, bool StrokeIndependent,
-                (bool Fill, bool Stroke, bool Blend, bool SoftMask) Transparency, int TextMode)>();
+                (bool Fill, bool Stroke, bool Blend, bool SoftMask) Transparency,
+                int TextMode, PdfDictionary? Font)>();
             PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
                 cancellationToken.ThrowIfCancellationRequested();
                 switch (operation.Name) {
                     case "BDC":
                         bool isLayer = operation.Operands.Count > 1 &&
                             operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
-                        markedContent.Push(isLayer);
-                        if (isLayer) layeredDepth++;
+                        bool excludedLayer = isLayer && !IsDefinitelyPrintVisible(operation, visibility);
+                        markedContent.Push(excludedLayer);
+                        if (excludedLayer) layeredDepth++;
                         return;
                     case "BMC": markedContent.Push(false); return;
                     case "EMC":
@@ -53,7 +63,7 @@ public sealed partial class PdfReadPage {
                 if (operation.HasInvalidOperands) return;
                 // Optional content suppresses painting, not persistent graphics-state changes.
                 if (layeredDepth != 0 && operation.Name is not ("q" or "Q" or "rg" or "RG" or
-                    "g" or "G" or "k" or "K" or "cs" or "CS" or "Tr" or "gs")) return;
+                    "g" or "G" or "k" or "K" or "cs" or "CS" or "Tr" or "Tf" or "gs")) return;
                 if (operation.InlineImage is PdfContentInlineImage inlineImage) {
                     PdfObject? inlineColorSpace = inlineImage.Dictionary.Items.TryGetValue("ColorSpace", out PdfObject? inlineColor)
                         ? inlineColor : null;
@@ -69,10 +79,12 @@ public sealed partial class PdfReadPage {
                     return;
                 }
                 switch (operation.Name) {
-                    case "q": states.Push((fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, textMode)); break;
+                    case "q": states.Push((fillRgb, strokeRgb, fillIndependent, strokeIndependent,
+                        transparency, textMode, selectedFont)); break;
                     case "Q":
-                        if (states.Count > 0) (fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, textMode) = states.Pop();
-                        else { fillRgb = strokeRgb = fillIndependent = strokeIndependent = false; transparency = default; textMode = 0; }
+                        if (states.Count > 0) (fillRgb, strokeRgb, fillIndependent, strokeIndependent,
+                            transparency, textMode, selectedFont) = states.Pop();
+                        else { fillRgb = strokeRgb = fillIndependent = strokeIndependent = false; transparency = default; textMode = 0; selectedFont = null; }
                         break;
                     case "rg": (fillRgb, fillIndependent) = operation.Operands.Count == 3 ? ClassifySelected("DeviceRGB") : default; break;
                     case "RG": (strokeRgb, strokeIndependent) = operation.Operands.Count == 3 ? ClassifySelected("DeviceRGB") : default; break;
@@ -92,6 +104,12 @@ public sealed partial class PdfReadPage {
                         if (operation.Operands.Count == 1 && operation.Operands[0] is double mode &&
                             mode >= 0D && mode <= 7D) textMode = (int)mode;
                         break;
+                    case "Tf":
+                        if (operation.Operands.Count == 2 && operation.Operands[0] is string fontName) {
+                            selectedFont = ResolveDictionary(fonts?.Items.TryGetValue(fontName, out PdfObject? fontObject) == true
+                                ? fontObject : null);
+                        }
+                        break;
                     case "gs":
                         if (operation.Operands.Count > 0 && operation.Operands[operation.Operands.Count - 1] is string stateName) {
                             PdfDictionary? extStates = ResolveDictionary(
@@ -101,6 +119,9 @@ public sealed partial class PdfReadPage {
                                 extStates?.Items.TryGetValue(stateName, out PdfObject? stateObject) == true
                                     ? stateObject : null);
                             if (state != null) {
+                                if (TryResolveGraphicsStateFont(state, currentResources, _objects, cancellationToken,
+                                        out PdfDictionary? graphicsStateFont) && graphicsStateFont != null)
+                                    selectedFont = graphicsStateFont;
                                 if (state.Items.ContainsKey("ca")) transparency.Fill = HasNonDefaultOpacity(state, "ca");
                                 if (state.Items.ContainsKey("CA")) transparency.Stroke = HasNonDefaultOpacity(state, "CA");
                                 if (state.Items.ContainsKey("BM")) transparency.Blend = HasNonNormalBlendMode(state);
@@ -120,6 +141,9 @@ public sealed partial class PdfReadPage {
                         break;
                     case "Tj": case "TJ": case "'": case "\"":
                         if (!GetShownTextBytes(operation).Any(static bytes => bytes.Length > 0)) break;
+                        if (textMode != 3 && selectedFont != null)
+                            ScanShownType3Glyphs(selectedFont, operation, currentResources, fillRgb, strokeRgb,
+                                fillIndependent, strokeIndependent, transparency, textMode, depth);
                         if (textMode is 0 or 2 or 4 or 6) foundRgb |= fillRgb;
                         if (textMode is 1 or 2 or 5 or 6) foundRgb |= strokeRgb;
                         if (textMode is 0 or 2 or 4 or 6) foundIndependent |= fillIndependent;
@@ -156,7 +180,7 @@ public sealed partial class PdfReadPage {
                                 ? xObjectsObject : null);
                         if (PdfObjectLookup.ResolveChain(_objects,
                                 xObjects?.Items.TryGetValue(resourceName, out PdfObject? xObject) == true ? xObject : null) is not PdfStream stream ||
-                            HasEffectiveOptionalContentEntry(stream.Dictionary)) break;
+                            !IsDefinitelyPrintVisible(stream.Dictionary, currentResources)) break;
                         string? subtype = (ResolveObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
                             ? subtypeObject : null) as PdfName)?.Name;
                         if (subtype == "Image") {
@@ -176,12 +200,46 @@ public sealed partial class PdfReadPage {
                                 PdfDictionary? formResources = ResolveDictionary(stream.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceObject)
                                     ? formResourceObject : null) ?? currentResources;
                                 Scan(PdfEncoding.Latin1GetString(budget.Decode(stream)), formResources,
-                                    fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency, depth + 1);
+                                    fillRgb, strokeRgb, fillIndependent, strokeIndependent, transparency,
+                                    textMode, selectedFont, depth + 1);
                             } finally { activeForms.Remove(stream); }
                         }
                         break;
                 }
             }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
+
+            void ScanShownType3Glyphs(PdfDictionary font, PdfContentOperation operation,
+                PdfDictionary? inheritedResources, bool glyphFillRgb, bool glyphStrokeRgb,
+                bool glyphFillIndependent, bool glyphStrokeIndependent,
+                (bool Fill, bool Stroke, bool Blend, bool SoftMask) glyphTransparency,
+                int glyphTextMode, int contentDepth) {
+                if ((ResolveObject(font.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
+                        ? subtypeObject : null) as PdfName)?.Name != "Type3" ||
+                    !font.Items.TryGetValue("CharProcs", out PdfObject? charProcsObject) ||
+                    ResolveDictionary(charProcsObject) is not PdfDictionary charProcs ||
+                    !PdfPrintProductionColorInspector.TryGetType3GlyphNames(font, _objects,
+                        _limits.MaxObjectNestingDepth, out Dictionary<int, string> glyphNames)) return;
+                PdfDictionary? glyphResources = ResolveDictionary(
+                    font.Items.TryGetValue("Resources", out PdfObject? fontResources) ? fontResources : null)
+                    ?? inheritedResources;
+                foreach (byte[] shownText in GetShownTextBytes(operation)) {
+                    foreach (byte character in shownText) {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        type3GlyphBudget.Consume(1);
+                        if (!glyphNames.TryGetValue(character, out string? glyphName) ||
+                            PdfObjectLookup.ResolveChain(_objects,
+                                charProcs.Items.TryGetValue(glyphName, out PdfObject? charProcObject)
+                                    ? charProcObject : null) is not PdfStream glyph ||
+                            !activeForms.Add(glyph)) continue;
+                        try {
+                            Scan(PdfEncoding.Latin1GetString(budget.Decode(glyph)), glyphResources,
+                                glyphFillRgb, glyphStrokeRgb, glyphFillIndependent,
+                                glyphStrokeIndependent, glyphTransparency, glyphTextMode, font,
+                                contentDepth + 1);
+                        } finally { activeForms.Remove(glyph); }
+                    }
+                }
+            }
 
             (bool UsesDeviceRgb, bool UsesDeviceIndependent) ClassifySelected(string? name) {
                 if (name == null) return default;

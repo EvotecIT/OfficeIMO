@@ -732,7 +732,7 @@ public sealed class PdfProductionPreflightTests {
         Assert.DoesNotContain(report.Findings, static finding => finding.Kind == PdfProductionFindingKind.UninspectableImageResolution);
     }
 
-    private static byte[] RawPrintLayerPdf(string content, string resources, string extraObjects,
+    internal static byte[] RawPrintLayerPdf(string content, string resources, string extraObjects,
         string groups, string printGroups, string categories = "/Print", string pageEntries = "", int size = 8,
         string baseState = "/ON") => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {
             "%PDF-1.7",

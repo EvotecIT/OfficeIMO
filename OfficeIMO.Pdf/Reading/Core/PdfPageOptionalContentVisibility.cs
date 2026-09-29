@@ -94,6 +94,10 @@ internal sealed partial class PdfPageOptionalContentVisibility {
         ReferencesUnsupportedGroup(value, _unsupportedGroupNumbers, _objects,
             new HashSet<PdfObject>(), _maxExpressionDepth, depth: 0);
 
+    internal bool IsInvalid(PdfObject value) =>
+        IsOptionalContentObjectInvalid(value, _groupVisibility, _objects,
+            new HashSet<int>(), _maxExpressionDepth, depth: 0);
+
     private static bool ReferencesUnsupportedGroup(PdfObject value, HashSet<int> unsupportedGroups,
         Dictionary<int, PdfIndirectObject> objects, HashSet<PdfObject> visited, int maximumDepth, int depth) {
         if (depth > maximumDepth || !visited.Add(value)) return false;

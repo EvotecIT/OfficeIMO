@@ -7,7 +7,7 @@ internal static partial class PdfPrintProductionStructureInspector {
         System.Threading.CancellationToken cancellationToken) {
         int count = 0;
         foreach (KeyValuePair<PdfDictionary, HashSet<int>> entry in document.Pages[pageNumber - 1]
-            .GetDefiniteUnlayeredFontResources(cancellationToken)) {
+            .GetDefinitePrintVisibleFontResources(cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
             try {
                 if (!HasEmbeddedFontProgram(entry.Key, document.Objects, document.ReadOptions.Limits.MaxDecodedStreamBytes,
@@ -72,13 +72,12 @@ internal static partial class PdfPrintProductionStructureInspector {
     internal static bool HasValidProductionBoxes(PdfPageGeometry geometry) {
         PdfPageBox? media = geometry.MediaBox;
         PdfPageBox? trim = geometry.TrimBox;
-        PdfPageBox? bleed = geometry.BleedBox;
+        PdfPageBox? bleed = geometry.BleedBox ?? geometry.CropBox ?? media;
         PdfPageBox? art = geometry.ArtBox;
         if (media == null || (trim == null) == (art == null)) return false;
         PdfPageBox productionBoundary = trim ?? art!;
         if (!Contains(media, productionBoundary)) return false;
-        return bleed == null ||
-            (Contains(media, bleed) && Contains(bleed, productionBoundary));
+        return Contains(media, bleed!) && Contains(bleed!, productionBoundary);
     }
 
     private static bool Contains(PdfPageBox outer, PdfPageBox inner) {

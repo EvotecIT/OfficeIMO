@@ -138,7 +138,7 @@ internal static class PdfProductionPreflightInspector {
         PdfPrintProductionColorEvidence InspectColor(int pageNumber, PdfReadPage printPage, bool unresolvedPrintResources) {
             PdfPrintProductionColorEvidence color = PdfPrintProductionColorInspector.Inspect(document, pageNumber, cancellationToken);
             if (unresolvedPrintResources) {
-                (bool definiteRgb, bool definiteIndependent, bool definiteTransparency) = printPage.GetDefiniteUnlayeredPrintColorUse(cancellationToken);
+                (bool definiteRgb, bool definiteIndependent, bool definiteTransparency) = printPage.GetDefinitePrintVisibleColorUse(cancellationToken);
                 if (definiteRgb) {
                     AddFinding(new PdfProductionFinding(PdfProductionFindingKind.DeviceRgbColor,
                         effective.Profile == PdfProductionPreflightProfile.GeneralPrint ? PdfProductionFindingSeverity.Warning : PdfProductionFindingSeverity.Error,
@@ -191,10 +191,11 @@ internal static class PdfProductionPreflightInspector {
             }
             IReadOnlyList<PdfImagePlacement> placements = readPage.GetImagePlacements(pageNumber, cancellationToken);
             if (unsupportedPrintContent) {
-                HashSet<PdfContentOrderKey> unlayeredImages = readPage.GetDefiniteUnlayeredImageContentOrderKeys(cancellationToken);
+                HashSet<PdfContentOrderKey> definiteImages = readPage.GetDefinitePrintVisibleImageContentOrderKeys(cancellationToken);
                 placements = placements.Where(placement => placement.ContentOrderKey is { } key &&
-                    unlayeredImages.Contains(key)).ToArray();
+                    definiteImages.Contains(key)).ToArray();
             }
+            placements = placements.Where(static placement => placement.Opacity > 0D).ToArray();
             int understoodPlacements = 0;
             var matchedPlacements = new HashSet<PdfImagePlacement>();
             foreach (PdfExtractedImage image in readPage.GetImages(pageNumber, placements, cancellationToken)) {
