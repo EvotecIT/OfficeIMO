@@ -148,7 +148,7 @@ namespace OfficeIMO.PowerPoint {
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
             if (GetChartPart().ChartSpace?.GetFirstChild<C.Chart>() is C.Chart nativeChart &&
                 OfficeOpenXmlChartSeriesReader.HasSuppressedOverMaximumDataLabels(nativeChart,
-                    snapshot.Data.Series)) {
+                    snapshot.Data.Series, snapshot.ChartKind)) {
                 snapshot = null!;
                 return false;
             }
