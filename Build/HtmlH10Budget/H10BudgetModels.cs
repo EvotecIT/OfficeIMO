@@ -35,5 +35,5 @@ internal sealed record H10BudgetPlatform(
 internal sealed record H10BudgetConfiguration(
     int SchemaVersion,
     string SourceSha256,
-    string ManifestSha256,
+    string CaseSha256,
     IReadOnlyList<H10BudgetPlatform> Platforms);

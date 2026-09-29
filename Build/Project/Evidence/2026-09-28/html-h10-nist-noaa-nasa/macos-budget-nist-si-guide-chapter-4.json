@@ -1,7 +1,7 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sourceSha256": "2e3430f2342aa8b971e0e78592ff961e4782cd8d2b7e0f9165d57fd93064d1aa",
-  "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+  "caseSha256": "0f015fead8e397905fcd789954123ec5cad15dce1d2d0403cece6e6898b6f23a",
   "platforms": [
     {
       "osFamily": "macOS",

@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace OfficeIMO.Pdf.Benchmarks.Comparisons;
@@ -39,6 +40,8 @@ internal static class H10BudgetRunner {
             !page.TryGetProperty("pdfIntents", out JsonElement intents) ||
             !page.TryGetProperty("editableTargets", out JsonElement targets))
             throw new InvalidDataException("The case must predeclare PDF intents and editable targets.");
+        string caseSha = Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(JsonSerializer.Serialize(page)))).ToLowerInvariant();
         string[] pdfIntents = intents.EnumerateArray().Select(item => item.GetProperty("intent").GetString()!).ToArray();
         string[] editableTargets = targets.EnumerateArray().Select(item => item.GetProperty("target").GetString()!.ToLowerInvariant()).ToArray();
         if (pdfIntents.Length == 0 || editableTargets.Length == 0 ||
@@ -71,10 +74,10 @@ internal static class H10BudgetRunner {
             var configuration = JsonSerializer.Deserialize<H10BudgetConfiguration>(
                 await File.ReadAllTextAsync(Path.GetFullPath(ceilingPath)).ConfigureAwait(false), JsonOptions)
                 ?? throw new InvalidDataException("H10 budget configuration is empty.");
-            if (configuration.SchemaVersion != 1 ||
-                !configuration.SourceSha256.Equals(archiveSha, StringComparison.OrdinalIgnoreCase) ||
-                !configuration.ManifestSha256.Equals(manifestSha, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("H10 budget configuration does not match the frozen source and selection manifest.");
+            if (configuration.SchemaVersion != 2 ||
+                !string.Equals(configuration.SourceSha256, archiveSha, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(configuration.CaseSha256, caseSha, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("H10 budget configuration does not match the frozen source and selected case.");
             H10BudgetPlatform[] selected = configuration.Platforms
                 .Where(item => item.CaseId == caseId && item.OsFamily == OsFamily()).ToArray();
             if (selected.Length != 1) throw new InvalidDataException("Exactly one platform budget must match this case and OS.");
@@ -129,6 +132,7 @@ internal static class H10BudgetRunner {
             sourceClean = source?.IsClean,
             runnerVersion,
             manifestSha256 = manifestSha,
+            caseSha256 = caseSha,
             archivePath,
             archiveBytes = actualBytes,
             archiveSha256 = archiveSha,
