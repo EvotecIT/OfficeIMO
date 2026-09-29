@@ -102,7 +102,8 @@ internal static class EditableEvidenceRunner {
             try {
                 HtmlConversionDocumentOptions htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
                 htmlOptions.Limits.MaxCssRules = maxCssRules;
-                MhtmlDocument archive = MhtmlDocument.Load(archivePath, htmlOptions: htmlOptions);
+                using var archiveStream = new MemoryStream(archiveBytes, writable: false);
+                MhtmlDocument archive = MhtmlDocument.Load(archiveStream, htmlOptions: htmlOptions);
                 MhtmlImageEmbeddingResult prepared = archive.CreateEmbeddedImageDocumentResult();
                 HtmlRenderOptions visualOptions = new() {
                     Mode = target == "word" ? HtmlRenderMode.Paged : HtmlRenderMode.Continuous,

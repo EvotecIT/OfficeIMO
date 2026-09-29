@@ -66,6 +66,29 @@ internal static class H10BudgetRunner {
         string editableRunner = Path.Combine(repoRoot, "Build/HtmlEditableEvidence/bin/Release/net10.0/OfficeIMO.Html.EditableEvidence.dll");
         if (!File.Exists(pdfRunner) || !File.Exists(editableRunner))
             throw new FileNotFoundException("Build both Release evidence runners before measuring H10.");
+        H10BudgetPlatform? ceiling = null;
+        if (options.TryGetValue("ceilings", out string? ceilingPath)) {
+            var configuration = JsonSerializer.Deserialize<H10BudgetConfiguration>(
+                await File.ReadAllTextAsync(Path.GetFullPath(ceilingPath)).ConfigureAwait(false), JsonOptions)
+                ?? throw new InvalidDataException("H10 budget configuration is empty.");
+            if (configuration.SchemaVersion != 1 ||
+                !configuration.SourceSha256.Equals(archiveSha, StringComparison.OrdinalIgnoreCase) ||
+                !configuration.ManifestSha256.Equals(manifestSha, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("H10 budget configuration does not match the frozen source and selection manifest.");
+            H10BudgetPlatform[] selected = configuration.Platforms
+                .Where(item => item.CaseId == caseId && item.OsFamily == OsFamily()).ToArray();
+            if (selected.Length != 1) throw new InvalidDataException("Exactly one platform budget must match this case and OS.");
+            ceiling = selected[0];
+            string[] declaredNames = pdfIntents.Select(item => item switch {
+                "print-reflow" => "pdf-print",
+                "screen-media-pagination" => "pdf-screen-media",
+                _ => "pdf-screen-snapshot"
+            }).Concat(editableTargets.Select(item => "editable-" + item)).Order(StringComparer.Ordinal).ToArray();
+            string[] budgetNames = ceiling.Operations.Select(item => item.Name).Order(StringComparer.Ordinal).ToArray();
+            if (!declaredNames.SequenceEqual(budgetNames) || ceiling.Operations.Any(item =>
+                    item.ConversionMilliseconds <= 0 || item.ManagedAllocatedBytes <= 0 || item.PeakWorkingSetBytes <= 0))
+                throw new InvalidDataException("The platform budget must cover every declared operation with positive ceilings.");
+        }
         Directory.CreateDirectory(outputPath);
         var operations = new List<H10BudgetOperation>();
         var failures = new List<string>();
@@ -81,8 +104,8 @@ internal static class H10BudgetRunner {
                 "--isolated-officeimo-intent", isolatedIntent
             };
             if (options.ContainsKey("require-clean-source")) arguments.Add("--require-clean-source");
-            await MeasureAsync("pdf-" + isolatedIntent, "pdf", pdfRunner, arguments,
-                Path.Combine(directory, "html-mhtml-evidence.json"), operations, failures, repoRoot).ConfigureAwait(false);
+            await MeasureSafelyAsync("pdf-" + isolatedIntent, "pdf", pdfRunner, arguments,
+                Path.Combine(directory, "html-mhtml-evidence.json"), archiveSha, operations, failures, repoRoot).ConfigureAwait(false);
         }
         foreach (string target in editableTargets) {
             string directory = Path.Combine(outputPath, "editable-" + target);
@@ -91,20 +114,10 @@ internal static class H10BudgetRunner {
                 "--target", target, "--expected-sha256", archiveSha
             };
             if (options.ContainsKey("require-clean-source")) arguments.Add("--require-clean-source");
-            await MeasureAsync("editable-" + target, "editable", editableRunner, arguments,
-                Path.Combine(directory, target, "report.json"), operations, failures, repoRoot).ConfigureAwait(false);
+            await MeasureSafelyAsync("editable-" + target, "editable", editableRunner, arguments,
+                Path.Combine(directory, target, "report.json"), archiveSha, operations, failures, repoRoot).ConfigureAwait(false);
         }
-
-        H10BudgetPlatform? ceiling = null;
-        if (options.TryGetValue("ceilings", out string? ceilingPath)) {
-            var configuration = JsonSerializer.Deserialize<H10BudgetConfiguration>(
-                await File.ReadAllTextAsync(Path.GetFullPath(ceilingPath)).ConfigureAwait(false), JsonOptions)
-                ?? throw new InvalidDataException("H10 budget configuration is empty.");
-            if (configuration.SchemaVersion != 1 ||
-                !configuration.SourceSha256.Equals(archiveSha, StringComparison.OrdinalIgnoreCase) ||
-                !configuration.ManifestSha256.Equals(manifestSha, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidDataException("H10 budget configuration does not match the frozen source and selection manifest.");
-            ceiling = configuration.Platforms.Single(item => item.CaseId == caseId && item.OsFamily == OsFamily());
+        if (ceiling != null) {
             EvaluateCeilings(ceiling, operations, failures);
         }
         var report = new {
@@ -138,8 +151,20 @@ internal static class H10BudgetRunner {
         return failures.Count == 0 ? 0 : 1;
     }
 
+    private static async Task MeasureSafelyAsync(string name, string kind, string runner, List<string> arguments,
+        string reportPath, string archiveSha, ICollection<H10BudgetOperation> operations,
+        ICollection<string> failures, string repoRoot) {
+        try {
+            await MeasureAsync(name, kind, runner, arguments, reportPath, archiveSha,
+                operations, failures, repoRoot).ConfigureAwait(false);
+        } catch (Exception exception) when (exception is IOException or InvalidOperationException or
+                   System.ComponentModel.Win32Exception or UnauthorizedAccessException) {
+            failures.Add(name + ": evidence worker could not complete: " + exception.Message);
+        }
+    }
+
     private static async Task MeasureAsync(string name, string kind, string runner, List<string> arguments,
-        string reportPath, ICollection<H10BudgetOperation> operations,
+        string reportPath, string archiveSha, ICollection<H10BudgetOperation> operations,
         ICollection<string> failures, string repoRoot) {
         var start = new ProcessStartInfo("dotnet") {
             WorkingDirectory = repoRoot,
@@ -186,6 +211,9 @@ internal static class H10BudgetRunner {
             string? outputSha;
             int? pages;
             if (kind == "pdf") {
+                string workerSourceSha = root.GetProperty("archive").GetProperty("sha256").GetString()!;
+                if (!workerSourceSha.Equals(archiveSha, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("The PDF worker read different archive bytes.");
                 JsonElement result = root.GetProperty("operations").EnumerateArray().Single();
                 if (root.GetProperty("failures").GetArrayLength() != 0 ||
                     result.GetProperty("intent").GetString() != "officeimo-" + name[4..])
@@ -198,6 +226,10 @@ internal static class H10BudgetRunner {
                 outputSha = result.GetProperty("sha256").GetString();
                 pages = result.GetProperty("pageCount").GetInt32();
             } else {
+                using JsonDocument summary = JsonDocument.Parse(await File.ReadAllTextAsync(
+                    Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(reportPath)!)!, "summary.json")).ConfigureAwait(false));
+                if (!summary.RootElement.GetProperty("sourceSha256").GetString()!.Equals(archiveSha, StringComparison.OrdinalIgnoreCase))
+                    throw new InvalidDataException("The editable worker read different archive bytes.");
                 passed = root.GetProperty("Passed").GetBoolean();
                 hasLoss = root.GetProperty("ReportHasLoss").GetBoolean();
                 elapsed = root.GetProperty("ElapsedMs").GetDouble();
@@ -220,13 +252,12 @@ internal static class H10BudgetRunner {
 
     private static void EvaluateCeilings(H10BudgetPlatform ceiling,
         IReadOnlyList<H10BudgetOperation> operations, ICollection<string> failures) {
-        if (ceiling.Operations.Count != operations.Count ||
-            ceiling.Operations.Select(item => item.Name).Order().SequenceEqual(operations.Select(item => item.Name).Order()) == false)
-            throw new InvalidDataException("The platform budget does not cover the exact declared operations.");
-        foreach (H10BudgetOperation operation in operations) {
-            H10BudgetLimit limit = ceiling.Operations.Single(item => item.Name == operation.Name);
-            if (limit.ConversionMilliseconds <= 0 || limit.ManagedAllocatedBytes <= 0 || limit.PeakWorkingSetBytes <= 0)
-                throw new InvalidDataException("H10 budget ceilings must be positive.");
+        foreach (H10BudgetLimit limit in ceiling.Operations) {
+            H10BudgetOperation? operation = operations.SingleOrDefault(item => item.Name == limit.Name);
+            if (operation == null) {
+                failures.Add(limit.Name + ": no valid worker measurement was produced.");
+                continue;
+            }
             if (operation.ConversionMilliseconds > limit.ConversionMilliseconds)
                 failures.Add(operation.Name + ": conversion time exceeded the platform ceiling.");
             if (operation.ManagedAllocatedBytes > limit.ManagedAllocatedBytes)
