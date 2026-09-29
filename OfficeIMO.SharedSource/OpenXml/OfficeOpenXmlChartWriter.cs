@@ -72,6 +72,8 @@ namespace OfficeIMO.OpenXml.Internal {
                 throw new InvalidOperationException("Chart not found.");
             C.PlotArea plotArea = chart.GetFirstChild<C.PlotArea>() ??
                 throw new InvalidOperationException("Chart plot area not found.");
+            bool previousLegendUsesCategories = GetSharedNativeChartLayers(plotArea).FirstOrDefault() is
+                C.PieChart or C.DoughnutChart;
 
             ISet<uint>? preservedSeriesIndexes = null;
             if (defaultKind == OfficeChartKind.Scatter && IsOnlySharedScatterPlot(plotArea)) {
@@ -91,7 +93,7 @@ namespace OfficeIMO.OpenXml.Internal {
                 chart.ReplaceChild(replacement, plotArea);
             }
 
-            UpdateSharedLegend(chart, data, defaultKind);
+            UpdateSharedLegend(chart, data, defaultKind, previousLegendUsesCategories);
             ApplySharedChartSeriesStyle(chartPart, data, defaultKind,
                 materializeMissingBubbleColors: false,
                 preservedSeriesIndexes);
@@ -394,7 +396,8 @@ namespace OfficeIMO.OpenXml.Internal {
             return legend;
         }
 
-        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data, OfficeChartKind kind) {
+        private static void UpdateSharedLegend(C.Chart chart, OfficeChartData data, OfficeChartKind kind,
+            bool previousLegendUsesCategories) {
             C.Legend? current = chart.GetFirstChild<C.Legend>();
             if (current == null) {
                 return;
@@ -402,8 +405,10 @@ namespace OfficeIMO.OpenXml.Internal {
 
             var replacement = (C.Legend)current.CloneNode(true);
             kind = data.Series.FirstOrDefault()?.RenderKind ?? kind;
-            int entryCount = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut ? data.Categories.Count : data.Series.Count;
-            var retained = replacement.Elements<C.LegendEntry>()
+            bool legendUsesCategories = kind is OfficeChartKind.Pie or OfficeChartKind.Doughnut;
+            int entryCount = legendUsesCategories ? data.Categories.Count : data.Series.Count;
+            var retained = (previousLegendUsesCategories == legendUsesCategories
+                ? replacement.Elements<C.LegendEntry>() : Enumerable.Empty<C.LegendEntry>())
                 .Where(entry => entry.GetFirstChild<C.Index>()?.Val?.Value < entryCount)
                 .Where(entry => entry.ChildElements.Any(child => child is not C.Index && child is not C.Delete))
                 .GroupBy(entry => entry.GetFirstChild<C.Index>()!.Val!.Value)
