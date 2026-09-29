@@ -145,7 +145,7 @@ internal static partial class OfficeOpenXmlChartSeriesReader {
     private static string ResolveNativeTypeface(string? typeface, A.ColorScheme? scheme) {
         if (string.IsNullOrWhiteSpace(typeface))
             throw new NotSupportedException("The chart text typeface cannot be projected.");
-        if (!typeface.StartsWith("+", StringComparison.Ordinal)) return typeface;
+        if (!typeface!.StartsWith("+", StringComparison.Ordinal)) return typeface;
         A.FontScheme? fonts = scheme?.Parent?.GetFirstChild<A.FontScheme>();
         string? resolved = typeface switch {
             "+mj-lt" => fonts?.MajorFont?.LatinFont?.Typeface?.Value,
