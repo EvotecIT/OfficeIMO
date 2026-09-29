@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f",
+  "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+  "platforms": [
+    {
+      "osFamily": "macOS",
+      "caseId": "noaa-nos-chesapeake-bathymetry",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 469762048,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 469762048,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 469762048,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 603979776,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 603979776,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 671088640,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 2000,
+          "managedAllocatedBytes": 469762048,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 2000,
+          "managedAllocatedBytes": 536870912,
+          "peakWorkingSetBytes": 335544320
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2000,
+          "managedAllocatedBytes": 536870912,
+          "peakWorkingSetBytes": 335544320
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+  "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+  "platforms": [
+    {
+      "osFamily": "macOS",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3556769792,
+          "peakWorkingSetBytes": 603979776
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3489660928,
+          "peakWorkingSetBytes": 738197504
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 7500,
+          "managedAllocatedBytes": 3623878656,
+          "peakWorkingSetBytes": 805306368
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 4000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 3500,
+          "managedAllocatedBytes": 1140850688,
+          "peakWorkingSetBytes": 536870912
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 5000,
+          "managedAllocatedBytes": 1207959552,
+          "peakWorkingSetBytes": 469762048
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 805306368,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 3000,
+          "managedAllocatedBytes": 1073741824,
+          "peakWorkingSetBytes": 402653184
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 2500,
+          "managedAllocatedBytes": 872415232,
+          "peakWorkingSetBytes": 402653184
+        }
+      ]
+    }
+  ]
+}
