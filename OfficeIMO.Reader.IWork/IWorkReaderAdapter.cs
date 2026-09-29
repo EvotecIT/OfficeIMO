@@ -13,7 +13,8 @@ internal static class IWorkReaderAdapter {
         long maximumPackageBytes = Math.Min(readOptions.MaximumPackageBytes,
             readerOptions.MaxInputBytes ?? readOptions.MaximumPackageBytes);
         return IWorkContainerProbe.HasModernIndex(stream, maximumPackageBytes,
-            readOptions.MaximumEntryCount, cancellationToken);
+            readOptions.MaximumEntryCount, cancellationToken,
+            readOptions.MaximumEntryBytes);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions readerOptions,

@@ -212,6 +212,12 @@ public sealed class ReaderIWorkTests {
         }
         Assert.Equal(ReaderInputKind.Zip, reader.Detect(outerStream.ToArray(), "notes.zip").Kind);
 
+        byte[] renamedGeneric = outerStream.ToArray();
+        Assert.Equal(ReaderInputKind.Zip, reader.Detect(renamedGeneric, "notes.pages").Kind);
+        Assert.NotEqual(ReaderInputKind.IWork,
+            reader.ReadDocument(renamedGeneric, "notes.pages",
+                new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent }).Kind);
+
         byte[] openXml = CreateZip("Index/Document.iwa", "word/document.xml");
         ReaderDetectionResult wordDetection = reader.Detect(openXml, "document.docx");
         Assert.Equal(ReaderInputKind.Word, wordDetection.Kind);
@@ -228,10 +234,13 @@ public sealed class ReaderIWorkTests {
         ReaderDetectionResult asyncResult = await reader.DetectAsync(nestedPackage, "renamed.zip");
         OfficeDocumentReadResult document = reader.ReadDocument(nestedPackage, "renamed.zip",
             new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+        OfficeDocumentReadResult namedDocument = reader.ReadDocument(nestedPackage,
+            "renamed.pages", new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
 
         Assert.Equal(ReaderInputKind.IWork, sync.Kind);
         Assert.Equal(ReaderInputKind.IWork, asyncResult.Kind);
         Assert.Equal(ReaderInputKind.IWork, document.Kind);
+        Assert.Equal(ReaderInputKind.IWork, namedDocument.Kind);
         Assert.Contains(document.Chunks, chunk =>
             chunk.Text.Contains("hello pages", StringComparison.OrdinalIgnoreCase));
     }
