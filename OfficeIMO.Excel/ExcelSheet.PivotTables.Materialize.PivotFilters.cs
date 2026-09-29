@@ -194,10 +194,12 @@ namespace OfficeIMO.Excel {
                     && rowAxisFields.Length == 2 && columnAxisFields.Length == 1
                     && measures.Length == 1
                     && ((rowPosition == 1 && fieldPrefix.Length == 2
-                            && type == PivotFilterValues.ValueGreaterThan)
+                            && (type == PivotFilterValues.ValueGreaterThan
+                                || type == PivotFilterValues.ValueBetween
+                                || (type == PivotFilterValues.Count && ranking?.Val?.Value == 1d)))
                         || (rowPosition < 0 && fieldPrefix.Length == 1
-                            && type == PivotFilterValues.Count && ranking?.Top?.Value == false
-                            && ranking.Val?.Value == 1d));
+                            && (type == PivotFilterValues.ValueGreaterThan
+                                || (type == PivotFilterValues.Count && ranking?.Val?.Value == 1d))));
                 if (axisFields.Count > 1 && !qualifiedThreeLevelValueFilter && !qualifiedThreeLevelMixedValueFilter
                     && (axisFields.Count != 2 || measures.Length != 1))
                     throw new NotSupportedException("The multi-field value filter has no qualified axis rule.");

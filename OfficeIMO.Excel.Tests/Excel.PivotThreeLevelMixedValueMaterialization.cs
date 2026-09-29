@@ -6,7 +6,12 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
         [InlineData("mixed-row-greater50", "A4:F11", "F4:K11", 9, 50d, 220d)]
+        [InlineData("mixed-row-between45and65", "A4:F11", "F4:K11", 13, 45d, 170d)]
+        [InlineData("mixed-row-top1", "A4:F10", "F4:K10", 1, 1d, 160d)]
+        [InlineData("mixed-row-bottom1", "A4:F10", "F4:K10", 2, 1d, 105d)]
         [InlineData("mixed-column-bottom1", "A4:D12", "F4:I12", 2, 1d, 85d)]
+        [InlineData("mixed-column-greater85", "A4:E12", "F4:J12", 9, 85d, 180d)]
+        [InlineData("mixed-column-top1", "A4:E12", "F4:J12", 1, 1d, 180d)]
         public void Test_PivotThreeLevelMixedValue_MatchesExcel(
             string kind, string oracleRange, string authoredRange, int filterType, double threshold, double total) {
             string file = $"pivot-value-three-level-{kind}-conformance.xlsx";
@@ -42,7 +47,12 @@ namespace OfficeIMO.Tests {
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
                 ExcelPivotFilter filter = kind switch {
                     "mixed-row-greater50" => ExcelPivotFilter.ValueGreaterThan("Product", "Metric", 50d),
+                    "mixed-row-between45and65" => ExcelPivotFilter.ValueBetween("Product", "Metric", 45d, 65d),
+                    "mixed-row-top1" => ExcelPivotFilter.TopCount("Product", "Metric", 1),
+                    "mixed-row-bottom1" => ExcelPivotFilter.BottomCount("Product", "Metric", 1),
                     "mixed-column-bottom1" => ExcelPivotFilter.BottomCount("Channel", "Metric", 1),
+                    "mixed-column-greater85" => ExcelPivotFilter.ValueGreaterThan("Channel", "Metric", 85d),
+                    "mixed-column-top1" => ExcelPivotFilter.TopCount("Channel", "Metric", 1),
                     _ => throw new ArgumentOutOfRangeException(nameof(kind))
                 };
                 source.Pivot("A1:D13").Rows("Region", "Product").Columns("Channel")

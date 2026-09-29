@@ -5,7 +5,8 @@ Creates an independent Excel fixture for a value filter at the third row level.
 [CmdletBinding()]
 param(
     [ValidateSet('top1', 'top2', 'bottom1', 'greater15', 'between15and30',
-        'mixed-row-greater50', 'mixed-column-bottom1')]
+        'mixed-row-greater50', 'mixed-row-between45and65', 'mixed-row-top1', 'mixed-row-bottom1',
+        'mixed-column-bottom1', 'mixed-column-greater85', 'mixed-column-top1')]
     [string] $Kind = 'top1',
     [string] $OutputDirectory
 )
@@ -102,7 +103,12 @@ try {
         'greater15'     { @{ Type = 9; First = 15.0; Grand = 215.0 } }
         'between15and30' { @{ Type = 13; First = 15.0; Second = 30.0; Grand = 125.0 } }
         'mixed-row-greater50' { @{ Type = 9; First = 50.0; Grand = 220.0; Field = 'Product' } }
+        'mixed-row-between45and65' { @{ Type = 13; First = 45.0; Second = 65.0; Grand = 170.0; Field = 'Product' } }
+        'mixed-row-top1' { @{ Type = 1; First = 1.0; Grand = 160.0; Field = 'Product' } }
+        'mixed-row-bottom1' { @{ Type = 2; First = 1.0; Grand = 105.0; Field = 'Product' } }
         'mixed-column-bottom1' { @{ Type = 2; First = 1.0; Grand = 85.0; Field = 'Channel' } }
+        'mixed-column-greater85' { @{ Type = 9; First = 85.0; Grand = 180.0; Field = 'Channel' } }
+        'mixed-column-top1' { @{ Type = 1; First = 1.0; Grand = 180.0; Field = 'Channel' } }
     }
     $filteredField = if ($rule.ContainsKey('Field')) { $rule.Field } else { 'Channel' }
     if ($rule.ContainsKey('Second')) {
