@@ -5,6 +5,92 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public class DrawingChartAxisLayoutTests {
+    [Theory]
+    [InlineData(OfficeChartKind.ColumnClustered)]
+    [InlineData(OfficeChartKind.BarClustered)]
+    public void BarClusterWidthFollowsNativeDefaultGapWidth(OfficeChartKind kind) {
+        OfficeColor first = OfficeColor.FromRgb(200, 20, 20);
+        OfficeColor second = OfficeColor.FromRgb(20, 20, 200);
+        OfficeDrawing Render(params OfficeChartSeries[] series) => OfficeChartDrawingRenderer.Render(
+            new OfficeChartSnapshot("", null, kind,
+                new OfficeChartData(new[] { "A" }, series), 480, 260,
+                layout: new OfficeChartLayout(showLegend: false)));
+        var single = Render(new OfficeChartSeries("First", new[] { 10d }, null, first));
+        var paired = Render(new OfficeChartSeries("First", new[] { 10d }, null, first),
+            new OfficeChartSeries("Second", new[] { 10d }, null, second));
+        double singleSize = kind == OfficeChartKind.BarClustered
+            ? single.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Height
+            : single.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Width;
+        double pairedSize = kind == OfficeChartKind.BarClustered
+            ? paired.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Height
+            : paired.Shapes.Single(shape => shape.Shape.FillColor == first).Shape.Width;
+        Assert.Equal(2.5D / 3.5D, pairedSize / singleSize, 3);
+    }
+
+    [Theory]
+    [InlineData(.705, "0%", "71%")]
+    [InlineData(-.705, "0%", "-71%")]
+    [InlineData(12.5, "0", "13")]
+    [InlineData(-12.5, "0", "-13")]
+    [InlineData(12.345, "0.00", "12.35")]
+    public void NumericChartLabels_RoundMidpointsConsistently(double value, string format, string expected) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Rounding", null, OfficeChartKind.Line,
+            new OfficeChartData(new[] { "Point" }, new[] { new OfficeChartSeries("Value", new[] { value }) }), 480, 260,
+            layout: new OfficeChartLayout(showLegend: false, showDataLabels: true, showDataLabelValues: true, dataLabelNumberFormat: format)));
+        Assert.Contains(drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == expected);
+    }
+    [Theory]
+    [InlineData(0.005)]
+    [InlineData(0.002)]
+    public void NumericAxes_KeepAdjacentFractionalTicksDistinct(double majorUnit) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Fractional ticks", null, OfficeChartKind.Line,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.005, 0.02 }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.02, verticalAxisMajorUnit: majorUnit)));
+        string[] labels = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToArray();
+        Assert.Contains(majorUnit == 0.005 ? "0.015" : "0.012", labels);
+        Assert.Equal(1, labels.Count(label => label == "0.01"));
+        Assert.Equal(1, labels.Count(label => label == "0.02"));
+    }
+
+    [Fact]
+    public void NumericAxes_KeepSmallNonzeroTicksDistinctFromZero() {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Small ticks", null, OfficeChartKind.Line,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.00025, 0.001 }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 0.001, verticalAxisMajorUnit: 0.00025)));
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("0.00025", labels);
+        Assert.Contains("0.001", labels);
+        Assert.DoesNotContain(labels, text => text.Contains("%"));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.BarClustered)]
+    [InlineData(OfficeChartKind.Scatter)]
+    public void NumericAxes_DoNotInferPercentagesFromFractionalTicks(OfficeChartKind kind) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Numeric ticks", null, kind,
+            new OfficeChartData(new[] { "One", "Two", "Three" }, new[] {
+                new OfficeChartSeries("Measurements", new[] { 1d, 3d, 2d }, new[] { 1d, 2d, 3d }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 3, verticalAxisMajorUnit: 0.75,
+                horizontalAxisMinimum: 0, horizontalAxisMaximum: 3, horizontalAxisMajorUnit: 0.75)));
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("0.75", labels);
+        Assert.DoesNotContain(labels, text => text.Contains("%"));
+    }
+
+    [Theory]
+    [InlineData(OfficeChartKind.Line, "0%")]
+    [InlineData(OfficeChartKind.LineStacked100, null)]
+    public void PercentageAxes_RetainExplicitOrPercentStackedFormatting(OfficeChartKind kind, string? format) {
+        var drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot("Percentage ticks", null, kind,
+            new OfficeChartData(new[] { "One", "Two" }, new[] { new OfficeChartSeries("Rate", new[] { 0.25, 0.5 }) }),
+            480, 260, layout: new OfficeChartLayout(verticalAxisMinimum: 0, verticalAxisMaximum: 1,
+                verticalAxisMajorUnit: 0.25, verticalAxisNumberFormat: format)));
+        var labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+        Assert.Contains("25%", labels);
+        Assert.Contains("100%", labels);
+    }
+
     [Fact]
     public void OfficeChartDrawingRenderer_BoundsCategoryLabelMeasurementWork() {
         const int categoryCount = 5_000;
@@ -176,6 +262,44 @@ public class DrawingChartAxisLayoutTests {
         Assert.NotEmpty(axisAlignedBars);
         Assert.All(columnBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
         Assert.All(axisAlignedBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OfficeChartDrawingRenderer_AlignsMixedLinePointsWithColumnCategoryCenters(bool reverseCategoryAxis) {
+        OfficeColor columnColor = OfficeColor.ParseHex("#2563EB");
+        OfficeColor lineColor = OfficeColor.ParseHex("#DC2626");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Mixed column line",
+            "Mixed Column Line",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new OfficeChartSeries("Columns", new[] { 10D, 12D, 14D }, null, columnColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Line", new[] { 6D, 6D, 6D }, null, lineColor, null,
+                        showMarkers: false, renderKind: OfficeChartKind.Line)
+                }),
+            widthPoints: 360D,
+            heightPoints: 220D,
+            layout: new OfficeChartLayout(showLegend: false, reverseCategoryAxis: reverseCategoryAxis)));
+
+        OfficeDrawingShape[] columns = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == columnColor)
+            .OrderBy(shape => shape.X)
+            .ToArray();
+        OfficeDrawingShape[] lineSegments = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Line && shape.Shape.StrokeColor == lineColor)
+            .OrderBy(shape => shape.X)
+            .ToArray();
+
+        Assert.Equal(3, columns.Length);
+        Assert.Equal(2, lineSegments.Length);
+        Assert.Equal(columns[0].X + columns[0].Shape.Width / 2D, lineSegments[0].X, 6);
+        Assert.Equal(columns[2].X + columns[2].Shape.Width / 2D,
+            lineSegments[1].X + lineSegments[1].Shape.Width, 6);
     }
 
     [Fact]

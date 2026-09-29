@@ -47,78 +47,31 @@ namespace OfficeIMO.Excel {
         }
 
         private static void UpdateSeriesText(OpenXmlCompositeElement series, ExcelChartDataRange range, int seriesIndex, string seriesName) {
-            SeriesText seriesText = series.GetFirstChild<SeriesText>() ?? new SeriesText();
-            seriesText.RemoveAllChildren<StringReference>();
-            seriesText.RemoveAllChildren<StringLiteral>();
-            seriesText.RemoveAllChildren<NumericValue>();
-
-            if (range.HasHeaderRow) {
-                string seriesCell = range.SeriesNameCellA1(seriesIndex);
-                string formula = BuildSheetQualifiedRange(range.SheetName, seriesCell);
-                seriesText.Append(CreateSingleStringReference(formula, seriesName));
-            } else {
-                seriesText.Append(new NumericValue { Text = seriesName });
-            }
-
-            if (seriesText.Parent == null) {
-                OpenXmlElement? insertAfter = series.GetFirstChild<Order>();
-                insertAfter ??= series.GetFirstChild<ChartIndex>();
-                if (insertAfter != null) {
-                    series.InsertAfter(seriesText, insertAfter);
-                } else {
-                    series.PrependChild(seriesText);
-                }
-            }
+            SeriesText text = range.HasHeaderRow
+                ? new SeriesText(CreateSingleStringReference(BuildSheetQualifiedRange(range.SheetName, range.SeriesNameCellA1(seriesIndex)), seriesName))
+                : new SeriesText(new NumericValue { Text = seriesName });
+            series.AddChild(text, true);
         }
 
         private static void UpdateCategoryAxisData(OpenXmlCompositeElement series, ExcelChartDataRange range, IReadOnlyList<string> categories) {
             string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
-            CategoryAxisData categoryAxisData = series.GetFirstChild<CategoryAxisData>() ?? new CategoryAxisData();
-            categoryAxisData.RemoveAllChildren<StringReference>();
-            categoryAxisData.RemoveAllChildren<StringLiteral>();
-            categoryAxisData.Append(CreateStringReference(formula, categories));
-
-            if (categoryAxisData.Parent == null) {
-                series.Append(categoryAxisData);
-            }
+            series.AddChild(new CategoryAxisData(CreateStringReference(formula, categories)), true);
         }
 
         private static void UpdateValues(OpenXmlCompositeElement series, ExcelChartDataRange range, int seriesIndex, IReadOnlyList<double> values) {
             string formula = BuildSheetQualifiedRange(range.SheetName, range.SeriesValuesRangeA1(seriesIndex));
-            Values valueElement = series.GetFirstChild<Values>() ?? new Values();
-            valueElement.RemoveAllChildren<NumberReference>();
-            valueElement.RemoveAllChildren<NumberLiteral>();
-            valueElement.Append(CreateNumberReference(formula, values));
-
-            if (valueElement.Parent == null) {
-                series.Append(valueElement);
-            }
+            series.AddChild(new Values(CreateNumberReference(formula, values)), true);
         }
 
         private static void UpdateXValues(ScatterChartSeries series, ExcelChartDataRange range, IReadOnlyList<double> xValues, bool useLiteralXValues = false) {
             string formula = BuildSheetQualifiedRange(range.SheetName, range.CategoriesRangeA1);
-            XValues xValueElement = series.GetFirstChild<XValues>() ?? new XValues();
-            xValueElement.RemoveAllChildren<NumberReference>();
-            xValueElement.RemoveAllChildren<NumberLiteral>();
-            xValueElement.Append(useLiteralXValues ? CreateNumberLiteral(xValues) : CreateNumberReference(formula, xValues));
-
-            if (xValueElement.Parent == null) {
-                series.Append(xValueElement);
-            }
+            series.AddChild(new XValues(useLiteralXValues ? CreateNumberLiteral(xValues) : CreateNumberReference(formula, xValues)), true);
         }
 
         private static void UpdateYValues(ScatterChartSeries series, ExcelChartDataRange range, int seriesIndex, IReadOnlyList<double> values) {
             string formula = BuildSheetQualifiedRange(range.SheetName, range.SeriesValuesRangeA1(seriesIndex));
-            YValues yValueElement = series.GetFirstChild<YValues>() ?? new YValues();
-            yValueElement.RemoveAllChildren<NumberReference>();
-            yValueElement.RemoveAllChildren<NumberLiteral>();
-            yValueElement.Append(CreateNumberReference(formula, values));
-
-            if (yValueElement.Parent == null) {
-                series.Append(yValueElement);
-            }
+            series.AddChild(new YValues(CreateNumberReference(formula, values)), true);
         }
-
         private static void InsertSeries(OpenXmlCompositeElement chart, OpenXmlElement series) {
             OpenXmlElement? insertBefore = chart.ChildElements.FirstOrDefault(child =>
                 child is DataLabels ||

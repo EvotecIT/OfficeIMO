@@ -1,12 +1,13 @@
 using System;
+using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
-namespace OfficeIMO.PowerPoint {
-    internal static partial class PowerPointUtils {
+namespace OfficeIMO.OpenXml.Internal {
+    internal static partial class OfficeOpenXmlChartWriter {
         private static void UpdateScatterChartLayers(C.PlotArea plotArea,
-            IReadOnlyList<C.ScatterChart> scatterCharts, PowerPointScatterChartData data) {
+            IReadOnlyList<C.ScatterChart> scatterCharts, OfficeChartData data) {
             int seriesOffset = 0;
             for (int layerIndex = 0; layerIndex < scatterCharts.Count; layerIndex++) {
                 C.ScatterChart scatterChart = scatterCharts[layerIndex];
@@ -16,12 +17,15 @@ namespace OfficeIMO.PowerPoint {
                     continue;
                 }
 
-                int futureLayers = scatterCharts.Count - layerIndex - 1;
-                int seriesReservedForFutureLayers = Math.Min(futureLayers, remainingSeries - 1);
                 int currentLayerSize = Math.Max(1, scatterChart.Elements<C.ScatterChartSeries>().Count());
+                int reservedForLaterLayers = Math.Min(scatterCharts.Count - layerIndex - 1, remainingSeries - 1);
                 int seriesCount = layerIndex == scatterCharts.Count - 1
                     ? remainingSeries
-                    : Math.Min(currentLayerSize, remainingSeries - seriesReservedForFutureLayers);
+                    : Math.Min(currentLayerSize, remainingSeries - reservedForLaterLayers);
+                C.ScatterStyle style = scatterChart.GetFirstChild<C.ScatterStyle>() ?? new C.ScatterStyle();
+                style.Val = style.Val?.Value == C.ScatterStyleValues.Smooth || style.Val?.Value == C.ScatterStyleValues.SmoothMarker
+                    ? C.ScatterStyleValues.SmoothMarker : C.ScatterStyleValues.LineMarker;
+                if (style.Parent == null) scatterChart.AddChild(style, true);
                 UpdateScatterChartSeries(scatterChart, data, seriesOffset, seriesCount);
                 seriesOffset += seriesCount;
             }
@@ -30,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void UpdateScatterChartSeries(C.ScatterChart scatterChart,
-            PowerPointScatterChartData data, int seriesOffset, int seriesCount) {
+            OfficeChartData data, int seriesOffset, int seriesCount) {
             List<C.ScatterChartSeries> existingSeries = scatterChart.Elements<C.ScatterChartSeries>().ToList();
             C.ScatterChartSeries? template = existingSeries.LastOrDefault();
 
@@ -42,7 +46,7 @@ namespace OfficeIMO.PowerPoint {
                     seriesElement = template != null
                         ? (C.ScatterChartSeries)template.CloneNode(true)
                         : new C.ScatterChartSeries();
-                    seriesElement.RemoveAllChildren<C.Trendline>();
+                    ClearAddedSeriesMetadata(seriesElement);
                     InsertSeries(scatterChart, seriesElement);
                     existingSeries.Add(seriesElement);
                 }
@@ -50,8 +54,8 @@ namespace OfficeIMO.PowerPoint {
                 int seriesIndex = seriesOffset + localIndex;
                 UpdateSeriesIndexOrder(seriesElement, seriesIndex);
                 UpdateScatterSeriesText(seriesElement, seriesIndex, data.Series[seriesIndex].Name);
-                UpdateXValues(seriesElement, seriesIndex, data.Series[seriesIndex].XValues);
-                UpdateYValues(seriesElement, seriesIndex, data.Series[seriesIndex].YValues);
+                UpdateXValues(seriesElement, seriesIndex, data.Series[seriesIndex].XValues!);
+                UpdateYValues(seriesElement, seriesIndex, data.Series[seriesIndex].Values);
             }
 
             for (int localIndex = existingSeries.Count - 1; localIndex >= seriesCount; localIndex--) {

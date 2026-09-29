@@ -41,14 +41,14 @@ namespace OfficeIMO.Word {
                 if (chartElement == null) {
                     chartElement = _chart.PlotArea?.GetFirstChild<Pie3DChart>();
                 }
+                chartElement ??= _chart.PlotArea?.GetFirstChild<DoughnutChart>();
 
                 if (chartElement != null) {
                     var pieChartSeries = chartElement.GetFirstChild<PieChartSeries>();
-                    var dataLabels = chartElement.GetFirstChild<DataLabels>() ?? chartElement.AppendChild(AddDataLabel());
 
                     if (pieChartSeries == null) {
                         pieChartSeries = CreatePieChartSeries(_index, "Title?");
-                        chartElement.InsertBefore(pieChartSeries, dataLabels);
+                        chartElement.AddChild(pieChartSeries, true);
                     }
                     return pieChartSeries;
                 }
@@ -81,26 +81,41 @@ namespace OfficeIMO.Word {
 
             CategoryAxisData categoryAxis = InitializeCategoryAxisData();
 
+            if (categoryAxis.GetFirstChild<NumberLiteral>() is NumberLiteral numericCategories) {
+                var numericPoint = new NumericPoint {
+                    Index = _currentIndexCategory,
+                    NumericValue = new NumericValue { Text = category }
+                };
+                AppendLiteralSlicePoint(numericCategories, numericPoint);
+                _lastAppendedCategoryPoint = numericPoint;
+                PointCount? count = numericCategories.GetFirstChild<PointCount>();
+                if (count != null) count.Val = _currentIndexCategory + 1;
+                else numericCategories.AddChild(new PointCount { Val = _currentIndexCategory + 1 }, true);
+                _currentIndexCategory++;
+                return;
+            }
             StringLiteral? stringLiteral = categoryAxis.GetFirstChild<StringLiteral>();
             // If StringLiteral does not exist, create it
             if (stringLiteral == null) {
                 stringLiteral = new StringLiteral();
                 categoryAxis.Append(stringLiteral);
             }
-            stringLiteral.Append(new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } });
+            var stringPoint = new StringPoint() { Index = _currentIndexCategory, NumericValue = new DocumentFormat.OpenXml.Drawing.Charts.NumericValue() { Text = category } };
+            AppendLiteralSlicePoint(stringLiteral, stringPoint);
+            _lastAppendedCategoryPoint = stringPoint;
             // Update the PointCount
             PointCount? pointCount = stringLiteral.GetFirstChild<PointCount>();
             if (pointCount != null) {
                 pointCount.Val = _currentIndexCategory + 1;
             } else {
-                stringLiteral.InsertAt(new PointCount() { Val = 1 }, 0);
+                stringLiteral.InsertAt(new PointCount() { Val = _currentIndexCategory + 1 }, 0);
             }
             // Increment the current index
             _currentIndexCategory++;
 
             if (pieChartSeries != null) {
                 if (!pieChartSeries.Elements<CategoryAxisData>().Any()) {
-                    pieChartSeries.Append(categoryAxis);
+                    pieChartSeries.AddChild(categoryAxis, true);
                 }
             }
         }
@@ -123,27 +138,29 @@ namespace OfficeIMO.Word {
                               data is float f ? f.ToString(System.Globalization.CultureInfo.InvariantCulture) :
                               data?.ToString() ?? "0";
 
-            literal.Append(new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } });
+            var valuePoint = new NumericPoint() { Index = _currentIndexValues, NumericValue = new NumericValue() { Text = valueText } };
+            AppendLiteralSlicePoint(literal, valuePoint);
+            _lastAppendedValuePoint = valuePoint;
             // Update the PointCount
             PointCount? pointCount = literal.GetFirstChild<PointCount>();
             if (pointCount != null) {
                 pointCount.Val = _currentIndexValues + 1;
             } else {
                 int pos = literal.Elements<FormatCode>().Any() ? 1 : 0;
-                literal.InsertAt(new PointCount() { Val = 1 }, pos);
+                literal.InsertAt(new PointCount() { Val = _currentIndexValues + 1 }, pos);
             }
             // Increment the current index
             _currentIndexValues++;
             // add values to the series if it does not exist
             if (pieChartSeries != null) {
                 if (!pieChartSeries.Elements<Values>().Any()) {
-                    pieChartSeries.Append(values);
+                    pieChartSeries.AddChild(values, true);
                 }
             }
         }
 
         private Chart CreatePieChart(Chart chart) {
-            PieChart pieChart1 = new PieChart();
+            PieChart pieChart1 = new PieChart(new VaryColors { Val = true }, AddDataLabel());
             pieChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
             chart.PlotArea!.Append(pieChart1);
             return chart;
@@ -154,8 +171,8 @@ namespace OfficeIMO.Word {
             UInt32Value valId = GenerateAxisId();
 
             BarChart barChart1 = CreateBarChart(catId, valId);
-            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
-            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
+            CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Left);
+            ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Bottom);
             chart.PlotArea!.Append(barChart1);
             chart.PlotArea!.Append(categoryAxis1);
             chart.PlotArea!.Append(valueAxis1);
@@ -168,9 +185,9 @@ namespace OfficeIMO.Word {
             barChart1.AddNamespaceDeclaration("c", "http://schemas.openxmlformats.org/drawingml/2006/chart");
 
             BarDirection barDirection1 = new BarDirection() { Val = barDirection };
-            BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Standard };
+            BarGrouping barGrouping1 = new BarGrouping() { Val = BarGroupingValues.Clustered };
             DataLabels dataLabels1 = AddDataLabel();
-            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)200U };
+            GapWidth gapWidth1 = new GapWidth() { Val = (UInt16Value)150U };
             Overlap overlap1 = new Overlap() { Val = 0 };
 
             AxisId axisId1 = new AxisId() { Val = catAxisId };
@@ -382,6 +399,7 @@ namespace OfficeIMO.Word {
             lineChartSeries1.Append(order1);
             lineChartSeries1.Append(seriesText1);
             lineChartSeries1.Append(chartShapeProperties1);
+            lineChartSeries1.Append(new Marker(new Symbol { Val = MarkerStyleValues.None }));
             lineChartSeries1.Append(categoryAxisData1);
             lineChartSeries1.Append(values1);
 

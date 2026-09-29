@@ -12,6 +12,8 @@ public sealed partial class OdsSheet {
         if (anchorColumn < 0) throw new ArgumentOutOfRangeException(nameof(anchorColumn));
         if (series == null || series.Count < 1 || series.Count > 16)
             throw new ArgumentException("A chart requires one to sixteen series.", nameof(series));
+        if (type == OdsChartType.Pie && series.Count != 1)
+            throw new ArgumentException("A pie chart requires one series.", nameof(series));
         int pointCount = ValidateChartRange(categoriesAddress, nameof(categoriesAddress), singleCell: false);
         if (pointCount > 4096) throw new ArgumentOutOfRangeException(nameof(categoriesAddress));
         foreach (OdsChartSeries item in series) {
@@ -19,6 +21,11 @@ public sealed partial class OdsSheet {
             if (ValidateChartRange(item.ValuesAddress, nameof(series), singleCell: false) != pointCount)
                 throw new ArgumentException("Each chart series must match the category count.", nameof(series));
             if (item.LabelAddress != null) ValidateChartRange(item.LabelAddress, nameof(series), singleCell: true);
+            if (item.PointStyles != null && item.PointStyles.Count != pointCount)
+                throw new ArgumentException("Point-style count must match the category count.", nameof(series));
+            if (type == OdsChartType.Line && item.PointStyles?.Any(OdsChartPointStyles.HasAppearanceOverride) == true)
+                throw new NotSupportedException("Native line chart point styles require visible point symbols.");
+            OdsChartPointStyles.Validate(item.PointStyles);
         }
         if (!bounds.X.TryToPoints(out double x) || !bounds.Y.TryToPoints(out double y) ||
             !bounds.Width.TryToPoints(out double width) || !bounds.Height.TryToPoints(out double height) ||
@@ -31,8 +38,13 @@ public sealed partial class OdsSheet {
         int ordinal = 1;
         string directory;
         do { directory = "Object " + ordinal++.ToString(CultureInfo.InvariantCulture) + "/"; }
-        while (_document.Package.ContainsEntry(directory) || _document.Package.ContainsEntry(directory + "content.xml"));
-        string chartClass = type == OdsChartType.Line ? "chart:line" : "chart:bar";
+        while (_document.Package.Entries.Any(entry => entry.Name.StartsWith(directory, StringComparison.Ordinal)));
+        string chartClass = type switch {
+            OdsChartType.Line => "chart:line",
+            OdsChartType.Pie => "chart:circle",
+            OdsChartType.Doughnut => "chart:ring",
+            _ => "chart:bar"
+        };
         string chartName = string.IsNullOrWhiteSpace(name) ? "Chart " + (ordinal - 1).ToString(CultureInfo.InvariantCulture) : name!;
         XNamespace chart = OdfNamespaces.Chart;
         XElement plot = new XElement(chart + "plot-area",
@@ -41,14 +53,27 @@ public sealed partial class OdsSheet {
                 new XElement(chart + "categories", new XAttribute(OdfNamespaces.Table + "cell-range-address", categoriesAddress))),
             new XElement(chart + "axis", new XAttribute(chart + "dimension", "y"),
                 new XAttribute(chart + "name", "primary-y")));
-        foreach (OdsChartSeries item in series) {
+        var pointStyleDefinitions = new List<XElement>();
+        var hatchDefinitions = new List<XElement>();
+        for (int seriesIndex = 0; seriesIndex < series.Count; seriesIndex++) {
+            OdsChartSeries item = series[seriesIndex];
             var output = new XElement(chart + "series",
                 new XAttribute(chart + "values-cell-range-address", item.ValuesAddress),
-                new XAttribute(chart + "class", chartClass),
-                new XAttribute(chart + "attached-axis", "primary-y"),
-                new XElement(chart + "data-point", new XAttribute(chart + "repeated", pointCount)));
+                new XAttribute(chart + "class", type == OdsChartType.Doughnut ? "chart:circle" : chartClass));
+            // Calc keeps authored data-point styles only when their series has a chart style.
+            if (item.PointStyles?.Any(OdsChartPointStyles.HasAppearanceOverride) == true) {
+                string seriesStyleName = "ChartSeries" + seriesIndex.ToString(CultureInfo.InvariantCulture);
+                output.SetAttributeValue(chart + "style-name", seriesStyleName);
+                pointStyleDefinitions.Add(new XElement(OdfNamespaces.Style + "style",
+                    new XAttribute(OdfNamespaces.Style + "name", seriesStyleName),
+                    new XAttribute(OdfNamespaces.Style + "family", "chart")));
+            }
+            if (type is not (OdsChartType.Pie or OdsChartType.Doughnut))
+                output.SetAttributeValue(chart + "attached-axis", "primary-y");
             if (item.LabelAddress != null)
                 output.SetAttributeValue(chart + "label-cell-address", item.LabelAddress);
+            OdsChartPointStyles.Write(item.PointStyles, pointCount, seriesIndex,
+                output, pointStyleDefinitions, hatchDefinitions);
             plot.Add(output);
         }
         var chartElement = new XElement(chart + "chart",
@@ -70,14 +95,17 @@ public sealed partial class OdsSheet {
             new XAttribute(chart + "stacked", "false"),
             new XAttribute(chart + "percentage", "false"),
             new XAttribute(chart + "three-dimensional", "false"));
-        if (type != OdsChartType.Line) properties.SetAttributeValue(chart + "vertical", type == OdsChartType.Bar ? "true" : "false");
+        if (type is OdsChartType.Column or OdsChartType.Bar)
+            properties.SetAttributeValue(chart + "vertical", type == OdsChartType.Bar ? "true" : "false");
         root.Add(new XElement(OdfNamespaces.Office + "automatic-styles",
             new XElement(OdfNamespaces.Style + "style",
                 new XAttribute(OdfNamespaces.Style + "name", "ChartStyle"),
                 new XAttribute(OdfNamespaces.Style + "family", "chart"), properties,
                 new XElement(OdfNamespaces.Style + "graphic-properties",
-                    new XAttribute(OdfNamespaces.Draw + "fill", "none"),
-                    new XAttribute(OdfNamespaces.Draw + "stroke", "none")))),
+                    new XAttribute(OdfNamespaces.Draw + "fill", "solid"),
+                    new XAttribute(OdfNamespaces.Draw + "fill-color", "#FFFFFF"),
+                    new XAttribute(OdfNamespaces.Draw + "stroke", "none"))),
+            pointStyleDefinitions),
             new XElement(OdfNamespaces.Office + "body",
                 new XElement(OdfNamespaces.Office + "chart", chartElement)));
         var part = new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
@@ -94,6 +122,14 @@ public sealed partial class OdsSheet {
                 new XAttribute(OdfNamespaces.XLink + "actuate", "onLoad")));
         _document.Package.AddOrReplaceEntry(directory, Array.Empty<byte>(), "application/vnd.oasis.opendocument.chart");
         _document.Package.AddOrReplaceEntry(directory + "content.xml", OdfXmlCodec.Save(part), "text/xml");
+        if (hatchDefinitions.Count > 0) {
+            var stylesRoot = new XElement(OdfNamespaces.Office + "document-styles",
+                new XAttribute(OdfNamespaces.Office + "version", _document.Version.ToToken()));
+            OdfXmlCodec.AddStandardNamespaces(stylesRoot);
+            stylesRoot.Add(new XElement(OdfNamespaces.Office + "styles", hatchDefinitions));
+            _document.Package.AddOrReplaceEntry(directory + "styles.xml",
+                OdfXmlCodec.Save(new XDocument(new XDeclaration("1.0", "UTF-8", null), stylesRoot)), "text/xml");
+        }
         anchor.Element.Add(frame);
         _document.MarkPartDirty("content.xml");
         return OdsChart.TryRead(_document, frame, anchorRow, anchorColumn)

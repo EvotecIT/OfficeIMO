@@ -27,7 +27,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                 showInLegend: item.ShowInLegend,
                 markerOutlineColor: item.StrokeColor ?? item.Color,
                 markerOutlineWidth: item.StrokeWidth,
-                showMarkerOutline: item.ShowStroke));
+                showMarkerOutline: item.ShowStroke).WithPointStyles(item.PointStyles));
         }
 
         if (series.Count == 0) {

@@ -180,6 +180,13 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal IReadOnlyList<OfficeColor?>? PointColors { get; set; }
 
+        internal IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; set; }
+
+        /// <summary>Native series appearance retained by the canonical series reader.</summary>
+        internal OfficeChartSeries? SharedAppearance { get; set; }
+        internal bool HasUnsupportedSharedAppearance { get; set; }
+        internal bool HasAutomaticSeriesColor { get; set; }
+
         /// <summary>
         /// Optional chart kind for mixed/combo chart rendering.
         /// </summary>
@@ -211,6 +218,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Native ChartML series index retained for legend and mixed-chart projection.</summary>
         internal uint? SourceIndex { get; set; }
+        internal uint? SourceOrder { get; set; }
     }
 
     /// <summary>

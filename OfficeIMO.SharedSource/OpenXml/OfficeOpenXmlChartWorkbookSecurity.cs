@@ -3,11 +3,11 @@ using System.IO;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 
-namespace OfficeIMO.PowerPoint {
+namespace OfficeIMO.OpenXml.Internal {
     /// <summary>
     /// Applies bounded nested-package validation before embedded chart workbooks are opened.
     /// </summary>
-    internal static class PowerPointChartWorkbookSecurity {
+    internal static class OfficeOpenXmlChartWorkbookSecurity {
         private const int MaximumPackageBytes = 8 * 1024 * 1024;
         private const long MaximumCharactersInPart = 2L * 1024L * 1024L;
 

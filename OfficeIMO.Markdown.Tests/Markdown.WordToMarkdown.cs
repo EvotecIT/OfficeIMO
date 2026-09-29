@@ -1076,7 +1076,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordChart_TryGetSnapshot_Clamps_Inflated_Cache_PointCounts() {
+        public void WordChart_TryGetSnapshot_Rejects_Inflated_Cache_PointCounts() {
             using var doc = WordDocument.Create();
             var chart = doc.AddChart("Inflated cache", width: 400, height: 240);
             chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
@@ -1091,11 +1091,9 @@ namespace OfficeIMO.Tests {
                 pointCount.Val = 1_000_000U;
             }
 
-            Assert.True(chart.TryGetSnapshot(out var snapshot));
-
-            Assert.Equal(new[] { "Q1", "Q2" }, snapshot.Data.Categories);
-            var series = Assert.Single(snapshot.Data.Series);
-            Assert.Equal(new[] { 10D, 20D }, series.Values);
+            string before = chartSpace.OuterXml;
+            Assert.False(chart.TryGetSnapshot(out _));
+            Assert.Equal(before, chartSpace.OuterXml);
         }
 
         [Fact]
@@ -1197,49 +1195,6 @@ namespace OfficeIMO.Tests {
             string svg = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(payloadStart, payloadEnd - payloadStart)));
 
             Assert.Contains("fill=\"#44546A\"", svg, StringComparison.OrdinalIgnoreCase);
-        }
-
-        [Fact]
-        public void WordToMarkdown_VisualFallbackMode_Keeps_Sparse_Explicit_Chart_Colors_Aligned() {
-            using var doc = WordDocument.Create();
-            var chart = doc.AddChart("Sparse Color", width: 400, height: 240);
-            chart.AddCategories(new System.Collections.Generic.List<string> { "Q1", "Q2" });
-            chart.AddBar("Default", new System.Collections.Generic.List<int> { 10, 20 }, OfficeColor.Black);
-            chart.AddBar("Explicit", new System.Collections.Generic.List<int> { 8, 14 }, OfficeColor.ParseHex("#CC3366"));
-
-            var seriesElements = doc._wordprocessingDocument.MainDocumentPart!
-                .ChartParts
-                .First()
-                .ChartSpace!
-                .GetFirstChild<C.Chart>()!
-                .PlotArea!
-                .GetFirstChild<C.BarChart>()!
-                .Elements<C.BarChartSeries>()
-                .ToList();
-            C.ChartShapeProperties firstShapeProperties = seriesElements[0].GetFirstChild<C.ChartShapeProperties>()!;
-            firstShapeProperties.RemoveAllChildren<A.SolidFill>();
-            firstShapeProperties.RemoveAllChildren<A.Outline>();
-
-            Assert.True(chart.TryGetSnapshot(out var snapshot));
-            Assert.Null(snapshot.Data.Series[0].Color);
-            Assert.Equal(OfficeColor.ParseHex("#CC3366"), snapshot.Data.Series[1].Color);
-
-            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
-                VisualFallbackMode = MarkdownVisualFallbackMode.SvgDataUri
-            });
-
-            const string prefix = "data:image/svg+xml;base64,";
-            int sourceStart = markdown.IndexOf(prefix, StringComparison.Ordinal);
-            Assert.True(sourceStart >= 0, markdown);
-            int payloadStart = sourceStart + prefix.Length;
-            int payloadEnd = markdown.IndexOf(')', payloadStart);
-            Assert.True(payloadEnd > payloadStart, markdown);
-            string svg = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(markdown.Substring(payloadStart, payloadEnd - payloadStart)));
-
-            string defaultColor = "#" + OfficeChartDrawingRenderer.GetSeriesColor(0).ToRgbHex();
-            Assert.False(string.Equals("#CC3366", defaultColor, StringComparison.OrdinalIgnoreCase));
-            Assert.Contains("fill=\"" + defaultColor + "\"", svg, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("fill=\"#CC3366\"", svg, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

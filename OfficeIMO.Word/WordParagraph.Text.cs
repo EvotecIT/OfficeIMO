@@ -73,6 +73,14 @@ namespace OfficeIMO.Word {
                     return ReadVisibleText(_stdRun);
                 }
 
+                if (_stdRun != null) {
+                    if (_stdRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().Any() == true) {
+                        return string.Empty;
+                    }
+
+                    return ReadVisibleText(_stdRun);
+                }
+
                 if (_hyperlink != null) {
                     return ReadVisibleText(_hyperlink);
                 }

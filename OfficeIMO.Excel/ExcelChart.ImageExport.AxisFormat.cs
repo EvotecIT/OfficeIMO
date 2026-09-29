@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using DocumentFormat.OpenXml;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Drawing;
@@ -8,7 +9,7 @@ namespace OfficeIMO.Excel {
     public sealed partial class ExcelChart {
         private const int ImageExportMaxAxisNumberFormatLength = 1024;
 
-        private static string? GetImageExportHorizontalAxisNumberFormat(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private string? GetImageExportHorizontalAxisNumberFormat(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
             string? valueAxisNumberFormat = GetImageExportAxisNumberFormat(valueAxis);
             if (HasHorizontalBarChart(plotArea)) {
                 return valueAxisNumberFormat;
@@ -17,7 +18,7 @@ namespace OfficeIMO.Excel {
             return categoryAxis is C.ValueAxis ? GetImageExportAxisNumberFormat(categoryAxis) : null;
         }
 
-        private static string? GetImageExportVerticalAxisNumberFormat(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
+        private string? GetImageExportVerticalAxisNumberFormat(C.PlotArea plotArea, OpenXmlCompositeElement? categoryAxis, OpenXmlCompositeElement? valueAxis) {
             if (!HasHorizontalBarChart(plotArea)) {
                 return GetImageExportAxisNumberFormat(valueAxis);
             }
@@ -25,7 +26,7 @@ namespace OfficeIMO.Excel {
             return categoryAxis is C.ValueAxis ? GetImageExportAxisNumberFormat(categoryAxis) : null;
         }
 
-        private static string? GetImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement? categoryAxis) {
+        private string? GetImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement? categoryAxis) {
             if (categoryAxis is not C.CategoryAxis && categoryAxis is not C.DateAxis) {
                 return null;
             }
@@ -139,8 +140,9 @@ namespace OfficeIMO.Excel {
             (categoryAxis is C.CategoryAxis || categoryAxis is C.DateAxis) &&
             categoryAxis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val != null;
 
-        private static string? GetImageExportAxisNumberFormat(OpenXmlCompositeElement? axis) {
-            string? value = axis?.GetFirstChild<C.NumberingFormat>()?.FormatCode?.Value;
+        private string? GetImageExportAxisNumberFormat(OpenXmlCompositeElement? axis) {
+            C.NumberingFormat? nativeFormat = axis?.GetFirstChild<C.NumberingFormat>();
+            string? value = nativeFormat?.SourceLinked?.Value == true ? ResolveSourceLinkedAxisNumberFormat(axis!) ?? nativeFormat.FormatCode?.Value : nativeFormat?.FormatCode?.Value;
             return string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
         }
 
@@ -274,8 +276,12 @@ namespace OfficeIMO.Excel {
                 .Replace("_", string.Empty)
                 .ToLowerInvariant();
 
-        private static bool HasUnsupportedImageExportAxisNumberFormat(C.ChartSpace chartSpace) {
+        private bool HasUnsupportedImageExportAxisNumberFormat(C.ChartSpace chartSpace) {
             foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
+                foreach (var axis in plotArea.ChildElements.OfType<OpenXmlCompositeElement>().Where(axis => axis is C.ValueAxis or C.CategoryAxis or C.DateAxis)) {
+                    if (axis.GetFirstChild<C.NumberingFormat>()?.SourceLinked?.Value == true &&
+                        HasSourceLinkedNumericAxisReference(plotArea, axis) && ResolveSourceLinkedAxisNumberFormat(axis) == null) return true;
+                }
                 OpenXmlCompositeElement? categoryAxis = ResolveImageExportCategoryAxis(plotArea);
                 OpenXmlCompositeElement? valueAxis = ResolveImageExportValueAxis(plotArea);
 
@@ -293,7 +299,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasUnsupportedImageExportCategoryAxisNumberFormat(C.ChartSpace chartSpace) {
+        private bool HasUnsupportedImageExportCategoryAxisNumberFormat(C.ChartSpace chartSpace) {
             foreach (C.PlotArea plotArea in chartSpace.Descendants<C.PlotArea>()) {
                 foreach (C.CategoryAxis axis in plotArea.Elements<C.CategoryAxis>()) {
                     if (HasUnsupportedImageExportCategoryAxisNumberFormat(axis)) {
@@ -311,7 +317,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool HasUnsupportedImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement axis) {
+        private bool HasUnsupportedImageExportCategoryAxisNumberFormat(OpenXmlCompositeElement axis) {
             string? formatCode = GetImageExportAxisNumberFormat(axis);
             return formatCode != null && !IsSimpleSupportedImageExportAxisNumberFormat(formatCode);
         }

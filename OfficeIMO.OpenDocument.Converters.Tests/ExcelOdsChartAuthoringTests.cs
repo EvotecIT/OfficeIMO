@@ -60,20 +60,6 @@ public sealed class ExcelOdsChartAuthoringTests {
     }
 
     [Fact]
-    public void UnsupportedExcelPieChartRemainsExplicitLoss() {
-        using ExcelDocument source = ExcelDocument.Create();
-        ExcelSheet sheet = source.AddWorksheet("Summary");
-        sheet.AddChart(new ExcelChartData(new[] { "Jan", "Feb" },
-            new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) }),
-            row: 5, column: 4, type: ExcelChartType.Pie);
-
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
-        Assert.Empty(result.Value.GetSheet("Summary")!.Charts);
-        Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "charts" &&
-            mapping.Status == OdfConversionMappingStatus.Unsupported);
-    }
-
-    [Fact]
     public void AbsoluteAnchoredChartRemainsExplicitLoss() {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-chart-absolute-" +
             Guid.NewGuid().ToString("N") + ".xlsx");

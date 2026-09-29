@@ -28,6 +28,56 @@ Applications that require the previous scalar widths should set
 `TextShapingMode = PdfTextShapingMode.UnicodeScalar`. Existing explicit shaping
 providers and the `LatinLigatures` mode retain their selection behavior.
 
+## Native chart appearance bounds
+
+The older `WordChart.AddBar` authoring path now writes a horizontal category axis
+on the left and a value axis on the bottom, with clustered bars and a 150% gap.
+`WordChart.AddLine` now writes an explicit no-marker setting instead of leaving
+marker selection to the Office application. Regenerate documents if those older
+implicit defaults matter to your output; use `AddChart(OfficeChartKind, OfficeChartData)`
+with explicit series appearance for a controlled chart style.
+
+Managed chart axes and data labels use consistent rounding across supported .NET
+runtimes. Explicit numeric formats round midpoint values away from zero; for example,
+`0%` formats `0.705` as `71%`. Excel source-linked axes use the referenced cells' number
+format when it can be qualified. To keep a specific axis format, pass
+`sourceLinked: false` to `SetValueAxisNumberFormat`.
+
+Native Word and PowerPoint data updates replace the embedded chart worksheet.
+Formula-linked chart titles, axis titles, custom labels and custom error bars
+now retain their cached content as native rich text or numeric literals. Supply
+a complete bounded cache before updating these charts. An uncached binding or
+an unqualified workbook-linked extension rejects the update without changing
+the chart or workbook.
+
+For shared scatter and bubble authoring, each series' `RenderKind` must be
+absent or match the chart kind. Use the same numeric family for the chart and
+all of its series. PowerPoint's legacy category-only updates require a single
+native chart layer; use `UpdateData(OfficeChartData)` for supported combinations.
+Externally linked or unresolved workbook references now reject shared and
+legacy data updates; embed an XLSX workbook first. Repeated native layers of the
+same family and axis group retain their separate formatting when they share
+axis references. Layers with different axis pairs require an explicit native
+editing path and reject shared replacement before mutation.
+In-place scatter updates require the same ordered X/Y value-axis pair across
+all layers. Conflicting, missing, or ambiguous axis references reject before
+changing native XML or workbook bytes. A category chart's only value-axis pair
+remains primary when its value axis is positioned at the top or right.
+
+Shared chart series stroke and marker outline widths must be finite, greater
+than zero, and at most 1584 points. Replace invalid widths before constructing
+`OfficeChartSeries`. Excel's explicit styling methods retain zero-width support
+but reject non-finite widths and widths above the same limit.
+
+Native Word, Excel, and PowerPoint writers clamp shared marker sizes to the
+DrawingML range of 2–72 points. Excel's explicit `SetSeriesMarker` methods reject
+sizes outside that range; use 2 instead of 1 for the smallest native marker.
+
+Default numeric chart ticks no longer infer percentages from fractional values.
+For example, `0.75` renders as `0.75`, rather than `75%`. Set an explicit percentage
+axis number format when those values represent ratios; 100% stacked chart
+families continue to use percentage labels by default.
+
 ## Studio attachment size limit
 
 Studio now rejects an attachment source larger than 64 MiB before adding it to
