@@ -8,15 +8,15 @@ namespace OfficeIMO.PowerPoint {
         internal static OfficeChartSnapshot ToOfficeSnapshot(PowerPointChartSnapshot snapshot,
             double width, double height, OfficeChartStyle? style = null, OfficeChartLayout? layout = null) {
             var series = snapshot.Data.Series.Select(item => {
-                // A native colour equal to the default palette may still be an
-                // intentional explicit fill. Preserve it unless provenance says
-                // the series is automatic; nullable colours inherit the style.
-                OfficeColor? color = item.Color;
+                // Keep explicit native colors even if they equal the default palette.
+                // Caller styles replace only colors materialized for automatic series.
+                bool useNativeColor = style == null || !item.HasAutomaticSeriesColor;
+                OfficeColor? color = useNativeColor ? item.Color : null;
                 return item.BubbleSizes != null
                 ? OfficeChartSeries.CreateBubble(item.Name, item.XValues!, item.Values,
                     item.BubbleSizes, color, item.PointColors,
                     showInLegend: item.ShowInLegend,
-                    markerOutlineColor: item.StrokeColor ?? color,
+                    markerOutlineColor: useNativeColor ? item.StrokeColor ?? color : null,
                     markerOutlineWidth: item.StrokeWidth,
                     showMarkerOutline: item.ShowStroke)
                 : new OfficeChartSeries(item.Name, item.Values, item.XValues, color,
@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint {
                     showInLegend: item.ShowInLegend, connectLine: item.SharedAppearance?.ConnectLine ?? true,
                     markerSize: item.SharedAppearance?.MarkerSize,
                     markerShape: item.SharedAppearance?.MarkerShape,
-                    markerOutlineColor: item.SharedAppearance?.MarkerOutlineColor ?? item.StrokeColor ?? color,
+                    markerOutlineColor: useNativeColor ? item.SharedAppearance?.MarkerOutlineColor ?? item.StrokeColor ?? color : null,
                     markerOutlineWidth: item.SharedAppearance?.MarkerOutlineWidth,
                     strokeWidth: item.StrokeWidth,
                     strokeDashStyle: item.SharedAppearance?.StrokeDashStyle,

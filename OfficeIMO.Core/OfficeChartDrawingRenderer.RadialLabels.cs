@@ -37,13 +37,20 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void QueueRadialOutsideLabel(List<RadialOutsideLabel> labels,
-        OfficeChartLayout layout, string category, OfficeChartSeries series, double value,
+        OfficeChartLayout layout, OfficeChartStyle style, string category, OfficeChartSeries series, double value,
         double total, double centerX, double centerY, double outerRadius, double angle,
         bool hasSlice, double percentageRatio) {
         string text = FormatDataLabel(layout, category, series, value, total, percentageRatio);
         if (string.IsNullOrWhiteSpace(text)) return;
-        double labelWidth = Math.Min(78D, Math.Max(40D,
-            text.Length * layout.DataLabelFontSize * 0.52D + 12D));
+        var font = new OfficeFontInfo(string.IsNullOrWhiteSpace(layout.DataLabelFontFamily)
+            ? style.FontFamily : layout.DataLabelFontFamily!, layout.DataLabelFontSize,
+            layout.DataLabelFontStyle ?? OfficeFontStyle.Regular);
+        OfficeTextMeasurer measurer = OfficeTextMeasurer.Create(font);
+        double measuredWidth = measurer.MeasureWidth(text, measurer.CreateStyle(font)) *
+            OfficeTextMeasurer.PointsPerInch / OfficeTextMeasurer.DefaultDpi;
+        double labelWidth = Math.Max(40D, measuredWidth + 12D);
+        if (labelWidth > 78D)
+            throw new NotSupportedException("Outside radial chart label text exceeds the available gutter width.");
         double labelHeight = Math.Max(12D, layout.DataLabelFontSize + 6D);
         labels.Add(new RadialOutsideLabel(text, labelWidth, labelHeight,
             centerX + Math.Cos(angle) * outerRadius,

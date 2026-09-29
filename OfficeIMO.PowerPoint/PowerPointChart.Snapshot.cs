@@ -470,9 +470,11 @@ namespace OfficeIMO.PowerPoint {
                     : null;
             if (radialLabels?.TextColor is OfficeColor labelColor)
                 style = style.WithDataLabelTextColor(labelColor);
-            if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Radar)
+            if (!forDataUpdate && kind is PowerPointChartSnapshotKind.Radar or
+                    PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)
                 style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
-                    GetChartPart(), chart, OfficeChartKind.Radar, colorScheme, style);
+                    GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme,
+                    style, data.Categories.Count);
             if (!forDataUpdate && (kind is PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)) {
                 C.PieChartSeries? radialSeries = chart.PlotArea?.Descendants<C.PieChartSeries>().FirstOrDefault();
                 OfficeColor[]? palette = radialSeries == null ? null :
@@ -718,7 +720,7 @@ namespace OfficeIMO.PowerPoint {
                         : OfficeChartAxisTickMark.None;
 
         private static bool IsHiddenAxis(OpenXmlCompositeElement? axis) =>
-            axis?.GetFirstChild<C.Delete>()?.Val?.Value == true;
+            axis?.GetFirstChild<C.Delete>() is C.Delete deleted && deleted.Val?.Value != false;
 
         private static bool HasHiddenTickLabels(OpenXmlCompositeElement? axis) =>
             axis?.GetFirstChild<C.TickLabelPosition>()?.Val?.Value == C.TickLabelPositionValues.None;
@@ -832,7 +834,8 @@ namespace OfficeIMO.PowerPoint {
                     SourceIndex = item.SourceIndex,
                     SourceOrder = item.SourceOrder,
                     SharedAppearance = item.Data,
-                    HasUnsupportedSharedAppearance = item.HasUnsupportedAppearance
+                    HasUnsupportedSharedAppearance = item.HasUnsupportedAppearance,
+                    HasAutomaticSeriesColor = item.HasAutomaticColor
                 }));
 
         private static OfficeColor? ReadSeriesColor(OpenXmlCompositeElement seriesElement, PowerPointChartSnapshotKind? chartKind, A.ColorScheme? colorScheme) {

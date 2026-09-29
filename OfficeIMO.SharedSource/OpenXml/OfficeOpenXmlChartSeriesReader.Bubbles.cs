@@ -58,7 +58,8 @@ namespace OfficeIMO.OpenXml.Internal {
                     markerOutlineWidth: width, showMarkerOutline: outline?.GetFirstChild<NoFill>() == null)
                     .WithPointStyles(forDataUpdate ? null : OfficeOpenXmlChartPointStyles.Read(
                         OfficeOpenXmlChartPointStyles.GetBoundedPoints(element, maximumPointOverrides), x.Count, colorScheme));
-                series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index, data));
+                series.Add(new Series(element.GetFirstChild<C.Index>()?.Val?.Value ?? (uint)index,
+                    data, hasAutomaticColor: OfficeOpenXmlChartWriter.HasAutomaticSeriesColor(element)));
             }
             return categories == null || series.Count == 0 ? null : new Result(categories, series);
         }

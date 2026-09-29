@@ -82,7 +82,8 @@ namespace OfficeIMO.OpenXml.Internal {
             bool categoryLegend = kind == OfficeChartKind.Pie || kind == OfficeChartKind.Doughnut;
             series = series.Select((item, index) => new Series(item.SourceIndex,
                 item.Data.WithLegendVisibility(legend != null && (categoryLegend ||
-                    !hidden.Contains((uint)index))), item.HasUnsupportedAppearance, item.SourceOrder)).ToList();
+                    !hidden.Contains((uint)index))), item.HasUnsupportedAppearance, item.SourceOrder,
+                item.HasAutomaticColor)).ToList();
             var result = new Result(categories, series);
             // The same authoring contract declares supported family/axis combinations.
             OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);
