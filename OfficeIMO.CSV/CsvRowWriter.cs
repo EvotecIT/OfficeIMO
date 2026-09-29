@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Buffers;
 using System.Globalization;
 using System.Diagnostics.CodeAnalysis;
 using System.Data;
@@ -228,6 +229,15 @@ public sealed partial class CsvRowWriter : IDisposable
         var rowValues = new object[fieldCount];
         var useBufferedValues = true;
         var completedBufferedLength = 0;
+        char[]? formattedBatch = null;
+        var formattedBatchLength = 0;
+        void FlushFormattedBatch()
+        {
+            if (formattedBatchLength == 0) return;
+            int length = formattedBatchLength;
+            formattedBatchLength = 0;
+            _writer.Write(formattedBatch!, 0, length);
+        }
         var usesBatchedRecords = _batchFormattedTextDataReader;
 #if NET6_0_OR_GREATER
         usesBatchedRecords |= defaultFieldKinds != null;
@@ -268,16 +278,31 @@ public sealed partial class CsvRowWriter : IDisposable
                 {
                     if (_batchFormattedTextDataReader)
                     {
+                        formattedBatch ??= ArrayPool<char>.Shared.Rent(TextDelimiterDataReaderFlushThreshold);
                         CsvWriter.AppendDataReaderRecordBuffered(
                             _rowBuffer, rowValues, _delimiterText, _options.NewLine, _options.Culture,
                             _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns,
                             _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
-                        completedBufferedLength = _rowBuffer.Length;
-                        if (_rowBuffer.Length >= TextDelimiterDataReaderFlushThreshold)
+                        int rowLength = _rowBuffer.Length;
+                        if (rowLength > formattedBatch!.Length - formattedBatchLength)
                         {
-                            cancellationToken.ThrowIfCancellationRequested();
-                            completedBufferedLength = 0;
+                            FlushFormattedBatch();
+                        }
+                        if (rowLength > formattedBatch.Length)
+                        {
                             CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                            cancellationToken.ThrowIfCancellationRequested();
+                        }
+                        else
+                        {
+                            _rowBuffer.CopyTo(0, formattedBatch, formattedBatchLength, rowLength);
+                            formattedBatchLength += rowLength;
+                            _rowBuffer.Clear();
+                            if (formattedBatchLength >= TextDelimiterDataReaderFlushThreshold)
+                            {
+                                cancellationToken.ThrowIfCancellationRequested();
+                                FlushFormattedBatch();
+                            }
                         }
                     }
                     else
@@ -290,8 +315,7 @@ public sealed partial class CsvRowWriter : IDisposable
 
                 if (useBufferedValues && _batchFormattedTextDataReader)
                 {
-                    completedBufferedLength = 0;
-                    CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                    FlushFormattedBatch();
                 }
                 useBufferedValues = false;
                 WriteBuffered(fieldCount, reader, static (record, index) =>
@@ -312,13 +336,17 @@ public sealed partial class CsvRowWriter : IDisposable
             if (_batchFormattedTextDataReader)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                completedBufferedLength = 0;
-                CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                FlushFormattedBatch();
             }
         }
         catch
         {
-            if (usesBatchedRecords)
+            if (formattedBatch != null)
+            {
+                _rowBuffer.Clear();
+                FlushFormattedBatch();
+            }
+            else if (usesBatchedRecords)
             {
                 _rowBuffer.Length = completedBufferedLength;
                 if (completedBufferedLength != 0)
@@ -329,6 +357,11 @@ public sealed partial class CsvRowWriter : IDisposable
             }
 
             throw;
+        }
+        finally
+        {
+            if (formattedBatch != null)
+                ArrayPool<char>.Shared.Return(formattedBatch, clearArray: true);
         }
     }
 

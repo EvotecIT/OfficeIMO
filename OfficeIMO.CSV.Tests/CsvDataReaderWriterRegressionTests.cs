@@ -155,6 +155,46 @@ public class CsvDataReaderWriterRegressionTests
         Assert.Equal("Name||Value\nAlpha||One\n", writer.ToString());
     }
 
+    [Fact]
+    public void WriteDataReader_CancellationAfterLargeFormattedRowKeepsCompletedRow()
+    {
+        using var cancellation = new CancellationTokenSource();
+        string largeValue = new string('x', 9_000);
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Value" },
+            new[] {
+                new object?[] { "Alpha", "One" },
+                new object?[] { "Beta", new CancelingCsvValue(cancellation, largeValue) }
+            },
+            supportGetValues: true);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        Assert.Throws<OperationCanceledException>(() => CsvDocument.WriteDataReader(
+            writer, reader,
+            new CsvSaveOptions { DelimiterText = "||", DateTimeFormat = "O", NewLine = "\n" },
+            cancellation.Token));
+
+        Assert.Equal("Name||Value\nAlpha||One\nBeta||" + largeValue + "\n", writer.ToString());
+    }
+
+    private sealed class CancelingCsvValue
+    {
+        private readonly CancellationTokenSource _cancellation;
+        private readonly string _value;
+
+        internal CancelingCsvValue(CancellationTokenSource cancellation, string value)
+        {
+            _cancellation = cancellation;
+            _value = value;
+        }
+
+        public override string ToString()
+        {
+            _cancellation.Cancel();
+            return _value;
+        }
+    }
+
     private sealed class ThrowingCsvValue
     {
         public override string ToString() => throw new InvalidOperationException("Value formatting failed.");
