@@ -181,7 +181,13 @@ public sealed class ImageReleaseQualityWorkload {
             OfficeRasterImageEncoder.Encode(_source, _format, _options, 8L));
         if (limit.LimitName != nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes))
             throw new InvalidOperationException("The bounded encoder reported the wrong public limit.");
-        CancellationLatencyMilliseconds = ImageCancellationEvidence.MeasureRepresentativeLatency(MeasureEncodeCancellation);
+        // The 1024-pixel WebP corpus can finish before a Windows cancellation worker
+        // wakes up. Use a longer encode for this independent cancellation probe.
+        OfficeRasterImage cancellationSource = _format == OfficeImageExportFormat.Webp
+            ? ImageBenchmarkCorpus.CreatePattern(4096, 2049)
+            : _source;
+        CancellationLatencyMilliseconds = ImageCancellationEvidence.MeasureRepresentativeLatency(
+            () => MeasureEncodeCancellation(cancellationSource));
     }
 
     private void ValidateDecode(OfficeRasterImage decoded) {
@@ -258,7 +264,7 @@ public sealed class ImageReleaseQualityWorkload {
         }
     }
 
-    private double MeasureEncodeCancellation() {
+    private double MeasureEncodeCancellation(OfficeRasterImage cancellationSource) {
         OfficeRasterEncodingCheckpoint expected = _format switch {
             OfficeImageExportFormat.Png => OfficeRasterEncodingCheckpoint.PngCompressionRow,
             OfficeImageExportFormat.Jpeg => OfficeRasterEncodingCheckpoint.JpegCoefficientRow,
@@ -284,7 +290,7 @@ public sealed class ImageReleaseQualityWorkload {
         try {
             using var output = new MemoryStream();
             ExpectException<OperationCanceledException>(() => OfficeRasterImageEncoder.EncodeTo(
-                _source, _format, output, _options, long.MaxValue, cancellation.Token,
+                cancellationSource, _format, output, _options, long.MaxValue, cancellation.Token,
                 checkpoint => {
                     if (checkpoint != expected || Interlocked.Increment(ref checkpoints) != 2) return;
                     started.Set();
