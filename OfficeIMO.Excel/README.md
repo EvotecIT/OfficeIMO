@@ -727,8 +727,11 @@ cutoff, and the qualified inner-row Top 1 case retains tied siblings. Numeric
 Top 1 ranking also excludes error-valued aggregate siblings on either qualified
 axis. A saved inner-row Top 1 followed by column Bottom 1 is evaluated in that order; the
 reverse filter order can select different cells, as in Excel. Other
-three-or-more-field value rules and multi-measure filter
-interactions remain outside this qualified profile.
+three-or-more-field value rules remain outside this qualified profile. With
+two row fields, one column field, and two Sum measures, an inner-row Top 1
+filter can select either named measure. Excel-produced views and lookups qualify
+both selections with Values on columns; other multi-measure filter interactions
+remain outside this profile.
 Signed and zero child aggregates, nonpositive outer-field totals, three siblings
 per parent, mixed numeric/error ranking, and classic
 all-error parent top/bottom count ranking have Excel-produced examples.

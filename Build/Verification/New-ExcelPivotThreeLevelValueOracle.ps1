@@ -8,6 +8,7 @@ param(
         'mixed-row-greater50', 'mixed-row-between45and65', 'mixed-row-top1', 'mixed-row-top1-tie', 'mixed-row-bottom1',
         'mixed-column-bottom1', 'mixed-column-greater85', 'mixed-column-top1',
         'mixed-row-top1-error', 'mixed-column-top1-error',
+        'mixed-metric-top1-two-measures', 'mixed-units-top1-two-measures',
         'mixed-row-top1-column-bottom1', 'mixed-column-bottom1-row-top1')]
     [string] $Kind = 'top1',
     [string] $OutputDirectory
@@ -52,7 +53,9 @@ try {
     $workbook = $application.Workbooks.Add()
     $source = $workbook.Worksheets.Item(1)
     $source.Name = 'Source'
+    $twoMeasures = $Kind.EndsWith('-two-measures', [StringComparison]::Ordinal)
     $headers = @('Region', 'Product', 'Channel', 'Sales')
+    if ($twoMeasures) { $headers += 'Units' }
     for ($column = 0; $column -lt $headers.Count; $column++) {
         $source.Cells.Item(1, $column + 1).Value2 = $headers[$column]
     }
@@ -85,11 +88,16 @@ try {
                 $source.Cells.Item($row + 2, $column + 1).Value2 = [string]$rows[$row][$column]
             }
         }
+        if ($twoMeasures) {
+            [double]$unitValue = if ($row -in @(3, 4, 5, 6, 7, 8)) { 10.0 } else { 1.0 }
+            $source.Cells.Item($row + 2, 5).Value2 = $unitValue
+        }
     }
     $view = $workbook.Worksheets.Add()
     $view.Name = 'Grouped'
     $lastSourceRow = $rows.Count + 1
-    $cache = $workbook.PivotCaches().Create(1, "'Source'!R1C1:R$($lastSourceRow)C4", 6)
+    $lastSourceColumn = if ($twoMeasures) { 5 } else { 4 }
+    $cache = $workbook.PivotCaches().Create(1, "'Source'!R1C1:R$($lastSourceRow)C$lastSourceColumn", 6)
     $pivot = $cache.CreatePivotTable($view.Range('A4'), 'ValuePivot')
     $mixedAxes = $Kind.StartsWith('mixed-', [StringComparison]::Ordinal)
     foreach ($fieldName in @('Region', 'Product', 'Channel')) {
@@ -101,6 +109,12 @@ try {
             else { 3 }
     }
     $metric = $pivot.AddDataField($pivot.PivotFields('Sales'), 'Metric', -4157)
+    if ($twoMeasures) {
+        $units = $pivot.AddDataField($pivot.PivotFields('Units'), 'UnitsMetric', -4157)
+        $valuesField = $pivot.DataPivotField
+        $valuesField.Orientation = 2
+        $valuesField.Position = 2
+    }
     $pivot.RowAxisLayout(1)
     [void]$pivot.RefreshTable()
     # Type IDs are XlPivotFilterType values: top=1, bottom=2, greater=9, between=13.
@@ -120,6 +134,8 @@ try {
         'mixed-column-top1' { @{ Type = 1; First = 1.0; Grand = 180.0; Field = 'Channel' } }
         'mixed-row-top1-error' { @{ Type = 1; First = 1.0; Grand = 155.0; Field = 'Product' } }
         'mixed-column-top1-error' { @{ Type = 1; First = 1.0; Grand = 90.0; Field = 'Channel' } }
+        'mixed-metric-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 160.0; UnitsGrand = 33.0; Field = 'Product'; Measure = 'Metric' } }
+        'mixed-units-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 110.0; UnitsGrand = 60.0; Field = 'Product'; Measure = 'UnitsMetric' } }
         'mixed-row-top1-column-bottom1' { @{ Grand = 35.0 } }
         'mixed-column-bottom1-row-top1' { @{ Grand = 65.0 } }
     }
@@ -136,12 +152,13 @@ try {
     } else { @($rule) }
     foreach ($savedRule in $rules) {
         $filteredField = if ($savedRule.ContainsKey('Field')) { $savedRule.Field } else { 'Channel' }
+        $filterMeasure = if ($savedRule.ContainsKey('Measure') -and $savedRule.Measure -eq 'UnitsMetric') { $units } else { $metric }
         if ($savedRule.ContainsKey('Second')) {
             [void]$pivot.PivotFields($filteredField).PivotFilters.Add2(
-                $savedRule.Type, $metric, $savedRule.First, $savedRule.Second)
+                $savedRule.Type, $filterMeasure, $savedRule.First, $savedRule.Second)
         } else {
             [void]$pivot.PivotFields($filteredField).PivotFilters.Add2(
-                $savedRule.Type, $metric, $savedRule.First)
+                $savedRule.Type, $filterMeasure, $savedRule.First)
         }
     }
     $lookups = $workbook.Worksheets.Add()
@@ -152,10 +169,22 @@ try {
             '=GETPIVOTDATA("Metric",Grouped!$A$4,"Region","' + $rows[$index][0] +
             '","Product","' + $rows[$index][1] + '","Channel","' + $rows[$index][2] + '")'
     }
+    if ($twoMeasures) {
+        $lookups.Cells.Item(1, 3).Formula = '=GETPIVOTDATA("UnitsMetric",Grouped!$A$4)'
+        for ($index = 0; $index -lt $rows.Count; $index++) {
+            $lookups.Cells.Item($index + 2, 3).Formula =
+                '=GETPIVOTDATA("UnitsMetric",Grouped!$A$4,"Region","' + $rows[$index][0] +
+                '","Product","' + $rows[$index][1] + '","Channel","' + $rows[$index][2] + '")'
+        }
+    }
     $application.CalculateFullRebuild()
     $range = $pivot.TableRange1.Address($false, $false)
     $grand = [double]$pivot.GetPivotData('Metric').Value2
     if ($grand -ne $rule.Grand) { throw "Excel pivot oracle changed: grand total $grand." }
+    if ($twoMeasures) {
+        $unitsGrand = [double]$pivot.GetPivotData('UnitsMetric').Value2
+        if ($unitsGrand -ne $rule.UnitsGrand) { throw "Excel pivot oracle changed: Units grand total $unitsGrand." }
+    }
     $file = "pivot-value-three-level-$Kind-conformance.xlsx"
     $path = Join-Path $directory $file
     $workbook.SaveAs($path, 51)
@@ -168,7 +197,10 @@ try {
         generatedUtc = [DateTime]::UtcNow.ToString('o')
         regeneration = 'Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1'
         file = $file; sha256 = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant()
-        sourceRange = "Source!A1:D$lastSourceRow"
+        sourceRange = "Source!A1:$([char](64 + $lastSourceColumn))$lastSourceRow"
+        measureNames = if ($twoMeasures) { @('Metric', 'UnitsMetric') } else { @('Metric') }
+        selectedMeasure = if ($twoMeasures) { $rule.Measure } else { 'Metric' }
+        unitsGrandTotal = if ($twoMeasures) { $unitsGrand } else { $null }
         errorCells = if ($Kind -in @('mixed-row-top1-error', 'mixed-column-top1-error')) { 'Source!D5' } else { $null }
         errorFormula = if ($Kind -in @('mixed-row-top1-error', 'mixed-column-top1-error')) { '=1/0' } else { $null }
         filteredField = if (@($rules).Count -eq 1) { $filteredField } else { 'Multiple' }
