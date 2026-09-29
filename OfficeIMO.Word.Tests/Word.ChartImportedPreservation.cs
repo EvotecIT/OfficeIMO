@@ -298,6 +298,27 @@ public sealed class WordChartImportedPreservationTests {
         Assert.Empty(document.ValidateDocument());
     }
 
+    [Theory]
+    [InlineData(OfficeChartKind.Pie, OfficeChartKind.Line)]
+    [InlineData(OfficeChartKind.Line, OfficeChartKind.Pie)]
+    public void SharedUpdate_DropsFormattedLegendEntriesWhenIndexMeaningChanges(
+        OfficeChartKind originalKind, OfficeChartKind updatedKind) {
+        using var document = WordDocument.Create();
+        var data = new OfficeChartData(new[] { "A", "B" },
+            new[] { new OfficeChartSeries("Series", new[] { 1d, 2d }) });
+        WordChart chart = document.AddChart(originalKind, data);
+        C.Legend legend = chart.ChartPart!.ChartSpace!.Descendants<C.Legend>().Single();
+        var text = new C.TextProperties(new A.BodyProperties(), new A.ListStyle(),
+            new A.Paragraph(new A.ParagraphProperties(new A.DefaultRunProperties { FontSize = 1800 })));
+        legend.AddChild(new C.LegendEntry(new C.Index { Val = 0 }, text), true);
+
+        chart.SetData(updatedKind, data);
+
+        Assert.DoesNotContain(chart.ChartPart.ChartSpace.Descendants<C.LegendEntry>(),
+            entry => entry.GetFirstChild<C.TextProperties>() != null);
+        Assert.Empty(document.ValidateDocument());
+    }
+
     private static C.Title Title(string value) => new C.Title(new C.ChartText(new C.RichText(new A.BodyProperties(), new A.ListStyle(), new A.Paragraph(new A.Run(new A.Text(value))))));
     private static OfficeChartData Combo() => new OfficeChartData(new[] { "A", "B" }, new[] {
         new OfficeChartSeries("Counts", new[] { 1d, 2d }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
