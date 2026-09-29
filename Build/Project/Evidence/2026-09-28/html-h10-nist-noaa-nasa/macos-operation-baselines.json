@@ -761,6 +761,386 @@
         }
       ],
       "fullArtifactsRetained": true
+    },
+    {
+      "evidenceDirectory": "h10-budget-nasa-planets-macos-ba053c080-run2",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "sourceCommit": "ba053c08084564f7bf5017124c976ccb48e480d1",
+      "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "framework": ".NET 10.0.11",
+      "processorCount": 10,
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 4690.9512,
+          "managedAllocatedBytes": 2917571408,
+          "peakWorkingSetBytes": 393920512,
+          "pageCount": 18,
+          "artifactSha256": "edbc52dfb1e608cd10a33161ef10d2d85b247501c674dfd7aa440aaf7e601fe4",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 4733.1302,
+          "managedAllocatedBytes": 2884735048,
+          "peakWorkingSetBytes": 484474880,
+          "pageCount": 20,
+          "artifactSha256": "51833dcab9f98029e3afa018c2f5215a50bc557d399edaee61dc96258ae19592",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 4713.5582,
+          "managedAllocatedBytes": 2972750904,
+          "peakWorkingSetBytes": 470220800,
+          "pageCount": 16,
+          "artifactSha256": "92cba9e2f916318e4c93268cbe6c45bd0aa5c1d51dd6afda609417690ca7bff9",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 2557.6256,
+          "managedAllocatedBytes": 977273792,
+          "peakWorkingSetBytes": 270155776,
+          "pageCount": null,
+          "artifactSha256": "afad5cfc5feefb7b5a173d6083add33b575ac5e2c137a8bce9002d2cf22f8446",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 2221.921,
+          "managedAllocatedBytes": 920921360,
+          "peakWorkingSetBytes": 321961984,
+          "pageCount": null,
+          "artifactSha256": "2303f5b86b61c79893ad8aed95df146818b7380fda070046ced10068cc9262c7",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 2618.2387,
+          "managedAllocatedBytes": 1005923624,
+          "peakWorkingSetBytes": 311558144,
+          "pageCount": null,
+          "artifactSha256": "d7109c37e7b848db097ebe0034d40f29304c7f84c31c6ee50a2dd2b97194bcef",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 1700.8668,
+          "managedAllocatedBytes": 667684976,
+          "peakWorkingSetBytes": 230359040,
+          "pageCount": null,
+          "artifactSha256": "ca8d4a4d3ce910bc233b993e2c6ee5d76c7030207545fcf6502b1eda31edd90f",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 1833.362,
+          "managedAllocatedBytes": 860156160,
+          "peakWorkingSetBytes": 237010944,
+          "pageCount": null,
+          "artifactSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 1609.4741,
+          "managedAllocatedBytes": 671349240,
+          "peakWorkingSetBytes": 259964928,
+          "pageCount": null,
+          "artifactSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+          "hasLoss": true
+        }
+      ],
+      "fullArtifactsRetained": false
+    },
+    {
+      "evidenceDirectory": "h10-budget-nasa-planets-macos-ba053c080-run3",
+      "caseId": "nasa-solar-system-terrestrial-planets",
+      "sourceCommit": "ba053c08084564f7bf5017124c976ccb48e480d1",
+      "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+      "archiveSha256": "305c6522e6c84a70ec1b9399725a1e7ed320762866abbcde99ff434f692e5ae2",
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "framework": ".NET 10.0.11",
+      "processorCount": 10,
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 4700.8445,
+          "managedAllocatedBytes": 2917560616,
+          "peakWorkingSetBytes": 396869632,
+          "pageCount": 18,
+          "artifactSha256": "edbc52dfb1e608cd10a33161ef10d2d85b247501c674dfd7aa440aaf7e601fe4",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 4672.6673,
+          "managedAllocatedBytes": 2884685944,
+          "peakWorkingSetBytes": 481656832,
+          "pageCount": 20,
+          "artifactSha256": "51833dcab9f98029e3afa018c2f5215a50bc557d399edaee61dc96258ae19592",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 4747.8334,
+          "managedAllocatedBytes": 2972749808,
+          "peakWorkingSetBytes": 502497280,
+          "pageCount": 16,
+          "artifactSha256": "92cba9e2f916318e4c93268cbe6c45bd0aa5c1d51dd6afda609417690ca7bff9",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 2539.2917,
+          "managedAllocatedBytes": 977604752,
+          "peakWorkingSetBytes": 298172416,
+          "pageCount": null,
+          "artifactSha256": "46a590b7b1018ec454c54638d7ca595b58e2ffa94b4f3b486a017fdf6ba448d1",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 2145.5042,
+          "managedAllocatedBytes": 920391864,
+          "peakWorkingSetBytes": 320421888,
+          "pageCount": null,
+          "artifactSha256": "1c29773f509fb48da5e73abae821bb3337dc9feb23669e5224eccf0484761501",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 3075.1338,
+          "managedAllocatedBytes": 1005925256,
+          "peakWorkingSetBytes": 312819712,
+          "pageCount": null,
+          "artifactSha256": "d7274fc47ac6d915384e614367a1f80c07cff2bdc9a8d42b23b58d04ab5f9833",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 1603.7197,
+          "managedAllocatedBytes": 667874960,
+          "peakWorkingSetBytes": 229179392,
+          "pageCount": null,
+          "artifactSha256": "068cea30472b904969e2e8a1cf3d23201b94a9ec7ca90f4e3182efb2c96957e5",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 1825.223,
+          "managedAllocatedBytes": 860855120,
+          "peakWorkingSetBytes": 236011520,
+          "pageCount": null,
+          "artifactSha256": "7468f0dff2e5468fb4d89960516a000945560b18bdc00beaa1fab943249933b5",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 1515.5677,
+          "managedAllocatedBytes": 671139760,
+          "peakWorkingSetBytes": 236470272,
+          "pageCount": null,
+          "artifactSha256": "2f36d6712928d25864185183ac62544b4dfeefaed5b0b2c1b7d87f807d4cbaad",
+          "hasLoss": true
+        }
+      ],
+      "fullArtifactsRetained": true
+    },
+    {
+      "evidenceDirectory": "h10-budget-nasa-reference-macos-ba053c080-run2",
+      "caseId": "nasa-reference-systems",
+      "sourceCommit": "ba053c08084564f7bf5017124c976ccb48e480d1",
+      "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+      "archiveSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "framework": ".NET 10.0.11",
+      "processorCount": 10,
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 3252.9824,
+          "managedAllocatedBytes": 1549663200,
+          "peakWorkingSetBytes": 346783744,
+          "pageCount": 10,
+          "artifactSha256": "c4701e3668b7a249a8534dc01122ca687e731962eb1020672427077f4c4615bf",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 3293.5019,
+          "managedAllocatedBytes": 1497877984,
+          "peakWorkingSetBytes": 394280960,
+          "pageCount": 12,
+          "artifactSha256": "fcc844bf29d7d73592cc8a35e8f4f67fc47fc5816453b9648eceb8134cf88abf",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 3523.2721,
+          "managedAllocatedBytes": 1571020176,
+          "peakWorkingSetBytes": 441614336,
+          "pageCount": 10,
+          "artifactSha256": "76cfada5f22af4f249c199ec5224a80bc49e7671eae2c1915dee2dae14e2cc42",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 2156.9349,
+          "managedAllocatedBytes": 611202064,
+          "peakWorkingSetBytes": 222003200,
+          "pageCount": null,
+          "artifactSha256": "770aa19353f5573afc35abb955f877d57bb0552c9c41f5ee1b8dcb3ab2e2bdf7",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 1746.9065,
+          "managedAllocatedBytes": 553075272,
+          "peakWorkingSetBytes": 217415680,
+          "pageCount": null,
+          "artifactSha256": "8ebd60a9406778f8411e9a567e1ced70fb0575423f7c318c47ed5c6b456ed5f9",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 1942.5059,
+          "managedAllocatedBytes": 599870288,
+          "peakWorkingSetBytes": 209682432,
+          "pageCount": null,
+          "artifactSha256": "1feea3a6f7cb1549d5ea0989d1cd00e7e465b8617cb58b800060c094fd146bec",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 1388.6356,
+          "managedAllocatedBytes": 449553520,
+          "peakWorkingSetBytes": 188006400,
+          "pageCount": null,
+          "artifactSha256": "dc2cc9cc4d20530ca723af90b2bc481bad4e251f414570901d91949c825bae8b",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 1545.8051,
+          "managedAllocatedBytes": 524500400,
+          "peakWorkingSetBytes": 193986560,
+          "pageCount": null,
+          "artifactSha256": "2158f24ddd8af8718eb95e003f85474782a324d8507e45bf986474c3df8d036c",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 1346.524,
+          "managedAllocatedBytes": 444629016,
+          "peakWorkingSetBytes": 189644800,
+          "pageCount": null,
+          "artifactSha256": "fe77cb3bfdd52ca346688d0f687f8c7c425cd6884e8080870ec077d0ed37c74c",
+          "hasLoss": true
+        }
+      ],
+      "fullArtifactsRetained": false
+    },
+    {
+      "evidenceDirectory": "h10-budget-nasa-reference-macos-ba053c080-run3",
+      "caseId": "nasa-reference-systems",
+      "sourceCommit": "ba053c08084564f7bf5017124c976ccb48e480d1",
+      "manifestSha256": "89143d6e02d552da7b9e4e4bf00db0ddc88947a522cfb3380c22cb3f983aa4ad",
+      "archiveSha256": "22c86b3d422ed40fced42a782cc967d1555175eb90ccc034a3ae72eae3969f1d",
+      "osFamily": "macOS",
+      "osDescription": "macOS 27.0.0",
+      "framework": ".NET 10.0.11",
+      "processorCount": 10,
+      "operations": [
+        {
+          "name": "pdf-print",
+          "conversionMilliseconds": 3274.331,
+          "managedAllocatedBytes": 1549626040,
+          "peakWorkingSetBytes": 348471296,
+          "pageCount": 10,
+          "artifactSha256": "c4701e3668b7a249a8534dc01122ca687e731962eb1020672427077f4c4615bf",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-media",
+          "conversionMilliseconds": 3275.7482,
+          "managedAllocatedBytes": 1497877560,
+          "peakWorkingSetBytes": 390643712,
+          "pageCount": 12,
+          "artifactSha256": "fcc844bf29d7d73592cc8a35e8f4f67fc47fc5816453b9648eceb8134cf88abf",
+          "hasLoss": true
+        },
+        {
+          "name": "pdf-screen-snapshot",
+          "conversionMilliseconds": 3265.844,
+          "managedAllocatedBytes": 1571123232,
+          "peakWorkingSetBytes": 334102528,
+          "pageCount": 10,
+          "artifactSha256": "76cfada5f22af4f249c199ec5224a80bc49e7671eae2c1915dee2dae14e2cc42",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-word",
+          "conversionMilliseconds": 2105.9122,
+          "managedAllocatedBytes": 611123384,
+          "peakWorkingSetBytes": 214663168,
+          "pageCount": null,
+          "artifactSha256": "62e0919109307247d60ac5e0eaa703a1d55716d0eafac1ca983b0367ece7c1ad",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-excel",
+          "conversionMilliseconds": 1740.023,
+          "managedAllocatedBytes": 552968384,
+          "peakWorkingSetBytes": 216842240,
+          "pageCount": null,
+          "artifactSha256": "f007e210c08a8fb771c0207f6755636f1e0d98f37578fde8c6e9d65beb177448",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-powerpoint",
+          "conversionMilliseconds": 2109.8687,
+          "managedAllocatedBytes": 599538360,
+          "peakWorkingSetBytes": 212484096,
+          "pageCount": null,
+          "artifactSha256": "cbaf5f102c31f9708030de4f53480174f4d13190f0d0436d015220c37b0dd074",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-onenote",
+          "conversionMilliseconds": 1365.371,
+          "managedAllocatedBytes": 449289744,
+          "peakWorkingSetBytes": 183861248,
+          "pageCount": null,
+          "artifactSha256": "7df5d79b7be61fea3c827db1c8480cc70bc23e3b7d1831cd4c04d92b16ec4797",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-rtf",
+          "conversionMilliseconds": 1574.2515,
+          "managedAllocatedBytes": 524474032,
+          "peakWorkingSetBytes": 193970176,
+          "pageCount": null,
+          "artifactSha256": "2158f24ddd8af8718eb95e003f85474782a324d8507e45bf986474c3df8d036c",
+          "hasLoss": true
+        },
+        {
+          "name": "editable-markdown",
+          "conversionMilliseconds": 1319.591,
+          "managedAllocatedBytes": 444740288,
+          "peakWorkingSetBytes": 181108736,
+          "pageCount": null,
+          "artifactSha256": "fe77cb3bfdd52ca346688d0f687f8c7c425cd6884e8080870ec077d0ed37c74c",
+          "hasLoss": true
+        }
+      ],
+      "fullArtifactsRetained": true
     }
   ]
 }
