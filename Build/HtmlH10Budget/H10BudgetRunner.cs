@@ -47,7 +47,7 @@ internal static class H10BudgetRunner {
         if (pdfIntents.Length == 0 || editableTargets.Length == 0 ||
             pdfIntents.Distinct(StringComparer.Ordinal).Count() != pdfIntents.Length ||
             editableTargets.Distinct(StringComparer.Ordinal).Count() != editableTargets.Length ||
-            pdfIntents.Any(item => item is not ("print-reflow" or "screen-media-pagination" or "screen-snapshot-pagination")) ||
+            pdfIntents.Any(item => item is not ("print-reflow" or "print-reflow-zero-margin" or "screen-media-pagination" or "screen-snapshot-pagination")) ||
             editableTargets.Any(item => item is not ("word" or "excel" or "powerpoint" or "onenote" or "rtf" or "markdown")))
             throw new InvalidDataException("The case declares an unsupported or duplicate operation.");
 
@@ -84,6 +84,7 @@ internal static class H10BudgetRunner {
             ceiling = selected[0];
             string[] declaredNames = pdfIntents.Select(item => item switch {
                 "print-reflow" => "pdf-print",
+                "print-reflow-zero-margin" => "pdf-print-zero-margin",
                 "screen-media-pagination" => "pdf-screen-media",
                 _ => "pdf-screen-snapshot"
             }).Concat(editableTargets.Select(item => "editable-" + item)).Order(StringComparer.Ordinal).ToArray();
@@ -98,6 +99,7 @@ internal static class H10BudgetRunner {
         foreach (string intent in pdfIntents) {
             string isolatedIntent = intent switch {
                 "print-reflow" => "print",
+                "print-reflow-zero-margin" => "print-zero-margin",
                 "screen-media-pagination" => "screen-media",
                 _ => "screen-snapshot"
             };

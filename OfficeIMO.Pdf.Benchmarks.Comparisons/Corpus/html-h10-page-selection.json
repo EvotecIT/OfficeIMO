@@ -401,6 +401,7 @@
       "requiredVisibleMarkers": ["The Terrestrial Planets", "Mean distance from Sun", "Equatorial radius", "The Jovian Planets", "Satellites of the Jovian Planets"],
       "pdfIntents": [
         {"intent": "print-reflow", "inspect": ["chapter and section order", "terrestrial planet data table with labels and values", "row and column integrity at page boundaries", "credited figures and links"]},
+        {"intent": "print-reflow-zero-margin", "inspect": ["same zero-margin A4 sheet as frozen Chromium print", "chapter text and 24 PDF images without omission", "Jovian figure and Saturn continuation on page 7", "later-page and footer flow"]},
         {"intent": "screen-media-pagination", "inspect": ["planet table width and cells", "section flow", "figure placement"]},
         {"intent": "screen-snapshot-pagination", "inspect": ["frozen 816-by-900 viewport slices", "table continuation and clipped content", "visible navigation and figures"]}
       ],

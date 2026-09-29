@@ -48,7 +48,7 @@ internal static class HtmlMhtmlEvidenceRunner {
                 authoredPrintFitWidth = requestedFitWidth;
             } else if (flag == "--isolated-officeimo-intent" && index + 1 < flags.Length
                 && args[1] == "--mhtml" && isolatedIntent == null
-                && flags[index + 1] is "print" or "screen-media" or "screen-snapshot") {
+                && flags[index + 1] is "print" or "print-zero-margin" or "screen-media" or "screen-snapshot") {
                 isolatedIntent = flags[++index];
             } else if (flag != "--replay-browser" && flag != "--require-clean-source") {
                 invalidFlags = true;
@@ -57,7 +57,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         }
         if (args.Length < 5 || (args[1] != "--url" && args[1] != "--mhtml") || args[3] != "--output"
             || invalidFlags) {
-            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000] [--authored-print-fit-width css-pixels] [--isolated-officeimo-intent print|screen-media|screen-snapshot]");
+            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000] [--authored-print-fit-width css-pixels] [--isolated-officeimo-intent print|print-zero-margin|screen-media|screen-snapshot]");
             return 2;
         }
         bool replay = args[1] == "--mhtml";
@@ -180,6 +180,11 @@ internal static class HtmlMhtmlEvidenceRunner {
             if (isolatedIntent is null or "print") {
                 await RunConversionAsync("officeimo-print", () => document.ToPdfDocumentResultAsync(), output, results, failures).ConfigureAwait(false);
             }
+            if (isolatedIntent is null or "print-zero-margin") {
+                await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+                    Margins = HtmlRenderMargins.All(0)
+                }), output, results, failures).ConfigureAwait(false);
+            }
             if (isolatedIntent == null) {
                 if (authoredPrintFitWidth.HasValue) {
                     await RunConversionAsync("officeimo-print-authored-fit", () =>
@@ -187,9 +192,6 @@ internal static class HtmlMhtmlEvidenceRunner {
                             PrintLayoutWidthCssPixels = authoredPrintFitWidth.Value
                         }), output, results, failures).ConfigureAwait(false);
                 }
-                await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
-                    Margins = HtmlRenderMargins.All(0)
-                }), output, results, failures).ConfigureAwait(false);
                 await RunConversionAsync("officeimo-print-fit-browser-viewport", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                     Margins = HtmlRenderMargins.All(0),
                     PrintLayoutWidthCssPixels = ViewportWidth
