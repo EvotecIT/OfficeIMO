@@ -470,8 +470,14 @@ namespace OfficeIMO.PowerPoint {
                     : null;
             if (radialLabels?.TextColor is OfficeColor labelColor)
                 style = style.WithDataLabelTextColor(labelColor);
-            if (!forDataUpdate && kind is PowerPointChartSnapshotKind.Radar or
-                    PowerPointChartSnapshotKind.Pie or PowerPointChartSnapshotKind.Doughnut)
+            // Advanced groups use the flat cached-data projection. Their native
+            // text and surfaces are outside the qualified 2-D style contract.
+            if (!forDataUpdate &&
+                (chart.PlotArea?.GetFirstChild<C.RadarChart>() != null ||
+                 chart.PlotArea?.GetFirstChild<C.PieChart>() != null ||
+                 chart.PlotArea?.GetFirstChild<C.DoughnutChart>() != null) &&
+                kind is PowerPointChartSnapshotKind.Radar or PowerPointChartSnapshotKind.Pie or
+                    PowerPointChartSnapshotKind.Doughnut)
                 style = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartSeriesReader.ReadStyle(
                     GetChartPart(), chart, PowerPointChartSnapshotMapper.MapKind(kind), colorScheme,
                     style, data.Categories.Count);
