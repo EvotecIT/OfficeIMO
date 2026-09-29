@@ -190,6 +190,10 @@ internal static class HtmlMhtmlEvidenceRunner {
                 await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                     Margins = HtmlRenderMargins.All(0)
                 }), output, results, failures).ConfigureAwait(false);
+                await RunConversionAsync("officeimo-print-fit-browser-viewport", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+                    Margins = HtmlRenderMargins.All(0),
+                    PrintLayoutWidthCssPixels = ViewportWidth
+                }), output, results, failures).ConfigureAwait(false);
                 await RunConversionAsync("officeimo-print-fit-1200", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                     Margins = HtmlRenderMargins.All(0),
                     HonorCssPageRules = false,

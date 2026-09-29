@@ -160,7 +160,11 @@ replay is the comparable input: Chromium opens the frozen MHTML offline, while
 OfficeIMO emits print, screen-media-paged and screen-snapshot-paged PDFs and PeachPDF emits a
 print PDF. The print diagnostics also include `officeimo-print-zero-margin`,
 which removes OfficeIMO's default page margins, and
-`officeimo-print-zero-margin-local-fonts`, which additionally opts in to
+`officeimo-print-fit-browser-viewport`, which uses the captured Chromium
+viewport width for layout before fitting to the same zero-margin sheet. This
+lane helps distinguish responsive-width effects from rendering differences;
+it does not change default print behavior or establish visual equivalence.
+`officeimo-print-zero-margin-local-fonts` additionally opts in to
 embedding document-selected fonts installed on the host. The
 `officeimo-print-fit-1200-local-fonts` lane applies the same font policy to
 the explicit 1200px print layout width. The
