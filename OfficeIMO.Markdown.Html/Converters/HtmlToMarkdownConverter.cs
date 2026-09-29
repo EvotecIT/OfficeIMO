@@ -128,11 +128,18 @@ internal sealed partial class HtmlToMarkdownConverter {
             element.LocalName != "table" && HtmlAccessibilitySemantics.HasRole(element, "table"));
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {
+        string name = element.TagName;
+        if (context.Options.UseBodyContentsOnly
+            && string.Equals(element.NamespaceUri, OfficeIMO.Html.Dom.HtmlElement.HtmlNamespace, StringComparison.Ordinal)
+            && (name is "HEAD" or "META" or "LINK" or "BASE" or "TITLE")) {
+            // Visible-content projections may carry document metadata into the
+            // body. It is not article content even when raw HTML is preserved.
+            return true;
+        }
         if (!context.Options.RemoveScriptsAndStyles) {
             return ShouldSuppressListingCardMetadataElement(element, context);
         }
 
-        string name = element.TagName;
         return name.Equals("SCRIPT", StringComparison.OrdinalIgnoreCase)
                || name.Equals("STYLE", StringComparison.OrdinalIgnoreCase)
                || name.Equals("NOSCRIPT", StringComparison.OrdinalIgnoreCase)

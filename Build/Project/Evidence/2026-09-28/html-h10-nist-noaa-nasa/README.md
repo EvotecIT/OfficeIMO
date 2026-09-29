@@ -49,3 +49,16 @@ The [H10 budget runner](../../../../../Build/HtmlH10Budget/README.md) starts a f
 | `editable-markdown` | 1115 | 381.9 | 167.8 |
 
 Print has three pages, screen-media four, and screen-snapshot five. All editable targets passed marker and save/reopen checks. Every operation still reports loss, so this is a resource baseline, not visual or editable acceptance. The runner also rejected a deliberately low print-time ceiling and preserved an aggregate report when malformed MHTML caused every worker to fail. Independent read-only review found two attribution/failure-report defects; the archive-hash and failure-report corrections were confirmed in a targeted pass. Accepted limits require comparable runs and current-source checks on Windows, Linux and macOS, followed by fidelity review of the named page and target gaps.
+
+At clean `57b413b3ae3eddb3ed72b217f6c502cf7d81b129`, the same macOS runner completed all nine declared operations for NIST, the NASA planetary development page, and the held-out NASA reference chapter. It also repeated Chesapeake twice; its page counts and allocations matched the earlier run, while process peak varied. The [compact operation records](macos-operation-baselines.json) retain exact archive and manifest hashes, source commits, artifact hashes, elapsed time, allocations and peak memory for all six macOS runs. Full local worker artifacts remain for the original Chesapeake baseline, the second repeat, NIST and both NASA cases under their named `h10-budget-*` directories in `Ignore/HtmlUnknownPageQualification/`; the first repeat's artifacts were removed after its metrics were compacted. Selected high-cost observations are:
+
+| Frozen case and operation | Conversion ms | Allocated MiB | Peak MiB |
+| --- | ---: | ---: | ---: |
+| NIST screen-media PDF | 9,127 | 4,725 | 505 |
+| NIST screen-snapshot PDF | 8,066 | 3,336 | 530 |
+| NASA planetary screen-snapshot PDF | 4,686 | 2,835 | 436 |
+| NASA reference screen-snapshot PDF | 3,256 | 1,498 | 326 |
+
+Each operation saved a valid artifact and still reported loss. NIST's screen-media allocation is a notable cost to investigate before selecting its ceiling. These are single runs for NIST and NASA on one macOS host; none establishes an accepted budget or changes the held-out fidelity decision. Windows and Linux measurements remain required.
+
+The Chesapeake Markdown inspection also exposed document metadata projected into the visible-content body: raw `<meta>` and stylesheet `<link>` tags preceded the article. The body-only HTML-to-Markdown converter now omits HTML document metadata wherever it appears in that projection. A focused regression and the 3,002-test Markdown suites on .NET 8 and .NET 10 pass; the netstandard2.0 adapter builds without warnings. A candidate Chesapeake save/reopen retained all five required article markers and its loss report while removing those tags. The result still begins with preserved site-chrome HTML and contains embedded data-URI images. It is therefore an improved editable projection, not a portable pure-Markdown or structurally accepted article. A clean-source replay follows the next integration checkpoint.
