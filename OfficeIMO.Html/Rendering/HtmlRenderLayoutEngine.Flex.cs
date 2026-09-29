@@ -241,6 +241,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
             ? new[] { new HtmlRenderAvoidBreakRange(contentY + lines.Min(line => line.CrossOffset),
                 contentY + lines.Max(line => line.CrossOffset + line.CrossSize)) }
             : Array.Empty<HtmlRenderAvoidBreakRange>();
+        IEnumerable<HtmlRenderAvoidBreakRange> itemKeepRanges = _options.Mode == HtmlRenderMode.Paged
+            ? lines.SelectMany(line => line.Items.SelectMany(item => {
+                HtmlRenderFlowBlock itemBlock = item.Block!;
+                IEnumerable<HtmlRenderAvoidBreakRange> ranges = itemBlock.AvoidBreakRanges;
+                if (itemBlock.AvoidBreakInside) ranges = ranges.Append(new HtmlRenderAvoidBreakRange(0D, itemBlock.Height));
+                return ranges.Select(range => range.Translate(contentY + line.CrossOffset + item.CrossOffset));
+            }))
+            : Array.Empty<HtmlRenderAvoidBreakRange>();
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -268,7 +276,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 outerHeight),
             inlineBreakProgress: continuationBreakProgress,
             supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
-            avoidBreakRanges: lineKeepRanges);
+            avoidBreakRanges: lineKeepRanges.Concat(itemKeepRanges));
         if (_options.Mode == HtmlRenderMode.Paged) {
             _pagedRowFlexBlocks[element] = block;
             if (style.FlexWrap == "nowrap" && lines.Count == 1 && CanAlignPagedRowFlex(element, style, lines[0])) {
