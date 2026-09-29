@@ -212,6 +212,7 @@ namespace OfficeIMO.Excel {
         /// <param name="calculatedFields">Optional formula-backed pivot cache fields.</param>
         /// <param name="groupings">Optional date or numeric grouping metadata.</param>
         /// <param name="options">Optional pivot cache and workbook-interaction settings.</param>
+        /// <param name="valuesAxisPosition">Zero-based placement of Values among the fields on its row or column axis. Defaults to last.</param>
         public void AddPivotTable(
             string sourceRange,
             string destinationCell,
@@ -244,7 +245,8 @@ namespace OfficeIMO.Excel {
             IEnumerable<ExcelPivotFilter>? pivotFilters = null,
             IEnumerable<ExcelPivotCalculatedField>? calculatedFields = null,
             IEnumerable<ExcelPivotGrouping>? groupings = null,
-            ExcelPivotTableOptions? options = null) {
+            ExcelPivotTableOptions? options = null,
+            int? valuesAxisPosition = null) {
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
             if (!A1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {
@@ -520,14 +522,20 @@ namespace OfficeIMO.Excel {
                 if (columnFieldsElement != null) {
                     foreach (int idx in columnFieldIndices) columnFieldsElement.Append(new Field { Index = idx });
                 }
+                if (valuesAxisPosition.HasValue) {
+                    int axisFieldCount = dataOnRows == true ? rowFieldIndices.Count : columnFieldIndices.Count;
+                    if (dataFieldList.Count < 2 || valuesAxisPosition.Value < 0 || valuesAxisPosition.Value > axisFieldCount)
+                        throw new ArgumentOutOfRangeException(nameof(valuesAxisPosition),
+                            "Values placement requires multiple measures and a position within the selected axis.");
+                }
                 if (dataFieldList.Count > 1) {
                     if (dataOnRows == true) {
                         rowFieldsElement ??= new RowFields();
-                        rowFieldsElement.AppendChild(new Field { Index = -2 });
+                        rowFieldsElement.InsertAt(new Field { Index = -2 }, valuesAxisPosition ?? rowFieldIndices.Count);
                         rowFieldsElement.Count = (uint)rowFieldsElement.ChildElements.Count;
                     } else {
                         columnFieldsElement ??= new ColumnFields();
-                        columnFieldsElement.AppendChild(new Field { Index = -2 });
+                        columnFieldsElement.InsertAt(new Field { Index = -2 }, valuesAxisPosition ?? columnFieldIndices.Count);
                         columnFieldsElement.Count = (uint)columnFieldsElement.ChildElements.Count;
                     }
                 }

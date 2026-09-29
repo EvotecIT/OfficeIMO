@@ -5,13 +5,15 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Theory]
-        [InlineData("metric", "Metric", 160d, 33d, false, "A4:J11", "G4:P11")]
-        [InlineData("units", "UnitsMetric", 110d, 60d, false, "A4:J11", "G4:P11")]
-        [InlineData("metric-row-values", "Metric", 160d, 33d, true, "A4:G15", "G4:M15")]
-        [InlineData("units-row-values", "UnitsMetric", 110d, 60d, true, "A4:G15", "G4:M15")]
+        [InlineData("metric", "Metric", 160d, 33d, false, false, "A4:J11", "G4:P11")]
+        [InlineData("units", "UnitsMetric", 110d, 60d, false, false, "A4:J11", "G4:P11")]
+        [InlineData("metric-row-values", "Metric", 160d, 33d, true, false, "A4:G15", "G4:M15")]
+        [InlineData("units-row-values", "UnitsMetric", 110d, 60d, true, false, "A4:G15", "G4:M15")]
+        [InlineData("metric-column-values-first", "Metric", 160d, 33d, false, true, "A4:J11", "G4:P11")]
+        [InlineData("units-column-values-first", "UnitsMetric", 110d, 60d, false, true, "A4:J11", "G4:P11")]
         public void Test_PivotThreeLevelMixedValue_TwoMeasuresSelectsNamedMeasure(
             string kind, string selectedMeasure, double metricTotal, double unitsTotal,
-            bool valuesOnRows, string oracleRange, string authoredRange) {
+            bool valuesOnRows, bool valuesFirst, string oracleRange, string authoredRange) {
             string file = $"pivot-value-three-level-mixed-{kind}-top1-two-measures-conformance.xlsx";
             string path = ThreeLevelPivotOraclePath(file);
             VerifyThreeLevelPivotOracle(path, oracleRange, 1, 1d);
@@ -21,6 +23,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(selectedMeasure, root.GetProperty("selectedMeasure").GetString());
                 Assert.Equal(valuesOnRows, root.TryGetProperty("valuesOnRows", out var savedAxis)
                     && savedAxis.GetBoolean());
+                if (valuesFirst) Assert.Equal(1, root.GetProperty("valuesPosition").GetInt32());
                 Assert.Equal(metricTotal, root.GetProperty("grandTotal").GetDouble());
                 Assert.Equal(unitsTotal, root.GetProperty("unitsGrandTotal").GetDouble());
             }
@@ -30,9 +33,11 @@ namespace OfficeIMO.Tests {
             AssertPivotLookupOracleValue(metricTotal, expectedLookups[0, 0]);
             AssertPivotLookupOracleValue(unitsTotal, expectedLookups[0, 1]);
 
-            string importedOutput = Path.Combine(_directoryWithFiles, "Imported." + file);
+            string importedOutput = Path.Combine(_directoryWithFiles, $"Imported.TwoMeasure.{kind}.xlsx");
             using (var document = ExcelDocument.Load(path)) {
                 var grouped = document.GetSheet("Grouped");
+                Assert.Equal(valuesFirst ? 0 : valuesOnRows ? 2 : 1,
+                    Assert.Single(grouped.GetPivotTables()).ValuesAxisPosition);
                 AssertPivotLookupOracleValue(metricTotal, grouped.GetPivotData("ValuePivot", "Metric").Value);
                 AssertPivotLookupOracleValue(unitsTotal, grouped.GetPivotData("ValuePivot", "UnitsMetric").Value);
                 var result = grouped.MaterializePivotTable("ValuePivot");
@@ -44,23 +49,26 @@ namespace OfficeIMO.Tests {
                 document.Save(importedOutput);
             }
             using (var imported = ExcelDocumentReader.Open(importedOutput)) {
-                AssertTwoMeasureMixedPivotView(expectedView, imported.GetSheet("Grouped").ReadRange(oracleRange), valuesOnRows);
+                AssertTwoMeasureMixedPivotView(expectedView, imported.GetSheet("Grouped").ReadRange(oracleRange), valuesOnRows, valuesFirst);
                 AssertTwoMeasurePivotLookups(expectedLookups, imported.GetSheet("Lookups").ReadRange("B1:C13"));
             }
 
-            string authoredOutput = Path.Combine(_directoryWithFiles, "Authored." + file);
+            string authoredOutput = Path.Combine(_directoryWithFiles, $"Authored.TwoMeasure.{kind}.xlsx");
             using (var document = ExcelDocument.Create()) {
                 var source = document.AddWorksheet("Source");
                 PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
                 source.CellValue(1, 5, "Units");
                 for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
                     source.CellValue(index + 2, 5, index is >= 3 and <= 8 ? 10d : 1d);
-                source.Pivot("A1:E13").Rows("Region", "Product").Columns("Channel")
+                var pivot = source.Pivot("A1:E13").Rows("Region", "Product").Columns("Channel")
                     .Sum("Sales", "Metric").Sum("Units", "UnitsMetric")
                     .Layout(ExcelPivotLayout.Tabular)
                     .Display(dataOnRows: valuesOnRows)
-                    .Filter(ExcelPivotFilter.TopCount("Product", selectedMeasure, 1))
-                    .At("G4", "ValuePivot");
+                    .Filter(ExcelPivotFilter.TopCount("Product", selectedMeasure, 1));
+                if (valuesFirst) pivot.ValuesPosition(0);
+                pivot.At("G4", "ValuePivot");
+                Assert.Equal(valuesFirst ? 0 : valuesOnRows ? 2 : 1,
+                    Assert.Single(source.GetPivotTables()).ValuesAxisPosition);
                 var result = source.MaterializePivotTable("ValuePivot");
                 Assert.Equal(authoredRange, result.OutputRange);
                 Assert.True(result.Mutation.PackageIsValid);
@@ -82,7 +90,7 @@ namespace OfficeIMO.Tests {
                 }
             }
             using var authored = ExcelDocumentReader.Open(authoredOutput);
-            AssertTwoMeasureMixedPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange), valuesOnRows);
+            AssertTwoMeasureMixedPivotView(expectedView, authored.GetSheet("Source").ReadRange(authoredRange), valuesOnRows, valuesFirst);
         }
 
         private static void AssertTwoMeasurePivotLookups(object?[,] expected, object?[,] actual) {
@@ -117,7 +125,33 @@ namespace OfficeIMO.Tests {
             Assert.Empty(document.ValidateOpenXml());
         }
 
-        private static void AssertTwoMeasureMixedPivotView(object?[,] expected, object?[,] actual, bool valuesOnRows) {
+        [Theory]
+        [InlineData("metric", 160d, 66d)]
+        [InlineData("units", 265d, 60d)]
+        public void Test_PivotThreeLevelMixedValue_ValuesFirstOnRowsRetainsMeasureSpecificFilterBoundary(
+            string kind, double metricTotal, double unitsTotal) {
+            string file = $"pivot-value-three-level-mixed-{kind}-row-values-first-top1-two-measures-conformance.xlsx";
+            string path = ThreeLevelPivotOraclePath(file);
+            using (var provenance = JsonDocument.Parse(File.ReadAllText(Path.ChangeExtension(path, "provenance.json")))) {
+                var root = provenance.RootElement;
+                Assert.Equal(1, root.GetProperty("valuesPosition").GetInt32());
+                Assert.True(root.GetProperty("valuesOnRows").GetBoolean());
+                Assert.Equal(metricTotal, root.GetProperty("grandTotal").GetDouble());
+                Assert.Equal(unitsTotal, root.GetProperty("unitsGrandTotal").GetDouble());
+                Assert.Equal("A4:G17", root.GetProperty("outputRange").GetString());
+            }
+            using var oracle = ExcelDocumentReader.Open(path);
+            var excelView = oracle.GetSheet("Grouped").ReadRange("A4:G17");
+            AssertPivotLookupOracleValue(metricTotal, excelView[12, 6]);
+            AssertPivotLookupOracleValue(unitsTotal, excelView[13, 6]);
+            using var imported = ExcelDocument.Load(path);
+            var grouped = imported.GetSheet("Grouped");
+            Assert.Equal(0, Assert.Single(grouped.GetPivotTables()).ValuesAxisPosition);
+            Assert.Throws<NotSupportedException>(() => grouped.MaterializePivotTable("ValuePivot"));
+            Assert.Empty(imported.ValidateOpenXml());
+        }
+
+        private static void AssertTwoMeasureMixedPivotView(object?[,] expected, object?[,] actual, bool valuesOnRows, bool valuesFirst) {
             Assert.Equal(expected.GetLength(0), actual.GetLength(0));
             Assert.Equal(expected.GetLength(1), actual.GetLength(1));
             if (valuesOnRows) {
@@ -133,12 +167,18 @@ namespace OfficeIMO.Tests {
                     string rowKey = label == "Grand Total" || label.EndsWith(" Total", StringComparison.Ordinal)
                         ? label : $"{region}/{view[row, 1]}";
                     Assert.False(rowKey.EndsWith("/", StringComparison.Ordinal));
-                    string? channel = null;
+                    string? channel = null, activeMeasure = null;
                     for (int column = 2; column < view.GetLength(1); column++) {
-                        string heading = view[1, column]?.ToString() ?? "";
-                        string measure = view[2, column]?.ToString() ?? "";
+                        string heading = view[valuesFirst ? 2 : 1, column]?.ToString() ?? "";
+                        string measure = view[valuesFirst ? 1 : 2, column]?.ToString() ?? "";
                         if (measure.Length == 0 && heading.StartsWith("Total ", StringComparison.Ordinal))
                             measure = heading.Substring("Total ".Length);
+                        if (valuesFirst && heading.Length == 0 && measure.StartsWith("Total ", StringComparison.Ordinal)) {
+                            measure = measure.Substring("Total ".Length);
+                            heading = "Grand Total";
+                        }
+                        if (valuesFirst && measure.Length == 0) measure = activeMeasure ?? "";
+                        if (measure is "Metric" or "UnitsMetric") activeMeasure = measure;
                         Assert.True(measure is "Metric" or "UnitsMetric");
                         if (heading is "Retail" or "Online" or "Partner") channel = heading;
                         string columnKey = heading is "Grand Total" or "Total Metric" or "Total UnitsMetric"

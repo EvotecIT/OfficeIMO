@@ -10,6 +10,8 @@ param(
         'mixed-row-top1-error', 'mixed-column-top1-error',
         'mixed-metric-top1-two-measures', 'mixed-units-top1-two-measures',
         'mixed-metric-row-values-top1-two-measures', 'mixed-units-row-values-top1-two-measures',
+        'mixed-metric-column-values-first-top1-two-measures', 'mixed-units-column-values-first-top1-two-measures',
+        'mixed-metric-row-values-first-top1-two-measures', 'mixed-units-row-values-first-top1-two-measures',
         'mixed-row-top1-column-bottom1', 'mixed-column-bottom1-row-top1')]
     [string] $Kind = 'top1',
     [string] $OutputDirectory
@@ -56,6 +58,7 @@ try {
     $source.Name = 'Source'
     $twoMeasures = $Kind.EndsWith('-two-measures', [StringComparison]::Ordinal)
     $rowValues = $Kind.Contains('-row-values-', [StringComparison]::Ordinal)
+    $valuesFirst = $Kind.Contains('-values-first-', [StringComparison]::Ordinal)
     $headers = @('Region', 'Product', 'Channel', 'Sales')
     if ($twoMeasures) { $headers += 'Units' }
     for ($column = 0; $column -lt $headers.Count; $column++) {
@@ -115,7 +118,7 @@ try {
         $units = $pivot.AddDataField($pivot.PivotFields('Units'), 'UnitsMetric', -4157)
         $valuesField = $pivot.DataPivotField
         [int]$valuesOrientation = if ($rowValues) { 1 } else { 2 }
-        [int]$valuesPosition = if ($rowValues) { 3 } else { 2 }
+        [int]$valuesPosition = if ($valuesFirst) { 1 } elseif ($rowValues) { 3 } else { 2 }
         $valuesField.Orientation = $valuesOrientation
         $valuesField.Position = $valuesPosition
     }
@@ -142,6 +145,10 @@ try {
         'mixed-units-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 110.0; UnitsGrand = 60.0; Field = 'Product'; Measure = 'UnitsMetric' } }
         'mixed-metric-row-values-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 160.0; UnitsGrand = 33.0; Field = 'Product'; Measure = 'Metric' } }
         'mixed-units-row-values-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 110.0; UnitsGrand = 60.0; Field = 'Product'; Measure = 'UnitsMetric' } }
+        'mixed-metric-column-values-first-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 160.0; UnitsGrand = 33.0; Field = 'Product'; Measure = 'Metric' } }
+        'mixed-units-column-values-first-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 110.0; UnitsGrand = 60.0; Field = 'Product'; Measure = 'UnitsMetric' } }
+        'mixed-metric-row-values-first-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 160.0; UnitsGrand = 66.0; Field = 'Product'; Measure = 'Metric' } }
+        'mixed-units-row-values-first-top1-two-measures' { @{ Type = 1; First = 1.0; Grand = 265.0; UnitsGrand = 60.0; Field = 'Product'; Measure = 'UnitsMetric' } }
         'mixed-row-top1-column-bottom1' { @{ Grand = 35.0 } }
         'mixed-column-bottom1-row-top1' { @{ Grand = 65.0 } }
     }
@@ -206,6 +213,7 @@ try {
         sourceRange = "Source!A1:$([char](64 + $lastSourceColumn))$lastSourceRow"
         measureNames = if ($twoMeasures) { @('Metric', 'UnitsMetric') } else { @('Metric') }
         valuesOnRows = $rowValues
+        valuesPosition = if ($twoMeasures) { $valuesPosition } else { $null }
         selectedMeasure = if ($twoMeasures) { $rule.Measure } else { 'Metric' }
         unitsGrandTotal = if ($twoMeasures) { $unitsGrand } else { $null }
         errorCells = if ($Kind -in @('mixed-row-top1-error', 'mixed-column-top1-error')) { 'Source!D5' } else { $null }

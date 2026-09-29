@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.Fluent {
         private string? _pivotStyleName;
         private ExcelPivotLayout _layout = ExcelPivotLayout.Compact;
         private bool? _dataOnRows;
+        private int? _valuesAxisPosition;
         private bool? _showHeaders;
         private bool? _showEmptyRows;
         private bool? _showEmptyColumns;
@@ -337,6 +338,13 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
+        /// <summary>Places Values at a zero-based position among fields on its row or column axis. The default is last.</summary>
+        public PivotTableBuilder ValuesPosition(int position) {
+            if (position < 0) throw new ArgumentOutOfRangeException(nameof(position));
+            _valuesAxisPosition = position;
+            return this;
+        }
+
         /// <summary>Creates the pivot table at the destination cell and returns the source sheet.</summary>
         public ExcelSheet At(string destinationCell, string? name = null) {
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
@@ -373,7 +381,8 @@ namespace OfficeIMO.Excel.Fluent {
                 pivotFilters: _pivotFilters.Count == 0 ? null : _pivotFilters,
                 calculatedFields: _calculatedFields.Count == 0 ? null : _calculatedFields,
                 groupings: _groupings.Count == 0 ? null : _groupings,
-                options: CreateOptions());
+                options: CreateOptions(),
+                valuesAxisPosition: _valuesAxisPosition);
             return _sheet;
         }
 
