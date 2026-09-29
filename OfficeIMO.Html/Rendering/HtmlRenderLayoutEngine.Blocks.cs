@@ -667,7 +667,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         ReportUnsupportedLayout(element, style);
         double contentYForBreaks = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+        // Propagate only a child's explicit paged overhang. Ordinary child
+        // geometry in a zero-height panel must not enlarge its print flow.
         double pagedPaintExtent = _options.Mode == HtmlRenderMode.Paged && style.OverflowY == "visible"
+            && childPaintLayers.Any(layer => layer.Block.PagedPaintExtent > layer.Block.Height + 0.0001D)
             ? childPaintLayers.Aggregate(outerHeight, (extent, layer) =>
                 Math.Max(extent, contentYForBreaks + layer.Y + layer.Block.PagedPaintExtent))
             : outerHeight;
