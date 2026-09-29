@@ -256,10 +256,13 @@ namespace OfficeIMO.Word {
             double? height = null
         ) {
             return Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
+                using MemoryStream? convertedWebp = ConvertWebpForWord(preparedImageStream);
+                Stream embeddedStream = convertedWebp ?? preparedImageStream;
+                string embeddedFileName = convertedWebp == null ? fileName : System.IO.Path.ChangeExtension(fileName, ".png");
                 // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
                 // if widht/height are not set we check ourselves
                 // but probably will need better way
-                var imageCharacteristics = Helpers.GetImageCharacteristics(preparedImageStream, fileName);
+                var imageCharacteristics = Helpers.GetImageCharacteristics(embeddedStream, embeddedFileName);
                 if (imageCharacteristics.Width <= 0 || imageCharacteristics.Height <= 0) {
                     throw new InvalidDataException("The stream does not contain a supported image payload.");
                 }
@@ -275,7 +278,7 @@ namespace OfficeIMO.Word {
                 }
 
                 var imagePartType = imageCharacteristics.Type;
-                var imageName = System.IO.Path.GetFileNameWithoutExtension(fileName);
+                var imageName = System.IO.Path.GetFileNameWithoutExtension(embeddedFileName);
 
                 ImagePart imagePart;
                 string relationshipId;
@@ -308,8 +311,8 @@ namespace OfficeIMO.Word {
                     throw new InvalidOperationException("Paragraph is not in a supported document story.");
                 }
 
-                preparedImageStream.Position = 0;
-                imagePart.FeedData(preparedImageStream);
+                embeddedStream.Position = 0;
+                imagePart.FeedData(embeddedStream);
 
                 return new WordImageLocation() {
                     ImagePart = imagePart,
@@ -319,6 +322,30 @@ namespace OfficeIMO.Word {
                     ImageName = imageName
                 };
             });
+        }
+
+        private static MemoryStream? ConvertWebpForWord(Stream stream) {
+            if (!OfficeImageReader.TryIdentifyByContent(stream, null, out OfficeImageInfo info)
+                || info.Format != OfficeImageFormat.Webp) return null;
+
+            var options = new OfficeRasterDecodeOptions {
+                FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
+            };
+            if (stream.Length > options.MaximumEncodedBytes) {
+                throw new InvalidDataException("The WebP image exceeds the supported encoded byte limit.");
+            }
+            stream.Position = 0;
+            byte[] source = new byte[checked((int)stream.Length)];
+            int read = 0;
+            while (read < source.Length) {
+                int count = stream.Read(source, read, source.Length - read);
+                if (count == 0) throw new EndOfStreamException("The WebP image ended before its declared length.");
+                read += count;
+            }
+            if (!OfficeImagePngConverter.TryConvertToPng(source, options, out byte[] pngBytes, out _)) {
+                throw new InvalidDataException("The WebP image could not be decoded as a static frame for Word.");
+            }
+            return new MemoryStream(pngBytes, writable: false);
         }
 
         private void AddExternalImage(WordDocument document, WordParagraph paragraph, Uri uri, double width, double height, ShapeTypeValues shape, BlipCompressionValues compressionQuality, string description, WordImageTextWrapping wrapImage, bool allowFileUri = false) {
