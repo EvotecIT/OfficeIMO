@@ -14,7 +14,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         var minimums = Enumerable.Repeat(1D, columnCount).ToArray();
         var preferred = Enumerable.Repeat(1D, columnCount).ToArray();
-        ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred);
+        var authoredWidths = new bool[columnCount];
+        ApplyDeclaredColumnWidths(table, contentWidth, tableStyle, minimums, preferred, authoredWidths);
         var occupancy = new int[columnCount];
         int legacyBorderWidth = ReadLegacyTableBorderWidth(table);
         for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
@@ -26,6 +27,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, rowStyles[rows[rowIndex]]);
                 ApplyTableCellFallbackInsets(cellStyle, legacyBorderWidth);
+                if (span == 1 && cellStyle.ExplicitWidth.HasValue && !cellStyle.ExplicitWidthUsesPercentage) {
+                    authoredWidths[column] = true;
+                }
                 ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, depth, out double minimum, out double maximum);
                 ApplySpanningWidth(minimums, column, span, minimum);
                 ApplySpanningWidth(preferred, column, span, maximum);
@@ -42,7 +46,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         usedWidth = tableStyle.ExplicitWidth.HasValue
             ? contentWidth
             : Math.Min(contentWidth, Math.Max(minimumAllowed, preferred.Sum()));
-        return AllocateAutoColumnWidths(minimums, preferred, usedWidth);
+        return AllocateAutoColumnWidths(minimums, preferred, authoredWidths, usedWidth);
     }
 
     private double MeasureTableCaptionMinimumWidth(IElement table, double containingWidth, HtmlRenderBoxStyle tableStyle) {
@@ -75,7 +79,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void ApplyDeclaredColumnWidths(IElement table, double contentWidth, HtmlRenderBoxStyle tableStyle, double[] minimums, double[] preferred) {
+    private void ApplyDeclaredColumnWidths(IElement table, double contentWidth, HtmlRenderBoxStyle tableStyle, double[] minimums, double[] preferred, bool[]? authoredWidths = null) {
         int column = 0;
         foreach (IElement element in table.QuerySelectorAll("col").Where(candidate => BelongsToTableColumn(candidate, table))) {
             int span = Math.Min(ReadSpan(element.GetAttribute("span"), minimums.Length), minimums.Length - column);
@@ -87,6 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 for (int offset = 0; offset < span; offset++) {
                     minimums[column + offset] = Math.Max(minimums[column + offset], perColumn);
                     preferred[column + offset] = Math.Max(preferred[column + offset], perColumn);
+                    if (authoredWidths != null && !style.ExplicitWidthUsesPercentage) authoredWidths[column + offset] = true;
                 }
             }
             column += span;
@@ -103,23 +108,47 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double insets = style.HorizontalInsets;
         minimum = tokens.Count == 0 ? insets + 1D : tokens.Max(token => MeasureInlineText(token, style)) + insets;
         preferred = Math.Max(minimum, MeasureInlineText(normalized, style) + insets);
-        if (text.IndexOf('\t') >= 0) {
+        bool hasLineBreak = ContainsTableCellLineBreak(cell);
+        if (hasLineBreak) {
+            // TextContent drops forced line breaks. Use the existing in-flow run
+            // measurement so a navigation cell with <br> does not reserve one
+            // column as though all of its labels occupied a single line.
+            IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(new FlexItem(cell, style, 0), containingWidth);
+            minimum = Math.Max(1D, MeasureGridMinContentRuns(runs) + insets);
+            preferred = Math.Max(minimum, MeasureGridMaxContentRuns(runs) + insets);
+        }
+        if (!hasLineBreak && text.IndexOf('\t') >= 0) {
             preferred = Math.Max(preferred, MeasureTabExpandedText(text, style, 0D) + insets);
         }
-        // Generated cell text participates in the same inline line as the cell's
-        // authored text. An auto-width table cannot size from TextContent alone.
-        double generatedPreferred = 0D;
-        double generatedMinimum = 0D;
-        MeasureTableCellGeneratedContent(cell, HtmlPseudoElementKind.Before, style, containingWidth, ref generatedMinimum, ref generatedPreferred);
-        MeasureTableCellGeneratedContent(cell, HtmlPseudoElementKind.After, style, containingWidth, ref generatedMinimum, ref generatedPreferred);
-        minimum = Math.Max(minimum, generatedMinimum + insets);
-        preferred += generatedPreferred;
+        if (!hasLineBreak) {
+            // The in-flow runs already include generated content when a cell
+            // contains a forced break; do not count it a second time.
+            double generatedPreferred = 0D;
+            double generatedMinimum = 0D;
+            MeasureTableCellGeneratedContent(cell, HtmlPseudoElementKind.Before, style, containingWidth, ref generatedMinimum, ref generatedPreferred);
+            MeasureTableCellGeneratedContent(cell, HtmlPseudoElementKind.After, style, containingWidth, ref generatedMinimum, ref generatedPreferred);
+            minimum = Math.Max(minimum, generatedMinimum + insets);
+            preferred += generatedPreferred;
+        }
         if (style.ExplicitWidth.HasValue) {
             double authored = style.ExplicitWidth.Value + (style.BorderBox ? 0D : insets);
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
         ResolveTableDescendantIntrinsicWidths(cell, style, containingWidth, depth, insets, ref minimum, ref preferred);
+    }
+
+    private static bool ContainsTableCellLineBreak(IElement cell) {
+        if (cell.Children.Length == 0) return false;
+        var pending = new Stack<IElement>();
+        foreach (IElement child in cell.Children) pending.Push(child);
+        while (pending.Count > 0) {
+            IElement element = pending.Pop();
+            if (string.Equals(element.LocalName, "br", StringComparison.OrdinalIgnoreCase)) return true;
+            if (string.Equals(element.LocalName, "table", StringComparison.OrdinalIgnoreCase)) continue;
+            foreach (IElement child in element.Children) pending.Push(child);
+        }
+        return false;
     }
 
     private void MeasureTableCellGeneratedContent(IElement cell, HtmlPseudoElementKind kind, HtmlRenderBoxStyle cellStyle,
@@ -201,7 +230,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return result;
     }
 
-    private static IReadOnlyList<double> AllocateAutoColumnWidths(IReadOnlyList<double> minimums, IReadOnlyList<double> preferred, double totalWidth) {
+    private static IReadOnlyList<double> AllocateAutoColumnWidths(IReadOnlyList<double> minimums, IReadOnlyList<double> preferred, IReadOnlyList<bool> authoredWidths, double totalWidth) {
         var result = new double[minimums.Count];
         double minimumTotal = minimums.Sum();
         double preferredTotal = preferred.Sum();
@@ -212,8 +241,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double progress = (totalWidth - minimumTotal) / Math.Max(0.01D, preferredTotal - minimumTotal);
             for (int index = 0; index < result.Length; index++) result[index] = minimums[index] + (preferred[index] - minimums[index]) * progress;
         } else {
-            double extra = (totalWidth - preferredTotal) / result.Length;
-            for (int index = 0; index < result.Length; index++) result[index] = preferred[index] + extra;
+            int flexibleColumns = authoredWidths.Count(authored => !authored);
+            bool distributeToAll = flexibleColumns == 0;
+            double extra = (totalWidth - preferredTotal) / (distributeToAll ? result.Length : flexibleColumns);
+            for (int index = 0; index < result.Length; index++) {
+                result[index] = preferred[index] + (distributeToAll || !authoredWidths[index] ? extra : 0D);
+            }
         }
         NormalizeColumnWidthTotal(result, totalWidth);
         return result;

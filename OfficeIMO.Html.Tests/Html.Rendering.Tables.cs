@@ -29,6 +29,53 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(shapes, shape => shape.Source == "td#legacy-cell");
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void HtmlTable_AutoLayoutKeepsAuthoredCellWidthWhenAnotherColumnCanGrow(bool nestedBreak, bool tabBeforeBreak) {
+        string labels = (tabBeforeBreak ? "Home\t<br>" : "Home<br>") + "Reports<br>Document Queue<br>Administration";
+        if (nestedBreak) labels = "<span>" + labels + "</span>";
+        string html = "<body style='margin:0'><table style='width:320px;margin:0;border-spacing:2px'>"
+            + "<tr><td id='nav' style='width:170px;padding:8px;background:blue'>" + labels + "</td>"
+            + "<td id='content' style='background:white'>Content</td></tr></table></body>";
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape nav = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "td#nav" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.Equal(186D, nav.Width, 3);
+    }
+
+    [Fact]
+    public void HtmlMarquee_UsesBlockWidthBeforeFollowingHeading() {
+        const string html = "<body style='margin:0'><marquee id='notice' style='background:yellow'>Notice</marquee>"
+            + "<h1 style='margin:0'>Heading</h1></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape notice = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "marquee#notice" && shape.Shape.FillColor == OfficeColor.Yellow);
+        HtmlRenderText heading = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Heading");
+        Assert.Equal(320D, notice.Width, 3);
+        Assert.True(heading.Y >= notice.Y + notice.Height);
+    }
+
+    [Fact]
+    public void HtmlTable_PreservedTabBeforeNestedBreakContributesItsTabStopWidth() {
+        const string html = "<body style='margin:0'><table style='margin:0;border-spacing:0'>"
+            + "<tr><td id='tabbed' style='padding:0;background:blue;white-space:pre;tab-size:32px'><span>A\tB<br>C</span></td></tr>"
+            + "</table></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { ViewportWidth = 320D, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderShape tabbed = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "td#tabbed" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.True(tabbed.Width >= 38D);
+    }
+
     [Fact]
     public void HtmlTables_ApplyBrowserCaptionAndHeaderDefaultsWithoutOverridingAuthoredStyles() {
         const string prefix = "<body style='margin:0'><table style='width:240px;margin:0'>";

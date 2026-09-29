@@ -371,7 +371,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
             if (run.Style.PreventTextWrapping) {
-                current += MeasureInlineText(run.Text, run.Style);
+                current += run.Text.IndexOf('\t') >= 0
+                    ? MeasureTabExpandedText(run.Text, run.Style, current)
+                    : MeasureInlineText(run.Text, run.Style);
                 maximum = Math.Max(maximum, current);
                 continue;
             }
@@ -432,7 +434,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 current = 0D;
                 continue;
             }
-            current += run.IsReplaced ? run.ReplacedWidth : MeasureInlineText(run.Text, run.Style);
+            current += run.IsReplaced
+                ? run.ReplacedWidth
+                : run.Text.IndexOf('\t') >= 0
+                    ? MeasureTabExpandedText(run.Text, run.Style, current)
+                    : MeasureInlineText(run.Text, run.Style);
         }
         return Math.Max(maximum, current);
     }
