@@ -17,6 +17,11 @@ internal static partial class IWorkPdfInfo {
     }
 
     private sealed class ResourceValidationState {
+        internal ResourceValidationState(System.Threading.CancellationToken cancellationToken) {
+            CancellationToken = cancellationToken;
+        }
+
+        internal System.Threading.CancellationToken CancellationToken { get; }
         internal Dictionary<(int Start, int End), bool> Spans { get; } = new();
         internal Dictionary<(long Object, long Generation), bool> Objects { get; } = new();
         internal HashSet<(long Object, long Generation)> Visiting { get; } = new();
@@ -68,6 +73,7 @@ internal static partial class IWorkPdfInfo {
         bool inHexString = false;
         bool inComment = false;
         for (int offset = start; offset < end; offset++) {
+            if ((offset & 4095) == 0) state.CancellationToken.ThrowIfCancellationRequested();
             byte current = bytes[offset];
             if (inComment) {
                 if (current is 0x0a or 0x0d) inComment = false;
@@ -118,11 +124,12 @@ internal static partial class IWorkPdfInfo {
         long generation,
         IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
         int[] orderedObjectOffsets, int limit, ResourceValidationState state) {
+        state.CancellationToken.ThrowIfCancellationRequested();
         var identity = (objectNumber, generation);
         if (state.Objects.TryGetValue(identity, out bool cached)) return cached;
         if (!inUseOffsets.TryGetValue(identity, out int objectOffset)
             || !TryGetResourceObjectSpan(bytes, objectOffset, limit, objectNumber,
-                generation, inUseOffsets, orderedObjectOffsets,
+                generation, inUseOffsets, orderedObjectOffsets, state,
                 out int bodyStart, out int bodyEnd)) {
             state.Objects[identity] = false;
             return false;
@@ -142,7 +149,8 @@ internal static partial class IWorkPdfInfo {
     private static bool TryGetResourceObjectSpan(byte[] bytes, int offset, int limit,
         long expectedObject, long expectedGeneration,
         IReadOnlyDictionary<(long Object, long Generation), int> inUseOffsets,
-        int[] orderedObjectOffsets, out int bodyStart, out int bodyEnd) {
+        int[] orderedObjectOffsets, ResourceValidationState state,
+        out int bodyStart, out int bodyEnd) {
         bodyStart = -1;
         bodyEnd = -1;
         int objectOffset = offset;
@@ -176,7 +184,8 @@ internal static partial class IWorkPdfInfo {
         }
 
         if (offset < objectLimit && bytes[offset] == (byte)'[') {
-            int arrayEnd = FindResourceArrayEnd(bytes, offset, objectLimit);
+            int arrayEnd = FindResourceArrayEnd(bytes, offset, objectLimit,
+                state.CancellationToken);
             if (arrayEnd < 0) return false;
             bodyEnd = arrayEnd + 1;
             int trailing = bodyEnd;
@@ -185,13 +194,16 @@ internal static partial class IWorkPdfInfo {
                 && (trailing + 6 >= objectLimit || IsDelimiter(bytes[trailing + 6]));
         }
 
-        int endObject = IndexOf(bytes, "endobj", offset, objectLimit);
-        if (endObject < 0 || !IsCompleteResourceScalar(bytes, offset, endObject)) return false;
+        int endObject = IndexOf(bytes, "endobj", offset, objectLimit,
+            state.CancellationToken);
+        if (endObject < 0 || !IsCompleteResourceScalar(bytes, offset, endObject,
+                state.CancellationToken)) return false;
         bodyEnd = endObject;
         return true;
     }
 
-    private static bool IsCompleteResourceScalar(byte[] bytes, int start, int end) {
+    private static bool IsCompleteResourceScalar(byte[] bytes, int start, int end,
+        System.Threading.CancellationToken cancellationToken) {
         int offset = start;
         if (!SkipWhitespaceAndComments(bytes, ref offset, end)) return false;
         if (TryReadPdfNumber(bytes, ref offset, end, out _)) {
@@ -204,14 +216,18 @@ internal static partial class IWorkPdfInfo {
         }
         if (offset < end && bytes[offset] == (byte)'/') {
             int tokenStart = ++offset;
-            while (offset < end && !IsDelimiter(bytes[offset])) offset++;
+            while (offset < end && !IsDelimiter(bytes[offset])) {
+                if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                offset++;
+            }
             return offset > tokenStart
                 && SkipWhitespaceAndComments(bytes, ref offset, end) && offset == end;
         }
         return false;
     }
 
-    private static int FindResourceArrayEnd(byte[] bytes, int start, int limit) {
+    private static int FindResourceArrayEnd(byte[] bytes, int start, int limit,
+        System.Threading.CancellationToken cancellationToken) {
         int arrayDepth = 0;
         int dictionaryDepth = 0;
         int literalDepth = 0;
@@ -219,6 +235,7 @@ internal static partial class IWorkPdfInfo {
         bool inHexString = false;
         bool inComment = false;
         for (int offset = start; offset < limit; offset++) {
+            if ((offset & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte current = bytes[offset];
             if (inComment) {
                 if (current is 0x0a or 0x0d) inComment = false;

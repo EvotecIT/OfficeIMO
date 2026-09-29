@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Threading;
 
 namespace OfficeIMO.Core.Internal;
 
@@ -136,7 +137,8 @@ internal static class OfficeArchiveSafety {
     /// The source position is restored before this method returns.
     /// </summary>
     internal static ZipCentralDirectoryScanResult ScanZipCentralDirectory(
-        Stream source, long archiveLength, int entryLimit) {
+        Stream source, long archiveLength, int entryLimit,
+        CancellationToken cancellationToken = default) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         if (!source.CanRead || !source.CanSeek) throw new ArgumentException(
             "ZIP central-directory inspection requires a readable seekable stream.", nameof(source));
@@ -147,6 +149,7 @@ internal static class OfficeArchiveSafety {
 
         long originalPosition = source.Position;
         try {
+            cancellationToken.ThrowIfCancellationRequested();
             if (archiveLength < 22) {
                 return ZipCentralDirectoryScanResult.Invalid(
                     "The ZIP end-of-central-directory record was not found.");
@@ -228,6 +231,7 @@ internal static class OfficeArchiveSafety {
             bool foundDigitalSignature = false;
             var header = new byte[46];
             while (cursor < end) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (cursor > end - 4) {
                     return ZipCentralDirectoryScanResult.Invalid(
                         "The ZIP central directory ends inside a record signature.");

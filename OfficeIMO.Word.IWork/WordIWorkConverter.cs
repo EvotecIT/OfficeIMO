@@ -101,7 +101,7 @@ public static partial class WordIWorkConverter {
                                     ? anchor
                                     : null;
                             WordTable? insertedTable = AddTable(document,
-                                sourceDrawable.Table!, pageHost, priorTable);
+                                sourceDrawable.Table!, nativeLists, pageHost, priorTable);
                             if (sourceDrawable.PageIndex.HasValue && insertedTable != null) {
                                 pageTableAnchors[sourceDrawable.PageIndex.Value] = insertedTable;
                             }
@@ -235,6 +235,7 @@ public static partial class WordIWorkConverter {
     }
 
     private static WordTable? AddTable(WordDocument document, IWorkTable source,
+        IWorkNativeListCatalog nativeLists,
         WordParagraph? pageHost = null, WordTable? tableHost = null) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         WordTable table = pageHost == null
@@ -252,10 +253,21 @@ public static partial class WordIWorkConverter {
         }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
-            WordParagraph paragraph = target.AddParagraph(CellText(sourceCell), removeExistingParagraphs: true);
-            if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount) {
-                paragraph.Bold = true;
+            bool header = sourceCell.Row <= source.HeaderRowCount
+                || sourceCell.Column <= source.HeaderColumnCount
+                || sourceCell.Row > source.RowCount - source.FooterRowCount;
+            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
+                bool first = true;
+                AddRichText(richText, _ => {
+                    WordParagraph paragraph = target.AddParagraph(string.Empty,
+                        removeExistingParagraphs: first);
+                    first = false;
+                    return paragraph;
+                }, nativeLists, forceBold: header);
+            } else {
+                WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
+                    removeExistingParagraphs: true);
+                if (header) paragraph.Bold = true;
             }
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {
@@ -322,6 +334,10 @@ public static partial class WordIWorkConverter {
         if (projection.TextBoxObjects.Any(textBox => HasContainerScopedBreak(textBox.Content))) {
             return "A Pages text box contains a section, layout, or page break that cannot be represented inside a DOCX text box.";
         }
+        if (projection.Tables.SelectMany(table => table.Cells)
+            .Any(cell => cell.RichText != null && HasContainerScopedBreak(cell.RichText))) {
+            return "A Pages table cell contains a section, layout, or page break that cannot be represented inside a DOCX cell.";
+        }
         if (projection.Body.Paragraphs
                 .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
                 .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
@@ -332,11 +348,15 @@ public static partial class WordIWorkConverter {
                     && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
             return "Pages contains a text hyperlink that cannot be represented by the DOCX owner.";
         }
-        if (projection.Body.Paragraphs
-                .Concat(projection.TextBoxObjects.SelectMany(textBox => textBox.Content.Paragraphs))
-                .Concat(projection.Sections.SelectMany(section => section.HeaderContents)
-                    .Concat(projection.Sections.SelectMany(section => section.FooterContents))
-                    .SelectMany(content => content.Paragraphs))
+        if (projection.Tables.SelectMany(table => table.Cells)
+            .Where(cell => cell.RichText != null)
+            .SelectMany(cell => cell.RichText!.Paragraphs)
+            .SelectMany(paragraph => paragraph.Runs)
+            .Any(run => run.Hyperlink != null
+                && !Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out _))) {
+            return "Pages contains a table-cell hyperlink that cannot be represented by the DOCX owner.";
+        }
+        if (AllPagesText(projection).SelectMany(content => content.Paragraphs)
                 .Any(paragraph => paragraph.ListLevel > 8)) {
             return "Pages contains a list nesting level outside the DOCX numbering range.";
         }
@@ -376,8 +396,13 @@ public static partial class WordIWorkConverter {
             if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                 return "Pages tables exceed the bounded DOCX destination cell budget.";
             }
-            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
-                return $"Pages table '{table.Name}' contains an uncached formula that the DOCX owner cannot evaluate.";
+            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                && (cell.Value == null || !cell.CachedValueIsComplete))) {
+                return $"Pages table '{table.Name}' contains a formula without a complete cached value that the DOCX owner cannot evaluate.";
+            }
+            if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                && cell.RichText is { IsComplete: false })) {
+                return $"Pages table '{table.Name}' contains formula cached text with incomplete formatting that the DOCX owner cannot preserve.";
             }
             if (!FitsSignedTwips(table.DefaultRowHeight)
                 || !FitsSignedTwips(table.DefaultColumnWidth)) {
@@ -446,6 +471,11 @@ public static partial class WordIWorkConverter {
             foreach (IWorkTextContent footer in section.FooterContents) yield return footer;
         }
         foreach (IWorkTextBox textBox in projection.TextBoxObjects) yield return textBox.Content;
+        foreach (IWorkTable table in projection.Tables) {
+            foreach (IWorkTableCell cell in table.Cells) {
+                if (cell.RichText != null) yield return cell.RichText;
+            }
+        }
     }
 
     private static bool HasContainerScopedBreak(IWorkTextContent content) =>
@@ -507,12 +537,14 @@ public static partial class WordIWorkConverter {
     private static void AddRichText(IWorkTextContent content, Func<string, WordParagraph> addParagraph,
         IWorkNativeListCatalog nativeLists,
         Func<WordParagraph>? addPageBreak = null,
-        Action<IWorkParagraphBreakKind>? addSectionBreak = null) {
+        Action<IWorkParagraphBreakKind>? addSectionBreak = null,
+        bool forceBold = false) {
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph);
+            if (forceBold) paragraph.Bold = true;
             if (sourceParagraph.ListLevel >= 0) {
                 bool startsNewList = !hasPreviousListParagraph
                     || sourceParagraph.ListIdentifier != previousListIdentifier;
@@ -525,7 +557,7 @@ public static partial class WordIWorkConverter {
                 hasPreviousListParagraph = false;
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
-                AddStyledTextRun(paragraph, sourceRun);
+                AddStyledTextRun(paragraph, sourceRun, forceBold);
             }
             if (sourceParagraph.BreakKind == IWorkParagraphBreakKind.Page) addPageBreak?.Invoke();
             else if (sourceParagraph.BreakKind is IWorkParagraphBreakKind.Section
@@ -533,7 +565,8 @@ public static partial class WordIWorkConverter {
         }
     }
 
-    private static void AddStyledTextRun(WordParagraph paragraph, IWorkTextRun sourceRun) {
+    private static void AddStyledTextRun(WordParagraph paragraph, IWorkTextRun sourceRun,
+        bool forceBold = false) {
         string[] lines = sourceRun.Text.Split('\n');
         for (int index = 0; index < lines.Length; index++) {
             if (index > 0) paragraph.AddBreak();
@@ -548,6 +581,7 @@ public static partial class WordIWorkConverter {
                 run = paragraph.AddText(lines[index]);
             }
             ApplyTextStyle(run, sourceRun.Style);
+            if (forceBold) run.Bold = true;
         }
     }
 

@@ -101,6 +101,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text style.</summary>
     public int MaximumTextStyleInheritanceDepth { get; set; } = 64;
 
+    /// <summary>Returns a validated copy suitable for an isolated reader registration.</summary>
+    public IWorkReadOptions Clone() => Snapshot();
+
     internal IWorkReadOptions Snapshot() {
         ValidatePositive(MaximumPackageBytes, nameof(MaximumPackageBytes));
         ValidatePositive(MaximumEntryCount, nameof(MaximumEntryCount));

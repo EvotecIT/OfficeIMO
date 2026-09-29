@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Threading;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.IWork.Internal;
@@ -10,29 +11,44 @@ internal static class IWorkImageInfo {
 
     internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
         long maximumDecodedBytes, out long decodedBytes) =>
-        Read(bytes, mediaType, maximumDecodedBytes, out decodedBytes, out _);
+        Read(bytes, mediaType, maximumDecodedBytes, out decodedBytes, out _,
+            CancellationToken.None);
+
+    internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
+        long maximumDecodedBytes, out long decodedBytes, CancellationToken cancellationToken) =>
+        Read(bytes, mediaType, maximumDecodedBytes, out decodedBytes, out _,
+            cancellationToken);
 
     internal static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
         long maximumDecodedBytes, out long decodedBytes, out bool decodedLimitExceeded) {
+        return Read(bytes, mediaType, maximumDecodedBytes, out decodedBytes,
+            out decodedLimitExceeded, CancellationToken.None);
+    }
+
+    private static (int? Width, int? Height) Read(byte[] bytes, string mediaType,
+        long maximumDecodedBytes, out long decodedBytes, out bool decodedLimitExceeded,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         decodedBytes = 0;
         decodedLimitExceeded = false;
         if (string.Equals(mediaType, "image/png", StringComparison.OrdinalIgnoreCase)
             && TryReadPng(bytes, maximumDecodedBytes, out int width, out int height,
-                out decodedBytes, out decodedLimitExceeded)) {
+                out decodedBytes, out decodedLimitExceeded, cancellationToken)) {
             return (width, height);
         }
         if (string.Equals(mediaType, "image/jpeg", StringComparison.OrdinalIgnoreCase)) {
             return ReadJpeg(bytes, maximumDecodedBytes, out decodedBytes,
-                out decodedLimitExceeded);
+                out decodedLimitExceeded, cancellationToken);
         }
         return (null, null);
     }
 
     private static (int? Width, int? Height) ReadJpeg(byte[] bytes, long maximumDecodedBytes,
-        out long decodedBytes, out bool decodedLimitExceeded) {
+        out long decodedBytes, out bool decodedLimitExceeded,
+        CancellationToken cancellationToken) {
         decodedBytes = 0;
         decodedLimitExceeded = false;
-        (int? width, int? height) = ReadJpegMetadata(bytes);
+        (int? width, int? height) = ReadJpegMetadata(bytes, cancellationToken);
         if (!width.HasValue || !height.HasValue) return (null, null);
         long expectedDecodedBytes = checked((long)width.Value * height.Value * 4);
         if (expectedDecodedBytes > maximumDecodedBytes) {
@@ -44,24 +60,32 @@ internal static class IWorkImageInfo {
             return (null, null);
         }
         decodedBytes = expectedDecodedBytes;
-        if (!OfficeJpegCodec.TryDecode(bytes, out OfficeRasterImage? decoded)
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!OfficeJpegCodec.TryDecode(bytes, cancellationToken, out OfficeRasterImage? decoded)
             || decoded == null || decoded.Width != width.Value || decoded.Height != height.Value) {
             return (null, null);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return (decoded.Width, decoded.Height);
     }
 
-    private static (int? Width, int? Height) ReadJpegMetadata(byte[] bytes) {
+    private static (int? Width, int? Height) ReadJpegMetadata(byte[] bytes,
+        CancellationToken cancellationToken) {
         if (bytes.Length < 4 || bytes[0] != 0xff || bytes[1] != 0xd8) return (null, null);
         int offset = 2;
         int width = 0;
         int height = 0;
         bool hasScan = false;
+        int markerFillBytes = 0;
         while (offset < bytes.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (bytes[offset++] != 0xff) return (null, null);
             if (offset >= bytes.Length) return (null, null);
             byte marker = bytes[offset++];
-            while (marker == 0xff && offset < bytes.Length) marker = bytes[offset++];
+            while (marker == 0xff && offset < bytes.Length) {
+                if ((markerFillBytes++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                marker = bytes[offset++];
+            }
             if (marker == 0xd9) return offset == bytes.Length
                 && hasScan && width > 0 && height > 0
                 ? (width, height)
@@ -83,19 +107,25 @@ internal static class IWorkImageInfo {
             offset += length;
             if (marker == 0xda) {
                 hasScan = true;
-                if (!SeekNextJpegMarker(bytes, ref offset)) return (null, null);
+                if (!SeekNextJpegMarker(bytes, ref offset, cancellationToken)) return (null, null);
             }
         }
         return (null, null);
     }
 
-    private static bool SeekNextJpegMarker(byte[] bytes, ref int offset) {
+    private static bool SeekNextJpegMarker(byte[] bytes, ref int offset,
+        CancellationToken cancellationToken) {
+        int scanned = 0;
         while (offset < bytes.Length) {
+            if ((scanned++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             if (bytes[offset++] != 0xff) continue;
             int markerOffset = offset - 1;
             if (offset >= bytes.Length) return false;
             byte marker = bytes[offset++];
-            while (marker == 0xff && offset < bytes.Length) marker = bytes[offset++];
+            while (marker == 0xff && offset < bytes.Length) {
+                if ((scanned++ & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                marker = bytes[offset++];
+            }
             if (marker == 0x00 || marker >= 0xd0 && marker <= 0xd7) continue;
             offset = markerOffset;
             return true;
@@ -109,13 +139,13 @@ internal static class IWorkImageInfo {
 
     private static bool TryReadPng(byte[] bytes, long maximumDecodedBytes,
         out int width, out int height, out long decodedBytes,
-        out bool decodedLimitExceeded) {
+        out bool decodedLimitExceeded, CancellationToken cancellationToken) {
         width = 0;
         height = 0;
         decodedBytes = 0;
         decodedLimitExceeded = false;
         if (maximumDecodedBytes < 0 || bytes.Length < 33 || !HasPngSignature(bytes)
-            || !OfficePngReader.TryGetFrameCount(bytes, out _)) return false;
+            || !OfficePngReader.TryGetFrameCount(bytes, cancellationToken, out _)) return false;
 
         bool hasHeader = false;
         bool hasImageData = false;
@@ -129,6 +159,7 @@ internal static class IWorkImageInfo {
         using var imageData = new MemoryStream();
         int offset = 8;
         while (offset <= bytes.Length - 12) {
+            cancellationToken.ThrowIfCancellationRequested();
             uint rawLength = ReadBigEndianUInt32(bytes, offset);
             if (rawLength > int.MaxValue) return false;
             int dataLength = (int)rawLength;
@@ -138,7 +169,8 @@ internal static class IWorkImageInfo {
             int dataOffset = typeOffset + 4;
             int crcOffset = dataOffset + dataLength;
             uint expectedCrc = ReadBigEndianUInt32(bytes, crcOffset);
-            if (expectedCrc != CalculatePngCrc(bytes, typeOffset, checked(4 + dataLength))) return false;
+            if (expectedCrc != CalculatePngCrc(bytes, typeOffset,
+                    checked(4 + dataLength), cancellationToken)) return false;
 
             bool isHeader = IsChunk(bytes, typeOffset, 'I', 'H', 'D', 'R');
             bool isImageData = IsChunk(bytes, typeOffset, 'I', 'D', 'A', 'T');
@@ -193,9 +225,10 @@ internal static class IWorkImageInfo {
                 if (valid) {
                     valid = ValidatePngImageData(imageData.ToArray(), width, height,
                         bitDepth, colorType, interlace, paletteEntryCount,
-                        maximumDecodedBytes, out decodedBytes);
+                        maximumDecodedBytes, out decodedBytes, cancellationToken);
                     if (valid) decodedBytes = Math.Max(decodedBytes, rasterDecodedBytes);
                 }
+                cancellationToken.ThrowIfCancellationRequested();
                 return valid;
             }
         }
@@ -213,7 +246,8 @@ internal static class IWorkImageInfo {
 
     private static bool ValidatePngImageData(byte[] data, int width, int height,
         byte bitDepth, byte colorType, byte interlace, int paletteEntryCount,
-        long maximumDecodedBytes, out long decodedBytes) {
+        long maximumDecodedBytes, out long decodedBytes,
+        CancellationToken cancellationToken) {
         decodedBytes = 0;
         if (data.Length < 6) return false;
         byte compressionMethod = (byte)(data[0] & 0x0f);
@@ -251,17 +285,19 @@ internal static class IWorkImageInfo {
                     indexedRow = new byte[(int)rowBytes];
                 }
                 for (int row = 0; row < passHeight; row++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     int filter = ReadPngByte(inflater, ref first, ref second, ref decoded);
                     if (filter is < 0 or > 4) return false;
                     if (indexedRow != null && previousIndexedRow != null) {
                         if (!ReadPngBytes(inflater, indexedRow, indexedRow.Length,
-                                ref first, ref second, ref decoded)
-                            || !UnfilterIndexedPngRow(indexedRow, previousIndexedRow, filter)
+                                ref first, ref second, ref decoded, cancellationToken)
+                            || !UnfilterIndexedPngRow(indexedRow, previousIndexedRow,
+                                filter, cancellationToken)
                             || !IndexedPngRowUsesPalette(indexedRow, passWidth,
-                                bitDepth, paletteEntryCount)) return false;
+                                bitDepth, paletteEntryCount, cancellationToken)) return false;
                         (previousIndexedRow, indexedRow) = (indexedRow, previousIndexedRow);
                     } else if (!ReadPngBytes(inflater, buffer, rowBytes,
-                                   ref first, ref second, ref decoded)) return false;
+                                   ref first, ref second, ref decoded, cancellationToken)) return false;
                 }
             }
             if (decoded != decodedLength || inflater.ReadByte() != -1
@@ -274,8 +310,10 @@ internal static class IWorkImageInfo {
         }
     }
 
-    private static bool UnfilterIndexedPngRow(byte[] row, byte[] previous, int filter) {
+    private static bool UnfilterIndexedPngRow(byte[] row, byte[] previous, int filter,
+        CancellationToken cancellationToken) {
         for (int index = 0; index < row.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             byte left = index > 0 ? row[index - 1] : (byte)0;
             byte above = previous[index];
             byte upperLeft = index > 0 ? previous[index - 1] : (byte)0;
@@ -304,9 +342,10 @@ internal static class IWorkImageInfo {
     }
 
     private static bool IndexedPngRowUsesPalette(byte[] row, int width,
-        byte bitDepth, int paletteEntryCount) {
+        byte bitDepth, int paletteEntryCount, CancellationToken cancellationToken) {
         int mask = (1 << bitDepth) - 1;
         for (int pixel = 0; pixel < width; pixel++) {
+            if ((pixel & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             int bitOffset = pixel * bitDepth;
             int shift = 8 - bitDepth - bitOffset % 8;
             int index = row[bitOffset / 8] >> shift & mask;
@@ -355,8 +394,10 @@ internal static class IWorkImageInfo {
     }
 
     private static bool ReadPngBytes(Stream stream, byte[] buffer, long count,
-        ref uint first, ref uint second, ref long decoded) {
+        ref uint first, ref uint second, ref long decoded,
+        CancellationToken cancellationToken) {
         while (count > 0) {
+            cancellationToken.ThrowIfCancellationRequested();
             int requested = (int)Math.Min(buffer.Length, count);
             int read = stream.Read(buffer, 0, requested);
             if (read <= 0) return false;
@@ -415,9 +456,11 @@ internal static class IWorkImageInfo {
         bytes[offset] == first && bytes[offset + 1] == second
         && bytes[offset + 2] == third && bytes[offset + 3] == fourth;
 
-    private static uint CalculatePngCrc(byte[] bytes, int offset, int length) {
+    private static uint CalculatePngCrc(byte[] bytes, int offset, int length,
+        CancellationToken cancellationToken) {
         uint crc = uint.MaxValue;
         for (int index = offset; index < offset + length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
             crc = PngCrcTable[(int)((crc ^ bytes[index]) & 0xff)] ^ crc >> 8;
         }
         return crc ^ uint.MaxValue;
