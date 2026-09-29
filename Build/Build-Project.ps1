@@ -6,13 +6,16 @@ param(
     [Nullable[bool]] $PublishGitHub = $false,
     [Nullable[bool]] $Plan,
     [string] $PlanPath,
+    # Opt in to HTML/PDF qualification when publishing; ordinary package releases do not require PDF/X proof.
+    [switch] $ValidateHtmlPdfRelease,
     [string] $PdfComplianceProofPath = $env:OFFICEIMO_PDF_COMPLIANCE_PROOF_PATH
 )
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-if (($PublishNuget -eq $true -or $PublishGitHub -eq $true) -and $Plan -ne $true) {
+if ($ValidateHtmlPdfRelease -and
+    ($PublishNuget -eq $true -or $PublishGitHub -eq $true) -and $Plan -ne $true) {
     & "$PSScriptRoot/Test-HtmlPdfReleaseGate.ps1" -PdfComplianceProofPath $PdfComplianceProofPath
 }
 

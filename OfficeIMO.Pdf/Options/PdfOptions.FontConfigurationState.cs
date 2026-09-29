@@ -62,6 +62,7 @@ public sealed partial class PdfOptions {
                 AddInt64((int)entry.Key);
                 AddString(entry.Value.FontName);
                 AddBytes(entry.Value.DataSnapshot);
+                AddByte(entry.Value.SyntheticOblique ? (byte)1 : (byte)0);
             }
 
             foreach (KeyValuePair<string, PdfEmbeddedFontFamily> entry in

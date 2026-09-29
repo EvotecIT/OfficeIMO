@@ -55,6 +55,24 @@ February 29 and maps to February 28 when read as `DateTime`. Modern dates and
 the 1904 date system keep their existing serials. Negative serials in the 1900
 system extend the December 31, 1899 epoch backwards, including fractional days;
 they no longer use OLE Automation's negative-fraction convention.
+## Reader document schema version 8
+
+`OfficeDocumentReadResult` now emits schema version 8. This version adds
+`ReaderInputKind.IWork` and the neutral `OfficeDocumentFormat.IWork` for Pages,
+Numbers, and Keynote input. Applications that
+validate `schemaVersion`, use the packaged JSON Schema, generate transport
+bindings, or switch exhaustively over either enum must accept version 8
+and the new members. Load the current schema through
+`OfficeDocumentReadResultSchema.GetJsonSchema()` rather than pinning version 7.
+
+## Default PDF Latin ligatures
+
+`PdfOptions.TextShapingMode` now defaults to `OpenTypeLigatures`. Supported
+ligature substitutions in embedded TrueType and OpenType/CFF fonts can change
+text widths and line breaks. Extraction retains the original logical text.
+Applications that require the previous scalar widths should set
+`TextShapingMode = PdfTextShapingMode.UnicodeScalar`. Existing explicit shaping
+providers and the `LatinLigatures` mode retain their selection behavior.
 
 ## Studio attachment size limit
 

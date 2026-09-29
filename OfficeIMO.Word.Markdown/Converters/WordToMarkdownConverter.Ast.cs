@@ -865,7 +865,8 @@ namespace OfficeIMO.Word.Markdown {
                 return true;
             }
 
-            return run._run?.Descendants<Break>().Any(br => br.Type?.Value == BreakValues.Page) == true;
+            return (run._visibleRun ?? run._run)?.Descendants<Break>()
+                .Any(br => br.Type?.Value == BreakValues.Page) == true;
         }
 
         private void AppendParagraphBlocksFromSegment(
@@ -1752,6 +1753,17 @@ namespace OfficeIMO.Word.Markdown {
                 return markdownTable;
             }
 
+            bool hasMergedCells = table.Rows.Any(row => row.Cells.Any(cell =>
+                cell.ColumnSpan > 1 || cell.RowSpan > 1 ||
+                cell.HasHorizontalMerge || cell.HasVerticalMerge));
+            bool hasCellBorders = table.Rows.Any(row => row.Cells.Any(cell =>
+                cell._tableCell.TableCellProperties?.TableCellBorders?.ChildElements.Count > 0));
+            bool hasTableBorders = HasAuthoredTableBorders(table);
+            if (hasMergedCells)
+                options.OnWarning?.Invoke("Word table cell merges cannot be represented by a Markdown table; cell layout was flattened.");
+            if (hasCellBorders || hasTableBorders)
+                options.OnWarning?.Invoke("Word table borders cannot be represented by a Markdown table; border formatting was omitted.");
+
             for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
                 var row = table.Rows[rowIndex];
                 var structuredCells = new List<OmdTableCell>(row.Cells.Count);
@@ -1781,6 +1793,49 @@ namespace OfficeIMO.Word.Markdown {
 
             markdownTable.SetStructuredCells(structuredHeaders, structuredRows, markdownTable.ComputeContentSignature());
             return markdownTable;
+        }
+
+        private static bool HasAuthoredTableBorders(WordTable table) {
+            if (table._tableProperties?.TableBorders?.ChildElements.Count > 0) return true;
+
+            Styles? styles = table.Document._wordprocessingDocument.MainDocumentPart?
+                .StyleDefinitionsPart?.Styles;
+            if (styles == null) return false;
+            string? styleId = table._tableProperties?.TableStyle?.Val?.Value
+                ?? styles.Elements<Style>().FirstOrDefault(style =>
+                    style.Type?.Value == StyleValues.Table && style.Default?.Value == true)?.StyleId?.Value;
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (!string.IsNullOrWhiteSpace(styleId) && visited.Add(styleId!)) {
+                Style? style = styles.Elements<Style>().FirstOrDefault(candidate =>
+                    string.Equals(candidate.StyleId?.Value, styleId, StringComparison.Ordinal));
+                if (style == null) break;
+                if (style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>()?.ChildElements.Count > 0)
+                    return true;
+                if (style.Elements<TableStyleProperties>().Any(properties =>
+                    IsActiveConditionalTableStyle(properties.Type?.Value, table) &&
+                    (properties.Descendants<TableBorders>().Any(borders => borders.HasChildren) ||
+                     properties.Descendants<TableCellBorders>().Any(borders => borders.HasChildren))))
+                    return true;
+                styleId = style.BasedOn?.Val?.Value;
+            }
+            return false;
+        }
+
+        private static bool IsActiveConditionalTableStyle(TableStyleOverrideValues? type, WordTable table) {
+            if (type == TableStyleOverrideValues.WholeTable) return true;
+            if (type == TableStyleOverrideValues.FirstRow) return table.ConditionalFormattingFirstRow == true;
+            if (type == TableStyleOverrideValues.LastRow) return table.ConditionalFormattingLastRow == true;
+            if (type == TableStyleOverrideValues.FirstColumn) return table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.LastColumn) return table.ConditionalFormattingLastColumn == true;
+            if (type == TableStyleOverrideValues.Band1Horizontal) return table.ConditionalFormattingNoHorizontalBand != true;
+            if (type == TableStyleOverrideValues.Band2Horizontal) return table.ConditionalFormattingNoHorizontalBand != true && table.Rows.Count > 1;
+            if (type == TableStyleOverrideValues.Band1Vertical) return table.ConditionalFormattingNoVerticalBand != true;
+            if (type == TableStyleOverrideValues.Band2Vertical) return table.ConditionalFormattingNoVerticalBand != true && table.Rows.Any(row => row.Cells.Count > 1);
+            if (type == TableStyleOverrideValues.NorthWestCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.NorthEastCell) return table.ConditionalFormattingFirstRow == true && table.ConditionalFormattingLastColumn == true;
+            if (type == TableStyleOverrideValues.SouthWestCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingFirstColumn == true;
+            if (type == TableStyleOverrideValues.SouthEastCell) return table.ConditionalFormattingLastRow == true && table.ConditionalFormattingLastColumn == true;
+            return false;
         }
 
         private OmdTableCell BuildTableCell(WordTableCell cell, WordToMarkdownOptions options) {

@@ -13,7 +13,7 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Word.Pdf {
     public static partial class WordPdfConverterExtensions {
         private const double NativeDefaultParagraphLineHeight = 1.15D;
-        private const double NativeDefaultParagraphSpacingAfter = 8D;
+        private const double NativeDefaultParagraphSpacingAfter = 0D;
         private const double NativeCalibriSingleLineHeight = 1.220703125D;
         private const double NativeTablePageContinuationSpacingBefore = 24D;
         private const double NativeHeaderFooterFontSize = 9D;
@@ -56,6 +56,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private interface INativePdfFlow {
+            bool SupportsPositionedTables { get; }
             PdfCore.PageSize PageSize { get; }
             void PageBreak();
             void Spacer(double height);
@@ -78,6 +79,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativePdfDocumentFlow : INativePdfFlow {
+            public bool SupportsPositionedTables => true;
             private readonly PdfCore.PdfDocument _pdf;
 
             public NativePdfDocumentFlow(PdfCore.PdfDocument pdf, PdfCore.PageSize pageSize) {
@@ -113,6 +115,7 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private sealed class NativePdfColumnFlow : INativePdfFlow {
+            public bool SupportsPositionedTables => false;
             private readonly PdfCore.PdfPageBuilder _page;
             private readonly PdfCore.PdfContentBuilder _column;
 

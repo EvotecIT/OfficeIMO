@@ -97,3 +97,11 @@ public enum IWorkPagesDrawableKind {
     /// <summary>An editable table.</summary>
     Table
 }
+
+/// <summary>Identifies one drawable recovered from a Numbers sheet.</summary>
+public enum IWorkNumbersDrawableKind {
+    /// <summary>A table.</summary>
+    Table,
+    /// <summary>A text shape.</summary>
+    TextBox
+}

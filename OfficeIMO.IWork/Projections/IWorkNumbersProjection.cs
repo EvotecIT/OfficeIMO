@@ -4,23 +4,6 @@ using System.Numerics;
 
 namespace OfficeIMO.IWork;
 
-/// <summary>One Numbers sheet and its semantic drawables.</summary>
-public sealed class IWorkNumbersSheet {
-    internal IWorkNumbersSheet(string name, IReadOnlyList<IWorkTable> tables,
-        IReadOnlyList<string> textBoxes) {
-        Name = name;
-        Tables = Array.AsReadOnly(tables.ToArray());
-        TextBoxes = Array.AsReadOnly(textBoxes.ToArray());
-    }
-
-    /// <summary>Gets the source sheet name.</summary>
-    public string Name { get; }
-    /// <summary>Gets tables in drawable order.</summary>
-    public IReadOnlyList<IWorkTable> Tables { get; }
-    /// <summary>Gets text-box content in drawable order.</summary>
-    public IReadOnlyList<string> TextBoxes { get; }
-}
-
 /// <summary>Read-only Numbers structure recovered from a shared IWA object graph.</summary>
 public sealed class IWorkNumbersProjection {
     private readonly IWorkSourceDocument _source;
@@ -68,8 +51,11 @@ public sealed class IWorkNumbersProjection {
 public sealed partial class IWorkSourceDocument {
     /// <summary>Reads a Numbers package into a bounded semantic source projection.</summary>
     public IWorkNumbersProjection ReadNumbers() {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Numbers) throw new InvalidOperationException($"The source is {Kind}, not Numbers.");
-        return IWorkNumbersReader.Read(this);
+        IWorkNumbersProjection projection = IWorkNumbersReader.Read(this);
+        _cancellationToken.ThrowIfCancellationRequested();
+        return projection;
     }
 }
 
@@ -170,6 +156,7 @@ internal static class IWorkNumbersReader {
             projectionBudget.AddDrawableReferences(drawableReferenceCount);
             var tables = new List<IWorkTable>();
             var textBoxes = new List<string>();
+            var orderedDrawables = new List<IWorkNumbersDrawable>();
             IReadOnlyList<IWorkArchiveRecord> drawables = index.DereferenceAll(
                 sheetMessage, 2, out int unresolvedDrawableCount);
             if (unresolvedDrawableCount > 0) {
@@ -194,7 +181,10 @@ internal static class IWorkNumbersReader {
                     projectionBudget.AddTable();
                     IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
                         ref materializedCellCount, ref supportsEditableReconstruction);
-                    if (table != null) tables.Add(table);
+                    if (table != null) {
+                        tables.Add(table);
+                        orderedDrawables.Add(new IWorkNumbersDrawable(table));
+                    }
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                         out bool drawableComplete);
@@ -255,6 +245,7 @@ internal static class IWorkNumbersReader {
                         if (text.Length > 0) {
                             projectionBudget.AddTextItem();
                             textBoxes.Add(text);
+                            orderedDrawables.Add(new IWorkNumbersDrawable(text));
                         }
                     } else {
                         supportsEditableReconstruction = false;
@@ -278,7 +269,8 @@ internal static class IWorkNumbersReader {
                 MarkTextMetadataUnsupported(sheetRecord, diagnostics, ref supportsEditableReconstruction);
             }
             if (sheetName != null) projectionBudget.AddTextCharacters(sheetName.Length);
-            sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes));
+            sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes,
+                orderedDrawables));
         }
         if (sheets.Count == 0) {
             supportsEditableReconstruction = false;
@@ -452,6 +444,8 @@ internal static class IWorkNumbersReader {
             model, diagnostics, ref supportsEditableReconstruction);
         var cells = new List<IWorkTableCell>();
         var coordinates = new HashSet<long>();
+        var formulaRichStringIdentifiers = new HashSet<uint>();
+        var nonFormulaRichStringIdentifiers = new HashSet<uint>();
         IWorkWireMessage? store = IWorkObjectIndex.TryGetMessage(message, 4);
         if (store == null) {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
@@ -461,6 +455,9 @@ internal static class IWorkNumbersReader {
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool stringStorageComplete);
+        IReadOnlyDictionary<uint, IWorkTextContent> richStrings = IWorkTableRichTextReader.Read(index, store,
+            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
+            out bool richStringStorageComplete, out bool richStringCatalogStructureComplete);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
@@ -681,7 +678,8 @@ internal static class IWorkNumbersReader {
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
                     IWorkTableCell cell = DecodeCell(buffer, offset, cellLimits[offset],
                         checked((int)zeroBasedRow + 1), column + 1,
-                        strings, formulas, source.Options, projectionBudget);
+                        strings, richStrings, formulas, source.Options, projectionBudget,
+                        formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
                     if (cell.Kind == IWorkCellKind.Empty) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
                         throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");
@@ -703,6 +701,25 @@ internal static class IWorkNumbersReader {
             }
         }
 
+        bool blockingRichText = !richStringCatalogStructureComplete || richStrings.Any(entry =>
+            !entry.Value.IsTextComplete
+            && nonFormulaRichStringIdentifiers.Contains(entry.Key));
+        if (!richStringStorageComplete && blockingRichText) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED",
+                "An iWork rich-text table catalog contains malformed or unresolved entries; affected cell text may be incomplete.",
+                model.EntryPath, model.Identifier));
+        }
+        if (richStrings.Any(entry => nonFormulaRichStringIdentifiers.Contains(entry.Key)
+                && !entry.Value.IsComplete && entry.Value.IsTextComplete)) {
+            supportsEditableReconstruction = false;
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_RICH_TEXT_STYLE_UNSUPPORTED",
+                "An iWork rich-text table catalog contains formatting that could not be reconstructed; editable formatting is incomplete.",
+                model.EntryPath, model.Identifier));
+        }
+
         int errorCount = cells.Count(cell => cell.Kind == IWorkCellKind.Error && cell.Error != "#ERROR");
         if (errorCount > 0) {
             supportsEditableReconstruction = false;
@@ -716,8 +733,20 @@ internal static class IWorkNumbersReader {
                 $"{incompleteCachedFormulaCount} formulas in table '{name}' retain typed cached values because their expressions were not reconstructed completely.",
                 model.EntryPath, model.Identifier));
         }
+        int incompleteFormulaCacheCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
+            && !cell.CachedValueIsComplete && cell.Value != null);
+        if (incompleteFormulaCacheCount > 0) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_TABLE_FORMULA_CACHE_PARTIAL",
+                $"{incompleteFormulaCacheCount} formula cached values in table '{name}' are partial; only complete expressions can be reconstructed as editable formulas.",
+                model.EntryPath, model.Identifier));
+            if (cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                && !cell.CachedValueIsComplete && !cell.FormulaIsComplete)) {
+                supportsEditableReconstruction = false;
+            }
+        }
         int incompleteUncachedFormulaCount = cells.Count(cell => cell.Kind == IWorkCellKind.Formula
-            && !cell.FormulaIsComplete && cell.Value == null);
+            && (!cell.FormulaIsComplete || !cell.CachedValueIsComplete) && cell.Value == null);
         if (incompleteUncachedFormulaCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -838,7 +867,7 @@ internal static class IWorkNumbersReader {
         return formulas;
     }
 
-    private static bool TryGetCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
+    internal static bool TryGetCatalogEntryCount(IWorkArchiveRecord list, int maximumEntries,
         IWorkReadOptions options, string catalogName, out int declaredEntryCount) {
         declaredEntryCount = 0;
         int totalFieldCount;
@@ -990,8 +1019,10 @@ internal static class IWorkNumbersReader {
 
     private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int endOffset,
         int row, int column,
-        IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
-        IWorkReadOptions options, IWorkProjectionBudget projectionBudget) {
+        IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, IWorkTextContent> richStrings,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
+        IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
+        HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
             || offset > endOffset - 12) return Error(row, column, "Truncated cell record.");
         int version = buffer[offset];
@@ -1006,11 +1037,13 @@ internal static class IWorkNumbersReader {
         double doubleValue = 0;
         double dateValue = 0;
         uint stringIdentifier = 0;
+        uint richStringIdentifier = 0;
         uint formulaIdentifier = 0;
         bool hasDecimal = false;
         bool hasDouble = false;
         bool hasDate = false;
         bool hasString = false;
+        bool hasRichString = false;
         bool hasFormula = false;
         for (int bit = 0; bit < 21; bit++) {
             if ((flags & (1u << bit)) == 0) continue;
@@ -1033,6 +1066,10 @@ internal static class IWorkNumbersReader {
                     stringIdentifier = IWorkProtobuf.ReadUInt32(buffer, position);
                     hasString = true;
                     break;
+                case 4:
+                    richStringIdentifier = IWorkProtobuf.ReadUInt32(buffer, position);
+                    hasRichString = true;
+                    break;
                 case 9:
                     formulaIdentifier = IWorkProtobuf.ReadUInt32(buffer, position);
                     hasFormula = true;
@@ -1042,12 +1079,13 @@ internal static class IWorkNumbersReader {
         }
 
         bool hasConflictingValueFields = type switch {
-            0 => hasDecimal || hasDouble || hasDate || hasString || hasFormula,
-            2 or 10 => hasDecimal && hasDouble || hasDate || hasString,
-            3 => hasDecimal || hasDouble || hasDate,
-            5 => hasDecimal || hasDouble || hasString,
-            6 or 7 => hasDecimal || hasDate || hasString,
-            8 or 9 => hasDecimal || hasDouble || hasDate || hasString,
+            0 => hasDecimal || hasDouble || hasDate || hasString || hasRichString || hasFormula,
+            2 or 10 => hasDecimal && hasDouble || hasDate || hasString || hasRichString,
+            3 => hasDecimal || hasDouble || hasDate || hasRichString,
+            5 => hasDecimal || hasDouble || hasString || hasRichString,
+            6 or 7 => hasDecimal || hasDate || hasString || hasRichString,
+            8 => hasDecimal || hasDouble || hasDate || hasString || hasRichString,
+            9 => hasDecimal || hasDouble || hasDate || hasString,
             _ => false
         };
         if (hasConflictingValueFields) {
@@ -1115,7 +1153,27 @@ internal static class IWorkNumbersReader {
                     ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget, "#ERROR", IWorkCellKind.Error)
                     : Error(row, column, "#ERROR");
             case 9:
-                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : new IWorkTableCell(row, column, IWorkCellKind.Text, string.Empty);
+                if (hasRichString) {
+                    if (hasFormula) formulaRichStringIdentifiers.Add(richStringIdentifier);
+                    else nonFormulaRichStringIdentifiers.Add(richStringIdentifier);
+                    if (richStrings.TryGetValue(richStringIdentifier, out IWorkTextContent? richText)) {
+                        string text = richText.PlainText;
+                        projectionBudget.AddTextContentUse(richText, includeCharacters: true);
+                        return hasFormula
+                            ? Formula(row, column, formulaIdentifier, formulas, options,
+                                projectionBudget, text, IWorkCellKind.Text,
+                                cachedValueIsComplete: richText.IsTextComplete,
+                                richText: richText)
+                            : new IWorkTableCell(row, column, IWorkCellKind.Text, text,
+                                richText: richText);
+                    }
+                    return hasFormula
+                        ? Formula(row, column, formulaIdentifier, formulas, options,
+                            projectionBudget, cachedValueIsComplete: false)
+                        : Error(row, column, $"Unresolved rich text {richStringIdentifier}.");
+                }
+                return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget)
+                    : new IWorkTableCell(row, column, IWorkCellKind.Text, string.Empty);
             default:
                 return Error(row, column, $"Unknown cell type {type}.");
         }
@@ -1126,7 +1184,8 @@ internal static class IWorkNumbersReader {
         IWorkProjectionBudget projectionBudget,
         object? cachedValue = null,
         IWorkCellKind? cachedValueKind = null,
-        bool cachedValueIsComplete = true) {
+        bool cachedValueIsComplete = true,
+        IWorkTextContent? richText = null) {
         IWorkFormulaResult result;
         if (formulas.TryGetValue(formulaIdentifier, out IWorkWireMessage? formula)) {
             projectionBudget.AddFormulaRenderingOperations(
@@ -1142,7 +1201,9 @@ internal static class IWorkNumbersReader {
         projectionBudget.AddTextItem();
         return new IWorkTableCell(row, column, IWorkCellKind.Formula, cachedValue,
             formula: formulaText, valueKind: cachedValueKind,
-            formulaIsComplete: result.IsComplete && cachedValueIsComplete);
+            formulaIsComplete: result.IsComplete,
+            richText: richText,
+            cachedValueIsComplete: cachedValueIsComplete);
     }
 
     private static IWorkTableCell FiniteNumber(int row, int column, double value, bool hasFormula,

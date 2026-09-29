@@ -27,6 +27,22 @@ internal static partial class PdfWriter {
             }
 
             double? measuredHeight = MeasureFlowBlocks(blocks);
+            double beforeFloatClearanceY = y;
+            while (HasFloatingTables && (measuredHeight.GetValueOrDefault() > 0.001D || flow.Options.MinimumRemainingHeight > 0D) &&
+                (flow.Options.KeepTogether || flow.Options.MinimumRemainingHeight > 0D ||
+                 flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
+                double previousY = y;
+                AvoidFloatingBlock(Math.Max(measuredHeight.GetValueOrDefault(), flow.Options.MinimumRemainingHeight));
+                if (y >= previousY - 0.001D) break;
+                context = CreateFlowContext();
+                if (flow.IsReplayable) {
+                    blocks = MaterializeFlow(flow, context);
+                }
+                // Clearance changes page-top spacing and can change replayed content.
+                // Recheck the complete group against any lower floating regions.
+                measuredHeight = MeasureFlowBlocks(blocks);
+                available = y - currentOpts.MarginBottom;
+            }
             if (!measuredHeight.HasValue &&
                 (flow.Options.KeepTogether || flow.Options.OverflowBehavior != PdfFlowOverflowBehavior.Continue)) {
                 throw new NotSupportedException("KeepTogether and non-continuing overflow behavior require flow content whose height can be determined before rendering. Remove the constraint or move dynamic, multi-column, deferred-table, table-of-contents, canvas, or explicit page-boundary content outside the flow.");
@@ -40,7 +56,9 @@ internal static partial class PdfWriter {
                                 fullPageMeasuredHeight.Value <= GetCurrentFramePageStartY() - currentOpts.MarginBottom + 0.001D;
             bool moveForKeepTogether = flow.Options.KeepTogether && cannotFitCurrentPage && fitsFullPage;
             bool moveForOverflow = flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.MoveToNextPage && cannotFitCurrentPage && fitsFullPage;
-            if ((moveForKeepTogether || moveForOverflow) && y < GetCurrentFramePageStartY() - 0.001D) {
+            bool moveForMinimumHeight = flow.Options.MinimumRemainingHeight > 0D &&
+                available + 0.001D < flow.Options.MinimumRemainingHeight;
+            if ((moveForKeepTogether || moveForOverflow || moveForMinimumHeight) && y < GetCurrentFramePageStartY() - 0.001D) {
                 NewPage();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
@@ -50,6 +68,7 @@ internal static partial class PdfWriter {
                 measuredHeight = MeasureFlowBlocks(blocks);
                 fullPageMeasuredHeight = measuredHeight;
                 available = y - currentOpts.MarginBottom;
+                beforeFloatClearanceY = y;
                 cannotFitCurrentPage = measuredHeight.HasValue && measuredHeight.Value > available + 0.001D;
             }
 
@@ -59,6 +78,8 @@ internal static partial class PdfWriter {
             }
 
             if (cannotFitCurrentPage && flow.Options.OverflowBehavior == PdfFlowOverflowBehavior.Skip) {
+                // A skipped candidate does not reserve its temporary float clearance.
+                y = beforeFloatClearanceY;
                 capture?.MarkSkipped();
                 return;
             }
@@ -72,8 +93,11 @@ internal static partial class PdfWriter {
             int startPageNumber = pages.Count + 1;
             double startY = y;
             PdfOptions startOptions = currentOpts;
-            ProcessBlocks(blocks);
-            CaptureFlowRegions(capture, startPageNumber, startY, startOptions);
+            var paintedRegions = new FloatingFlowCapture();
+            if (capture != null) activeFloatingFlowCaptures.Push(paintedRegions);
+            try { ProcessBlocks(blocks); }
+            finally { if (capture != null) activeFloatingFlowCaptures.Pop(); }
+            CaptureFlowRegions(capture, startPageNumber, startY, startOptions, paintedRegions);
         }
 
         private IReadOnlyList<IPdfBlock> MaterializeFlow(FlowBlock flow, PdfFlowContext context) {
@@ -105,9 +129,21 @@ internal static partial class PdfWriter {
             return MeasureBlockSequence(blocks, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize);
         }
 
-        private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions) {
+        private void CaptureFlowRegions(PdfLayoutPositionCapture? capture, int startPageNumber, double startY, PdfOptions startOptions, FloatingFlowCapture paintedRegions) {
             if (capture == null) {
                 return;
+            }
+
+            void AddCapturedRegion(PdfLayoutRegion region) {
+                var painted = paintedRegions.PaintedRegions.Where(item => item.PageNumber == region.PageNumber).ToList();
+                if (painted.Count == 0) { capture.Add(region); return; }
+                // A float-only group leaves its flow cursor unchanged. Do not let that
+                // nominal frame extend the painted table's captured bounds, even when
+                // pagination synthesized a completed-page frame.
+                if (paintedRegions.FlowPages.Contains(region.PageNumber) && region.Height > 0) painted.Add(region);
+                double left = painted.Min(item => item.X), bottom = painted.Min(item => item.Y);
+                double right = painted.Max(item => item.X + item.Width), top = painted.Max(item => item.Y + item.Height);
+                capture.Add(new PdfLayoutRegion(region.PageNumber, left, bottom, right - left, top - bottom));
             }
 
             int endPageNumber = pages.Count + (currentPage == null ? 0 : 1);
@@ -119,11 +155,11 @@ internal static partial class PdfWriter {
             if (endPageNumber == startPageNumber) {
                 double bottom = Math.Min(startY, y);
                 double height = Math.Max(0D, startY - y);
-                capture.Add(new PdfLayoutRegion(startPageNumber, startOptions.MarginLeft, bottom, startOptions.PageWidth - startOptions.MarginLeft - startOptions.MarginRight, height));
+                AddCapturedRegion(new PdfLayoutRegion(startPageNumber, startOptions.MarginLeft, bottom, startOptions.PageWidth - startOptions.MarginLeft - startOptions.MarginRight, height));
                 return;
             }
 
-            capture.Add(new PdfLayoutRegion(
+            AddCapturedRegion(new PdfLayoutRegion(
                 startPageNumber,
                 startOptions.MarginLeft,
                 startOptions.MarginBottom,
@@ -133,7 +169,7 @@ internal static partial class PdfWriter {
             for (int pageNumber = startPageNumber + 1; pageNumber < endPageNumber; pageNumber++) {
                 LayoutResult.Page completedPage = pages[pageNumber - 1];
                 PdfOptions options = completedPage.Options;
-                capture.Add(new PdfLayoutRegion(
+                AddCapturedRegion(new PdfLayoutRegion(
                     pageNumber,
                     options.MarginLeft,
                     options.MarginBottom,
@@ -142,7 +178,7 @@ internal static partial class PdfWriter {
             }
 
             if (currentPage != null) {
-                capture.Add(new PdfLayoutRegion(
+                AddCapturedRegion(new PdfLayoutRegion(
                     endPageNumber,
                     currentOpts.MarginLeft,
                     y,

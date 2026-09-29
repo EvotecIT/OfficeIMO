@@ -486,6 +486,23 @@ OfficeDrawing drawing = document.Pages[0].ToDrawing(fonts);
 
 Use the PDF's resolved font family name when registering a replacement. The overload also accepts `textShapingProvider`, `textShapingLanguage`, and `cancellationToken`. Supplied faces replace matching embedded faces and apply to nested drawings. Adding fonts after `ToDrawing()` cannot restore glyphs already discarded by visibility checks.
 
+### Embedded-font Latin ligatures
+
+Generated PDFs use `PdfTextShapingMode.OpenTypeLigatures` by default for embedded
+TrueType and OpenType/CFF fonts. Measurement and painting use the same glyph run;
+Unicode mappings retain the source text for extraction, search, and redaction.
+
+Set `PdfOptions.TextShapingMode = PdfTextShapingMode.UnicodeScalar` to retain
+separate scalar glyphs and the previous wrapping behavior. Per-run feature
+settings such as `OfficeTextFeatureSettings.Default.With("liga", 0)` disable
+that optional feature; the language system's required feature remains enabled.
+`LatinLigatures` remains available for the presentation-character
+substitutions supported by that mode.
+
+See the [PDF font support contract](../Docs/officeimo.pdf.current-state.md#resources-fonts-and-trust)
+for supported substitutions and limits. Use `TextShapingProvider` when a full
+OpenType shaping provider is needed.
+
 ### Write a generated PDF
 
 ```csharp
@@ -581,6 +598,12 @@ PdfDocument.Create(pdf => pdf.Content(content => content
 These recipes compose normal flow, table, and panel primitives. `IPdfContextComponent`
 uses the existing deferred replay path when content must react to the live page number;
 it does not introduce another layout engine.
+
+### Floating tables
+
+Set `PdfTableStyle.Position` to a `PdfTablePosition` to place a table relative to the current text flow, page margins, or page edges. Offsets and text clearances are measured in points; positive vertical offsets move down the page. Paragraphs wrap beside the table and regain their full width below it. Wide inline objects move below the table when the side interval is too narrow. Headings, lists, images, and other structured blocks use space below intersecting floating tables.
+
+Floating placement ignores the table's flow spacing (`SpacingBefore` and `SpacingAfter`). Deferred tables apply their top anchor once across all batches. Vertical `Inside` alignment uses the top edge on odd output pages and the bottom edge on even pages; `Outside` reverses those edges. Center, bottom, inside, and outside alignment require an eager table because a deferred table's total height is not known before its rows are streamed. Floating placement is supported in document flow; tables inside row columns reject `Position`, and Word multi-column sections retain an approximation diagnostic.
 
 ### Hyphenation and inline visuals
 

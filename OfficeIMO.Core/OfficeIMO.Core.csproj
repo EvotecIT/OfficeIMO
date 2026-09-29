@@ -4,7 +4,7 @@
     <Description>Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.</Description>
     <AssemblyName>OfficeIMO.Core</AssemblyName>
     <AssemblyTitle>OfficeIMO.Core</AssemblyTitle>
-    <VersionPrefix>3.4.3</VersionPrefix>
+    <VersionPrefix>3.4.4</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -66,6 +66,7 @@
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>
     </None>
+    <None Include="Licenses\*.txt" Pack="true" PackagePath="Licenses/" />
     <None Include="THIRD-PARTY-NOTICES.md">
       <Pack>True</Pack>
       <PackagePath>THIRD-PARTY-NOTICES.md</PackagePath>
