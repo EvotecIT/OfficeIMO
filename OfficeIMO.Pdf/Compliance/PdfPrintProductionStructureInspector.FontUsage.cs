@@ -170,7 +170,19 @@ internal static partial class PdfPrintProductionStructureInspector {
                             contextWasUninspectable = true;
                             break;
                         case "gs" when operation.Operands.Count == 1 && operation.Operands[0] is string graphicsStateName:
-                            if (!TryResolveResource(context.Resources, "ExtGState", graphicsStateName, out PdfObject? graphicsStateObject)) break;
+                            if (!TryResolveResource(context.Resources, "ExtGState", graphicsStateName, out PdfObject? graphicsStateObject) ||
+                                ResolveObject(_objects, graphicsStateObject, 0, _limits.MaxObjectNestingDepth, out _) is not PdfDictionary graphicsState) {
+                                contextWasUninspectable = true;
+                                break;
+                            }
+                            if (!PdfReadPage.TryResolveGraphicsStateFont(graphicsState, context.Resources, _objects,
+                                    _cancellationToken,
+                                    out PdfDictionary? graphicsStateFont)) {
+                                contextWasUninspectable = true;
+                            } else if (graphicsStateFont != null) {
+                                activeFontObject = graphicsStateFont;
+                                AddSelectedFont(graphicsStateFont);
+                            }
                             if (!AddSoftMaskContent(graphicsStateObject!, context.Resources, context.ContentDepth + 1, activeFontObject)) {
                                 contextWasUninspectable = true;
                             }

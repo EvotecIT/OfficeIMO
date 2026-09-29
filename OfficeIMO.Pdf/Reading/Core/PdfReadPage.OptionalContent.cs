@@ -302,14 +302,57 @@ public sealed partial class PdfReadPage {
         return GetOptionalContentVisibility(resources)?.IsUnsupported(value) == true;
     }
 
-    internal Dictionary<PdfDictionary, HashSet<int>> GetDefiniteUnlayeredFontResources(System.Threading.CancellationToken cancellationToken) {
+    private bool IsDefinitelyPrintVisible(PdfDictionary dictionary, PdfDictionary? resources) {
+        if (!dictionary.Items.TryGetValue("OC", out PdfObject? value)) return true;
+        PdfObject? resolved = PdfObjectLookup.ResolveChain(_objects, value);
+        if (resolved is PdfNull) return true;
+        if (resolved is null) return false;
+        PdfPageOptionalContentVisibility? visibility = GetOptionalContentVisibility(resources);
+        return visibility != null && !visibility.HasUnsupportedViewUsageApplications &&
+            !visibility.IsUnsupported(value) && !visibility.IsInvalid(value) && !visibility.IsHidden(value);
+    }
+
+    private static bool IsDefinitelyPrintVisible(PdfContentOperation operation,
+        PdfPageOptionalContentVisibility? visibility) {
+        object? property = operation.Operands.Count > 0 ? operation.Operands[operation.Operands.Count - 1] : null;
+        if (property is not string and not PdfInlineOptionalContentReferences &&
+            property is not PdfContentDictionary { OptionalContentReferences: not null }) return false;
+        return visibility != null && !visibility.HasUnsupportedViewUsageApplications &&
+            !IsUnsupportedMarkedContent(operation, visibility) && !IsHiddenMarkedContent(operation, visibility);
+    }
+
+    internal static bool TryResolveGraphicsStateFont(PdfDictionary graphicsState, PdfDictionary? resources,
+        Dictionary<int, PdfIndirectObject> objects, System.Threading.CancellationToken cancellationToken,
+        out PdfDictionary? font) {
+        font = null;
+        if (!graphicsState.Items.TryGetValue("Font", out PdfObject? selection)) return true;
+        PdfObject? resolvedSelection = PdfObjectLookup.ResolveChainCancellable(objects, selection, cancellationToken);
+        if (resolvedSelection is PdfNull) return true;
+        if (resolvedSelection is not PdfArray values || values.Items.Count != 2 ||
+            PdfObjectLookup.ResolveChainCancellable(objects, values.Items[1], cancellationToken) is not PdfNumber size ||
+            double.IsNaN(size.Value) || double.IsInfinity(size.Value) || size.Value < 0D) return false;
+        PdfObject? fontValue = PdfObjectLookup.ResolveChainCancellable(objects, values.Items[0], cancellationToken);
+        if (fontValue is PdfName name) {
+            if (PdfObjectLookup.ResolveChainCancellable(objects,
+                    resources?.Items.TryGetValue("Font", out PdfObject? fontsObject) == true ? fontsObject : null,
+                    cancellationToken)
+                is not PdfDictionary fonts) return false;
+            fontValue = PdfObjectLookup.ResolveChainCancellable(objects,
+                fonts.Items.TryGetValue(name.Name, out PdfObject? namedFont) ? namedFont : null,
+                cancellationToken);
+        }
+        font = fontValue as PdfDictionary;
+        return font != null;
+    }
+
+    internal Dictionary<PdfDictionary, HashSet<int>> GetDefinitePrintVisibleFontResources(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var fonts = new Dictionary<PdfDictionary, HashSet<int>>();
-        if (HasEffectiveOptionalContentEntry(_pageDict)) return fonts;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        if (!IsDefinitelyPrintVisible(_pageDict, resources)) return fonts;
         var budget = new PageContentBudget(this, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
-        Scan(GetContentStreamContent(budget), resources, 0);
+        Scan(GetContentStreamContent(budget), resources, initialFont: null, depth: 0);
         PdfArray? annotations = ResolveArray(
             _pageDict.Items.TryGetValue("Annots", out PdfObject? annotationsObject) ? annotationsObject : null);
         if (annotations != null) {
@@ -318,39 +361,44 @@ public sealed partial class PdfReadPage {
                 cancellationToken.ThrowIfCancellationRequested();
                 PdfDictionary? annotation = ResolveDictionary(item);
                 if (annotation == null || !IsPrintableAnnotation(annotation) ||
-                    HasEffectiveOptionalContentEntry(annotation) ||
+                    !IsDefinitelyPrintVisible(annotation, resources) ||
                     !TryGetNormalAppearanceStream(annotation, out PdfStream appearanceStream) ||
-                    HasEffectiveOptionalContentEntry(appearanceStream.Dictionary) ||
+                    !IsDefinitelyPrintVisible(appearanceStream.Dictionary, resources) ||
                     !activeForms.Add(appearanceStream)) continue;
                 try {
                     PdfDictionary? appearanceResources = ResolveDictionary(
                         appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? appearanceResource)
                             ? appearanceResource : null) ?? resources;
-                    Scan(PdfEncoding.Latin1GetString(budget.Decode(appearanceStream)), appearanceResources, 1);
+                    Scan(PdfEncoding.Latin1GetString(budget.Decode(appearanceStream)), appearanceResources,
+                        initialFont: null, depth: 1);
                 } finally { activeForms.Remove(appearanceStream); }
             }
         }
         return fonts;
 
-        void Scan(string content, PdfDictionary? currentResources, int depth) {
+        void Scan(string content, PdfDictionary? currentResources, PdfDictionary? initialFont, int depth) {
             EnsureContentNestingBudget(depth);
             PdfDictionary? fontResources = ResolveDictionary(currentResources?.Items.TryGetValue("Font", out PdfObject? fontObject) == true
                 ? fontObject : null);
+            PdfDictionary? graphicsStates = ResolveDictionary(currentResources?.Items.TryGetValue("ExtGState", out PdfObject? statesObject) == true
+                ? statesObject : null);
             PdfDictionary? xObjects = ResolveDictionary(currentResources?.Items.TryGetValue("XObject", out PdfObject? xObject) == true
                 ? xObject : null);
-            PdfDictionary? selectedFont = null;
+            PdfDictionary? selectedFont = initialFont;
             var savedFonts = new Stack<PdfDictionary?>();
             var markedContent = new Stack<bool>();
             int layeredDepth = 0;
             bool inText = false;
+            PdfPageOptionalContentVisibility? visibility = GetOptionalContentVisibility(currentResources);
             PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
                 cancellationToken.ThrowIfCancellationRequested();
                 switch (operation.Name) {
                     case "BDC":
                         bool isLayer = operation.Operands.Count > 1 &&
                             operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
-                        markedContent.Push(isLayer);
-                        if (isLayer) layeredDepth++;
+                        bool excludedLayer = isLayer && !IsDefinitelyPrintVisible(operation, visibility);
+                        markedContent.Push(excludedLayer);
+                        if (excludedLayer) layeredDepth++;
                         return;
                     case "BMC": markedContent.Push(false); return;
                     case "EMC":
@@ -365,6 +413,16 @@ public sealed partial class PdfReadPage {
                 if (operation.Name == "Tf" && inText && operation.Operands.Count == 2 &&
                     operation.Operands[0] is string fontName) {
                     selectedFont = ResolveDictionary(fontResources?.Items.TryGetValue(fontName, out PdfObject? font) == true ? font : null);
+                    return;
+                }
+                if (operation.Name == "gs" && operation.Operands.Count == 1 &&
+                    operation.Operands[0] is string stateName &&
+                    ResolveDictionary(graphicsStates?.Items.TryGetValue(stateName, out PdfObject? stateObject) == true
+                        ? stateObject : null) is PdfDictionary state &&
+                    TryResolveGraphicsStateFont(state, currentResources, _objects, cancellationToken,
+                        out PdfDictionary? graphicsStateFont) &&
+                    graphicsStateFont != null) {
+                    selectedFont = graphicsStateFont;
                     return;
                 }
                 if (layeredDepth != 0) return;
@@ -383,23 +441,24 @@ public sealed partial class PdfReadPage {
                     operation.Operands[0] is not string name ||
                     PdfObjectLookup.ResolveChain(_objects, xObjects?.Items.TryGetValue(name, out PdfObject? formObject) == true
                         ? formObject : null) is not PdfStream form ||
-                    HasEffectiveOptionalContentEntry(form.Dictionary) ||
+                    !IsDefinitelyPrintVisible(form.Dictionary, currentResources) ||
                     (ResolveObject(form.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtype) ? subtype : null) as PdfName)?.Name != "Form" ||
                     !activeForms.Add(form)) return;
                 try {
                     PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResource)
                         ? formResource : null) ?? currentResources;
-                    Scan(PdfEncoding.Latin1GetString(budget.Decode(form)), formResources, depth + 1);
+                    Scan(PdfEncoding.Latin1GetString(budget.Decode(form)), formResources,
+                        selectedFont, depth + 1);
                 } finally { activeForms.Remove(form); }
             }, maxNestingDepth: _limits.MaxContentNestingDepth, maxOperands: _limits.MaxContentOperands);
         }
     }
 
-    internal HashSet<PdfContentOrderKey> GetDefiniteUnlayeredImageContentOrderKeys(System.Threading.CancellationToken cancellationToken) {
+    internal HashSet<PdfContentOrderKey> GetDefinitePrintVisibleImageContentOrderKeys(System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         var keys = new HashSet<PdfContentOrderKey>();
-        if (HasEffectiveOptionalContentEntry(_pageDict)) return keys;
         PdfDictionary? resources = ResolveDictionary(GetInheritedValue("Resources"));
+        if (!IsDefinitelyPrintVisible(_pageDict, resources)) return keys;
         var budget = new PageContentBudget(this, cancellationToken);
         var activeForms = new HashSet<PdfStream>();
         Scan(GetContentStreamContent(budget), resources, PdfContentOrderKey.Root, 0);
@@ -411,13 +470,15 @@ public sealed partial class PdfReadPage {
                 ? xObjectsObject : null);
             var markedContent = new Stack<bool>();
             int layeredDepth = 0;
+            PdfPageOptionalContentVisibility? visibility = GetOptionalContentVisibility(currentResources);
             PdfContentStreamInterpreter.Interpret(content, _limits.MaxContentOperations, operation => {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (operation.Name == "BDC") {
                     bool isLayer = operation.Operands.Count > 1 &&
                         operation.Operands[operation.Operands.Count - 2] is string tag && tag == "OC";
-                    markedContent.Push(isLayer);
-                    if (isLayer) layeredDepth++;
+                    bool excludedLayer = isLayer && !IsDefinitelyPrintVisible(operation, visibility);
+                    markedContent.Push(excludedLayer);
+                    if (excludedLayer) layeredDepth++;
                     return;
                 }
                 if (operation.Name == "BMC") { markedContent.Push(false); return; }
@@ -432,7 +493,7 @@ public sealed partial class PdfReadPage {
                     operation.Operands[operation.Operands.Count - 1] is not string name) return;
                 if (PdfObjectLookup.ResolveChain(_objects,
                         xObjects?.Items.TryGetValue(name, out PdfObject? xObject) == true ? xObject : null) is not PdfStream stream ||
-                    HasEffectiveOptionalContentEntry(stream.Dictionary)) return;
+                    !IsDefinitelyPrintVisible(stream.Dictionary, currentResources)) return;
                 string? subtype = (ResolveObject(stream.Dictionary.Items.TryGetValue("Subtype", out PdfObject? subtypeObject)
                     ? subtypeObject : null) as PdfName)?.Name;
                 if (subtype == "Image") {
