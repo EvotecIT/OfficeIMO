@@ -27,3 +27,21 @@ At clean source `91951f8efa87e00cf5d1a4f65065c88b4d67e759`, the PDF adapter stop
 The exact-head frozen NIST replay at `Ignore/HtmlUnknownPageQualification/h10-nist-outline-fallback-91951f8ef/` completes all OfficeIMO PDF intents without runner failure. Screen-media now has eight pages, matching the Chromium screen-media page count, but has one outline approximation warning and remains visually unqualified. Its print path remains nine pages against Chromium's ten; the screen snapshot has ten pages.
 
 The exact-head NASA replay at `Ignore/HtmlUnknownPageQualification/h10-nasa-planets-outline-fallback-91951f8ef/` completes all OfficeIMO PDF intents with one outline approximation warning per intent. Chromium print has 16 pages against OfficeIMO's 26, while Chromium screen-media has 21 against OfficeIMO's 20. PeachPDF still fails independently in bookmark geometry. The retained page-two PNGs in that directory show a specific severe layout gap: Chromium keeps prose at readable width beside a narrow four-planet figure, while OfficeIMO compresses the prose to a thin strip and expands the image nearly across the page. The archived CSS uses a flex row with a gap and primary/sidebar columns; the print result requires a bounded flex sizing investigation before any visual acceptance. The fallback changes successful output and diagnostics, not layout parity.
+
+## Chesapeake per-operation resource baseline
+
+The [H10 budget runner](../../../../../Build/HtmlH10Budget/README.md) starts a fresh child process for every declared PDF intent and editable target. At clean commit `92d3d7d3a5ea0c8454912c033bb5cc40017850ec`, the frozen Chesapeake archive `ecdac81c8d6253b79cde1648bc50026839997b40a036a8df0c3bfc7901d1292f` produced all nine artifacts and reports on macOS. The exact-head report and child artifacts are retained at `Ignore/HtmlUnknownPageQualification/h10-budget-noaa-clean-92d3d7d3a/` (about 14 MiB). Conversion time and managed allocations are measured inside each worker; peak working set samples its process tree from startup through conversion. Values are one observed run, in MiB where indicated:
+
+| Operation | Conversion ms | Allocated MiB | Peak MiB |
+| --- | ---: | ---: | ---: |
+| `pdf-print` | 1477 | 365.1 | 190.5 |
+| `pdf-screen-media` | 1410 | 360.5 | 194.6 |
+| `pdf-screen-snapshot` | 1394 | 360.7 | 192.4 |
+| `editable-word` | 1704 | 455.6 | 191.8 |
+| `editable-excel` | 1453 | 465.7 | 212.7 |
+| `editable-powerpoint` | 1630 | 480.8 | 197.9 |
+| `editable-onenote` | 1176 | 369.6 | 181.2 |
+| `editable-rtf` | 1116 | 390.6 | 183.4 |
+| `editable-markdown` | 1115 | 381.9 | 167.8 |
+
+Print has three pages, screen-media four, and screen-snapshot five. All editable targets passed marker and save/reopen checks. Every operation still reports loss, so this is a resource baseline, not visual or editable acceptance. The runner also rejected a deliberately low print-time ceiling and preserved an aggregate report when malformed MHTML caused every worker to fail. Independent read-only review found two attribution/failure-report defects; the archive-hash and failure-report corrections were confirmed in a targeted pass. Accepted limits require comparable runs and current-source checks on Windows, Linux and macOS, followed by fidelity review of the named page and target gaps.
