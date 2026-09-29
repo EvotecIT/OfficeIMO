@@ -28,6 +28,14 @@ public sealed class PowerPointChartAxisTickBudgetTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
         axis.GetFirstChild<C.MajorUnit>()!.Val = 25;
         Assert.True(chart.TryGetOfficeSnapshot(out _));
+        if (!horizontal) {
+            axis.GetFirstChild<C.MajorUnit>()!.Val = 4;
+            axis.AddChild(new C.MinorTickMark { Val = C.TickMarkValues.Outside }, true);
+            Assert.Equal(C.TickMarkValues.Outside, axis.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
+            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot native));
+            Assert.Equal(OfficeChartAxisTickMark.Outside, native.Layout.VerticalAxisMinorTickMark);
+            Assert.False(chart.TryGetOfficeSnapshot(out _));
+        }
     }
 
     [Fact]

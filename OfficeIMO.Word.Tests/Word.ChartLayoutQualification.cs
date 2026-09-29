@@ -20,6 +20,18 @@ public sealed class WordChartLayoutQualificationTests {
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
 
+    [Fact]
+    public void Snapshot_RejectsDerivedMinorTicksBeyondRendererBudget() {
+        using var document = WordDocument.Create();
+        WordChart chart = Create(document, OfficeChartKind.Line);
+        C.ValueAxis axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
+        axis.Scaling.AddChild(new C.MaxAxisValue { Val = 100 }, true);
+        axis.AddChild(new C.MajorUnit { Val = 4 }, true);
+        axis.AddChild(new C.MinorTickMark { Val = C.TickMarkValues.Outside }, true);
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.BarClustered)]
     [InlineData(OfficeChartKind.BarStacked)]

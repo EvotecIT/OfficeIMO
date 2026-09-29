@@ -650,6 +650,10 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlCompositeElement? logicalValueAxis = primaryValueAxis ?? verticalNumericAxis;
             OpenXmlCompositeElement? physicalHorizontalAxis = horizontalValue ? logicalValueAxis : logicalCategoryAxis;
             OpenXmlCompositeElement? physicalVerticalAxis = horizontalValue ? logicalCategoryAxis : logicalValueAxis;
+            horizontalMajorTickMark = ReadAxisTickMark(physicalHorizontalAxis?.GetFirstChild<C.MajorTickMark>()?.Val?.Value);
+            horizontalMinorTickMark = ReadAxisTickMark(physicalHorizontalAxis?.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
+            verticalMajorTickMark = ReadAxisTickMark(physicalVerticalAxis?.GetFirstChild<C.MajorTickMark>()?.Val?.Value);
+            verticalMinorTickMark = ReadAxisTickMark(physicalVerticalAxis?.GetFirstChild<C.MinorTickMark>()?.Val?.Value);
             if (!forDataUpdate && kind == PowerPointChartSnapshotKind.Radar &&
                 logicalCategoryAxis?.GetFirstChild<C.Scaling>()?.GetFirstChild<C.Orientation>()?.Val?.Value ==
                     C.OrientationValues.MaxMin)

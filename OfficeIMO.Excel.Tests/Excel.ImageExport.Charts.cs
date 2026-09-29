@@ -1989,7 +1989,8 @@ namespace OfficeIMO.Tests {
             sheet.CellValue(3, 2, 80);
             ExcelChart chart = sheet.AddChartFromRange("A1:B3", row: 1, column: 4,
                 widthPixels: 265, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Axis Budget");
-            chart.SetValueAxisScale(minimum: 0D, maximum: 100D, majorUnit: 2D);
+            chart.SetValueAxisScale(minimum: 0D, maximum: 100D, majorUnit: 4D);
+            SetFirstChartValueAxisMinorTickMark(document, TickMarkValues.Outside);
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(
                 OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });

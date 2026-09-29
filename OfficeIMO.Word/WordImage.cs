@@ -168,7 +168,11 @@ namespace OfficeIMO.Word {
         /// Get or sets the image's file name
         /// </summary>
         public string? FileName {
-            get => _vmlShape != null ? _vmlImageData?.Title?.Value : GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
+            get => _vmlShape != null
+                ? !string.IsNullOrWhiteSpace(_vmlImageData?.Title?.Value)
+                    ? _vmlImageData.Title.Value
+                    : _imagePart?.Uri.ToString().Split('/').LastOrDefault()
+                : GetPicture()?.NonVisualPictureProperties?.NonVisualDrawingProperties?.Name;
             set {
                 if (value == null) throw new ArgumentNullException(nameof(value));
                 if (_vmlShape != null) {
