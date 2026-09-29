@@ -86,25 +86,45 @@ namespace OfficeIMO.OpenXml.Internal {
                 item.HasAutomaticColor)).ToList();
             var result = new Result(categories, series);
             if (HasSuppressedOverMaximumDataLabels(chart,
-                    series.SelectMany(item => item.Data.Values)))
+                    series.Select(item => item.Data)))
                 return null;
             // The same authoring contract declares supported family/axis combinations.
             OfficeOpenXmlChartWriter.ValidateSharedChartData(result.ToData(), kind);
             return result;
         }
 
-        internal static bool HasSuppressedOverMaximumDataLabels(C.Chart chart, IEnumerable<double> values) {
+        internal static bool HasSuppressedOverMaximumDataLabels(C.Chart chart, IEnumerable<OfficeChartSeries> series) {
             // Office suppresses labels beyond an explicit value-axis maximum when
             // showDLblsOverMax is false. The shared renderer cannot model that
             // per-point suppression, so keep the native chart unprojected.
-            if (chart.GetFirstChild<C.ShowDataLabelsOverMaximum>()?.Val?.Value != false ||
-                chart.PlotArea?.Descendants<C.DataLabels>().Any() != true) return false;
-            double lowestMaximum = chart.PlotArea.Descendants<C.ValueAxis>()
-                .Select(axis => axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value)
-                .Where(maximum => maximum.HasValue)
-                .Select(maximum => maximum!.Value)
-                .DefaultIfEmpty(double.PositiveInfinity).Min();
-            return values.Any(value => value > lowestMaximum);
+            C.PlotArea? plot = chart.PlotArea;
+            if (plot == null || chart.GetFirstChild<C.ShowDataLabelsOverMaximum>()?.Val?.Value != false ||
+                !plot.Descendants<C.DataLabels>().Any(labels =>
+                    labels.Elements<C.DataLabel>().Any() ||
+                    labels.GetFirstChild<C.ShowValue>() is C.ShowValue value && value.Val?.Value != false ||
+                    labels.GetFirstChild<C.ShowCategoryName>() is C.ShowCategoryName category && category.Val?.Value != false ||
+                    labels.GetFirstChild<C.ShowSeriesName>() is C.ShowSeriesName name && name.Val?.Value != false ||
+                    labels.GetFirstChild<C.ShowPercent>() is C.ShowPercent percent && percent.Val?.Value != false ||
+                    labels.GetFirstChild<C.ShowBubbleSize>() is C.ShowBubbleSize bubble && bubble.Val?.Value != false))
+                return false;
+            OfficeChartSeries[] allSeries = series.ToArray();
+            bool horizontalBar = plot.Descendants<C.BarChart>().Any(bar =>
+                bar.BarDirection?.Val?.Value == C.BarDirectionValues.Bar);
+            bool scatter = plot.Descendants<C.ScatterChart>().Any();
+            foreach (C.ValueAxis axis in plot.Elements<C.ValueAxis>()) {
+                double? maximum = axis.GetFirstChild<C.Scaling>()?.GetFirstChild<C.MaxAxisValue>()?.Val?.Value;
+                if (!maximum.HasValue) continue;
+                C.AxisPositionValues? position = axis.AxisPosition?.Val?.Value;
+                bool horizontal = position == C.AxisPositionValues.Bottom || position == C.AxisPositionValues.Top;
+                if (horizontal && !horizontalBar && !scatter || !horizontal && horizontalBar) continue;
+                OfficeChartAxisGroup group = position == C.AxisPositionValues.Right || position == C.AxisPositionValues.Top
+                    ? OfficeChartAxisGroup.Secondary : OfficeChartAxisGroup.Primary;
+                foreach (OfficeChartSeries item in allSeries.Where(item => item.AxisGroup == group)) {
+                    IReadOnlyList<double>? values = horizontal && scatter ? item.XValues : item.Values;
+                    if (values?.Any(value => value > maximum.Value) == true) return true;
+                }
+            }
+            return false;
         }
 
         private static bool HasUnsupportedLayerPresentation(OpenXmlCompositeElement layer) {
