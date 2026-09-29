@@ -5,6 +5,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.OneNote;
 using OfficeIMO.OneNote.Html;
+using OfficeIMO.OneNote.Markdown;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 using OfficeIMO.Rtf;
@@ -59,14 +60,22 @@ internal static class EditableTargetExporter {
                 string artifact = Path.Combine(output, documentName + ".one");
                 result.RequireValue().Save(artifact);
                 OneNoteSection loaded = OneNoteSectionReader.Read(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtmlDocument());
+                return new EditableExport(result.Report, artifact, loaded.ToHtmlDocument(new OneNoteMarkdownOptions {
+                    AssetUriResolver = element => element is OneNoteImage { Payload: not null } image
+                        && image.MediaType is "image/png" or "image/jpeg" or "image/gif" or "image/webp"
+                        ? "data:" + image.MediaType + ";base64," + Convert.ToBase64String(image.Payload!.ToArray(16 * 1024 * 1024))
+                        : null
+                }));
             }
             case "rtf": {
                 HtmlToRtfResult result = source.ToRtfDocumentResult();
                 string artifact = Path.Combine(output, documentName + ".rtf");
                 result.RequireValue().Save(artifact);
                 RtfDocument loaded = RtfDocument.Load(artifact);
-                return new EditableExport(result.Report, artifact, loaded.ToHtml());
+                return new EditableExport(result.Report, artifact, loaded.ToHtml(new RtfToHtmlOptions {
+                    EmbedImagesAsDataUri = true,
+                    MaxEmbeddedImageBytes = 16 * 1024 * 1024
+                }));
             }
             case "markdown": {
                 HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
