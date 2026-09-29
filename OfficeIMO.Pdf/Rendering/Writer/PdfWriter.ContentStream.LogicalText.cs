@@ -3,15 +3,19 @@ namespace OfficeIMO.Pdf;
 internal sealed partial class ContentStreamBuilder {
     private double _textA = 1, _textB, _textC, _textD = 1, _textE, _textF, _lineE, _lineF;
     private double _textScale = 1, _textLeading, _textWordSpacing;
+    private const double SyntheticObliqueShear = 1D / 3D;
+    private bool _syntheticOblique, _hasTextMatrix;
     private bool _isolatedText;
-    private readonly Stack<(double Scale, double Leading, double WordSpacing)> _textStates = new();
+    private readonly Stack<(double Scale, double Leading, double WordSpacing, bool SyntheticOblique)> _textStates = new();
 
     private void ResetTrackedTextMatrix() {
         _textA = _textD = 1; _textB = _textC = _textE = _textF = _lineE = _lineF = 0;
         _isolatedText = false;
+        _hasTextMatrix = false;
     }
 
     private void TrackTextMatrix(double a, double b, double c, double d, double e, double f) {
+        _hasTextMatrix = true;
         _textA = a; _textB = b; _textC = c; _textD = d;
         _textE = _lineE = e; _textF = _lineF = f;
     }
@@ -35,7 +39,7 @@ internal sealed partial class ContentStreamBuilder {
                 logical.Append(glyph.UnicodeText);
             } while (index < glyphs.Count && glyphs[index].LogicalClusterStart == clusterStart);
             _sb.Append("ET\nBT\n");
-            TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
+            TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
             bool marked = logical.Length != 0;
             if (marked) _sb.Append("/Span << /ActualText ").Append(PdfSyntaxEscaper.TextString(logical.ToString())).Append(" >> BDC\n");
             if (cluster.Any(glyph => glyph.HasPositioning)) AppendPositionedGlyphs(cluster, fontSize, textRise);
@@ -44,7 +48,7 @@ internal sealed partial class ContentStreamBuilder {
             AdvanceTrackedText(cluster.Sum(glyph => glyph.AdvanceWidth1000) * fontSize / 1000D);
         }
         _sb.Append("ET\nBT\n");
-        TextMatrix(_textA, _textB, _textC, _textD, _textE, _textF);
+        TextMatrixApplied(_textA, _textB, _textC, _textD, _textE, _textF);
         _lineE = lineE; _lineF = lineF; _isolatedText = true;
     }
 

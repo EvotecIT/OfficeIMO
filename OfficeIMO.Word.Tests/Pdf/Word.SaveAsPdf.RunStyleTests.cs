@@ -108,6 +108,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_PreservesHalfPointRunSizesInBodyAndTable() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeHalfPointFonts.docx");
+            string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeHalfPointFonts.pdf");
+
+            using (WordDocument document = WordDocument.Create(docPath)) {
+                document.AddParagraph("BodyHalfPoint").FontSizePoints = 10.5D;
+                WordParagraph cellParagraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
+                cellParagraph.Text = "CellHalfPoint";
+                cellParagraph.FontSizePoints = 10.5D;
+                document.Save();
+                document.SaveAsPdf(pdfPath, new WordToPdfOptions());
+            }
+
+            string content = PdfOperatorSearchText.From(File.ReadAllBytes(pdfPath));
+            Assert.True(Regex.Matches(content, @"/F\d+\s+10\.5\s+Tf").Count >= 2,
+                "Expected half-point sizes for both body and table text.");
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_PortableDeterministicPolicyDoesNotEmbedSystemFonts() {
             string docPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontNoEmbedding.docx");
             string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeDocumentDefaultFontNoEmbedding.pdf");

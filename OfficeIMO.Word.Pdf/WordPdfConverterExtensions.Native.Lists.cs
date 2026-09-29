@@ -181,8 +181,8 @@ namespace OfficeIMO.Word.Pdf {
                 MarkerItalic = info.MarkerItalic ?? markerTextStyle.Italic
             };
 
-            if (paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0D) {
-                style.FontSize = paragraph.FontSize.Value;
+            if (paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0D) {
+                style.FontSize = paragraph.FontSizePoints.Value;
             } else if (styleDefaults.FontSize.HasValue) {
                 style.FontSize = styleDefaults.FontSize.Value;
             }

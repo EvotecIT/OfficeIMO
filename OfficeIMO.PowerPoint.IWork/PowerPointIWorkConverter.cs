@@ -153,9 +153,28 @@ public static partial class PowerPointIWorkConverter {
         table.LastRow = source.FooterRowCount > 0;
         foreach (IWorkTableCell sourceCell in source.Cells) {
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
-            target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
-                ? sourceCell.CachedDisplayText
-                : sourceCell.DisplayText;
+            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
+                IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
+                    richText.Paragraphs.Select(_ => string.Empty));
+                var listState = new IWorkPowerPointListState();
+                for (int index = 0; index < paragraphs.Count; index++) {
+                    IWorkTextParagraph sourceParagraph = richText.Paragraphs[index];
+                    ApplyParagraphStyle(paragraphs[index], sourceParagraph,
+                        listState.StartsAtSourceLabel(sourceParagraph));
+                    WriteParagraphContent(paragraphs[index], sourceParagraph);
+                }
+                if (sourceCell.Row <= source.HeaderRowCount
+                    || sourceCell.Column <= source.HeaderColumnCount
+                    || sourceCell.Row > source.RowCount - source.FooterRowCount) {
+                    foreach (PowerPointParagraph paragraph in paragraphs) {
+                        foreach (PowerPointTextRun run in paragraph.Runs) run.Bold = true;
+                    }
+                }
+            } else {
+                target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
+                    ? sourceCell.CachedDisplayText
+                    : sourceCell.DisplayText;
+            }
             if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
                 || sourceCell.Row > source.RowCount - source.FooterRowCount) target.Bold = true;
         }
@@ -225,6 +244,11 @@ public static partial class PowerPointIWorkConverter {
                 || SlideText(slide).SelectMany(content => content.Paragraphs)
                     .SelectMany(paragraph => paragraph.Runs)
                     .Select(run => run.Hyperlink)
+                    .Concat(slide.Tables.SelectMany(table => table.Cells)
+                        .Where(cell => cell.RichText != null)
+                        .SelectMany(cell => cell.RichText!.Paragraphs)
+                        .SelectMany(paragraph => paragraph.Runs)
+                        .Select(run => run.Hyperlink))
                     .Any(value => IsUnsupportedHyperlink(value, projection.Slides.Count))) {
                 return $"Keynote slide {slide.Index} contains a hyperlink that cannot be represented by the PPTX owner.";
             }
@@ -308,8 +332,13 @@ public static partial class PowerPointIWorkConverter {
                 if (destinationTableCells > MaximumDestinationTableCells - tableCells) {
                     return "Keynote tables exceed the bounded PPTX destination cell budget.";
                 }
-                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula && cell.Value == null)) {
-                    return $"Keynote table '{table.Name}' contains an uncached formula that the PPTX owner cannot evaluate.";
+                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                    && (cell.Value == null || !cell.CachedValueIsComplete))) {
+                    return $"Keynote table '{table.Name}' contains a formula without a complete cached value that the PPTX owner cannot evaluate.";
+                }
+                if (table.Cells.Any(cell => cell.Kind == IWorkCellKind.Formula
+                    && cell.RichText is { IsComplete: false })) {
+                    return $"Keynote table '{table.Name}' contains formula cached text with incomplete formatting that the PPTX owner cannot preserve.";
                 }
                 if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
@@ -393,6 +422,11 @@ public static partial class PowerPointIWorkConverter {
         if (slide.TitleBox != null) yield return slide.TitleBox.Content;
         foreach (IWorkTextBox textBox in slide.TextBoxes) yield return textBox.Content;
         yield return slide.PresenterNoteContent;
+        foreach (IWorkTable table in slide.Tables) {
+            foreach (IWorkTableCell cell in table.Cells) {
+                if (cell.RichText != null) yield return cell.RichText;
+            }
+        }
     }
 
     private static bool FitsTextCoordinate(double? points) {

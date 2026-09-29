@@ -131,8 +131,11 @@ public sealed class IWorkKeynoteProjection {
 public sealed partial class IWorkSourceDocument {
     /// <summary>Reads a Keynote package into a bounded semantic source projection.</summary>
     public IWorkKeynoteProjection ReadKeynote() {
+        _cancellationToken.ThrowIfCancellationRequested();
         if (Kind != IWorkDocumentKind.Keynote) throw new InvalidOperationException($"The source is {Kind}, not Keynote.");
-        return IWorkKeynoteReader.Read(this);
+        IWorkKeynoteProjection projection = IWorkKeynoteReader.Read(this);
+        _cancellationToken.ThrowIfCancellationRequested();
+        return projection;
     }
 }
 
@@ -545,7 +548,8 @@ internal static class IWorkKeynoteReader {
             }
         }
 
-        IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(), isComplete: true);
+        IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(),
+            isComplete: true, isTextComplete: true);
         bool hasNoteReference = message.HasField(27);
         IReadOnlyList<IWorkArchiveRecord> noteRecords = index.DereferenceAll(
             message, 27, out int unresolvedNoteCount);

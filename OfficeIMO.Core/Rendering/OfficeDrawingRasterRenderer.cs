@@ -389,14 +389,14 @@ public static partial class OfficeDrawingRasterRenderer {
             }
             return true;
         }
-        // Only validated animated WebP intentionally delegates pixel decoding
-        // to a caller codec. A rejected managed raster must not bypass its
-        // container and aggregate inspection limits through that fallback.
+        // Validated animated WebP and static WebP with a separate alpha plane
+        // delegate pixel decoding to a caller codec. A rejected managed raster
+        // must not bypass its container and aggregate inspection limits.
         bool callerCodecInputWithinLimit = bytes.Length <= decodeOptions.MaximumEncodedBytes;
         bool callerDecodedWebp = callerCodecInputWithinLimit && decodeInfo.Container?.Format == OfficeImageFormat.Webp &&
             decodeInfo.Container.IsAnimated ||
             callerCodecInputWithinLimit && identifiedManagedRaster && identified.Format == OfficeImageFormat.Webp &&
-            IsCallerDecodedLossyWebp(bytes);
+            IsCallerDecodedAlphaWebp(bytes);
         bool callerDecodedJpeg = callerCodecInputWithinLimit && identifiedManagedRaster && identified.Format == OfficeImageFormat.Jpeg &&
             OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
                 requireManagedFrame: false, validateMetadata: true) &&
@@ -449,11 +449,12 @@ public static partial class OfficeDrawingRasterRenderer {
         (OfficeImageReader.TryIdentifyByContent(bytes, null, out OfficeImageInfo info) &&
          info.Format == OfficeImageFormat.Svg);
 
-    private static bool IsCallerDecodedLossyWebp(byte[] bytes) {
-        // Managed WebP handles VP8L and inspects every animated frame. A static
-        // VP8 payload belongs to the caller codec; never delegate a mixed or
-        // animated container after managed inspection has rejected it.
+    private static bool IsCallerDecodedAlphaWebp(byte[] bytes) {
+        // Managed WebP handles opaque VP8 and VP8L. Only a separately encoded
+        // ALPH plane belongs to the caller codec; malformed opaque VP8 must
+        // not bypass a failed managed decode.
         bool hasLossyImage = false;
+        bool hasAlphaPlane = false;
         int cursor = 12;
         while (cursor <= bytes.Length - 8) {
             uint length = (uint)(bytes[cursor + 4] | bytes[cursor + 5] << 8 |
@@ -466,12 +467,14 @@ public static partial class OfficeDrawingRasterRenderer {
             if (vp8 && bytes[cursor + 3] == (byte)'L' ||
                 bytes[cursor] == (byte)'A' && bytes[cursor + 1] == (byte)'N' &&
                 bytes[cursor + 2] == (byte)'I' && (bytes[cursor + 3] == (byte)'M' || bytes[cursor + 3] == (byte)'F')) return false;
+            if (bytes[cursor] == (byte)'A' && bytes[cursor + 1] == (byte)'L' &&
+                bytes[cursor + 2] == (byte)'P' && bytes[cursor + 3] == (byte)'H') hasAlphaPlane = true;
             if (vp8 && bytes[cursor + 3] == (byte)' ') hasLossyImage = true;
             long next = cursor + 8L + length + (length & 1);
             if (next > bytes.Length) return false;
             cursor = (int)next;
         }
-        return hasLossyImage && cursor == bytes.Length;
+        return hasAlphaPlane && hasLossyImage && cursor == bytes.Length;
     }
 
     private static double ResolveNestedVectorScale(

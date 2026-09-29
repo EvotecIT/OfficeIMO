@@ -37,7 +37,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 jobs:
   raster-evidence:
@@ -68,18 +67,37 @@ jobs:
       - name: Build release-quality workload
         run: dotnet build OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0
 
-      - name: Download matching master evidence
+      - name: Checkout master comparison source
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7
+        with:
+          ref: master
+          path: artifacts/reference-source
+          persist-credentials: false
+
+      - name: Build master Core with the current measurement harness
+        if: github.event_name == 'pull_request'
+        shell: pwsh
+        run: |
+          $sourceProject = './OfficeIMO.Drawing.Benchmarks'
+          $referenceProject = './artifacts/reference-source/OfficeIMO.Drawing.Benchmarks'
+          foreach ($name in @('ImageProcessMemorySampler.cs', 'ImageReleaseQualityWorkload.cs', 'ImageCancellationEvidence.cs')) {
+            Copy-Item -LiteralPath (Join-Path $sourceProject $name) -Destination (Join-Path $referenceProject $name) -Force
+          }
+          dotnet build (Join-Path $referenceProject 'OfficeIMO.Drawing.Benchmarks.csproj') --configuration Release --framework net10.0
+          if ($LASTEXITCODE -ne 0) { throw 'The master Core comparison build failed.' }
+          git -C ./artifacts/reference-source rev-parse HEAD
+
+      - name: Measure master Core with the current evidence contract
         if: github.event_name == 'pull_request'
         id: reference
         shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
-          $runId = gh run list --workflow release-quality-evidence.yml --branch master --status success --limit 1 --json databaseId --jq '.[0].databaseId'
-          if (-not $runId) { throw 'No successful master release-quality evidence run is available.' }
-          gh run download $runId --name "release-quality-images-${{ matrix.os }}" --dir ./artifacts/reference
-          $summary = Get-ChildItem ./artifacts/reference -Filter summary.json -Recurse | Sort-Object FullName -Descending | Select-Object -First 1
-          if (-not $summary) { throw 'The master evidence artifact does not contain summary.json.' }
+          ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1 `
+              -BinaryRoot './artifacts/reference-source/OfficeIMO.Drawing.Benchmarks/bin/Release/net10.0' `
+              -OutputRoot './artifacts/reference-evidence'
+          $summary = Get-ChildItem ./artifacts/reference-evidence -Filter summary.json -Recurse | Select-Object -First 1
+          if (-not $summary) { throw 'The matching master measurement did not produce summary.json.' }
           "summary=$($summary.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Run PowerForge evidence
@@ -108,3 +126,11 @@ jobs:
           name: release-quality-images-${{ matrix.os }}
           path: artifacts/release-quality-images
           if-no-files-found: error
+
+      - name: Upload matching master evidence
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-quality-reference-${{ matrix.os }}
+          path: artifacts/reference-evidence
+          if-no-files-found: warn

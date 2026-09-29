@@ -262,9 +262,11 @@ public static partial class OfficeDocumentReadResultJson {
     private static void EnsureKindSupported(int schemaVersion, ReaderInputKind kind) {
         bool requiresVersion6 = kind == ReaderInputKind.Calendar || kind == ReaderInputKind.VCard;
         bool requiresVersion7 = kind == ReaderInputKind.Opml || kind == ReaderInputKind.DocBook;
+        bool requiresVersion8 = kind == ReaderInputKind.IWork;
         if (!Enum.IsDefined(typeof(ReaderInputKind), kind) ||
             schemaVersion < 6 && requiresVersion6 ||
-            schemaVersion < 7 && requiresVersion7) {
+            schemaVersion < 7 && requiresVersion7 ||
+            schemaVersion < 8 && requiresVersion8) {
             throw new JsonException(
                 $"Reader input kind '{kind}' is not supported by document read result schema version {schemaVersion}.");
         }

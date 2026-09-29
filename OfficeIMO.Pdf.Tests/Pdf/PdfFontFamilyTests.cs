@@ -13,6 +13,67 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public class PdfFontFamilyTests {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void MissingItalicFace_UsesObliqueTextMatrixWithoutSkewingDesignedItalics(bool namedFamily, bool designedItalic) {
+        string regularPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont());
+        byte[] regular = File.ReadAllBytes(regularPath);
+        byte[] bold = File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-Bold.ttf"));
+        byte[]? italic = designedItalic
+            ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-Italic.ttf"))
+            : null;
+        byte[]? boldItalic = designedItalic
+            ? File.ReadAllBytes(regularPath.Replace("-Regular.ttf", "-BoldItalic.ttf"))
+            : null;
+        var family = new PdfEmbeddedFontFamily("Oblique Proof", regular, bold, italic, boldItalic);
+        var options = new PdfOptions { CompressContentStreams = false };
+        if (namedFamily) options.RegisterNamedFontFamily(family);
+        else options.RegisterFontFamily(PdfStandardFont.Helvetica, family);
+
+        byte[] pdf = PdfDocument.Create(options)
+            .Paragraph(paragraph => {
+                if (namedFamily) paragraph.FontFamily("Oblique Proof");
+                else paragraph.Font(PdfStandardFont.Helvetica);
+                paragraph.Text("Regular ").Italic("Italic ").Bold(true).Italic(true).Text("Bold italic ")
+                    .Bold(false).Italic(false).Text("Regular again");
+            })
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        if (designedItalic) Assert.DoesNotContain("1 0 0.333 1", raw, StringComparison.Ordinal);
+        else Assert.Contains("1 0 0.333 1", raw, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1", raw, StringComparison.Ordinal);
+        using var reopened = UglyToad.PdfPig.PdfDocument.Open(pdf);
+        var page = reopened.GetPage(1);
+        Assert.Contains("Regular again", page.Text, StringComparison.Ordinal);
+        var letters = page.Letters.ToList();
+        double regularX = letters.First(letter => letter.Value == "R").StartBaseLine.X;
+        double italicX = letters.First(letter => letter.Value == "I").StartBaseLine.X;
+        double boldItalicX = letters.First(letter => letter.Value == "B").StartBaseLine.X;
+        double finalRegularX = letters.Last(letter => letter.Value == "R").StartBaseLine.X;
+        Assert.True(italicX > regularX + 5, "The italic run must follow the regular run on the same line.");
+        Assert.True(boldItalicX > italicX + 5, "The bold italic run must follow the italic run.");
+        Assert.True(finalRegularX > boldItalicX + 5, "The final regular run must follow the bold italic run.");
+    }
+
+    [Fact]
+    public void MissingItalicFace_SlantsTextWatermark() {
+        string regularPath = Assert.IsType<string>(PdfComplianceTestFonts.FindBundledTrueTypeFont());
+        var family = new PdfEmbeddedFontFamily("Oblique Watermark", File.ReadAllBytes(regularPath));
+        byte[] pdf = PdfDocument.Create(new PdfOptions { CompressContentStreams = false }
+                .RegisterFontFamily(PdfStandardFont.Helvetica, family))
+            .Watermark("DRAFT", fontSize: 32, rotationAngle: 0, bold: false, italic: true)
+            .Paragraph(paragraph => paragraph.Text("Watermark proof"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        Assert.Contains("1 0 0.333 1", raw, StringComparison.Ordinal);
+        Assert.Contains("DRAFT", PdfReadDocument.Open(pdf).ExtractText(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ExplicitDefaultFontResource_IsOmittedWhenOnlyNamedRunsUseText() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
@@ -1101,8 +1162,9 @@ public class PdfFontFamilyTests {
             PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text, fontProgram, renderOptions));
         Assert.Equal(
             first.ToGlyphHex(),
-            PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText));
+            PdfUnicodeScalarTextShaper.EncodeGlyphHex(text, fontProgram, renderOptions, out string? actualText, out int encodedAdvanceWidth1000));
         Assert.Equal(first.ActualText, actualText);
+        Assert.Equal(first.TotalAdvanceWidth1000, encodedAdvanceWidth1000);
     }
 
     [Fact]
