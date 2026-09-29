@@ -230,17 +230,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(line => new HtmlInlineBreakProgress(contentY + line.CrossOffset, 0, line.Items[0].Element))
                 .ToList()
             : Array.Empty<HtmlInlineBreakProgress>();
-        // A single flex line that fits the page body should move together when
-        // the current page has too little room. Oversized lines retain their
-        // item break offsets so they can still fragment across pages.
+        // A fitting flex row, including its wrapped lines, moves together when
+        // the current page has too little room. Oversized rows retain their
+        // item and line break offsets so they can still fragment across pages.
         IEnumerable<HtmlRenderAvoidBreakRange> lineKeepRanges = _options.Mode == HtmlRenderMode.Paged
-            && style.FlexWrap == "nowrap"
-            && lines.Count == 1
-            && lines[0].Items.All(item => item.Block!.ForcedBreaks.Count == 0)
-            && lines[0].Items.All(item => item.Element == null
-                || !ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1))
-            ? new[] { new HtmlRenderAvoidBreakRange(contentY + lines[0].CrossOffset,
-                contentY + lines[0].CrossOffset + lines[0].CrossSize) }
+            && lines.Count > 0
+            && lines.All(line => line.Items.All(item => item.Block!.ForcedBreaks.Count == 0))
+            && lines.All(line => line.Items.All(item => item.Element == null
+                || !ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1)))
+            ? new[] { new HtmlRenderAvoidBreakRange(contentY + lines.Min(line => line.CrossOffset),
+                contentY + lines.Max(line => line.CrossOffset + line.CrossSize)) }
             : Array.Empty<HtmlRenderAvoidBreakRange>();
 
         block = new HtmlRenderFlowBlock(
