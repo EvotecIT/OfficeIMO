@@ -131,6 +131,10 @@ internal sealed partial class HtmlRenderStyleResolver {
         _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
         && computed.IsSpecifiedValue(propertyName);
 
+    internal bool HasPropertyCascadeState(IElement element, string propertyName) =>
+        _computedStyles.Elements.TryGetValue(element, out HtmlComputedStyle? computed)
+        && computed.HasCascadeState(propertyName);
+
     private HtmlRenderBoxStyle ResolveCore(
         IElement element,
         HtmlComputedStyle computed,

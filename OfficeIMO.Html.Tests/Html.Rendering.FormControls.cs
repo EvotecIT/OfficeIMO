@@ -395,6 +395,21 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRendering_CssResetButtonDoesNotRestoreDefaultControlChrome() {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<style>.bare{border:unset;background:unset;padding:unset;width:18px;height:18px}</style>" +
+            "<button id='bare' class='bare' aria-label='Menu'><span style='display:inline-block;width:12px;height:2px;background:#fff'></span></button>" +
+            "<button id='default'>Open</button>",
+            new HtmlRenderOptions { ViewportWidth = 200D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape[] shapes = rendered.Pages.SelectMany(page => page.Visuals)
+            .OfType<HtmlRenderShape>().ToArray();
+        Assert.DoesNotContain(shapes, shape => shape.Source == "button#bare");
+        Assert.Contains(shapes, shape => shape.Source == "button#default" && shape.Shape.FillColor.HasValue);
+        Assert.Contains(shapes, shape => shape.Source == "span" && shape.Shape.FillColor.HasValue);
+    }
+
+    [Fact]
     public void HtmlRendering_ButtonPaintsGeneratedContentInsideItsChild() {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<style>.icon::before{content:'★';color:#123456}</style>" +

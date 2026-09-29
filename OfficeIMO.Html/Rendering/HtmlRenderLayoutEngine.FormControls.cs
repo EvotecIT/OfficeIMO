@@ -90,23 +90,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
         bool compact = IsCompactChoiceControl(element);
         bool range = IsInputType(element, "range");
 
-        if (!style.BorderDeclared && !range) {
+        if (!style.BorderDeclared && !range && !_styleResolver.HasPropertyCascadeState(element, "border")) {
             style.Borders = HtmlRenderBorderEdges.Uniform(
                 1D,
                 "solid",
                 element.HasAttribute("disabled") ? ControlDisabledBorderColor : ControlBorderColor);
             style.BorderDeclared = true;
         }
-        if (style.BackgroundColor == null) {
+        if (style.BackgroundColor == null
+            && !_styleResolver.HasPropertyCascadeState(element, "background")
+            && !_styleResolver.HasPropertyCascadeState(element, "background-color")) {
             style.BackgroundColor = element.HasAttribute("disabled")
                 ? ControlDisabledFillColor
                 : OfficeColor.White;
         }
-        if (!compact && !range && style.PaddingLeft == 0D && style.PaddingRight == 0D) {
+        if (!compact && !range && style.PaddingLeft == 0D && style.PaddingRight == 0D
+            && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
             style.PaddingLeft = 6D;
             style.PaddingRight = 6D;
         }
-        if (!compact && !range && style.PaddingTop == 0D && style.PaddingBottom == 0D) {
+        if (!compact && !range && style.PaddingTop == 0D && style.PaddingBottom == 0D
+            && !_styleResolver.HasPropertyCascadeState(element, "padding")) {
             style.PaddingTop = 4D;
             style.PaddingBottom = 4D;
         }
