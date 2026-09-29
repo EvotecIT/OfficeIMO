@@ -104,8 +104,8 @@ public static partial class MarkdownReader {
         // Require a boundary on the left so we don't linkify inside longer words.
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
-        var rem = text.Substring(start);
-        if (!(rem.StartsWith("http://", StringComparison.Ordinal) || rem.StartsWith("https://", StringComparison.Ordinal))) return false;
+        if (string.Compare(text, start, "http://", 0, 7, StringComparison.Ordinal) != 0 &&
+            (start + 8 > text.Length || string.Compare(text, start, "https://", 0, 8, StringComparison.Ordinal) != 0)) return false;
         int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
         if (ShouldRejectUnmatchedOpeningSingleQuote(text, start, rawEnd, i)) return false;
@@ -122,9 +122,8 @@ public static partial class MarkdownReader {
         if (start + 4 > text.Length) return false;
         if (HasInvalidAutolinkLeftBoundary(text, start, options)) return false;
         if (IsAfterInvalidReferenceDefinitionPrefix(text, start)) return false;
-        if (options.AutolinkRequireLowercaseWwwPrefix) {
-            if (!text.Substring(start).StartsWith("www.", StringComparison.Ordinal)) return false;
-        } else if (!text.Substring(start).StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
+        if (string.Compare(text, start, "www.", 0, 4,
+                options.AutolinkRequireLowercaseWwwPrefix ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) != 0) return false;
 
         int rawEnd = ConsumeLiteralUrl(text, start, options);
         int i = TrimTrailingAutolinkPunctuation(text, start, rawEnd, options);
