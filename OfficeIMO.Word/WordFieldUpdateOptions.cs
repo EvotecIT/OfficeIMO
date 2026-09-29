@@ -13,5 +13,10 @@ namespace OfficeIMO.Word {
         /// When unset, OfficeIMO uses the current local date and time.
         /// </summary>
         public DateTime? CurrentDateTime { get; set; }
+
+        /// <summary>
+        /// When true, refreshes only DATE and TIME fields and leaves all other field results unchanged.
+        /// </summary>
+        public bool DateTimeFieldsOnly { get; set; }
     }
 }
