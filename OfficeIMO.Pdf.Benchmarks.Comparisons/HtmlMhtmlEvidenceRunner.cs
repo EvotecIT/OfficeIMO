@@ -32,6 +32,7 @@ internal static class HtmlMhtmlEvidenceRunner {
         string[] flags = args.Skip(5).ToArray();
         int? maxCssRules = null;
         int? authoredPrintFitWidth = null;
+        string? isolatedIntent = null;
         var switches = new HashSet<string>(StringComparer.Ordinal);
         bool invalidFlags = false;
         for (int index = 0; index < flags.Length; index++) {
@@ -45,6 +46,10 @@ internal static class HtmlMhtmlEvidenceRunner {
                 && int.TryParse(flags[++index], out int requestedFitWidth)
                 && requestedFitWidth > 0 && requestedFitWidth <= 20_000) {
                 authoredPrintFitWidth = requestedFitWidth;
+            } else if (flag == "--isolated-officeimo-intent" && index + 1 < flags.Length
+                && args[1] == "--mhtml" && isolatedIntent == null
+                && flags[index + 1] is "print" or "screen-media" or "screen-snapshot") {
+                isolatedIntent = flags[++index];
             } else if (flag != "--replay-browser" && flag != "--require-clean-source") {
                 invalidFlags = true;
                 break;
@@ -52,13 +57,15 @@ internal static class HtmlMhtmlEvidenceRunner {
         }
         if (args.Length < 5 || (args[1] != "--url" && args[1] != "--mhtml") || args[3] != "--output"
             || invalidFlags) {
-            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000] [--authored-print-fit-width css-pixels]");
+            Console.Error.WriteLine("html-mhtml-evidence <--url https-url|--mhtml existing-archive> --output <new-directory> [--replay-browser] [--require-clean-source] [--max-css-rules 10000..20000] [--authored-print-fit-width css-pixels] [--isolated-officeimo-intent print|screen-media|screen-snapshot]");
             return 2;
         }
         bool replay = args[1] == "--mhtml";
         bool replayBrowser = replay && switches.Contains("--replay-browser");
         if (!replay && switches.Contains("--replay-browser"))
             throw new ArgumentException("--replay-browser requires --mhtml.");
+        if (isolatedIntent != null && (replayBrowser || authoredPrintFitWidth.HasValue))
+            throw new ArgumentException("An isolated OfficeIMO intent cannot request browser replay or another print profile.");
         Uri? url = replay ? null : new Uri(args[2], UriKind.Absolute);
         if (url != null && url.Scheme != Uri.UriSchemeHttps) throw new ArgumentException("Only HTTPS page URLs are supported.");
         string repositoryRoot = FindRepositoryRoot();
@@ -170,60 +177,74 @@ internal static class HtmlMhtmlEvidenceRunner {
             failures.Add("OfficeIMO MHTML load: " + exception);
         }
         if (document != null) {
-            await RunConversionAsync("officeimo-print", () => document.ToPdfDocumentResultAsync(), output, results, failures).ConfigureAwait(false);
-            if (authoredPrintFitWidth.HasValue) {
-                await RunConversionAsync("officeimo-print-authored-fit", () =>
-                    document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
-                        PrintLayoutWidthCssPixels = authoredPrintFitWidth.Value
-                    }), output, results, failures).ConfigureAwait(false);
+            if (isolatedIntent is null or "print") {
+                await RunConversionAsync("officeimo-print", () => document.ToPdfDocumentResultAsync(), output, results, failures).ConfigureAwait(false);
             }
-            await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
-                Margins = HtmlRenderMargins.All(0)
-            }), output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-print-fit-1200", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
-                Margins = HtmlRenderMargins.All(0),
-                HonorCssPageRules = false,
-                PrintLayoutWidthCssPixels = 1200D
-            }), output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-print-fit-1200-local-fonts", () => {
-                var options = new HtmlToPdfOptions {
+            if (isolatedIntent == null) {
+                if (authoredPrintFitWidth.HasValue) {
+                    await RunConversionAsync("officeimo-print-authored-fit", () =>
+                        document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+                            PrintLayoutWidthCssPixels = authoredPrintFitWidth.Value
+                        }), output, results, failures).ConfigureAwait(false);
+                }
+                await RunConversionAsync("officeimo-print-zero-margin", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
+                    Margins = HtmlRenderMargins.All(0)
+                }), output, results, failures).ConfigureAwait(false);
+                await RunConversionAsync("officeimo-print-fit-1200", () => document.ToPdfDocumentResultAsync(new HtmlToPdfOptions {
                     Margins = HtmlRenderMargins.All(0),
                     HonorCssPageRules = false,
                     PrintLayoutWidthCssPixels = 1200D
-                };
-                options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-                return document.ToPdfDocumentResultAsync(options);
-            }, output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-print-browser-ua", () => {
-                var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
-                options.UseBrowserUserAgentStyles();
-                return document.ToPdfDocumentResultAsync(options);
-            }, output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-print-zero-margin-local-fonts", () => {
-                var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
-                options.ResourcePolicy.AllowDocumentFontEmbedding = true;
-                return document.ToPdfDocumentResultAsync(options);
-            }, output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-screen-media", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged), output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-screen-media-local-fonts", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged, allowDocumentFontEmbedding: true), output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-screen-snapshot", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged), output, results, failures).ConfigureAwait(false);
-            await RunConversionAsync("officeimo-screen-snapshot-local-fonts", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged, allowDocumentFontEmbedding: true), output, results, failures).ConfigureAwait(false);
+                }), output, results, failures).ConfigureAwait(false);
+                await RunConversionAsync("officeimo-print-fit-1200-local-fonts", () => {
+                    var options = new HtmlToPdfOptions {
+                        Margins = HtmlRenderMargins.All(0),
+                        HonorCssPageRules = false,
+                        PrintLayoutWidthCssPixels = 1200D
+                    };
+                    options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+                    return document.ToPdfDocumentResultAsync(options);
+                }, output, results, failures).ConfigureAwait(false);
+                await RunConversionAsync("officeimo-print-browser-ua", () => {
+                    var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
+                    options.UseBrowserUserAgentStyles();
+                    return document.ToPdfDocumentResultAsync(options);
+                }, output, results, failures).ConfigureAwait(false);
+                await RunConversionAsync("officeimo-print-zero-margin-local-fonts", () => {
+                    var options = new HtmlToPdfOptions { Margins = HtmlRenderMargins.All(0) };
+                    options.ResourcePolicy.AllowDocumentFontEmbedding = true;
+                    return document.ToPdfDocumentResultAsync(options);
+                }, output, results, failures).ConfigureAwait(false);
+            }
+            if (isolatedIntent is null or "screen-media") {
+                await RunConversionAsync("officeimo-screen-media", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged), output, results, failures).ConfigureAwait(false);
+            }
+            if (isolatedIntent == null) {
+                await RunConversionAsync("officeimo-screen-media-local-fonts", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenMediaPaged, allowDocumentFontEmbedding: true), output, results, failures).ConfigureAwait(false);
+            }
+            if (isolatedIntent is null or "screen-snapshot") {
+                await RunConversionAsync("officeimo-screen-snapshot", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged), output, results, failures).ConfigureAwait(false);
+            }
+            if (isolatedIntent == null) {
+                await RunConversionAsync("officeimo-screen-snapshot-local-fonts", () => RenderScreenPdfAsync(document, HtmlRenderIntentProfile.ScreenSnapshotPaged, allowDocumentFontEmbedding: true), output, results, failures).ConfigureAwait(false);
+            }
         }
-        await RunAsync("peachpdf-print", async () => {
-            using var source = new MemoryStream(archive, writable: false);
-            var generator = new PdfGenerator();
-            var configuration = new PdfGenerateConfig {
-                PageSize = PeachPDF.PageSize.A4,
-                PageOrientation = PageOrientation.Portrait,
-                EnableTaggedPdf = true,
-                AllowLocalFileAccess = false,
-                NetworkLoader = new MimeKitNetworkLoader(source)
-            };
-            var pdf = await generator.GeneratePdf(null, configuration).ConfigureAwait(false);
-            using var outputStream = new MemoryStream();
-            pdf.Save(outputStream);
-            return outputStream.ToArray();
-        }, output, results, failures).ConfigureAwait(false);
+        if (isolatedIntent == null) {
+            await RunAsync("peachpdf-print", async () => {
+                using var source = new MemoryStream(archive, writable: false);
+                var generator = new PdfGenerator();
+                var configuration = new PdfGenerateConfig {
+                    PageSize = PeachPDF.PageSize.A4,
+                    PageOrientation = PageOrientation.Portrait,
+                    EnableTaggedPdf = true,
+                    AllowLocalFileAccess = false,
+                    NetworkLoader = new MimeKitNetworkLoader(source)
+                };
+                var pdf = await generator.GeneratePdf(null, configuration).ConfigureAwait(false);
+                using var outputStream = new MemoryStream();
+                pdf.Save(outputStream);
+                return outputStream.ToArray();
+            }, output, results, failures).ConfigureAwait(false);
+        }
 
         var report = new {
             schemaVersion = 3,
@@ -245,6 +266,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             worktreeDirty,
             maxCssRules = maxCssRules ?? HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules,
             authoredPrintFitWidthCssPixels = authoredPrintFitWidth,
+            isolatedOfficeimoIntent = isolatedIntent,
             maxSelectorEvaluations = HtmlConversionLimits.CreateUntrustedProfile().MaxSelectorEvaluations,
             chromiumVersion,
             peachPdfVersion = HtmlCorpusEvidenceRunner.DependencyVersion("PeachPDF", typeof(PdfGenerator).Assembly),
@@ -403,9 +425,11 @@ internal static class HtmlMhtmlEvidenceRunner {
         ICollection<string> failures) {
         try {
             var timer = Stopwatch.StartNew();
+            long allocationStart = GC.GetTotalAllocatedBytes(precise: true);
             PdfCore.PdfDocumentConversionResult result = await render().ConfigureAwait(false);
             byte[] bytes = result.ToBytes();
             timer.Stop();
+            long allocatedBytes = GC.GetTotalAllocatedBytes(precise: true) - allocationStart;
             string file = name + ".pdf";
             await File.WriteAllBytesAsync(Path.Combine(output, file), bytes).ConfigureAwait(false);
             PdfCore.PdfDocumentInfo inspection = PdfCore.PdfDocument.Load(bytes).Inspect();
@@ -420,7 +444,7 @@ internal static class HtmlMhtmlEvidenceRunner {
             results.Add(new OperationEvidence(name, file, bytes.Length, Sha256(bytes), inspection.PageCount,
                 inspection.Pages.Select(page => new PageSizeEvidence(page.PageNumber, page.Width, page.Height)).ToArray(),
                 timer.Elapsed.TotalMilliseconds,
-                new ConversionReportEvidence(result.HasLoss, result.Report.FidelityStatus.ToString(), warnings)));
+                new ConversionReportEvidence(result.HasLoss, result.Report.FidelityStatus.ToString(), warnings), allocatedBytes));
         } catch (Exception exception) {
             failures.Add(FormatFailure(name, exception));
         }
@@ -464,7 +488,8 @@ internal static class HtmlMhtmlEvidenceRunner {
     }
 
     private sealed record OperationEvidence(string Intent, string File, int Bytes, string Sha256, int PageCount,
-        PageSizeEvidence[] PageSizesPoints, double ElapsedMilliseconds, ConversionReportEvidence? ConversionReport = null);
+        PageSizeEvidence[] PageSizesPoints, double ElapsedMilliseconds, ConversionReportEvidence? ConversionReport = null,
+        long? ManagedAllocatedBytes = null);
     private sealed record PageSizeEvidence(int PageNumber, double Width, double Height);
     private sealed record ConversionReportEvidence(bool HasLoss, string FidelityStatus, WarningEvidence[] Warnings);
     private sealed record WarningEvidence(string Converter, string Code, string Source, string Message,
