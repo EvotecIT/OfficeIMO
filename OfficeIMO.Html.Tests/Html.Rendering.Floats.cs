@@ -8,6 +8,87 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed partial class HtmlRenderingTests {
+    [Theory]
+    [InlineData("<img style='display:block;width:120px;height:10px' src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E'>")]
+    [InlineData("<input style='display:block;width:120px;height:10px' value='A'>")]
+    public void HtmlFloat_ShrinkToFitPreservesBlockReplacedWidth(string child) {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+            "<body style='margin:0'><div id='outer' style='float:left;background:red'>" + child + "</div></body>",
+            new HtmlRenderOptions { ViewportWidth = 300D, Margins = HtmlRenderMargins.All(0D) });
+
+        HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
+        Assert.True(outer.Width >= 119D);
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitUsesFixedChildWidthDespiteClippedText() {
+        const string html = "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
+            + "<div style='width:40px;overflow:hidden'>AnUnbreakablyLongLabel</div></div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+
+        HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
+        Assert.InRange(outer.Width, 39D, 41D);
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitPreservesBreakInsidePaddedInlineChild() {
+        static double WidthFor(string content) {
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
+                "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
+                + "X<span style='padding-left:10px'>" + content + "</span>Y</div></body>",
+                new HtmlRenderOptions { ViewportWidth = 400D, Margins = HtmlRenderMargins.All(0D) });
+            return FindPositionedShape(rendered, "div#outer").Width;
+        }
+
+        double withBreak = WidthFor("AAAA<br>BBBB");
+        double withoutBreak = WidthFor("AAAABBBB");
+        Assert.True(withBreak + 20D < withoutBreak,
+            $"Inline break width {withBreak} should be narrower than unbroken width {withoutBreak}");
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitIncludesNestedPaddingAroundFloatedLinks() {
+        const string html = "<style>body{margin:0;font-family:Arial}.nav{height:25px}"
+            + ".nav ul{margin:0;padding:0;list-style:none;float:left;width:100%}"
+            + ".nav li{float:left;margin:0;padding:0}"
+            + ".nav li div{padding-right:8px}"
+            + ".nav li a{float:left;display:block;padding-right:11px;font-size:9pt;font-weight:bold}"
+            + "</style><div class='nav'><ul>"
+            + "<li><div><a href='#hazards'>Current Hazards</a></div></li>"
+            + "<li><div><a href='#conditions'>Current Conditions</a></div></li>"
+            + "</ul></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 500D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderText first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Current Hazards");
+        HtmlRenderText second = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Current Conditions");
+
+        Assert.Equal(first.Y, second.Y, 1);
+        Assert.True(second.X >= first.X + first.Width + 8D);
+    }
+
+    [Fact]
+    public void HtmlFloat_ShrinkToFitRetainsPaddingAcrossNestedBlockBoundaries() {
+        const string html = "<body style='margin:0'><div id='outer' style='float:left;background:red'>"
+            + "<div style='padding:0 12px'><div style='padding:0 8px'>Long label</div></div>"
+            + "</div></body>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 500D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape outer = FindPositionedShape(rendered, "div#outer");
+        HtmlRenderText label = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text == "Long label");
+
+        Assert.True(outer.Width >= label.Width + 39D);
+    }
+
     [Fact]
     public void HtmlFloat_PagedOverflowBlockNarrowsBesideActiveFloat() {
         const string html = "<body style='margin:0'><main style='display:flex'><article style='width:300px'>"

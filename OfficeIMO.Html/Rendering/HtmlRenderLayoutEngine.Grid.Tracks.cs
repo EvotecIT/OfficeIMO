@@ -367,7 +367,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (run.IsReplaced) {
                 current += run.ReplacedMinWidth;
                 maximum = Math.Max(maximum, current);
-                if (!run.Style.PreventTextWrapping) current = 0D;
+                if (!run.Style.PreventTextWrapping && !run.IsInlineInset) current = 0D;
                 continue;
             }
             if (run.Style.PreventTextWrapping) {
@@ -443,12 +443,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return Math.Max(maximum, current);
     }
 
-    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1, bool skipSizedNestedTables = false) {
+    private IReadOnlyList<GridIntrinsicTextRun> ResolveGridInFlowTextRuns(FlexItem item, double availableSize, int depth = 1, bool skipSizedNestedTables = false, bool includeDescendantInsets = false) {
         var rawRuns = new List<GridIntrinsicTextRun>();
         if (item.Element == null) {
             if (item.Style.Font.Size > 0D) rawRuns.Add(new GridIntrinsicTextRun(item.TextContent, item.Style));
         } else {
-            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, depth, rawRuns, skipSizedNestedTables);
+            AppendGridInFlowTextRuns(item.Element, item.Style, availableSize, depth, rawRuns, skipSizedNestedTables, includeDescendantInsets);
         }
 
         var normalized = new List<GridIntrinsicTextRun>();
@@ -530,7 +530,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double availableSize,
         int depth,
         ICollection<GridIntrinsicTextRun> result,
-        bool skipSizedNestedTables) {
+        bool skipSizedNestedTables,
+        bool includeDescendantInsets) {
         AppendGeneratedGridIntrinsicText(parent, HtmlPseudoElementKind.Before, parentStyle, availableSize, result);
         foreach (INode node in parent.ChildNodes) {
             if (node is IText text) {
@@ -553,7 +554,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }
-            bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle);
+            bool establishesLineBoundary = HtmlRenderStyleResolver.IsBlockElement(child, childStyle)
+                && (!includeDescendantInsets || childStyle.FloatSide == "none");
+            bool isReplacedChild = IsReplacedImageElement(child)
+                || IsFormControlElement(child.LocalName.ToLowerInvariant());
+            if (includeDescendantInsets && establishesLineBoundary && !isReplacedChild) {
+                IReadOnlyList<GridIntrinsicTextRun> childRuns = ResolveGridInFlowTextRuns(
+                    new FlexItem(child, childStyle, 0), availableSize, depth + 1,
+                    skipSizedNestedTables, includeDescendantInsets);
+                double extraWidth = Math.Max(0D, childStyle.HorizontalInsets + childStyle.MarginLeft + childStyle.MarginRight);
+                double minimum = MeasureGridMinContentRuns(childRuns) + extraWidth;
+                double maximum = MeasureGridMaxContentRuns(childRuns) + extraWidth;
+                if (childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
+                    TryResolveDefiniteGridContribution(new FlexItem(child, childStyle, 0), availableSize, out double authored);
+                    minimum = authored;
+                    maximum = authored;
+                }
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                result.Add(GridIntrinsicTextRun.Replaced(minimum, Math.Max(minimum, maximum), childStyle));
+                result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
+                continue;
+            }
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
             if (IsFormControlElement(child.LocalName.ToLowerInvariant())) {
                 result.Add(GridIntrinsicTextRun.Replaced(
@@ -569,7 +590,15 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 GridIntrinsicContributions widths = ResolveInlineBlockIntrinsicContributions(atomic, availableSize, depth + 1);
                 result.Add(GridIntrinsicTextRun.Replaced(widths.Minimum, widths.Maximum, parentStyle));
             } else {
-                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result, skipSizedNestedTables);
+                double leadingInset = includeDescendantInsets
+                    ? Math.Max(0D, childStyle.BorderLeftWidth + childStyle.PaddingLeft + childStyle.MarginLeft)
+                    : 0D;
+                double trailingInset = includeDescendantInsets
+                    ? Math.Max(0D, childStyle.BorderRightWidth + childStyle.PaddingRight + childStyle.MarginRight)
+                    : 0D;
+                if (leadingInset > 0D) result.Add(GridIntrinsicTextRun.InlineInset(leadingInset, childStyle));
+                AppendGridInFlowTextRuns(child, childStyle, availableSize, depth + 1, result, skipSizedNestedTables, includeDescendantInsets);
+                if (trailingInset > 0D) result.Add(GridIntrinsicTextRun.InlineInset(trailingInset, childStyle));
             }
             if (establishesLineBoundary) result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
         }
@@ -658,11 +687,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private sealed class GridIntrinsicTextRun {
-        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null) {
+        internal GridIntrinsicTextRun(string text, HtmlRenderBoxStyle style, bool isForcedBreak = false, bool isReplaced = false, double replacedWidth = 0D, double? replacedMinWidth = null, bool isInlineInset = false) {
             Text = text;
             Style = style;
             IsForcedBreak = isForcedBreak;
             IsReplaced = isReplaced;
+            IsInlineInset = isInlineInset;
             ReplacedWidth = replacedWidth;
             ReplacedMinWidth = replacedMinWidth ?? replacedWidth;
         }
@@ -671,11 +701,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal static GridIntrinsicTextRun Replaced(double width, HtmlRenderBoxStyle style) => new(string.Empty, style, isReplaced: true, replacedWidth: width);
         internal static GridIntrinsicTextRun Replaced(double minimum, double maximum, HtmlRenderBoxStyle style) =>
             new(string.Empty, style, isReplaced: true, replacedWidth: maximum, replacedMinWidth: minimum);
+        internal static GridIntrinsicTextRun InlineInset(double width, HtmlRenderBoxStyle style) =>
+            new(string.Empty, style, isReplaced: true, replacedWidth: width, isInlineInset: true);
 
         internal string Text { get; }
         internal HtmlRenderBoxStyle Style { get; }
         internal bool IsForcedBreak { get; }
         internal bool IsReplaced { get; }
+        internal bool IsInlineInset { get; }
         internal double ReplacedWidth { get; }
         internal double ReplacedMinWidth { get; }
     }
