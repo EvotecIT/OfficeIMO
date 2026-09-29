@@ -767,7 +767,8 @@ namespace OfficeIMO.Excel {
                 lines.Ancestors().FirstOrDefault(element => element is C.PieChart or C.DoughnutChart) == null ||
                 lines.Parent is not C.DataLabels labels ||
                 labels.GetFirstChild<C.DataLabelPosition>()?.Val?.Value != C.DataLabelPositionValues.OutsideEnd ||
-                labels.GetFirstChild<C.ShowLeaderLines>()?.Val?.Value != true)) {
+                labels.GetFirstChild<C.ShowLeaderLines>() is not C.ShowLeaderLines showLeaderLines ||
+                showLeaderLines.Val?.Value == false)) {
                 diagnostics.Add(ExcelImageExportDiagnosticClassifier.Create(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartDataLabelLeaderLinesUnsupported,

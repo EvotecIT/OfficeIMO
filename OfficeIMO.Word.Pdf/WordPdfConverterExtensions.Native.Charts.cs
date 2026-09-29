@@ -264,7 +264,9 @@ namespace OfficeIMO.Word.Pdf {
                     }
                 }
 
-                IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(seriesElement, values.Count, themeColors);
+                IReadOnlyList<DataPoint> pointOverrides = OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles
+                    .GetBoundedPoints(seriesElement);
+                IReadOnlyList<OfficeColor?>? pointColors = ExtractNativeWordChartPointColors(pointOverrides, values.Count, themeColors);
                 if (pointColors == null && varyColorsByPoint && seriesIndex == 0) {
                     pointColors = CreateNativeWordChartVaryPointColors(values.Count);
                 }
@@ -284,10 +286,10 @@ namespace OfficeIMO.Word.Pdf {
                     !IsNativeWordChartSeriesMarkerHidden(seriesElement),
                     !hiddenLegendIndexes.Contains((uint)originalSeriesIndex),
                     !IsNativeWordLineLikeChart(chartKind) || !HasNativeDrawingOutlineNoFill(seriesElement.GetFirstChild<ChartShapeProperties>()))
-                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(seriesElement, values.Count, pointColorScheme));
+                    .WithPointStyles(OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.Read(pointOverrides, values.Count, pointColorScheme));
                 if (IsNativeWordPieLikeChart(chartKind)) {
                     if (!OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartExplosions.TryRead(
-                            (OpenXmlCompositeElement)seriesElement, seriesElement.Elements<DataPoint>().ToList(), values.Count,
+                            (OpenXmlCompositeElement)seriesElement, pointOverrides, values.Count,
                             out int[]? explosions))
                         throw new NativeWordChartLimitException("Word chart contains unsupported slice explosion metadata.");
                     projected = projected.WithPointExplosions(explosions);
@@ -813,14 +815,14 @@ namespace OfficeIMO.Word.Pdf {
             chartKind == OfficeChartKind.Scatter ||
             chartKind == OfficeChartKind.Radar;
 
-        private static IReadOnlyList<OfficeColor?>? ExtractNativeWordChartPointColors(OpenXmlElement seriesElement, int valueCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
+        private static IReadOnlyList<OfficeColor?>? ExtractNativeWordChartPointColors(IReadOnlyList<DataPoint> points, int valueCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeColor> themeColors) {
             if (valueCount <= 0) {
                 return null;
             }
 
             OfficeColor?[] colors = new OfficeColor?[valueCount];
             bool anyColor = false;
-            foreach (DataPoint point in OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartPointStyles.GetBoundedPoints(seriesElement)) {
+            foreach (DataPoint point in points) {
                 uint? index = point.Index?.Val?.Value;
                 if (!index.HasValue || index.Value >= valueCount) {
                     continue;
