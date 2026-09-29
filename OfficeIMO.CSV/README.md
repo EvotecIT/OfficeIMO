@@ -34,6 +34,20 @@ new CsvDocument()
     });
 ```
 
+## Choose a read path
+
+| Need | Start with |
+|---|---|
+| Edit, transform, or save rows | `CsvDocument.Load(...)` or `new CsvDocument()` |
+| Read rows once with a forward-only cursor | `CsvDocument.OpenDataReader(...)` |
+| Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenStreamingDataReaderAsync(...)` |
+
+`OpenDataReaderAsync(...)` remains available for callers that need its existing
+behavior: an asynchronous source read followed by a memory-backed cursor. The
+incremental async reader is the choice when the file should not be buffered first.
+Profiles, schema inference, explicit mapping, and parallel projection are optional
+settings on these paths, not separate document models.
+
 ## What it does
 
 - Keeps headers and rows as a first-class document model instead of ad hoc string arrays.

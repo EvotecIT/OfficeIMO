@@ -31,6 +31,13 @@ sheet.AutoFitColumns();
 document.Save();
 ```
 
+For ordinary workbook work, use `ExcelDocument.Create(...)` or
+`ExcelDocument.Load(...)`, edit the same document through its sheets, then call
+`Save()`. Use `ExcelDocument.OpenDataReader(...)` when you only need forward-only
+rows. Formula calculation, dynamic arrays, and pivot materialization are
+operations on that workbook model when a report needs them; they are not
+alternate ways to open a workbook.
+
 `AsFluent()` wraps the same `ExcelDocument`; it does not create a separate
 workbook model. Call `End()` when direct worksheet APIs are more convenient:
 
