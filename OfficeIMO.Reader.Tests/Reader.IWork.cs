@@ -204,9 +204,52 @@ public sealed class ReaderIWorkTests {
         ReaderDetectionResult genericDetection = reader.Detect(generic, "notes.zip");
         Assert.Equal(ReaderInputKind.Zip, genericDetection.Kind);
 
+        byte[] nestedGeneric = CreateZip("notes.txt");
+        using var outerStream = new MemoryStream();
+        using (var outer = new ZipArchive(outerStream, ZipArchiveMode.Create, leaveOpen: true)) {
+            using Stream index = outer.CreateEntry("Index.zip").Open();
+            index.Write(nestedGeneric, 0, nestedGeneric.Length);
+        }
+        Assert.Equal(ReaderInputKind.Zip, reader.Detect(outerStream.ToArray(), "notes.zip").Kind);
+
         byte[] openXml = CreateZip("Index/Document.iwa", "word/document.xml");
         ReaderDetectionResult wordDetection = reader.Detect(openXml, "document.docx");
         Assert.Equal(ReaderInputKind.Word, wordDetection.Kind);
+    }
+
+    [Fact]
+    public async Task NestedIWorkIndexIsDetectedWithoutAnIWorkExtension() {
+        byte[] nestedPackage = CreateNestedIndexPackage(
+            File.ReadAllBytes(Fixture("nim-iwork/simple.pages")));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddAllOfficeIMOHandlers().Build();
+
+        ReaderDetectionResult sync = reader.Detect(nestedPackage, "renamed.zip");
+        ReaderDetectionResult asyncResult = await reader.DetectAsync(nestedPackage, "renamed.zip");
+        OfficeDocumentReadResult document = reader.ReadDocument(nestedPackage, "renamed.zip",
+            new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+        Assert.Equal(ReaderInputKind.IWork, sync.Kind);
+        Assert.Equal(ReaderInputKind.IWork, asyncResult.Kind);
+        Assert.Equal(ReaderInputKind.IWork, document.Kind);
+        Assert.Contains(document.Chunks, chunk =>
+            chunk.Text.Contains("hello pages", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task NestedIWorkIndexWithZip64EntryMetadataIsDetected() {
+        byte[] nestedPackage = CreateNestedIndexPackage(
+            File.ReadAllBytes(Fixture("nim-iwork/simple.pages")));
+        byte[] package = WrapIndexEntryWithZip64Metadata(nestedPackage);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddAllOfficeIMOHandlers().Build();
+
+        Assert.Equal(ReaderInputKind.IWork, reader.Detect(package, "renamed.zip").Kind);
+        Assert.Equal(ReaderInputKind.IWork,
+            (await reader.DetectAsync(package, "renamed.zip")).Kind);
+        Assert.Contains(reader.ReadDocument(package, "renamed.zip",
+                new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent }).Chunks,
+            chunk => chunk.Text.Contains("hello pages", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -345,6 +388,31 @@ public sealed class ReaderIWorkTests {
         return stream.ToArray();
     }
 
+    private static byte[] CreateNestedIndexPackage(byte[] directPackage) {
+        using var originalStream = new MemoryStream(directPackage, writable: false);
+        using var original = new ZipArchive(originalStream, ZipArchiveMode.Read);
+        using var nestedStream = new MemoryStream();
+        using var outerStream = new MemoryStream();
+        using (var nested = new ZipArchive(nestedStream, ZipArchiveMode.Create, leaveOpen: true))
+        using (var outer = new ZipArchive(outerStream, ZipArchiveMode.Create, leaveOpen: true)) {
+            foreach (ZipArchiveEntry entry in original.Entries) {
+                string name = entry.FullName;
+                bool isIndex = name.StartsWith("Index/", StringComparison.Ordinal);
+                string targetName = isIndex ? name.Substring("Index/".Length) : name;
+                ZipArchive target = isIndex ? nested : outer;
+                using Stream input = entry.Open();
+                using Stream output = target.CreateEntry(targetName).Open();
+                input.CopyTo(output);
+            }
+        }
+        using (var outer = new ZipArchive(outerStream, ZipArchiveMode.Update, leaveOpen: true)) {
+            using Stream index = outer.CreateEntry("Index.zip").Open();
+            nestedStream.Position = 0;
+            nestedStream.CopyTo(index);
+        }
+        return outerStream.ToArray();
+    }
+
     private static byte[] WrapWithZip64EndRecord(byte[] source) {
         int endOffset = source.Length - 22;
         Assert.Equal(0x06054B50u, BitConverter.ToUInt32(source, endOffset));
@@ -377,5 +445,50 @@ public sealed class ReaderIWorkTests {
             writer.Write((ushort)0);
         }
         return output.ToArray();
+    }
+
+    private static byte[] WrapIndexEntryWithZip64Metadata(byte[] source) {
+        int endOffset = source.Length - 22;
+        Assert.Equal(0x06054B50u, BitConverter.ToUInt32(source, endOffset));
+        int centralOffset = (int)BitConverter.ToUInt32(source, endOffset + 16);
+        int centralSize = (int)BitConverter.ToUInt32(source, endOffset + 12);
+        int entryOffset = centralOffset;
+        while (entryOffset < centralOffset + centralSize) {
+            Assert.Equal(0x02014B50u, BitConverter.ToUInt32(source, entryOffset));
+            int nameLength = BitConverter.ToUInt16(source, entryOffset + 28);
+            int extraLength = BitConverter.ToUInt16(source, entryOffset + 30);
+            int commentLength = BitConverter.ToUInt16(source, entryOffset + 32);
+            string name = System.Text.Encoding.UTF8.GetString(source, entryOffset + 46, nameLength);
+            if (name == "Index.zip") {
+                const int zip64ExtraLength = 28;
+                int insertion = entryOffset + 46 + nameLength;
+                var result = new byte[source.Length + zip64ExtraLength];
+                Array.Copy(source, 0, result, 0, insertion);
+                Array.Copy(source, insertion, result, insertion + zip64ExtraLength,
+                    source.Length - insertion);
+                ulong expanded = BitConverter.ToUInt32(source, entryOffset + 24);
+                ulong compressed = BitConverter.ToUInt32(source, entryOffset + 20);
+                ulong offset = BitConverter.ToUInt32(source, entryOffset + 42);
+                using (var writer = new BinaryWriter(new MemoryStream(result, writable: true))) {
+                    writer.BaseStream.Position = insertion;
+                    writer.Write((ushort)1);
+                    writer.Write((ushort)24);
+                    writer.Write(expanded);
+                    writer.Write(compressed);
+                    writer.Write(offset);
+                }
+                Array.Copy(BitConverter.GetBytes((ushort)45), 0, result, entryOffset + 6, 2);
+                Array.Copy(BitConverter.GetBytes(uint.MaxValue), 0, result, entryOffset + 20, 4);
+                Array.Copy(BitConverter.GetBytes(uint.MaxValue), 0, result, entryOffset + 24, 4);
+                Array.Copy(BitConverter.GetBytes((ushort)(extraLength + zip64ExtraLength)), 0,
+                    result, entryOffset + 30, 2);
+                Array.Copy(BitConverter.GetBytes(uint.MaxValue), 0, result, entryOffset + 42, 4);
+                Array.Copy(BitConverter.GetBytes((uint)(centralSize + zip64ExtraLength)), 0,
+                    result, endOffset + zip64ExtraLength + 12, 4);
+                return result;
+            }
+            entryOffset += 46 + nameLength + extraLength + commentLength;
+        }
+        throw new InvalidDataException("The generated nested package lacks Index.zip.");
     }
 }

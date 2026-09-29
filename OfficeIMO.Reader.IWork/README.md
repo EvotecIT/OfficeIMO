@@ -25,7 +25,7 @@ foreach (ReaderTable table in document.Tables) {
 }
 ```
 
-For a stream, pass its source name: `reader.ReadDocument(stream, "report.numbers")`. The extension identifies the expected iWork kind. `OfficeIMO.Reader.All` also registers this handler.
+For a stream, pass its source name: `reader.ReadDocument(stream, "report.numbers")`. The extension identifies the expected iWork kind. `OfficeIMO.Reader.All` also registers this handler. Content detection recognizes direct IWA indexes and inspects up to 16 MiB of a nested `Index.zip` to identify renamed packages. Keep a `.pages`, `.numbers`, or `.key` source name for larger nested indexes.
 
 Pages content is projected as text, drawable tables and images, plus headers and footers. Numbers sheets become logical pages with tables and text boxes in their shared source order. Keynote slides become logical pages with text boxes, tables, images, and presenter notes. Rich text becomes Markdown and linked runs become link entries. Formula cells expose their cached display values in Reader tables; use `OfficeIMO.IWork` directly when formula syntax and typed cells are needed.
 

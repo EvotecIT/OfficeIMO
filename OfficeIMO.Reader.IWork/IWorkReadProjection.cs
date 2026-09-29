@@ -200,11 +200,11 @@ internal sealed partial class IWorkReadProjection {
         ReportUnsupportedRotation(page, textBox.Geometry, sourceKind);
         int firstBlockIndex = _blocks.Count;
         AddRichContent(page, textBox.Content, sourceKind, region);
-        if (!textBox.Content.Paragraphs.Any(paragraph => paragraph.Text.Length > 0)
+        if (!textBox.Content.Paragraphs.Any(paragraph => paragraph.Runs.Any(run => run.Text.Length > 0))
             && !string.IsNullOrWhiteSpace(textBox.AccessibilityDescription)) {
             string description = textBox.AccessibilityDescription!;
-            AddBlock(page, "text-box", description, EscapeMarkdown(description), null, null,
-                markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length)),
+            AddBlock(page, "text-box", description, EscapeMarkdown(description, _cancellationToken), null, null,
+                markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length), _cancellationToken),
                 sourceKind: sourceKind, region: region);
         }
         if (!string.IsNullOrWhiteSpace(textBox.Hyperlink)) {
@@ -228,7 +228,7 @@ internal sealed partial class IWorkReadProjection {
 
     private void AddParagraph(OfficeDocumentPage page, IWorkTextParagraph paragraph,
         string sourceKind, OfficeDocumentRegion? region = null) {
-        string text = paragraph.Text;
+        string text = ParagraphText(paragraph, _cancellationToken);
         if (!_reportedUnsupportedLayoutBreaks && paragraph.BreakKind is
             IWorkParagraphBreakKind.Page or IWorkParagraphBreakKind.Section
                 or IWorkParagraphBreakKind.Layout) {
@@ -266,13 +266,13 @@ internal sealed partial class IWorkReadProjection {
         }
         if (text.Length == 0) {
             AddBlock(page, paragraph.ListLevel >= 0 ? "list-item" : "paragraph",
-                string.Empty, paragraph.ListLevel >= 0 ? RichTextMarkdown(paragraph) : "\n",
+                string.Empty, paragraph.ListLevel >= 0 ? RichTextMarkdown(paragraph, _cancellationToken) : "\n",
                 paragraph.ListLevel >= 0 ? paragraph.ListLevel + 1 : null,
                 paragraph.ListLabel, sourceKind: sourceKind, region: region);
             return;
         }
         bool heading = paragraph.ListLevel < 0 && sourceKind == "title";
-        string markdown = (heading ? "# " : string.Empty) + RichTextMarkdown(paragraph);
+        string markdown = (heading ? "# " : string.Empty) + RichTextMarkdown(paragraph, _cancellationToken);
         string kind = paragraph.ListLevel >= 0 ? "list-item" :
             sourceKind == "title" ? "heading" : "paragraph";
         ReaderLocation blockLocation = AddBlock(page, kind, text, markdown,
@@ -280,15 +280,15 @@ internal sealed partial class IWorkReadProjection {
             paragraph.ListLabel,
             markdownPart: (offset, length) =>
                 (heading && offset == 0 ? "# " : string.Empty)
-                + RichTextMarkdown(paragraph, offset, length),
+                + RichTextMarkdown(paragraph, offset, length, _cancellationToken),
             sourceKind: sourceKind, region: region);
         AddRunLinks(page, paragraph.Runs, blockLocation);
     }
 
     private void AddPlainText(OfficeDocumentPage page, string text, string sourceKind) {
         if (string.IsNullOrEmpty(text)) return;
-        AddBlock(page, sourceKind, text, EscapeMarkdown(text), null, null,
-            markdownPart: (offset, length) => EscapeMarkdown(text.Substring(offset, length)));
+        AddBlock(page, sourceKind, text, EscapeMarkdown(text, _cancellationToken), null, null,
+            markdownPart: (offset, length) => EscapeMarkdown(text.Substring(offset, length), _cancellationToken));
     }
 
     private ReaderLocation AddBlock(OfficeDocumentPage page, string kind, string text,

@@ -193,6 +193,22 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
+    public void Reader_rich_text_markdown_observes_cancellation_during_a_large_run() {
+        var style = new IWorkTextStyle(null, null, null, null, null,
+            null, null, null, null);
+        var paragraphStyle = new IWorkParagraphStyle(null, null, null, null, null,
+            null, null, null, null, null, style);
+        var paragraph = new IWorkTextParagraph(new[] {
+            new IWorkTextRun(new string('*', 4 * 1024 * 1024), style, null)
+        }, paragraphStyle, null, -1, null, IWorkParagraphBreakKind.None);
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(1));
+
+        Assert.Throws<OperationCanceledException>(() =>
+            IWorkReadProjection.RichTextMarkdown(paragraph, cancellation.Token));
+    }
+
+    [Fact]
     public void Reader_reports_rotations_and_merges_and_indexes_each_table_chunk() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);

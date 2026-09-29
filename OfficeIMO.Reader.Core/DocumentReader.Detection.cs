@@ -328,8 +328,7 @@ internal static partial class DocumentReaderEngine {
                 DetectionCandidate containerCandidate = InspectZipContainer(
                     stream,
                     originalPosition,
-                    options.MaxContainerEntries,
-                    extensionResult.ExtensionKind == ReaderInputKind.IWork);
+                    options.MaxContainerEntries);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) {
                     candidate = containerCandidate;
@@ -379,7 +378,6 @@ internal static partial class DocumentReaderEngine {
                     stream,
                     originalPosition,
                     options.MaxContainerEntries,
-                    extensionResult.ExtensionKind == ReaderInputKind.IWork,
                     cancellationToken).ConfigureAwait(false);
                 containerInspected = true;
                 if (containerCandidate.Kind != ReaderInputKind.Unknown) candidate = containerCandidate;

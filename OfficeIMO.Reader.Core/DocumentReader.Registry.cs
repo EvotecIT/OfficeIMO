@@ -77,8 +77,7 @@ internal static partial class DocumentReaderEngine {
         }
         long? knownLimit = CombineMaxInputBytes(handler.ResolveDefaultMaxInputBytes(sourceName),
             handler.MaxInputBytesCeiling);
-        return Math.Max(DefaultUnidentifiedStreamMaxInputBytes,
-            knownLimit ?? DefaultUnidentifiedStreamMaxInputBytes);
+        return knownLimit ?? DefaultUnidentifiedStreamMaxInputBytes;
     }
 
     private static long? CombineHandlerInputCeiling(string? sourceName, long? configured, bool requireStreamInput) {

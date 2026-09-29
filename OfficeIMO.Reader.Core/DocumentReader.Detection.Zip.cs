@@ -17,8 +17,7 @@ internal static partial class DocumentReaderEngine {
     private const int ZipEndOfCentralDirectoryLength = 22;
     private const int ZipMaximumEndRecordLength = ZipEndOfCentralDirectoryLength + ushort.MaxValue;
 
-    private static DetectionCandidate InspectZipContainer(Stream stream, long start, int maxEntries,
-        bool allowNestedIWorkIndex) {
+    private static DetectionCandidate InspectZipContainer(Stream stream, long start, int maxEntries) {
         if (!TryLocateZipCentralDirectory(stream, start, out long centralDirectoryOffset, out int entryCount)) {
             return GenericZipCandidate();
         }
@@ -27,6 +26,7 @@ internal static partial class DocumentReaderEngine {
         var header = new byte[ZipCentralDirectoryHeaderLength];
         int entriesToInspect = Math.Min(entryCount, maxEntries);
         bool hasIWorkIndex = false;
+        (long Offset, ushort Compression, uint CompressedSize, uint UncompressedSize)? nestedIndex = null;
         for (int entryIndex = 0; entryIndex < entriesToInspect; entryIndex++) {
             if (!ReadExact(stream, header, 0, header.Length) ||
                 ReadUInt32(header, 0) != ZipCentralDirectoryHeaderSignature) {
@@ -47,7 +47,13 @@ internal static partial class DocumentReaderEngine {
             long nextEntryOffset = stream.Position + extraLength + commentLength;
             if (nextEntryOffset < stream.Position || nextEntryOffset > stream.Length) break;
 
-            hasIWorkIndex |= IsIWorkIndexEntry(name, ReadUInt32(header, 24), allowNestedIWorkIndex);
+            uint uncompressedSize = ReadUInt32(header, 24);
+            hasIWorkIndex |= IsDirectIWorkIndexEntry(name, uncompressedSize);
+            if (name == "index.zip" && !nestedIndex.HasValue &&
+                TryResolveNestedIndexEntry(stream, header, extraLength, out long resolvedOffset,
+                    out uint resolvedCompressedSize, out uint resolvedUncompressedSize)) {
+                nestedIndex = (resolvedOffset, compression, resolvedCompressedSize, resolvedUncompressedSize);
+            }
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
             if (name == "mimetype") {
@@ -64,14 +70,18 @@ internal static partial class DocumentReaderEngine {
             stream.Position = nextEntryOffset;
         }
 
-        return hasIWorkIndex ? IWorkCandidate() : GenericZipCandidate();
+        if (hasIWorkIndex) return IWorkCandidate();
+        if (nestedIndex.HasValue && TryInspectNestedIWorkIndex(stream, start,
+                nestedIndex.Value.Offset, nestedIndex.Value.Compression,
+                nestedIndex.Value.CompressedSize, nestedIndex.Value.UncompressedSize,
+                maxEntries)) return IWorkCandidate();
+        return GenericZipCandidate();
     }
 
     private static async Task<DetectionCandidate> InspectZipContainerAsync(
         Stream stream,
         long start,
         int maxEntries,
-        bool allowNestedIWorkIndex,
         CancellationToken cancellationToken) {
         (bool found, long centralDirectoryOffset, int entryCount) = await TryLocateZipCentralDirectoryAsync(
             stream,
@@ -83,6 +93,7 @@ internal static partial class DocumentReaderEngine {
         var header = new byte[ZipCentralDirectoryHeaderLength];
         int entriesToInspect = Math.Min(entryCount, maxEntries);
         bool hasIWorkIndex = false;
+        (long Offset, ushort Compression, uint CompressedSize, uint UncompressedSize)? nestedIndex = null;
         for (int entryIndex = 0; entryIndex < entriesToInspect; entryIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (!await ReadExactAsync(stream, header, 0, header.Length, cancellationToken).ConfigureAwait(false) ||
@@ -104,7 +115,13 @@ internal static partial class DocumentReaderEngine {
             long nextEntryOffset = stream.Position + extraLength + commentLength;
             if (nextEntryOffset < stream.Position || nextEntryOffset > stream.Length) break;
 
-            hasIWorkIndex |= IsIWorkIndexEntry(name, ReadUInt32(header, 24), allowNestedIWorkIndex);
+            uint uncompressedSize = ReadUInt32(header, 24);
+            hasIWorkIndex |= IsDirectIWorkIndexEntry(name, uncompressedSize);
+            if (name == "index.zip" && !nestedIndex.HasValue &&
+                await TryResolveNestedIndexEntryAsync(stream, header, extraLength,
+                    cancellationToken).ConfigureAwait(false) is { } resolved) {
+                nestedIndex = (resolved.Offset, compression, resolved.CompressedSize, resolved.UncompressedSize);
+            }
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
             if (name == "mimetype") {
@@ -123,7 +140,12 @@ internal static partial class DocumentReaderEngine {
             stream.Position = nextEntryOffset;
         }
 
-        return hasIWorkIndex ? IWorkCandidate() : GenericZipCandidate();
+        if (hasIWorkIndex) return IWorkCandidate();
+        if (nestedIndex.HasValue && await TryInspectNestedIWorkIndexAsync(stream, start,
+                nestedIndex.Value.Offset, nestedIndex.Value.Compression,
+                nestedIndex.Value.CompressedSize, nestedIndex.Value.UncompressedSize,
+                maxEntries, cancellationToken).ConfigureAwait(false)) return IWorkCandidate();
+        return GenericZipCandidate();
     }
 
     private static bool TryLocateZipCentralDirectory(
@@ -314,6 +336,83 @@ internal static partial class DocumentReaderEngine {
     private static ulong ReadZipUInt64(byte[] bytes, int offset) =>
         ReadUInt32(bytes, offset) | ((ulong)ReadUInt32(bytes, offset + 4) << 32);
 
+    private static bool TryResolveNestedIndexEntry(Stream stream, byte[] header,
+        ushort extraLength, out long offset, out uint compressedSize, out uint uncompressedSize) {
+        offset = 0;
+        compressedSize = 0;
+        uncompressedSize = 0;
+        var extra = new byte[extraLength];
+        return ReadExact(stream, extra, 0, extra.Length) &&
+            TryResolveNestedIndexEntry(header, extra, out offset, out compressedSize, out uncompressedSize);
+    }
+
+    private static async Task<(long Offset, uint CompressedSize, uint UncompressedSize)?>
+        TryResolveNestedIndexEntryAsync(Stream stream, byte[] header, ushort extraLength,
+            CancellationToken cancellationToken) {
+        var extra = new byte[extraLength];
+        if (!await ReadExactAsync(stream, extra, 0, extra.Length,
+                cancellationToken).ConfigureAwait(false)) return null;
+        return TryResolveNestedIndexEntry(header, extra, out long offset,
+            out uint compressedSize, out uint uncompressedSize)
+            ? (offset, compressedSize, uncompressedSize) : null;
+    }
+
+    private static bool TryResolveNestedIndexEntry(byte[] header, byte[] extra,
+        out long offset, out uint compressedSize, out uint uncompressedSize) {
+        uint rawCompressedSize = ReadUInt32(header, 20);
+        uint rawUncompressedSize = ReadUInt32(header, 24);
+        uint rawOffset = ReadUInt32(header, 42);
+        ulong resolvedCompressedSize = rawCompressedSize;
+        ulong resolvedUncompressedSize = rawUncompressedSize;
+        ulong resolvedOffset = rawOffset;
+        if (rawCompressedSize == uint.MaxValue || rawUncompressedSize == uint.MaxValue ||
+            rawOffset == uint.MaxValue) {
+            bool found = false;
+            for (int index = 0; index + 4 <= extra.Length;) {
+                ushort id = ReadUInt16(extra, index);
+                int length = ReadUInt16(extra, index + 2);
+                index += 4;
+                if (length > extra.Length - index) break;
+                if (id == 0x0001) {
+                    int end = index + length;
+                    if (rawUncompressedSize == uint.MaxValue) {
+                        if (index + 8 > end) break;
+                        resolvedUncompressedSize = ReadZipUInt64(extra, index);
+                        index += 8;
+                    }
+                    if (rawCompressedSize == uint.MaxValue) {
+                        if (index + 8 > end) break;
+                        resolvedCompressedSize = ReadZipUInt64(extra, index);
+                        index += 8;
+                    }
+                    if (rawOffset == uint.MaxValue) {
+                        if (index + 8 > end) break;
+                        resolvedOffset = ReadZipUInt64(extra, index);
+                    }
+                    found = true;
+                    break;
+                }
+                index += length;
+            }
+            if (!found) {
+                offset = 0;
+                compressedSize = uncompressedSize = 0;
+                return false;
+            }
+        }
+        if (resolvedOffset > long.MaxValue ||
+            resolvedCompressedSize > MaximumNestedIWorkIndexProbeBytes ||
+            resolvedUncompressedSize > MaximumNestedIWorkIndexProbeBytes) {
+            offset = 0;
+            compressedSize = uncompressedSize = 0;
+            return false;
+        }
+        offset = (long)resolvedOffset;
+        compressedSize = (uint)resolvedCompressedSize;
+        uncompressedSize = (uint)resolvedUncompressedSize;
+        return compressedSize > 0 && uncompressedSize > 0;
+    }
+
     private static DetectionCandidate? TryReadContainerMimeType(
         Stream stream,
         long start,
@@ -436,8 +535,8 @@ internal static partial class DocumentReaderEngine {
         return DetectionCandidate.High(ReaderInputKind.Zip, "application/zip", "container:zip-generic");
     }
 
-    private static bool IsIWorkIndexEntry(string name, uint length, bool allowNestedIndex) =>
-        length > 0 && (name == "index/document.iwa" || allowNestedIndex && name == "index.zip");
+    private static bool IsDirectIWorkIndexEntry(string name, uint length) =>
+        length > 0 && name == "index/document.iwa";
 
     private static DetectionCandidate IWorkCandidate() => DetectionCandidate.High(
         ReaderInputKind.IWork, "application/octet-stream", "container:iwork-index");

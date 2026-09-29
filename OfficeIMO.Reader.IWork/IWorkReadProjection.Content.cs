@@ -217,8 +217,8 @@ internal sealed partial class IWorkReadProjection {
         _pageAssets[page].Add(asset);
         if (!string.IsNullOrWhiteSpace(source.AccessibilityDescription)) {
             string description = source.AccessibilityDescription!;
-            AddBlock(page, "image", description, EscapeMarkdown(description), null, null,
-                markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length)),
+            AddBlock(page, "image", description, EscapeMarkdown(description, _cancellationToken), null, null,
+                markdownPart: (offset, length) => EscapeMarkdown(description.Substring(offset, length), _cancellationToken),
                 region: asset.Region);
         }
         if (source.Hyperlink != null) AddLink(page, source.Hyperlink, asset.Location,
@@ -256,13 +256,32 @@ internal sealed partial class IWorkReadProjection {
         _pageLinks[page].Add(link);
     }
 
-    internal static string RichTextMarkdown(IWorkTextParagraph paragraph) =>
-        RichTextMarkdown(paragraph, 0, paragraph.Text.Length);
+    internal static string RichTextMarkdown(IWorkTextParagraph paragraph,
+        CancellationToken cancellationToken = default) =>
+        RichTextMarkdown(paragraph, 0, int.MaxValue, cancellationToken);
 
-    private static string RichTextMarkdown(IWorkTextParagraph paragraph, int offset, int length) {
+    private static string ParagraphText(IWorkTextParagraph paragraph,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var builder = new StringBuilder();
+        foreach (IWorkTextRun run in paragraph.Runs) {
+            string text = run.Text;
+            for (int offset = 0; offset < text.Length; offset += 4096) {
+                cancellationToken.ThrowIfCancellationRequested();
+                builder.Append(text, offset, Math.Min(4096, text.Length - offset));
+            }
+        }
+        cancellationToken.ThrowIfCancellationRequested();
+        return builder.ToString();
+    }
+
+    private static string RichTextMarkdown(IWorkTextParagraph paragraph, int offset, int length,
+        CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         var builder = new StringBuilder();
         int runOffset = 0;
         foreach (IWorkTextRun run in paragraph.Runs) {
+            cancellationToken.ThrowIfCancellationRequested();
             int runStart = runOffset;
             runOffset += run.Text.Length;
             int start = Math.Max(offset, runStart);
@@ -270,23 +289,30 @@ internal sealed partial class IWorkReadProjection {
             if (end <= start) continue;
             string segment = run.Text.Substring(start - runStart, end - start);
             int leading = 0;
-            while (leading < segment.Length && char.IsWhiteSpace(segment[leading])) leading++;
+            while (leading < segment.Length && char.IsWhiteSpace(segment[leading])) {
+                if ((leading & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                leading++;
+            }
             int trailing = segment.Length;
-            while (trailing > leading && char.IsWhiteSpace(segment[trailing - 1])) trailing--;
-            string value = EscapeMarkdown(segment.Substring(leading, trailing - leading));
+            while (trailing > leading && char.IsWhiteSpace(segment[trailing - 1])) {
+                if ((trailing & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+                trailing--;
+            }
+            string value = EscapeMarkdown(segment.Substring(leading, trailing - leading), cancellationToken);
             if (value.Length > 0) {
                 if (run.Style.Bold == true) value = "**" + value + "**";
                 if (run.Style.Italic == true) value = "*" + value + "*";
                 if (run.Style.Strikethrough == true) value = "~~" + value + "~~";
             }
-            value = EscapeMarkdown(segment.Substring(0, leading)) + value
-                + EscapeMarkdown(segment.Substring(trailing));
+            value = EscapeMarkdown(segment.Substring(0, leading), cancellationToken) + value
+                + EscapeMarkdown(segment.Substring(trailing), cancellationToken);
             if (run.Hyperlink != null
                 && Uri.TryCreate(run.Hyperlink, UriKind.Absolute, out Uri? uri)
                 && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps
                     || uri.Scheme == Uri.UriSchemeMailto)) {
                 value = "[" + value + "](<" + uri.AbsoluteUri.Replace(">", "%3E") + ">)";
             }
+            cancellationToken.ThrowIfCancellationRequested();
             builder.Append(value);
         }
         if (offset == 0 && paragraph.ListLevel >= 0) {
@@ -307,12 +333,16 @@ internal sealed partial class IWorkReadProjection {
             : "-";
     }
 
-    private static string EscapeMarkdown(string value) {
+    private static string EscapeMarkdown(string value, CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var builder = new StringBuilder(value.Length);
-        foreach (char character in value) {
+        for (int index = 0; index < value.Length; index++) {
+            if ((index & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            char character = value[index];
             if ("\\`*_{}[]()#+-.!>|~".IndexOf(character) >= 0) builder.Append('\\');
             builder.Append(character);
         }
+        cancellationToken.ThrowIfCancellationRequested();
         return builder.ToString();
     }
 }
