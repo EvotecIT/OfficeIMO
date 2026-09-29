@@ -324,6 +324,7 @@ namespace OfficeIMO.Excel {
                 displayMaps, realFields, groupings, dateGroupings, manualGroupings, r1, r2, c1, limit, token);
             ApplyMaterializedPivotFilters(sourceSheet, definition, fields, displayMaps, captions, measures,
                 realFields, rowAxis.RealFields, columnAxis.RealFields,
+                columnAxis.Fields.Length == 2 && columnAxis.Fields[1] == -2,
                 groupings, dateGroupings, manualGroupings, visibility, r1, r2, c1, limit,
                 referenceDate, token);
             // Lookup indexes both the saved field items and their shared keys. Keep every

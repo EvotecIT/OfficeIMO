@@ -87,6 +87,32 @@ namespace OfficeIMO.Tests {
                     AssertPivotLookupOracleValue(expected[row, column], actual[row, column]);
         }
 
+        [Theory]
+        [InlineData("values-on-rows")]
+        [InlineData("average-measure")]
+        [InlineData("second-filter")]
+        public void Test_PivotThreeLevelMixedValue_TwoMeasureUnqualifiedShapesFailClosed(string shape) {
+            using var document = ExcelDocument.Create();
+            var source = document.AddWorksheet("Source");
+            PopulateThreeLevelPivotSource(source, ThreeLevelTopTwoRows);
+            source.CellValue(1, 5, "Units");
+            for (int index = 0; index < ThreeLevelTopTwoRows.Length; index++)
+                source.CellValue(index + 2, 5, index is >= 3 and <= 8 ? 10d : 1d);
+            var pivot = source.Pivot("A1:E13").Rows("Region", "Product").Columns("Channel")
+                .Sum("Sales", "Metric");
+            if (shape == "average-measure") pivot.Average("Units", "UnitsMetric");
+            else pivot.Sum("Units", "UnitsMetric");
+            pivot.Layout(ExcelPivotLayout.Tabular)
+                .Display(dataOnRows: shape == "values-on-rows")
+                .Filter(ExcelPivotFilter.TopCount("Product", "Metric", 1));
+            if (shape == "second-filter")
+                pivot.Filter(ExcelPivotFilter.TopCount("Channel", "Metric", 1));
+            pivot.At("G4", "ValuePivot");
+            var error = Assert.Throws<NotSupportedException>(() => source.MaterializePivotTable("ValuePivot"));
+            Assert.Contains("qualified axis rule", error.Message, StringComparison.Ordinal);
+            Assert.Empty(document.ValidateOpenXml());
+        }
+
         private static void AssertTwoMeasureMixedPivotView(object?[,] expected, object?[,] actual) {
             Assert.Equal(expected.GetLength(0), actual.GetLength(0));
             Assert.Equal(expected.GetLength(1), actual.GetLength(1));

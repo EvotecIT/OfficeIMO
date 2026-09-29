@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<PivotFieldValues> maps,
             IReadOnlyDictionary<int, Dictionary<PivotFieldValue, string>> captions,
             DataField[] measures, IReadOnlyList<int> axisFields,
-            int[] rowAxisFields, int[] columnAxisFields,
+            int[] rowAxisFields, int[] columnAxisFields, bool valuesLastOnColumns,
             IReadOnlyDictionary<int, PivotNumericGrouping> groupings,
             IReadOnlyDictionary<int, PivotDateGrouping> dateGroupings,
             IReadOnlyDictionary<int, PivotManualGrouping> manualGroupings,
@@ -203,6 +203,9 @@ namespace OfficeIMO.Excel {
                 bool qualifiedTwoMeasureMixedTopCount = axisFields.Count == 3
                     && rowAxisFields.Length == 2 && columnAxisFields.Length == 1
                     && measures.Length == 2 && rowPosition == 1 && fieldPrefix.Length == 2
+                    && valuesLastOnColumns && filters.Length == 1
+                    && measures.All(measure => (measure.Subtotal?.Value ?? DataConsolidateFunctionValues.Sum)
+                        == DataConsolidateFunctionValues.Sum)
                     && type == PivotFilterValues.Count && ranking?.Top?.Value != false
                     && ranking?.Val?.Value == 1d;
                 if (axisFields.Count > 1 && !qualifiedThreeLevelValueFilter && !qualifiedThreeLevelMixedValueFilter
