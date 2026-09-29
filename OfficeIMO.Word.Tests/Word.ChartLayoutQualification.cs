@@ -7,6 +7,19 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.Tests;
 
 public sealed class WordChartLayoutQualificationTests {
+    [Fact]
+    public void Snapshot_RejectsMajorUnitBeyondRendererTickBudget() {
+        using var document = WordDocument.Create();
+        WordChart chart = Create(document, OfficeChartKind.Line);
+        C.ValueAxis axis = chart.ChartPart!.ChartSpace!.Descendants<C.ValueAxis>().Single();
+        axis.Scaling!.AddChild(new C.MinAxisValue { Val = 0 }, true);
+        axis.Scaling.AddChild(new C.MaxAxisValue { Val = 100 }, true);
+        axis.AddChild(new C.MajorUnit { Val = 25 }, true);
+        Assert.True(chart.TryGetOfficeSnapshot(out _));
+        axis.GetFirstChild<C.MajorUnit>()!.Val = 2;
+        Assert.False(chart.TryGetOfficeSnapshot(out _));
+    }
+
     [Theory]
     [InlineData(OfficeChartKind.BarClustered)]
     [InlineData(OfficeChartKind.BarStacked)]

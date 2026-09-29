@@ -145,7 +145,28 @@ namespace OfficeIMO.PowerPoint {
             }
             snapshot = PowerPointChartSnapshotMapper.ToOfficeSnapshot(powerPointSnapshot,
                 powerPointSnapshot.WidthPoints, powerPointSnapshot.HeightPoints);
+            if (HasUnprojectedNativeAxisUnits(snapshot.Layout) ||
+                OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(snapshot)) {
+                snapshot = null!;
+                return false;
+            }
             return true;
+        }
+
+        private bool HasUnprojectedNativeAxisUnits(OfficeChartLayout layout) {
+            foreach (C.ValueAxis axis in GetChartPart().ChartSpace?.Descendants<C.ValueAxis>() ??
+                Enumerable.Empty<C.ValueAxis>()) {
+                C.AxisPositionValues? position = axis.AxisPosition?.Val?.Value;
+                if (position == null && (axis.GetFirstChild<C.MajorUnit>() != null ||
+                    axis.GetFirstChild<C.MinorUnit>() != null)) return true;
+                bool horizontal = position == C.AxisPositionValues.Bottom ||
+                    position == C.AxisPositionValues.Top;
+                if (axis.GetFirstChild<C.MajorUnit>()?.Val?.Value is double major &&
+                    major != (horizontal ? layout.HorizontalAxisMajorUnit : layout.VerticalAxisMajorUnit) ||
+                    axis.GetFirstChild<C.MinorUnit>()?.Val?.Value is double minor &&
+                    minor != (horizontal ? layout.HorizontalAxisMinorUnit : layout.VerticalAxisMinorUnit)) return true;
+            }
+            return false;
         }
 
         private OfficeChartStyle? ReadSharedTextStyle(C.Chart chart) {

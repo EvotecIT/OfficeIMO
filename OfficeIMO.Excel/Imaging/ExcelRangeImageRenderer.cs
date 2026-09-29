@@ -524,6 +524,15 @@ namespace OfficeIMO.Excel {
                         : OfficeChartAxisGroup.Primary).WithPointStyles(series.PointStyles)
                             .WithPointExplosions(series.PointExplosions)));
             officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout, snapshot.RadialLayout);
+            if (OfficeChartDrawingRenderer.HasUnsupportedAxisUnitBudget(officeSnapshot)) {
+                diagnostics?.Add(ExcelImageExportDiagnosticClassifier.Create(
+                    OfficeImageExportDiagnosticSeverity.Warning,
+                    ExcelImageExportDiagnosticCodes.ChartAxisUnitUnsupported,
+                    "Chart axis units exceed the shared renderer tick budget.",
+                    sheetName + "!" + snapshot.Name));
+                officeSnapshot = null;
+                return false;
+            }
             return true;
         }
 
