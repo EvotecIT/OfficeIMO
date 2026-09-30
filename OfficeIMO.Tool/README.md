@@ -1,5 +1,7 @@
 # OfficeIMO.Tool
 
+<!-- mcp-name: io.github.evotecit/officeimo -->
+
 OfficeIMO.Tool is the installable command-line interface for OfficeIMO document conversion, extraction, inspection, markup, output, intake, and MCP workflows.
 
 ## Install
@@ -27,6 +29,19 @@ Update or remove a global installation with the standard .NET tool commands:
 dotnet tool update --global OfficeIMO.Tool
 dotnet tool uninstall --global OfficeIMO.Tool
 ```
+
+## MCP Registry publishing
+
+`server.json` describes the local STDIO server as `io.github.evotecit/officeimo`, backed by the `OfficeIMO.Tool` NuGet package. Clients supply `OFFICEIMO_MCP_ALLOWED_ROOTS` and launch `dotnet dnx OfficeIMO.Tool@<package-version> mcp serve --stdio` with .NET SDK 10.0.100 or later. The registry entry exposes the same bounded operations as the [agent plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools).
+
+PowerForge's project release bindings update both version fields in `server.json`. Publish the signed NuGet package first and check that its embedded README contains the matching `mcp-name` ownership marker. The registry validates the published package, so source metadata alone is insufficient. Then, from the repository root, authenticate an authorized EvotecIT publisher and submit the metadata:
+
+```text
+mcp-publisher login github
+mcp-publisher publish OfficeIMO.Tool/server.json
+```
+
+For CI publication, the official publisher supports `mcp-publisher login github-oidc` with `id-token: write` on an authorized GitHub workflow. Follow the [MCP Registry publishing instructions](https://modelcontextprotocol.io/registry/quickstart) and verify the returned name and version in the Registry API. Registry publication provides discovery; ChatGPT and Claude public directories have their own submission and approval requirements.
 
 ## Common workflows
 
