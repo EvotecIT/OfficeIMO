@@ -69,9 +69,11 @@ internal static class EvaluationRunner {
                     memoryScope = "Sampled evaluation process only; excludes model server, GPU and child processes. Allocation delta includes process background work.",
                     contractPassed, semanticAssessment = "pending-independent-review", completed = rows.Count, total = cases.Count * options.Repeat, cases = rows
                 };
-                await File.WriteAllTextAsync(Path.Combine(output, "evaluation.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }), deadline.Token);
+                byte[] evaluationBytes = JsonSerializer.SerializeToUtf8Bytes(report, new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllBytesAsync(Path.Combine(output, "evaluation.json"), evaluationBytes, deadline.Token);
                 await File.WriteAllTextAsync(Path.Combine(output, "semantic-review-template.json"),
-                    JsonSerializer.Serialize(new EvaluationReviewAnnotations("officeimo.ai.semantic-review.v1", "", annotations.ToArray()), EvaluationReview.JsonOptions), deadline.Token);
+                    JsonSerializer.Serialize(new EvaluationReviewAnnotations("officeimo.ai.semantic-review.v2", "", annotations.ToArray(),
+                        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(evaluationBytes))), EvaluationReview.JsonOptions), deadline.Token);
             }
         }
         // Successful mechanical checks still need semantic assessment; avoid a misleading quality-pass exit code.

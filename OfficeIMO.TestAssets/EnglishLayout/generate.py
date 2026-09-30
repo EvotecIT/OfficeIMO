@@ -47,7 +47,7 @@ right = ['Southern region opened in June.', 'The second shipment arrived on Frid
 for i, (a, b) in enumerate(zip(left, right)):
     canvas.drawString(44, 690-i*25, a)
     canvas.drawString(320, 690-i*25, b)
-canvas.drawString(44, 495, 'Report complete.')
+canvas.drawCentredString(306, 495, 'Report complete.')
 finish(name, canvas, ['Quarterly Operations Review'] + left + right + ['Report complete.'], [])
 
 name = 'english-ledger'

@@ -79,7 +79,7 @@ For native Copilot, use `--copilot --allow-remote --model <available-model>`. `O
 
 The initial evaluation reports `contractPassed` for exact field/table/status checks and citation validity. Fact markers measure recall only: a negated sentence can contain every marker. A contract pass leaves semantic assessment pending and returns exit code `4`.
 
-For an independent quality assessment, copy `semantic-review-template.json` to a labels file, set `Reviewer`, and fill each run's `UnsupportedClaims`, `OmittedFacts`, `IncorrectRelationships`, and `Notes` after comparing the saved source, declared gold, and proposed output. Keep its `ReportSha256`; changed reports require fresh review. Counts use explicit zero for an observed absence and `null` for an unreviewed category.
+For an independent quality assessment, copy `semantic-review-template.json` to a labels file, set `Reviewer`, and fill each run's `UnsupportedClaims`, `OmittedFacts`, `IncorrectRelationships`, and `Notes` after comparing the saved source, declared gold, and proposed output. Semantic-review schema v2 binds `EvaluationSha256` to the complete evaluation, including gold and contract outcomes, and each `ReportSha256` to its saved result. Keep both hashes; changed evaluation contracts or reports require fresh review. Counts use explicit zero for an observed absence and `null` for an unreviewed category.
 
 ```bash
 dotnet run --project Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj -- --review-evaluation output/evaluation --annotations reviewed-labels.json --output reviewed-evaluation.json

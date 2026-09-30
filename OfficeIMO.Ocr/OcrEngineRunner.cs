@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Ocr;
 
 /// <summary>Coordinates bounded calls to a shared OCR engine instance.</summary>
-public static class OcrEngineRunner {
+public static partial class OcrEngineRunner {
     /// <summary>Maximum accepted length of an OCR engine identifier before surrounding whitespace is removed.</summary>
     public const int MaximumEngineIdCharacters = 256;
 
@@ -368,11 +368,14 @@ public static class OcrEngineRunner {
             IOcrEngine engine,
             OcrRequest request,
             CancellationToken cancellationToken) => System.Threading.Tasks.Task.Factory.StartNew(
-                () => {
+                async () => {
                     if (!_entryGate.TryStart()) {
                         throw new OperationCanceledException("OCR provider invocation was suppressed before it started.");
                     }
-                    return engine.RecognizeAsync(request, cancellationToken);
+                    OcrResult result = await engine.RecognizeAsync(request, cancellationToken).ConfigureAwait(false);
+                    // Capture provider-owned collections while this invocation is still governed
+                    // by the shared deadline and content-free exception boundary.
+                    return CaptureProviderResult(result);
                 },
                 CancellationToken.None,
                 TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,

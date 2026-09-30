@@ -4,6 +4,16 @@
 * text=auto
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
+# Integrity-labelled document inputs and provider captures must survive Windows
+# checkout without line-ending conversion, including ASCII-only PDF containers.
+OfficeIMO.TestAssets/*Layout/*.pdf -text -diff
+OfficeIMO.TestAssets/EnglishLayout/*-provider.tsv -text -diff
+OfficeIMO.TestAssets/ScanQuality/*.pdf -text -diff
+OfficeIMO.TestAssets/ScanQuality/*.tif -text -diff
+OfficeIMO.TestAssets/ScanQuality/*.txt -text -diff
+OfficeIMO.TestAssets/*Layout/manifest.json text eol=lf
+OfficeIMO.TestAssets/ScanQuality/sources.json text eol=lf
+
 # RTF interoperability fixtures are byte-level evidence. Do not normalize their
 # producer line endings, because corpus SHA-256 checks must match on every OS.
 OfficeIMO.Rtf.Tests/Documents/RtfCorpus/**/*.rtf -text -diff

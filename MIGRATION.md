@@ -17,7 +17,7 @@ Invalid Reader OCR confidence values now become `null` instead of being clamped 
 
 AI Date fields require formats with a year, month, and day. Partial formats return `Invalid` rather than inventing calendar components. Numeric currency-context validation stops at line breaks.
 
-The synthetic AI evaluation report uses schema `officeimo.ai.evaluation.v3` and `contractPassed`. A successful initial contract evaluation returns exit code `4` until independent semantic review is complete. Use the example's offline `--review-evaluation` command with hash-bound labels; exit code `0` then means every selected case passed both contract and review checks.
+The synthetic AI evaluation report uses schema `officeimo.ai.evaluation.v3` and `contractPassed`. A successful initial contract evaluation returns exit code `4` until independent semantic review is complete. Use the example's offline `--review-evaluation` command with semantic-review v2 labels bound to both evaluation and per-run report hashes; exit code `0` then means every selected case passed both contract and review checks. Earlier v1 labels must be regenerated and independently assessed against the current evaluation.
 
 ## Reader document schema version 8
 

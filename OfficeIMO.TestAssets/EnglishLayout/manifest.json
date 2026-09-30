@@ -32,10 +32,10 @@
         "requireExactTables": true
       },
       "files": {
-        "native.pdf": "8d484f212bcdb8ec8aa8c3681b2e84bc5737e612a671017620b129556ebaa3db",
-        "scan.pdf": "89bfba6fb9f8aebe55c258418602cf9b9567976af1053ab2cdd0b3330c3760c7",
-        "scan.png": "4f822364d3bdc993c5c98c5c71fa160d41289d44159d78eeae5e7d83bf507a80",
-        "provider.tsv": "5774955eaa038ae0fa2dd9206240dae79e18b88aaabf4d4def14e9c2b80ef9ac"
+        "native.pdf": "64f7e0a68940e4d6420a0ec479835567aed6d2467a8e8332dde8bc0fa3dfc4c6",
+        "scan.pdf": "5e645b5d6bc19f9d6f91549180f63aa472208b70ff205ef4706108b6c81622ff",
+        "scan.png": "540dc059b4c0b28cd11e052c84b346d30c2d05dbf9f77a255bea48830cbad618",
+        "provider.tsv": "44d4f410e9aa203604d2cff362c6ae7a6b0b4c39d06b415f3b0c9933038c5127"
       }
     },
     {

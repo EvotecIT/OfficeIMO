@@ -1,6 +1,6 @@
 # English layout qualification
 
-These two controlled documents cover aligned prose columns with an isolated closing line, and a borderless four-column ledger with negative amounts and wider row spacing. ReportLab produces the native PDFs; Poppler rasterizes them; ReportLab wraps those images as scans. OfficeIMO does not generate the inputs or expected reading order and table cells.
+These two controlled documents cover aligned prose columns with a centered closing line, and a borderless four-column ledger with negative amounts and wider row spacing. ReportLab produces the native PDFs; Poppler rasterizes them; ReportLab wraps those images as scans. OfficeIMO does not generate the inputs or expected reading order and table cells. The centered line supplies horizontal evidence for a page-wide closing band. Vertical separation alone does not establish page-wide intent; an isolated column-aligned paragraph retains its column membership.
 
 `manifest.json` records producer versions, input hashes, recorded Tesseract TSV hashes, and acceptance limits declared before measurement. The TSV supplies repeatable provider geometry for the normal regression suite. The opt-in runner separately invokes the installed Tesseract engine and saves searchable PDFs for readback.
 

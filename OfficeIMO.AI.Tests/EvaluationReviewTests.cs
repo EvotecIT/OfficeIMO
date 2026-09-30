@@ -36,6 +36,8 @@ public sealed class EvaluationReviewTests {
     [InlineData("changed-source", 2)]
     [InlineData("duplicate", 2)]
     [InlineData("unknown", 2)]
+    [InlineData("changed-gold", 2)]
+    [InlineData("changed-contract", 2)]
     public async Task OfflineReviewUsesExactSavedReportsAndIndependentLabels(string scenario, int expected) {
         string root = Path.Combine(Path.GetTempPath(), "officeimo-evaluation-review-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(Path.Combine(root, "case", "run-1"));
@@ -44,14 +46,21 @@ public sealed class EvaluationReviewTests {
             await File.WriteAllBytesAsync(Path.Combine(root, "case", "run-1", "report.json"), report);
             await File.WriteAllTextAsync(Path.Combine(root, "evaluation.json"), JsonSerializer.Serialize(new {
                 schema = "officeimo.ai.evaluation.v3", corpus = "fixture", total = 1,
-                cases = new[] { new { Id = "case", repetition = 1, contractPassed = true, sourceFile = "source.txt", sourceHash = Convert.ToHexString(SHA256.HashData(report)) } }
+                cases = new[] { new { Id = "case", repetition = 1, contractPassed = scenario != "changed-contract", gold = "original", sourceFile = "source.txt", sourceHash = Convert.ToHexString(SHA256.HashData(report)) } }
             }));
             await File.WriteAllBytesAsync(Path.Combine(root, "case", "run-1", "source.txt"), scenario == "changed-source" ? [1, 2, 3] : report);
             var annotation = new EvaluationReviewAnnotation(scenario == "unknown" ? "other" : "case", 1,
                 scenario == "stale" ? new string('0', 64) : Convert.ToHexString(SHA256.HashData(report)),
                 scenario == "pending" ? null : scenario == "unsupported" ? 1 : 0, 0, 0, "Compared source and output.");
             await File.WriteAllTextAsync(Path.Combine(root, "labels.json"), JsonSerializer.Serialize(new EvaluationReviewAnnotations(
-                "officeimo.ai.semantic-review.v1", "independent reviewer", scenario == "duplicate" ? [annotation, annotation] : [annotation])));
+                "officeimo.ai.semantic-review.v2", "independent reviewer", scenario == "duplicate" ? [annotation, annotation] : [annotation],
+                Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(root, "evaluation.json")))))));
+            if (scenario is "changed-gold" or "changed-contract") {
+                string evaluationPath = Path.Combine(root, "evaluation.json");
+                string original = await File.ReadAllTextAsync(evaluationPath);
+                await File.WriteAllTextAsync(evaluationPath, scenario == "changed-gold"
+                    ? original.Replace("original", "changed") : original.Replace("false", "true"));
+            }
             var options = ExampleOptions.Parse(["--review-evaluation", root, "--annotations", Path.Combine(root, "labels.json"),
                 "--output", Path.Combine(root, "reviewed.json")]);
             if (expected == 2) {

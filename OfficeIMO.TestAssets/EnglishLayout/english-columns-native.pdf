@@ -43,7 +43,7 @@ endobj
 endobj
 8 0 obj
 <<
-/Length 768
+/Length 773
 >>
 stream
 1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
@@ -59,7 +59,7 @@ BT 1 0 0 1 44 640 Tm (Sales increased by twelve percent.) Tj T* ET
 BT 1 0 0 1 320 640 Tm (Returns decreased by seven percent.) Tj T* ET
 BT 1 0 0 1 44 615 Tm (The audit found no missing records.) Tj T* ET
 BT 1 0 0 1 320 615 Tm (The review requires two signatures.) Tj T* ET
-BT 1 0 0 1 44 495 Tm (Report complete.) Tj T* ET
+BT 1 0 0 1 260.316 495 Tm (Report complete.) Tj T* ET
  
 endstream
 endobj
@@ -85,5 +85,5 @@ trailer
 /Size 9
 >>
 startxref
-1720
+1725
 %%EOF

@@ -9,7 +9,8 @@ internal sealed record EvaluationReviewAnnotation(string Id, int Repetition, str
         && !string.IsNullOrWhiteSpace(Notes);
     public bool Passed => IsComplete && UnsupportedClaims == 0 && OmittedFacts == 0 && IncorrectRelationships == 0;
 }
-internal sealed record EvaluationReviewAnnotations(string Schema, string Reviewer, IReadOnlyList<EvaluationReviewAnnotation> Annotations);
+internal sealed record EvaluationReviewAnnotations(string Schema, string Reviewer,
+    IReadOnlyList<EvaluationReviewAnnotation> Annotations, string EvaluationSha256);
 
 internal static class EvaluationReview {
     internal static readonly JsonSerializerOptions JsonOptions = new() {
@@ -26,9 +27,12 @@ internal static class EvaluationReview {
             throw new InvalidDataException("Review requires evaluation schema v3.");
         var reviews = JsonSerializer.Deserialize<EvaluationReviewAnnotations>(reviewBytes, JsonOptions)
             ?? throw new InvalidDataException("Review annotations are empty.");
-        if (reviews.Schema != "officeimo.ai.semantic-review.v1" || string.IsNullOrWhiteSpace(reviews.Reviewer)
+        if (reviews.Schema != "officeimo.ai.semantic-review.v2" || string.IsNullOrWhiteSpace(reviews.Reviewer)
             || reviews.Annotations is null || reviews.Annotations.Count > 300)
-            throw new InvalidDataException("Provide a reviewer and bounded semantic-review v1 annotations.");
+            throw new InvalidDataException("Provide a reviewer and bounded semantic-review v2 annotations.");
+        string evaluationHash = Convert.ToHexString(SHA256.HashData(evaluationBytes));
+        if (!string.Equals(evaluationHash, reviews.EvaluationSha256, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException("The semantic review does not match the saved evaluation contract. Review the changed gold and outcomes again.");
         var byRun = new Dictionary<(string, int), EvaluationReviewAnnotation>();
         foreach (var review in reviews.Annotations) {
             if (review is null || string.IsNullOrWhiteSpace(review.Id) || review.Repetition is < 1 or > 3
@@ -78,8 +82,19 @@ internal static class EvaluationReview {
             evaluationSha256 = Convert.ToHexString(SHA256.HashData(evaluationBytes)).ToLowerInvariant(),
             corpus = evaluation.RootElement.GetProperty("corpus").GetString(), passed, pending, total,
             qualityPassed = passed == total, cases = rows };
-        await using var output = new FileStream(options.OutputPath!, FileMode.CreateNew, FileAccess.Write, FileShare.None);
-        await JsonSerializer.SerializeAsync(output, reportOutput, JsonOptions, token);
+        token.ThrowIfCancellationRequested();
+        string outputPath = Path.GetFullPath(options.OutputPath!);
+        string temporary = outputPath + ".review-" + Guid.NewGuid().ToString("N") + ".tmp";
+        try {
+            await using (var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None)) {
+                await JsonSerializer.SerializeAsync(output, reportOutput, JsonOptions, token);
+                await output.FlushAsync(token);
+            }
+            token.ThrowIfCancellationRequested();
+            File.Move(temporary, outputPath); // Same-directory, exclusive publication after complete serialization.
+        } finally {
+            if (File.Exists(temporary)) File.Delete(temporary);
+        }
         Console.WriteLine($"Quality passed: {passed}/{total}; pending independent review: {pending}.");
         return passed == total ? 0 : pending > 0 && failedContracts == 0 && failedAssessments == 0 ? 4 : 1;
     }

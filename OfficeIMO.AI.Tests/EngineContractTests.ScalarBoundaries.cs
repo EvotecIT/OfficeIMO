@@ -7,6 +7,8 @@ public sealed partial class EngineContractTests {
     [InlineData("\n")]
     [InlineData("\r\n")]
     [InlineData("\u0085")]
+    [InlineData("\u000b")]
+    [InlineData("\u000c")]
     [InlineData("\u2028")]
     [InlineData("\u2029")]
     public async Task CurrencyContextDoesNotCrossLineBoundaries(string separator) {

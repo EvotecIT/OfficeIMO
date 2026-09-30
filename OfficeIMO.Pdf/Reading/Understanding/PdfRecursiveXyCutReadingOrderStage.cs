@@ -312,12 +312,8 @@ internal sealed class PdfRecursiveXyCutReadingOrderStage : IPdfReadingOrderStage
             double candidateHorizontalCenter = (candidate.Left + candidate.Right) / 2D;
             bool isCenteredEdgeBand = columnCut.HasValue &&
                                       Math.Abs(candidateHorizontalCenter - (pageWidth / 2D)) <= Math.Max(12D, pageWidth * 0.12D);
-            double edgeGap = beforeRemaining
-                ? candidate.Bottom - remaining.Max(static box => box.Top)
-                : remaining.Min(static box => box.Bottom) - candidate.Top;
-            bool isSeparatedEdgeBand = columnCut.HasValue &&
-                edgeGap >= Math.Max(candidate.FontSize * 3D, columnCut.Value.Size);
-            if (!spansColumnGap && !isCenteredEdgeBand && !isSeparatedEdgeBand) {
+            // Vertical separation alone cannot distinguish a column continuation from a page-wide band.
+            if (!spansColumnGap && !isCenteredEdgeBand) {
                 continue;
             }
 
