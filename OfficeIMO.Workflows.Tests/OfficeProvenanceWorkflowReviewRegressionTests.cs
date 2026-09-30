@@ -527,7 +527,7 @@ public sealed partial class OfficeProvenanceWorkflowTests {
     public async Task InspectRejectsAUnixFifoWithoutBlockingForAWriter() {
 #if NET8_0_OR_GREATER
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".fifo");
+        string fifo = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
             Assert.Equal(0, CreateWorkflowFifoUnix(fifo, 0x180));
 
@@ -1168,6 +1168,10 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         internal bool Replaced { get; private set; }
 
         public OfficeProvenanceSignalResult Detect(string filePath) {
+            // A hostile in-process provider can change permissions on its owner-owned directory.
+            // Exercise the identity/content guard after that bypass, not merely the read-only seal.
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(Path.GetDirectoryName(filePath)!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             string replacementPath = filePath + ".replacement";
             File.WriteAllText(replacementPath, "replacement");
             File.Move(replacementPath, filePath, overwrite: true);
