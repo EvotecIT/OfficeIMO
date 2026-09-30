@@ -1,16 +1,13 @@
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave52RegressionTests {
-    [Fact]
-    public void EndNote_native_types_with_invalid_XML_controls_are_sanitized_and_diagnosed() {
-        AssertNativeTypeSanitized("Custom\u0001Type");
-    }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void EndNote_native_types_with_unpaired_surrogates_are_sanitized_and_diagnosed(bool lowSurrogate) {
-        AssertNativeTypeSanitized("Custom" + new string(lowSurrogate ? '\uDC00' : '\uD800', 1) + "Type");
+    [InlineData(0x0001)]
+    [InlineData(0xD800)]
+    [InlineData(0xDC00)]
+    public void EndNote_native_types_with_unpaired_surrogates_are_sanitized_and_diagnosed(int codeUnit) {
+        AssertNativeTypeSanitized("Custom" + new string((char)codeUnit, 1) + "Type");
     }
 
     [Theory]

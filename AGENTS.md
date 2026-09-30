@@ -30,6 +30,8 @@
 
 ## Benchmark boundaries
 
+- Keep host-dependent timing, allocation, retained/peak-memory budgets and large scale measurements in explicit opt-in evidence runs, outside ordinary pull-request correctness gates. Retain deterministic format, interoperability, cancellation, and API-enforced resource-limit checks in correctness validation, including those hosted in benchmark projects.
+- Tag measurement-only xUnit cases with `Category=Performance` and exclude that category from ordinary CI routes. Report relocation separately from test deletion; keep optional measurement failures visible.
 - Third-party libraries used for comparisons stay isolated in benchmark projects and opt-in verification runners; do not add them to OfficeIMO runtime projects without an explicit product decision.
 - Keep opt-in benchmark runners outside the normal solution when their dependency or license profile should not affect normal restore and build.
 - Add a comparison lane only when every implementation performs equivalent work and the output is validated. Keep OfficeIMO-specific workflows out of parity runners that cannot measure the same contract without artificial adapters.

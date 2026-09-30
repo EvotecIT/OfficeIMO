@@ -1,0 +1,35 @@
+name: Email performance evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.418
+            10.0.112
+      - name: Measure Email allocation and PST scale envelopes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj --configuration Release --framework net8.0 --filter "Category=Performance" --logger "console;verbosity=normal" --logger trx --results-directory artifacts/email-performance
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: email-performance-${{ matrix.os }}
+          path: artifacts/email-performance
+          if-no-files-found: warn

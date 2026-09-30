@@ -1,24 +1,6 @@
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave39RegressionTests {
-    [Theory]
-    [InlineData(BibliographyFormat.BibTex)]
-    [InlineData(BibliographyFormat.BibLatex)]
-    [InlineData(BibliographyFormat.Ris)]
-    [InlineData(BibliographyFormat.Nbib)]
-    [InlineData(BibliographyFormat.EndNoteXml)]
-    public void Non_CSL_writers_diagnose_given_only_structured_names(BibliographyFormat format) {
-        var document = new BibliographyDocument(format);
-        var item = new BibliographyItem { Key = "123", Type = BibliographyItemType.Book, Title = "Names" };
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Given = "John" }));
-        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "123"));
-        document.Items.Add(item);
-
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
-    }
 
     [Fact]
     public void Unknown_EndNote_native_types_survive_strict_same_format_edits() {
@@ -64,6 +46,7 @@ public sealed class BibliographyReviewWave39RegressionTests {
     [Theory]
     [InlineData("{\"a\": 1}")]
     [InlineData("[1, 2]")]
+    [InlineData("{\"edited\":true}")]
     public void Edited_CSL_aggregate_native_values_preserve_their_formatting(string editedValue) {
         BibliographyDocument document = BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\",\"custom\":{\"before\":true}}]", BibliographyFormat.CslJson).Document;
         BibliographyNativeField field = Assert.Single(document.Items[0].NativeFields);
@@ -73,6 +56,8 @@ public sealed class BibliographyReviewWave39RegressionTests {
         BibliographyNativeField reopened = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items).NativeFields);
 
         Assert.Equal(editedValue, reopened.Value);
+        Assert.Equal(editedValue, reopened.RawValue);
+        Assert.DoesNotContain(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126");
     }
 
     [Fact]

@@ -5,11 +5,17 @@ namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave60RegressionTests {
     [Fact]
-    public void EndNote_retained_element_serialization_stops_at_the_value_limit_before_allocating_the_full_XML() {
-        XElement element = new XElement("extra", Enumerable.Range(0, 250_000).Select(static _ => new XElement("x")));
+    [Trait("Category", "ResourcePerformanceEvidence")]
+    public void EndNote_retained_element_serialization_rejects_output_above_the_value_limit() {
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+        const int nodes = 250_000;
+#else
+        const int nodes = 256;
+#endif
+        XElement element = new XElement("extra", Enumerable.Range(0, nodes).Select(static _ => new XElement("x")));
         var items = new List<BibliographyItem>();
         var limits = new BibliographyLimitGuard(new BibliographyReadOptions { MaximumValueLength = 1024 });
-#if NET472
+#if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         Assert.Throws<BibliographyLimitException>(() => { EndNoteXmlCodec.SerializeBoundedElement(element, items, limits); });
 #else
         long before = GC.GetAllocatedBytesForCurrentThread();

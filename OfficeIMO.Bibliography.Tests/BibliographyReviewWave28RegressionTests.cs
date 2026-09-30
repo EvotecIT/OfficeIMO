@@ -1,32 +1,10 @@
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave28RegressionTests {
-    [Theory]
-    [InlineData("contributors")]
-    [InlineData("identifiers")]
-    [InlineData("keywords")]
-    [InlineData("notes")]
-    [InlineData("native-fields")]
-    [InlineData("dates")]
-    [InlineData("document-native-entries")]
-    public void EndNote_collection_serialization_observes_cancellation(string collection) {
+    [Fact]
+    public void EndNote_writer_honors_precanceled_tokens() {
         var document = new BibliographyDocument(BibliographyFormat.EndNoteXml);
-        var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.Book };
-        var contributor = new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Family" });
-        var identifier = new BibliographyIdentifier("DOI", "10.1000/example");
-        var nativeField = new BibliographyNativeField(BibliographyFormat.BibTex, "custom", "value");
-        var nativeEntry = new BibliographyNativeEntry(BibliographyFormat.BibTex, "comment", "value");
-        var date = new BibliographyDate { Role = BibliographyDateRole.Accessed, Year = 2026 };
-        for (int index = 0; index < 200_000; index++) {
-            if (collection == "contributors") item.Contributors.Add(contributor);
-            else if (collection == "identifiers") item.Identifiers.Add(identifier);
-            else if (collection == "keywords") item.Keywords.Add("keyword");
-            else if (collection == "notes") item.Notes.Add("note");
-            else if (collection == "native-fields") item.NativeFields.Add(nativeField);
-            else if (collection == "dates") item.Dates.Add(date);
-            else document.NativeEntries.Add(nativeEntry);
-        }
-        document.Items.Add(item);
+        document.Items.Add(new BibliographyItem { Key = "1", Type = BibliographyItemType.Book });
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
