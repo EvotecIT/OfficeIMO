@@ -889,6 +889,44 @@ public sealed partial class HtmlRenderingTests {
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
 
+    [Theory]
+    [InlineData(0, 33)]
+    [InlineData(80, 30)]
+    public void HtmlFlexRow_DefersAtomicSidebarImageWithoutStrandingProse(int paddingTop, int expectedPage1Lines) {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string html = "<style>body,p{margin:0}</style><main><div style='height:240px'>Before</div>"
+            + "<div style='display:flex;width:713px;align-items:flex-start;padding-top:"
+            + paddingTop + "px'>"
+            + "<div style='width:335px;line-height:26.6px;orphans:1;widows:1'>"
+            + string.Join("<br>", Enumerable.Range(1, 45).Select(index => "Line" + index)) + "</div>"
+            + "<div style='width:378px'><img id='first-image' src='data:image/png;base64," + image
+            + "' style='display:block;width:378px;height:600px'>"
+            + "<p style='height:20px;line-height:20px'>Caption</p><div style='height:100px'></div>"
+            + "<img id='second-image' src='data:image/png;base64," + image
+            + "' style='display:block;width:378px;height:215px'></div></div></main>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(1000D / HtmlRenderOptions.CssPixelsPerInch,
+                1122D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        var page1Lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
+            .Where(text => text.Text.StartsWith("Line", StringComparison.Ordinal))
+            .Select(text => text.Text).ToArray();
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Equal(Enumerable.Range(1, expectedPage1Lines).Select(index => "Line" + index), page1Lines);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#first-image");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#second-image");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderImage>(), item => item.Source == "img#second-image");
+        foreach (int index in Enumerable.Range(1, 45)) Assert.Equal(1,
+            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+                .Count(text => text.Text == "Line" + index));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
     [Fact]
     public void HtmlFlexRow_StretchedShortSidebarDoesNotAddEmptyContinuationPage() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));

@@ -30,7 +30,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         reflowed = block;
         if (block.OwnerElement == null || HasInternalForcedBreak(block) || _pagedRowFlexEligibleElements.Count == 0
             || !_pagedRowFlexEligibleElements.Any(element => ContainsElementOrSelf(block.OwnerElement, element))) return false;
-        if (!HasPagedRowFlexAtBoundary(block.OwnerElement, blockOffset, available, pageHeight)) return false;
+        if (!HasPagedRowFlexAtBoundary(block.OwnerElement, blockOffset, available, pageHeight,
+            out bool restoresTextLines)) return false;
         double remainingPages = Math.Ceiling(Math.Max(0D, block.Height - blockOffset - available) / pageHeight);
         if (remainingPages > 64D) return false;
         for (int page = 1; page <= (int)remainingPages; page++) {
@@ -42,7 +43,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double baselineEnd = FindFragmentEnd(block, blockOffset, available, fullPageHeight: pageHeight);
         // A full relayout is warranted for a visibly stranded region, not for
         // ordinary line-height slack at every page boundary of a long document.
-        if (baselineEnd >= blockOffset + available - Math.Max(16D, pageHeight * 0.15D)) return false;
+        if (!restoresTextLines
+            && baselineEnd >= blockOffset + available - Math.Max(16D, pageHeight * 0.15D)) return false;
 
         IElement root = _document.Body ?? _document.DocumentElement ?? block.OwnerElement;
         bool isRoot = ReferenceEquals(block.OwnerElement, root);
@@ -68,15 +70,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return true;
     }
 
-    private bool HasPagedRowFlexAtBoundary(IElement owner, double blockOffset, double available, double pageHeight) {
+    private bool HasPagedRowFlexAtBoundary(IElement owner, double blockOffset, double available, double pageHeight,
+        out bool restoresTextLines) {
+        restoresTextLines = false;
         double boundary = blockOffset + available;
         foreach (KeyValuePair<IElement, HtmlRenderFlowBlock> entry in _pagedRowFlexBlocks) {
             if (!_pagedRowFlexEligibleElements.Contains(entry.Key) || !ContainsElementOrSelf(owner, entry.Key)) continue;
+            if (!_layoutStyles.TryGetValue(entry.Key, out HtmlRenderBoxStyle? style)) continue;
             double start;
             if (ReferenceEquals(owner, entry.Key)) {
                 start = 0D;
-            } else if (TryResolveContentOrigin(entry.Key, owner, out PositionedPoint contentOrigin)
-                       && _layoutStyles.TryGetValue(entry.Key, out HtmlRenderBoxStyle? style)) {
+            } else if (TryResolveContentOrigin(entry.Key, owner, out PositionedPoint contentOrigin)) {
                 start = contentOrigin.Y - style.MarginTop - style.BorderTopWidth - style.PaddingTop;
             } else {
                 continue;
@@ -87,15 +91,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (rowAvailable <= 0D) continue;
             double rowEnd = FindFragmentEnd(entry.Value, rowOffset, rowAvailable, fullPageHeight: pageHeight);
             double rowSlack = boundary - start - rowEnd;
-            if (rowSlack > Math.Max(16D, pageHeight * 0.15D)
-                && _pagedRowFlexLines.TryGetValue(entry.Key, out FlexLine? line)
-                && WouldAlignPagedRowFlexItems(line,
-                    new PagedFloatBoundary(boundary - start, pageHeight, blockOffset - start))) return true;
+            double rowContentY = style.MarginTop + style.BorderTopWidth + style.PaddingTop;
+            if (!_pagedRowFlexLines.TryGetValue(entry.Key, out FlexLine? line)
+                || !WouldAlignPagedRowFlexItems(line,
+                    new PagedFloatBoundary(boundary - start, pageHeight, blockOffset - start)
+                        .Shift(rowContentY + line.CrossOffset),
+                    rowEnd - rowContentY - line.CrossOffset, out bool rowRestoresTextLines)
+                || (rowSlack <= Math.Max(16D, pageHeight * 0.15D) && !rowRestoresTextLines)) continue;
+            restoresTextLines = rowRestoresTextLines;
+            return true;
         }
         return false;
     }
 
-    private bool WouldAlignPagedRowFlexItems(FlexLine line, PagedFloatBoundary boundary) {
+    private bool WouldAlignPagedRowFlexItems(FlexLine line, PagedFloatBoundary boundary,
+        double currentRowEnd, out bool restoresTextLines) {
+        restoresTextLines = false;
         double cursor = Math.Max(0D, boundary.FragmentStart);
         double available = boundary.RemainingHeight - cursor;
         if (available <= 0.0001D || available > boundary.PageHeight + 0.0001D
@@ -113,9 +124,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
             if (cuts[index] <= cursor + 0.0001D) return false;
         }
         double sharedEnd = cuts.Max();
-        return sharedEnd <= cursor + available + 0.0001D
-            && line.Items.Select((item, index) =>
-                item.Block!.Height > cuts[index] + 0.0001D && sharedEnd > cuts[index] + 0.0001D).Any(value => value);
+        if (sharedEnd > cursor + available + 0.0001D
+            || !line.Items.Select((item, index) =>
+                item.Block!.Height > cuts[index] + 0.0001D && sharedEnd > cuts[index] + 0.0001D).Any(value => value))
+            return false;
+        // A sidebar's next atomic image may need the following page while the
+        // prose column still has multiple legal line cuts in the current one.
+        restoresTextLines = line.Items.Select((item, index) =>
+            cuts[index] >= sharedEnd - 0.0001D && item.Block!.LineBreakGroups.Any(group =>
+                group.Offsets.Count(offset => offset > currentRowEnd + 0.0001D
+                    && offset <= cuts[index] + 0.0001D) >= 2)).Any(value => value);
+        return true;
     }
 
     private bool TryAlignPagedRowFlexItems(FlexLine line, PagedFloatBoundary boundary) {
