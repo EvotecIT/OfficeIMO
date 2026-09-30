@@ -11,29 +11,64 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void ExcelXlsbOwnershipRejectsForeignPackageMetadataNamespaces() {
-        byte[] package = ReplaceWave38Entry(
-            CreateWave33XlsbProvenancePackage(signed: false),
-            "_rels/.rels",
-            "<Relationships xmlns=\"urn:foreign:relationships\">" +
-            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.bin\"/>" +
-            "</Relationships>");
-
+    [Theory]
+    [MemberData(nameof(ExcelXlsbOwnershipRejectsMalformedOwningMetadataCases))]
+    public void ExcelXlsbOwnershipRejectsMalformedOwningMetadata(string caseName, byte[] package) {
+        _ = caseName;
         Assert.ThrowsAny<Exception>(() => ExcelDocument.RemoveProvenance(package, "workbook.xlsb"));
     }
 
-    [Fact]
-    public void ExcelXlsbOwnershipRejectsForeignContentTypeNamespaces() {
-        byte[] package = ReplaceWave38Entry(
-            CreateWave33XlsbProvenancePackage(signed: false),
-            "[Content_Types].xml",
-            "<Types xmlns=\"urn:foreign:content-types\">" +
-            "<Default Extension=\"bin\" ContentType=\"application/vnd.ms-excel.sheet.binary.macroEnabled.main\"/>" +
-            "</Types>");
-
-        Assert.ThrowsAny<Exception>(() => ExcelDocument.RemoveProvenance(package, "workbook.xlsb"));
+    public static IEnumerable<object[]> ExcelXlsbOwnershipRejectsMalformedOwningMetadataCases() {
+        {
+            byte[] package = ReplaceWave38Entry(
+                CreateWave33XlsbProvenancePackage(signed: false),
+                "_rels/.rels",
+                "<Relationships xmlns=\"urn:foreign:relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.bin\"/>" +
+                "</Relationships>");
+            yield return new object[] { "ExcelXlsbOwnershipRejectsForeignPackageMetadataNamespaces", package };
+        }
+        {
+            byte[] package = ReplaceWave38Entry(
+                CreateWave33XlsbProvenancePackage(signed: false),
+                "[Content_Types].xml",
+                "<Types xmlns=\"urn:foreign:content-types\">" +
+                "<Default Extension=\"bin\" ContentType=\"application/vnd.ms-excel.sheet.binary.macroEnabled.main\"/>" +
+                "</Types>");
+            yield return new object[] { "ExcelXlsbOwnershipRejectsForeignContentTypeNamespaces", package };
+        }
+        {
+            byte[] package = ReplaceWave38Entry(
+                CreateWave33XlsbProvenancePackage(signed: false),
+                "[Content_Types].xml",
+                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
+                "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
+                "<Default Extension=\"bin\" ContentType=\"application/vnd.ms-excel.custom.binary\"/>" +
+                "</Types>");
+            yield return new object[] { "ExcelXlsbOwnershipRequiresTheExactWorkbookContentType", package };
+        }
+        {
+            byte[] package = ReplaceWave38Entry(
+                CreateWave33XlsbProvenancePackage(signed: false),
+                "_rels/.rels",
+                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
+                "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.bin\"/>" +
+                "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/other.bin\"/>" +
+                "</Relationships>");
+            yield return new object[] { "ExcelXlsbRejectsMultipleInternalWorkbookRelationships", package };
+        }
+        {
+            byte[] package = ReplaceWave38Entry(
+                CreateWave33XlsbProvenancePackage(signed: false),
+                "_rels/.rels",
+                "<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>" +
+                "<Extension><Relationship Id='rId1' " +
+                "Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' " +
+                "Target='xl/workbook.bin'/></Extension></Relationships>");
+            yield return new object[] { "ExcelXlsbRequiresDirectRootRelationships", package };
+        }
     }
+
 
     [Fact]
     public void EpubOwnershipRequiresContainerMetadata() {

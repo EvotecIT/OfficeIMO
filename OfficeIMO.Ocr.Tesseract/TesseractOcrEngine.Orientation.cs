@@ -10,7 +10,8 @@ public sealed partial class TesseractOcrEngine {
         try {
             string input = Path.Combine(directory, "input" + OcrProcessFileNames.GetSafeExtension(request.FileName, request.MediaType));
             OcrTemporaryStorage.WriteAllBytes(input, request.Payload);
-            var arguments = new List<string> { input, "stdout", "-l", "osd", "--psm", "0" };
+            string workingDirectory = Environment.CurrentDirectory;
+            var arguments = new List<string> { GetInputArgument(input, workingDirectory), "stdout", "-l", "osd", "--psm", "0" };
             if (!string.IsNullOrWhiteSpace(_options.TessdataDirectory)) {
                 arguments.Add("--tessdata-dir"); arguments.Add(_options.TessdataDirectory!);
             }
@@ -19,6 +20,7 @@ public sealed partial class TesseractOcrEngine {
             }
             OcrProcessResult process = await OcrProcessRunner.RunAsync(new OcrProcessCommand {
                 FileName = _options.ExecutablePath, Arguments = arguments, Timeout = _options.Timeout,
+                WorkingDirectory = workingDirectory,
                 MaxStandardOutputCharacters = _options.MaxProcessOutputCharacters,
                 MaxStandardErrorCharacters = _options.MaxProcessOutputCharacters
             }, cancellationToken).ConfigureAwait(false);

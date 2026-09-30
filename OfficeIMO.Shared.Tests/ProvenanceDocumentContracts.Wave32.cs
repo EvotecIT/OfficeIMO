@@ -8,14 +8,7 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlForeignContentBreakoutTagsRestoreHtmlTokenizationDuringPreflight() {
-        string html = "<html><body><svg><p><![CDATA[hidden>" + string.Concat(Enumerable.Repeat("<div></div>", 32));
 
-        Assert.Throws<InvalidDataException>(() => HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 12 }));
-    }
 
     [Fact]
     public void PowerPointProvenanceAcceptsMacroEnabledAddIns() {

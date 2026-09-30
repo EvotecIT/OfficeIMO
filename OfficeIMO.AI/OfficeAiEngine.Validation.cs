@@ -174,7 +174,8 @@ public sealed partial class OfficeAiEngine {
                 if (!bool.TryParse(raw, out bool boolean)) return false;
                 normalized = boolean ? "true" : "false"; return true;
             case OfficeAiFieldType.Date:
-                if (!DateOnly.TryParseExact(raw, definition.DateFormat, culture, DateTimeStyles.None, out DateOnly date)) return false;
+                if (!HasCompleteDateFormat(definition.DateFormat!, culture)
+                    || !DateOnly.TryParseExact(raw, definition.DateFormat, culture, DateTimeStyles.None, out DateOnly date)) return false;
                 normalized = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture); return true;
             default: return false;
         }

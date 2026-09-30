@@ -162,6 +162,23 @@ foreach (var table in projection.Tables)
 
 Loss permission is explicit because tables omit dependencies, native presentation, and other semantics outside the selected exchange fields. `ReadExcel` requires a bounded worksheet rectangle; formula/error cells and numbers that cannot be represented exactly are rejected. `ReadCsv` uses the CSV owner's parsing and quoting rules. Wrap the resulting `ProjectDataTable` in a `ProjectMappedTable` with explicit field mappings before calling `ProjectDocument.ImportTables`. Table import creates a new project and validates identity, references, units, and conflict policy. See [Project support](../OfficeIMO.Project/SUPPORT.md#portable-reports-and-mapped-data-exchange) for the full boundary.
 
+## Review OCR before publication
+
+`MakePdfSearchableAsync` captures recognition evidence before writing an output. Set `PdfSearchableWorkflowRequest.ReviewAsync` to choose eligible words, or `ReviewCorrectionsAsync` to return original eligible word instances mapped to their reviewed text. Choose one callback. An empty review selection deliberately preserves the source copy; a recognition result with no eligible words and no native source text fails before publication.
+
+```csharp
+request.ReviewCorrectionsAsync = (review, token) => {
+    token.ThrowIfCancellationRequested();
+    IReadOnlyDictionary<OfficeIMO.Pdf.Ocr.PdfRecognizedWord, string> reviewed = review.Ocr.Pages
+        .SelectMany(page => page.Words).ToDictionary(word => word, word => word.Text);
+    return Task.FromResult(reviewed);
+};
+```
+
+A host review interface can edit dictionary values and exclude entries before returning them. Correction eligibility, text limits, source-identity checks, output conflicts, and publication guards apply to local files, provider outputs, and OCR sessions. Workflow diagnostics retain recognition warnings and page numbers. A nonrecoverable provider error prevents publication, and image recognition with no usable text does not create an empty success artifact. Successful publication means the reviewed artifact was saved; it does not certify recognition accuracy.
+
+OfficeIMO Studio shows the source region, original recognition, editable replacement, confidence, and inclusion choice. Corrections persist across page navigation. **Next uncertain word** navigates low-confidence and sub-90% words without making rejected words eligible. The selected text can be extracted without creating a PDF or saved as a searchable layer; cancellation preserves the existing destination.
+
 ## Reference from source
 
 When working from an OfficeIMO source checkout, reference the workflow project directly:

@@ -1521,7 +1521,7 @@
   <data name="Ocr.Review.ExcludePage" xml:space="preserve"><value>Exclude page</value></data>
   <data name="Ocr.Review.Words" xml:space="preserve"><value>Recognized words and confidence</value></data>
   <data name="Ocr.Review.Diagnostics" xml:space="preserve"><value>Recognition and rendering diagnostics</value></data>
-  <data name="Ocr.Review.CommitNote" xml:space="preserve"><value>Only selected eligible words will enter the searchable layer. The source PDF stays unchanged.</value></data>
+  <data name="Ocr.Review.CommitNote" xml:space="preserve"><value>Selected words and your corrections enter the searchable layer. Original recognition evidence is retained.</value></data>
   <data name="Ocr.Review.Recognize" xml:space="preserve"><value>Recognize and review</value></data>
   <data name="Ocr.Review.Advanced" xml:space="preserve"><value>Advanced recognition settings</value></data>
   <data name="Ocr.Review.Enlarge" xml:space="preserve"><value>Enlarge selected word</value></data>
@@ -1864,7 +1864,7 @@
   <data name="Ocr.Text.Recognize" xml:space="preserve"><value>Recognize text to copy</value></data>
   <data name="Ocr.Text.Copy" xml:space="preserve"><value>Copy reviewed text</value></data>
   <data name="Ocr.Text.UseSelected" xml:space="preserve"><value>Use selected text</value></data>
-  <data name="Ocr.Text.CommitNote" xml:space="preserve"><value>Extract the selected words without creating a PDF.</value></data>
+  <data name="Ocr.Text.CommitNote" xml:space="preserve"><value>Extract the selected words and your corrections without creating a PDF.</value></data>
   <data name="Ocr.Text.NoClipboard" xml:space="preserve"><value>Clipboard is unavailable. Select the text to copy it manually.</value></data>
   <data name="Ocr.Text.Copied" xml:space="preserve"><value>Reviewed text copied.</value></data>
   <data name="Ocr.Text.Preparing" xml:space="preserve"><value>Recognizing text on the selected scan page…</value></data>
@@ -2003,7 +2003,7 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Ocr.Result.SummaryWithProvider" xml:space="preserve"><value>Searchable words: {0:N0} · Pages: {1:N0} · Provider: {2}</value></data>
   <data name="Ocr.Review.Page" xml:space="preserve"><value>Page {0}</value></data>
   <data name="Ocr.Review.PageDetails" xml:space="preserve"><value>Language: {0} · Provider: {1} · Eligible: {2:N0} · Low confidence: {3:N0} · Native overlap: {4:N0}</value></data>
-  <data name="Ocr.Review.Summary" xml:space="preserve"><value>Selected words: {0:N0} · Reviewed pages: {1:N0}. Rejected words remain excluded.</value></data>
+  <data name="Ocr.Review.Summary" xml:space="preserve"><value>Selected words: {0:N0} · Corrected: {2:N0} · Pages: {1:N0}. Rejected words remain excluded.</value></data>
   <data name="OcrSession.ImageRoute" xml:space="preserve"><value>Image → reviewed text</value></data>
   <data name="OcrSession.Outcomes" xml:space="preserve"><value>Last run: {0} saved · {1} failed · {2} cancelled · {3} need checking. Saved outputs were retained.</value></data>
   <data name="OcrSession.PdfRoute" xml:space="preserve"><value>PDF → searchable PDF</value></data>
@@ -2373,4 +2373,8 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Invoice.ValidationStatus.Unavailable" xml:space="preserve"><value>Unavailable</value></data>
   <data name="Commands.Invoices.Title" xml:space="preserve"><value>Invoices</value></data>
   <data name="Commands.Invoices.Description" xml:space="preserve"><value>Inspect and validate invoice XML, convert formats, render PDFs, or edit source headers.</value></data>
+
+  <data name="Ocr.Review.CorrectText" xml:space="preserve"><value>Correct selected word</value></data>
+  <data name="Ocr.Review.NextUncertain" xml:space="preserve"><value>Next uncertain word</value></data>
+  <data name="Ocr.Review.OriginalText" xml:space="preserve"><value>Original recognition</value></data>
 </root>

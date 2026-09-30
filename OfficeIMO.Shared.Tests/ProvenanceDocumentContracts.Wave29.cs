@@ -9,28 +9,7 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlBogusCommentsEndAtTheFirstGreaterThanSign() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><?x \"><div></div>" + string.Concat(Enumerable.Repeat("<span></span>", 32)) + "</body></html>";
 
-        Assert.Throws<InvalidDataException>(() => HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 16 }));
-    }
-
-    [Fact]
-    public void HtmlPreflightPreservesForeignContentCdataAsText() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><svg><![CDATA[" + string.Concat(Enumerable.Repeat("<div></div>", 64)) +
-            "]]></svg></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 16 });
-
-        Assert.Single(report.Evidence);
-    }
 
     [Fact]
     public void HtmlNormalizesEmbeddedSvgDeclarationAfterUtf16Bom() {

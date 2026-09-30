@@ -36,4 +36,14 @@ public sealed class OcrEngineExecution {
         TimeSpan timeout,
         CancellationToken cancellationToken = default) =>
         OcrEngineRunner.RecognizeAsync(this, request, timeout, cancellationToken);
+
+    /// <summary>Recognizes a raster payload while bounding the owned result snapshot.</summary>
+    public Task<OcrResult> RecognizeAsync(
+        OcrRequest request,
+        TimeSpan timeout,
+        OcrResultCaptureLimits captureLimits,
+        CancellationToken cancellationToken) {
+        if (captureLimits == null) throw new ArgumentNullException(nameof(captureLimits));
+        return OcrEngineRunner.RecognizeAsync(this, request, timeout, cancellationToken, captureLimits);
+    }
 }

@@ -77,18 +77,21 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.False(result.WasChanged);
     }
 
-    [Fact]
-    public void AssertionSuperboxRejectsArbitraryContentBoxes() {
+    [Theory]
+    [InlineData("free")]
+    [InlineData("uuid")]
+    public void AssertionContentBoxTypesRequireValidStructure(string contentBoxType) {
         byte[] manifest = CreateManifestStore();
         int contentType = FindAscii(manifest, "cbor");
         Assert.True(contentType >= 0);
-        Encoding.ASCII.GetBytes("free").CopyTo(manifest, contentType);
+        Encoding.ASCII.GetBytes(contentBoxType).CopyTo(manifest, contentType);
 
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(
             CreatePngWithC2paManifest(manifest), "fixture.png");
 
         Assert.False(Assert.Single(result.Before.Evidence).IsStructurallyValid);
         Assert.False(result.WasChanged);
+
     }
 
     private static int FindAscii(byte[] data, string value) {

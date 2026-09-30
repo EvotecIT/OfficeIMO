@@ -85,16 +85,5 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Equal(cleanedManifest, ReadZipEntry(result.Data, manifestPath));
     }
 
-    [Fact]
-    public void ExcelXlsbRejectsMultipleInternalWorkbookRelationships() {
-        byte[] package = ReplaceWave38Entry(
-            CreateWave33XlsbProvenancePackage(signed: false),
-            "_rels/.rels",
-            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
-            "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.bin\"/>" +
-            "<Relationship Id=\"rId2\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/other.bin\"/>" +
-            "</Relationships>");
 
-        Assert.ThrowsAny<Exception>(() => ExcelDocument.RemoveProvenance(package, "workbook.xlsb"));
-    }
 }

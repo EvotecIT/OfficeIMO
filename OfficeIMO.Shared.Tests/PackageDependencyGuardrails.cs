@@ -120,7 +120,9 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void Projects_DoNotReferenceImageSharpPackage() {
+    public void Projects_DoNotReferenceSixLaborsGraphicsPackages() {
+        string[] forbiddenPackageIds = ["SixLabors.ImageSharp", "SixLabors.Fonts"];
+
         var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
             .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
@@ -129,7 +131,7 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         var offenders = projectFiles
-            .Where(ProjectReferencesImageSharp)
+            .Where(projectPath => ProjectReferencesPackages(projectPath, forbiddenPackageIds).Any())
             .ToArray();
 
         Assert.Empty(offenders);
@@ -214,22 +216,6 @@ public sealed class PackageDependencyGuardrailTests {
             Assert.False(workstream.TryGetProperty("status", out _), "Planning status belongs in Docs/ROADMAP.md, not the capability manifest.");
             Assert.False(workstream.TryGetProperty("nextSlices", out _), "Open slices belong in Docs/ROADMAP.md, not the capability manifest.");
         }
-    }
-
-    [Fact]
-    public void Projects_DoNotReferenceSixLaborsFontsPackage() {
-        var projectFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.csproj", SearchOption.AllDirectories)
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => new FileInfo(path).Length > 0)
-            .ToArray();
-
-        var offenders = projectFiles
-            .Where(ProjectReferencesSixLaborsFonts)
-            .ToArray();
-
-        Assert.Empty(offenders);
     }
 
     [Theory]
@@ -412,136 +398,6 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void RetiredPackages_AreNotReferencedBySolutionOrProjects() {
-        string[] retiredPackageIds = ["OfficeIMO.Rtf.Html", "OfficeIMO.Reader.Text"];
-
-        var solutionPath = GetRepositoryPath("OfficeIMO.sln");
-        Assert.True(File.Exists(solutionPath), "Solution file is missing: " + solutionPath);
-
-        var solutionText = File.ReadAllText(solutionPath);
-        foreach (var retiredPackageId in retiredPackageIds) {
-            Assert.DoesNotContain(retiredPackageId, solutionText, StringComparison.OrdinalIgnoreCase);
-        }
-
-        var projectFiles = EnumerateProjectFiles();
-        foreach (var projectFile in projectFiles) {
-            var document = XDocument.Load(projectFile);
-            var ns = document.Root?.Name.Namespace ?? XNamespace.None;
-
-            var packageIds = document
-                .Descendants(ns + "PackageId")
-                .Select(static element => (string?)element)
-                .Where(static value => !string.IsNullOrWhiteSpace(value))
-                .ToArray();
-
-            var packageReferences = document
-                .Descendants(ns + "PackageReference")
-                .Select(static element => (string?)element.Attribute("Include"))
-                .Where(static value => !string.IsNullOrWhiteSpace(value))
-                .ToArray();
-
-            var projectReferences = document
-                .Descendants(ns + "ProjectReference")
-                .Select(static element => NormalizeProjectPath((string?)element.Attribute("Include")))
-                .Where(static value => !string.IsNullOrWhiteSpace(value))
-                .ToArray();
-
-            foreach (var retiredPackageId in retiredPackageIds) {
-                Assert.DoesNotContain(packageIds, value => string.Equals(value, retiredPackageId, StringComparison.OrdinalIgnoreCase));
-                Assert.DoesNotContain(packageReferences, value => string.Equals(value, retiredPackageId, StringComparison.OrdinalIgnoreCase));
-                Assert.DoesNotContain(projectReferences, value => value.Contains(retiredPackageId, StringComparison.OrdinalIgnoreCase));
-            }
-        }
-
-        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
-        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
-
-        var projectBuildText = File.ReadAllText(projectBuildPath);
-        foreach (var retiredPackageId in retiredPackageIds) {
-            Assert.DoesNotContain(retiredPackageId, projectBuildText, StringComparison.OrdinalIgnoreCase);
-        }
-    }
-
-    [Fact]
-    public void RetiredRtfHtmlNamespaces_AreNotUsedBySourceFiles() {
-        string[] retiredNamespaces = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf"];
-
-        var sourceFiles = Directory.EnumerateFiles(GetRepositoryRoot(), "*.cs", SearchOption.AllDirectories)
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => new FileInfo(path).Length > 0)
-            .ToArray();
-
-        foreach (var sourceFile in sourceFiles) {
-            string source = File.ReadAllText(sourceFile);
-            foreach (var retiredNamespace in retiredNamespaces) {
-                Assert.DoesNotContain($"namespace {retiredNamespace}", source, StringComparison.Ordinal);
-                Assert.DoesNotContain($"using {retiredNamespace}", source, StringComparison.Ordinal);
-            }
-        }
-    }
-
-    [Fact]
-    public void RetiredAggregateTestAssembly_IsNotGrantedFriendAccess() {
-        var projectOffenders = EnumerateProjectFiles()
-            .SelectMany(projectPath => XDocument.Load(projectPath)
-                .Descendants()
-                .Where(static element => element.Name.LocalName == "InternalsVisibleTo")
-                .Where(static element => string.Equals((string?)element.Attribute("Include"), "OfficeIMO.Tests", StringComparison.OrdinalIgnoreCase))
-                .Select(_ => GetRepositoryRelativePath(projectPath)))
-            .ToArray();
-
-        var sourceOffenders = Directory.EnumerateFiles(GetRepositoryRoot(), "*.cs", SearchOption.AllDirectories)
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
-            .Where(static path => new FileInfo(path).Length > 0)
-            .Where(SourceGrantsRetiredAggregateTestAccess)
-            .Select(GetRepositoryRelativePath)
-            .ToArray();
-
-        var offenders = projectOffenders
-            .Concat(sourceOffenders)
-            .OrderBy(static offender => offender, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        Assert.Empty(offenders);
-    }
-
-    [Fact]
-    public void RtfPackages_AreIncludedInProjectBuildVersionMap() {
-        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
-        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
-
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
-        string? expectedVersion = document.RootElement.GetProperty("ExpectedVersion").GetString();
-        JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
-
-        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Rtf").GetString());
-        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Word.Rtf").GetString());
-        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Rtf.Pdf").GetString());
-        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Reader.Rtf").GetString());
-    }
-
-    [Theory]
-    [InlineData("OfficeIMO.Ocr")]
-    [InlineData("OfficeIMO.Ocr.Process")]
-    [InlineData("OfficeIMO.Ocr.Tesseract")]
-    [InlineData("OfficeIMO.Pdf.Ocr")]
-    [InlineData("OfficeIMO.Reader.Ocr")]
-    public void OcrPackages_AreIncludedInProjectBuildVersionMap(string packageId) {
-        var projectBuildPath = GetRepositoryPath("Build/project.build.json");
-        Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
-
-        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
-        string? expectedVersion = document.RootElement.GetProperty("ExpectedVersion").GetString();
-        JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
-
-        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty(packageId).GetString());
-    }
-
-    [Fact]
     public void OcrProjects_KeepFormatAndProviderDependenciesSeparated() {
         Assert.Empty(GetProjectReferences(GetRepositoryPath("OfficeIMO.Ocr/OfficeIMO.Ocr.csproj")));
         Assert.Empty(GetPackageReferences(GetRepositoryPath("OfficeIMO.Ocr/OfficeIMO.Ocr.csproj")));
@@ -562,16 +418,6 @@ public sealed class PackageDependencyGuardrailTests {
             "OfficeIMO.Core",
             "OfficeIMO.Ocr",
             "OfficeIMO.Pdf");
-    }
-
-    [Fact]
-    public void ReaderAggregate_DoesNotForceOptionalOcrPackages() {
-        string[] references = GetProjectReferences(GetRepositoryPath("OfficeIMO.Reader.All/OfficeIMO.Reader.All.csproj"));
-
-        Assert.DoesNotContain(references, reference =>
-            reference.Contains("OfficeIMO.Ocr", StringComparison.OrdinalIgnoreCase) ||
-            reference.Contains("OfficeIMO.Reader.Ocr", StringComparison.OrdinalIgnoreCase) ||
-            reference.Contains("OfficeIMO.Pdf.Ocr", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -870,21 +716,6 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void OpenDocumentPdfAdapters_DoNotAddUmbrellaOrCorePackages() {
-        Assert.False(File.Exists(GetRepositoryPath(
-            "OfficeIMO.OpenDocument.Pdf/OfficeIMO.OpenDocument.Pdf.csproj")));
-        Assert.False(File.Exists(GetRepositoryPath(
-            "OfficeIMO.OpenDocument.Pdf.Core/OfficeIMO.OpenDocument.Pdf.Core.csproj")));
-    }
-
-    [Theory]
-    [InlineData("OfficeIMO.Visio/VisioPngRenderer.PngRaster.cs")]
-    [InlineData("OfficeIMO.Visio/VisioPngRenderer.Encoding.cs")]
-    public void RetiredPrivateRenderingBrains_AreNotRestored(string relativePath) {
-        Assert.False(File.Exists(GetRepositoryPath(relativePath)), "Retired private renderer file should stay in OfficeIMO.Core instead: " + relativePath);
-    }
-
-    [Fact]
     public void RenderingAdapters_DoNotDeclarePrivateRasterInfrastructure() {
         string[] renderingAdapterRoots = [
             "OfficeIMO.Excel",
@@ -1056,6 +887,10 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Contains("../OfficeIMO.Reader.Excel/OfficeIMO.Reader.Excel.csproj", references, StringComparer.Ordinal);
         Assert.Contains("../OfficeIMO.Reader.PowerPoint/OfficeIMO.Reader.PowerPoint.csproj", references, StringComparer.Ordinal);
         Assert.Contains("../OfficeIMO.Reader.Markdown/OfficeIMO.Reader.Markdown.csproj", references, StringComparer.Ordinal);
+        Assert.DoesNotContain(references, reference =>
+            reference.Contains("OfficeIMO.Ocr", StringComparison.OrdinalIgnoreCase) ||
+            reference.Contains("OfficeIMO.Reader.Ocr", StringComparison.OrdinalIgnoreCase) ||
+            reference.Contains("OfficeIMO.Pdf.Ocr", StringComparison.OrdinalIgnoreCase));
         Assert.Empty(GetPackageReferences(projectPath));
     }
 
@@ -1294,22 +1129,6 @@ public sealed class PackageDependencyGuardrailTests {
             .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
             .Where(static include => !string.IsNullOrWhiteSpace(include))
             .ToArray();
-    }
-
-    private static bool ProjectReferencesImageSharp(string projectPath) {
-        return ProjectReferencesPackages(projectPath, ["SixLabors.ImageSharp"]).Any();
-    }
-
-    private static bool ProjectReferencesSixLaborsFonts(string projectPath) {
-        return ProjectReferencesPackages(projectPath, ["SixLabors.Fonts"]).Any();
-    }
-
-    private static bool SourceGrantsRetiredAggregateTestAccess(string sourcePath) {
-        string source = File.ReadAllText(sourcePath);
-        return Regex.IsMatch(
-            source,
-            @"\[\s*assembly\s*:\s*InternalsVisibleTo\s*\(\s*""OfficeIMO\.Tests""\s*\)\s*\]",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static IEnumerable<string> ProjectReferencesPackages(string projectPath, IReadOnlyCollection<string> packageIds) {

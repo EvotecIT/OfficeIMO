@@ -24,18 +24,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.ThrowsAny<Exception>(() => ExcelDocument.RemoveProvenance(package, "workbook.xlsb"));
     }
 
-    [Fact]
-    public void ExcelXlsbRequiresDirectRootRelationships() {
-        byte[] package = ReplaceWave38Entry(
-            CreateWave33XlsbProvenancePackage(signed: false),
-            "_rels/.rels",
-            "<Relationships xmlns='http://schemas.openxmlformats.org/package/2006/relationships'>" +
-            "<Extension><Relationship Id='rId1' " +
-            "Type='http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument' " +
-            "Target='xl/workbook.bin'/></Extension></Relationships>");
-
-        Assert.ThrowsAny<Exception>(() => ExcelDocument.RemoveProvenance(package, "workbook.xlsb"));
-    }
 
     [Theory]
     [InlineData("content.xml")]

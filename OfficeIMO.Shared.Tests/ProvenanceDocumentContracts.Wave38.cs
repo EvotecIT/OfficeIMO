@@ -9,15 +9,34 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlPreflightTreatsQuotesAsDataInEndTags() {
-        AssertHtmlPreflightRejects("</div x=a\"><span></span><span></span>", maximumEntries: 1);
+    [Theory]
+    [MemberData(nameof(HtmlPreflightRejectsRecoveredLexicalEntryExpansionCases))]
+    public void HtmlPreflightRejectsRecoveredLexicalEntryExpansion(string caseName, string html, int maximumEntries) {
+        _ = caseName;
+        AssertHtmlPreflightRejects(html, maximumEntries);
     }
 
-    [Fact]
-    public void HtmlPreflightConsumesPunctuationInTagNames() {
-        AssertHtmlPreflightRejects("<script.foo><span></span><span></span>", maximumEntries: 1);
+    public static IEnumerable<object[]> HtmlPreflightRejectsRecoveredLexicalEntryExpansionCases() {
+        {
+            const string html = "</div x=a\"><span></span><span></span>";
+            yield return new object[] { "HtmlPreflightTreatsQuotesAsDataInEndTags", html, 1 };
+        }
+        {
+            const string html = "<script.foo><span></span><span></span>";
+            yield return new object[] { "HtmlPreflightConsumesPunctuationInTagNames", html, 1 };
+        }
+        {
+            const string html = "<!DOCTYPE html x\"><div></div><div></div>";
+            yield return new object[] { "HtmlBogusDoctypeQuotesDoNotHideFollowingElements", html, 1 };
+        }
+        {
+            string html =
+                "<math><annotation-xml encoding=\"text&#x2f;html\"><![CDATA[>" +
+                "<span></span><span></span>]]></annotation-xml></math>";
+            yield return new object[] { "HtmlPreflightDecodesMathMlIntegrationPointEncoding", html, 3 };
+        }
     }
+
 
     [Fact]
     public void ExcelXlsbRejectsSignatureOriginTargetsWithWorkbookContentType() {

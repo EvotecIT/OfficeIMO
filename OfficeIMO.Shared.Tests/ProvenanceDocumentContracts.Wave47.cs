@@ -50,17 +50,5 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.False(result.WasChanged);
     }
 
-    [Fact]
-    public void ExcelXlsbOwnershipRequiresTheExactWorkbookContentType() {
-        byte[] package = ReplaceWave38Entry(
-            CreateWave33XlsbProvenancePackage(signed: false),
-            "[Content_Types].xml",
-            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
-            "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>" +
-            "<Default Extension=\"bin\" ContentType=\"application/vnd.ms-excel.custom.binary\"/>" +
-            "</Types>");
 
-        Assert.ThrowsAny<Exception>(() =>
-            ExcelDocument.RemoveProvenance(package, "workbook.xlsb"));
-    }
 }

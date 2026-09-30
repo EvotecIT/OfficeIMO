@@ -59,16 +59,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Single(report.Evidence);
     }
 
-    [Fact]
-    public void HtmlPreflightTreatsForeignObjectChildrenAsHtml() {
-        string html = "<html><body><svg><foreignObject><![CDATA[x>" +
-            string.Concat(Enumerable.Repeat("<span></span>", 32)) +
-            "</foreignObject></svg></body></html>";
-
-        Assert.Throws<InvalidDataException>(() => HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 16 }));
-    }
 
     private static byte[] CreateSavedOpenXmlPackage(string extension) {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + "." + extension);

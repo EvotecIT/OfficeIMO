@@ -38,25 +38,46 @@ public sealed partial class ProvenanceCoreContracts {
         Assert.Equal(jpeg, result.ToArray());
     }
 
-    [Fact]
-    public void RdfXmlLiteralMarkupIsNotTreatedAsDigitalSourceMetadata() {
-        byte[] packet = Encoding.UTF8.GetBytes(
-            "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
-            "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><rdf:RDF><rdf:Description>" +
-            "<x:Unrelated rdf:parseType=\"Literal\"><iptc:DigitalSourceType>trainedAlgorithmicMedia</iptc:DigitalSourceType></x:Unrelated>" +
-            "</rdf:Description></rdf:RDF></x:xmpmeta>");
-        byte[] prefix = Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"), new byte[] { 0, 0, 0, 0, 0 });
-        byte[] png = Join(
-            new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
-            CreatePngChunk("IHDR", new byte[13]),
-            CreatePngChunk("iTXt", Join(prefix, packet)),
-            CreatePngChunk("IEND", Array.Empty<byte>()));
-
+    [Theory]
+    [MemberData(nameof(RdfXmlLiteralPayloadsAreNotDigitalSourceMetadataCases))]
+    public void RdfXmlLiteralPayloadsAreNotDigitalSourceMetadata(string caseName, byte[] png) {
+        _ = caseName;
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(png, "fixture.png");
         OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(png, "fixture.png");
 
         Assert.Empty(report.Evidence);
         Assert.False(result.WasChanged);
         Assert.Equal(png, result.ToArray());
+    }
+
+    public static IEnumerable<object[]> RdfXmlLiteralPayloadsAreNotDigitalSourceMetadataCases() {
+        {
+            byte[] packet = Encoding.UTF8.GetBytes(
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+                "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><rdf:RDF><rdf:Description>" +
+                "<x:Unrelated rdf:parseType=\"Literal\"><iptc:DigitalSourceType>trainedAlgorithmicMedia</iptc:DigitalSourceType></x:Unrelated>" +
+                "</rdf:Description></rdf:RDF></x:xmpmeta>");
+            byte[] prefix = Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"), new byte[] { 0, 0, 0, 0, 0 });
+            byte[] png = Join(
+                new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+                CreatePngChunk("IHDR", new byte[13]),
+                CreatePngChunk("iTXt", Join(prefix, packet)),
+                CreatePngChunk("IEND", Array.Empty<byte>()));
+            yield return new object[] { "RdfXmlLiteralMarkupIsNotTreatedAsDigitalSourceMetadata", png };
+        }
+        {
+            byte[] packet = Encoding.UTF8.GetBytes(
+                "<x:xmpmeta xmlns:x=\"adobe:ns:meta/\" xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\" " +
+                "xmlns:iptc=\"http://iptc.org/std/Iptc4xmpExt/2008-02-29/\"><rdf:RDF><rdf:Description>" +
+                "<x:Unrelated rdf:parseType=\"Literal\"><rdf:Description iptc:DigitalSourceType=\"trainedAlgorithmicMedia\"/></x:Unrelated>" +
+                "</rdf:Description></rdf:RDF></x:xmpmeta>");
+            byte[] prefix = Join(Encoding.ASCII.GetBytes("XML:com.adobe.xmp"), new byte[] { 0, 0, 0, 0, 0 });
+            byte[] png = Join(
+                new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+                CreatePngChunk("IHDR", new byte[13]),
+                CreatePngChunk("iTXt", Join(prefix, packet)),
+                CreatePngChunk("IEND", Array.Empty<byte>()));
+            yield return new object[] { "RdfXmlLiteralAttributesAreNotTreatedAsDigitalSourceMetadata", png };
+        }
     }
 }
