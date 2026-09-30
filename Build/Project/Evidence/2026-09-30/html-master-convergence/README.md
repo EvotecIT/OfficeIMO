@@ -100,3 +100,11 @@ H4 passes 8/8. All eleven NASA PDF variants are byte-identical to the accepted `
 Current complete outputs are under ignored `Ignore/HtmlUnknownPageQualification/static-gap-page-float-{clean,h4-clean,nasa-clean,static-budget-clean,h10-budget-clean}-6d2fd539e`. The three-case record contains reference output hashes, page bounds, marker counts and overlap checks; the source archive remains separately retained for replay.
 
 Superseded authored output, passing/probe test files, eleven duplicate `0093a146c` NASA PDFs and ten old budget operation folders were removed after containment, provenance and activity checks. Their compact results, prior reports and source archive remain; current raw proof is retained at the clean-source paths above. This cleanup removes about 168.7 MiB.
+
+## AVIF container and sequence-header stage
+
+At source `eea5c578a`, Core has an internal bounded reader for whole in-file AV1 still items and their optional auxiliary alpha. It preserves CICP metadata and reads Main 8-bit reduced-still sequence headers without allocating image planes. The [header-stage record](avif-header-checkpoint.json) binds the independent frozen assets, source hashes, input-limit checks and review evidence to this checkpoint. External/stitched items, transformations and unsupported codec paths are rejected.
+
+The focused suite passes 17/17 on .NET 8 and .NET 10; Core builds for netstandard2.0 with zero warnings. An independent review found an identity-matrix conformance error. Both color and monochrome regressions fail before the correction and pass after it; one targeted confirmation closes that finding.
+
+This stage does not decode pixels. Both frozen AVIF files still fail the public default raster decode, and the support catalog remains unchanged. Frame/tile decoding, actual frame dimensions, pixel comparison, alpha composition, caller-codec integration and HTML/PDF qualification remain open in the product roadmap. Prior H4, planetary and performance results qualify their recorded sources; they are not decoder evidence for this stage. Superseded probes and intermediate passing logs were removed, retaining the final two framework results and before-fix failure proof under ignored `Ignore/HtmlUnknownPageQualification/static-gap-avif-container-work-c3b02831b`.
