@@ -35,7 +35,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 out block)) {
             return true;
         }
-        IReadOnlyList<HtmlRenderFlowBlock> children = BuildChildBlocks(element, columnWidth, style, depth);
+        IReadOnlyList<HtmlRenderFlowBlock> children = BuildMultiColumnChildBlocks(
+            element, element.ChildNodes, columnWidth, style, depth);
         double? declaredHeight = ResolveDeclaredColumnContentHeight(style);
         double targetHeight;
         if (declaredHeight.HasValue && style.ColumnFill == "auto") {
@@ -161,7 +162,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (remaining <= available + 0.0001D) {
                     end = child.Height;
                 } else {
-                    end = FindFragmentEnd(child, start, available, child.Height);
+                    end = FindFragmentEnd(child, start, available, child.Height, fullPageHeight: targetHeight);
                     if (end <= start + 0.0001D && y > 0.0001D) {
                         if (column + 2 > maximumGeneratedColumns) {
                             if (throwOnLimit) EnsureMultiColumnLimit(column + 2);

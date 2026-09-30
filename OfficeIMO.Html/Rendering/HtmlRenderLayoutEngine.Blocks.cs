@@ -54,7 +54,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double flowHeight = blocks.Sum(block => block.Height);
         var adjoiningMargins = new AdjoiningMarginState();
         var inlineNodes = new List<INode>();
-        List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue
+        List<HtmlFloatExclusion>? activeFloats = pageBoundary.HasValue || emittedFloats != null
             ? inheritedFloats == null ? new List<HtmlFloatExclusion>() : new List<HtmlFloatExclusion>(inheritedFloats)
             : null;
         foreach (INode node in nodes) {
@@ -107,7 +107,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     double inlineHeight = FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth, pageBoundary?.Shift(flowHeight), activeFloats, emittedFloats, flowHeight);
                     flowHeight += inlineHeight;
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
-                    List<HtmlFloatExclusion>? flattenedFloats = pageBoundary.HasValue
+                    List<HtmlFloatExclusion>? flattenedFloats = activeFloats != null
                         ? new List<HtmlFloatExclusion>()
                         : null;
                     IReadOnlyList<HtmlRenderFlowBlock> flattenedBlocks = BuildChildBlocks(
@@ -173,7 +173,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         unavoidedStyle, width, flowHeight, activeFloats);
                     childStyle = ResolveNormalFlowHorizontalAutoMargins(element, childStyle, width);
                     bool carriesContinuation = ContainsElementOrSelf(element, continuationTarget);
-                    List<HtmlFloatExclusion>? childFloats = pageBoundary.HasValue
+                    List<HtmlFloatExclusion>? childFloats = activeFloats != null
                         && ContainsFloatingDescendant(element, width, childStyle, depth + 1)
                             ? new List<HtmlFloatExclusion>()
                             : null;
@@ -875,7 +875,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         // A floated sibling does not consume normal-flow height before the
         // following block. A block formatting context still contains its float.
         bool containsFloat = EstablishesFloatContainingBlock(style);
-        double flowHeight = pageBoundary.HasValue && !containsFloat ? inline.NormalFlowHeight : inline.Height;
+        double flowHeight = activeFloats != null && (!containsFloat || HasMultiColumnLayout(style))
+            ? inline.NormalFlowHeight : inline.Height;
         var block = new HtmlRenderFlowBlock(
             width,
             flowHeight,
