@@ -60,6 +60,7 @@ public static class PdfOpenTypeFontInspector {
         bool hasGposTable = tables.TryGetValue("GPOS", out TableRecord gpos);
         IReadOnlyList<string> gsubFeatures = hasGsubTable ? TryReadOpenTypeLayoutFeatureTags(fontData, gsub) : Array.Empty<string>();
         IReadOnlyList<string> gposFeatures = hasGposTable ? TryReadOpenTypeLayoutFeatureTags(fontData, gpos) : Array.Empty<string>();
+        var substitution = hasGsubTable ? OfficeIMO.Drawing.OfficeOpenTypeSubstitution.TryCreate(fontData) : null;
         return new PdfOpenTypeFontInfo(
             resolvedFontName,
             FormatScalerType(scalerType),
@@ -73,7 +74,8 @@ public static class PdfOpenTypeFontInspector {
             hasGsubTable,
             hasGposTable,
             gsubFeatures,
-            gposFeatures);
+            gposFeatures,
+            hasGsubTable ? substitution?.GetLatinDefaultFeatureTags() ?? gsubFeatures : Array.Empty<string>()) { LatinSubstitution = substitution };
     }
 
     /// <summary>

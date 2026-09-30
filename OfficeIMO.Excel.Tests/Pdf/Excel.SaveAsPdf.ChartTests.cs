@@ -10,10 +10,34 @@ using System.Text.RegularExpressions;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
+
+    [Fact]
+    public void SaveAsPdf_PlainPieRetainsOutsideLabelsAndLeaderLines() {
+        using ExcelDocument document = ExcelDocument.Create();
+        ExcelChart chart = document.AddWorksheet("Results").AddChart(OfficeChartKind.Pie,
+            new OfficeChartData(new[] { "A", "B" }, new[] {
+                new OfficeChartSeries("Status", new[] { 3d, 4d }) }), 1, 1);
+        C.PieChart native = document.OpenXmlDocument.WorkbookPart!.WorksheetParts
+            .Single(part => part.DrawingsPart != null).DrawingsPart!.ChartParts.Single()
+            .ChartSpace!.Descendants<C.PieChart>().Single();
+        native.GetFirstChild<C.DataLabels>()!.AddChild(
+            new C.DataLabelPosition { Val = C.DataLabelPositionValues.OutsideEnd }, true);
+        native.GetFirstChild<C.DataLabels>()!.AddChild(new C.ShowCategoryName { Val = true }, true);
+        native.GetFirstChild<C.DataLabels>()!.AddChild(new C.ShowLeaderLines { Val = true }, true);
+        Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+        Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, snapshot.Layout!.DataLabelPosition);
+        MethodInfo mapper = typeof(ExcelPdfConverterExtensions).GetMethod("CreateOfficeChartSnapshot",
+            BindingFlags.NonPublic | BindingFlags.Static)!;
+        OfficeChartSnapshot pdfSnapshot = Assert.IsType<OfficeChartSnapshot>(
+            mapper.Invoke(null, new object[] { snapshot, new ExcelToPdfOptions() }));
+        Assert.Equal(OfficeChartDataLabelPosition.OutsideEnd, pdfSnapshot.Layout.DataLabelPosition);
+        Assert.True(pdfSnapshot.Layout.ShowDataLabelLeaderLines);
+    }
 
     [Fact]
     public void SaveAsPdf_ExcelWorkbook_Exports_Worksheet_Chart_Snapshots() {
@@ -198,6 +222,7 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPieDoughnutCharts.xlsx");
 
         byte[] bytes;
+        OfficeColor[] sliceColors;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Charts")) {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Category");
@@ -218,6 +243,8 @@ public partial class Excel {
             Assert.All(charts, chart => Assert.True(chart.TryGetSnapshot(out _)));
             Assert.Equal(ExcelChartType.Pie, charts[0].ChartType);
             Assert.Equal(ExcelChartType.Doughnut, charts[1].ChartType);
+            Assert.True(charts[0].TryGetSnapshot(out ExcelChartSnapshot pieSnapshot));
+            sliceColors = pieSnapshot.Style!.Palette.Take(3).ToArray();
 
             document.Save();
 
@@ -237,9 +264,11 @@ public partial class Excel {
         Assert.Contains("Non-compliant", text);
 
         string rawPdf = PdfOperatorSearchText.From(bytes);
-        Assert.Contains("0.122 0.306 0.475 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.184 0.435 0.243 rg", rawPdf, StringComparison.Ordinal);
-        Assert.Contains("0.722 0.353 0.137 rg", rawPdf, StringComparison.Ordinal);
+        foreach (OfficeColor color in sliceColors) {
+            string operation = string.Format(CultureInfo.InvariantCulture, "{0:0.###} {1:0.###} {2:0.###} rg",
+                color.R / 255d, color.G / 255d, color.B / 255d);
+            Assert.Contains(operation, rawPdf, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

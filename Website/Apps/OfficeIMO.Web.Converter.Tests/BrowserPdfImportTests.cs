@@ -243,9 +243,10 @@ public sealed class BrowserPdfImportTests {
         Assert.NotNull(raster);
         Assert.Equal(1684, raster!.Width);
         Assert.Equal(1190, raster.Height);
-        // This snapshot pins both Base14 positioned text and the source PDF's exact dash array and phase.
+        // This snapshot pins Base14 positioned text, exact stroke dashes, and the implicit
+        // closure of filled open contours (including the pale green status circle).
         Assert.Equal(
-            "867def1dc67031c97e118650f9a41d81d317646cc0a3597ea1e5728f737a2c4a",
+            "40b85f1d60935aa33496aeefe16fb87cbc2ef8bdde01925075593528d2c803d9",
             Convert.ToHexString(SHA256.HashData(raster.GetPixels())).ToLowerInvariant());
     }
 

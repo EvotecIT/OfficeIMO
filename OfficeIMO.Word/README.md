@@ -127,6 +127,11 @@ paragraph.AddImage("logo.png", width: 160, height: 64);
 
 Supported static WebP images are decoded by OfficeIMO.Core and embedded as PNG because Word image parts do not accept WebP. Animated or undecodable WebP input is rejected rather than silently reduced to one frame.
 
+Use `paragraph.Image.Clone(destinationParagraph)` to copy an image to another paragraph,
+header, footer, or document. The destination owns its image relationships and fresh DrawingML
+identifiers. Cloning preserves VML shapes and their referenced definitions, and remaps
+embedded SVG extension resources along with the primary image.
+
 ### Hyperlinks and bookmarks
 
 ```csharp
@@ -436,6 +441,139 @@ string html = document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }
 string markdown = document.ToMarkdown(new WordToMarkdownOptions());
 document.SaveAsPdf("report.pdf");
 ```
+
+## Editable charts from shared data
+
+Use `WordDocument.AddChart(OfficeChartKind, OfficeChartData, ...)` or the corresponding
+`WordParagraph.AddChart(...)` overload to create a native chart
+with an embedded Excel worksheet. `WordChart.SetData(kind, data)` updates its caches and
+worksheet together, preserving the drawing dimensions, title, name, and alternative text.
+Existing embedded packages must be XLSX; updates reject other package formats before changing
+native data or package bytes.
+External or unresolved workbook links also reject the update; embed an XLSX
+workbook before replacing chart data.
+Formula-linked titles, axis titles and custom labels retain their cached text as
+native rich text; custom error bars retain cached numeric values as literals.
+Updates reject uncached bindings and unqualified workbook-linked extensions
+before changing the chart or worksheet.
+Native axes retain their referenced identity, and compatible repeated layers
+retain separate formatting when they share an axis pair. Repeated layers of
+the same family and axis group with different axis pairs reject shared updates.
+The shared writer supports column and bar grouping variants, line and area grouping variants,
+pie, doughnut, radar, scatter, and bubble charts. Supported category combinations use each
+series' `RenderKind` and `AxisGroup`; scatter, bubble, horizontal bars, pie, doughnut, and radar
+have the combination restrictions enforced by the shared chart contract.
+For scatter and bubble charts, a series' `RenderKind` must match the chart kind
+or be omitted.
+
+```csharp
+using OfficeIMO.Drawing;
+using OfficeIMO.Word;
+
+using WordDocument document = WordDocument.Create();
+var data = new OfficeChartData(new[] { "Pass", "Could not evaluate", "Fail" }, new[] {
+    new OfficeChartSeries("Status", new[] { 8d, 2d, 1d }).WithPointStyles(new OfficeChartPointStyle?[] {
+        new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#008000")),
+        new OfficeChartPointStyle(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2),
+        new OfficeChartPointStyle(fillColor: OfficeColor.Parse("#C00000"))
+    })
+});
+WordChart chart = document.AddChart(OfficeChartKind.Doughnut, data, "Status", width: 360, height: 240);
+chart.Name = "Status distribution";
+chart.SetRadialLayout(new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70));
+chart.AltText = "Eight passed, two could not be evaluated, and one failed.";
+document.Save("status.docx");
+```
+
+Omitting point styles preserves existing native overrides during a data update; supply an
+explicit array containing null entries to clear those points' fill and outline overrides.
+`chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot)` reads supported two-dimensional
+charts into the shared Drawing contract, including numeric X coordinates, bubble sizes,
+category combinations, secondary-axis assignments, native plotting order, and point styles.
+Word page images and Markdown SVG fallbacks use this projection. PDF uses it for bubble and
+combination charts; its existing single-family route retains its separate cached-data limits.
+Secondary value axes retain their own linear bounds, major/minor tick units and appearance, numeric label format, and title.
+Use `chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
+majorUnit: 0.2, numberFormat: "0%").WithTitle("Completion rate"))` on a chart with a secondary series.
+Independent secondary colours, line styles and gridlines, and logarithmic or reversed scales still reject this snapshot.
+
+Snapshots preserve chart and plot surfaces, primary axes and gridlines, radial geometry,
+uniform body fonts, separate chart-title and axis-title fonts, uniform text size, style and
+colour for titles, legends and axes, and basic data-label content,
+separator, number format, and position. Mixed body fonts, per-point or series-specific labels,
+best-fit radial leader lines, unsupported radial label positions, unsupported effects, and unrepresented outlines return false
+without changing the native document. Native authoring remains available for these charts.
+Outside-end radial leader lines are supported when they can be placed without crossing another doughnut ring.
+Deleted axes suppress their lines, and primary tick-label placement and automatic/minimum/maximum
+axis crossing are preserved where the renderer supports them; automatic zero crossing through a negative
+value range and maximum crossing on horizontal bars are rejected. Nonstandard axis arrangements,
+title shape fills or unsupported legend fills,
+manual title layouts, unsupported numeric formats, and nondefault bar spacing
+require a richer projection and return false. Analytical overlays, sparse, empty, unequal or nonnumeric value caches,
+time-scaled date axes, inverted negative bars, unresolved native style presets, per-entry legend text,
+multiline, rotated or aligned text layouts, chart data tables, hierarchical categories, visible secondary category axes,
+category-label skipping, offsets or non-centered alignment, rounded chart frames, non-box bar shapes,
+bar connector lines, chart drawing overlays, nondefault cross-between geometry, and nonidentity Word color-scheme mappings also reject projection. Visible-only
+charts reject hidden rows or columns in their referenced workbook ranges; unrelated hidden cells do not affect the snapshot. Literal charts remain supported.
+Pie and doughnut snapshots preserve supported per-slice explosion offsets in native charts and static exports.
+Header and footer charts use relationships owned
+by their containing story, including when the same relationship ID exists in the document body.
+
+Category and scatter snapshots retain supported native line and marker appearance.
+Call `snapshot.Data.Series[index].ToOfficeSeries()` to obtain the shared series,
+including connecting-line visibility, stroke width and dash, marker shape and
+size, marker outlines, and point overrides. Word page images and Markdown chart
+drawings use that same series. Unqualified native dashes, curved lines, distinct
+marker and connecting-line colours, unresolved automatic marker symbols, or unfilled marker treatments reject the
+managed snapshot rather than changing their appearance. Cached projections are
+bounded to 10,000 positions per Word cache and 100,000 positions across a chart.
+Point overrides use a separate 1,000,000-record limit that counts stale and duplicate
+records. Native series retain their plotting order. Gradients, custom or compound
+outlines, and per-point marker overrides reject static projection. Supported filled
+series outlines are inherited by points; explicit point outlines take precedence.
+Picture markers reject static projection. Visible inherited markers require an explicit supported series symbol.
+Small authored chart canvases retain explicit font, stroke and marker sizes; quality reports identify cramped or overflowing content.
+
+Category discovery checks all populated series before generating fallback labels.
+The longest available category cache supplies labels, and shorter series retain
+their positions with zero padding. Marker-only plots use the marker fill; a
+marker fill cannot replace an unresolved connecting-line colour in a static export.
+
+`RadialLayout` reads native pie rotation and doughnut hole size. `SetRadialLayout(...)`
+updates an existing two-dimensional pie or doughnut chart. These settings survive
+save/reopen, data updates, snapshots, managed images, PDF, and chart projections to Markdown.
+Rotation is clockwise from the top (0–360 degrees); hole size is 10–90 percent.
+
+## Native doughnut charts
+
+`WordChart.AddDoughnut(category, value)` creates an editable native doughnut chart with a
+50-percent hole. It accepts finite, nonnegative `int`, `double`, or `float` values and can
+append slices after reopening a chart authored with literal data, preserving gaps and disabled
+labels. Numeric category literals accept finite invariant numeric category strings. Linked worksheet caches
+and multi-ring imported doughnuts use the existing cached-data mutation APIs instead.
+
+```csharp
+WordChart chart = document.AddChart("Status", roundedCorners: false, width: 360, height: 180);
+chart.AddDoughnut("Pass", 8).AddDoughnut("Could not evaluate", 2).AddDoughnut("Fail", 1);
+chart.SetDataPointStyle(0, 1,
+    new OfficeIMO.Drawing.OfficeChartPointStyle(noFill: true,
+        outlineColor: OfficeIMO.Drawing.OfficeColor.Black, outlineWidth: 2));
+```
+
+## Individual chart point styles
+
+Use `chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to apply an
+`OfficeIMO.Drawing.OfficeChartPointStyle` to a native Word chart. Solid fill, explicit no-fill,
+outlines with optional joins, and seven hatch patterns are supported without changing
+the chart values.
+Passing null clears the point's fill and outline overrides.
+
+Native save/reopen, chart snapshots, managed images, PDF export, and Markdown SVG chart
+fallbacks carry supported point styles. Pie legend swatches follow their slices.
+Static area charts use the opaque series fill, honor an explicit no-outline series,
+and report unsupported per-point styling. Imported native point overrides remain
+in the editable chart package.
+See the [shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
 
 ## Managed image export
 

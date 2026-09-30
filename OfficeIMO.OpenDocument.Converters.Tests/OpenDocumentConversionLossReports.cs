@@ -121,8 +121,10 @@ public sealed class OpenDocumentConversionLossReportTests {
             && mapping.Count == 1);
         Assert.Contains(conversion.Report.Mappings, mapping =>
             mapping.Feature == "pivot-tables"
-            && mapping.Status == OdfConversionMappingStatus.Unsupported
+            && mapping.Status == OdfConversionMappingStatus.Approximated
             && mapping.Count == 1);
+        OdsDataPilotTable pivot = Assert.Single(conversion.Value.DataPilotTables);
+        Assert.Equal("SalesPivot", pivot.Name);
     }
 
     [Theory]
@@ -305,7 +307,6 @@ public sealed class OpenDocumentConversionLossReportTests {
     }
 
     [Theory]
-    [InlineData("UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=")]
     [InlineData("UklGRoQAAABXRUJQVlA4WAoAAAACAAAAAQAAAQAAQU5JTQYAAAAAAAAAAABBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAAJWUDhMDwAAAC8BQAAABxD9j/4HIqL/AQBBTk1GKAAAAAAAAAAAAAEAAAEAAGQAAABWUDhMDwAAAC8BQAAABxDR//4HIqL/AQA=")]
     [InlineData("UklGRhIAAABXRUJQVlA4TAUAAAAvAAAAAAA=")]
     [InlineData("UklGRhYAAABXRUJQVlA4IAoAAAAAAACdASoBAAEA")]
@@ -338,6 +339,38 @@ public sealed class OpenDocumentConversionLossReportTests {
         Assert.Empty(Assert.Single(presentationConversion.Value.Slides).Shapes.OfType<OdpImage>());
         Assert.Contains(presentationConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
+    }
+
+    [Fact]
+    public void OpaqueLossyWebpImagesReachOpenDocumentBridges() {
+        byte[] webp = Convert.FromBase64String("UklGRjwAAABXRUJQVlA4IDAAAADQAQCdASoCAAIAAUAmJaACdLoB+AADsAD+8ut//NgVzXPv9//S4P0uD9Lg/9KQAAA=");
+        byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(1, 1, OfficeColor.White));
+        Assert.True(OfficeWebpCodec.TryDecode(webp, out _));
+
+        using WordDocument word = WordDocument.Create();
+        using (var image = new MemoryStream(png, writable: false)) {
+            word.AddParagraph().AddImage(image, "imported.png", 10, 10);
+        }
+        using (var image = new MemoryStream(webp, writable: false)) {
+            word.OpenXmlDocument.MainDocumentPart!.ImageParts.Single().FeedData(image);
+        }
+        OdfConversionResult<OdtDocument> wordConversion = word.ToOpenDocumentResult();
+        Assert.Single(wordConversion.Value.Paragraphs.SelectMany(paragraph => paragraph.Images));
+        Assert.DoesNotContain(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
+
+        using PowerPointPresentation presentation = PowerPointPresentation.Create(
+            new MemoryStream(), new PowerPointCreateOptions());
+        using (var image = new MemoryStream(png, writable: false)) {
+            presentation.AddSlide().AddPicture(image, OfficeImageFormat.Png);
+        }
+        using (var image = new MemoryStream(webp, writable: false)) {
+            presentation.OpenXmlDocument.PresentationPart!.SlideParts.Single().ImageParts.Single().FeedData(image);
+        }
+        OdfConversionResult<OdpPresentation> presentationConversion = presentation.ToOpenDocumentResult();
+        Assert.Single(Assert.Single(presentationConversion.Value.Slides).Shapes.OfType<OdpImage>());
+        Assert.DoesNotContain(presentationConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
+            mapping.Status == OdfConversionMappingStatus.Unsupported);
     }
 
     [Fact]

@@ -97,30 +97,39 @@ public sealed class PdfConversionTypographyTests {
     }
 
     [Theory]
-    [InlineData("word-to-pdf", "OfficeIMO.Word.Pdf")]
-    [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf")]
-    [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf")]
-    [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf")]
-    public void ConversionAdapters_ReportOpenTypeFeatureWarningsForConfiguredEmbeddedFonts(string conversionPath, string expectedConverter) {
+    [InlineData("word-to-pdf", "OfficeIMO.Word.Pdf", true)]
+    [InlineData("word-to-pdf", "OfficeIMO.Word.Pdf", false)]
+    [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf", true)]
+    [InlineData("excel-to-pdf", "OfficeIMO.Excel.Pdf", false)]
+    [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf", true)]
+    [InlineData("markdown-to-pdf", "OfficeIMO.Markdown.Pdf", false)]
+    [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf", true)]
+    [InlineData("powerpoint-to-pdf", "OfficeIMO.PowerPoint.Pdf", false)]
+    public void ConversionAdapters_ReportOpenTypeFeatureWarningsForConfiguredEmbeddedFonts(string conversionPath, string expectedConverter, bool scalar) {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         if (fontPath == null) {
             return;
         }
 
         PdfCore.PdfConversionReport report = conversionPath switch {
-            "word-to-pdf" => CreateWordOpenTypeReport(fontPath),
-            "excel-to-pdf" => CreateExcelOpenTypeReport(fontPath),
-            "markdown-to-pdf" => CreateMarkdownOpenTypeReport(fontPath),
-            "powerpoint-to-pdf" => CreatePowerPointOpenTypeReport(fontPath),
+            "word-to-pdf" => CreateWordOpenTypeReport(fontPath, scalar),
+            "excel-to-pdf" => CreateExcelOpenTypeReport(fontPath, scalar),
+            "markdown-to-pdf" => CreateMarkdownOpenTypeReport(fontPath, scalar),
+            "powerpoint-to-pdf" => CreatePowerPointOpenTypeReport(fontPath, scalar),
             _ => throw new ArgumentOutOfRangeException(nameof(conversionPath), conversionPath, null)
         };
 
-        PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings.Where(item =>
-            item.Code == "unsupported-font-ligature-substitution" &&
-            item.Converter == expectedConverter).Take(1));
-        Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
-        Assert.Equal("OpenType GSUB ligature", warning.Details["script"]);
-        Assert.Equal("U+0066", warning.Details["codePoint"]);
+        if (scalar) {
+            PdfCore.PdfConversionWarning warning = Assert.Single(report.Warnings.Where(item =>
+                item.Code == "unsupported-font-ligature-substitution" &&
+                item.Converter == expectedConverter).Take(1));
+            Assert.Equal(PdfCore.PdfConversionWarningSeverity.Warning, warning.Severity);
+            Assert.Equal("OpenType GSUB ligature", warning.Details["script"]);
+            Assert.Equal("U+0066", warning.Details["codePoint"]);
+
+        } else {
+            Assert.DoesNotContain(report.Warnings, item => item.Code == "unsupported-font-ligature-substitution");
+        }
 
         PdfCore.PdfConversionWarning markWarning = Assert.Single(report.Warnings.Where(item =>
             item.Code == "unsupported-mark-positioning-or-joiner-shaping" &&
@@ -325,7 +334,13 @@ Zażółć gęślą jaźń
         return pdf;
     }
 
-    private static PdfCore.PdfConversionReport CreateWordOpenTypeReport(string fontPath) {
+    private static PdfCore.PdfOptions CreateOpenTypePdfOptions(string fontPath, bool scalar) {
+        PdfCore.PdfOptions options = CreatePdfOptions(fontPath);
+        if (scalar) options.TextShapingMode = PdfCore.PdfTextShapingMode.UnicodeScalar;
+        return options;
+    }
+
+    private static PdfCore.PdfConversionReport CreateWordOpenTypeReport(string fontPath, bool scalar) {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Typography", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
@@ -335,7 +350,7 @@ Zażółć gęślą jaźń
             document.Save();
 
             var options = new WordPdf.WordToPdfOptions {
-                PdfOptions = CreatePdfOptions(fontPath),
+                PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar),
                 IncludePageNumbers = false
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
@@ -348,7 +363,7 @@ Zażółć gęślą jaźń
         }
     }
 
-    private static PdfCore.PdfConversionReport CreateExcelOpenTypeReport(string fontPath) {
+    private static PdfCore.PdfConversionReport CreateExcelOpenTypeReport(string fontPath, bool scalar) {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.Typography", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
@@ -358,7 +373,7 @@ Zażółć gęślą jaźń
             document.Save();
 
             var options = new ExcelToPdfOptions {
-                PdfOptions = CreatePdfOptions(fontPath),
+                PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar),
                 IncludeSheetHeadings = false
             };
             PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
@@ -371,17 +386,17 @@ Zażółć gęślą jaźń
         }
     }
 
-    private static PdfCore.PdfConversionReport CreateMarkdownOpenTypeReport(string fontPath) {
+    private static PdfCore.PdfConversionReport CreateMarkdownOpenTypeReport(string fontPath, bool scalar) {
         var options = new MarkdownToPdfOptions {
             ApplyDefaultTheme = false,
-            PdfOptions = CreatePdfOptions(fontPath)
+            PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
         };
         PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse("office cafe\u0301").ToPdfDocumentResult(options);
         _ = result.ToBytes();
         return result.Report;
     }
 
-    private static PdfCore.PdfConversionReport CreatePowerPointOpenTypeReport(string fontPath) {
+    private static PdfCore.PdfConversionReport CreatePowerPointOpenTypeReport(string fontPath, bool scalar) {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(520, 320);
@@ -389,7 +404,7 @@ Zażółć gęślą jaźń
         textBox.FontSize = 14;
 
         var options = new PowerPointToPdfOptions {
-            PdfOptions = CreatePdfOptions(fontPath)
+            PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
         };
         PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
         _ = result.ToBytes();

@@ -1,5 +1,5 @@
 // Adapted from CodeGlyphX, commit fc25e2fcf795d9c9a09b88708c47bdfeed5c446d.
-// Copyright CodeGlyphX contributors. Apache-2.0; see THIRD-PARTY-NOTICES.md.
+// OfficeIMO's copy is licensed under the repository's MIT license by the original author.
 // OfficeIMO adaptation removes diagnostic scaffolding and adds bounded cancellation/resource handling.
 using System;
 using System.Threading;
@@ -30,7 +30,7 @@ internal static partial class OfficeVp8Decoder {
         byte[] uNzCurrent,
         byte[] vNzAbove,
         byte[] vNzCurrent,
-        OfficeVp8PredictionScratch predictionScratch,
+        OfficeVp8DecodeScratch predictionScratch,
         out bool hasCoefficients) {
         hasCoefficients = false;
         var mbX = macroblockX;
@@ -55,7 +55,7 @@ internal static partial class OfficeVp8Decoder {
             if (initialContext > 2) initialContext = 2;
 
             var y2NonZero = false;
-            var y2Coeffs = ZeroCoefficients;
+            var y2Coeffs = predictionScratch.Coefficients;
             if (!skipCoefficients) {
                 if (!TryDecodeBlockCoefficients(
                     decoder,
@@ -64,7 +64,7 @@ internal static partial class OfficeVp8Decoder {
                     initialContext,
                     dequant.Y2Dc,
                     dequant.Y2Ac,
-                    out y2Coeffs,
+                    y2Coeffs,
                     out y2NonZero)) {
                     return false;
                 }
@@ -73,7 +73,9 @@ internal static partial class OfficeVp8Decoder {
             y2Left = y2NonZero ? (byte)1 : (byte)0;
             y2NzCurrent[mbX] = y2Left;
             if (y2NonZero) {
-                y2Dc = OfficeVp8Transform.InverseWalshTransform4x4(y2Coeffs);
+                OfficeVp8Transform.InverseWalshTransform4x4(
+                    y2Coeffs, predictionScratch.TransformTemp, predictionScratch.Y2Dc);
+                y2Dc = predictionScratch.Y2Dc;
             }
 
             hasCoefficients |= y2NonZero;
@@ -103,7 +105,8 @@ internal static partial class OfficeVp8Decoder {
             if (initialContext > 2) initialContext = 2;
 
             var hasNonZero = false;
-            var coefficients = ZeroCoefficients;
+            var coefficients = predictionScratch.Coefficients;
+            if (skipCoefficients) Array.Clear(coefficients, 0, coefficients.Length);
             if (!skipCoefficients) {
                 if (!TryDecodeBlockCoefficients(
                     decoder,
@@ -112,7 +115,7 @@ internal static partial class OfficeVp8Decoder {
                     initialContext,
                     dequant.Y1Dc,
                     dequant.Y1Ac,
-                    out coefficients,
+                    coefficients,
                     out hasNonZero)) {
                     return false;
                 }
@@ -161,7 +164,8 @@ internal static partial class OfficeVp8Decoder {
             if (initialContext > 2) initialContext = 2;
 
             var hasNonZero = false;
-            var coefficients = ZeroCoefficients;
+            var coefficients = predictionScratch.Coefficients;
+            if (skipCoefficients) Array.Clear(coefficients, 0, coefficients.Length);
             if (!skipCoefficients) {
                 if (!TryDecodeBlockCoefficients(
                     decoder,
@@ -170,7 +174,7 @@ internal static partial class OfficeVp8Decoder {
                     initialContext,
                     dequant.UvDc,
                     dequant.UvAc,
-                    out coefficients,
+                    coefficients,
                     out hasNonZero)) {
                     return false;
                 }
@@ -213,7 +217,8 @@ internal static partial class OfficeVp8Decoder {
             if (initialContext > 2) initialContext = 2;
 
             var hasNonZero = false;
-            var coefficients = ZeroCoefficients;
+            var coefficients = predictionScratch.Coefficients;
+            if (skipCoefficients) Array.Clear(coefficients, 0, coefficients.Length);
             if (!skipCoefficients) {
                 if (!TryDecodeBlockCoefficients(
                     decoder,
@@ -222,7 +227,7 @@ internal static partial class OfficeVp8Decoder {
                     initialContext,
                     dequant.UvDc,
                     dequant.UvAc,
-                    out coefficients,
+                    coefficients,
                     out hasNonZero)) {
                     return false;
                 }

@@ -1,5 +1,5 @@
 // Adapted from CodeGlyphX, commit fc25e2fcf795d9c9a09b88708c47bdfeed5c446d.
-// Copyright CodeGlyphX contributors. Apache-2.0; see THIRD-PARTY-NOTICES.md.
+// OfficeIMO's copy is licensed under the repository's MIT license by the original author.
 // OfficeIMO adaptation removes diagnostic scaffolding and adds bounded cancellation/resource handling.
 using System;
 using System.Threading;
@@ -84,6 +84,14 @@ internal sealed class OfficeVp8BoolDecoder
                 _count = 0;
                 _value |= ReadByte();
             }
+        }
+
+        // A second synthetic byte means this very symbol crossed the partition
+        // boundary. Do not let a final header field or coefficient pass as valid.
+        if (_exhausted)
+        {
+            bit = false;
+            return false;
         }
 
         return true;

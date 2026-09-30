@@ -1,5 +1,5 @@
 // Adapted from CodeGlyphX, commit fc25e2fcf795d9c9a09b88708c47bdfeed5c446d.
-// Copyright CodeGlyphX contributors. Apache-2.0; see THIRD-PARTY-NOTICES.md.
+// OfficeIMO's copy is licensed under the repository's MIT license by the original author.
 // OfficeIMO adaptation removes diagnostic scaffolding and adds bounded cancellation/resource handling.
 using System;
 using System.Threading;
@@ -14,9 +14,9 @@ internal static partial class OfficeVp8Decoder {
         int initialContext,
         int dequantDc,
         int dequantAc,
-        out int[] dequantizedCoefficients,
+        int[] dequantizedCoefficients,
         out bool hasNonZero) {
-        dequantizedCoefficients = new int[CoefficientsPerBlock];
+        Array.Clear(dequantizedCoefficients, 0, dequantizedCoefficients.Length);
         hasNonZero = false;
 
         var prevContext = initialContext;
@@ -52,7 +52,8 @@ internal static partial class OfficeVp8Decoder {
 
             var dequantFactor = coefficientIndex == 0 ? dequantDc : dequantAc;
             var naturalIndex = MapZigZagToNaturalIndex(coefficientIndex);
-            dequantizedCoefficients[naturalIndex] = coeffValue * dequantFactor;
+            // VP8 stores dequantized coefficients as signed 16-bit values.
+            dequantizedCoefficients[naturalIndex] = unchecked((short)(coeffValue * dequantFactor));
 
             var tokenInfo = ClassifyToken(tokenCode, band, prevContext);
             prevContext = tokenInfo.PrevContextAfter;

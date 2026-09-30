@@ -519,6 +519,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.AI.Html", "OfficeIMO.AI.Html\OfficeIMO.AI.Html.csproj", "{52D1A7A0-9506-40F8-948B-8BEEFE70B4A1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Html.Runtime.Rendering", "OfficeIMO.Html.Runtime.Rendering\OfficeIMO.Html.Runtime.Rendering.csproj", "{C33A8802-1E74-49F3-B1EE-A446F5E2A3A2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.IWork", "OfficeIMO.Reader.IWork\OfficeIMO.Reader.IWork.csproj", "{2CDD57BA-4A98-4F93-8206-D942743F857C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -2918,6 +2919,18 @@ Global
 		{C33A8802-1E74-49F3-B1EE-A446F5E2A3A2}.Release|x64.Build.0 = Release|Any CPU
 		{C33A8802-1E74-49F3-B1EE-A446F5E2A3A2}.Release|x86.ActiveCfg = Release|Any CPU
 		{C33A8802-1E74-49F3-B1EE-A446F5E2A3A2}.Release|x86.Build.0 = Release|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Debug|x64.Build.0 = Debug|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Debug|x86.Build.0 = Debug|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Release|x64.ActiveCfg = Release|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Release|x64.Build.0 = Release|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Release|x86.ActiveCfg = Release|Any CPU
+		{2CDD57BA-4A98-4F93-8206-D942743F857C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

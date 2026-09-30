@@ -109,22 +109,26 @@ namespace OfficeIMO.Word {
             _document = document;
             _vmlShape = shape;
             _vmlImageData = shape.GetFirstChild<V.ImageData>();
+            _Image = new WordDrawing();
+            string? relationshipId = _vmlImageData?.RelationshipId?.Value;
+            if (!string.IsNullOrEmpty(relationshipId)) {
+                var owner = WordPartOwnership.Resolve(document, shape);
+                if (owner.TryGetPartById(relationshipId!, out OpenXmlPart? imagePart))
+                    _imagePart = imagePart as ImagePart;
+                else if (owner.ExternalRelationships.Any(relationship => relationship.Id == relationshipId))
+                    _externalRelationshipId = relationshipId;
+            }
         }
 
         /// <summary>
         /// Creates a copy of this image and appends it to the specified paragraph.
-        /// The cloned image shares the same underlying image part.
+        /// The cloned image retains its native representation and establishes relationships in the destination story.
         /// </summary>
         /// <param name="paragraph">The paragraph to append the cloned image to.</param>
         /// <returns>The newly created <see cref="WordImage"/> instance.</returns>
         public WordImage Clone(WordParagraph paragraph) {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-
-            var drawingClone = (WordDrawing)_Image.CloneNode(true);
-            var run = new DocumentFormat.OpenXml.Wordprocessing.Run(drawingClone);
-            paragraph._paragraph.Append(run);
-
-            return new WordImage(paragraph._document, drawingClone);
+            return CloneToParagraph(paragraph);
         }
 
         /// <summary>
@@ -203,21 +207,25 @@ namespace OfficeIMO.Word {
         /// Remove image from a Word Document
         /// </summary>
         public void Remove() {
+            OpenXmlElement occurrence = _vmlShape ?? (OpenXmlElement)_Image;
+            if (occurrence.Parent == null) throw new InvalidOperationException("The image occurrence is no longer attached to the document.");
+            OpenXmlPart owner = GetContainingPart();
+            string? relationshipId = _externalRelationshipId ?? RelationshipId;
+            occurrence.Remove();
+            bool referenced = relationshipId != null && owner.RootElement?.Descendants().Any(element =>
+                element.GetAttributes().Any(attribute =>
+                    attribute.NamespaceUri == "http://schemas.openxmlformats.org/officeDocument/2006/relationships" &&
+                    attribute.Value == relationshipId)) == true;
+            if (referenced) return;
             if (_imagePart != null) {
-                OpenXmlPart part = GetContainingPart();
-                part.DeletePart(_imagePart);
+                owner.DeletePart(_imagePart);
                 _imagePart = null;
             } else if (!string.IsNullOrEmpty(_externalRelationshipId)) {
-                OpenXmlPart part = GetContainingPart();
-                var rel = part.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
+                var rel = owner.ExternalRelationships.FirstOrDefault(r => r.Id == _externalRelationshipId);
                 if (rel != null) {
-                    part.DeleteExternalRelationship(rel);
+                    owner.DeleteExternalRelationship(rel);
                 }
                 _externalRelationshipId = null;
-            }
-
-            if (this._Image != null) {
-                this._Image.Remove();
             }
         }
 
@@ -403,41 +411,6 @@ namespace OfficeIMO.Word {
             _Image = drawing;
         }
 
-        private OpenXmlPart GetContainingPart() {
-            OpenXmlElement? parent = _Image.Parent;
-            while (parent != null
-                && parent is not Body
-                && parent is not Header
-                && parent is not Footer
-                && parent is not Footnotes
-                && parent is not Endnotes
-                && parent is not Comments) {
-                parent = parent.Parent;
-            }
-
-            if (parent is Header header) {
-                return header.HeaderPart ?? throw new InvalidOperationException("Header part is missing.");
-            }
-
-            if (parent is Footer footer) {
-                return footer.FooterPart ?? throw new InvalidOperationException("Footer part is missing.");
-            }
-
-            MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart
-                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
-            if (parent is Footnotes) {
-                return mainPart.FootnotesPart ?? throw new InvalidOperationException("FootnotesPart is missing.");
-            }
-
-            if (parent is Endnotes) {
-                return mainPart.EndnotesPart ?? throw new InvalidOperationException("EndnotesPart is missing.");
-            }
-
-            if (parent is Comments) {
-                return mainPart.WordprocessingCommentsPart ?? throw new InvalidOperationException("WordprocessingCommentsPart is missing.");
-            }
-
-            return mainPart;
-        }
+        private OpenXmlPart GetContainingPart() => WordPartOwnership.Resolve(_document, _vmlShape ?? (OpenXmlElement)_Image);
     }
 }

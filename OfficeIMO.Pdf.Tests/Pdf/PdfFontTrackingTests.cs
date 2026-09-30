@@ -91,6 +91,26 @@ public sealed class PdfFontTrackingTests {
         Assert.Equal(13.5D, PdfWriter.MeasurePositionedText(run, options)!.Value, 9);
     }
 
+    [Theory]
+    [InlineData(1D, 23.5D)]
+    [InlineData(.75D, 25D)]
+    public void IsolatedLogicalClustersRetainTrackingAndTheFollowingTextOrigin(double metricScale, double finalX) {
+        var font = PdfTrueTypeFontProgram.Parse(FontData());
+        var run = new PdfGlyphRun(new[] {
+            new PdfGlyphInfo(1, "A", 0, 500),
+            new PdfGlyphInfo(1, "B", 1, 500)
+        }, Array.Empty<PdfTextEncodingDiagnostic>(), preserveGlyphUnicode: true);
+        var content = new StringBuilder();
+        new ContentStreamBuilder(content).TextMatrix(10D, 20D)
+            .ShowText(font.ToTextShowCommand("AB", run, metricScale), 15D);
+
+        string painted = content.ToString();
+        Assert.Contains("/ActualText <41>", painted, StringComparison.Ordinal);
+        Assert.Contains("/ActualText <42>", painted, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 " + finalX.ToString(System.Globalization.CultureInfo.InvariantCulture)
+            + " 20 Tm", painted, StringComparison.Ordinal);
+    }
+
     private static byte[] FontData() => ManagedTextShapingTestAssets.CreateTrackingFont(
         Table());
 

@@ -23,7 +23,7 @@ meta.primary_url: "/compatibility/"
   <div class="imo-comparison-grid">
     <article class="imo-comparison-card">
       <h3><a href="/comparisons/pdf-desktop-tools/">Studio, Acrobat, Foxit, and free PDF tools</a></h3>
-      <p>Compare editing, OCR, printing, automation, and installation availability by edition. Studio currently requires a source build.</p>
+      <p>Compare editing, OCR, printing, automation, and installation availability by edition. Studio offers Windows and Linux downloads.</p>
       <a class="imo-comparison-card__link" href="/comparisons/pdf-desktop-tools/">Compare desktop workflows <span aria-hidden="true">→</span></a>
     </article>
   </div>

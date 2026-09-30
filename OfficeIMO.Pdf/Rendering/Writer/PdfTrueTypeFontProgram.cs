@@ -90,7 +90,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         }
         // Skip the external shaper only where it would not engage (no provider, default features); the
         // width then comes from the scalar path with no glyph-run allocation.
-        int advanceWidth1000 = shapingProvider == null && options.FeatureSettings.IsDefault
+        int advanceWidth1000 = shapingProvider == null && options.FeatureSettings.IsDefault && shapingMode != PdfTextShapingMode.OpenTypeLigatures
             ? PdfUnicodeScalarTextShaper.MeasureAdvanceWidth1000(text!, this, options)
             : ShapeText(text!, options).TotalAdvanceWidth1000;
         return advanceWidth1000 * fontSize / 1000D;
@@ -133,7 +133,7 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
     }
 
-    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IOfficeTextShapingProvider? shapingProvider, Action<string, string, bool, bool>? providerShapedTextRecorder, string? language = null) {
         Guard.NotNull(text, nameof(text));
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder, language)).ToGlyphHex();
     }

@@ -61,7 +61,8 @@ public static class OfficeRasterContainerInspector {
                 return OfficeTiffCodec.TryInspectPages(
                     encodedBytes, effective, enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Webp:
-                return TryInspectWebp(encodedBytes, imageInfo, effective, out container);
+                return TryInspectWebp(encodedBytes, imageInfo, effective,
+                    validateDecodedPayload: enforceAllTiffPagePixelLimits, out container);
             case OfficeImageFormat.Jpeg:
                 return TryInspectJpeg(
                     encodedBytes, imageInfo, effective,
@@ -389,6 +390,7 @@ public static class OfficeRasterContainerInspector {
         byte[] bytes,
         OfficeImageInfo imageInfo,
         OfficeRasterDecodeOptions options,
+        bool validateDecodedPayload,
         out OfficeRasterContainerInfo? container) {
         container = null;
         var frames = new List<OfficeRasterFrameInfo>();
@@ -429,6 +431,7 @@ public static class OfficeRasterContainerInspector {
                     !TryValidateWebpAnimationFramePayload(
                         bytes, data + 16, length - 16, width, height,
                         checked(options.RetainedManagedBytes + (frames.Count + 1L) * 128L),
+                        validateDecodedPayload,
                         options.CancellationToken)) return false;
                 validatedFramePixels += framePixels;
                 frames.Add(new OfficeRasterFrameInfo(
@@ -447,13 +450,13 @@ public static class OfficeRasterContainerInspector {
         }
         if (cursor != bytes.Length) return false;
         if (frames.Count == 0) {
-            // OfficeImageReader has validated the VP8 header and RIFF container.
-            // Pixel decoding is deferred to the bounded decoder, avoiding a second VP8 decode.
-            if (hasLossyImage) {
+            // Decode requests validate VP8 during their next step. Public inspection
+            // validates the complete payload before reporting a usable image.
+            if (hasLossyImage && !validateDecodedPayload) {
                 container = CreateStatic(imageInfo);
                 return true;
             }
-            if (!hasLosslessImage ||
+            if ((!hasLosslessImage && !hasLossyImage) ||
                 !OfficeWebpCodec.TryDecode(
                     bytes, options.CancellationToken, options.RetainedManagedBytes,
                     out OfficeRasterImage? decoded) ||
@@ -478,6 +481,7 @@ public static class OfficeRasterContainerInspector {
         int expectedWidth,
         int expectedHeight,
         long retainedFrameInventoryBytes,
+        bool validateDecodedPayload,
         System.Threading.CancellationToken cancellationToken) {
         if (length < 8 || offset < 0 || offset > source.Length - length) return false;
         int end = checked(offset + length);
@@ -507,7 +511,7 @@ public static class OfficeRasterContainerInspector {
                         out int width, out int height, out _) ||
                     width != expectedWidth || height != expectedHeight) return false;
                 if (type == "VP8 " && !HasCompleteVp8ControlPartition(source, payloadOffset, payloadLength)) return false;
-                if (type == "VP8L" && !TryDecodeWebpAnimationFrame(
+                if ((type == "VP8L" || type == "VP8 " && validateDecodedPayload) && !TryDecodeWebpAnimationFrame(
                         source, cursor, (int)paddedEnd - cursor,
                         expectedWidth, expectedHeight, retainedFrameInventoryBytes,
                         cancellationToken)) return false;

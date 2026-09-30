@@ -420,6 +420,22 @@ public sealed record ImmutableRow(string Name, string Status);
 
 ### Charts and dashboard recipes
 
+Combination-chart snapshots retain secondary value-axis bounds, tick units and number formats
+independently of the primary axis. Configure them with `SetValueAxisScale(...,
+axisGroup: OfficeChartAxisGroup.Secondary)` and `SetValueAxisNumberFormat("0%", false,
+OfficeChartAxisGroup.Secondary)`; managed chart images use the same independent scale.
+`SetSecondaryValueAxis(new OfficeChartValueAxisLayout(...).WithTitle("Margin"))` configures
+these settings together, including optional `majorTickMark` and `minorTickMark` appearance.
+Snapshots reject malformed secondary numeric settings and secondary logarithmic or reversed
+scales, display units, and explicit numeric crossing values.
+
+Managed chart images resolve source-linked axis formats from the referenced worksheet
+cells when those cells share one number format. For example, percentage cells formatted
+as `0%` produce percentage axis labels with no decimal places. An explicitly unlinked
+axis keeps the format supplied to `SetValueAxisNumberFormat`. Mixed formats, unresolved
+references, and sources beyond the format-resolution work bounds report
+`ChartAxisNumberFormatApproximation` and use the axis's declared format.
+
 ```csharp
 using OfficeIMO.Excel;
 
@@ -472,6 +488,29 @@ modernChart.SetTitle("Current pipeline")
 ```
 
 `ExcelModernChart` can inspect imported ChartEx objects and change their name, title, supported layout, and one-cell placement without replacing unrelated markup. `UpdateData` is available only when the ChartEx formulas resolve to OfficeIMO's owned hidden chart-data sheet; visible imported business data is never claimed as writable chart storage. Other imported charts remain formatting-preserving but data replacement is rejected. Use `ExcelFormatCapabilityReport.Current.ToMarkdown()` when a workflow must choose between XLSX, XLS, and XLSB targets.
+
+### Individual chart point styles
+
+Shared chart authoring accepts `OfficeChartSeries.WithPointStyles`; existing native charts
+can be edited with `chart.SetDataPointStyle(seriesIndex, pointIndex, style)`. Solid fills,
+explicit no-fill, outlines, and seven hatch patterns remain editable in Excel and survive
+save/reopen. A null style clears the point's fill and outline overrides.
+
+Snapshots, managed image export, and PDF export carry these styles through the shared
+renderer. Pie and doughnut legend swatches follow their slice appearance. Static area charts
+retain their series fill and report unsupported per-point appearance. See the
+[shared style example](../OfficeIMO.Core/README.md#style-individual-chart-points).
+
+### Pie and doughnut geometry
+
+Use `chart.SetRadialLayout(new OfficeChartRadialLayout(90, 70))` on an existing native
+two-dimensional pie or doughnut chart. Rotation runs clockwise from the top (0–360 degrees);
+the doughnut hole is an inner-to-outer diameter percentage (10–90). `chart.RadialLayout`
+reads the native settings. Save/reopen, data updates, snapshots, managed chart images and
+workbook PDF exports and semantic HTML round trips preserve them.
+For an individual pie or doughnut slice, `chart.SetDataPointExplosion(seriesIndex, pointIndex, percent)`
+sets an outward offset from 0 to 400 percent without replacing the chart. Pass zero to explicitly
+remove that slice's offset, or null to restore an inherited series offset.
 
 ### Pivot tables and pivot-backed charts
 

@@ -190,14 +190,14 @@ internal static partial class PdfWriter {
         PdfOptions pageOptions) {
         var content = new ContentStreamBuilder(sb)
             .BeginText()
-            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize);
+            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize, pageOptions.NeedsSyntheticOblique(font));
         if (Math.Abs(textRise) > 0.0001D) {
             content.TextRise(textRise);
         }
 
         content
             .FillColor(color)
-            .MoveText(x, y)
+            .TextMatrix(x, y)
             .ShowText(EncodeTextShowCommand(text, font, pageOptions), fontSize, textRise)
             .EndText();
     }

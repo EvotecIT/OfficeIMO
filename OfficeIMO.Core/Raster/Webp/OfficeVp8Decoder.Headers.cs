@@ -1,5 +1,5 @@
 // Adapted from CodeGlyphX, commit fc25e2fcf795d9c9a09b88708c47bdfeed5c446d.
-// Copyright CodeGlyphX contributors. Apache-2.0; see THIRD-PARTY-NOTICES.md.
+// OfficeIMO's copy is licensed under the repository's MIT license by the original author.
 // OfficeIMO adaptation removes diagnostic scaffolding and adds bounded cancellation/resource handling.
 using System;
 using System.Threading;
@@ -311,10 +311,13 @@ internal static partial class OfficeVp8Decoder {
         return true;
     }
 
-    private static bool TryReadControlHeader(OfficeVp8BoolDecoder decoder, out OfficeVp8ControlHeader controlHeader) {
+    internal static bool TryReadControlHeader(OfficeVp8BoolDecoder decoder, out OfficeVp8ControlHeader controlHeader) {
         controlHeader = default;
         if (!decoder.TryReadBool(probability: 128, out var colorSpaceBit)) return false;
         if (!decoder.TryReadBool(probability: 128, out var clampTypeBit)) return false;
+        // RFC 6386 reserves color space 1. Clamp type 1 is valid: compliant
+        // streams already reconstruct within the byte range.
+        if (colorSpaceBit) return false;
 
         controlHeader = new OfficeVp8ControlHeader(
             colorSpaceBit ? 1 : 0,

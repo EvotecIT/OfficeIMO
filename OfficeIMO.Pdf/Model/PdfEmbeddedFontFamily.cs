@@ -13,8 +13,8 @@ public sealed partial class PdfEmbeddedFontFamily {
     /// <param name="familyName">Family name used for generated PDF font resource names.</param>
     /// <param name="regular">Regular TrueType face bytes.</param>
     /// <param name="bold">Optional bold TrueType face bytes. When null, the regular face is reused.</param>
-    /// <param name="italic">Optional italic TrueType face bytes. When null, the regular face is reused.</param>
-    /// <param name="boldItalic">Optional bold-italic TrueType face bytes. When null, the best available supplied face is reused.</param>
+    /// <param name="italic">Optional italic TrueType face bytes. When null, generated italic text uses a slanted regular face.</param>
+    /// <param name="boldItalic">Optional bold-italic TrueType face bytes. When null, generated text uses the best supplied face and simulates the missing slant when needed.</param>
     public PdfEmbeddedFontFamily(
         string familyName,
         byte[] regular,

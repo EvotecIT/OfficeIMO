@@ -12,6 +12,7 @@ internal sealed partial class OdfPackage {
     private bool _sourceIsEncrypted;
     private bool? _pendingOutputEncrypted;
     internal int ExternalXmlEditVersion { get; private set; }
+    internal int StyleLookupVersion { get; private set; }
 
     private OdfPackage(OdfDocumentKind kind, OdfVersion version, OdfLoadOptions loadOptions) {
         Kind = kind;
@@ -218,9 +219,13 @@ internal sealed partial class OdfPackage {
     internal void MarkXmlDirty(string name) {
         GetRequiredEntry(name).MarkDirty();
         ExternalXmlEditVersion++;
+        if (name == "content.xml" || name == "styles.xml") StyleLookupVersion++;
     }
 
-    internal void MarkXmlDirtyFromDocument(string name) => GetRequiredEntry(name).MarkDirty();
+    internal void MarkXmlDirtyFromDocument(string name) {
+        GetRequiredEntry(name).MarkDirty();
+        if (name == "content.xml" || name == "styles.xml") StyleLookupVersion++;
+    }
 
     internal void AddDiagnostic(OdfDiagnostic diagnostic) {
         if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
@@ -229,7 +234,10 @@ internal sealed partial class OdfPackage {
 
     internal void AddOrReplaceEntry(string name, byte[] data, string mediaType) {
         ValidateNewEntryName(name);
-        if (name == "content.xml" || name == "styles.xml") ExternalXmlEditVersion++;
+        if (name == "content.xml" || name == "styles.xml") {
+            ExternalXmlEditVersion++;
+            StyleLookupVersion++;
+        }
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? existing)) {
             existing.ReplaceBytes(data, mediaType);
         } else {
@@ -242,7 +250,10 @@ internal sealed partial class OdfPackage {
 
     internal void RemoveEntry(string name) {
         if (_entriesByName.TryGetValue(name, out OdfPackageEntry? entry) && !entry.IsRemoved) {
-            if (name == "content.xml" || name == "styles.xml") ExternalXmlEditVersion++;
+            if (name == "content.xml" || name == "styles.xml") {
+                ExternalXmlEditVersion++;
+                StyleLookupVersion++;
+            }
             entry.Remove();
             _entryGraphChanged = true;
         }

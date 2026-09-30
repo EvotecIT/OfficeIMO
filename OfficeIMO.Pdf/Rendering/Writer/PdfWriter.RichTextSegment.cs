@@ -3,7 +3,6 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    // Immutable measured text and font-metric provenance shared by the layout and paint paths.
     private sealed class RichSeg {
         public RichSeg(
             string text,
@@ -32,7 +31,13 @@ internal static partial class PdfWriter {
             OfficeIMO.Drawing.OfficeTextDecorationStyle strikeStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
             PdfColor? decorationColor = null,
             OfficeTextFeatureSettings? featureSettings = null,
-            OfficeTextDirection textDirection = OfficeTextDirection.Auto, double fontMetricScale = 1D) {
+            OfficeTextDirection textDirection = OfficeTextDirection.Auto,
+            double fontMetricScale = 1D,
+            PdfTabStop? leadingTabStop = null,
+            OfficeIMO.Drawing.OfficeTextDecorationStyle leadingUnderlineStyle = OfficeIMO.Drawing.OfficeTextDecorationStyle.None,
+            PdfColor? leadingDecorationColor = null,
+            double leadingDecorationFontSize = 0,
+            double leadingDecorationTextRise = 0) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -49,6 +54,11 @@ internal static partial class PdfWriter {
             MeasuredWidth = measuredWidth;
             LeadingSpace = leadingSpace;
             LeadingAdvance = leadingAdvance;
+            LeadingTabStop = leadingTabStop;
+            LeadingUnderlineStyle = leadingUnderlineStyle;
+            LeadingDecorationColor = leadingDecorationColor;
+            LeadingDecorationFontSize = leadingDecorationFontSize;
+            LeadingDecorationTextRise = leadingDecorationTextRise;
             LeadingSpaceIsExpandable = leadingSpaceIsExpandable;
             LeadingTabLeader = leadingTabLeader;
             EndsWithHardBreak = endsWithHardBreak;
@@ -104,6 +114,11 @@ internal static partial class PdfWriter {
         public bool LeadingSpace { get; }
 
         public double LeadingAdvance { get; }
+        public PdfTabStop? LeadingTabStop { get; }
+        public OfficeIMO.Drawing.OfficeTextDecorationStyle LeadingUnderlineStyle { get; }
+        public PdfColor? LeadingDecorationColor { get; }
+        public double LeadingDecorationFontSize { get; }
+        public double LeadingDecorationTextRise { get; }
 
         public bool LeadingSpaceIsExpandable { get; }
 
@@ -123,12 +138,16 @@ internal static partial class PdfWriter {
         public double FontMetricScale { get; }
 
         public RichSeg WithEndsWithHardBreak() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, true, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
 
         public RichSeg WithEndsWithTextSeparator() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, true, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
 
         public RichSeg WithoutLink() =>
-            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale);
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, null, null, null, Font, FontSize, Baseline, MeasuredWidth, LeadingSpace, LeadingAdvance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
+
+        public RichSeg WithLeadingAdvance(double advance) =>
+            new RichSeg(Text, Bold, Italic, Underline, Strike, Color, BackgroundColor, Uri, DestinationName, Contents, Font, FontSize, Baseline, MeasuredWidth, advance > 0, advance, LeadingSpaceIsExpandable, LeadingTabLeader, EndsWithHardBreak, EndsWithTextSeparator, InlineElement, NamedFont, UnderlineStyle, StrikeStyle, DecorationColor, FeatureSettings, TextDirection, FontMetricScale, LeadingTabStop, LeadingUnderlineStyle, LeadingDecorationColor, LeadingDecorationFontSize, LeadingDecorationTextRise);
     }
+
 }

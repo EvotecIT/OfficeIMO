@@ -65,6 +65,7 @@
     <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="Shared\ManagedTextShapingTestAssets.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.Tracking.cs" Link="Shared\ManagedTextShapingTestAssets.Tracking.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.LookupScenarios.cs" Link="Shared\ManagedTextShapingTestAssets.LookupScenarios.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TypographyEvidenceCorpus.cs" Link="Shared\TypographyEvidenceCorpus.cs" />
   </ItemGroup>
 

@@ -448,6 +448,24 @@ public static partial class HtmlExcelConverterExtensions {
 
         ReadChartDimensions(item, out int seriesCount, out int categoryCount);
         ExcelChartType type = ReadExcelChartType(item);
+        bool isRadial = type == ExcelChartType.Pie || type == ExcelChartType.Doughnut;
+        if (hasSemanticData && chartData!.Series.Any(series => {
+                ExcelChartType effectiveType = series.ChartType ?? type;
+                bool seriesIsRadial = effectiveType == ExcelChartType.Pie || effectiveType == ExcelChartType.Doughnut;
+                return seriesIsRadial != isRadial;
+            })) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "Chart inventory item '" + title + "' mixed radial and non-radial series and was not imported.",
+                lossKind: OfficeConversionLossKind.Omission);
+            return;
+        }
+        OfficeChartRadialLayout radialLayout = OfficeChartRadialLayout.Default;
+        if (isRadial && !OfficeHtmlChartRadialLayout.TryRead(item, out radialLayout)) {
+            AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                "Chart inventory item contained invalid radial geometry and was not imported.",
+                lossKind: OfficeConversionLossKind.Omission);
+            return;
+        }
         ReadChartPlacement(item, chartIndex, budget, result, out int row, out int column, out int width, out int height);
         if (!budget.TryReserveChartWithShape(seriesCount, categoryCount, out HtmlImportBudgetReservation reservation, out string chartLimit)) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.TargetLimitExceeded,
@@ -459,11 +477,13 @@ public static partial class HtmlExcelConverterExtensions {
 
         using (reservation) {
             try {
+                ExcelChart chart;
                 if (hasSemanticData) {
-                    sheet.AddChart(chartData!, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
+                    chart = sheet.AddChart(chartData!, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
                 } else {
-                    sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
+                    chart = sheet.AddChartFromRange(range, row: row, column: column, widthPixels: width, heightPixels: height, type: type, title: title.Length == 0 ? null : title);
                 }
+                if (isRadial) chart.SetRadialLayout(radialLayout);
 
                 reservation.Commit();
                 result.Charts++;

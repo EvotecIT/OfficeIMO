@@ -112,7 +112,7 @@ public sealed class RuntimeApplicationDocumentWorkflowTests {
 
         Assert.Contains(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FrameDepthLimitExceeded
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            && diagnostic.LossKind == OfficeConversionLossKind.Failure);
         Assert.DoesNotContain("Nested frame", rendered.Text, StringComparison.Ordinal);
     }
 

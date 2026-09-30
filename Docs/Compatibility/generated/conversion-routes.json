@@ -275,8 +275,8 @@
       "textFormatting":"SemanticEquivalent",
       "textFormattingContract":"Preserves representable font family, size, color, weight, italic, decoration, script, and casing semantics in HTML/CSS, with OfficeIMO metadata for richer native variants where supported.",
       "supportLevel":"Established",
-      "supportEvidence":"Representative workbooks verify sheets, values, formulas, tables, and styles in deterministic review HTML.",
-      "knownLimitations":"Interactive workbook behavior, charts, pivots, macros, and exact print layout are not represented in semantic HTML.",
+      "supportEvidence":"Representative workbooks verify sheets, values, formulas, tables, styles, and semantic chart data in deterministic review HTML.",
+      "knownLimitations":"Interactive workbook behavior, chart rendering and unsupported chart styling, pivots, macros, and exact print layout are not represented in semantic HTML.",
       "resultContract":"HtmlTextConversionResult",
       "browserAvailable":false,
       "agentDiscoverable":true

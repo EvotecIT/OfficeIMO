@@ -68,7 +68,8 @@ namespace OfficeIMO.PowerPoint {
                 OfficeIMO.Drawing.OfficeChartBubbleSizeMode.Area,
             double bubbleScalePercent = 100D,
             OfficeIMO.Drawing.OfficeChartLayout? layout = null,
-            OfficeIMO.Drawing.OfficeChartStyle? style = null) {
+            OfficeIMO.Drawing.OfficeChartStyle? style = null,
+            OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
             if (data == null) {
                 throw new ArgumentNullException(nameof(data));
             }
@@ -83,6 +84,7 @@ namespace OfficeIMO.PowerPoint {
             BubbleScalePercent = bubbleScalePercent;
             Layout = layout ?? OfficeIMO.Drawing.OfficeChartLayout.Default;
             Style = style ?? OfficeIMO.Drawing.OfficeChartStyle.Default;
+            RadialLayout = radialLayout ?? OfficeIMO.Drawing.OfficeChartRadialLayout.Default;
         }
 
         /// <summary>Chart drawing name.</summary>
@@ -114,5 +116,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Shared chart text and color style projected from native chart settings.</summary>
         public OfficeIMO.Drawing.OfficeChartStyle Style { get; }
+
+        /// <summary>Native pie rotation and doughnut hole geometry.</summary>
+        public OfficeIMO.Drawing.OfficeChartRadialLayout RadialLayout { get; }
     }
 }

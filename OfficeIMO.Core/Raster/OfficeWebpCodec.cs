@@ -204,6 +204,9 @@ public static partial class OfficeWebpCodec {
         } catch (OverflowException) {
             image = null;
             return false;
+        } catch (FormatException) {
+            image = null;
+            return false;
         }
         if (TryDecodeLiteralSubset(
                 encodedBytes, cancellationToken, retainedManagedBytes,

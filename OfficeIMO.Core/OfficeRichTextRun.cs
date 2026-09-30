@@ -50,7 +50,7 @@ public sealed class OfficeRichTextRun {
     /// <param name="baseline">Vertical baseline placement.</param>
     /// <param name="paragraphIndent">Indentation for a paragraph beginning at this run or after its line break.</param>
     public OfficeRichTextRun(string? text, double fontSize, OfficeColor color, bool bold, bool italic, bool underline, string? fontFamily, bool strikethrough, OfficeColor? backgroundColor, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, OfficeTextParagraphIndent? paragraphIndent) {
-        if (underlineStyle < OfficeTextDecorationStyle.None || underlineStyle > OfficeTextDecorationStyle.Wavy) {
+        if (underlineStyle < OfficeTextDecorationStyle.None || underlineStyle > OfficeTextDecorationStyle.Words) {
             throw new System.ArgumentOutOfRangeException(nameof(underlineStyle));
         }
         if (strikethroughStyle < OfficeTextDecorationStyle.None || strikethroughStyle > OfficeTextDecorationStyle.Wavy) {

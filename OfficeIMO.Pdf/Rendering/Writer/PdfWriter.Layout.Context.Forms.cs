@@ -30,6 +30,7 @@ internal static partial class PdfWriter {
                 FontSize = block.FontSize,
                 Style = block.Style
             });
+            RecordFlowPlacement(y);
             pageDirty = true;
             y -= block.Height + block.SpacingAfter;
         }
@@ -60,6 +61,7 @@ internal static partial class PdfWriter {
                 CheckedValueName = block.CheckedValueName,
                 Style = block.Style
             });
+            RecordFlowPlacement(y);
             pageDirty = true;
             y -= block.Size + block.SpacingAfter;
         }
@@ -93,6 +95,7 @@ internal static partial class PdfWriter {
                 AllowsMultipleSelection = block.AllowsMultipleSelection,
                 Style = block.Style
             });
+            RecordFlowPlacement(y);
             pageDirty = true;
             y -= block.Height + block.SpacingAfter;
         }
@@ -127,6 +130,7 @@ internal static partial class PdfWriter {
                 Style = block.Style
             });
             RenderRadioButtonLabels(block, x, y);
+            RecordFlowPlacement(y);
             pageDirty = true;
             y -= height + block.SpacingAfter;
         }

@@ -42,9 +42,9 @@ internal sealed class RuntimeDocumentResourceLoader(IBrowsingContext context, Ru
                 ResolutionDpi = runtimeOptions.DevicePixelRatio * HtmlRenderOptions.CssPixelsPerInch
             }
         };
-        string? selected = HtmlImageSourceResolver.ResolveImageSourceCandidatesForRendering(
+        string? selected = HtmlImageSourceResolver.SelectImageForRendering(
             image, new Uri(RuntimeDocumentUrls.Base(document)), HtmlUrlPolicy.CreateWebResourceProfile(), renderOptions)
-            .FirstOrDefault();
+            .Sources.FirstOrDefault();
         if (!string.IsNullOrWhiteSpace(selected)) SetTarget(request.Target, selected);
     }
 

@@ -21,6 +21,7 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.excel.legacy",
         "officeimo.reader.html",
         "officeimo.reader.image",
+        "officeimo.reader.iwork",
         "officeimo.reader.json",
         "officeimo.reader.latex",
         "officeimo.reader.markdown",

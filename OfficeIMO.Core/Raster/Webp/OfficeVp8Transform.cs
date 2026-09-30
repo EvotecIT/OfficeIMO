@@ -1,5 +1,5 @@
 // Adapted from CodeGlyphX, commit fc25e2fcf795d9c9a09b88708c47bdfeed5c446d.
-// Copyright CodeGlyphX contributors. Apache-2.0; see THIRD-PARTY-NOTICES.md.
+// OfficeIMO's copy is licensed under the repository's MIT license by the original author.
 // OfficeIMO adaptation removes diagnostic scaffolding and adds bounded cancellation/resource handling.
 namespace OfficeIMO.Drawing;
 
@@ -12,6 +12,11 @@ internal static class OfficeVp8Transform {
     internal static int[] InverseTransform4x4(int[] input) {
         var output = new int[CoefficientsPerBlock];
         var temp = new int[CoefficientsPerBlock];
+        InverseTransform4x4(input, temp, output);
+        return output;
+    }
+
+    internal static void InverseTransform4x4(int[] input, int[] temp, int[] output) {
 
         for (var i = 0; i < BlockSize; i++) {
             var ip0 = input[i];
@@ -28,10 +33,10 @@ internal static class OfficeVp8Transform {
             temp2 = (ip12 * IdctSinpi8Sqrt2) >> 16;
             var d1 = temp1 + temp2;
 
-            temp[i] = a1 + d1;
-            temp[i + 12] = a1 - d1;
-            temp[i + 4] = b1 + c1;
-            temp[i + 8] = b1 - c1;
+            temp[i] = unchecked((short)(a1 + d1));
+            temp[i + 12] = unchecked((short)(a1 - d1));
+            temp[i + 4] = unchecked((short)(b1 + c1));
+            temp[i + 8] = unchecked((short)(b1 - c1));
         }
 
         for (var i = 0; i < BlockSize; i++) {
@@ -50,18 +55,22 @@ internal static class OfficeVp8Transform {
             temp2 = (t3 * IdctSinpi8Sqrt2) >> 16;
             var d1 = temp1 + temp2;
 
-            output[baseIndex] = (a1 + d1 + 4) >> 3;
-            output[baseIndex + 3] = (a1 - d1 + 4) >> 3;
-            output[baseIndex + 1] = (b1 + c1 + 4) >> 3;
-            output[baseIndex + 2] = (b1 - c1 + 4) >> 3;
+            output[baseIndex] = unchecked((short)((a1 + d1 + 4) >> 3));
+            output[baseIndex + 3] = unchecked((short)((a1 - d1 + 4) >> 3));
+            output[baseIndex + 1] = unchecked((short)((b1 + c1 + 4) >> 3));
+            output[baseIndex + 2] = unchecked((short)((b1 - c1 + 4) >> 3));
         }
 
-        return output;
     }
 
     internal static int[] InverseWalshTransform4x4(int[] input) {
         var temp = new int[CoefficientsPerBlock];
         var output = new int[CoefficientsPerBlock];
+        InverseWalshTransform4x4(input, temp, output);
+        return output;
+    }
+
+    internal static void InverseWalshTransform4x4(int[] input, int[] temp, int[] output) {
 
         for (var i = 0; i < BlockSize; i++) {
             var ip0 = input[i];
@@ -74,10 +83,10 @@ internal static class OfficeVp8Transform {
             var c1 = ip4 - ip8;
             var d1 = ip0 - ip12;
 
-            temp[i] = a1 + b1;
-            temp[i + 4] = c1 + d1;
-            temp[i + 8] = a1 - b1;
-            temp[i + 12] = d1 - c1;
+            temp[i] = unchecked((short)(a1 + b1));
+            temp[i + 4] = unchecked((short)(c1 + d1));
+            temp[i + 8] = unchecked((short)(a1 - b1));
+            temp[i + 12] = unchecked((short)(d1 - c1));
         }
 
         for (var i = 0; i < BlockSize; i++) {
@@ -97,12 +106,11 @@ internal static class OfficeVp8Transform {
             var c2 = a1 - b1;
             var d2 = d1 - c1;
 
-            output[baseIndex] = (a2 + 3) >> 3;
-            output[baseIndex + 1] = (b2 + 3) >> 3;
-            output[baseIndex + 2] = (c2 + 3) >> 3;
-            output[baseIndex + 3] = (d2 + 3) >> 3;
+            output[baseIndex] = unchecked((short)((a2 + 3) >> 3));
+            output[baseIndex + 1] = unchecked((short)((b2 + 3) >> 3));
+            output[baseIndex + 2] = unchecked((short)((c2 + 3) >> 3));
+            output[baseIndex + 3] = unchecked((short)((d2 + 3) >> 3));
         }
 
-        return output;
     }
 }

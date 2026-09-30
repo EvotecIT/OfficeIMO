@@ -5,7 +5,12 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxSystemFontNameAliasCharacters = 65536;
 
     private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata) {
+        return TryReadTrueTypeNameMetadata(data, out metadata, out _);
+    }
+
+    private static bool TryReadTrueTypeNameMetadata(byte[] data, out TrueTypeNameMetadata? metadata, out bool nameTableAbsent) {
         metadata = null;
+        nameTableAbsent = false;
         try {
             if (data.Length < 12) {
                 return false;
@@ -13,6 +18,7 @@ public sealed partial class PdfEmbeddedFontFamily {
 
             var tables = ReadFontTableDirectory(data);
             if (!tables.TryGetValue("name", out FontTableRecord nameTable)) {
+                nameTableAbsent = true;
                 return false;
             }
 
@@ -31,13 +37,18 @@ public sealed partial class PdfEmbeddedFontFamily {
             var names = new System.Collections.Generic.Dictionary<int, TrueTypeNameValue>();
             var aliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
             int aliasCharacters = 0;
+            var familyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+            var typographicFamilyAliases = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
             int count = ReadUInt16(data, offset + 2);
+            if (count > MaxSystemFontNameRecords || 6L + count * 12L > tableLength) return false;
+            int decodedNameBytes = 0;
             int stringOffset = offset + ReadUInt16(data, offset + 4);
             for (int i = 0; i < count; i++) {
                 int record = offset + 6 + i * 12;
                 EnsureRange(data, record, 12);
                 int platformId = ReadUInt16(data, record);
                 int encodingId = ReadUInt16(data, record + 2);
+                int languageId = ReadUInt16(data, record + 4);
                 int nameId = ReadUInt16(data, record + 6);
                 if (nameId != 1 && nameId != 2 && nameId != 4 && nameId != 6 && nameId != 16 && nameId != 17) {
                     continue;
@@ -46,6 +57,8 @@ public sealed partial class PdfEmbeddedFontFamily {
                 int length = ReadUInt16(data, record + 8);
                 int valueOffset = stringOffset + ReadUInt16(data, record + 10);
                 EnsureRange(data, valueOffset, length);
+                if (length > MaxSystemFontDecodedNameBytes - decodedNameBytes) return false;
+                decodedNameBytes += length;
                 string? value = DecodeNameValue(data, valueOffset, length, platformId, encodingId);
                 if (string.IsNullOrWhiteSpace(value)) {
                     continue;
@@ -59,7 +72,9 @@ public sealed partial class PdfEmbeddedFontFamily {
                     }
                 }
 
-                int score = GetNameValueScore(platformId);
+                if (nameId == 1) familyAliases.Add(trimmed);
+                if (nameId == 16) typographicFamilyAliases.Add(trimmed);
+                int score = GetNameValueScore(platformId, languageId);
                 if (!names.TryGetValue(nameId, out TrueTypeNameValue? existing) || score > existing.Score) {
                     names[nameId] = new TrueTypeNameValue(trimmed, score);
                 }
@@ -71,7 +86,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                 GetName(names, 4),
                 GetName(names, 6),
                 GetName(names, 16),
-                GetName(names, 17), aliases);
+                GetName(names, 17), aliases, familyAliases, typographicFamilyAliases);
             return true;
         } catch (System.Exception exception) when (exception is System.NotSupportedException) {
             return false;
@@ -92,13 +107,13 @@ public sealed partial class PdfEmbeddedFontFamily {
         return null;
     }
 
-    private static int GetNameValueScore(int platformId) {
+    private static int GetNameValueScore(int platformId, int languageId) {
         if (platformId == 3) {
-            return 30;
+            return languageId == 0x0409 ? 50 : (languageId & 0x03ff) == 0x0009 ? 40 : 20;
         }
 
         if (platformId == 0) {
-            return 20;
+            return 30;
         }
 
         return 10;
@@ -115,7 +130,9 @@ public sealed partial class PdfEmbeddedFontFamily {
             string? postScriptName,
             string? typographicFamilyName,
             string? typographicSubfamilyName,
-            System.Collections.Generic.IReadOnlyCollection<string> aliases) {
+            System.Collections.Generic.IReadOnlyCollection<string> aliases,
+            System.Collections.Generic.IReadOnlyCollection<string> familyAliases,
+            System.Collections.Generic.IReadOnlyCollection<string> typographicFamilyAliases) {
             FamilyName = familyName;
             SubfamilyName = subfamilyName;
             FullName = fullName;
@@ -123,9 +140,13 @@ public sealed partial class PdfEmbeddedFontFamily {
             TypographicFamilyName = typographicFamilyName;
             TypographicSubfamilyName = typographicSubfamilyName;
             Aliases = aliases;
+            FamilyAliases = familyAliases;
+            TypographicFamilyAliases = typographicFamilyAliases;
         }
 
-        private System.Collections.Generic.IReadOnlyCollection<string> Aliases { get; }
+        public System.Collections.Generic.IReadOnlyCollection<string> Aliases { get; }
+        public System.Collections.Generic.IReadOnlyCollection<string> FamilyAliases { get; }
+        public System.Collections.Generic.IReadOnlyCollection<string> TypographicFamilyAliases { get; }
 
         public string? FamilyName { get; }
 

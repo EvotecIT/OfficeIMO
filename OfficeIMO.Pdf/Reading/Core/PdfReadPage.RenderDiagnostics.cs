@@ -99,7 +99,8 @@ public sealed partial class PdfReadPage {
         PdfPageColorSpace? initialStrokePatternBaseColorSpace = null,
         PdfPageClipPath? initialClipPath = null) {
         EnsureContentNestingBudget(depth);
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+            content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         HashSet<string> unsupportedColorSpaces = GetUnsupportedColorSpaceResourceNames(resources, pageContentBudget, invokedResources.ColorSpaces);
         HashSet<string> approximatedIccColorSpaces = GetApproximatedIccColorSpaceResourceNames(resources, pageContentBudget, invokedResources.ColorSpaces);
         var invokedXObjects = new List<string>();
@@ -242,7 +243,8 @@ public sealed partial class PdfReadPage {
         int contentNestingDepth) {
         var failures = new HashSet<string>(StringComparer.Ordinal);
         var activeStreams = new HashSet<PdfStream>();
-        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+        PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+            content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
         Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
         Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
@@ -275,7 +277,8 @@ public sealed partial class PdfReadPage {
             initialFillPatternBaseColorSpace: initialFillPatternBaseColorSpace,
             initialStrokePattern: initialStrokePattern,
             initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
-            textClippingBudget: textClippingBudget);
+            textClippingBudget: textClippingBudget,
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         bool invokesType3 = invokedFonts.Any(name => fonts.TryGetValue(name, out PdfFontResource? font) && font.Type3 != null);
         bool carriesPatternIntoXObject = discoveredXObjects.Any(invocation => invocation.FillPattern.HasValue || invocation.StrokePattern.HasValue);
         if (!invokesType3 && !carriesPatternIntoXObject) {
@@ -368,7 +371,8 @@ public sealed partial class PdfReadPage {
             initialStrokePatternBaseColorSpace: initialStrokePatternBaseColorSpace,
             tilingPatterns: tilingPatterns,
             shadingPatterns: GetShadingPatternResources(resources, pageContentBudget: pageContentBudget),
-            textClippingBudget: textClippingBudget);
+            textClippingBudget: textClippingBudget,
+            operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
         invokedXObjectStates.AddRange(resolvedXObjects);
         return failures;
     }
@@ -436,7 +440,8 @@ public sealed partial class PdfReadPage {
                     textClippingBudget);
             Dictionary<string, PdfFontResource> fonts = ResourceResolver.GetFontsForResources(resources, _objects);
             Dictionary<string, Func<byte[], double>> widthProviders = ResourceResolver.GetFontWidthProvidersForResources(resources, _objects);
-            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(content, resources);
+            PdfPageInvokedResourceNames invokedResources = GetInvokedResourceNames(
+                content, resources, pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             Dictionary<string, PdfPageColorSpace> colorSpaces = GetColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             Dictionary<string, PdfPageColorSpace> patternBaseColorSpaces = GetPatternBaseColorSpaceResources(resources, invokedResources.ColorSpaces, pageContentBudget);
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource> graphicsStates = GetGraphicsStateResources(resources);
@@ -449,7 +454,8 @@ public sealed partial class PdfReadPage {
                 maxNestingDepth: _limits.MaxContentNestingDepth,
                 maxOperands: _limits.MaxContentOperands,
                 inlineImageComponentCount: name => GetDeclaredColorSpaceComponentCount(resources, name),
-                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array));
+                inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
+                cancellationToken: pageContentBudget.CancellationToken);
             if (!HasSupportedType3PageBlendColorSpace() &&
                 drawingEffects.Any(static transition => transition.Effect.BlendMode != OfficeBlendMode.Normal)) return false;
             if (requireIsolatedGroupSemantics &&
@@ -518,7 +524,8 @@ public sealed partial class PdfReadPage {
                 initialRenderingIntent: initialRenderingIntent,
                 initialFillColorSelection: initialFillColorSelection,
                 initialStrokeColorSelection: initialStrokeColorSelection,
-                outputIntentColorTransform: EffectiveOutputIntentColorTransform);
+                outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
             if (invokedPatternNames.Count > 0 && softMaskNestingDepth != null) {
                 softMaskNestingDepth.Cacheable = false;
             }
@@ -808,7 +815,8 @@ public sealed partial class PdfReadPage {
                          initialRenderingIntent: initialRenderingIntent,
                          initialFillColorSelection: initialFillColorSelection,
                          initialStrokeColorSelection: initialStrokeColorSelection,
-                         outputIntentColorTransform: EffectiveOutputIntentColorTransform)) {
+                         outputIntentColorTransform: EffectiveOutputIntentColorTransform,
+                         operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested)) {
                 PdfPageDrawingEffect invocationEffect = ResolveDrawingEffect(
                     drawingEffects,
                     invocation.PaintOrder);
@@ -1116,7 +1124,13 @@ public sealed partial class PdfReadPage {
             } else {
                 capabilityId = PdfRenderCapabilities.FontSubstitutionId;
             }
-            AddRenderDiagnostic(diagnostics, seen, capabilityId, font.ResourceName);
+            bool standardFont = capabilityId == PdfRenderCapabilities.FontSubstitutionId &&
+                string.Equals(font.FontSubtype, "Type1", StringComparison.Ordinal) &&
+                font.EmbeddedProgramSubtype == null &&
+                font.BaseFont.IndexOf('+') < 0 &&
+                PdfWriter.TryGetStandardFontByBaseFontName(font.BaseFont, out _);
+            AddRenderDiagnostic(diagnostics, seen, capabilityId, font.ResourceName,
+                isStandardFontSubstitution: standardFont);
         }
     }
 
@@ -1610,7 +1624,8 @@ public sealed partial class PdfReadPage {
         return x1.Value == x2.Value || y1.Value == y2.Value;
     }
 
-    private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject) {
+    private static void AddRenderDiagnostic(List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen, string capabilityId, string subject,
+        bool isStandardFontSubstitution = false) {
         var bounded = (BoundedRenderDiagnostics)diagnostics;
         if (bounded.TrackUnsupportedPaint &&
             (capabilityId == PdfRenderCapabilities.UnknownOperatorId ||
@@ -1625,7 +1640,7 @@ public sealed partial class PdfReadPage {
         if (characters > bounded.MaximumCharacters)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
                 characters);
-        string key = capabilityId + "\n" + subject;
+        string key = capabilityId + "\n" + subject + (isStandardFontSubstitution ? "\nstandard" : "");
         if (seen.Contains(key)) return;
         if (characters > bounded.MaximumCharacters - bounded.RetainedCharacters)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCharacters,
@@ -1633,7 +1648,7 @@ public sealed partial class PdfReadPage {
         if (diagnostics.Count >= bounded.MaximumCount)
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderDiagnostics, bounded.MaximumCount, diagnostics.Count + 1L);
         seen.Add(key);
-        diagnostics.Add(new PdfRenderCapabilityDiagnostic(capability, subject));
+        diagnostics.Add(new PdfRenderCapabilityDiagnostic(capability, subject, isStandardFontSubstitution));
         bounded.RetainedCharacters += characters;
     }
 }

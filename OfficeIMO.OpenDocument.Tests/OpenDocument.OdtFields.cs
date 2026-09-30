@@ -95,7 +95,7 @@ public sealed class OpenDocumentOdtFieldTests {
     }
 
     [Fact]
-    public void OnlyFirstMasterStandardHeaderAndFooterFieldsAreEditable() {
+    public void FirstMasterHeaderAndFooterVariantsAreEditable() {
         OdtDocument document = OdtDocument.Create();
         document.PageLayout.Header.AddParagraph().AddField(OdtFieldKind.Date, "First");
         XDocument styles = document.Package.GetXml("styles.xml");
@@ -113,7 +113,7 @@ public sealed class OpenDocumentOdtFieldTests {
         OdfFeatureFinding[] fields = document.InspectFeatures().Findings
             .Where(finding => finding.Name == "text-fields" && finding.PartPath == "styles.xml")
             .ToArray();
-        Assert.Contains(fields, finding => finding.Support == OdfFeatureSupport.Editable && finding.Count == 1);
-        Assert.Contains(fields, finding => finding.Support == OdfFeatureSupport.Inspected && finding.Count == 2);
+        Assert.Contains(fields, finding => finding.Support == OdfFeatureSupport.Editable && finding.Count == 2);
+        Assert.Contains(fields, finding => finding.Support == OdfFeatureSupport.Inspected && finding.Count == 1);
     }
 }

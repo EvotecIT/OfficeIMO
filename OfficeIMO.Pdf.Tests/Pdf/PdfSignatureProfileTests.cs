@@ -73,11 +73,22 @@ public class PdfSignatureProfileTests {
     }
 
     [Fact]
-    public void VisibleApprovalProfileEmbedsRasterImageInAppearanceStream() {
+    public void VisibleApprovalProfileEmbedsOrientedJpegInAppearanceStream() {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("Image-backed approval source"))
             .ToBytes();
-        byte[] image = PdfPngTestImages.CreateRgbPng(4, 2);
+        var raster = new OfficeRasterImage(2, 1);
+        raster.SetPixel(0, 0, OfficeColor.Red);
+        raster.SetPixel(1, 0, OfficeColor.Blue);
+        byte[] image = OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions {
+            Quality = 100,
+            Subsampling = OfficeJpegSubsampling.Y444,
+            Metadata = new OfficeJpegMetadata(exif: [
+                (byte)'I', (byte)'I', 0x2A, 0x00, 0x08, 0x00, 0x00, 0x00,
+                0x01, 0x00, 0x12, 0x01, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            ])
+        });
         var appearance = new PdfVisibleSignatureAppearanceOptions {
             PageNumber = 1,
             X = 36,
@@ -122,6 +133,8 @@ public class PdfSignatureProfileTests {
         Assert.Contains("/Subtype /Image", raw, StringComparison.Ordinal);
         Assert.Contains("/Im1 Do", raw, StringComparison.Ordinal);
         Assert.Equal("Image", Assert.IsType<PdfName>(embeddedImage.Dictionary.Items["Subtype"]).Name);
+        Assert.Equal(1, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Width"]).Value);
+        Assert.Equal(2, Assert.IsType<PdfNumber>(embeddedImage.Dictionary.Items["Height"]).Value);
     }
 
     [Fact]

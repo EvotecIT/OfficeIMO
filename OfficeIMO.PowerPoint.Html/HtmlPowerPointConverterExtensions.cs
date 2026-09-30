@@ -291,6 +291,14 @@ public static partial class HtmlPowerPointConverterExtensions {
                 return;
             }
             bool showLegend = true;
+            bool isRadial = chartKind.Equals("Pie", StringComparison.OrdinalIgnoreCase) || chartKind.Equals("Doughnut", StringComparison.OrdinalIgnoreCase);
+            OfficeChartRadialLayout radialLayout = OfficeChartRadialLayout.Default;
+            if (isRadial && !OfficeHtmlChartRadialLayout.TryRead(item, out radialLayout)) {
+                AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.ContentOmitted,
+                    "Chart inventory item contained invalid radial geometry and was not imported.",
+                    lossKind: OfficeConversionLossKind.Omission);
+                return;
+            }
             OfficeChartLegendPosition legendPosition =
                 OfficeChartLegendPosition.Bottom;
             bool overlayLegend = false;
@@ -336,6 +344,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             }
 
             reservation.Commit();
+            chart.ApplyPointStyles(data);
+            if (isRadial) chart.SetRadialLayout(radialLayout);
             if (isBubble) {
                 chart.SetBubbleSizing(bubbleScale, bubbleSizeMode);
                 if (showLegend) {
@@ -514,6 +524,8 @@ public static partial class HtmlPowerPointConverterExtensions {
             var xValues = new double[valueCells.Count];
             var bubbleSizes = new double[valueCells.Count];
             var pointColors = new OfficeColor?[valueCells.Count];
+            var pointStyles = new OfficeChartPointStyle?[valueCells.Count];
+            bool hasPointStyles = false;
             bool hasPointColors = false;
             bool hasXValues = valueCells.Any(cell => cell.GetAttribute("data-officeimo-x") != null);
             bool hasBubbleSizes = valueCells.Any(
@@ -530,6 +542,13 @@ public static partial class HtmlPowerPointConverterExtensions {
 
             for (int i = 0; i < valueCells.Count; i++) {
                 IElement cell = valueCells[i];
+                if (!PowerPointHtmlChartPointStyleCodec.TryRead(cell, out pointStyles[i])) return false;
+                hasPointStyles |= pointStyles[i] != null;
+                if (!hasBubbleSizes && cell.GetAttribute("data-officeimo-point-color") is string rawCategoryPointColor) {
+                    if (!OfficeColor.TryParse(rawCategoryPointColor, out OfficeColor parsedCategoryPointColor)) return false;
+                    pointColors[i] = parsedCategoryPointColor;
+                    hasPointColors = true;
+                }
                 string text = PreserveText(cell.TextContent);
                 if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out values[i])
                     || double.IsNaN(values[i]) || double.IsInfinity(values[i])) {
@@ -580,6 +599,7 @@ public static partial class HtmlPowerPointConverterExtensions {
                     outlineWidth) {
                     BubbleSizes = bubbleSizes,
                     PointColors = hasPointColors ? pointColors : null,
+                    PointStyles = hasPointStyles ? pointStyles : null,
                     StrokeColor = outlineColor,
                     ShowStroke = showOutline,
                     ShowInLegend = showInLegend
@@ -590,9 +610,13 @@ public static partial class HtmlPowerPointConverterExtensions {
                     values,
                     xValues,
                     PptCore.PowerPointChartSnapshotKind.Scatter) {
+                    PointColors = hasPointColors ? pointColors : null,
+                    PointStyles = hasPointStyles ? pointStyles : null,
                     ShowInLegend = showInLegend
                 }
                 : new PptCore.PowerPointChartSeries(name, values) {
+                    PointColors = hasPointColors ? pointColors : null,
+                    PointStyles = hasPointStyles ? pointStyles : null,
                     ShowInLegend = showInLegend
                 });
         }

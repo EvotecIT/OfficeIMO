@@ -1540,12 +1540,12 @@ namespace OfficeIMO.PowerPoint {
             try {
                 using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
                 byte[] workbookBytes =
-                    PowerPointChartWorkbookSecurity.ReadAndValidate(stream);
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.ReadAndValidate(stream);
                 using var workbookStream = new MemoryStream(workbookBytes, writable: false);
                 using SpreadsheetDocument workbook = SpreadsheetDocument.Open(
                     workbookStream,
                     false,
-                    PowerPointChartWorkbookSecurity.CreateOpenSettings());
+                    OfficeIMO.OpenXml.Internal.OfficeOpenXmlChartWorkbookSecurity.CreateOpenSettings());
                 return PowerPointChartWorkbookEditor.IsSafelyEditable(workbook);
             } catch (FileFormatException) {
                 return false;

@@ -1,5 +1,5 @@
 using System;
-using System.Threading;
+using OfficeIMO.OpenXml.Internal;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Packaging;
 
@@ -9,7 +9,6 @@ namespace OfficeIMO.PowerPoint {
         // generates charts. We mirror that behaviour so documents created with
         // OfficeIMO match what the desktop client produces.
         private const long BaseAxisId = 48650112L;
-        private static long _axisIdSeed = BaseAxisId;
 
         internal static void Initialize(PresentationPart presentationPart) {
             if (presentationPart == null) {
@@ -37,26 +36,9 @@ namespace OfficeIMO.PowerPoint {
             AdvanceSeedToAtLeast(max);
         }
 
-        internal static uint GetNextId() {
-            long next = Interlocked.Increment(ref _axisIdSeed);
-            if (next < 0 || next > uint.MaxValue) {
-                throw new InvalidOperationException("Chart axis id seed exceeded the range of valid UInt32 values.");
-            }
+        internal static uint GetNextId() => OfficeOpenXmlChartWriter.GetNextAxisId();
 
-            return (uint)next;
-        }
-
-        internal static void AdvanceSeedToAtLeast(long minimumSeed) {
-            while (true) {
-                long currentSeed = Interlocked.Read(ref _axisIdSeed);
-                if (minimumSeed <= currentSeed) {
-                    return;
-                }
-
-                if (Interlocked.CompareExchange(ref _axisIdSeed, minimumSeed, currentSeed) == currentSeed) {
-                    return;
-                }
-            }
-        }
+        internal static void AdvanceSeedToAtLeast(long minimumSeed) =>
+            OfficeOpenXmlChartWriter.AdvanceAxisSeed(minimumSeed);
     }
 }

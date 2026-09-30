@@ -21,7 +21,8 @@ internal sealed partial class PdfTrueTypeFontProgram {
         PdfTextShowCommand command = run.ToTextShowCommand();
         if (_tracking == null) return command;
         return new PdfTextShowCommand(command.GlyphHex, run.Glyphs, command.ActualText,
-            _tracking, UnitsPerEm, GetTrackingBoundaries(text, run), run.TotalAdvanceWidth1000 < 0, fontMetricScale);
+            logicalGlyphs: command.LogicalGlyphs, advanceWidth1000: command.AdvanceWidth1000, wordSpaceCount: command.WordSpaceCount, visualGlyphs: command.VisualGlyphs,
+            tracking: _tracking, unitsPerEm: UnitsPerEm, trackingBoundaries: GetTrackingBoundaries(text, run), negativeTracking: run.TotalAdvanceWidth1000 < 0, fontMetricScale: fontMetricScale);
     }
 
     private static bool[] GetTrackingBoundaries(string text, PdfGlyphRun run) {

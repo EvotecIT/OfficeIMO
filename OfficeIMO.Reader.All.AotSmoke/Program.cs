@@ -18,6 +18,7 @@ string[] requiredHandlers = {
     "officeimo.reader.excel",
     "officeimo.reader.html",
     "officeimo.reader.image",
+    "officeimo.reader.iwork",
     "officeimo.reader.json",
     "officeimo.reader.latex",
     "officeimo.reader.markdown",
@@ -48,4 +49,11 @@ if (!chunks.Any(chunk => chunk.Kind == ReaderInputKind.Csv && chunk.Tables is { 
     throw new InvalidOperationException("The NativeAOT all-formats reader lost structured CSV extraction.");
 }
 
-Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV");
+string pagesPath = Path.Combine(AppContext.BaseDirectory, "simple.pages");
+OfficeDocumentReadResult pages = reader.ReadDocument(pagesPath);
+if (pages.Kind != ReaderInputKind.IWork ||
+    !pages.Chunks.Any(chunk => chunk.Text.Contains("hello pages", StringComparison.OrdinalIgnoreCase))) {
+    throw new InvalidOperationException("The NativeAOT all-formats reader lost iWork Pages extraction.");
+}
+
+Console.WriteLine($"PASS | Reader all-formats preset registered {capabilities.Length} in-process handlers and extracted CSV and Pages");

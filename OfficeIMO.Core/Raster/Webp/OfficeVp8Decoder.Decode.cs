@@ -1,5 +1,5 @@
 // Adapted from CodeGlyphX, commit fc25e2fcf795d9c9a09b88708c47bdfeed5c446d.
-// Copyright CodeGlyphX contributors. Apache-2.0; see THIRD-PARTY-NOTICES.md.
+// OfficeIMO's copy is licensed under the repository's MIT license by the original author.
 // OfficeIMO adaptation removes diagnostic scaffolding and adds bounded cancellation/resource handling.
 using System;
 using System.Threading;
@@ -163,7 +163,7 @@ internal static partial class OfficeVp8Decoder {
         var vNzCurrent = new byte[macroblockCols * MacroblockChromaBlocks];
 
         var macroblockHasCoefficients = new bool[macroblocks.Length];
-        var predictionScratch = new OfficeVp8PredictionScratch();
+        var predictionScratch = new OfficeVp8DecodeScratch();
 
         for (var row = 0; row < macroblockRows; row++) {
             cancellationToken.ThrowIfCancellationRequested();

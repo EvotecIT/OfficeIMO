@@ -4,6 +4,7 @@
   "tokenEnvName": "GITHUB_TOKEN",
   "artifacts": {
     "enabled": true,
+    "exactIncludeNames": ["officeimo-markup-vsix"],
     "keepLatestPerName": 10,
     "maxAgeDays": 7,
     "maxDelete": 200

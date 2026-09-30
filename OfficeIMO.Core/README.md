@@ -7,7 +7,7 @@
 
 The assembly was previously named `OfficeIMO.Drawing`. Drawing became the original shared foundation because keeping these primitives together avoided a separate Core → Drawing → format dependency chain. As lifecycle, security, package, and data contracts accumulated, the package name stopped describing its actual responsibility. That same single zero-dependency foundation is now named `OfficeIMO.Core`; it was not split into another runtime dependency. Actual drawing APIs remain in `OfficeIMO.Drawing`, neutral data and flattening contracts use `OfficeIMO.Data`, security APIs remain in `OfficeIMO.Security`, and cross-document lifecycle, compatibility, capability, and conversion-report contracts use the root `OfficeIMO` namespace.
 
-The VP8 decoder is adapted from Apache-2.0-licensed CodeGlyphX source. Its attribution and license are included in the package’s `THIRD-PARTY-NOTICES.md` and `Licenses` directory; package licensing covers MIT and Apache-2.0 components.
+The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT license. It was ported from the same author's CodeGlyphX implementation; applications do not need CodeGlyphX to decode WebP images. The separate WebM reference license and patent notices remain in the package's `Licenses` directory.
 
 ## Install
 
@@ -585,6 +585,95 @@ foreach (var issue in rendered.QualityReport.Issues) {
     Console.WriteLine(issue.Message);
 }
 ```
+
+Set a legend frame fill and outline through the shared chart style:
+
+```csharp
+var framedStyle = new OfficeChartStyle(
+    showBackground: true,
+    legendBackgroundColor: OfficeColor.Parse("#FFFFFF"),
+    legendBorderColor: OfficeColor.Parse("#375A7F"),
+    legendBorderWidth: 1);
+var framedSnapshot = new OfficeChartSnapshot("RevenueChart", "Revenue by quarter",
+    OfficeChartKind.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
+OfficeDrawing framedChart = OfficeChartDrawingRenderer.Render(framedSnapshot);
+```
+
+The background and border are optional; the border width is a positive value in points.
+These settings style the chart legend frame in shared static renders.
+
+Use `layout.WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
+majorUnit: 0.2, numberFormat: "0%").WithTitle("Completion rate"))` for an independent secondary value-axis scale and title.
+Updating the scale without `WithTitle` preserves an existing native title; `WithTitle(null)` removes it explicitly.
+Use optional `majorTickMark` and `minorTickMark` settings to select independent tick appearance.
+The returned layout preserves the primary axis settings and leaves the original layout unchanged.
+Bounds must be finite and ordered; tick units must be positive.
+Explicit numeric bounds clip line, area, and scatter series paint to the plot; points outside the range
+do not gain false edge markers or labels. Data labels for visible points can extend beyond the plot.
+
+### Style individual chart points
+
+Use `OfficeChartSeries.WithPointStyles` to attach appearances aligned with the series values.
+The returned series preserves its data and other settings. A null entry inherits the point
+colour; an explicit no-fill style leaves an outlined slice visible without changing its value.
+
+```csharp
+var status = new OfficeChartSeries("Status", new[] { 8d, 2d, 1d })
+    .WithPointStyles(new OfficeChartPointStyle?[] {
+        new(fillColor: OfficeColor.Parse("#168A56")),
+        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+            outlineJoin: OfficeStrokeLineJoin.Round),
+        new(hatch: OfficeChartHatchPattern.WideForwardDiagonal,
+            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black)
+    });
+```
+
+Hatches support horizontal, vertical, forward diagonal, backward diagonal, cross,
+diagonal cross, and wide forward diagonal strokes. Their default background is white;
+set `fillColor` to choose another background. Outline widths use points; joins can be
+round, bevel, or miter. `showOutline: false` hides the outline explicitly.
+The renderer clips hatches to slice, bar, and marker geometry and styles category legend
+swatches with the same appearance. Per-point area styling is not applied by static rendering;
+`RenderWithQuality` reports `UnsupportedAppearance` and retains the opaque series fill.
+An area series with no native outline renders without a connecting line.
+
+### Pie and doughnut geometry
+
+Pass an `OfficeChartRadialLayout` as the final argument to the style/layout snapshot
+constructor to set the first slice boundary and doughnut hole. Rotation is clockwise
+from the top, from 0 through 360 degrees; hole size is an inner-to-outer diameter
+percentage from 10 through 90, with a default of 50.
+
+```csharp
+var series = new OfficeChartSeries("Status", new[] { 7d, 3d })
+    .WithPointExplosions(new[] { 25, 0 });
+var data = new OfficeChartData(new[] { "Complete", "Pending" }, new[] { series });
+var radial = new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70);
+var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartKind.Doughnut,
+    data, 400, 300, null, new OfficeChartLayout(showLegend: false), radial);
+OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+```
+
+Multiple doughnut series form contiguous rings, starting with the first series at the
+inside. `WithPointExplosions` offsets selected pie or doughnut slices by a percentage
+of their radius while preserving their native editable point records in Word,
+PowerPoint, and Excel. Supply one value per point, from 0 through 400; an explicit
+zero resets an earlier offset. The renderer keeps exploded slices within the chart
+frame and moves their value-label anchors with them. For outside labels, set
+`showDataLabels: true`, select the label contents, and use
+`dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd` in `OfficeChartLayout`.
+The renderer reserves side gutters, separates labels on each side and connects
+them to visible slices. Call `layout.WithDataLabelLeaderLines(false)` to omit the lines.
+For multi-series doughnuts, leaders work when `DataLabelSeriesIndexes` selects only the
+outer ring. Disable leaders if labeled inner rings would send lines through outer rings.
+Imported Word, PowerPoint and Excel charts retain that native line setting in
+their static chart snapshots. A frame too narrow or short to fit every outside
+label reports an unsupported layout instead of overlapping or dropping labels.
+For imported pie and doughnut charts, the first six `varyColors` points use
+the document theme colors from a direct, untransformed modern chart color
+style, or theme accents for an unstyled/classic style 2 chart. Native point
+fills take precedence. Transformed color styles and longer sequences still
+need producer-specific proof.
 
 ### Load first-party font programs for renderers
 

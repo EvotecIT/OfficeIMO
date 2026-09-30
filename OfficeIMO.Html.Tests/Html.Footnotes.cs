@@ -91,6 +91,26 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain("class=\"endnotes\"", html, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("hidden endnote", html, StringComparison.OrdinalIgnoreCase);
         }
+
+        [Theory]
+        [InlineData(false, false)]
+        [InlineData(false, true)]
+        [InlineData(true, false)]
+        [InlineData(true, true)]
+        public void NestedNotesAreDiscoveredBeforeEitherSectionIsEmitted(bool outerEndnote, bool innerEndnote) {
+            using var doc = WordDocument.Create();
+            var outer = outerEndnote ? doc.AddParagraph("Source").AddEndNote("Outer") :
+                doc.AddParagraph("Source").AddFootNote("Outer");
+            var paragraph = outerEndnote ? outer.EndNote!.Paragraphs!.Last() : outer.FootNote!.Paragraphs!.Last();
+            if (innerEndnote) paragraph.AddEndNote("Nested note");
+            else paragraph.AddFootNote("Nested note");
+
+            string html = doc.ToHtml(new WordToHtmlOptions { ExportFootnotes = true, ExportEndnotes = true });
+            string target = (innerEndnote ? "en" : "fn") + (innerEndnote == outerEndnote ? "2" : "1");
+            Assert.Contains("href=\"#" + target + "\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("id=\"" + target + "\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("Nested note", html, StringComparison.Ordinal);
+        }
     }
 }
 

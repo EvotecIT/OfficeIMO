@@ -407,8 +407,9 @@ public static partial class OfficeDrawingRasterRenderer {
             image = fallback.CreateFallbackImage(contentType, width, height, decodeInfo.Diagnostic);
             return true;
         }
-        // Managed raster providers run inside the shared inspected boundary. Only
-        // the existing externally decoded JPEG subset has a separate fallback.
+        // Managed raster providers, including caller-decoded WebP, run inside
+        // the shared inspected boundary. Only the unsupported JPEG frame subset
+        // has a separate fallback because managed inspection cannot describe it.
         bool callerCodecInputWithinLimit = bytes.Length <= decodeOptions.MaximumEncodedBytes;
         bool callerDecodedJpeg = callerCodecInputWithinLimit && identifiedManagedRaster && identified.Format == OfficeImageFormat.Jpeg &&
             OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,

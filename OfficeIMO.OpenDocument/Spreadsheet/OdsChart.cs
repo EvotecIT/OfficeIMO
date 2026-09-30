@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Chart forms supported by native ODS chart authoring.</summary>
@@ -7,11 +9,16 @@ public enum OdsChartType {
     /// <summary>Horizontal clustered bars.</summary>
     Bar,
     /// <summary>Line series.</summary>
-    Line
+    Line,
+    /// <summary>One circular pie series.</summary>
+    Pie,
+    /// <summary>One or more concentric doughnut rings.</summary>
+    Doughnut
 }
 
-/// <summary>One embedded ODS chart and its source-cell references. Chart styling remains preserved package XML.</summary>
+/// <summary>One embedded ODS chart and its source-cell references. Unsupported styling remains preserved package XML.</summary>
 public sealed class OdsChart {
+    private const int MaximumImportedChartSeries = 256;
     private OdsChart(string name, string chartClass, string? title, string? titleCellRangeAddress,
         string? categoriesAddress,
         IReadOnlyList<OdsChartSeries> series, bool isStacked, bool isPercentage, bool isThreeDimensional,
@@ -88,17 +95,33 @@ public sealed class OdsChart {
                 .Select(axis => (string?)axis.Element(chart + "categories")?.Attribute(OdfNamespaces.Table + "cell-range-address"))
                 .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value!).ToArray();
             string? categories = categoryAddresses.Length == 1 ? categoryAddresses[0] : null;
-            XElement[] seriesElements = plot.Elements(chart + "series").ToArray();
-            var series = seriesElements.Select(element => new OdsChartSeries(
-                (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
-                (string?)element.Attribute(chart + "label-cell-address"),
-                NormalizeChartClass(element, (string?)element.Attribute(chart + "class")))).ToArray();
+            // Bound native series before expanding compact repeated point styles.
+            XElement[] seriesElements = plot.Elements(chart + "series")
+                .Take(MaximumImportedChartSeries + 1).ToArray();
+            if (seriesElements.Length > MaximumImportedChartSeries) return null;
             XDocument? stylesPart = document.Package.ContainsEntry(directory + "styles.xml")
                 ? document.Package.GetXml(directory + "styles.xml") : null;
-            XElement? Style(string? name) => FindChartStyle(part, name)
-                ?? (stylesPart == null ? null : FindChartStyle(stylesPart, name));
+            Dictionary<string, XElement> chartStyles = IndexChartStyles(part, stylesPart);
+            XElement? Style(string? name) => name != null && chartStyles.TryGetValue(name, out XElement? found)
+                ? found : null;
             XElement? defaultStyle = FindChartDefaultStyle(part)
                 ?? (stylesPart == null ? null : FindChartDefaultStyle(stylesPart));
+            IReadOnlyDictionary<string, XElement> hatches = OdsChartPointStyles.IndexHatches(part, stylesPart);
+            var series = seriesElements.Select(element => {
+                string? seriesClass = NormalizeChartClass(element,
+                    (string?)element.Attribute(chart + "class")) ?? chartClass;
+                bool radial = seriesClass is "chart:circle" or "chart:ring";
+                bool pointStylesProjected = OdsChartPointStyles.TryRead(element, Style, defaultStyle,
+                    hatches, radial, out IReadOnlyList<OfficeChartPointStyle?>? pointStyles);
+                bool unprojectedAppearance = !pointStylesProjected ||
+                    (radial &&
+                     OdsChartPointStyles.HasUnprojectedSeriesPieOffset(element, Style, defaultStyle));
+                return new OdsChartSeries(
+                    (string?)element.Attribute(chart + "values-cell-range-address") ?? string.Empty,
+                    (string?)element.Attribute(chart + "label-cell-address"),
+                    seriesClass,
+                    pointStyles, unprojectedAppearance);
+            }).ToArray();
             var allProperties = new List<XElement>();
             bool AddStyleChain(string? name) {
                 var visited = new HashSet<string>(StringComparer.Ordinal);
@@ -162,13 +185,23 @@ public sealed class OdsChart {
         }
     }
 
-    private static XElement? FindChartStyle(XDocument part, string? styleName) => styleName == null ? null :
-        part.Root?.Elements()
-            .Where(element => element.Name == OdfNamespaces.Office + "automatic-styles"
-                || element.Name == OdfNamespaces.Office + "styles")
-            .SelectMany(element => element.Elements(OdfNamespaces.Style + "style"))
-            .FirstOrDefault(element => (string?)element.Attribute(OdfNamespaces.Style + "family") == "chart" &&
-                string.Equals((string?)element.Attribute(OdfNamespaces.Style + "name"), styleName, StringComparison.Ordinal));
+    private static Dictionary<string, XElement> IndexChartStyles(XDocument content, XDocument? styles) {
+        var index = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        void Add(XDocument part) {
+            foreach (XElement definition in part.Root?.Elements()
+                .Where(element => element.Name == OdfNamespaces.Office + "automatic-styles"
+                    || element.Name == OdfNamespaces.Office + "styles")
+                .SelectMany(element => element.Elements(OdfNamespaces.Style + "style"))
+                ?? Enumerable.Empty<XElement>()) {
+                string? name = (string?)definition.Attribute(OdfNamespaces.Style + "name");
+                if ((string?)definition.Attribute(OdfNamespaces.Style + "family") == "chart" &&
+                    name != null && !index.ContainsKey(name)) index.Add(name, definition);
+            }
+        }
+        Add(content);
+        if (styles != null) Add(styles);
+        return index;
+    }
 
     private static XElement? FindChartDefaultStyle(XDocument part) =>
         part.Root?.Elements()
@@ -197,10 +230,13 @@ public sealed class OdsChartSeries {
     public OdsChartSeries(string valuesAddress, string? labelAddress = null)
         : this(valuesAddress, labelAddress, null) { }
 
-    internal OdsChartSeries(string valuesAddress, string? labelAddress, string? chartClass) {
+    internal OdsChartSeries(string valuesAddress, string? labelAddress, string? chartClass,
+        IReadOnlyList<OfficeChartPointStyle?>? pointStyles = null, bool hasUnprojectedAppearance = false) {
         ValuesAddress = valuesAddress;
         LabelAddress = labelAddress;
         ChartClass = chartClass;
+        PointStyles = pointStyles == null ? null : Array.AsReadOnly(pointStyles.ToArray());
+        HasUnprojectedAppearance = hasUnprojectedAppearance;
     }
 
     /// <summary>ODF range containing the series values.</summary>
@@ -209,4 +245,11 @@ public sealed class OdsChartSeries {
     public string? LabelAddress { get; }
     /// <summary>Optional series-specific ODF chart class.</summary>
     public string? ChartClass { get; }
+    /// <summary>Supported native per-point fill, hatch, and outline overrides, when present.</summary>
+    public IReadOnlyList<OfficeChartPointStyle?>? PointStyles { get; }
+    internal bool HasUnprojectedAppearance { get; }
+
+    /// <summary>Returns a series with native per-point appearance overrides.</summary>
+    public OdsChartSeries WithPointStyles(IReadOnlyList<OfficeChartPointStyle?>? styles) =>
+        new OdsChartSeries(ValuesAddress, LabelAddress, ChartClass, styles);
 }

@@ -38,6 +38,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets HTML adapter options.</summary>
     public Html.ReaderHtmlOptions? Html { get; set; }
 
+    /// <summary>Gets or sets Pages, Numbers, and Keynote adapter options.</summary>
+    public IWork.ReaderIWorkOptions? IWork { get; set; }
+
     /// <summary>Gets or sets standalone image adapter options.</summary>
     public Image.ReaderImageOptions? Image { get; set; }
 

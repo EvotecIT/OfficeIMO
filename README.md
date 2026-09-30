@@ -992,6 +992,14 @@ _Dependency footprint:_ `OfficeIMO.Reader.Core` and `OfficeIMO.Markdown`.
 
 _Dependency footprint:_ only `OfficeIMO.Reader.Core`, Reader.Html, and EPUB.
 
+#### [OfficeIMO.Reader.IWork](OfficeIMO.Reader.IWork/README.md)
+
+- [x] Pages, Numbers, and Keynote package registration through the owning iWork source model
+- [x] Logical document, sheet, and slide pages with text, tables, links, images, and diagnostics
+- [x] Bounded table projection and optional image payload retention
+
+_Dependency footprint:_ only `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.
+
 #### [OfficeIMO.Reader.Html](OfficeIMO.Reader.Html/README.md)
 
 - [x] HTML/HTM/XHTML-to-Markdown chunks with heading-aware splitting

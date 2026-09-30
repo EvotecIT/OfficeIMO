@@ -20,7 +20,7 @@ internal static partial class PdfStamper {
         if (options.X is { } x) result.Items["X"] = new PdfNumber(x);
         if (options.Y is { } y) result.Items["Y"] = new PdfNumber(y);
         if (options.ImageBytes is { } image) {
-            int imageNumber = nextObjectNumber++;
+            int imageNumber = checked(nextObjectNumber++);
             objects[imageNumber] = new PdfIndirectObject(imageNumber, 0, new PdfStream(new PdfDictionary(), image));
             result.Items["Image"] = new PdfReference(imageNumber, 0);
         }

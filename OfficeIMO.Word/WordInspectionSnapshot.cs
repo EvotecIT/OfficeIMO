@@ -65,6 +65,20 @@ namespace OfficeIMO.Word {
         public bool DifferentFirstPage { get; internal set; }
         /// <summary>Gets whether the section uses an explicit or inherited even-page header or footer while the document-wide odd/even setting is enabled.</summary>
         public bool DifferentOddAndEvenPages { get; internal set; }
+        /// <summary>Whether the document-wide odd/even header setting is enabled, even when this section has no even-page part.</summary>
+        public bool DocumentOddEvenSettingEnabled { get; internal set; }
+        /// <summary>Whether this section explicitly references a default header.</summary>
+        public bool HasExplicitDefaultHeader { get; internal set; }
+        /// <summary>Whether this section explicitly references a default footer.</summary>
+        public bool HasExplicitDefaultFooter { get; internal set; }
+        /// <summary>Whether this section explicitly references a first-page header.</summary>
+        public bool HasExplicitFirstHeader { get; internal set; }
+        /// <summary>Whether this section explicitly references a first-page footer.</summary>
+        public bool HasExplicitFirstFooter { get; internal set; }
+        /// <summary>Whether this section explicitly references an even-page header.</summary>
+        public bool HasExplicitEvenHeader { get; internal set; }
+        /// <summary>Whether this section explicitly references an even-page footer.</summary>
+        public bool HasExplicitEvenFooter { get; internal set; }
         /// <summary>Gets the default header snapshot.</summary>
         public WordHeaderFooterSnapshot? DefaultHeader { get; internal set; }
         /// <summary>Gets the default footer snapshot.</summary>

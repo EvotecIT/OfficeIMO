@@ -148,8 +148,8 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static double ResolveNativeParagraphFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) =>
-            paragraph.FontSize.HasValue && paragraph.FontSize.Value > 0
-                ? paragraph.FontSize.Value
+            paragraph.FontSizePoints.HasValue && paragraph.FontSizePoints.Value > 0
+                ? paragraph.FontSizePoints.Value
                 : styleDefaults.FontSize ?? nativeDefaults.FontSize;
 
         private static double ResolveNativeParagraphEffectiveFontSize(WordParagraph paragraph, NativeDocumentDefaults nativeDefaults, NativeParagraphStyleDefaults styleDefaults) =>
@@ -775,6 +775,23 @@ namespace OfficeIMO.Word.Pdf {
 
         private static int GetNativeHeaderFooterLineCount(WordHeaderFooter? headerFooter, IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers) {
             if (headerFooter == null) {
+                return 0;
+            }
+
+            // Some Word files carry several whitespace-only header paragraphs.
+            // They paint nothing and Word does not move the body down for them.
+            // Keep the existing line estimate when any visible header content exists.
+            bool whitespaceOnly = true;
+            foreach (WordElement element in headerFooter.Elements) {
+                if (element is not WordParagraph paragraph ||
+                    !string.IsNullOrWhiteSpace(GetNativeHeaderFooterParagraphText(paragraph, listMarkers, out _)) ||
+                    paragraph.EnumerateImages().Any() || paragraph.PictureControl?.Image != null ||
+                    paragraph.Shape != null || paragraph.Chart != null || paragraph.TextBox != null) {
+                    whitespaceOnly = false;
+                    break;
+                }
+            }
+            if (whitespaceOnly) {
                 return 0;
             }
 

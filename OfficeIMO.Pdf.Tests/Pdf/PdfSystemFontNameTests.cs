@@ -15,6 +15,7 @@ public class PdfSystemFontNameTests {
     [InlineData("System Font")]
     [InlineData(".SF NS")]
     [InlineData("System Font Display")]
+    [InlineData("Localized Full Name")]
     [InlineData("SystemFont-Regular")]
     public void LocalizedAndPlatformNamesResolveTheSameFontProgram(string requestedName) {
         byte[] font = WithNames(
@@ -22,6 +23,7 @@ public class PdfSystemFontNameTests {
             (3, 1033, 1, "System Font"),
             (0, 0, 1, ".SF NS"),
             (3, 1027, 4, "Tipus de lletra del sistema"),
+            (3, 1027, 4, "Localized Full Name"),
             (3, 1033, 4, "System Font Display"),
             (3, 1033, 6, "SystemFont-Regular"));
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.FontNames." + Guid.NewGuid().ToString("N"));
@@ -35,6 +37,32 @@ public class PdfSystemFontNameTests {
                 new OfficeFontFaceDescriptor(400, 100D, OfficeFontSlant.Normal), "A", out var selected));
             Assert.Equal(font, selected!.Regular);
             Assert.False(PdfEmbeddedFontFamily.TryFromSystemFontFiles("Missing Family", new[] { path }, out _));
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ExactFamilyWinsOverSameDescriptorTypographicRelative(bool reverseOrder) {
+        byte[] exact = WithNames((3, 1033, 1, "Shared Family"), (3, 1033, 2, "Regular"),
+            (3, 1033, 4, "Shared Family Regular"), (3, 1033, 16, "Shared Family"));
+        byte[] relative = WithNames((3, 1033, 1, "Shared Family Ornaments"), (3, 1033, 2, "Regular"),
+            (3, 1033, 4, "Shared Family Ornaments"), (3, 1033, 16, "Shared Family"));
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.FontFamilyPriority." + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string exactPath = Path.Combine(directory, "exact.ttf");
+            string relativePath = Path.Combine(directory, "relative.ttf");
+            File.WriteAllBytes(exactPath, exact);
+            File.WriteAllBytes(relativePath, relative);
+            string[] paths = reverseOrder ? new[] { relativePath, exactPath } : new[] { exactPath, relativePath };
+            Assert.True(PdfEmbeddedFontFamily.TryFromSystemFontFiles("Shared Family", paths, out var family));
+            Assert.Equal(exact, family!.Regular);
+            Assert.True(PdfEmbeddedFontFamily.TryResolveSystemFaceFromFiles("Shared Family", paths,
+                new OfficeFontFaceDescriptor(400, 100D, OfficeFontSlant.Normal), "A", out var selected));
+            Assert.Equal(exact, selected!.Regular);
         } finally {
             Directory.Delete(directory, recursive: true);
         }

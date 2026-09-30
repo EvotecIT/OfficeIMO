@@ -7,15 +7,17 @@ internal sealed class PdfGlyphRun {
         : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null, OfficeTextDirection.Auto) {
     }
 
-    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null) {
+    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null, OfficeTextDirection direction = OfficeTextDirection.Auto, bool hasCompleteVerticalAdvances = false, OfficeTextShapingResult? sourceShapingResult = null, bool preserveGlyphUnicode = false) {
         Glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
         Direction = direction;
         HasCompleteVerticalAdvances = hasCompleteVerticalAdvances;
         SourceShapingResult = sourceShapingResult;
+        PreserveGlyphUnicode = preserveGlyphUnicode;
     }
 
+    internal bool PreserveGlyphUnicode { get; }
     public IReadOnlyList<PdfGlyphInfo> Glyphs { get; }
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
     public string? ActualText { get; }
@@ -86,16 +88,18 @@ internal sealed class PdfGlyphRun {
         if (Direction == OfficeTextDirection.TopToBottom) {
             throw new InvalidOperationException("PDF horizontal text operators cannot publish a top-to-bottom shaped glyph run. Use the diagnosed vertical drawing route.");
         }
-        return new PdfTextShowCommand(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText);
+        return new PdfTextShowCommand(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText,
+            PreserveGlyphUnicode ? Glyphs : null, TotalAdvanceWidth1000, visualGlyphs: Glyphs);
     }
 }
 
 internal sealed class PdfTextShowCommand {
-    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null,
-        OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false,
-        double fontMetricScale = 1D) {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null, IReadOnlyList<PdfGlyphInfo>? logicalGlyphs = null, double? advanceWidth1000 = null, int wordSpaceCount = 0, IReadOnlyList<PdfGlyphInfo>? visualGlyphs = null,
+        OfficeOpenTypeTracking? tracking = null, int unitsPerEm = 1000, bool[]? trackingBoundaries = null, bool negativeTracking = false, double fontMetricScale = 1D) {
         if (fontMetricScale <= 0D || double.IsNaN(fontMetricScale) || double.IsInfinity(fontMetricScale))
             throw new ArgumentOutOfRangeException(nameof(fontMetricScale));
+        LogicalGlyphs = logicalGlyphs; AdvanceWidth1000 = advanceWidth1000; WordSpaceCount = wordSpaceCount;
+        VisualGlyphs = visualGlyphs;
         GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
         PositionedGlyphs = positionedGlyphs;
         ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
@@ -106,6 +110,10 @@ internal sealed class PdfTextShowCommand {
         FontMetricScale = fontMetricScale;
     }
 
+    internal IReadOnlyList<PdfGlyphInfo>? LogicalGlyphs { get; }
+    internal IReadOnlyList<PdfGlyphInfo>? VisualGlyphs { get; }
+    internal double? AdvanceWidth1000 { get; }
+    internal int WordSpaceCount { get; }
     internal string GlyphHex { get; }
     internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
     internal string? ActualText { get; }
@@ -130,14 +138,15 @@ internal readonly struct PdfGlyphInfo {
         : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, 0, offsetX1000, offsetY1000) {
     }
 
-    public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000)
-        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, advanceHeight1000, offsetX1000, offsetY1000) { }
+    public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000, int? logicalClusterStart = null)
+        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, advanceHeight1000, offsetX1000, offsetY1000, logicalClusterStart) { }
 
-    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000) {
+    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int nominalWidth1000, int advanceWidth1000, int advanceHeight1000, int offsetX1000, int offsetY1000, int? logicalClusterStart = null) {
         GlyphId = glyphId;
         UnicodeText = unicodeText ?? string.Empty;
         UnicodeScalar = unicodeScalar;
         TextIndex = textIndex;
+        LogicalClusterStart = logicalClusterStart ?? textIndex;
         NominalWidth1000 = nominalWidth1000;
         AdvanceWidth1000 = advanceWidth1000;
         AdvanceHeight1000 = advanceHeight1000;
@@ -149,6 +158,7 @@ internal readonly struct PdfGlyphInfo {
     public string UnicodeText { get; }
     public int UnicodeScalar { get; }
     public int TextIndex { get; }
+    internal int LogicalClusterStart { get; }
     public int NominalWidth1000 { get; }
     public int AdvanceWidth1000 { get; }
     public int AdvanceHeight1000 { get; }
@@ -158,7 +168,7 @@ internal readonly struct PdfGlyphInfo {
 }
 
 internal readonly struct PdfTextShapingOptions {
-    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, OfficeTextDirection direction = OfficeTextDirection.Auto) {
+    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool, bool>? providerShapedTextRecorder = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, OfficeTextDirection direction = OfficeTextDirection.Auto) {
         RecordGlyphUsage = recordGlyphUsage;
         ThrowOnMissingGlyph = throwOnMissingGlyph;
         SkipLayoutControls = skipLayoutControls;
@@ -181,12 +191,12 @@ internal readonly struct PdfTextShapingOptions {
     public string FontName { get; }
     public PdfTextShapingMode ShapingMode { get; }
     public IOfficeTextShapingProvider? ShapingProvider { get; }
-    public Action<string, string, bool>? ProviderShapedTextRecorder { get; }
+    public Action<string, string, bool, bool>? ProviderShapedTextRecorder { get; }
     public string? Language { get; }
     public OfficeTextFeatureSettings FeatureSettings { get; }
     public OfficeTextDirection Direction { get; }
 
-    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, OfficeTextDirection direction = OfficeTextDirection.Auto) =>
+    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null, Action<string, string, bool, bool>? providerShapedTextRecorder = null, string? language = null, OfficeTextFeatureSettings? featureSettings = null, OfficeTextDirection direction = OfficeTextDirection.Auto) =>
         new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder, language: language, featureSettings: featureSettings, direction: direction);
 
     public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IOfficeTextShapingProvider? shapingProvider = null) =>
@@ -256,7 +266,8 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
         string? actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft
             ? text
             : null;
-        return new PdfGlyphRun(glyphs, diagnostics, actualText);
+        return new PdfGlyphRun(glyphs, diagnostics, actualText, preserveGlyphUnicode:
+            options.ShapingMode == PdfTextShapingMode.OpenTypeLigatures && options.ShapingProvider == null && !OfficeManagedTextShaper.RequiresComplexLayout(text));
     }
 
     // Total advance width (1000-em units) without materializing a glyph run. Mirrors ShapeText's loop
@@ -312,11 +323,12 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
     // MeasureAdvanceWidth1000's loop (same usage recording, same missing-glyph throw); ForRendering never
     // reports control characters, so that branch is not part of the contract and the hex equals
     // ToGlyphHex over the same shaped glyphs.
-    public static string EncodeGlyphHex(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText) {
+    public static string EncodeGlyphHex(string text, PdfTrueTypeFontProgram font, PdfTextShapingOptions options, out string? actualText, out int advanceWidth1000) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
 
         var sb = PdfGlyphRun.RentHexBuilder(text.Length * 4);
+        advanceWidth1000 = 0;
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
             if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
@@ -328,6 +340,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
                 }
 
                 PdfGlyphRun.AppendGlyphHex(sb, ligatureGlyphId);
+                advanceWidth1000 = checked(advanceWidth1000 + font.GetGlyphWidth1000(ligatureGlyphId));
                 index += ligatureLength;
                 continue;
             }
@@ -350,6 +363,7 @@ internal sealed class PdfUnicodeScalarTextShaper : IPdfTextShaper {
             }
 
             PdfGlyphRun.AppendGlyphHex(sb, glyphId);
+            advanceWidth1000 = checked(advanceWidth1000 + font.GetGlyphWidth1000(glyphId));
         }
 
         actualText = OfficeTextElements.ResolveBaseDirection(text) == OfficeTextDirection.RightToLeft ? text : null;

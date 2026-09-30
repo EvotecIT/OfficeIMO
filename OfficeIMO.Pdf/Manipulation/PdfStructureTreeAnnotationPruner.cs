@@ -6,7 +6,8 @@ namespace OfficeIMO.Pdf;
 internal static class PdfStructureTreeAnnotationPruner {
     internal static void RemoveAnnotationReferences(
         Dictionary<int, PdfIndirectObject> objects,
-        IEnumerable<int> annotationObjectNumbers) {
+        IEnumerable<int> annotationObjectNumbers, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         var annotations = new HashSet<int>(annotationObjectNumbers);
         if (annotations.Count == 0) {
             return;
@@ -14,6 +15,7 @@ internal static class PdfStructureTreeAnnotationPruner {
 
         var structParentIndexes = new HashSet<int>();
         foreach (int annotationObjectNumber in annotations) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (objects.TryGetValue(annotationObjectNumber, out PdfIndirectObject? annotation) &&
                 annotation.Value is PdfDictionary annotationDictionary &&
                 annotationDictionary.Get<PdfNumber>("StructParent") is PdfNumber structParent &&
@@ -27,11 +29,12 @@ internal static class PdfStructureTreeAnnotationPruner {
         var removedStructElements = new HashSet<int>();
         var removedObjectReferences = new HashSet<int>();
         foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.ToArray()) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (entry.Value.Value is not PdfDictionary dictionary || !IsStructureElement(dictionary)) {
                 continue;
             }
 
-            if (RemoveObjectReferenceKids(objects, dictionary, annotations, removedObjectReferences) && !HasStructureKids(objects, dictionary)) {
+            if (RemoveObjectReferenceKids(objects, dictionary, annotations, removedObjectReferences, cancellationToken) && !HasStructureKids(objects, dictionary, cancellationToken)) {
                 removedStructElements.Add(entry.Key);
             }
         }
@@ -40,13 +43,14 @@ internal static class PdfStructureTreeAnnotationPruner {
         do {
             changed = false;
             foreach (KeyValuePair<int, PdfIndirectObject> entry in objects.ToArray()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (removedStructElements.Contains(entry.Key) ||
                     entry.Value.Value is not PdfDictionary dictionary ||
                     !IsStructureElement(dictionary)) {
                     continue;
                 }
 
-                if (RemoveIndirectStructureKids(objects, dictionary, removedStructElements) && !HasStructureKids(objects, dictionary)) {
+                if (RemoveIndirectStructureKids(objects, dictionary, removedStructElements, cancellationToken) && !HasStructureKids(objects, dictionary, cancellationToken)) {
                     removedStructElements.Add(entry.Key);
                     changed = true;
                 }
@@ -54,27 +58,30 @@ internal static class PdfStructureTreeAnnotationPruner {
         } while (changed);
 
         foreach (PdfIndirectObject indirect in objects.Values) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (indirect.Value is not PdfDictionary dictionary ||
                 dictionary.Get<PdfName>("Type")?.Name != "StructTreeRoot") {
                 continue;
             }
 
-            RemoveIndirectStructureKids(objects, dictionary, removedStructElements);
+            RemoveIndirectStructureKids(objects, dictionary, removedStructElements, cancellationToken);
             if (dictionary.Items.TryGetValue("ParentTree", out PdfObject? parentTree)) {
-                if (!PruneParentTree(objects, parentTree, structParentIndexes, removedStructElements, new HashSet<int>(), out _, out _)) {
+                if (!PruneParentTree(objects, parentTree, structParentIndexes, removedStructElements, new HashSet<int>(), out _, out _, cancellationToken)) {
                     dictionary.Items.Remove("ParentTree");
                 }
             }
             if (dictionary.Items.TryGetValue("IDTree", out PdfObject? idTree) &&
-                !PruneIdTree(objects, idTree, removedStructElements, new HashSet<int>(), out _, out _)) {
+                !PruneIdTree(objects, idTree, removedStructElements, new HashSet<int>(), out _, out _, cancellationToken)) {
                 dictionary.Items.Remove("IDTree");
             }
         }
 
         foreach (int objectNumber in removedStructElements) {
+            cancellationToken.ThrowIfCancellationRequested();
             objects.Remove(objectNumber);
         }
         foreach (int objectNumber in removedObjectReferences) {
+            cancellationToken.ThrowIfCancellationRequested();
             objects.Remove(objectNumber);
         }
     }
@@ -82,7 +89,8 @@ internal static class PdfStructureTreeAnnotationPruner {
     private static bool IsStructureElement(PdfDictionary dictionary) =>
         dictionary.Get<PdfName>("Type")?.Name == "StructElem";
 
-    private static bool HasStructureKids(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary) {
+    private static bool HasStructureKids(Dictionary<int, PdfIndirectObject> objects, PdfDictionary dictionary, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!dictionary.Items.TryGetValue("K", out PdfObject? kids)) {
             return false;
         }
@@ -94,12 +102,13 @@ internal static class PdfStructureTreeAnnotationPruner {
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
         HashSet<int> annotations,
-        HashSet<int> removedObjectReferences) {
+        HashSet<int> removedObjectReferences, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (!dictionary.Items.TryGetValue("K", out PdfObject? kids)) {
             return false;
         }
 
-        if (IsObjectReferenceTo(objects, kids, annotations, removedObjectReferences)) {
+        if (IsObjectReferenceTo(objects, kids, annotations, removedObjectReferences, cancellationToken)) {
             dictionary.Items.Remove("K");
             return true;
         }
@@ -110,7 +119,8 @@ internal static class PdfStructureTreeAnnotationPruner {
 
         bool changed = false;
         for (int i = array.Items.Count - 1; i >= 0; i--) {
-            if (!IsObjectReferenceTo(objects, array.Items[i], annotations, removedObjectReferences)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!IsObjectReferenceTo(objects, array.Items[i], annotations, removedObjectReferences, cancellationToken)) {
                 continue;
             }
 
@@ -129,7 +139,8 @@ internal static class PdfStructureTreeAnnotationPruner {
         Dictionary<int, PdfIndirectObject> objects,
         PdfObject value,
         HashSet<int> annotations,
-        HashSet<int> removedObjectReferences) {
+        HashSet<int> removedObjectReferences, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         PdfDictionary? dictionary = value as PdfDictionary;
         if (value is PdfReference objectReference &&
             objects.TryGetValue(objectReference.ObjectNumber, out PdfIndirectObject? indirect) &&
@@ -151,7 +162,8 @@ internal static class PdfStructureTreeAnnotationPruner {
     private static bool RemoveIndirectStructureKids(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary dictionary,
-        HashSet<int> removedStructElements) {
+        HashSet<int> removedStructElements, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         if (removedStructElements.Count == 0 || !dictionary.Items.TryGetValue("K", out PdfObject? kids)) {
             return false;
         }
@@ -167,6 +179,7 @@ internal static class PdfStructureTreeAnnotationPruner {
 
         bool changed = false;
         for (int i = array.Items.Count - 1; i >= 0; i--) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (array.Items[i] is PdfReference childReference && removedStructElements.Contains(childReference.ObjectNumber)) {
                 array.Items.RemoveAt(i);
                 changed = true;
@@ -187,7 +200,8 @@ internal static class PdfStructureTreeAnnotationPruner {
         HashSet<int> removedStructElements,
         HashSet<int> visited,
         out PdfNumber? firstKey,
-        out PdfNumber? lastKey) {
+        out PdfNumber? lastKey, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         firstKey = null;
         lastKey = null;
         if (value is PdfReference reference) {
@@ -196,7 +210,7 @@ internal static class PdfStructureTreeAnnotationPruner {
                 return true;
             }
 
-            return PruneParentTree(objects, indirect.Value, structParentIndexes, removedStructElements, visited, out firstKey, out lastKey);
+            return PruneParentTree(objects, indirect.Value, structParentIndexes, removedStructElements, visited, out firstKey, out lastKey, cancellationToken);
         }
 
         if (value is not PdfDictionary dictionary) {
@@ -208,6 +222,7 @@ internal static class PdfStructureTreeAnnotationPruner {
             PdfObjectLookup.Resolve(objects, numsObject) is PdfArray nums) {
             if (nums.Items.Count % 2 != 0) return true;
             for (int i = nums.Items.Count - 2; i >= 0; i -= 2) {
+                cancellationToken.ThrowIfCancellationRequested();
                 bool removePair = nums.Items[i] is PdfNumber key &&
                     key.Value >= 0D && key.Value <= int.MaxValue &&
                     Math.Floor(key.Value) == key.Value &&
@@ -237,7 +252,8 @@ internal static class PdfStructureTreeAnnotationPruner {
         if (dictionary.Items.TryGetValue("Kids", out PdfObject? kidsObject)) {
             if (PdfObjectLookup.Resolve(objects, kidsObject) is PdfArray kids) {
                 for (int index = kids.Items.Count - 1; index >= 0; index--) {
-                    if (PruneParentTree(objects, kids.Items[index], structParentIndexes, removedStructElements, visited, out PdfNumber? childFirst, out PdfNumber? childLast)) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (PruneParentTree(objects, kids.Items[index], structParentIndexes, removedStructElements, visited, out PdfNumber? childFirst, out PdfNumber? childLast, cancellationToken)) {
                         hasEntries = true;
                         if (childFirst != null && (firstKey == null || childFirst.Value < firstKey.Value)) firstKey = childFirst;
                         if (childLast != null && (lastKey == null || childLast.Value > lastKey.Value)) lastKey = childLast;
@@ -270,13 +286,14 @@ internal static class PdfStructureTreeAnnotationPruner {
         HashSet<int> removedStructElements,
         HashSet<int> visited,
         out PdfStringObj? firstKey,
-        out PdfStringObj? lastKey) {
+        out PdfStringObj? lastKey, System.Threading.CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
         firstKey = null;
         lastKey = null;
         if (value is PdfReference reference) {
             if (!visited.Add(reference.ObjectNumber)) return true;
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect)) return true;
-            return PruneIdTree(objects, indirect.Value, removedStructElements, visited, out firstKey, out lastKey);
+            return PruneIdTree(objects, indirect.Value, removedStructElements, visited, out firstKey, out lastKey, cancellationToken);
         }
         if (value is not PdfDictionary dictionary) return true;
 
@@ -284,6 +301,7 @@ internal static class PdfStructureTreeAnnotationPruner {
         if (dictionary.Items.TryGetValue("Names", out PdfObject? namesObject)) {
             if (PdfObjectLookup.Resolve(objects, namesObject) is PdfArray names && names.Items.Count % 2 == 0) {
                 for (int index = names.Items.Count - 2; index >= 0; index -= 2) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (names.Items[index + 1] is not PdfReference target ||
                         !removedStructElements.Contains(target.ObjectNumber)) {
                         continue;
@@ -308,8 +326,9 @@ internal static class PdfStructureTreeAnnotationPruner {
             if (PdfObjectLookup.Resolve(objects, kidsObject) is PdfArray kids) {
                 var emptyKids = new List<int>();
                 for (int index = 0; index < kids.Items.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PdfObject kid = kids.Items[index];
-                    if (PruneIdTree(objects, kid, removedStructElements, visited, out PdfStringObj? childFirst, out PdfStringObj? childLast)) {
+                    if (PruneIdTree(objects, kid, removedStructElements, visited, out PdfStringObj? childFirst, out PdfStringObj? childLast, cancellationToken)) {
                         hasEntries = true;
                         firstKey ??= childFirst;
                         if (childLast != null) lastKey = childLast;

@@ -102,6 +102,7 @@ public sealed partial class PdfEmbeddedFontFamily {
         string normalizedFamily = NormalizeFamilyKey(familyName);
         string[] acceptedPrefixes = BuildAcceptedFileNamePrefixes(normalizedFamily);
         var collection = new OfficeFontFaceCollection();
+        var scores = new System.Collections.Generic.Dictionary<OfficeFontFaceDescriptor, int>();
         int inspectedFiles = 0;
         foreach (string fontFile in fontFiles) {
             if (inspectedFiles++ >= MaxSystemFontFilesToInspect) break;
@@ -110,7 +111,8 @@ public sealed partial class PdfEmbeddedFontFamily {
                 || candidates == null) continue;
             foreach (SystemFontFaceCandidate candidate in candidates) {
                 OfficeFontFaceDescriptor descriptor = ReadSystemFaceDescriptor(candidate);
-                collection.TryAdd(familyName, candidate.Data, descriptor);
+                if (scores.TryGetValue(descriptor, out int score) && score >= candidate.Score) continue;
+                if (collection.TryAdd(familyName, candidate.Data, descriptor)) scores[descriptor] = candidate.Score;
             }
         }
         return collection.Faces.Count == 0 ? null : collection;
