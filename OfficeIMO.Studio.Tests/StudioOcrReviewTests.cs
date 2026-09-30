@@ -60,6 +60,11 @@ public sealed class StudioOcrReviewTests {
                 Assert.Equal(2, review.Pages.Count);
                 Assert.Equal(2, review.Words.Count(word => !word.IsEligible));
                 review.Words.Single(word => word.Text == "Excluded after review").IsIncluded = false;
+                var corrected = review.Words.Single(word => word.Text == "Selected searchable text");
+                corrected.ReviewedText = " ";
+                Assert.False(review.CommitCommand.CanExecute(null));
+                corrected.ReviewedText = "Corrected searchable text";
+                Assert.True(review.CommitCommand.CanExecute(null));
                 review.SelectedPage = review.Pages[1];
                 await review.PreviewTask;
                 review.ExcludePageCommand.Execute(null);
@@ -67,6 +72,7 @@ public sealed class StudioOcrReviewTests {
                 await review.PreviewTask;
                 Assert.False(review.Words.Single(word => word.Text == "Excluded after review").IsIncluded);
                 review.SelectedWord = review.Words.Single(word => word.Text == "Selected searchable text");
+                Assert.Equal("Corrected searchable text", review.SelectedWord!.ReviewedText);
                 window.UpdateLayout();
                 using (var frame = window.CaptureRenderedFrame()) {
                     Assert.NotNull(frame);
@@ -76,6 +82,8 @@ public sealed class StudioOcrReviewTests {
                         frame.Save(Path.Combine(evidence, $"ocr-review-{width}-{(dark ? "dark" : "light")}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
                     }
                 }
+                await review.NextUncertainCommand.ExecuteAsync(null);
+                Assert.True(review.SelectedWord!.Evidence.Word.Confidence < 0.9);
                 review.IsZoomed = true;
                 review.SelectedWord = review.Words.Single(word => word.Text == "Uncertain word");
                 await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
@@ -90,7 +98,8 @@ public sealed class StudioOcrReviewTests {
                 Assert.False(model.HasReview);
                 Assert.True(model.HasOutput, model.ErrorMessage);
                 var saved = PdfReadDocument.Open(File.ReadAllBytes(output));
-                Assert.Contains("Selected searchable text", saved.Pages[0].ExtractText());
+                Assert.Contains("Corrected searchable text", saved.Pages[0].ExtractText());
+                Assert.DoesNotContain("Selected searchable text", saved.ExtractText());
                 Assert.DoesNotContain("Excluded after review", saved.ExtractText());
                 Assert.DoesNotContain("Uncertain word", saved.ExtractText());
                 Assert.DoesNotContain("Selected searchable text", saved.Pages[1].ExtractText());

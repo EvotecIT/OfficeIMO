@@ -79,6 +79,12 @@ IOcrEngine engine = catalog.Create(
 
 Provider identifiers are case-insensitive and unique. Registration snapshots identity and capabilities, while engine creation snapshots at most 128 scalar options with a 64 KiB aggregate character limit. Secrets remain host-owned: pass an environment-variable or secret-store reference understood by the provider instead of serializing a credential into a recipe or evidence file.
 
+## Execution outcomes
+
+`OcrEngineRunner` rejects null results and an `Error` diagnostic whose `IsRecoverable` is false before Reader or PDF integrations consume recognized text. These failures use `OcrEngineExecutionException.Kind`. Provider exceptions become content-free `ProviderFailure` errors without an inner exception; inspect private provider logs for details. Caller cancellation and the shared execution timeout retain their existing contracts.
+
+Recoverable diagnostics remain recognition evidence. Provider diagnostic messages are provider-authored content; providers must keep credentials out of them. A recoverable result does not imply that every recognized word is correct. Confidence must be finite and within zero through one. Reader removes invalid confidence values, and PDF excludes words with invalid confidence.
+
 ## Integrations and providers
 
 - `OfficeIMO.Reader.Ocr` recognizes image candidates from Word, Excel, PowerPoint, OneNote, EPUB, email, PDF, and other Reader adapters.

@@ -182,11 +182,12 @@ var corrections = review.Ocr.Pages.SelectMany(page => page.Words)
     .ToDictionary(word => word, word => word.Text);
 PdfRecognizedWord selectedWord = review.Ocr.Pages[0].Words[0];
 corrections[selectedWord] = "Corrected text";
+string correctedText = review.ExtractText(corrections);
 PdfSearchableOcrResult corrected = review.ApplyCorrections(corrections);
 await corrected.Document.SaveAsync("corrected-searchable.pdf");
 ```
 
-Corrections preserve the selected word's geometry and reading order. `WrittenWords` contains the replacement text, `CorrectedWordCount` counts changed words, and `Ocr` retains the original provider text and confidence. Replacement text must be nonempty and fit the per-page OCR character budget.
+Corrections preserve the selected word's geometry and reading order. `WrittenWords` contains the replacement text, `CorrectedWordCount` counts changed words, and `Ocr` retains the original provider text and confidence. Replacement text must be nonempty and fit the per-page OCR character budget. The dictionary overload of `ExtractText` uses the same validated corrections without modifying the PDF. `ProviderDiagnostics` retains each page's immutable provider severity and recoverability alongside display diagnostics.
 
 ## Scan rendering and execution limits
 

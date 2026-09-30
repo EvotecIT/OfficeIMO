@@ -101,7 +101,8 @@ internal static partial class PdfOcr {
                     }
                     EnsureCharacters(diagnostics, options.MaxDiagnosticCharactersPerPage);
                     projected = new ProjectedOcrResult(projected.Words, diagnostics.AsReadOnly(),
-                        projected.Provider, projected.Model, projected.Language);
+                        projected.Provider, projected.Model, projected.Language,
+                        Array.AsReadOnly(prepared.ProviderDiagnostics.Concat(projected.ProviderDiagnostics).ToArray()));
                 }
                 results[index] = MergePage(nativePage, nativeBounds, projected, options, workCancellation.Token, prepared);
             } catch (Exception exception) {

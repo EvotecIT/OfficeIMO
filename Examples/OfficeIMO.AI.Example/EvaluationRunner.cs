@@ -15,7 +15,8 @@ internal static class EvaluationRunner {
         if (options.CaseId is not null) cases = new[] { cases.Single(item => item.Id == options.CaseId) };
         using var executor = await ExampleExecution.ConnectAsync(options, images: cases.Any(item => item.Images), deadline.Token);
         var rows = new List<object>();
-        int passed = 0;
+        int contractPassed = 0;
+        var annotations = new List<EvaluationReviewAnnotation>();
         foreach (EvaluationCase item in cases) {
             for (int repetition = 1; repetition <= options.Repeat; repetition++) {
                 deadline.Token.ThrowIfCancellationRequested();
@@ -44,7 +45,7 @@ internal static class EvaluationRunner {
                     result = await new OfficeAiEngine(recorded).RunAsync(document, request, cancellationToken: operation.Token);
                     await ArtifactWriter.SaveAsync(directory, document, result, operation.Token);
                     score = item.Gold.Score(result);
-                    accepted = result.Status != OfficeAiResultStatus.InvalidResponse && score.Passed;
+                    accepted = result.Status != OfficeAiResultStatus.InvalidResponse && score.ContractPassed;
                 } catch (OperationCanceledException) when (!deadline.IsCancellationRequested) { failure = "case-timeout"; }
                   catch (OperationCanceledException) { throw; }
                   catch (Exception error) when (error is not OutOfMemoryException) {
@@ -52,9 +53,12 @@ internal static class EvaluationRunner {
                 }
                 await sampler.DisposeAsync();
                 await File.WriteAllTextAsync(Path.Combine(directory, "provider-responses.json"), JsonSerializer.Serialize(recorded.Responses), deadline.Token);
-                if (accepted) passed++;
+                if (accepted) contractPassed++;
+                if (result is not null) annotations.Add(new(item.Id, repetition,
+                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(directory, "report.json"), deadline.Token))).ToLowerInvariant(),
+                    null, null, null, null));
                 rows.Add(new {
-                    item.Id, item.Split, repetition, item.Expected, gold = item.Gold, score, passed = accepted,
+                    item.Id, item.Split, repetition, item.Expected, sourceFile = Path.GetFileName(sourcePath), gold = item.Gold, score, contractPassed = accepted, semanticAssessment = "pending-independent-review",
                     status = result?.Status.ToString(), failure,
                     sourceHash = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(item.Source)).ToLowerInvariant(),
                     sourceBytes = item.Source.Length, elapsedMilliseconds = timer.ElapsedMilliseconds,
@@ -66,21 +70,24 @@ internal static class EvaluationRunner {
                     processedCharacters = result?.ProcessedTextRanges.Sum(range => (long)range.Length),
                     emptyPages = result?.EmptyPages.Count, claims = result?.Claims.Count, fields = result?.Fields.Count, tables = result?.Tables.Count
                 });
-                Console.WriteLine($"{item.Id} [{repetition}/{options.Repeat}]: {(accepted ? "PASS" : "FAIL")} ({result?.Status.ToString() ?? failure})");
+                Console.WriteLine($"{item.Id} [{repetition}/{options.Repeat}]: {(accepted ? "CONTRACT PASS; SEMANTIC REVIEW PENDING" : "CONTRACT FAIL")} ({result?.Status.ToString() ?? failure})");
                 var report = new {
-                    schema = "officeimo.ai.evaluation.v2", corpus = EvaluationCorpus.Version, utc = DateTimeOffset.UtcNow,
+                    schema = "officeimo.ai.evaluation.v3", corpus = EvaluationCorpus.Version, utc = DateTimeOffset.UtcNow,
                     profile = executor.Profile, options.Split, options.Repeat, excludedImageCases = excluded,
                     runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
                     platform = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
                     assembly = typeof(OfficeAiEngine).Assembly.GetName().Version?.ToString(),
-                    threshold = "Every selected repetition must meet declared gold. Fact markers are recall smoke checks, not semantic entailment. Review source/report pairs separately.",
+                    threshold = "Contract checks include gold values, status, shape and citations. Overall quality passes only after independent hash-bound review with zero unsupported claims, omitted facts and incorrect relationships.",
                     memoryScope = "Sampled evaluation process only; excludes model server, GPU and child processes. Allocation delta includes process background work.",
-                    passed, completed = rows.Count, total = cases.Count * options.Repeat, cases = rows
+                    contractPassed, semanticAssessment = "pending-independent-review", completed = rows.Count, total = cases.Count * options.Repeat, cases = rows
                 };
                 await File.WriteAllTextAsync(Path.Combine(output, "evaluation.json"), JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }), deadline.Token);
+                await File.WriteAllTextAsync(Path.Combine(output, "semantic-review-template.json"),
+                    JsonSerializer.Serialize(new EvaluationReviewAnnotations("officeimo.ai.semantic-review.v1", "", annotations.ToArray()), EvaluationReview.JsonOptions), deadline.Token);
             }
         }
-        return passed == cases.Count * options.Repeat ? 0 : 1;
+        // Successful mechanical checks still need semantic assessment; avoid a misleading quality-pass exit code.
+        return contractPassed == cases.Count * options.Repeat ? 4 : 1;
     }
 
     private static void RecordMaximum(ref long target, long value) {

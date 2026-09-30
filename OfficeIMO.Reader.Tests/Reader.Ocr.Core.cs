@@ -7,6 +7,27 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class ReaderOcrCoreTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ProviderFailuresCannotEnrichReaderOrExposeExceptionDetails(bool diagnosticFailure) {
+        var engine = new DelegateOcrEngine("failure", (_, _) => diagnosticFailure
+            ? Task.FromResult(new OcrResult { Text = "Untrusted text", Diagnostics = new[] {
+                new OcrDiagnostic { Code = "unrecoverable", Severity = OcrDiagnosticSeverity.Error, IsRecoverable = false }
+            } })
+            : throw new InvalidOperationException("Authorization=FAKE_AUDIT_SENTINEL"));
+        var result = await CreateDocument(1).ApplyOcrAsync(engine);
+        Assert.Equal(1, result.Report.FailedCandidateCount);
+        Assert.Equal(0, result.Report.RecognizedCandidateCount);
+        Assert.DoesNotContain(result.Document.Blocks, block => block.Kind == "ocr-text");
+        Assert.DoesNotContain("FAKE_AUDIT_SENTINEL", System.Text.Json.JsonSerializer.Serialize(result.Diagnostics));
+        var failure = await Assert.ThrowsAsync<OcrEngineExecutionException>(() => OcrEngineRunner.RecognizeAsync(engine,
+            new OcrRequest(), TimeSpan.FromSeconds(5)));
+        Assert.Equal(diagnosticFailure ? OcrEngineFailureKind.NonRecoverableDiagnostic : OcrEngineFailureKind.ProviderFailure, failure.Kind);
+        Assert.Null(failure.InnerException);
+        Assert.DoesNotContain("FAKE_AUDIT_SENTINEL", failure.ToString());
+    }
+
     [Fact]
     public void OcrContracts_AreNeutralAndReaderExecutionStaysInTheOptionalIntegration() {
         Assert.DoesNotContain(typeof(IOcrEngine).Assembly.GetReferencedAssemblies()
@@ -183,8 +204,8 @@ public sealed class ReaderOcrCoreTests {
 
         Assert.Equal("12345", Assert.Single(execution.Document.Blocks, block => block.Kind == "ocr-text").Text);
         OcrResult result = Assert.Single(execution.Recognitions).Result;
-        Assert.Equal(1D, result.Confidence);
-        Assert.Equal(0D, result.Spans[0].Confidence);
+        Assert.Null(result.Confidence);
+        Assert.Null(result.Spans[0].Confidence);
         Assert.Null(result.Spans[0].BlockId);
         Assert.Null(result.Spans[0].ParagraphId);
         Assert.Null(result.Spans[0].LineId);
@@ -696,7 +717,7 @@ public sealed class ReaderOcrCoreTests {
         await engine.FirstCallStarted;
         engine.FailFirstCall();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
+        await Assert.ThrowsAsync<OcrEngineExecutionException>(() => execution);
         Assert.Equal(1, engine.CallCount);
     }
 
@@ -719,7 +740,7 @@ public sealed class ReaderOcrCoreTests {
             Assert.Equal(2, engine.CallCount);
 
             engine.CompleteRemainingCalls();
-            await Assert.ThrowsAsync<InvalidOperationException>(() => execution);
+            await Assert.ThrowsAsync<OcrEngineExecutionException>(() => execution);
             Assert.Equal(TaskStatus.RanToCompletion, engine.RemainingCallsCompleted.Status);
         } finally {
             engine.CompleteRemainingCalls();

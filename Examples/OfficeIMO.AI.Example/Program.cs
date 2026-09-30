@@ -6,6 +6,7 @@ using OfficeIMO.AI.IntelligenceX;
 try {
     ExampleOptions options = ExampleOptions.Parse(args);
     if (options.Help) { Console.WriteLine(ExampleOptions.Usage); return 0; }
+    if (options.ReviewEvaluationPath is not null) return await EvaluationReview.RunAsync(options, CancellationToken.None);
     if (!options.Local && !options.AllowRemote) { Console.Error.WriteLine("Hosted processing requires --allow-remote. Selected source text and, with --images, page images will be sent to the configured model."); return 2; }
     if (options.Local && options.Endpoint is null) throw new ArgumentException("Local execution requires an explicit endpoint.");
     using var lifetime = new CancellationTokenSource();

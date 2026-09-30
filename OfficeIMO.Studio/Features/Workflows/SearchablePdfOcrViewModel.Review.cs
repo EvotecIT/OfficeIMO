@@ -11,10 +11,10 @@ public sealed partial class SearchablePdfOcrViewModel {
 
     public bool HasReview => Review is not null;
 
-    private Task<IReadOnlyList<PdfRecognizedWord>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken) =>
+    private Task<IReadOnlyDictionary<PdfRecognizedWord, string>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken) =>
         ReviewWordsAsync(evidence, cancellationToken, false);
 
-    private async Task<IReadOnlyList<PdfRecognizedWord>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken, bool textOnly) {
+    private async Task<IReadOnlyDictionary<PdfRecognizedWord, string>> ReviewWordsAsync(PdfSearchableOcrReview evidence, CancellationToken cancellationToken, bool textOnly) {
         var model = await Dispatcher.UIThread.InvokeAsync(() => {
             cancellationToken.ThrowIfCancellationRequested();
             var operation = _cancellation;

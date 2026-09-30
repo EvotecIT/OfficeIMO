@@ -230,7 +230,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             }
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             throw;
-        } catch (Exception exception) when (options.ContinueOnError) {
+        } catch (Exception exception) when (options.ContinueOnError && exception is not OutOfMemoryException && exception is not StackOverflowException) {
             return CandidateOutcome.Failure(job, BuildDiagnostic(
                 job.Candidate,
                 job.Asset,
@@ -238,7 +238,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 OfficeDocumentDiagnosticSeverity.Error,
                 OfficeDocumentDiagnosticCategory.Ocr,
                 "ocr-engine-failed",
-                "OCR engine failed for candidate '" + job.Candidate.Id + "': " + exception.Message,
+                "OCR engine failed for this candidate. Check the configured provider and its private logs.",
                 true,
                 new Dictionary<string, string>(StringComparer.Ordinal) { ["exceptionType"] = exception.GetType().FullName ?? exception.GetType().Name }));
         }

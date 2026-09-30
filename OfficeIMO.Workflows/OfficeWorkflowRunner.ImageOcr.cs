@@ -59,6 +59,8 @@ public sealed partial class OfficeWorkflowRunner {
             if (recognition.Report.FailedCandidateCount > 0 || recognition.Report.SkippedCandidateCount > 0 || recognition.Report.AttemptedCandidateCount == 0)
                 throw new InvalidDataException("Image recognition did not complete. Inspect the OCR diagnostics before retrying.");
             string text = string.Join(Environment.NewLine, recognition.Recognitions.Select(item => item.Result.Text ?? string.Empty));
+            if (string.IsNullOrWhiteSpace(text))
+                throw new InvalidDataException("Image recognition returned no usable text. Inspect the OCR diagnostics before retrying.");
             if (callback is not null) {
                 var review = new ImageOcrWorkflowReview(sourceName, document.Assets.Single().PayloadBytes!, recognition, text);
                 text = await callback(review, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false)

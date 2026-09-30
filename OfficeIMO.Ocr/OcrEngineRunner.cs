@@ -118,7 +118,12 @@ public static class OcrEngineRunner {
                     providerCancellation,
                     cancellationToken)
                 .ConfigureAwait(false);
-            return result ?? throw new InvalidOperationException("OCR engine returned a null result.");
+            if (result == null) throw new OcrEngineExecutionException(OcrEngineFailureKind.InvalidResult);
+            foreach (OcrDiagnostic diagnostic in result.Diagnostics ?? Array.Empty<OcrDiagnostic>()) {
+                if (diagnostic != null && diagnostic.Severity == OcrDiagnosticSeverity.Error && !diagnostic.IsRecoverable)
+                    throw new OcrEngineExecutionException(OcrEngineFailureKind.NonRecoverableDiagnostic);
+            }
+            return result;
         } finally {
             Task<OcrResult>? providerTask = providerInvocation?.Task;
             if (providerTask != null) ObserveBackgroundFailure(providerTask);
@@ -189,14 +194,14 @@ public static class OcrEngineRunner {
         if (providerTask.IsCompleted) {
             if (!invocation.HasStarted) ThrowSuppressedProvider(engineId, timeout, cancellationToken);
             deadlineCancellation.Cancel();
-            return await providerTask.ConfigureAwait(false);
+            return await AwaitProviderResultAsync(providerTask, cancellationToken).ConfigureAwait(false);
         }
 
         Task completed = await WaitForCompletionAsync(providerTask, deadlineTask, cancellationToken).ConfigureAwait(false);
         if (completed == providerTask || providerTask.IsCompleted) {
             if (!invocation.HasStarted) ThrowSuppressedProvider(engineId, timeout, cancellationToken);
             deadlineCancellation.Cancel();
-            return await providerTask.ConfigureAwait(false);
+            return await AwaitProviderResultAsync(providerTask, cancellationToken).ConfigureAwait(false);
         }
 
         invocation.SuppressIfNotStarted();
@@ -207,6 +212,14 @@ public static class OcrEngineRunner {
         }
 
         throw new OcrEngineTimeoutException(engineId, timeout, invocation.HasStarted);
+    }
+
+    private static async Task<OcrResult> AwaitProviderResultAsync(Task<OcrResult> task, CancellationToken cancellationToken) {
+        try { return await task.ConfigureAwait(false); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { throw; }
+        catch (Exception error) when (error is not OutOfMemoryException && error is not StackOverflowException) {
+            throw new OcrEngineExecutionException(OcrEngineFailureKind.ProviderFailure);
+        }
     }
 
     private static void ThrowSuppressedProvider(

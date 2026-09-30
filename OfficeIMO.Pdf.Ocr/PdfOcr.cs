@@ -205,7 +205,7 @@ internal static partial class PdfOcr {
             diagnostics.AsReadOnly(),
             providerValue,
             modelValue,
-            languageValue);
+            languageValue, Array.AsReadOnly(returnedDiagnostics.Where(item => item != null).Select(item => new PdfOcrProviderDiagnostic(item)).ToArray()));
     }
 
     private static PdfOcrPageMergeResult MergePage(
@@ -272,7 +272,7 @@ internal static partial class PdfOcr {
             result.Provider,
             result.Model,
             result.Language,
-            evidence.AsReadOnly(), prepared?.Report, prepared?.RecognitionWidth, prepared?.RecognitionHeight);
+            evidence.AsReadOnly(), prepared?.Report, prepared?.RecognitionWidth, prepared?.RecognitionHeight, result.ProviderDiagnostics);
     }
 
     private static bool TryConvertRegion(
@@ -387,18 +387,20 @@ internal static partial class PdfOcr {
             IReadOnlyList<string> diagnostics,
             string provider,
             string? model,
-            string? language) {
+            string? language, IReadOnlyList<PdfOcrProviderDiagnostic> providerDiagnostics) {
             Words = words;
             Diagnostics = diagnostics;
             Provider = provider;
             Model = model;
             Language = language;
+            ProviderDiagnostics = providerDiagnostics;
         }
         internal IReadOnlyList<ProjectedOcrWord> Words { get; }
         internal IReadOnlyList<string> Diagnostics { get; }
         internal string Provider { get; }
         internal string? Model { get; }
         internal string? Language { get; }
+        internal IReadOnlyList<PdfOcrProviderDiagnostic> ProviderDiagnostics { get; }
     }
 
     private sealed class ProjectedOcrWord {

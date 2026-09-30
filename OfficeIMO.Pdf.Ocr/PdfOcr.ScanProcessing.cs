@@ -17,6 +17,7 @@ internal static partial class PdfOcr {
         internal double? RecognitionHeight { get; set; }
         internal OfficeScanProcessingReport? Report { get; set; }
         internal List<string> Diagnostics { get; } = new List<string>();
+        internal List<PdfOcrProviderDiagnostic> ProviderDiagnostics { get; } = new List<PdfOcrProviderDiagnostic>();
     }
 
     private static async Task<PreparedPage> PreparePageAsync(OcrRequest request, OcrEngineExecution? engine,
@@ -50,6 +51,7 @@ internal static partial class PdfOcr {
                 // Use the same diagnostic count, length, metadata, and provider-result bounds as recognition.
                 ProjectedOcrResult projected = ProjectResult(detection, request, engine.Id, options, token);
                 prepared.Diagnostics.AddRange(projected.Diagnostics);
+                prepared.ProviderDiagnostics.AddRange(projected.ProviderDiagnostics);
                 OcrOrientationResult? orientation = detection.Orientation;
                 if (orientation != null && orientation.ClockwiseRotationDegrees is 0 or 90 or 180 or 270 &&
                     IsFinite(orientation.Confidence) && orientation.Confidence >= options.MinimumOrientationConfidence && orientation.Confidence <= 1D) {

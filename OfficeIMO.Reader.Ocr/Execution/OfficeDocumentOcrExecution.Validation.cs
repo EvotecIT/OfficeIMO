@@ -204,7 +204,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         }
         if (adjustedConfidence) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
-                "ocr-confidence-out-of-range", "One or more OCR confidence values were normalized; non-finite values were removed and out-of-range values were clamped.", true));
+                "ocr-confidence-out-of-range", "One or more OCR confidence values were invalid and removed; they are not usable as quality evidence.", true));
         }
         if (discardedHierarchyId) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Ocr,
@@ -374,7 +374,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         }
         if (value.Value >= 0D && value.Value <= 1D) return value;
         adjusted = true;
-        return value.Value < 0D ? 0D : 1D;
+        return null;
     }
 
     private static string TruncateText(string value, int maxCharacters) {

@@ -26,7 +26,7 @@ internal sealed record SearchablePdfOcrOptions(
     internal IOfficeWorkflowPublicationGuard? PublicationGuard { get; init; }
     internal OfficeWorkflowStreamInput? InputStream { get; init; }
     internal OfficeWorkflowStreamOutput? OutputStream { get; init; }
-    internal Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyList<PdfRecognizedWord>>>? ReviewAsync { get; init; }
+    internal Func<PdfSearchableOcrReview, CancellationToken, Task<IReadOnlyDictionary<PdfRecognizedWord, string>>>? ReviewCorrectionsAsync { get; init; }
 }
 
 internal interface ISearchablePdfOcrService {
@@ -55,7 +55,7 @@ internal sealed class SearchablePdfOcrService : ISearchablePdfOcrService {
             ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                 ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail,
             PublicationGuard = options.PublicationGuard,
-            ReviewAsync = options.ReviewAsync
+            ReviewCorrectionsAsync = options.ReviewCorrectionsAsync
         };
         TesseractOcrSession session = await TesseractOcr
             .CreateSessionAsync(new TesseractOcrSessionOptions {
@@ -338,7 +338,7 @@ public sealed partial class SearchablePdfOcrViewModel : ObservableObject, IDispo
                     },
                     Dpi = RenderDpi,
                     MinimumConfidence = MinimumConfidencePercent / 100D
-                })) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input), ReviewAsync = ReviewWordsAsync };
+                })) { PublicationGuard = _publicationGuard, InputStream = _storage?.CreateWorkflowInput(input), ReviewCorrectionsAsync = ReviewWordsAsync };
             if (providerOutput) {
                 if (!await _confirmProviderWrite(output).ConfigureAwait(true)) {
                     Status = T("Status.Cancelled", "OCR cancelled");

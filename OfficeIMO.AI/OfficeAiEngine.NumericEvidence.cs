@@ -38,7 +38,7 @@ public sealed partial class OfficeAiEngine {
 
     private static int SkipCurrencyContext(string source, int index, int direction) {
         while (index >= 0 && index < source.Length) {
-            if (char.IsWhiteSpace(source[index])) {
+            if (char.IsWhiteSpace(source[index]) && source[index] is not ('\r' or '\n' or '\u0085' or '\u2028' or '\u2029')) {
                 index += direction;
                 continue;
             }
