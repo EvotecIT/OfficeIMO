@@ -6,19 +6,28 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public sealed class Markdown_Reader_Performance_Contract_Tests {
 #if NET8_0_OR_GREATER
     [Fact]
+#if MARKDOWN_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void TableHeavyParse_DoesNotRebindTheGrowingDocumentForEveryBlock() {
         string markdown = BuildTableHeavyMarkdown(sectionCount: 80);
         _ = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Warmup\n\n| A | B |\n| - | - |\n| 1 | 2 |");
 
+#if MARKDOWN_PERFORMANCE_EVIDENCE
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+#endif
         MarkdownParseResult result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
+#if MARKDOWN_PERFORMANCE_EVIDENCE
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
+#endif
 
         Assert.Equal(160, result.Document.Blocks.Count);
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
+#if MARKDOWN_PERFORMANCE_EVIDENCE
         Assert.True(
             allocatedBytes < 128L * 1024 * 1024,
             $"Table-heavy parsing allocated {allocatedBytes / (1024d * 1024d):N1} MB; repeated whole-document binding has likely returned.");
+#endif
     }
 #endif
 
