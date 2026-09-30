@@ -154,15 +154,25 @@ static void make_palette(FILE *out,int scenario,int updates,int *first) {
     assert(memcmp(enc.has_y,dec.has_y,sizeof(enc.has_y))==0&&memcmp(enc.map_y,dec.map_y,sizeof(enc.map_y))==0&&memcmp(enc.map_uv,dec.map_uv,sizeof(enc.map_uv))==0&&memcmp(enc.filter,dec.filter,sizeof(enc.filter))==0);
     od_ec_enc_clear(&enc.mode.entropy.enc);
 }
+static int palette_first_leaf(char **argv,palette_codec *p,unsigned char **bytes,int *q,int *mode,palette_result *result) {
+    palette_init(p,1,1);int pixels=mode_first_leaf(argv,&p->mode,bytes,q,mode);
+    palette(p,0,0,pixels,pixels,64,64,atoi(argv[11]),1,mode,-1,result);return pixels;
+}
 static void palette_prefix(char **argv) {
-    palette_codec p;palette_init(&p,1,1);unsigned char *bytes;int q,mode[9];
-    int pixels=mode_first_leaf(argv,&p.mode,&bytes,&q,mode);palette_result result;
-    palette(&p,0,0,pixels,pixels,64,64,atoi(argv[11]),1,mode,-1,&result);
+    palette_codec p;unsigned char *bytes;int q,mode[9];palette_result result;
+    int pixels=palette_first_leaf(argv,&p,&bytes,&q,mode,&result);
     FILE *out=fopen(argv[9],"wb");assert(out);fprintf(out,"{\"pixels\":%d,\"preludeQ\":%d,",pixels,q);print_result(out,&result);fprintf(out,"}\n");fclose(out);free(bytes);
 }
+#ifdef OFFICEIMO_AV1_TRANSFORM_INCLUDE
+#define main palette_component_main
+#endif
 int main(int argc,char **argv) {
     if(argc==12){palette_prefix(argv);return 0;}assert(argc==2);
     FILE *out=fopen(argv[1],"wb");assert(out);fprintf(out,"{\"producer\":\"AOM v3.13.1 entropy, tables and native palette context; original remaining syntax harness\",\"nativeSelfCheck\":true,\"cases\":[");
     int first=1;for(int s=0;s<24;s++)for(int u=0;u<2;u++)make_palette(out,s,u,&first);
     fprintf(out,"]}\n");fclose(out);return 0;
 }
+
+#ifdef OFFICEIMO_AV1_TRANSFORM_INCLUDE
+#undef main
+#endif
