@@ -36,6 +36,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="Fixtures/InvoiceFixture.cs" />
+    <None Include="../OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf" Link="Fixtures/SourceSerif4-Regular.otf" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs"
              Link="Shared\ManagedTextShapingTestAssets.cs" />
   </ItemGroup>

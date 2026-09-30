@@ -122,6 +122,9 @@ public sealed class InvoicePdfLayoutOptions {
         return result;
     }
 
+    /// <summary>Creates an independent copy of language, appearance, approval and resource settings for deferred or batch processing.</summary>
+    public InvoicePdfLayoutOptions Clone() => Snapshot();
+
     internal InvoicePdfLayoutOptions Snapshot() {
         if (_languages.Count == 0) throw new InvalidOperationException("At least one invoice PDF language pack is required.");
         if (_languages.Any(static language => language == null)) throw new InvalidOperationException("Invoice PDF language packs cannot contain null.");
