@@ -6,6 +6,59 @@ using Xunit;
 namespace OfficeIMO.Tests.Rtf;
 
 public class RtfPdfSectionRegressionTests {
+    [Fact]
+    public void AbsentRtfStoriesPreserveCallerRunningContentAcrossFacingPageSections() {
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.FacingPages = true;
+        document.AddSection().AddParagraph("First body");
+        document.AddSection().AddParagraph("Second body");
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new RtfToPdfOptions {
+            PdfOptions = new PdfCore.PdfOptions { ShowPageNumbers = true, FooterFormat = "Caller page {page}" }
+        }));
+        Assert.Equal(2, read.Pages.Count);
+        Assert.Contains("Caller page 1", read.Pages[0].ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Caller page 2", read.Pages[1].ExtractText(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SectionsWithoutEffectiveStoriesRetainCallerFirstAndEvenVariants() {
+        RtfDocument document = RtfDocument.Create();
+        document.Settings.FacingPages = true;
+        RtfSection first = document.AddSection();
+        first.AddParagraph("First body").AddPageBreak();
+        first.AddParagraph("Second body");
+        RtfSection second = document.AddSection();
+        second.AddParagraph("Third body").AddPageBreak();
+        second.AddParagraph("Fourth body");
+        RtfSection third = document.AddSection();
+        third.AddHeader().AddParagraph("RTF third header");
+        third.AddParagraph("Fifth body");
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(document.ToPdfBytes(new RtfToPdfOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                ShowHeader = true,
+                ShowPageNumbers = true,
+                HeaderFormat = "Caller default header",
+                FooterFormat = "Caller default footer {page}",
+                DifferentFirstPageHeaderFooter = true,
+                FirstPageHeaderFormat = "Caller first header",
+                FirstPageFooterFormat = "Caller first footer {page}",
+                DifferentOddAndEvenPagesHeaderFooter = true,
+                EvenPageHeaderFormat = "Caller even header",
+                EvenPageFooterFormat = "Caller even footer {page}"
+            }
+        }));
+        Assert.Equal(5, read.Pages.Count);
+        foreach (int index in new[] { 0, 2 }) {
+            Assert.Contains("Caller first header", read.Pages[index].ExtractText(), StringComparison.Ordinal);
+            Assert.Contains("Caller first footer " + (index + 1), read.Pages[index].ExtractText(), StringComparison.Ordinal);
+        }
+        foreach (int index in new[] { 1, 3 }) {
+            Assert.Contains("Caller even header", read.Pages[index].ExtractText(), StringComparison.Ordinal);
+            Assert.Contains("Caller even footer " + (index + 1), read.Pages[index].ExtractText(), StringComparison.Ordinal);
+        }
+        Assert.Contains("RTF third header", read.Pages[4].ExtractText(), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(RtfSectionBreakKind.OddPage, 3)]
     [InlineData(RtfSectionBreakKind.EvenPage, 2)]
