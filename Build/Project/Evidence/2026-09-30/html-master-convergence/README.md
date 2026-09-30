@@ -20,6 +20,33 @@ PeachPDF **0.9.20**, isolated in the opt-in comparison project, now converts thi
 
 ## Capability assessment at the published reference boundary
 
+### Static gap checkpoint
+
+The [static-gap record](static-gap-checkpoint.json) binds the eighteen frozen inputs
+to source `22157e58d`, published PeachPDF 0.9.20 and Chromium 151. All cases
+finish within the predeclared 30-second process cap. Their PDF text and page
+rasters use independent Poppler tools, and pypdf inspects image/link/structure
+objects. These are observations, not complete visual or conformance acceptance.
+
+Core's separate-alpha WebP decoder is merged through PR #2657. The HTML branch
+also preserves its inspected caller-codec boundary through raster and SVG paths;
+placeholder pixels remain a reported failure representation. Sixteen raw/compressed
+alpha image occurrences extracted from the PDFs retain exact alpha and RGB within
+one channel value of the independent reference. Drawing passes 2,850 tests on
+each runtime, HTML 3,935 on each, PDF 8,600 on .NET 10, and Core netstandard2.0
+builds without warnings. H4 passes 8/8 and both unchanged macOS budget gates pass.
+All eleven planetary PDF variants are byte-identical to source `40bd3f7bb`.
+
+The suite exposes missing AVIF pixels with PDF omission warnings; page floats
+remain inline; column cases lose content and encounter ancillary Drawing bounds
+failures; SVG filter graphs and a symbol without a viewBox lose paint. The selected
+pattern output visually matches the browser, while OfficeIMO's own PDF reader hits
+its clipping-work ceiling on that output. Formula/associated-file semantics and
+requested PDF/A/PDF/UA outputs still need their separate policy lanes. PeachPDF
+also omits these AVIF fixtures and the rotated pattern, and the browser does not
+implement the declared paged floats/notes. None of those reference limits closes
+an adopted OfficeIMO gap. Open outcomes remain in the single product roadmap.
+
 The comparison uses the published [v0.9.20 HTML/CSS](https://github.com/jhaygood86/PeachPDF/blob/v0.9.20/docs/html-css-support.md), [SVG](https://github.com/jhaygood86/PeachPDF/blob/v0.9.20/docs/supported-svg-features.md) and [MathML](https://github.com/jhaygood86/PeachPDF/blob/v0.9.20/docs/supported-mathml-features.md) contracts. Their hashes are retained in the record. A documented reference capability is not a paired-fixture pass.
 
 | Area | OfficeIMO evidence | Comparison conclusion |
