@@ -64,6 +64,7 @@
     <InternalsVisibleTo Include="OfficeIMO.Word.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Markdown" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Rtf" />
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
     <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
   </ItemGroup>

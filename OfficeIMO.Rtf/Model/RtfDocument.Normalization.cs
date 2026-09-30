@@ -11,6 +11,7 @@ public sealed partial class RtfDocument {
         RtfWriteOptions resolved = options ?? new RtfWriteOptions();
         var report = new RtfConversionReport();
         foreach (RtfConversionDiagnostic diagnostic in _sourceNormalizationDiagnostics) report.Add(diagnostic);
+        report.Merge(GetStyleReferenceDiagnostics());
         if (PageSetup.Landscape && Sections.Any(section => section.PageSetup.DirectLandscape == false)) {
             report.Add(RtfConversionSeverity.Warning, "RtfNormalizationOrientationDefaultsMaterialized",
                 "Mixed portrait and landscape output stores orientation on each section because native RTF requires a portrait document default. Effective orientation is preserved; the document-wide landscape default is materialized.",
@@ -27,6 +28,13 @@ public sealed partial class RtfDocument {
         _sourceNormalizationDiagnostics.Add(new RtfConversionDiagnostic(RtfConversionSeverity.Warning,
             "RtfNormalizationDestinationOmitted", "Source destination '" + destination + "' is not represented by the semantic model and is omitted by normalized writing.",
             RtfConversionAction.Omitted, "Source/" + position.ToString(CultureInfo.InvariantCulture), destination));
+    }
+
+    internal void RecordUnboundStyleSyntax(string name, int position, bool isDestination) {
+        _sourceNormalizationDiagnostics.Add(new RtfConversionDiagnostic(RtfConversionSeverity.Warning,
+            isDestination ? "RtfNormalizationStyleDestinationOmitted" : "RtfNormalizationStyleControlOmitted",
+            "Source stylesheet syntax '" + name + "' is not represented by the semantic style model and is omitted by semantic conversion.",
+            RtfConversionAction.Omitted, "Source/" + position.ToString(CultureInfo.InvariantCulture), name));
     }
 
     internal void RecordReadNormalizationDiagnostics(IEnumerable<RtfDiagnostic> diagnostics) {

@@ -42,6 +42,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AddRtfToWordDiagnostics(RtfDocument document, RtfConversionReport report) {
+        report.Merge(document.GetStyleConversionDiagnostics());
         if (document.Styles.Count > 0) {
             report.Add(
                 RtfConversionSeverity.Information,

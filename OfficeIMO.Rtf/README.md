@@ -28,7 +28,7 @@ RtfReadResult read = RtfDocument.LoadResult("input.rtf");
 read.SaveLossless("unchanged-copy.rtf");
 ```
 
-Use `ToRtfResult()` when a semantic save must account for source content that the model cannot retain. Its report includes unbound destinations, read-policy omissions and stale encapsulated HTML, even when optional read warnings are disabled:
+Use `ToRtfResult()` when a semantic save must account for source content that the model cannot retain. Its report includes unbound destinations, unsupported stylesheet syntax, style cycles and missing references, read-policy omissions, and stale encapsulated HTML, even when optional read warnings are disabled:
 
 ```csharp
 RtfConversionResult<string> normalized = read.Document.ToRtfResult();

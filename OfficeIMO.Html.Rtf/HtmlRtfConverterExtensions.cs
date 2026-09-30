@@ -49,6 +49,7 @@ public static partial class HtmlRtfConverterExtensions {
                 "Semantic edits invalidated the original encapsulated HTML; current RTF content was converted.",
                 severity: HtmlRtfConversionDiagnosticSeverity.Warning, action: RtfConversionAction.Omitted);
         }
+        effectiveOptions.ConversionReport.Merge(document.GetStyleConversionDiagnostics());
         return RtfHtmlWriter.Write(document, effectiveOptions);
     }
 

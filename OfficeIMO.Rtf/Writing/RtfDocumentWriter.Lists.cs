@@ -227,7 +227,7 @@ internal static partial class RtfDocumentWriter {
         }
     }
 
-    private static IEnumerable<RtfParagraph> EnumerateParagraphs(RtfDocument document) {
+    internal static IEnumerable<RtfParagraph> EnumerateParagraphs(RtfDocument document) {
         var pending = new Stack<object>();
         var visited = new HashSet<object>();
         PushListContent(pending, document.Notes);

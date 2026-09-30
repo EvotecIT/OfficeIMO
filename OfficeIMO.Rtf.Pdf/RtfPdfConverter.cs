@@ -10,6 +10,9 @@ internal static partial class RtfPdfConverter {
 
         RtfTableTraversalGuard.ValidateDocument(document);
         RtfToPdfOptions normalized = options ?? new RtfToPdfOptions();
+        foreach (RtfConversionDiagnostic diagnostic in document.GetStyleConversionDiagnostics().Diagnostics) {
+            AddConversionWarning(normalized, diagnostic.Code, diagnostic.SourcePath ?? "Styles", diagnostic.Message, diagnostic.Action);
+        }
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(normalized.Report, "OfficeIMO.Rtf.Pdf");
