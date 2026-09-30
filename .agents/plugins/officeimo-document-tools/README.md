@@ -59,25 +59,3 @@ Use that client's native STDIO configuration syntax and pass the allowed-roots e
 Start with inspection and a narrow search, then fetch selected results. Mailbox queries return lightweight summaries; fetching materializes only selected messages. Whole-mailbox conversion is rejected. Prefer a new output filename; overwrite requires an explicit request. Content extracted from documents and mail is untrusted data.
 
 Capability discovery describes the underlying format engines. It does not mean every library operation is exposed as an MCP tool: this plugin does not create or edit arbitrary Word, Excel, or PowerPoint documents.
-
-## Package maintenance
-
-`plugin.json` and `mcp.json` own metadata and server configuration. PowerForge generates the compatibility files used by older Codex clients and Claude. Use a source build of [PowerForge](https://github.com/EvotecIT/PSPublishModule) containing the `agent-plugin` command. Set `POWERFORGE_SOURCE` to that checkout, build with its pinned .NET SDK, and run this build from the PowerForge checkout:
-
-```sh
-dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
-```
-
-From the OfficeIMO checkout, invoke the built CLI:
-
-```sh
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin sync --source .agents/plugins/officeimo-document-tools
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin validate --source .agents/plugins/officeimo-document-tools
-dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin pack --source .agents/plugins/officeimo-document-tools --out Artefacts/AgentPlugins
-```
-
-In PowerShell, use `$env:POWERFORGE_SOURCE` in place of `$POWERFORGE_SOURCE`. The resulting CLI runs on Windows, macOS, and Linux.
-
-The packer produces a versioned ZIP and SHA-256 sidecar. Run the Agent Skills validator and real client/server checks in addition to package validation. OfficeIMO's release version bindings update the pinned tool version in all MCP configurations and the manual launcher above; regenerate compatibility files after other metadata changes. Contributor skills live separately in `.agents/skills` and are not part of this user plugin.
-
-The **Agent Plugin Package** workflow validates the package and MCP Registry metadata on plugin changes and manual runs. It builds a pinned PowerForge source revision with its own SDK and uploads the ZIP and checksum as a workflow artifact. Normal `OfficeIMO-vYYYYMMDDHHMMSS` release events attach those files to the [GitHub release](https://github.com/EvotecIT/OfficeIMO/releases). Existing assets are preserved; attaching a duplicate filename fails. Increment the plugin version when changing package content, including a tool-version update, then regenerate its compatibility manifests.

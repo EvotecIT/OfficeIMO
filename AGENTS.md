@@ -58,3 +58,37 @@
 - Treat pushes as branch backups, not release qualification. Inspect existing workflow triggers before relying on branch CI; use current build/test tooling for explicit branch validation where needed. Do not add release/publishing triggers as part of checkpoint setup.
 - Keep upstream integration deliberate and regular. Inspect all worktrees before branch operations, use one coordinator for integration history, preserve unrelated work and avoid history rewrites on shared branches. Do not leave a giant unvalidated merge until the end of the program.
 - Keep test references and optional provider comparisons outside default runtime dependencies. Store bulky corpus outputs in a named task-owned location, retain compact manifests and decisive evidence, and remove superseded output before repeated runs.
+
+## Agent plugin and MCP Registry maintenance
+
+
+`plugin.json` and `mcp.json` own metadata and server configuration. PowerForge generates the compatibility files used by older Codex clients and Claude. Use a source build of [PowerForge](https://github.com/EvotecIT/PSPublishModule) containing the `agent-plugin` command. Set `POWERFORGE_SOURCE` to that checkout, build with its pinned .NET SDK, and run this build from the PowerForge checkout:
+
+```sh
+dotnet build PowerForge.Cli/PowerForge.Cli.csproj -c Release -f net10.0
+```
+
+From the OfficeIMO checkout, invoke the built CLI:
+
+```sh
+dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin sync --source .agents/plugins/officeimo-document-tools
+dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin validate --source .agents/plugins/officeimo-document-tools
+dotnet "$POWERFORGE_SOURCE/PowerForge.Cli/bin/Release/net10.0/PowerForge.Cli.dll" agent-plugin pack --source .agents/plugins/officeimo-document-tools --out Artefacts/AgentPlugins
+```
+
+In PowerShell, use `$env:POWERFORGE_SOURCE` in place of `$POWERFORGE_SOURCE`. The resulting CLI runs on Windows, macOS, and Linux.
+
+The packer produces a versioned ZIP and SHA-256 sidecar. Run the Agent Skills validator and real client/server checks in addition to package validation. OfficeIMO's release version bindings update the pinned tool version in all MCP configurations and the manual launcher in `.agents/plugins/officeimo-document-tools/README.md`; regenerate compatibility files after other metadata changes. Contributor skills live separately in `.agents/skills` and are not part of this user plugin.
+
+The **Agent Plugin Package** workflow validates the package and MCP Registry metadata on plugin and Registry package-input changes and manual runs. It builds a pinned PowerForge source revision with its own SDK and uploads the ZIP and checksum as a workflow artifact. Normal `OfficeIMO-vYYYYMMDDHHMMSS` release events attach those files to the [GitHub release](https://github.com/EvotecIT/OfficeIMO/releases). Existing assets are preserved; attaching a duplicate filename fails. Increment the plugin version when changing package content, including a tool-version update, then regenerate its compatibility manifests.
+
+PowerForge's project release bindings update both version fields in `server.json`. Publish the signed NuGet package first and check that its embedded README contains the matching `mcp-name` ownership marker. The registry validates the published package, so source metadata alone is insufficient. Then, from the repository root, authenticate an authorized EvotecIT publisher and submit the metadata:
+
+```text
+mcp-publisher login github
+mcp-publisher publish OfficeIMO.Tool/server.json
+```
+
+For CI publication, the official publisher supports `mcp-publisher login github-oidc` with `id-token: write` on an authorized GitHub workflow. Follow the [MCP Registry publishing instructions](https://modelcontextprotocol.io/registry/quickstart) and verify the returned name and version in the Registry API. Registry publication provides discovery; ChatGPT and Claude public directories have their own submission and approval requirements.
+
+`Build/validate_mcp_registry.py` validates against a fixed official schema URI and checks the source ownership marker. The OfficeIMO.Tool package smoke gate checks the same marker in the README declared by the actual NuGet artifact. Keep both checks when changing Registry metadata or package inputs.
