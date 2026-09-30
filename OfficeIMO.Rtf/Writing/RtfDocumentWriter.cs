@@ -448,6 +448,12 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\pich", image.SourceHeight);
         AppendOptionalTwips(builder, @"\picwgoal", image.DesiredWidthTwips);
         AppendOptionalTwips(builder, @"\pichgoal", image.DesiredHeightTwips);
+        AppendOptionalTwips(builder, @"\picscalex", image.ScaleXPercent);
+        AppendOptionalTwips(builder, @"\picscaley", image.ScaleYPercent);
+        AppendOptionalTwips(builder, @"\piccropl", image.CropLeftTwips);
+        AppendOptionalTwips(builder, @"\piccropt", image.CropTopTwips);
+        AppendOptionalTwips(builder, @"\piccropr", image.CropRightTwips);
+        AppendOptionalTwips(builder, @"\piccropb", image.CropBottomTwips);
         builder.AppendLine();
         WriteHexBytes(builder, image.Data);
         builder.Append('}');

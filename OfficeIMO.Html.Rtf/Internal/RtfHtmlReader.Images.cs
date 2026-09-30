@@ -16,6 +16,19 @@ internal static partial class RtfHtmlReader {
             RtfImage image = EnsureInlineParagraph().AddImage(format, data!);
             image.Description = GetAttribute(token, "alt");
             ApplyImageSize(token, image);
+            var metadata = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-picture"));
+            if (metadata.TryGetValue("version", out string? version) && version == "1") {
+                image.SourceWidth = ReadInt(metadata, "SourceWidth");
+                image.SourceHeight = ReadInt(metadata, "SourceHeight");
+                image.DesiredWidthTwips = ReadInt(metadata, "DesiredWidthTwips");
+                image.DesiredHeightTwips = ReadInt(metadata, "DesiredHeightTwips");
+                image.ScaleXPercent = ReadInt(metadata, "ScaleXPercent");
+                image.ScaleYPercent = ReadInt(metadata, "ScaleYPercent");
+                image.CropLeftTwips = ReadInt(metadata, "CropLeftTwips");
+                image.CropTopTwips = ReadInt(metadata, "CropTopTwips");
+                image.CropRightTwips = ReadInt(metadata, "CropRightTwips");
+                image.CropBottomTwips = ReadInt(metadata, "CropBottomTwips");
+            }
         }
 
         private static void ApplyImageSize(IElement token, RtfImage image) {

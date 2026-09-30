@@ -116,6 +116,12 @@ internal static partial class RtfHtmlReader {
                     copiedImage.SourceHeight = image.SourceHeight;
                     copiedImage.DesiredWidthTwips = image.DesiredWidthTwips;
                     copiedImage.DesiredHeightTwips = image.DesiredHeightTwips;
+                    copiedImage.ScaleXPercent = image.ScaleXPercent;
+                    copiedImage.ScaleYPercent = image.ScaleYPercent;
+                    copiedImage.CropLeftTwips = image.CropLeftTwips;
+                    copiedImage.CropTopTwips = image.CropTopTwips;
+                    copiedImage.CropRightTwips = image.CropRightTwips;
+                    copiedImage.CropBottomTwips = image.CropBottomTwips;
                     break;
                 case RtfObject rtfObject:
                     RtfObject copiedObject = target.AddObject(rtfObject.Kind, rtfObject.Data);

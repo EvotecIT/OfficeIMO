@@ -498,6 +498,7 @@ internal static partial class RtfSemanticReader {
             int? sourceHeight = null;
             int? desiredWidth = null;
             int? desiredHeight = null;
+            int? scaleX = null, scaleY = null, cropLeft = null, cropTop = null, cropRight = null, cropBottom = null;
             var data = new List<byte>();
             long imageBytes = 0;
 
@@ -532,6 +533,12 @@ internal static partial class RtfSemanticReader {
                         case "pichgoal":
                             desiredHeight = control.Parameter;
                             break;
+                        case "picscalex": scaleX = control.Parameter; break;
+                        case "picscaley": scaleY = control.Parameter; break;
+                        case "piccropl": cropLeft = control.Parameter; break;
+                        case "piccropt": cropTop = control.Parameter; break;
+                        case "piccropr": cropRight = control.Parameter; break;
+                        case "piccropb": cropBottom = control.Parameter; break;
                     }
                 } else if (node is RtfBinary binary) {
                     _limits.AddImageBytes(ref imageBytes, binary.Data.Length, binary.Position);
@@ -553,7 +560,9 @@ internal static partial class RtfSemanticReader {
                 SourceWidth = sourceWidth,
                 SourceHeight = sourceHeight,
                 DesiredWidthTwips = desiredWidth,
-                DesiredHeightTwips = desiredHeight
+                DesiredHeightTwips = desiredHeight,
+                ScaleXPercent = scaleX, ScaleYPercent = scaleY,
+                CropLeftTwips = cropLeft, CropTopTwips = cropTop, CropRightTwips = cropRight, CropBottomTwips = cropBottom
             };
         }
 

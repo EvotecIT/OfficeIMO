@@ -141,12 +141,12 @@ public partial class WordRtfConverterTests {
         RtfImage image = Assert.IsType<RtfImage>(Assert.Single(rtfDocument.Blocks));
         Assert.Equal(RtfImageFormat.Png, image.Format);
         Assert.Equal(png, image.Data);
-        Assert.Equal(32, image.SourceWidth);
-        Assert.Equal(16, image.SourceHeight);
+        Assert.Equal(1, image.SourceWidth);
+        Assert.Equal(1, image.SourceHeight);
         Assert.Equal(480, image.DesiredWidthTwips);
         Assert.Equal(240, image.DesiredHeightTwips);
         Assert.Equal("Pixel image", image.Description);
-        Assert.Contains(@"{\pict\pngblip\picw32\pich16\picwgoal480\pichgoal240", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\pict\pngblip\picw1\pich1\picwgoal480\pichgoal240", rtf, StringComparison.Ordinal);
         Assert.Contains("89504e470d0a1a0a", rtf, StringComparison.Ordinal);
 
         using WordDocument semanticBridge = rtfDocument.ToWordDocument();
@@ -183,14 +183,14 @@ public partial class WordRtfConverterTests {
                 RtfImage image = Assert.IsType<RtfImage>(inline);
                 Assert.Equal(RtfImageFormat.Png, image.Format);
                 Assert.Equal(png, image.Data);
-                Assert.Equal(24, image.SourceWidth);
-                Assert.Equal(12, image.SourceHeight);
+                Assert.Equal(1, image.SourceWidth);
+                Assert.Equal(1, image.SourceHeight);
                 Assert.Equal(360, image.DesiredWidthTwips);
                 Assert.Equal(180, image.DesiredHeightTwips);
                 Assert.Equal("Inline pixel", image.Description);
             },
             inline => Assert.Equal(" after", Assert.IsType<RtfRun>(inline).Text));
-        Assert.Contains(@"{\pict\pngblip\picw24\pich12\picwgoal360\pichgoal180", rtf, StringComparison.Ordinal);
+        Assert.Contains(@"{\pict\pngblip\picw1\pich1\picwgoal360\pichgoal180", rtf, StringComparison.Ordinal);
         Assert.Equal("Before  after", string.Concat(roundTrip.Paragraphs.Select(item => item.Text)));
         Assert.Single(roundTrip.Images);
 

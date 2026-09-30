@@ -398,7 +398,22 @@ internal static partial class RtfHtmlWriter {
         if (source == null) {
             return;
         }
-
+        RtfImageLayout layout;
+        try {
+            OfficeImageReader.TryValidateContent(image.Data, null, out OfficeImageInfo? info);
+            layout = image.ResolveLayout(info?.Width > 0 ? info.Width * 15d : null, info?.Height > 0 ? info.Height * 15d : null);
+        } catch (InvalidDataException exception) {
+            options.AddDiagnostic("RtfHtmlImageLayoutInvalid", exception.Message, "Image", action: RtfConversionAction.Blocked);
+            return;
+        }
+        bool crop = HasImageCrop(image) && layout.WidthTwips.HasValue && layout.HeightTwips.HasValue;
+        if (crop) {
+            builder.Append("<span style=\"display:inline-block;position:relative;overflow:hidden;vertical-align:bottom;width:")
+                .Append(FormatPoints(layout.VisibleWidthTwips!.Value / 20d)).Append("pt;height:")
+                .Append(FormatPoints(layout.VisibleHeightTwips!.Value / 20d)).Append("pt\">");
+        } else if (HasImageCrop(image)) {
+            options.AddDiagnostic("RtfHtmlImageCropUnresolved", "Picture cropping requires known source or goal dimensions.", "Image", action: RtfConversionAction.Flattened);
+        }
         builder.Append("<img src=\"");
         builder.Append(EncodeAttribute(source));
         builder.Append('"');
@@ -408,8 +423,15 @@ internal static partial class RtfHtmlWriter {
             builder.Append('"');
         }
 
-        AppendImageSize(builder, image);
+        if (options.IncludeRoundTripMetadata) AppendImageMetadata(builder, image);
+        if (crop) {
+            builder.Append(" style=\"position:absolute;max-width:none;left:").Append(FormatPoints(-(image.CropLeftTwips ?? 0) * layout.ScaleX / 20d))
+                .Append("pt;top:").Append(FormatPoints(-(image.CropTopTwips ?? 0) * layout.ScaleY / 20d))
+                .Append("pt;width:").Append(FormatPoints(layout.WidthTwips!.Value * layout.ScaleX / 20d))
+                .Append("pt;height:").Append(FormatPoints(layout.HeightTwips!.Value * layout.ScaleY / 20d)).Append("pt\"");
+        } else AppendImageSize(builder, image, layout);
         builder.Append('>');
+        if (crop) builder.Append("</span>");
     }
 
     private static string? ResolveImageSource(RtfImage image, RtfToHtmlOptions options) {
@@ -468,7 +490,7 @@ internal static partial class RtfHtmlWriter {
         return "data:" + mediaType + ";base64," + Convert.ToBase64String(image.Data);
     }
 
-    private static void AppendImageSize(StringBuilder builder, RtfImage image) {
+    private static void AppendImageSize(StringBuilder builder, RtfImage image, RtfImageLayout layout) {
         if (image.SourceWidth.HasValue) {
             builder.Append(" width=\"");
             builder.Append(image.SourceWidth.Value.ToString(CultureInfo.InvariantCulture));
@@ -481,17 +503,17 @@ internal static partial class RtfHtmlWriter {
             builder.Append('"');
         }
 
-        if (image.DesiredWidthTwips.HasValue || image.DesiredHeightTwips.HasValue) {
+        if (layout.VisibleWidthTwips.HasValue || layout.VisibleHeightTwips.HasValue) {
             builder.Append(" style=\"");
-            if (image.DesiredWidthTwips.HasValue) {
+            if (layout.VisibleWidthTwips.HasValue) {
                 builder.Append("width:");
-                builder.Append(FormatPoints(image.DesiredWidthTwips.Value / 20d));
+                builder.Append(FormatPoints(layout.VisibleWidthTwips.Value / 20d));
                 builder.Append("pt;");
             }
 
-            if (image.DesiredHeightTwips.HasValue) {
+            if (layout.VisibleHeightTwips.HasValue) {
                 builder.Append("height:");
-                builder.Append(FormatPoints(image.DesiredHeightTwips.Value / 20d));
+                builder.Append(FormatPoints(layout.VisibleHeightTwips.Value / 20d));
                 builder.Append("pt;");
             }
 

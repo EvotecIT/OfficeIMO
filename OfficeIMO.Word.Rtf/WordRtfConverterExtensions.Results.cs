@@ -214,7 +214,7 @@ public static partial class WordRtfConverterExtensions {
             report.Add(
                 RtfConversionSeverity.Warning,
                 "RtfWordImagesOmitted",
-                "RTF images with unsupported formats or invalid payloads are not represented by the Word bridge.",
+                "RTF images with unsupported formats, invalid payloads or invalid visible dimensions are not represented by the Word bridge.",
                 RtfConversionAction.Omitted,
                 feature: "pict",
                 count: omittedImageCount);
