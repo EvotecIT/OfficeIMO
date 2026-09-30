@@ -48,6 +48,8 @@ Editable reconstruction means the supported content is represented as normal DOC
 
 ## Conversion acceptance and fidelity
 
+`SourceIdentity` links projected documents, sheets, slides, tables, images, and text to native IWA records. `SourceUnits` and `SourceUnitCounts` retain per-object outcomes and per-kind counts independently of payload preservation. They cover identified units selected by the semantic projection, excluding inactive templates, auxiliary table models/tiles, unknown types, and unresolved references. Text storages are deduplicated. Explicit selected-object omissions are distinguished from reconstructed objects; visual fallback leaves individual unit coverage unassessed. These counts do not establish field-level completeness or visual equivalence.
+
 `AllowPartialEditableReconstruction` defaults to `false`. Enabling it retains recovered editable objects when supported source or destination details are incomplete. Source byte/materialization limits and destination bounds remain enforced. The report exposes `IsPartialEditableReconstruction`; `RequireCompleteEditableReconstruction()` rejects explicitly partial output. Pages can approximate positioned tables as flowing tables and round finite measurements to DOCX units under this policy. Keynote can retain slides while diagnosing paragraph pagination flags that PowerPoint cannot represent.
 
 Numbers `NormalizeWorksheetNames` defaults to `false`. Enabling it uses the Excel owner's collision-safe normalization. `NumbersToExcelResult.WorksheetMappings` preserves source sheet/table ordinals and names beside destination names. Renames are typed approximations and do not add cross-table formula support.

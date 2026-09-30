@@ -2343,4 +2343,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.Mode.Auto" xml:space="preserve"><value>Editable content with preview fallback</value></data>
   <data name="Conversion.Mode.EditableOnly" xml:space="preserve"><value>Editable content only</value></data>
   <data name="Conversion.Mode.VisualOnly" xml:space="preserve"><value>Embedded visual preview</value></data>
+  <data name="Conversion.IWork.SourceUnitCounts" xml:space="preserve"><value>{0} identified source units · {1} reconstructed · {2} omitted · {3} unassessed</value></data>
 </root>

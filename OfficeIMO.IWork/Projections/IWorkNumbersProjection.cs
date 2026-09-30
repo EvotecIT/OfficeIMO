@@ -5,13 +5,16 @@ using System.Numerics;
 namespace OfficeIMO.IWork;
 
 /// <summary>Read-only Numbers structure recovered from a shared IWA object graph.</summary>
-public sealed class IWorkNumbersProjection {
+public sealed partial class IWorkNumbersProjection {
     private readonly IWorkSourceDocument _source;
     private readonly bool _supportsEditableReconstruction;
 
     internal IWorkNumbersProjection(IWorkSourceDocument source, IReadOnlyList<IWorkNumbersSheet> sheets,
-        IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction) {
+        IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
+        IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null) {
         _source = source;
+        SourceIdentity = sourceIdentity;
+        OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         Sheets = Array.AsReadOnly(sheets.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
@@ -19,6 +22,9 @@ public sealed class IWorkNumbersProjection {
 
     /// <summary>Gets sheets in source order.</summary>
     public IReadOnlyList<IWorkNumbersSheet> Sheets { get; }
+    /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
+    public IWorkObjectIdentity? SourceIdentity { get; }
+    private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
     /// <summary>Gets whether at least one editable sheet was recovered and its required semantic references were resolved.</summary>
@@ -39,7 +45,7 @@ public sealed class IWorkNumbersProjection {
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
-                    + sheet.Tables.Sum(table => table.Cells.Count)));
+                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits());
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
@@ -81,6 +87,7 @@ internal static class IWorkNumbersReader {
     internal static IWorkNumbersProjection Read(IWorkSourceDocument source) {
         var diagnostics = new List<IWorkDiagnostic>();
         var sheets = new List<IWorkNumbersSheet>();
+        var omittedUnits = new List<IWorkObjectIdentity>();
         IWorkObjectIndex index = source.Index;
         IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
         if (document == null) {
@@ -107,7 +114,7 @@ internal static class IWorkNumbersReader {
                 "The Numbers document root is malformed; editable reconstruction is unavailable.",
                 document.EntryPath, document.Identifier));
             return new IWorkNumbersProjection(source, sheets, diagnostics,
-                supportsEditableReconstruction: false);
+                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document));
         }
         if (declaredSheetCount > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
@@ -156,6 +163,7 @@ internal static class IWorkNumbersReader {
                     "IWORK_NUMBERS_SHEET_MALFORMED",
                     "A Numbers sheet is malformed; editable reconstruction is incomplete.",
                     sheetRecord.EntryPath, sheetRecord.Identifier));
+                omittedUnits.Add(new IWorkObjectIdentity(sheetRecord));
                 continue;
             }
             IWorkWireMessage sheetMessage = index.Message(sheetRecord);
@@ -190,7 +198,7 @@ internal static class IWorkNumbersReader {
                     if (table != null) {
                         tables.Add(table);
                         orderedDrawables.Add(new IWorkNumbersDrawable(table));
-                    }
+                    } else omittedUnits.Add(new IWorkObjectIdentity(drawable));
                 } else if (drawable.MessageType == TextShapeArchive) {
                     IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                         out bool drawableComplete);
@@ -251,8 +259,8 @@ internal static class IWorkNumbersReader {
                         if (text.Length > 0) {
                             projectionBudget.AddTextItem();
                             textBoxes.Add(text);
-                            orderedDrawables.Add(new IWorkNumbersDrawable(text));
-                        }
+                            orderedDrawables.Add(new IWorkNumbersDrawable(text, new IWorkObjectIdentity(storage)));
+                        } else if (!textComplete) omittedUnits.Add(new IWorkObjectIdentity(storage));
                     } else {
                         supportsEditableReconstruction = false;
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -261,6 +269,7 @@ internal static class IWorkNumbersReader {
                             drawable.EntryPath, drawable.Identifier));
                     }
                 } else {
+                    omittedUnits.Add(new IWorkObjectIdentity(drawable));
                     supportsEditableReconstruction = false;
                     if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_DRAWABLE_UNSUPPORTED")) {
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -276,7 +285,7 @@ internal static class IWorkNumbersReader {
             }
             if (sheetName != null) projectionBudget.AddTextCharacters(sheetName.Length);
             sheets.Add(new IWorkNumbersSheet(sheetName ?? string.Empty, tables, textBoxes,
-                orderedDrawables));
+                orderedDrawables, new IWorkObjectIdentity(sheetRecord)));
         }
         if (sheets.Count == 0) {
             supportsEditableReconstruction = false;
@@ -287,7 +296,8 @@ internal static class IWorkNumbersReader {
                     document.EntryPath, document.Identifier));
             }
         }
-        return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction);
+        return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction,
+            new IWorkObjectIdentity(document), omittedUnits);
     }
 
     internal static IWorkTable? ReadTableInfo(IWorkSourceDocument source, IWorkArchiveRecord tableRecord,
@@ -398,7 +408,7 @@ internal static class IWorkNumbersReader {
         }
         return ReadTable(source, source.Index, model, modelMessage, geometry, projectionBudget,
             diagnostics, accessibilityDescription, ref materializedCellCount,
-            ref supportsEditableReconstruction);
+            ref supportsEditableReconstruction, new IWorkObjectIdentity(tableRecord));
     }
 
     private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
@@ -406,7 +416,7 @@ internal static class IWorkNumbersReader {
         IWorkProjectionBudget projectionBudget,
         List<IWorkDiagnostic> diagnostics,
         string? accessibilityDescription,
-        ref int materializedCellCount, ref bool supportsEditableReconstruction) {
+        ref int materializedCellCount, ref bool supportsEditableReconstruction, IWorkObjectIdentity sourceIdentity) {
         if (HasUnsupportedTableScalarEncoding(message)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -449,6 +459,7 @@ internal static class IWorkNumbersReader {
             source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
             model, diagnostics, ref supportsEditableReconstruction);
         var cells = new List<IWorkTableCell>();
+        var omittedTextUnits = new List<IWorkObjectIdentity>();
         var coordinates = new HashSet<long>();
         var formulaRichStringIdentifiers = new HashSet<uint>();
         var nonFormulaRichStringIdentifiers = new HashSet<uint>();
@@ -463,7 +474,8 @@ internal static class IWorkNumbersReader {
             out bool stringStorageComplete);
         IReadOnlyDictionary<uint, IWorkTextContent> richStrings = IWorkTableRichTextReader.Read(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
-            out bool richStringStorageComplete, out bool richStringCatalogStructureComplete);
+            out bool richStringStorageComplete, out bool richStringCatalogStructureComplete,
+            out IReadOnlyDictionary<uint, IWorkObjectIdentity> omittedRichStrings);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
@@ -707,6 +719,11 @@ internal static class IWorkNumbersReader {
             }
         }
 
+        foreach (var entry in omittedRichStrings) {
+            if (formulaRichStringIdentifiers.Contains(entry.Key) || nonFormulaRichStringIdentifiers.Contains(entry.Key))
+                omittedTextUnits.Add(entry.Value);
+        }
+
         bool blockingRichText = !richStringCatalogStructureComplete || richStrings.Any(entry =>
             !entry.Value.IsTextComplete
             && nonFormulaRichStringIdentifiers.Contains(entry.Key));
@@ -764,7 +781,7 @@ internal static class IWorkNumbersReader {
 
         IWorkTable CreateTable() => new(name, rows, columns, cells,
             headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
-            mergedRanges, geometry, accessibilityDescription);
+            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits);
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

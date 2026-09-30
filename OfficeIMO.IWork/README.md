@@ -33,6 +33,9 @@ IWorkConversionReport report = pages.CreateConversionReport(
 foreach (IWorkArchiveRecord record in report.PreservedRecords) {
     Console.WriteLine($"{record.EntryPath}: {record.MessageType}");
 }
+foreach (IWorkSourceUnitCount count in report.SourceUnitCounts) {
+    Console.WriteLine($"{count.Kind}: {count.ReconstructedCount} reconstructed, {count.OmittedCount} omitted, {count.UnassessedCount} unassessed");
+}
 ```
 
 Path and stream entry points use the same bounded parser. Stream and byte-array overloads detect the application kind from bounded package content. Pass an expected `IWorkDocumentKind` when the caller already knows the route and wants a mismatch rejected:
@@ -95,6 +98,8 @@ All conversion modes use the same bounded semantic source read, so package and p
 A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
 ## Preservation and authoring boundary
+
+Projected documents, sheets, slides, tables, images, and text expose `SourceIdentity` with the native IWA identifier, message type, entry path, and payload position. Adapter reports retain these identities in `SourceUnits` and summarize them by kind in `SourceUnitCounts`, even when source payload preservation is disabled. The inventory counts identified units selected by the semantic projection: text storages are counted once, table models and tiles are excluded, and inactive template records are excluded. Explicitly dropped selected units are reported as omitted; a preview leaves individual unit coverage unassessed. Unknown object types and unresolved references are outside this inventory. A reconstructed unit can still contain omitted, approximated, or unassessed fields.
 
 Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports expose source payloads through `PreservedRecords` when `PreserveSourceRecords` is enabled. `PreservedRecordCount` counts source payloads regardless of that detail setting. `UnassessedRecordCount` includes consumed and auxiliary records whose field-level fidelity has not been assessed; it is not an omission count. `IWORK_RECORD_FIDELITY_UNASSESSED` uses `OfficeConversionLossKind.Unassessed`, so strict no-loss policies reject it without claiming those records are missing content. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
 

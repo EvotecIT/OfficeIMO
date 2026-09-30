@@ -40,7 +40,13 @@ public sealed partial class ConversionJobViewModel {
             string counts = _localizer.FormatOrDefault("Conversion.IWork.ReconstructionCounts",
                 "{0} reconstructed items · {1} records without a field-level fidelity assessment",
                 facts.GetValueOrDefault("reconstructedItemCount") ?? "?", facts.GetValueOrDefault("unassessedRecordCount") ?? "?");
-            return string.Join(Environment.NewLine, new[] { projection, coverage, partial, counts }.Where(text => text.Length > 0));
+            string sourceUnits = facts.ContainsKey("sourceUnitCount")
+                ? _localizer.FormatOrDefault("Conversion.IWork.SourceUnitCounts",
+                    "{0} identified source units · {1} reconstructed · {2} omitted · {3} unassessed",
+                    facts.GetValueOrDefault("sourceUnitCount") ?? "?", facts.GetValueOrDefault("reconstructedSourceUnitCount") ?? "?",
+                    facts.GetValueOrDefault("omittedSourceUnitCount") ?? "?", facts.GetValueOrDefault("unassessedSourceUnitCount") ?? "?")
+                : string.Empty;
+            return string.Join(Environment.NewLine, new[] { projection, coverage, partial, sourceUnits, counts }.Where(text => text.Length > 0));
         }
     }
 

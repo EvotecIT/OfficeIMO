@@ -75,7 +75,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I1: conversion safety and fidelity
 
-- [ ] Preserve source-unit counts and object identities in conversion reports, including recovered versus omitted document, sheet, slide, table, text, and image content. Apply complete visual-coverage acceptance in shared document workflows.
+- [ ] Extend the [identified source-unit inventory](officeimo.iwork-support-matrix.md#conversion-acceptance-and-fidelity) to unresolved references and unsupported object kinds, with bounded accounting for declared content that cannot yet be identified. Deepen per-object destination outcomes without treating inactive templates or auxiliary records as omitted content.
 - [ ] Deepen field-level fidelity assessment beyond conservative unassessed source-record accounting. Expose formula/cache completeness and per-object omitted or approximated features with accurate fidelity categories.
 
 ### I2: independent Apple qualification

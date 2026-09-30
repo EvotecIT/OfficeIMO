@@ -5,7 +5,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     internal IWorkConversionReport(IWorkDocumentKind sourceKind, IWorkProjectionKind projectionKind,
         IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> preservedRecords,
         IReadOnlyList<IWorkDiagnostic> diagnostics, IWorkPreviewAsset? visualPreview,
-        int totalRecordCount, int preservedRecordCount, int reconstructedItemCount) {
+        int totalRecordCount, int preservedRecordCount, int reconstructedItemCount,
+        IReadOnlyList<IWorkSourceUnit>? sourceUnits = null) {
         SourceKind = sourceKind;
         ProjectionKind = projectionKind;
         BuildVersions = Array.AsReadOnly(buildVersions.ToArray());
@@ -15,6 +16,9 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         TotalRecordCount = totalRecordCount;
         PreservedRecordCount = preservedRecordCount;
         ReconstructedItemCount = reconstructedItemCount;
+        SourceUnits = Array.AsReadOnly((sourceUnits ?? Array.Empty<IWorkSourceUnit>()).ToArray());
+        SourceUnitCounts = Array.AsReadOnly(((IWorkSourceUnitKind[])Enum.GetValues(typeof(IWorkSourceUnitKind)))
+            .Select(kind => new IWorkSourceUnitCount(kind, SourceUnits)).ToArray());
         var fidelityDiagnostics = new List<global::OfficeIMO.OfficeConversionFidelityDiagnostic>();
         foreach (IWorkDiagnostic diagnostic in Diagnostics) {
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
@@ -65,6 +69,10 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public int UnassessedRecordCount => TotalRecordCount;
     /// <summary>Gets the number of semantic paragraphs, cells, slides, or other items reconstructed by the adapter.</summary>
     public int ReconstructedItemCount { get; }
+    /// <summary>Gets identified primary document, sheet, slide, table-info, text-storage, and image records selected by the semantic projection, with known destination outcomes. Inactive records, unknown types, and unresolved references are excluded; this is not a complete content inventory.</summary>
+    public IReadOnlyList<IWorkSourceUnit> SourceUnits { get; }
+    /// <summary>Gets per-kind counts of identified selected source units. Reconstructed units can still contain omitted, approximated, or unassessed fields; visual fallback does not establish individual unit coverage.</summary>
+    public IReadOnlyList<IWorkSourceUnitCount> SourceUnitCounts { get; }
     /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
     public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None);

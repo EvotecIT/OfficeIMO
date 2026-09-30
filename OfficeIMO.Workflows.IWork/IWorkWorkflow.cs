@@ -62,6 +62,10 @@ public static class IWorkWorkflow {
             ["totalRecordCount"] = report.TotalRecordCount.ToString(CultureInfo.InvariantCulture),
             ["unassessedRecordCount"] = report.UnassessedRecordCount.ToString(CultureInfo.InvariantCulture),
             ["reconstructedItemCount"] = report.ReconstructedItemCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceUnitCount"] = report.SourceUnits.Count.ToString(CultureInfo.InvariantCulture),
+            ["reconstructedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.ReconstructedCount).ToString(CultureInfo.InvariantCulture),
+            ["omittedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.OmittedCount).ToString(CultureInfo.InvariantCulture),
+            ["unassessedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.UnassessedCount).ToString(CultureInfo.InvariantCulture),
             ["partialEditableReconstruction"] = report.IsPartialEditableReconstruction.ToString(),
             ["visualCoverage"] = report.VisualPreview?.Coverage.ToString() ?? "NotApplicable"
         });

@@ -15,7 +15,16 @@ internal static class IWorkTableRichTextReader {
     internal static IReadOnlyDictionary<uint, IWorkTextContent> Read(IWorkObjectIndex index,
         IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
         IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed,
-        out bool catalogStructureComplete) {
+        out bool catalogStructureComplete) =>
+        Read(index, store, projectionBudget, options, maximumEntries,
+            out fullyReconstructed, out catalogStructureComplete, out _);
+
+    internal static IReadOnlyDictionary<uint, IWorkTextContent> Read(IWorkObjectIndex index,
+        IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
+        IWorkReadOptions options, int maximumEntries, out bool fullyReconstructed,
+        out bool catalogStructureComplete, out IReadOnlyDictionary<uint, IWorkObjectIdentity> omittedStorages) {
+        var omitted = new Dictionary<uint, IWorkObjectIdentity>();
+        omittedStorages = omitted;
         var strings = new Dictionary<uint, IWorkTextContent>();
         var seenIdentifiers = new HashSet<uint>();
         var recordMessages = new Dictionary<ulong, IWorkWireMessage?>();
@@ -54,6 +63,7 @@ internal static class IWorkTableRichTextReader {
             uint normalizedKey = (uint)key.Value;
             if (!seenIdentifiers.Add(normalizedKey)) {
                 strings.Remove(normalizedKey);
+                omitted.Remove(normalizedKey);
                 fullyReconstructed = false;
                 catalogStructureComplete = false;
                 continue;
@@ -85,11 +95,15 @@ internal static class IWorkTableRichTextReader {
                 storageContents.Add(storage.Identifier, content);
             }
             if (content == null) {
+                omitted.Add(normalizedKey, new IWorkObjectIdentity(storage));
                 fullyReconstructed = false;
                 continue;
             }
             if (!content.IsTextComplete) fullyReconstructed = false;
-            if (!content.IsTextComplete && content.PlainText.Length == 0) continue;
+            if (!content.IsTextComplete && content.PlainText.Length == 0) {
+                omitted.Add(normalizedKey, new IWorkObjectIdentity(storage));
+                continue;
+            }
             strings.Add(normalizedKey, content);
         }
         return strings;

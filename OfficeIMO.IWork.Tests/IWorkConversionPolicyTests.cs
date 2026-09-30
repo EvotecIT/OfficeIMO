@@ -35,6 +35,11 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(diagnostic => diagnostic.ToString())));
         Assert.Equal(3, result.Value.Tables.Count);
         Assert.Single(result.Value.Images);
+        Assert.Equal(3, Assert.Single(result.Report.SourceUnitCounts, count => count.Kind == IWorkSourceUnitKind.Table).ReconstructedCount);
+        Assert.Equal(1, Assert.Single(result.Report.SourceUnitCounts, count => count.Kind == IWorkSourceUnitKind.Image).ReconstructedCount);
+        IWorkObjectIdentity imageIdentity = Assert.Single(result.Projection.Images).SourceIdentity!;
+        Assert.Contains(result.Report.SourceUnits, unit => unit.Identity.RecordIdentifier == imageIdentity.RecordIdentifier
+            && unit.Kind == IWorkSourceUnitKind.Image && unit.Disposition == IWorkSourceUnitDisposition.Reconstructed);
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Contains(result.Value.Paragraphs, paragraph => paragraph.Text.Length > 0);
         using var saved = new MemoryStream();

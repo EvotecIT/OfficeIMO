@@ -176,7 +176,7 @@ public static partial class WordIWorkConverter {
             cancellationToken.ThrowIfCancellationRequested();
             return new PagesToWordResult(document, source, projection,
                 projection.CreateConversionReport(kind, preview, destinationDiagnostics,
-                    settings.AllowPartialEditableReconstruction));
+                    settings.AllowPartialEditableReconstruction, reconstructedSectionCount));
         } catch {
             document.Dispose();
             throw;

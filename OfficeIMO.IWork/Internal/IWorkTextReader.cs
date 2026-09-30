@@ -71,7 +71,8 @@ internal static class IWorkTextReader {
                 listLevel, listLabel, paragraph.BreakKind));
         }
         return new IWorkTextContent(paragraphs, complete && textComplete, textComplete,
-            hasInvalidSourceText, hasUnresolvedInlineObjects, isFormattingComplete: complete);
+            hasInvalidSourceText, hasUnresolvedInlineObjects, isFormattingComplete: complete,
+            sourceIdentity: new IWorkObjectIdentity(storage));
     }
 
     /// <summary>Reads table-cell text without traversing formatting references.</summary>

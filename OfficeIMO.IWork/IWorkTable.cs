@@ -90,7 +90,8 @@ public sealed class IWorkTable {
         IReadOnlyList<IWorkTableCell> cells, int headerRowCount = 0, int headerColumnCount = 0,
         int footerRowCount = 0, double? defaultRowHeight = null, double? defaultColumnWidth = null,
         IReadOnlyList<IWorkTableMergeRange>? mergedRanges = null, IWorkGeometry? geometry = null,
-        string? accessibilityDescription = null) {
+        string? accessibilityDescription = null, IWorkObjectIdentity? sourceIdentity = null,
+        IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null) {
         Name = name;
         RowCount = rowCount;
         ColumnCount = columnCount;
@@ -102,6 +103,8 @@ public sealed class IWorkTable {
         MergedRanges = Array.AsReadOnly((mergedRanges ?? Array.Empty<IWorkTableMergeRange>()).ToArray());
         Geometry = geometry;
         AccessibilityDescription = accessibilityDescription;
+        SourceIdentity = sourceIdentity;
+        OmittedTextUnits = Array.AsReadOnly((omittedTextUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         _cells = new Dictionary<long, IWorkTableCell>();
         foreach (IWorkTableCell cell in cells) _cells[Key(cell.Row, cell.Column)] = cell;
         Cells = Array.AsReadOnly(_cells.Values.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray());
@@ -109,6 +112,9 @@ public sealed class IWorkTable {
 
     /// <summary>Gets the source table name.</summary>
     public string Name { get; }
+    /// <summary>Gets the native table-info identity, excluding auxiliary model and tile records.</summary>
+    public IWorkObjectIdentity? SourceIdentity { get; }
+    internal IReadOnlyList<IWorkObjectIdentity> OmittedTextUnits { get; }
     /// <summary>Gets the declared row count without allocating an equivalent dense grid.</summary>
     public int RowCount { get; }
     /// <summary>Gets the declared column count without allocating an equivalent dense grid.</summary>

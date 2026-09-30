@@ -177,17 +177,21 @@ public sealed class IWorkTextParagraph {
 public sealed class IWorkTextContent {
     internal IWorkTextContent(IReadOnlyList<IWorkTextParagraph> paragraphs,
         bool isComplete, bool isTextComplete, bool hasInvalidSourceText = false,
-        bool hasUnresolvedInlineObjects = false, bool? isFormattingComplete = null) {
+        bool hasUnresolvedInlineObjects = false, bool? isFormattingComplete = null,
+        IWorkObjectIdentity? sourceIdentity = null) {
         Paragraphs = Array.AsReadOnly(paragraphs.ToArray());
         IsComplete = isComplete;
         IsTextComplete = isTextComplete;
         HasInvalidSourceText = hasInvalidSourceText;
         HasUnresolvedInlineObjects = hasUnresolvedInlineObjects;
         IsFormattingComplete = isFormattingComplete ?? isComplete;
+        SourceIdentity = sourceIdentity;
     }
 
     /// <summary>Gets paragraphs, including meaningful empty paragraphs.</summary>
     public IReadOnlyList<IWorkTextParagraph> Paragraphs { get; }
+    /// <summary>Gets the native text-storage identity when the content was read from a source record.</summary>
+    public IWorkObjectIdentity? SourceIdentity { get; }
     /// <summary>Gets whether text and all referenced style records were decoded.</summary>
     public bool IsComplete { get; }
     /// <summary>Gets whether all source text was decoded independently of its formatting.</summary>

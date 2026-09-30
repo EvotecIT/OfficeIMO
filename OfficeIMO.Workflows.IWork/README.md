@@ -35,3 +35,5 @@ OfficeWorkflowResult preview = await runner.RunAsync(request);
 ```
 
 Routes accept local ZIP files, local directory packages, and provider ZIP streams. Directory capture uses the bounded iWork container owner, including nested `Index.zip` packages. Output cannot be placed inside a source package or alias one of its members. Native permission-scoped directory-package intake remains outside this local-filesystem contract. See the [iWork support matrix](../Docs/officeimo.iwork-support-matrix.md) for format limits and the [workflow guide](../OfficeIMO.Workflows/README.md) for publication and provider contracts.
+
+Retained evidence includes identified source-unit totals and reconstructed, omitted, and unassessed counts. These totals describe units selected by the semantic projection, excluding inactive templates, auxiliary table models/tiles, unknown object types, and unresolved references. A visual preview does not establish individual object coverage. Full per-kind counts and native object identities are available on the owning adapter's `IWorkConversionReport`.

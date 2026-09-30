@@ -23,6 +23,12 @@ public sealed class IWorkWorkflowTests {
         Assert.Equal(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(files.Input))), snapshot.Details["sha256"], ignoreCase: true);
         OfficeWorkflowConversionEvidence evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
         Assert.Equal("EditableReconstruction", evidence.Facts["projectionKind"]);
+        int unitCount = int.Parse(evidence.Facts["sourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        int reconstructed = int.Parse(evidence.Facts["reconstructedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        int omitted = int.Parse(evidence.Facts["omittedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        int unassessed = int.Parse(evidence.Facts["unassessedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
+        Assert.True(reconstructed > 0);
+        Assert.Equal(unitCount, reconstructed + omitted + unassessed);
         Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
         Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);

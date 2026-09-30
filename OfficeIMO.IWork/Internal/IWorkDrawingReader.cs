@@ -197,7 +197,7 @@ internal static class IWorkDrawingReader {
         }
         return new IWorkImageAsset(data.PreferredFileName, entry.Path, mediaType, entry.Bytes,
             pixelWidth, pixelHeight, geometry, hasMask,
-            hyperlink, accessibilityDescription);
+            hyperlink, accessibilityDescription, new IWorkObjectIdentity(record));
     }
 
     internal static bool IsEditableOwnerImageMediaType(string mediaType) =>

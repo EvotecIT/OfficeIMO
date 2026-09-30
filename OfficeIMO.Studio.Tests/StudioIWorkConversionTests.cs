@@ -92,6 +92,11 @@ public sealed class StudioIWorkConversionTests {
                 Assert.True(view.FindControl<StackPanel>("ConversionEvidencePanel")!.IsEffectivelyVisible);
                 Assert.Equal(job.SourceFingerprint, view.FindControl<TextBox>("SourceFingerprintText")!.Text);
                 Assert.Contains("incomplete", job.ConversionEvidenceSummary, StringComparison.OrdinalIgnoreCase);
+                var facts = job.ConversionEvidence.Facts;
+                Assert.Equal("0", facts["reconstructedSourceUnitCount"]);
+                Assert.Equal(facts["sourceUnitCount"], facts["unassessedSourceUnitCount"]);
+                Assert.Contains($"{facts["sourceUnitCount"]} identified source units", job.ConversionEvidenceSummary);
+                Assert.Contains($"{facts["unassessedSourceUnitCount"]} unassessed", job.ConversionEvidenceSummary);
                 await queue.PreviewOutputCommand.ExecuteAsync(null);
                 Assert.NotEmpty(queue.OutputPreviewPages);
                 Assert.Contains("saved artifact", queue.OutputPreviewStatus, StringComparison.OrdinalIgnoreCase);
