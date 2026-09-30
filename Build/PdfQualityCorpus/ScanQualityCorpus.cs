@@ -16,6 +16,13 @@ internal static class ScanQualityCorpus {
         string root = Path.GetFullPath(args[1]), output = Path.GetFullPath(args[2]);
         Directory.CreateDirectory(output);
         using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+        byte[] sourceManifest = await File.ReadAllBytesAsync(Path.Combine(root, "sources.json"), deadline.Token);
+        using (JsonDocument sources = JsonDocument.Parse(sourceManifest)) {
+            foreach (JsonElement fixture in sources.RootElement.GetProperty("fixtures").EnumerateArray()) {
+                await VerifySourceAsync(fixture.GetProperty("image").GetString()!, fixture.GetProperty("imageSha256").GetString()!);
+                await VerifySourceAsync(fixture.GetProperty("truth").GetString()!, fixture.GetProperty("truthSha256").GetString()!);
+            }
+        }
         var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
             Dpi = 300, Language = "eng", PageSegmentationMode = 3, Timeout = TimeSpan.FromSeconds(30),
             TemporaryDirectory = Path.Combine(output, "temporary")
@@ -37,6 +44,7 @@ internal static class ScanQualityCorpus {
             }
         }
         var report = new { Provider = engine.Id, ProviderVersion = await engine.GetVersionAsync(deadline.Token),
+            SourceManifestSha256 = Convert.ToHexString(SHA256.HashData(sourceManifest)),
             Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
             OperatingSystem = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
             Language = "eng", Dpi = 300, MinimumOrientationConfidence = 0.75,
@@ -46,6 +54,14 @@ internal static class ScanQualityCorpus {
         await File.WriteAllTextAsync(Path.Combine(output, "scan-quality.json"), JsonSerializer.Serialize(report,
             new JsonSerializerOptions { WriteIndented = true }), deadline.Token);
         return cases.All(c => c.Before.OriginalAppearancePreserved && c.After.OriginalAppearancePreserved) ? 0 : 1;
+
+        async Task VerifySourceAsync(string file, string expectedHash) {
+            if (Path.GetFileName(file) != file || string.IsNullOrWhiteSpace(file))
+                throw new InvalidDataException("Scan source paths must be file names within the fixture directory.");
+            byte[] bytes = await File.ReadAllBytesAsync(Path.Combine(root, file), deadline.Token);
+            if (!Convert.ToHexString(SHA256.HashData(bytes)).Equals(expectedHash, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("Scan source digest mismatch: " + file);
+        }
     }
 
     private static async Task<ScanRun> RunCaseAsync(IOcrEngine engine, byte[] input, string truth, string output,

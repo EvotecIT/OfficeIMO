@@ -4,4 +4,3 @@ internal sealed record EvaluationCase(string Id, string Extension, byte[] Source
     string Expected, EvaluationGold Gold) {
     public string Split { get; init; } = "development";
 }
-
