@@ -20,7 +20,9 @@ public enum Fa3InvoiceKind {
 
 /// <summary>A national VAT bucket. The field suffix identifies the legal bucket, not an inferred EN VAT rate.</summary>
 public sealed class Fa3TaxSummary {
-    internal Fa3TaxSummary(string suffix, decimal basis, decimal? tax, decimal? taxInPln) {
+    /// <summary>Creates an explicit national declaration. Authoring validates the field suffix, monetary precision and currency context.</summary>
+    public Fa3TaxSummary(string suffix, decimal basis, decimal? tax = null, decimal? taxInPln = null) {
+        if (suffix == null) throw new ArgumentNullException(nameof(suffix));
         FieldSuffix = suffix; TaxableAmount = basis; TaxAmount = tax; TaxAmountInPln = taxInPln;
     }
     /// <summary>Suffix of P_13, such as 1, 6_2 or 11.</summary>

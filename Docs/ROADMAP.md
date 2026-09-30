@@ -245,7 +245,8 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ## Electronic invoices
 
-- [ ] Implement Polish KSeF FA(3) mapping, official schema validation and independent-producer fixtures, with explicit unsupported-field reports. Keep authentication, submission, status and receipt retrieval in a separate integration owner and qualify its state, cryptography, cancellation and mutation-ambiguity contracts against the official test environment.
+- [ ] Extend native FA(3) authoring beyond its [bounded creation and reading contracts](../OfficeIMO.Invoicing/README.md#create-polish-fa3): before/after correction rows, additional parties and JST/GV roles, new means of transport, partial-payment histories, settlement charges, national item classifications and attachments. Qualify each additional mapping against the pinned schema and independent authority examples; retain explicit reports for unsupported fields.
+- [ ] Implement Polish KSeF authentication, online submission, asynchronous status and UPO retrieval in a separate integration owner. Qualify state, cryptography, cancellation and mutation-ambiguity contracts with a credential-free harness and the official test environment; keep authenticated acceptance distinct from native FA(3) schema validation.
 - [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
 
 ## Google Workspace

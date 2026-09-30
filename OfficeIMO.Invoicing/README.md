@@ -119,6 +119,87 @@ EXTENDED-CTC-FR remains recognizable for inspection but cannot be selected for
 authoring or validation. Peppol BIS is a cross-border network usage specification,
 not a substitute for a national CIUS contract.
 
+## Create Polish FA(3)
+
+`Fa3InvoiceWriter` uses the shared `Invoice` model with explicit national options.
+FA(3) is a separate format contract rather than another EN profile.
+
+```csharp
+var polish = new Invoice {
+    Number = "FA-2026-001", IssueDate = new DateTime(2026, 9, 30), Currency = "PLN",
+    Seller = new InvoiceParty {
+        Name = "Example Seller",
+        Address = new InvoiceAddress {
+            CountryCode = "PL", Line1 = "Example Street 1", Line2 = "00-001 Warszawa"
+        }
+    },
+    Buyer = new InvoiceParty {
+        Name = "Example Buyer",
+        Address = new InvoiceAddress {
+            CountryCode = "PL", Line1 = "Example Street 2", Line2 = "00-001 Warszawa"
+        }
+    }
+};
+// Fictional example identities; supply the issuer's actual identifiers.
+polish.Seller.TaxRegistrations.Add(
+    new InvoiceTaxRegistration("9999999999", "NIP", InvoiceTaxRegistrationKind.Fiscal));
+polish.Buyer.TaxRegistrations.Add(
+    new InvoiceTaxRegistration("1111111111", "NIP", InvoiceTaxRegistrationKind.Fiscal));
+polish.Lines.Add(new InvoiceLine {
+    Id = "1", Name = "Consulting", Quantity = 1, UnitPrice = 100, UnitCode = "HUR",
+    Tax = new InvoiceTaxCategory { Code = "S", Rate = 23 }
+});
+var national = new Fa3InvoiceWriteOptions(
+    Fa3InvoiceKind.TaxInvoice,
+    new DateTimeOffset(2026, 9, 30, 12, 0, 0, TimeSpan.Zero),
+    new Fa3InvoiceAnnotations());
+var findings = Fa3InvoiceWriter.Inspect(polish, national);
+byte[] fa3Xml = Fa3InvoiceWriter.Write(polish, national);
+```
+
+Creation time and annotations are issuer declarations. The annotations cover
+cash accounting, self-billing, reverse charge, split payment, triangular
+transactions, an explicit exemption legal basis and margin procedures. This
+authoring contract declares ordinary buyer JST/GV roles and no new means of
+transport. It does not infer those choices from names or item descriptions.
+
+| National kind | Authoring contract |
+| --- | --- |
+| VAT | Ordinary PLN amounts use the shared calculator. Foreign currency or margin procedures require explicit national amounts. |
+| KOR | Common type 384, preceding invoice number and date, optional actual KSeF identifier, correction reason/timing and explicit signed national amounts. Rows express differences; previous-state row authoring is outside this contract. |
+| ZAL | Explicit national advance amounts and full order rows whose gross calculation agrees with the order total. |
+| KOR_ZAL | Explicit signed national amounts, preceding invoice reference, and `Fa3Order.CorrectionDifferences(originalTotal, revisedTotal, differences, differenceTaxAmounts)`. Signed row amounts and explicit P_11VatZ declarations in row order reconcile the order totals. P_15ZK is optional. An unchanged order requires before/after rows and is rejected by this contract. |
+| ROZ / KOR_ROZ | Settlement or settlement-correction kind, explicit national settlement amounts and previous advance references. Corrections also identify the preceding invoice and may provide P_15ZK. |
+| UPR | Explicit national amounts; omitted simplified buyer name and invoice lines are supported. |
+
+Use `Fa3FiscalAmounts` and `Fa3TaxSummary` for national P_15 and P_13/P_14
+declarations. They are not relabeled EN payable totals. Foreign-currency taxable
+buckets require explicit PLN tax amounts; an exchange rate is never guessed.
+Ordinary PLN invoices derive their amounts from the shared calculator and reject
+`FiscalAmounts` overrides. Dates, country and currency codes, NIP and contact
+fields are checked against the pinned schema restrictions. A NIP pattern check
+does not establish tax registration.
+Negative line formulas that require rounding need an explicit
+`DeclaredNetAmount`. EN negative-half rounding does not become a Polish fiscal
+calculation rule. EN prepayments, payable rounding and aggregate declarations
+must not be passed as substitutes for national payment or settlement records.
+
+Invoice and order rows reuse `InvoiceLine`. Row identifiers are distinct positive
+integers, prices apply to one unit, and unsupported adjustments or item metadata
+block output. Known unit codes map to national labels; `UnitLabels` supplies
+literal labels for other codes. `LineTaxLabels` distinguishes national `np I`
+and `np II` when the common category is `O`. An override must agree with the
+common category and rate. The supported payment forms are cash, card, cheque and
+generic transfer; a SEPA-specific code is reported rather than reduced silently.
+
+`Inspect` reports each unsupported populated field. `Write` blocks when a finding
+is an error and bounds output to 16 MiB. The qualified XSD cases cover all seven
+kinds, foreign-currency tax, exemption and margin declarations, periods and bank
+payments. Validation establishes structure, not Polish tax treatment or KSeF
+acceptance. Additional parties and JST/GV roles, new means of transport,
+previous-state correction rows, partial-payment histories, settlement charges,
+national item classifications and attachments require additional native mappings.
+
 ## Read Polish FA(3)
 
 `Fa3InvoiceReader` reads the Polish FA(3), schema 1-0E, variant 3 document.
