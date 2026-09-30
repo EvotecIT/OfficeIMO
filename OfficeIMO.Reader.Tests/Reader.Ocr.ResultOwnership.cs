@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Ocr;
 using Xunit;
@@ -36,6 +37,92 @@ public sealed class ReaderOcrResultOwnershipTests {
         Assert.Equal("original", Assert.Single(captured.Spans).Text);
         Assert.Equal(12, captured.Spans[0].Region!.X);
         Assert.Equal("1", Assert.Single(captured.Diagnostics).Attributes["page"]);
+    }
+
+    [Fact]
+    public async Task CaptureReadsOnlyBoundedSpanAndAttributePrefixes() {
+        var spans = new PrefixList<OcrTextSpan>(1_000_000,
+            new[] { new OcrTextSpan { Text = "first" }, new OcrTextSpan { Text = "second" } });
+        var attributes = new PrefixAttributes();
+        var engine = new DelegateOcrEngine("bounded", (_, _) => Task.FromResult(new OcrResult {
+            Spans = spans, Diagnostics = new[] { new OcrDiagnostic { Attributes = attributes } }
+        }));
+        OcrResult captured = await OcrEngineRunner.CreateExecution(engine).RecognizeAsync(
+            new OcrRequest(), TimeSpan.FromSeconds(5), new OcrResultCaptureLimits(2, 1, 2), CancellationToken.None);
+        Assert.Equal(2, captured.Spans.Count);
+        Assert.Equal(999_998, captured.OmittedSpanCount);
+        Assert.Equal(2, captured.Diagnostics[0].Attributes.Count);
+        Assert.Equal(999_998, captured.Diagnostics[0].OmittedAttributeCount);
+    }
+
+    [Fact]
+    public async Task TerminalDiagnosticOutsideRetainedPrefixStillRejectsRecognition() {
+        var engine = new DelegateOcrEngine("terminal", (_, _) => Task.FromResult(new OcrResult {
+            Diagnostics = new[] { new OcrDiagnostic(), new OcrDiagnostic { Severity = OcrDiagnosticSeverity.Error, IsRecoverable = false } }
+        }));
+        var error = await Assert.ThrowsAsync<OcrEngineExecutionException>(() =>
+            OcrEngineRunner.CreateExecution(engine).RecognizeAsync(new OcrRequest(), TimeSpan.FromSeconds(5), new OcrResultCaptureLimits(1, 1, 1), CancellationToken.None));
+        Assert.Equal(OcrEngineFailureKind.NonRecoverableDiagnostic, error.Kind);
+    }
+
+    [Fact]
+    public async Task CancellationStopsRunnerOwnedCopyAndReleasesSharedGate() {
+        using var cancellation = new CancellationTokenSource();
+        int reads = 0;
+        var spans = new CallbackList<OcrTextSpan>(1_000_000, () => {
+            Interlocked.Increment(ref reads); cancellation.Cancel(); return new OcrTextSpan();
+        });
+        int calls = 0;
+        var engine = new DelegateOcrEngine("canceled-copy", (_, _) => Task.FromResult(
+            Interlocked.Increment(ref calls) == 1 ? new OcrResult { Spans = spans } : new OcrResult { Text = "next" }));
+        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            OcrEngineRunner.RecognizeAsync(engine, new OcrRequest(), TimeSpan.FromSeconds(5), cancellation.Token));
+        Assert.Equal(cancellation.Token, error.CancellationToken);
+        OcrResult next = await OcrEngineRunner.RecognizeAsync(engine, new OcrRequest(), TimeSpan.FromSeconds(5));
+        Assert.Equal("next", next.Text);
+        Assert.Equal(1, reads);
+    }
+
+    [Fact]
+    public async Task ProviderCancellationDetailsRemainContentFree() {
+        using var cancellation = new CancellationTokenSource();
+        var engine = new DelegateOcrEngine("canceled-provider", (_, _) => {
+            cancellation.Cancel();
+            throw new OperationCanceledException("FAKE_AUDIT_SENTINEL", new Exception("FAKE_AUDIT_SENTINEL"), cancellation.Token);
+        });
+        var error = await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            OcrEngineRunner.RecognizeAsync(engine, new OcrRequest(), TimeSpan.FromSeconds(5), cancellation.Token));
+        Assert.Equal(cancellation.Token, error.CancellationToken);
+        Assert.Null(error.InnerException);
+        Assert.DoesNotContain("FAKE_AUDIT_SENTINEL", error.ToString());
+    }
+
+    private sealed class PrefixList<T>(int count, T[] prefix) : IReadOnlyList<T> {
+        public int Count => count;
+        public T this[int index] => index < prefix.Length ? prefix[index] : throw new InvalidOperationException("Discarded span was inspected.");
+        public IEnumerator<T> GetEnumerator() => throw new InvalidOperationException("Unbounded enumeration was attempted.");
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    private sealed class CallbackList<T>(int count, Func<T> read) : IReadOnlyList<T> {
+        public int Count => count;
+        public T this[int index] => read();
+        public IEnumerator<T> GetEnumerator() => throw new InvalidOperationException("Unbounded enumeration was attempted.");
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    private sealed class PrefixAttributes : IReadOnlyDictionary<string, string> {
+        public int Count => 1_000_000;
+        public IEnumerable<string> Keys => throw new NotSupportedException();
+        public IEnumerable<string> Values => throw new NotSupportedException();
+        public string this[string key] => throw new NotSupportedException();
+        public bool ContainsKey(string key) => throw new NotSupportedException();
+        public bool TryGetValue(string key, out string value) => throw new NotSupportedException();
+        public IEnumerator<KeyValuePair<string, string>> GetEnumerator() {
+            yield return new("one", "1"); yield return new("two", "2");
+            throw new InvalidOperationException("Discarded attributes were inspected.");
+        }
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 
     private sealed class ThrowingAttributes : IReadOnlyDictionary<string, string> {

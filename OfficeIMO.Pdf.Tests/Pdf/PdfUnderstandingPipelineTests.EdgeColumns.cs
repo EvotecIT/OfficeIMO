@@ -4,6 +4,22 @@ using Xunit;
 namespace OfficeIMO.Tests.Pdf;
 
 public partial class PdfUnderstandingPipelineTests {
+    [Fact]
+    public void RightAlignedLeftColumnContinuationDoesNotBecomeCenteredFooter() {
+        byte[] pdf = PdfDocument.Create().Paragraph(p => p.Text("placeholder")).ToBytes();
+        var options = PdfUnderstandingPipelineOptions.Structured();
+        options.GlyphDecoding = new FixedGlyphStage(new[] {
+            new PdfTextSpan("LeftOne", "F1", 12, 50, 700, 230),
+            new PdfTextSpan("LeftTwo", "F1", 12, 50, 650, 230),
+            new PdfTextSpan("RightOne", "F1", 12, 320, 700, 230),
+            new PdfTextSpan("RightTwo", "F1", 12, 320, 650, 230),
+            new PdfTextSpan("Continuation", "F1", 12, 230, 450, 50)
+        });
+        var page = Assert.Single(Read(pdf, options).Pages).Analysis;
+        Assert.Equal(new[] { "LeftOne", "LeftTwo", "Continuation", "RightOne", "RightTwo" },
+            page.ReadingOrder.Select(static region => region.Text));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

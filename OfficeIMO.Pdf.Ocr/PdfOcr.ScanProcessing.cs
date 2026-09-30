@@ -47,7 +47,7 @@ internal static partial class PdfOcr {
                     Language = request.Language,
                     ProviderOptions = request.ProviderOptions
                 };
-                OcrResult detection = await engine.RecognizeAsync(orientationRequest, options.ProviderTimeout, token).ConfigureAwait(false);
+                OcrResult detection = await engine.RecognizeAsync(orientationRequest, options.ProviderTimeout, new OcrResultCaptureLimits(options.MaxOcrSpansPerPage, options.MaxDiagnosticsPerPage, 0), token).ConfigureAwait(false);
                 // Use the same diagnostic count, length, metadata, and provider-result bounds as recognition.
                 ProjectedOcrResult projected = ProjectResult(detection, request, engine.Id, options, token);
                 prepared.Diagnostics.AddRange(projected.Diagnostics);

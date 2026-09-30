@@ -73,8 +73,8 @@ internal static partial class PdfOcr {
         CancellationToken cancellationToken,
         PreparedPage? prepared = null) {
         IReadOnlyList<OcrDiagnostic> returnedDiagnostics = result.Diagnostics ?? Array.Empty<OcrDiagnostic>();
-        if (returnedDiagnostics.Count > options.MaxDiagnosticsPerPage) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, returnedDiagnostics.Count);
+        if (result.OmittedDiagnosticCount > 0 || returnedDiagnostics.Count > options.MaxDiagnosticsPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxDiagnosticsPerPage, (long)returnedDiagnostics.Count + result.OmittedDiagnosticCount);
         }
         var diagnostics = new List<string>(returnedDiagnostics.Count);
         long returnedDiagnosticCharacters = 0;
@@ -104,8 +104,8 @@ internal static partial class PdfOcr {
         string returnedText = result.Text ?? string.Empty;
         EnsureCharacters(new[] { returnedText }, options.MaxOcrTextCharactersPerPage);
         IReadOnlyList<OcrTextSpan> returnedSpans = result.Spans ?? Array.Empty<OcrTextSpan>();
-        if (returnedSpans.Count > options.MaxOcrSpansPerPage) {
-            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxOcrSpansPerPage, returnedSpans.Count);
+        if (result.OmittedSpanCount > 0 || returnedSpans.Count > options.MaxOcrSpansPerPage) {
+            throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, options.MaxOcrSpansPerPage, (long)returnedSpans.Count + result.OmittedSpanCount);
         }
         OcrTextSpan[] spans = returnedSpans
             .Where(static span => span != null)

@@ -90,7 +90,8 @@ internal static partial class PdfOcr {
                     prepared.RecognitionWidth = request.Region!.Width; prepared.RecognitionHeight = request.Region.Height;
                 }
                 OcrResult recognized = await engine.RecognizeAsync(
-                    request, options.ProviderTimeout, workCancellation.Token).ConfigureAwait(false);
+                    request, options.ProviderTimeout,
+                    new OcrResultCaptureLimits(options.MaxOcrSpansPerPage, options.MaxDiagnosticsPerPage, 0), workCancellation.Token).ConfigureAwait(false);
                 ProjectedOcrResult projected = ProjectResult(recognized, request, engine.Id, options, workCancellation.Token, prepared);
                 if (renderDiagnostics.Count > 0 || prepared.Diagnostics.Count > 0) {
                     var diagnostics = new List<string>(renderDiagnostics);

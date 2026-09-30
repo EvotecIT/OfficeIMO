@@ -169,7 +169,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
             .OrderBy(static span => span.Sequence)
             .ThenBy(static span => span.Level)
             .ToArray();
-        if (returnedSpans.Count > options.MaxSpansPerCandidate) {
+        if (result.OmittedSpanCount > 0 || returnedSpans.Count > options.MaxSpansPerCandidate) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
                 "ocr-span-limit", "OCR detailed spans were truncated at MaxSpansPerCandidate.", true));
         }
@@ -234,7 +234,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 ref truncatedDiagnosticAttributeCharacters));
         }
         result.Diagnostics = providerDiagnostics.ToArray();
-        if (returnedDiagnostics.Count > options.MaxProviderDiagnosticsPerCandidate) {
+        if (result.OmittedDiagnosticCount > 0 || returnedDiagnostics.Count > options.MaxProviderDiagnosticsPerCandidate) {
             executionDiagnostics.Add(BuildDiagnostic(candidate, null, engineId, OfficeDocumentDiagnosticSeverity.Warning, OfficeDocumentDiagnosticCategory.Limit,
                 "ocr-provider-diagnostic-limit", "OCR provider diagnostics were truncated at MaxProviderDiagnosticsPerCandidate.", true));
         }
@@ -262,6 +262,7 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         ref bool truncatedDiagnosticAttributes,
         ref bool truncatedDiagnosticAttributeCharacters) {
         var attributes = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (diagnostic.OmittedAttributeCount > 0) truncatedDiagnosticAttributes = true;
         if (diagnostic.Attributes != null) {
             int inspectedAttributes = 0;
             foreach (KeyValuePair<string, string> attribute in diagnostic.Attributes) {
