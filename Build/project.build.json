@@ -140,6 +140,11 @@
       "Path": ".agents/plugins/officeimo-document-tools/.codex-plugin/mcp.json",
       "Project": "OfficeIMO.Tool",
       "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
+    },
+    {
+      "Path": ".agents/plugins/officeimo-document-tools/README.md",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
     }
   ],
   "ExpectedVersionMapAsInclude": true,

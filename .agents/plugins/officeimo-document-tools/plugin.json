@@ -29,6 +29,14 @@
           "Inspect and summarize this local document with OfficeIMO.",
           "Search this PST or OST and fetch only the relevant messages.",
           "Convert this local document to Markdown with OfficeIMO."
+        ],
+        "capabilities": [
+          "document-inspection",
+          "document-search",
+          "document-conversion",
+          "mailbox-search",
+          "mcp",
+          "skills"
         ]
       }
     }
