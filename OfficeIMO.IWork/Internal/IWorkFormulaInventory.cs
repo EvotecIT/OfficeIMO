@@ -8,7 +8,7 @@ internal static class IWorkFormulaInventory {
             source.CancellationToken.ThrowIfCancellationRequested();
             foreach (IWorkTableCell cell in table.Cells) {
                 source.CancellationToken.ThrowIfCancellationRequested();
-                if (cell.Kind == IWorkCellKind.Formula) result.Add(new IWorkFormulaCellStatus(table, cell));
+                if (cell.SourceFormulaIsDeclared) result.Add(new IWorkFormulaCellStatus(table, cell));
             }
         }
         return result;

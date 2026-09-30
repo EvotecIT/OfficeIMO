@@ -38,7 +38,7 @@ Routes accept local ZIP files, local directory packages, and provider ZIP stream
 
 Retained evidence includes identified source-unit totals and reconstructed, omitted, and unassessed counts. These totals describe units selected by the semantic projection, including explicitly omitted unsupported drawables and Numbers sheet references. Inactive templates, auxiliary table models/tiles, unresolved references, and unassessed content paths remain excluded. A visual preview does not establish individual object coverage. Full per-kind counts and native object identities are available on the owning adapter's `IWorkConversionReport`.
 
-Conversion evidence includes source formula-expression and cache counts from `IWorkConversionReport.FormulaSummary`. These describe the projected source cells, independently of editable or preview output. Per-cell identities and assessments remain in the owning adapter report.
+Conversion evidence includes source formula-expression and cache counts from `IWorkConversionReport.FormulaSummary`. These include separate unassessed expression and cache counts for supported headers declaring formulas in undecoded cells, independently of editable or preview output. Per-cell identities and assessments remain in the owning adapter report.
 
 Declaration evidence retains `sourceDeclarationIssueCount` after destination disposal. It counts distinct selected paths with unreadable or rejected declarations, separately from reference occurrences and objects. Owner/path details and known outer field-value counts are available in `IWorkConversionReport.SourceDeclarationIssues`; unreadable nested content and preview coverage remain unassessed.
 

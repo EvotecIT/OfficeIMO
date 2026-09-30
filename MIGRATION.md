@@ -201,6 +201,10 @@ these methods.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork formula assessment counts
+
+`IWorkConversionReport.FormulaCells` includes materialized error cells whose supported version-5 headers declare formulas. Check `ExpressionIsAssessed` before interpreting `ExpressionIsComplete`; an undecoded cell has cache status `IWorkFormulaCacheStatus.Unassessed`. Include `UnassessedExpressionCount` and `UnassessedCacheCount` when summing the expression and cache categories in `FormulaSummary`. The corresponding workflow facts are `sourceUnassessedFormulaExpressionCount` and `sourceUnassessedFormulaCacheCount`. Handle the new enum member in exhaustive cache-status switches.
+
 ### iWork image inspection budget
 
 `IWorkReadOptions.MaximumDecodedImageBytes` now limits cumulative decoded image

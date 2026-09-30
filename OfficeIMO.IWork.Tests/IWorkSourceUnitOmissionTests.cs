@@ -168,20 +168,21 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(visual ? IWorkSourceUnitDisposition.Unassessed : IWorkSourceUnitDisposition.Omitted, unit.Disposition);
     }
 
-    private static IWorkConversionReport ConvertUnitReport(Stream package, IWorkDocumentKind kind, bool visual = true) {
+    private static IWorkConversionReport ConvertUnitReport(Stream package, IWorkDocumentKind kind, bool visual = true,
+        IWorkReadOptions? readOptions = null) {
         var options = new IWorkConversionOptions {
             Mode = visual ? IWorkConversionMode.VisualOnly : IWorkConversionMode.Auto,
             AllowPartialEditableReconstruction = !visual
         };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: options);
+            using var result = WordIWorkConverter.ConvertPagesToWordResult(package, readOptions: readOptions, conversionOptions: options);
             return result.Report;
         }
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: options);
+            using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, readOptions: readOptions, conversionOptions: options);
             return result.Report;
         }
-        using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: options);
+        using var keynote = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, readOptions: readOptions, conversionOptions: options);
         return keynote.Report;
     }
 }

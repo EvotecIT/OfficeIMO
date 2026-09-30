@@ -74,10 +74,12 @@ public static class IWorkWorkflow {
             ["sourceFormulaCellCount"] = report.FormulaSummary.TotalCount.ToString(CultureInfo.InvariantCulture),
             ["sourceCompleteFormulaExpressionCount"] = report.FormulaSummary.CompleteExpressionCount.ToString(CultureInfo.InvariantCulture),
             ["sourceIncompleteFormulaExpressionCount"] = report.FormulaSummary.IncompleteExpressionCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceUnassessedFormulaExpressionCount"] = report.FormulaSummary.UnassessedExpressionCount.ToString(CultureInfo.InvariantCulture),
             ["sourceCompleteFormulaCacheCount"] = report.FormulaSummary.CompleteCacheCount.ToString(CultureInfo.InvariantCulture),
             ["sourcePartialFormulaCacheCount"] = report.FormulaSummary.PartialCacheCount.ToString(CultureInfo.InvariantCulture),
             ["sourceApproximateFormulaCacheCount"] = report.FormulaSummary.ApproximateCacheCount.ToString(CultureInfo.InvariantCulture),
             ["sourceMissingFormulaCacheCount"] = report.FormulaSummary.MissingCacheCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceUnassessedFormulaCacheCount"] = report.FormulaSummary.UnassessedCacheCount.ToString(CultureInfo.InvariantCulture),
             ["partialEditableReconstruction"] = report.IsPartialEditableReconstruction.ToString(),
             ["visualCoverage"] = report.VisualPreview?.Coverage.ToString() ?? "NotApplicable"
         });

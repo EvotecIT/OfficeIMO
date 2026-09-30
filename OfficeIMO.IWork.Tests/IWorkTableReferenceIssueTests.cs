@@ -209,10 +209,12 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream TableDependencyPackage(IWorkDocumentKind kind, byte[] storeFields,
         bool includeTile = true, byte[]? additionalRecords = null, ulong rows = 1,
-        bool formulaCell = false, bool repeatModel = false, byte[]? modelPayload = null) {
+        bool formulaCell = false, bool repeatModel = false, byte[]? modelPayload = null,
+        byte[]? cellPayload = null) {
         byte[] cell = new byte[formulaCell ? 24 : 20]; cell[0] = 5; cell[1] = 2;
         WriteUInt32(cell, 8, (1u << 1) | (formulaCell ? 1u << 9 : 0u));
         Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, cell, 12, 8);
+        cell = cellPayload ?? cell;
         byte[] roots = kind switch {
             IWorkDocumentKind.Pages => Message(
                 ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2, 10 }),

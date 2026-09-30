@@ -16,6 +16,23 @@ internal static partial class IWorkTableReader {
         int type = buffer[offset + 1];
         if (version != 5) return Error(row, column, $"Unsupported cell storage version {version}.");
         uint flags = IWorkProtobuf.ReadUInt32(buffer, offset + 8);
+        IWorkTableCell cell = DecodeModernCell(buffer, offset, endOffset, row, column, type, flags,
+            strings, richStrings, formulas, options, projectionBudget,
+            formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
+        // Only a complete, supported header establishes formula presence. Keep decode errors
+        // as errors instead of inventing an expression or a recovered cache.
+        return cell.Kind == IWorkCellKind.Error && (flags & (1u << 9)) != 0
+            ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
+                error: cell.Error, sourceFormulaIsDeclared: true)
+            : cell;
+    }
+
+    private static IWorkTableCell DecodeModernCell(byte[] buffer, int offset, int endOffset,
+        int row, int column, int type, uint flags,
+        IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
+        IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
+        HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if ((flags & ~RecognizedCellValueMask) != 0) {
             return Error(row, column, "Cell storage contains unsupported value fields.");
         }

@@ -29,8 +29,8 @@ public sealed class IWorkWorkflowTests {
         int unassessed = int.Parse(evidence.Facts["unassessedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
         Assert.True(reconstructed > 0);
         int formulas = int.Parse(evidence.Facts["sourceFormulaCellCount"], System.Globalization.CultureInfo.InvariantCulture);
-        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceIncompleteFormulaExpressionCount"]));
-        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaCacheCount"]) + int.Parse(evidence.Facts["sourcePartialFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceApproximateFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceMissingFormulaCacheCount"]));
+        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceIncompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceUnassessedFormulaExpressionCount"]));
+        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaCacheCount"]) + int.Parse(evidence.Facts["sourcePartialFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceApproximateFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceMissingFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceUnassessedFormulaCacheCount"]));
         Assert.Equal(unitCount, reconstructed + omitted + unassessed);
         int referenceIssues = int.Parse(evidence.Facts["sourceReferenceIssueCount"]);
         Assert.Equal(referenceIssues, int.Parse(evidence.Facts["sourceMissingReferenceTargetCount"])

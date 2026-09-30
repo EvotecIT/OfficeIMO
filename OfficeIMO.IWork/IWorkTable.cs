@@ -7,7 +7,7 @@ public sealed class IWorkTableCell {
     internal IWorkTableCell(int row, int column, IWorkCellKind kind, object? value,
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
-        bool cachedValueIsComplete = true) {
+        bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -15,6 +15,7 @@ public sealed class IWorkTableCell {
         Value = value;
         Formula = formula;
         FormulaIsComplete = formulaIsComplete;
+        SourceFormulaIsDeclared = sourceFormulaIsDeclared || kind == IWorkCellKind.Formula;
         CachedValueIsComplete = cachedValueIsComplete;
         Error = error;
         RichText = richText;
@@ -34,6 +35,8 @@ public sealed class IWorkTableCell {
     public string? Formula { get; }
     /// <summary>Gets whether <see cref="Formula"/> is a complete editable expression.</summary>
     public bool FormulaIsComplete { get; }
+    /// <summary>Gets whether a supported source cell header declares a formula, even when its contents could not be decoded.</summary>
+    public bool SourceFormulaIsDeclared { get; }
     /// <summary>Gets whether the recovered cached value is complete.</summary>
     public bool CachedValueIsComplete { get; }
     /// <summary>Gets a cell-level decode error without failing the surrounding table.</summary>

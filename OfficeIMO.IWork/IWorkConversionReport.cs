@@ -65,6 +65,13 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
                 global::OfficeIMO.OfficeConversionLossKind.Unassessed,
                 "OfficeIMO.IWork"));
         }
+        if (FormulaSummary.UnassessedExpressionCount > 0) {
+            fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+                "IWORK_FORMULA_CELLS_UNASSESSED",
+                "Supported cell headers declare formulas whose contents could not be decoded; their expressions and caches remain unassessed.",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
+                "OfficeIMO.IWork"));
+        }
         FidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
     }
 
@@ -98,9 +105,9 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets unreadable or rejected declarations at selected source paths, separately from resolved object identities and failed references. Repeated selection of a shared path reports it once. Visual fallback does not establish coverage.</summary>
     public IReadOnlyList<IWorkSourceDeclarationIssue> SourceDeclarationIssues { get; }
-    /// <summary>Gets source expression and cache assessments for projected formula cells, including during visual fallback. These do not establish destination formula preservation or cache freshness.</summary>
+    /// <summary>Gets source expression and cache assessments for declared formula cells, including supported headers in undecoded cells and visual fallback. These do not establish destination formula preservation or cache freshness.</summary>
     public IReadOnlyList<IWorkFormulaCellStatus> FormulaCells { get; }
-    /// <summary>Gets aggregate source expression/cache completeness. Undecoded cells and inactive table records are excluded.</summary>
+    /// <summary>Gets aggregate source expression/cache assessment, including unassessed declared formulas. Unknown headers and inactive table records are excluded.</summary>
     public IWorkFormulaSummary FormulaSummary { get; }
     /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
     public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
