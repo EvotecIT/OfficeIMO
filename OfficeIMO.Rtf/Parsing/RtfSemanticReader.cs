@@ -37,7 +37,7 @@ internal static partial class RtfSemanticReader {
         private int _inlineCaptureDepth;
         private bool _hasSemanticSections;
         private CharacterState? _finalParagraphState;
-        private bool _hasStandalonePictureParagraph;
+        private bool _hasStandaloneBlockParagraph;
         private int? _currentSectionColumnNumber;
         private Dictionary<int, RtfFont> _fontsById = null!;
         private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
@@ -423,9 +423,9 @@ internal static partial class RtfSemanticReader {
         private void FlushParagraphIfNeeded(bool force, CharacterState state) {
             if (_inlineCaptureDepth > 0) return;
             if (_currentNote == null && _currentHeaderFooter == null && _currentShape == null &&
-                _currentRow == null && _nestedTableContexts.Count == 0 && _hasStandalonePictureParagraph) {
-                _hasStandalonePictureParagraph = false;
-                // A picture already represents the paragraph's content. Its terminator is not an empty paragraph.
+                _currentRow == null && _nestedTableContexts.Count == 0 && _hasStandaloneBlockParagraph) {
+                _hasStandaloneBlockParagraph = false;
+                // A standalone picture or shape already represents the paragraph's content.
                 if (_currentParagraph.Inlines.Count == 0) return;
             }
             if (!force && _currentParagraph.Inlines.Count == 0) return;

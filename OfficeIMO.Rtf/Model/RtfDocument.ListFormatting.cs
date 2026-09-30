@@ -40,18 +40,19 @@ public sealed partial class RtfDocument {
         if (levelOverride?.OverrideFormat == true && levelOverride.Formatting != null) level.StartAt = originalStart;
         if (levelOverride?.OverrideStartAt == true) level.StartAt = levelOverride.StartAt ?? levelOverride.Formatting?.StartAt ?? level.StartAt;
         level.StartAt ??= paragraph.LegacyNumbering.StartAt ?? 1;
-        return new RtfListFormatting(paragraph.ListId, definitionId, levelIndex, level, source != null);
+        return new RtfListFormatting(paragraph.ListId, definitionId, levelIndex, level, source != null, levelOverride?.OverrideStartAt == true);
     }
 }
 
-/// <summary>Effective numbering for one paragraph, including its distinct list-instance identity.</summary>
+/// <summary>Effective numbering for one paragraph, including the counter shared by formatting overrides.</summary>
 public sealed class RtfListFormatting {
-    internal RtfListFormatting(int? instanceId, int? definitionId, int levelIndex, RtfListLevel level, bool isDefined) {
+    internal RtfListFormatting(int? instanceId, int? definitionId, int levelIndex, RtfListLevel level, bool isDefined, bool hasStartOverride) {
         InstanceId = instanceId;
         DefinitionId = definitionId;
         LevelIndex = levelIndex;
         Level = level;
         IsDefined = isDefined;
+        HasStartOverride = hasStartOverride;
     }
 
     /// <summary>List override id used by this paragraph.</summary>
@@ -64,7 +65,9 @@ public sealed class RtfListFormatting {
     public RtfListLevel Level { get; }
     /// <summary>Whether the paragraph resolves to an authored definition or formatting override.</summary>
     public bool IsDefined { get; }
-    /// <summary>Counter identity. Instances that share a definition retain independent numbering.</summary>
-    public string Identity => InstanceId.HasValue ? "instance:" + InstanceId.Value.ToString(CultureInfo.InvariantCulture)
-        : DefinitionId.HasValue ? "definition:" + DefinitionId.Value.ToString(CultureInfo.InvariantCulture) : "anonymous:" + Level.Kind;
+    /// <summary>Whether this instance overrides the start value at the target level on its first use.</summary>
+    public bool HasStartOverride { get; }
+    /// <summary>Counter identity shared by overrides of the same list definition.</summary>
+    public string Identity => DefinitionId.HasValue ? "definition:" + DefinitionId.Value.ToString(CultureInfo.InvariantCulture)
+        : InstanceId.HasValue ? "instance:" + InstanceId.Value.ToString(CultureInfo.InvariantCulture) : "anonymous:" + Level.Kind;
 }

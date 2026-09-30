@@ -1,9 +1,10 @@
 namespace OfficeIMO.Rtf;
 
-/// <summary>Tracks numbering for one story in document order. Instances that share a definition have independent counters.</summary>
+/// <summary>Tracks numbering for one story in document order. Overrides share their definition's counters, with an authored start override applied on its first use.</summary>
 public sealed class RtfListNumbering {
     private readonly RtfDocument _document;
     private readonly Dictionary<string, Dictionary<int, long>> _counters = new Dictionary<string, Dictionary<int, long>>(StringComparer.Ordinal);
+    private readonly HashSet<string> _usedStartOverrides = new HashSet<string>(StringComparer.Ordinal);
 
     /// <summary>Creates numbering state for a document. Use a separate state for each independent header, footer or note story.</summary>
     public RtfListNumbering(RtfDocument document) => _document = document ?? throw new ArgumentNullException(nameof(document));
@@ -20,7 +21,9 @@ public sealed class RtfListNumbering {
             _counters.Add(formatting.Identity, counters);
         }
         int index = formatting.LevelIndex;
-        long value = counters.TryGetValue(index, out long previous) ? checked(previous + 1) : formatting.Level.StartAt ?? 1;
+        string overrideKey = formatting.InstanceId?.ToString(CultureInfo.InvariantCulture) + ":" + index.ToString(CultureInfo.InvariantCulture);
+        bool restart = formatting.HasStartOverride && _usedStartOverrides.Add(overrideKey);
+        long value = !restart && counters.TryGetValue(index, out long previous) ? checked(previous + 1) : formatting.Level.StartAt ?? 1;
         if (!formatting.IsDefined && paragraph.ListText != null) {
             string authored = paragraph.ListText.ToPlainText().TrimStart();
             string leading = new string(authored.TakeWhile(char.IsDigit).ToArray());

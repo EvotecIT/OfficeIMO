@@ -27,6 +27,28 @@ public class RtfPictureLayoutRegressionTests {
     }
 
     [Fact]
+    public void Standalone_Pictures_Keep_Their_Paragraph_Boundaries_And_Inline_Pictures_Keep_Their_Run() {
+        RtfDocument document = CreatePicture();
+        document.InsertParagraph(0, "Before");
+        document.AddParagraph("After");
+        RtfParagraph inline = document.AddParagraph("Inline ");
+        inline.AddImage(RtfImageFormat.Png, Assert.IsType<RtfImage>(document.Blocks[1]).Data);
+        inline.AddText(" tail");
+        string native = document.ToRtf();
+        Assert.Contains("}\\par", native, StringComparison.Ordinal);
+        RtfDocument reopened = RtfDocument.Read(native).Document;
+        Assert.Collection(reopened.Blocks,
+            block => Assert.Equal("Before", Assert.IsType<RtfParagraph>(block).ToPlainText()),
+            block => Assert.IsType<RtfImage>(block),
+            block => Assert.Equal("After", Assert.IsType<RtfParagraph>(block).ToPlainText()),
+            block => {
+                RtfParagraph paragraph = Assert.IsType<RtfParagraph>(block);
+                Assert.Single(paragraph.Inlines.OfType<RtfImage>());
+                Assert.Equal("Inline  tail", paragraph.ToPlainText());
+            });
+    }
+
+    [Fact]
     public void Native_Picture_Transforms_Survive_Normalization_Cloning_And_Image_Replacement() {
         RtfDocument document = CreatePicture();
         RtfImage source = Assert.IsType<RtfImage>(document.Blocks[0]);

@@ -99,15 +99,19 @@ internal static partial class RtfDocumentWriter {
                 WriteTable(builder, table, context);
                 break;
             case RtfImage image:
-                WriteImage(builder, image);
+                var imageParagraph = new RtfParagraph();
+                imageParagraph.AddImage(image);
+                WriteParagraph(builder, imageParagraph, context);
                 break;
             case RtfObject rtfObject:
-                WriteObject(builder, rtfObject, context);
-                builder.AppendLine();
+                var objectParagraph = new RtfParagraph();
+                objectParagraph.AddObject(rtfObject);
+                WriteParagraph(builder, objectParagraph, context);
                 break;
             case RtfShape shape:
-                WriteShape(builder, shape, context);
-                builder.AppendLine();
+                var shapeParagraph = new RtfParagraph();
+                shapeParagraph.AddShape(shape);
+                WriteParagraph(builder, shapeParagraph, context);
                 break;
         }
     }

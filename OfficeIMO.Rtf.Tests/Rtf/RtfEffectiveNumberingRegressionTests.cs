@@ -149,7 +149,7 @@ public class RtfEffectiveNumberingRegressionTests {
         document.AddParagraph("Parent").SetList(3, 0);
         document.AddParagraph("Child").SetList(3, 1);
         document.AddParagraph("Second").SetList(3, 0);
-        document.AddListOverride(4, 100);
+        document.AddListOverride(4, 100).AddLevelOverride().OverrideStartAt = true;
         document.AddParagraph("Other").SetList(4, 0);
         string html = document.ToHtml(new RtfToHtmlOptions { FragmentOnly = false, IncludeRoundTripMetadata = true });
         AngleSharp.Html.Dom.IHtmlDocument dom = new AngleSharp.Html.Parser.HtmlParser().ParseDocument(html);
@@ -159,6 +159,27 @@ public class RtfEffectiveNumberingRegressionTests {
         Assert.Equal(new[] { "Parent", "Child", "Second", "Other" }, reopened.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
         numbering = new RtfListNumbering(reopened);
         Assert.Equal(new[] { "IV.", "IV.a.", "V.", "IV." }, reopened.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
+    }
+
+    [Fact]
+    public void Formatting_Overrides_Share_Counters_And_First_Start_Overrides_Reset_The_Shared_Sequence() {
+        RtfDocument document = CreateNestedList();
+        document.AddListOverride(4, 100);
+        RtfListLevelOverride format = document.AddListOverride(5, 100).AddLevelOverride();
+        format.OverrideFormat = true;
+        format.Formatting = new RtfListLevel(0) { NumberFormat = 2, Text = "(%1)" };
+        RtfListLevelOverride start = document.AddListOverride(6, 100).AddLevelOverride();
+        start.OverrideStartAt = true;
+        start.StartAt = 4;
+        foreach (int listId in new[] { 3, 4, 5, 6, 3, 6 }) document.AddParagraph("Item").SetList(listId);
+        foreach (RtfDocument value in new[] { document, RtfDocument.Read(document.ToRtf()).Document }) {
+            var numbering = new RtfListNumbering(value);
+            Assert.Equal(new[] { "IV.", "V.", "(vi)", "IV.", "V.", "VI." }, value.Paragraphs.Select(paragraph => numbering.Next(paragraph)!.Text));
+        }
+        using WordDocument word = document.ToWordDocument();
+        RtfDocument imported = word.ToRtfDocument();
+        var wordNumbering = new RtfListNumbering(imported);
+        Assert.Equal(new[] { "IV.", "V.", "(vi)", "IV.", "V.", "VI." }, imported.Paragraphs.Select(paragraph => wordNumbering.Next(paragraph)!.Text));
     }
 
     [Fact]

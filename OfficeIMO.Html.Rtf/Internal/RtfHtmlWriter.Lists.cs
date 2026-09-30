@@ -25,7 +25,7 @@ internal static partial class RtfHtmlWriter {
         frames[frames.Count - 1].ItemOpen = true;
     }
 
-    private static bool SameList(RtfListFormatting first, RtfListFormatting second) => first.Identity == second.Identity &&
+    private static bool SameList(RtfListFormatting first, RtfListFormatting second) => first.Identity == second.Identity && first.InstanceId == second.InstanceId &&
         first.Level.Kind == second.Level.Kind && (first.Level.NumberFormatN ?? first.Level.NumberFormat) == (second.Level.NumberFormatN ?? second.Level.NumberFormat);
 
     private static void OpenEffectiveList(StringBuilder builder, RtfListMarker marker) {
