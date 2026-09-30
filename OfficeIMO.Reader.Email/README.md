@@ -6,6 +6,15 @@ Email body, text attachment, iCalendar, and vCard chunks retain complete Unicode
 Text attachments use the shared email charset decoder before projection or delegation to a registered text handler.
 Decoding recovery warnings appear in the document diagnostics and attachment chunk warnings.
 
+HTML and RTF bodies use the existing HTML adapter for semantic Markdown even when the host registers only
+email handlers. A host's registered HTML handler takes precedence. Projection failures retain the safe HTML
+source and report `EMAIL_BODY_READER_FAILED`.
+
+Direct message, mailbox, iCalendar, and vCard handlers expose native asynchronous path and stream entry points.
+`ReadDocumentAsync` uses their owning libraries' async I/O and Reader.Core's asynchronous source hashing.
+Source hashes are computed once by Reader.Core when `ComputeHashes` is enabled, and caller streams remain open
+with their original position restored.
+
 - EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, and vCard artifacts
 - MHT/MHTML web archives with embedded MIME resources projected through `OfficeIMO.Reader.Html`
 - PST, OST, OLM, EMLX, Maildir, and mailbox-directory sessions

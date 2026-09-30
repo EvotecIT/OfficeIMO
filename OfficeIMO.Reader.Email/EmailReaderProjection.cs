@@ -1,8 +1,12 @@
 using OfficeIMO.Email;
+using OfficeIMO.Reader.Html;
 
 namespace OfficeIMO.Reader.Email;
 
 internal static class EmailReaderProjection {
+    private static readonly OfficeDocumentReader DefaultHtmlBodyReader = new OfficeDocumentReaderBuilder()
+        .AddHtmlHandler(new ReaderHtmlOptions { InputEncoding = Encoding.UTF8 })
+        .Build();
     internal static IReadOnlyList<ReaderChunk> ProjectEmailDocumentToChunks(
         EmailDocument document, string logicalPath, IReadOnlyList<EmailDiagnostic> diagnostics,
         string sourceName, ReaderOptions options, EmailDocumentProjectionCursor cursor,
@@ -53,23 +57,25 @@ internal static class EmailReaderProjection {
     }
 
     internal static OfficeDocumentReadResult ProjectMailboxToPathResult(
-        EmailMailboxReadResult mailbox, string path, ReaderOptions options, CancellationToken cancellationToken) {
+        EmailMailboxReadResult mailbox, string path, ReaderOptions options, CancellationToken cancellationToken,
+        bool? computeSourceHash = null) {
         EmailDocument[] documents = mailbox.Mailbox.Messages.Select(static entry => entry.Document).ToArray();
         EmailMailboxEntry[] entries = mailbox.Mailbox.Messages.ToArray();
         string?[] paths = Enumerable.Range(1, documents.Length).Select(index => (string?)string.Concat(path, "!/message-", index.ToString("D6", CultureInfo.InvariantCulture), ".eml")).ToArray();
         Projection projection = CreateProjection(documents, entries, paths, mailbox.Diagnostics, EmailFileFormat.Mbox, path, options, cancellationToken);
-        var source = new OfficeDocumentSource { Path = path, SourceId = "src:" + Hash(NormalizeSourceKey(path)), SourceHash = options.ComputeHashes ? TryHashFile(path) : null, LengthBytes = TryLength(path), LastWriteUtc = TryLastWrite(path) };
+        var source = new OfficeDocumentSource { Path = path, SourceId = "src:" + Hash(NormalizeSourceKey(path)), SourceHash = (computeSourceHash ?? options.ComputeHashes) ? TryHashFile(path) : null, LengthBytes = TryLength(path), LastWriteUtc = TryLastWrite(path) };
         EnrichChunks(projection.Chunks, source, options.ComputeHashes);
         return CreateResult(projection, path, source);
     }
 
     internal static OfficeDocumentReadResult ProjectMailboxToStreamResult(
-        EmailMailboxReadResult mailbox, string sourceName, Stream stream, ReaderOptions options, CancellationToken cancellationToken) {
+        EmailMailboxReadResult mailbox, string sourceName, Stream stream, ReaderOptions options, CancellationToken cancellationToken,
+        bool? computeSourceHash = null) {
         EmailDocument[] documents = mailbox.Mailbox.Messages.Select(static entry => entry.Document).ToArray();
         EmailMailboxEntry[] entries = mailbox.Mailbox.Messages.ToArray();
         string?[] paths = Enumerable.Range(1, documents.Length).Select(index => (string?)string.Concat(sourceName, "!/message-", index.ToString("D6", CultureInfo.InvariantCulture), ".eml")).ToArray();
         Projection projection = CreateProjection(documents, entries, paths, mailbox.Diagnostics, EmailFileFormat.Mbox, sourceName, options, cancellationToken);
-        var source = new OfficeDocumentSource { Path = sourceName, SourceId = "src:" + Hash(sourceName), SourceHash = options.ComputeHashes ? TryHashStream(stream) : null, LengthBytes = TryLength(stream) };
+        var source = new OfficeDocumentSource { Path = sourceName, SourceId = "src:" + Hash(sourceName), SourceHash = (computeSourceHash ?? options.ComputeHashes) ? TryHashStream(stream) : null, LengthBytes = TryLength(stream) };
         EnrichChunks(projection.Chunks, source, options.ComputeHashes);
         return CreateResult(projection, sourceName, source);
     }
@@ -181,12 +187,13 @@ internal static class EmailReaderProjection {
         EmailDocumentProjectionCursor cursor,
         CancellationToken cancellationToken) {
         string sourceName = bodyKind == "html" ? "email-body.html" : string.Empty;
-        if (sourceName.Length == 0 || !ReaderNestedContent.CanRead(sourceName)) return false;
+        if (sourceName.Length == 0) return false;
         byte[] bytes = Encoding.UTF8.GetBytes(body);
         try {
             using var stream = new MemoryStream(bytes, writable: false);
-            IReadOnlyList<ReaderChunk> nested = ReaderNestedContent.Read(stream, sourceName,
-                CloneWithoutHashes(options), cancellationToken);
+            IReadOnlyList<ReaderChunk> nested = ReaderNestedContent.CanRead(sourceName)
+                ? ReaderNestedContent.Read(stream, sourceName, CloneWithoutHashes(options), cancellationToken)
+                : DefaultHtmlBodyReader.ReadDocument(stream, sourceName, CloneWithoutHashes(options), cancellationToken).Chunks;
             for (int index = 0; index < nested.Count; index++) {
                 ReaderChunk chunk = nested[index];
                 int blockIndex = cursor.NextBlockIndex++;
@@ -199,7 +206,10 @@ internal static class EmailReaderProjection {
             return nested.Count > 0;
         } catch (OperationCanceledException) {
             throw;
-        } catch {
+        } catch (Exception exception) {
+            projection.Diagnostics.Add(new EmailDiagnostic("EMAIL_BODY_READER_FAILED",
+                exception.GetType().Name + " while projecting the selected email body; the safe HTML source was retained.",
+                EmailDiagnosticSeverity.Warning, logicalPath));
             return false;
         }
     }

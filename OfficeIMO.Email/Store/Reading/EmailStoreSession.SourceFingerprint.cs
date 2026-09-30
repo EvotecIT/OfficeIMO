@@ -29,6 +29,8 @@ public sealed partial class EmailStoreSession {
     /// </summary>
     public string GetDurableSourceFingerprint(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_snapshotFingerprint != null) return _snapshotFingerprint;
         if (_backend is MailboxDirectoryStoreSessionBackend directory) {
             return directory.GetContentFingerprint(cancellationToken);
         }

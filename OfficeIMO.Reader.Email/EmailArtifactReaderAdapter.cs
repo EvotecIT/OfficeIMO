@@ -2,7 +2,7 @@ using OfficeIMO.Email;
 
 namespace OfficeIMO.Reader.Email;
 
-internal static class EmailArtifactReaderAdapter {
+internal static partial class EmailArtifactReaderAdapter {
     internal static ReaderEmailOptions Clone(ReaderEmailOptions? source) {
         EmailReaderOptions message = CloneMessage(source?.MessageOptions ?? EmailReaderOptions.Default,
             source?.IncludeAttachmentContent ?? true);
@@ -29,12 +29,12 @@ internal static class EmailArtifactReaderAdapter {
         }
         if (IsMailbox(extension)) {
             EmailMailboxReadResult mailbox = new EmailMailboxReader(EffectiveMailboxOptions(options, readerOptions)).Read(path, cancellationToken);
-            return EmailReaderProjection.ProjectMailboxToPathResult(mailbox, path, readerOptions, cancellationToken);
+            return EmailReaderProjection.ProjectMailboxToPathResult(mailbox, path, readerOptions, cancellationToken, computeSourceHash: false);
         }
         using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(path, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToPathResult(
             new[] { result.Document }, new string?[] { path }, result.Diagnostics, result.Document.Format,
-            path, path, readerOptions, cancellationToken);
+            path, path, readerOptions, cancellationToken, computeSourceHash: false);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderEmailOptions options, CancellationToken cancellationToken) {
@@ -45,12 +45,12 @@ internal static class EmailArtifactReaderAdapter {
         }
         if (IsMailbox(extension)) {
             EmailMailboxReadResult mailbox = new EmailMailboxReader(EffectiveMailboxOptions(options, readerOptions)).Read(stream, cancellationToken);
-            return EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken);
+            return EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false);
         }
         using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(stream, logicalName, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToStreamResult(
             new[] { result.Document }, new string?[] { logicalName }, result.Diagnostics, result.Document.Format,
-            logicalName, stream, readerOptions, cancellationToken);
+            logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false);
     }
 
     internal static OfficeDocumentReadResult ReadCalendarDocument(string path, ReaderOptions readerOptions, ReaderEmailOptions options, CancellationToken cancellationToken) {

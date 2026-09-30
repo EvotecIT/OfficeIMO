@@ -17,6 +17,13 @@ Email reads expose an aggregate `ProcessingBudget` snapshot. MIME, MSG, embedded
 
 Store table, content-search, and OAB search checkpoints are versioned persistence values bound to a complete-source SHA-256 and exact query signature. Persist the checkpoint's `Value`, parse it after restart, and expect resume to fail closed if the source bytes or query changed. Creating a durable checkpoint intentionally reads the complete selected source to establish that identity.
 
+For repeated queries over one store file, use `EmailStoreSession.OpenSnapshot(path)` or its stream overload.
+The session makes a bounded private copy and hashes it while copying, then reuses the complete-source SHA-256
+for queries and checkpoints. Caller-side changes after opening cannot change the snapshot's results.
+Keep the original source stable while it is copied and dispose the session to remove its temporary file.
+Opening a new snapshot still validates checkpoints against the newly copied bytes; ordinary sessions continue
+to check the source before and after durable queries. Directory stores retain their existing content validation.
+
 `EmailStoreSession.PlanMaintenance` is read-only and source-bound. It returns `CompleteInspection` rather than `None` whenever item, recovery, structural page, block, or byte bounds leave evidence incomplete, or when requested structural verification is unsupported for the source format. Executable repair remains a separate operation through recovery export, PST compaction, or PST split planning; OfficeIMO never repairs the opened source in place and rewrite paths require semantic post-verification.
 
 The package supports:
