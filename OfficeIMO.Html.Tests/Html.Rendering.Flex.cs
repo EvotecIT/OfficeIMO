@@ -927,6 +927,64 @@ public sealed partial class HtmlRenderingTests {
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
     }
 
+    [Theory]
+    [InlineData("plain")]
+    [InlineData("border")]
+    [InlineData("destination")]
+    public void HtmlFlexRow_UsesStretchedSidebarTailWithoutClippingPaintOrNavigation(string sidebarKind) {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
+        string sidebarStyle = sidebarKind == "border" ? "border-bottom:4px solid red" : string.Empty;
+        string sidebarTail = sidebarKind == "destination"
+            ? "<div id='tail-anchor' style='margin-top:250px;height:1px'></div>" : string.Empty;
+        string jump = sidebarKind == "destination" ? "<a href='#tail-anchor'>Jump</a>" : string.Empty;
+        string html = "<style>body,p{margin:0}</style><main>" + jump + "<div style='height:240px'>Before</div>"
+            + "<div style='display:flex;width:713px'>"
+            + "<div style='width:335px;line-height:26.6px;orphans:1;widows:1'>"
+            + string.Join("<br>", Enumerable.Range(1, 45).Select(index => "Line" + index)) + "</div>"
+            + "<div id='sidebar' style='width:378px;" + sidebarStyle + "'><img id='first-image' src='data:image/png;base64," + image
+            + "' style='display:block;width:378px;height:600px'>"
+            + "<p style='height:20px;line-height:20px'>Caption</p><div style='height:100px'></div>"
+            + "<img id='second-image' src='data:image/png;base64," + image
+            + "' style='display:block;width:378px;height:215px'>" + sidebarTail + "</div></div>"
+            + "<p id='after'>After row</p></main>";
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(1000D / HtmlRenderOptions.CssPixelsPerInch,
+                1122D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        Assert.Equal(2, rendered.Pages.Count);
+        HtmlRenderText after = Assert.Single(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(),
+            item => item.Text == "After row");
+        if (sidebarKind == "plain") Assert.InRange(after.Y, 305D, 330D);
+        if (sidebarKind == "border") {
+            OfficeRasterImage page = OfficeDrawingRasterRenderer.Render(rendered.Pages[1].CreateDrawing());
+            Assert.Contains(Enumerable.Range(0, page.Height), y => {
+                OfficeColor pixel = page.GetPixel(500, y);
+                return pixel.R > 180 && pixel.G < 90 && pixel.B < 90;
+            });
+        }
+        if (sidebarKind == "destination") {
+            var pdfOptions = new HtmlToPdfOptions {
+                Mode = HtmlRenderMode.Paged,
+                PageSize = options.PageSize,
+                HonorCssPageRules = false,
+                Margins = HtmlRenderMargins.All(0D)
+            };
+            var pdf = PdfCore.PdfReadDocument.Open(HtmlConversionDocument.Parse(html).ToPdfBytes(pdfOptions));
+            Assert.Contains(pdf.NamedDestinations, destination => destination.Name == "html-fragment:tail-anchor");
+        }
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderImage>(),
+            item => item.Source == "img#second-image");
+        foreach (int index in Enumerable.Range(1, 45)) Assert.Equal(1,
+            rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>()
+                .Count(item => item.Text == "Line" + index));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
+    }
+
     [Fact]
     public void HtmlFlexRow_StretchedShortSidebarDoesNotAddEmptyContinuationPage() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));

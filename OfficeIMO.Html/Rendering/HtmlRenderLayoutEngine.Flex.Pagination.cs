@@ -191,7 +191,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (gap <= 0.0001D || item.Height <= cuts[index] + 0.0001D) continue;
                 if (gap > Math.Max(16D, boundary.PageHeight * 0.25D)
                     && LastAtomicFlexVisualBottom(item.Visuals) <= cuts[index] + 0.0001D) continue;
-                line.Items[index].Block = InsertFlexItemBreakGap(item, cuts[index], gap);
+                // Auto-height stretch may leave a content-free tail after the
+                // last sidebar image. Use that tail for the inserted page-break
+                // space instead of growing the row and moving its next sibling.
+                double retainedEnd = new[] {
+                    LastAtomicFlexVisualBottom(item.Visuals, includePaintAndMetadata: true),
+                    item.LineBreakGroups.Select(group => group.End).DefaultIfEmpty().Max(),
+                    item.BreakOffsets.Where(offset => offset < item.Height - 0.0001D).DefaultIfEmpty().Max(),
+                    item.RunningStringAssignments.Select(assignment => assignment.Offset).DefaultIfEmpty().Max(),
+                    item.InlineBreakProgress.Select(progress => progress.Offset).DefaultIfEmpty().Max(),
+                    item.AvoidBreakRanges.Select(range => range.End).DefaultIfEmpty().Max()
+                }.Max();
+                bool absorbInStretchTail = !line.Items[index].HasExplicitCrossSize
+                    && line.Items[index].Style.ExplicitHeight.HasValue
+                    && retainedEnd + gap <= item.Height + 0.0001D;
+                line.Items[index].Block = InsertFlexItemBreakGap(item, cuts[index], gap, absorbInStretchTail);
                 changed = true;
             }
 
@@ -219,17 +233,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
             }));
     }
 
-    private HtmlRenderFlowBlock InsertFlexItemBreakGap(HtmlRenderFlowBlock block, double cut, double gap) {
+    private HtmlRenderFlowBlock InsertFlexItemBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
+        bool absorbInStretchTail) {
         IReadOnlyList<HtmlRenderVisual> before = SliceVisuals(block.Visuals, 0D, cut);
         IReadOnlyList<HtmlRenderVisual> after = SliceVisuals(block.Visuals, cut, block.Height);
         List<HtmlRenderVisual> visuals = before
             .Concat(after.Select((visual, index) => visual.Translate(0D, cut + gap, before.Count + index)))
             .ToList();
+        double height = absorbInStretchTail ? block.Height : block.Height + gap;
+        if (absorbInStretchTail) visuals = SliceVisuals(visuals, 0D, height).ToList();
         double Shift(double offset) => offset >= cut - 0.0001D ? offset + gap : offset;
 
         return new HtmlRenderFlowBlock(
             block.Width,
-            block.Height + gap,
+            height,
             visuals,
             block.BreakBefore,
             block.BreakAfter,
@@ -252,7 +269,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             collapsibleMarginBottom: block.CollapsibleMarginBottom,
             ownerElement: block.OwnerElement,
             collapsesThrough: block.CollapsesThrough,
-            unclampedHeight: block.UnclampedHeight + gap,
+            unclampedHeight: absorbInStretchTail ? block.UnclampedHeight : block.UnclampedHeight + gap,
             runningStringAssignments: block.RunningStringAssignments.Select(assignment =>
                 assignment.Offset >= cut - 0.0001D ? assignment.Translate(gap) : assignment),
             inlineBreakProgress: block.InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(

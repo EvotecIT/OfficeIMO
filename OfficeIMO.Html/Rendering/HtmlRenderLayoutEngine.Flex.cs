@@ -342,7 +342,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return !CrossesAtomicFlexVisual(ranges, offset);
     }
 
-    private static double LastAtomicFlexVisualBottom(IEnumerable<HtmlRenderVisual> visuals, double verticalTranslation = 0D) {
+    private static double LastAtomicFlexVisualBottom(IEnumerable<HtmlRenderVisual> visuals,
+        double verticalTranslation = 0D, bool includePaintAndMetadata = false) {
         double bottom = 0D;
         foreach (HtmlRenderVisual visual in visuals) {
             IReadOnlyList<HtmlRenderVisual>? children = visual switch {
@@ -359,10 +360,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double effectTranslation)) {
                     childTranslation += effectTranslation;
                 }
-                bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children, childTranslation));
+                bottom = Math.Max(bottom, LastAtomicFlexVisualBottom(children, childTranslation, includePaintAndMetadata));
             }
-            else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
-                     or HtmlRenderShape { IsAtomicReplacedPlaceholder: true })
+            else if ((includePaintAndMetadata && visual is not HtmlRenderLayoutBox)
+                     || visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
+                         or HtmlRenderShape { IsAtomicReplacedPlaceholder: true })
                 bottom = Math.Max(bottom, visual.LayoutY + visual.LayoutHeight + verticalTranslation);
         }
         return bottom;
