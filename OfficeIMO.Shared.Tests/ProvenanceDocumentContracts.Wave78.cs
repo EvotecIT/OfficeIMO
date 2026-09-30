@@ -8,28 +8,30 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlPreflightBoundsUnmatchedEndTagStackSearches() {
-        string html = string.Concat(Enumerable.Repeat("<a>", 2000)) +
-            string.Concat(Enumerable.Repeat("</b>", 2000));
-
+    [Theory]
+    [MemberData(nameof(HtmlPreflightEnforcesConfiguredStructuralBudgetsCases))]
+    public void HtmlPreflightEnforcesConfiguredStructuralBudgets(string caseName, string html, int maximumEntries, string expectedDiagnostic) {
+        _ = caseName;
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            HtmlProvenance.Inspect(html, new OfficeProvenanceOptions { MaxContainerEntries = 3000 }));
+            HtmlProvenance.Inspect(html, new OfficeProvenanceOptions { MaxContainerEntries = maximumEntries }));
 
-        Assert.Contains("preflight scan limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(expectedDiagnostic, exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public void HtmlPreflightCountsTableElementsAfterSelectBreakout() {
-        string html = "<table><select>" +
-            string.Concat(Enumerable.Repeat("<tr><td><div></div></td></tr>", 20)) +
-            "</table>";
-
-        InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            HtmlProvenance.Inspect(html, new OfficeProvenanceOptions { MaxContainerEntries = 8 }));
-
-        Assert.Contains("container-entry limit", exception.Message, StringComparison.OrdinalIgnoreCase);
+    public static IEnumerable<object[]> HtmlPreflightEnforcesConfiguredStructuralBudgetsCases() {
+        {
+            string html = string.Concat(Enumerable.Repeat("<a>", 2000)) +
+                string.Concat(Enumerable.Repeat("</b>", 2000));
+            yield return new object[] { "HtmlPreflightBoundsUnmatchedEndTagStackSearches", html, 3000, "preflight scan limit" };
+        }
+        {
+            string html = "<table><select>" +
+                string.Concat(Enumerable.Repeat("<tr><td><div></div></td></tr>", 20)) +
+                "</table>";
+            yield return new object[] { "HtmlPreflightCountsTableElementsAfterSelectBreakout", html, 8, "container-entry limit" };
+        }
     }
+
 
     [Fact]
     public void HtmlRemovalScrubsDormantCssAndResolvedVarFallbacks() {

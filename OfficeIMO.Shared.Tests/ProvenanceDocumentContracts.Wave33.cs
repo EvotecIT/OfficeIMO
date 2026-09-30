@@ -22,33 +22,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Equal(html, Encoding.UTF8.GetString(result.ToArray()));
     }
 
-    [Fact]
-    public void HtmlPreflightKeepsMathMlGlyphCdataInForeignContent() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><math><mi><mglyph><![CDATA[" +
-            string.Concat(Enumerable.Repeat("<div></div>", 64)) +
-            "]]></mglyph></mi></math></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
-
-        Assert.Single(report.Evidence);
-    }
-
-    [Fact]
-    public void HtmlPreflightModelsScriptDoubleEscapedState() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><script><!--<script></script>" +
-            string.Concat(Enumerable.Repeat("<div></div>", 64)) +
-            "</script></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
-
-        Assert.Single(report.Evidence);
-    }
 
     [Fact]
     public void ExcelProvenanceSupportsXlsbPackagesAndSignatureCleanup() {

@@ -7,27 +7,18 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
 
-    [Fact]
-    public void LaterAnimationShorthandOverridesLonghandName() {
-        string html = KeyframeHtml("animation-name:none;animation:1s pulse");
+    [Theory]
+    [InlineData("animation-name:none;animation:1s pulse")]
+    [InlineData("animation:1s -1s pulse")]
+    public void AnimationShorthandActivatesImageCarrierKeyframes(string animationDeclaration) {
+        string html = KeyframeHtml(animationDeclaration);
 
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
         Assert.Single(result.Before.Evidence);
         Assert.True(result.WasChanged);
+
     }
-
-
-    [Fact]
-    public void NegativeAnimationDelayStillActivatesKeyframes() {
-        string html = KeyframeHtml("animation:1s -1s pulse");
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Single(result.Before.Evidence);
-        Assert.True(result.WasChanged);
-    }
-
 
 
     [Theory]

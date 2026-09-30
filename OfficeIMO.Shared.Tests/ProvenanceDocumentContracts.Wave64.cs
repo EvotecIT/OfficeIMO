@@ -22,17 +22,20 @@ public sealed partial class ProvenanceDocumentContracts {
 
 
     [Theory]
-    [InlineData("object", "data")]
-    [InlineData("embed", "src")]
-    public void ObjectAndEmbedImageDataUrisAreProcessed(string element, string attribute) {
+    [InlineData("object", "data", true)]
+    [InlineData("embed", "src", true)]
+    [InlineData("object", "data", false)]
+    [InlineData("embed", "src", false)]
+    public void ObjectAndEmbedImageDataUrisAreProcessed(string element, string attribute, bool explicitType) {
         string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = "<" + element + " type='image/png' " + attribute + "='" + dataUri + "'></" + element + ">";
+        string html = "<" + element + (explicitType ? " type='image/png' " : " ") + attribute + "='" + dataUri + "'></" + element + ">";
 
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
         Assert.True(result.WasChanged);
         Assert.Single(result.Before.Evidence);
         Assert.Empty(result.After.Evidence);
+
     }
 
     [Fact]

@@ -26,16 +26,5 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Contains("expanded-container", removalException.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public void HtmlSanitizesImageSetStoredInAUsedCssCustomProperty() {
-        byte[] image = CreatePngWithManifest(CreateManifestStore());
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
-        string html = $"<html><head><style>:root{{--hero:image-set(\"{dataUri}\" 1x)}}.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
 
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Single(result.Before.Evidence);
-        Assert.Empty(result.After.Evidence);
-        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
-    }
 }

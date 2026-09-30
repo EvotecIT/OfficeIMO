@@ -22,6 +22,18 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("=A1 ((B2:B4))", "of:=[.A1]!(([.B2:.B4]))")]
     [InlineData("=A1 (B1,C1)", "of:=[.A1]!([.B1]~[.C1])")]
     [InlineData("=SUM($1:$2)", "of:=SUM([.$1:.$2])")]
+    [InlineData("=OFFSET(A1,0,0) B1", "of:=OFFSET([.A1];0;0)![.B1]")]
+    [InlineData("=A1 INDEX(B1:C2,0,1)", "of:=[.A1]!INDEX([.B1:.C2];0;1)")]
+    [InlineData("=INDIRECT(\"A1\") B1", "of:=INDIRECT(\"A1\")![.B1]")]
+    [InlineData("=CHOOSE(1,A1:A3,B1:B3) A2:C2", "of:=CHOOSE(1;[.A1:.A3];[.B1:.B3])![.A2:.C2]")]
+    [InlineData("=_xlfn.XLOOKUP(A1,B1:B3,C1:C3) B2", "of:=_xlfn.XLOOKUP([.A1];[.B1:.B3];[.C1:.C3])![.B2]")]
+    [InlineData("=(1+2) A1", "of:=(1+2) [.A1]")]
+    [InlineData("=#N/A+A1", "of:=#N/A+[.A1]")]
+    [InlineData("=#GETTING_DATA+A1", "of:=#GETTING_DATA+[.A1]")]
+    [InlineData("=Στοιχεία+A1", "of:=Στοιχεία+[.A1]")]
+    [InlineData("=Données2+A1", "of:=Données2+[.A1]")]
+    [InlineData("=Café+A1", "of:=Café+[.A1]")]
+    [InlineData("=A1+SUM (B1)", "of:=[.A1]+SUM ([.B1])")]
     public void ExcelFormulaTranslationUsesStructuralContext(string excel, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
@@ -29,45 +41,9 @@ public sealed class SpreadsheetFormulaSyntaxTests {
 
         Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal(expected, result.Formula);
+
     }
 
-    [Fact]
-    public void WhitespaceBeforeAFunctionCallRemainsTriviaInsteadOfBecomingAnIntersection() {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse("=A1+SUM (B1)", SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal("of:=[.A1]+SUM ([.B1])", result.Formula);
-    }
-
-    [Theory]
-    [InlineData("=OFFSET(A1,0,0) B1", "of:=OFFSET([.A1];0;0)![.B1]")]
-    [InlineData("=A1 INDEX(B1:C2,0,1)", "of:=[.A1]!INDEX([.B1:.C2];0;1)")]
-    [InlineData("=INDIRECT(\"A1\") B1", "of:=INDIRECT(\"A1\")![.B1]")]
-    [InlineData("=CHOOSE(1,A1:A3,B1:B3) A2:C2", "of:=CHOOSE(1;[.A1:.A3];[.B1:.B3])![.A2:.C2]")]
-    [InlineData("=_xlfn.XLOOKUP(A1,B1:B3,C1:C3) B2", "of:=_xlfn.XLOOKUP([.A1];[.B1:.B3];[.C1:.C3])![.B2]")]
-    public void ReferenceReturningFunctionsParticipateInExcelIntersections(string excel, string expected) {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal(expected, result.Formula);
-    }
-
-    [Theory]
-    [InlineData("=(1+2) A1", "of:=(1+2) [.A1]")]
-    public void ParenthesizedScalarExpressionsRemainTriviaInsteadOfBecomingIntersections(
-        string excel,
-        string expected) {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(excel, SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal(expected, result.Formula);
-    }
 
     [Theory]
     [InlineData("of:=LOG10(100)", "=LOG10(100)")]
@@ -76,6 +52,8 @@ public sealed class SpreadsheetFormulaSyntaxTests {
     [InlineData("of:=SUM(([.A1]~[.B1]))", "=SUM((A1,B1))")]
     [InlineData("of:=SUM([.A1]![.B1])", "=SUM(A1 B1)")]
     [InlineData("of:=SUM([.$1:.$2])", "=SUM($1:$2)")]
+    [InlineData("of1:=SUM([.A1])", "=SUM(A1)")]
+    [InlineData("openformula_namespace_prefix_longer_than_thirty_two_characters:=SUM([.A1])", "=SUM(A1)")]
     public void OpenFormulaTranslationUsesStructuralContext(string openFormula, string expected) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(openFormula, SpreadsheetFormulaDialect.OpenFormula)
@@ -83,28 +61,24 @@ public sealed class SpreadsheetFormulaSyntaxTests {
 
         Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
         Assert.Equal(expected, result.Formula);
+
     }
+
 
     [Theory]
-    [InlineData("of1:=SUM([.A1])")]
-    [InlineData("openformula_namespace_prefix_longer_than_thirty_two_characters:=SUM([.A1])")]
-    public void OpenFormulaAcceptsAnyValidXmlNamespacePrefix(string openFormula) {
+    [InlineData("=SUM(Table1[Amount])", "FORMULA_TRANSLATION_UNSUPPORTED")]
+    [InlineData("=SUM(Sheet1:Sheet3!A1)", "FORMULA_UNSUPPORTED_RANGE_OPERATOR")]
+    [InlineData("=SUM('First Sheet:Last Sheet'!A1)", "FORMULA_UNSUPPORTED_SYNTAX")]
+    [InlineData("=#REF!A1", "FORMULA_DELETED_REFERENCE")]
+    [InlineData("=#REF!A1:C3", "FORMULA_DELETED_REFERENCE")]
+    [InlineData("=#BOGUS+A1", "FORMULA_UNKNOWN_ERROR_LITERAL")]
+    public void UnsupportedExcelFormulaTranslationFailsClosed(string formula, string expectedDiagnostic) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(openFormula, SpreadsheetFormulaDialect.OpenFormula)
-            .TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
-
-        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal("=SUM(A1)", result.Formula);
-    }
-
-    [Fact]
-    public void StructuredReferenceFailsClosedInsteadOfProducingInvalidOpenFormula() {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse("=SUM(Table1[Amount])", SpreadsheetFormulaDialect.ExcelA1)
+            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
             .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
 
         Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_TRANSLATION_UNSUPPORTED");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == expectedDiagnostic);
     }
 
     [Fact]
@@ -119,25 +93,6 @@ public sealed class SpreadsheetFormulaSyntaxTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_NESTING_LIMIT");
     }
 
-    [Fact]
-    public void ExcelThreeDimensionalReferenceFailsClosed() {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse("=SUM(Sheet1:Sheet3!A1)", SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_UNSUPPORTED_RANGE_OPERATOR");
-    }
-
-    [Fact]
-    public void QuotedExcelThreeDimensionalFormulaFailsClosed() {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse("=SUM('First Sheet:Last Sheet'!A1)", SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_UNSUPPORTED_SYNTAX");
-    }
 
     [Fact]
     public void QuotedExcelThreeDimensionalAddressIsNotAcceptedAsOneSheetName() =>
@@ -146,77 +101,22 @@ public sealed class SpreadsheetFormulaSyntaxTests {
             SpreadsheetAddressDialect.ExcelA1,
             out _));
 
-    [Theory]
-    [InlineData("=#REF!A1")]
-    [InlineData("=#REF!A1:C3")]
-    public void ExcelDeletedReferencesWithAttachedAddressesFailClosed(string formula) {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_DELETED_REFERENCE");
-    }
 
     [Theory]
-    [InlineData("=#N/A+A1", "of:=#N/A+[.A1]")]
-    [InlineData("=#GETTING_DATA+A1", "of:=#GETTING_DATA+[.A1]")]
-    public void ExcelErrorLiteralsStopBeforeFollowingOperators(string formula, string expected) {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal(expected, result.Formula);
-    }
-
-    [Theory]
-    [InlineData("=Στοιχεία+A1", "of:=Στοιχεία+[.A1]")]
-    [InlineData("=Données2+A1", "of:=Données2+[.A1]")]
-    [InlineData("=Café+A1", "of:=Café+[.A1]")]
-    public void ExcelFormulaTranslationAcceptsUnicodeDefinedNames(string formula, string expected) {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(formula, SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.True(result.IsSuccessful, string.Join("; ", result.Diagnostics.Select(diagnostic => diagnostic.Message)));
-        Assert.Equal(expected, result.Formula);
-    }
-
-    [Fact]
-    public void UnknownExcelErrorLiteralFailsClosed() {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse("=#BOGUS+A1", SpreadsheetFormulaDialect.ExcelA1)
-            .TranslateTo(SpreadsheetFormulaDialect.OpenFormula);
-
-        Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_UNKNOWN_ERROR_LITERAL");
-    }
-
-    [Theory]
-    [InlineData("of:=[.A1048577]")]
-    [InlineData("of:=[.XFE1]")]
-    public void OpenFormulaReferencesOutsideExcelBoundsFailClosed(string formula) {
+    [InlineData("of:=[.A1048577]", "FORMULA_TRANSLATION_REFERENCE_BOUNDS")]
+    [InlineData("of:=[.XFE1]", "FORMULA_TRANSLATION_REFERENCE_BOUNDS")]
+    [InlineData("of:=SUM([$'Other'.A1:.B2])", "FORMULA_TRANSLATION_REFERENCE_SHEETS")]
+    [InlineData("of:=SUM([.A1:$'Other'.B2])", "FORMULA_TRANSLATION_REFERENCE_SHEETS")]
+    [InlineData("of:=SUM([$'First'.A1:$'Second'.B2])", "FORMULA_TRANSLATION_REFERENCE_SHEETS")]
+    public void UnrepresentableOpenFormulaReferencesFailClosed(string formula, string expectedDiagnostic) {
         SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
             .Parse(formula, SpreadsheetFormulaDialect.OpenFormula)
             .TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
 
         Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_TRANSLATION_REFERENCE_BOUNDS");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == expectedDiagnostic);
     }
 
-    [Theory]
-    [InlineData("of:=SUM([$'Other'.A1:.B2])")]
-    [InlineData("of:=SUM([.A1:$'Other'.B2])")]
-    [InlineData("of:=SUM([$'First'.A1:$'Second'.B2])")]
-    public void OpenFormulaRangesWithDifferentSheetEndpointsFailClosed(string formula) {
-        SpreadsheetFormulaTranslationResult result = SpreadsheetFormulaSyntaxTree
-            .Parse(formula, SpreadsheetFormulaDialect.OpenFormula)
-            .TranslateTo(SpreadsheetFormulaDialect.ExcelA1);
-
-        Assert.False(result.IsSuccessful);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "FORMULA_TRANSLATION_REFERENCE_SHEETS");
-    }
 
     [Fact]
     public void OpenDocumentAddressParsesQuotedColonAndDerivesTypedBaseCell() {
