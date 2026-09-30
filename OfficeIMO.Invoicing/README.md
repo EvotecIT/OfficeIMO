@@ -24,6 +24,11 @@ dotnet add path/to/Application.csproj package OfficeIMO.Invoicing --source artif
 
 ## Create invoice XML
 
+`InvoiceXmlOptions.GetSupportedTargets()` returns the valid combinations of
+specification release, syntax and profile from the same contract used by the
+options constructor. Use this catalog for format selection; projection rejects
+data loss by default.
+
 ```csharp
 using OfficeIMO.Invoicing;
 

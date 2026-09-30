@@ -245,7 +245,6 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 
 ## Electronic invoices
 
-- [ ] Expose canonical inspection, model/target validation, conversion and rendering operation reports through bounded batch processing, then use those owners in the CLI and Studio. Keep standards validation explicit and report source mapping loss before writing.
 - [ ] Implement Polish KSeF FA(3) mapping, official schema validation and independent-producer fixtures, with explicit unsupported-field reports. Keep authentication, submission, status and receipt retrieval in a separate integration owner and qualify its state, cryptography, cancellation and mutation-ambiguity contracts against the official test environment.
 - [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
 

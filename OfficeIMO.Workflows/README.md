@@ -81,6 +81,33 @@ overwrites inputs or existing files; batch publication is per item rather than a
 transaction. `OfficeInvoiceFileWorkflowResult` keeps publication errors separate
 from the model and standards evidence in `Workflow`.
 
+For a desktop host with local or provider-backed storage, use
+`OfficeWorkflowRunner.RunInvoiceAsync` with `OfficeInvoiceStorageWorkflowRequest`:
+
+```csharp
+var storageResult = await new OfficeWorkflowRunner().RunInvoiceAsync(new() {
+    InputPath = "invoice.xml",
+    Operation = OfficeInvoiceWorkflowOperation.EditSource,
+    SourceEdits = new InvoiceSourceEdits(number: "INV-002"),
+    OutputPath = "invoice.edited.xml",
+    ConflictPolicy = OfficeWorkflowConflictPolicy.Rename
+});
+```
+
+The adapter captures at most 16 MiB of input, clones render settings before
+acquisition, and verifies source contents and physical identity again before
+publication. Local output supports fail, numbered-copy and atomic replacement
+policies. It protects source aliases and asks the supplied publication guard
+about the final destination. Provider inputs use reopenable
+`OfficeWorkflowStreamInput`; provider output uses `OfficeWorkflowStreamOutput`
+with explicit `Replace` after the host obtains direct-write consent. A durable,
+hash-verified XML or PDF recovery copy precedes provider creation/writing. Failed
+or unverified provider publication returns `Unconfirmed` with retained recovery;
+it cannot promise atomic replacement or rollback. Read `Workflow` for invoice
+evidence and `Status`, `Diagnostics` and `Recovery` for storage outcomes. The
+default retained output limit is 64 MiB. Cancellation before publication returns
+`Cancelled` and removes temporary staging.
+
 ## Project reports and table exchange
 
 `ProjectReportWorkflow` exports a calculated Project view through the existing document owners:
