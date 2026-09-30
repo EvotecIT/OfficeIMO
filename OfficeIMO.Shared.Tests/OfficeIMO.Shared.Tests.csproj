@@ -10,6 +10,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(SharedPerformanceEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);SHARED_PERFORMANCE_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Markdig" Version="1.3.2" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />

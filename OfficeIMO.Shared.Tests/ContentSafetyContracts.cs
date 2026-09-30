@@ -20,20 +20,30 @@ namespace OfficeIMO.Shared.Tests;
 public sealed class ContentSafetyContracts {
 #if NET8_0_OR_GREATER
     [Fact]
-    public void CharacterReferenceEncodingScansLargeRepresentableTextWithoutPerScalarAllocations() {
+#if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
+    public void CharacterReferenceEncodingPreservesRepresentableTextIdentity() {
         var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+#if SHARED_PERFORMANCE_EVIDENCE
         OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding.EscapeUnrepresentableCharacters("warmup", encoding);
         string input = new string('a', 1_000_000);
-
         long before = GC.GetAllocatedBytesForCurrentThread();
+#else
+        const string input = "aaaa";
+#endif
         string output = OfficeIMO.Core.Internal.OfficeCharacterReferenceEncoding
             .EscapeUnrepresentableCharacters(input, encoding);
+#if SHARED_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.Same(input, output);
+#if SHARED_PERFORMANCE_EVIDENCE
         // Runtimes may reserve a small fixed encoder buffer on the first large scan. The ceiling
         // remains independent of the one-million-scalar input and still rejects per-scalar churn.
         Assert.InRange(allocated, 0L, 16 * 1024L);
+#endif
     }
 #endif
 
