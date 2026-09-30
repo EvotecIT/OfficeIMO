@@ -85,7 +85,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IReadOnlyList<IWorkSourceUnit> SourceUnits { get; }
     /// <summary>Gets per-kind counts of identified selected source units. Reconstructed units can still contain omitted, approximated, or unassessed fields; visual fallback does not establish individual unit coverage.</summary>
     public IReadOnlyList<IWorkSourceUnitCount> SourceUnitCounts { get; }
-    /// <summary>Gets unresolved declared reference occurrences in assessed document/drawable graph fields. This is not a complete dependency inventory or a count of omitted objects. Repeated occurrences remain separate, and visual fallback does not resolve them.</summary>
+    /// <summary>Gets unresolved declared reference occurrences in assessed document, drawable, table and text-formatting fields. This is not a complete dependency inventory or a count of omitted objects. Repeated occurrences remain separate, and visual fallback does not resolve them.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets source expression and cache assessments for projected formula cells, including during visual fallback. These do not establish destination formula preservation or cache freshness.</summary>
     public IReadOnlyList<IWorkFormulaCellStatus> FormulaCells { get; }

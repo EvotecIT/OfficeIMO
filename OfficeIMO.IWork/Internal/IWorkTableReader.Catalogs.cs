@@ -2,13 +2,17 @@ namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTableReader {
     private static IReadOnlyDictionary<uint, string> ReadStrings(IWorkObjectIndex index,
-        IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
+        IWorkWireMessage store, IWorkArchiveRecord model,
+        IWorkSourceReferenceIssueCollector references, IWorkProjectionBudget projectionBudget,
         IWorkReadOptions options, int maximumEntries,
         out bool fullyReconstructed) {
         var strings = new Dictionary<uint, string>();
         fullyReconstructed = true;
-        IWorkArchiveRecord? list = index.Dereference(store, 4);
-        if (list == null) return strings;
+        IWorkArchiveRecord? list = references.ReadOne(model, store, 4, "4/4");
+        if (list == null) {
+            fullyReconstructed = !store.HasField(4);
+            return strings;
+        }
         if (!TryGetCatalogEntryCount(list, maximumEntries, options, "string",
                 out int entryCount)) {
             fullyReconstructed = false;
@@ -36,15 +40,19 @@ internal static partial class IWorkTableReader {
     }
 
     private static IReadOnlyDictionary<uint, IWorkWireMessage> ReadFormulas(IWorkObjectIndex index,
-        IWorkWireMessage store, IWorkProjectionBudget projectionBudget,
+        IWorkWireMessage store, IWorkArchiveRecord model,
+        IWorkSourceReferenceIssueCollector references, IWorkProjectionBudget projectionBudget,
         IWorkReadOptions options, int maximumEntries,
         out bool fullyReconstructed, out bool catalogEnvelopeComplete) {
         var formulas = new Dictionary<uint, IWorkWireMessage>();
         var ambiguousIdentifiers = new HashSet<uint>();
         fullyReconstructed = true;
         catalogEnvelopeComplete = true;
-        IWorkArchiveRecord? list = index.Dereference(store, 6);
-        if (list == null) return formulas;
+        IWorkArchiveRecord? list = references.ReadOne(model, store, 6, "4/6");
+        if (list == null) {
+            fullyReconstructed = catalogEnvelopeComplete = !store.HasField(6);
+            return formulas;
+        }
         if (!TryGetCatalogEntryCount(list, maximumEntries, options, "formula",
                 out int entryCount)) {
             fullyReconstructed = false;

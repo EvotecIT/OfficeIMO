@@ -5,6 +5,7 @@ internal static partial class IWorkTableReader {
 
     private static void ReadHeaderDimensions(IWorkSourceDocument source, IWorkWireMessage store,
         IWorkArchiveRecord model, int rows, int columns, IWorkProjectionBudget budget,
+        IWorkSourceReferenceIssueCollector references,
         Dictionary<int, double> rowHeights, Dictionary<int, double> columnWidths,
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         bool complete = true;
@@ -12,8 +13,8 @@ internal static partial class IWorkTableReader {
         complete &= !malformedRows;
         if (rowHeaders != null) {
             budget.AddTableDimensionEntries(rowHeaders.FieldCount(2));
-            IReadOnlyList<IWorkArchiveRecord> buckets = source.Index.DereferenceAll(rowHeaders, 2,
-                out int unresolved);
+            IReadOnlyList<IWorkArchiveRecord> buckets = references.ReadAll(model, rowHeaders, 2,
+                out int unresolved, "4/1/2");
             complete &= unresolved == 0;
             var seenRows = new HashSet<int>();
             var seenBuckets = new HashSet<ulong>();
@@ -28,9 +29,7 @@ internal static partial class IWorkTableReader {
         }
         if (store.HasField(2)) {
             budget.AddTableDimensionEntries(store.FieldCount(2));
-            IWorkArchiveRecord? bucket = store.FieldCount(2) == 1
-                && !store.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
-                    ? source.Index.Dereference(store, 2) : null;
+            IWorkArchiveRecord? bucket = references.ReadOne(model, store, 2, "4/2");
             if (bucket == null) complete = false;
             else ReadDimensionBucket(source, bucket, columns, budget, new HashSet<int>(), columnWidths,
                 ref complete);

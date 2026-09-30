@@ -183,28 +183,28 @@ internal static partial class IWorkTableReader {
         }
 
         ReadHeaderDimensions(source, store, model, rows, columns, projectionBudget,
-            rowHeights, columnWidths, diagnostics, ref supportsEditableReconstruction);
+            references, rowHeights, columnWidths, diagnostics, ref supportsEditableReconstruction);
 
-        IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
+        IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store, model, references,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool stringStorageComplete);
         IWorkTableRichTextCatalog richStrings = IWorkTableRichTextCatalog.Create(index, store, model,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries, references);
-        IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store, model, references,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
         if (!stringStorageComplete) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_STRING_STORAGE_UNSUPPORTED",
-                "An iWork string table contains malformed or duplicate entries; editable reconstruction is incomplete.",
+                "An iWork string catalog is unresolved or contains malformed or duplicate entries; editable reconstruction is incomplete.",
                 model.EntryPath, model.Identifier));
         }
         if (!formulaStorageComplete) {
             if (!formulaCatalogEnvelopeComplete) supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_FORMULA_STORAGE_UNSUPPORTED",
-                "An iWork formula table contains malformed or duplicate entries; affected formulas retain cached values only.",
+                "An iWork formula catalog is unresolved or contains malformed or duplicate entries; affected formulas retain cached values only.",
                 model.EntryPath, model.Identifier));
         }
         byte[]? tileStorageBytes = store.GetBytes(3);
@@ -248,7 +248,9 @@ internal static partial class IWorkTableReader {
         }
         var tileIndexes = new HashSet<ulong>();
         var tileIdentifiers = new HashSet<ulong>();
+        int tileEntryPosition = 0;
         foreach (IWorkWireMessage tileEntry in tileEntries) {
+            tileEntryPosition++;
             ulong? declaredTileId = tileEntry.GetUnsigned(1);
             if (tileEntry.FieldCount(1) != 1
                 || tileEntry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
@@ -265,7 +267,8 @@ internal static partial class IWorkTableReader {
                 MarkDuplicateTile(model, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
-            IWorkArchiveRecord? tile = index.Dereference(tileEntry, 2);
+            IWorkArchiveRecord? tile = references.ReadOne(model, tileEntry, 2,
+                "4/3/1[" + tileEntryPosition.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2");
             if (tile == null || tile.MessageType != TableTileArchive) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
