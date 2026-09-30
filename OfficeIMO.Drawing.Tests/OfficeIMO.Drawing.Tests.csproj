@@ -37,6 +37,7 @@
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
     <None Update="TestAssets\Avif\entropy-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\partition-reference.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\prelude-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\*.avif" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
