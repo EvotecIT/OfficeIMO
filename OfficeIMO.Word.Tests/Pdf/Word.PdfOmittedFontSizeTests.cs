@@ -9,21 +9,23 @@ namespace OfficeIMO.Tests;
 
 public sealed class WordPdfOmittedFontSizeTests {
     [Theory]
-    [InlineData("20", false)]
-    [InlineData("24", false)]
-    [InlineData("20", true)]
-    public void ConditionalLineSpacingUsesTheInheritedTableFontSize(string documentSize, bool derivedStyle) {
-        double plainBaseline = FirstTableBaseline(documentSize, includeSpacing: false, derivedStyle);
-        double spacedBaseline = FirstTableBaseline(documentSize, includeSpacing: true, derivedStyle);
+    [InlineData("20", false, false)]
+    [InlineData("24", false, false)]
+    [InlineData("20", true, false)]
+    [InlineData("20", false, true)]
+    public void ConditionalLineSpacingUsesTheInheritedTableFontSize(string documentSize, bool derivedStyle, bool derivedConditional) {
+        double plainBaseline = FirstTableBaseline(documentSize, includeSpacing: false, derivedStyle, derivedConditional);
+        double spacedBaseline = FirstTableBaseline(documentSize, includeSpacing: true, derivedStyle, derivedConditional);
         // One Arial single-line box at the inherited table size of 11pt.
         Assert.Equal(11D * 1.15D, plainBaseline - spacedBaseline, precision: 3);
     }
 
-    private static double FirstTableBaseline(string documentSize, bool includeSpacing, bool derivedStyle) {
+    private static double FirstTableBaseline(string documentSize, bool includeSpacing, bool derivedStyle, bool derivedConditional) {
         using WordDocument document = WordDocument.Create();
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.DocDefaults!.RunPropertiesDefault!.RunPropertiesBaseStyle!.GetFirstChild<FontSize>()!.Val = documentSize;
         var conditional = new TableStyleProperties { Type = TableStyleOverrideValues.FirstRow };
+        if (derivedConditional) conditional.Append(new RunPropertiesBaseStyle(new FontSize { Val = "24" }));
         if (includeSpacing) conditional.Append(new StyleParagraphProperties(
             new SpacingBetweenLines { BeforeLines = 100, Line = "240", LineRule = LineSpacingRuleValues.Auto }));
         styles.Append(new Style(new StyleName { Val = "Sized table" },
@@ -31,8 +33,12 @@ public sealed class WordPdfOmittedFontSizeTests {
             conditional) { Type = StyleValues.Table, StyleId = "SizedTable" });
         if (derivedStyle) styles.Append(new Style(new BasedOn { Val = "SizedTable" },
             new StyleRunProperties(new FontSize { Val = "22" })) { Type = StyleValues.Table, StyleId = "DerivedSizedTable" });
+        if (derivedConditional) styles.Append(new Style(new BasedOn { Val = "SizedTable" },
+            new TableStyleProperties(new RunPropertiesBaseStyle(new FontSize { Val = "22" })) {
+                Type = TableStyleOverrideValues.FirstRow
+            }) { Type = StyleValues.Table, StyleId = "DerivedSizedTable" });
         WordTable table = document.AddTable(1, 1);
-        table._tableProperties!.TableStyle = new TableStyle { Val = derivedStyle ? "DerivedSizedTable" : "SizedTable" };
+        table._tableProperties!.TableStyle = new TableStyle { Val = derivedStyle || derivedConditional ? "DerivedSizedTable" : "SizedTable" };
         table.ConditionalFormattingFirstRow = true;
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Cell";
         byte[] bytes = document.ToPdfBytes(new WordToPdfOptions {

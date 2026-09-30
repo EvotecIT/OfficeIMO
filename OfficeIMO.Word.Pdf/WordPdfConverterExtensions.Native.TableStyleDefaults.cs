@@ -161,13 +161,14 @@ namespace OfficeIMO.Word.Pdf {
                 FontSize = fontSize ?? nativeDefaults.FontSize,
                 FontFamily = fontFamily ?? nativeDefaults.FontFamily
             };
+            var conditionalFontDefaults = ResolveNativeConditionalFontDefaults(styleChain, table.Document, conditionalDefaults);
             foreach (W.Style style in styleChain) {
-                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstRow, firstRowStyle, conditionalDefaults);
-                lastRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastRow, lastRowStyle, conditionalDefaults);
-                firstColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstColumn, firstColumnStyle, conditionalDefaults);
-                lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastColumn, lastColumnStyle, conditionalDefaults);
-                band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Horizontal, band1HorizontalStyle, conditionalDefaults);
-                band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Vertical, band1VerticalStyle, conditionalDefaults);
+                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstRow, firstRowStyle, conditionalFontDefaults[W.TableStyleOverrideValues.FirstRow]);
+                lastRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastRow, lastRowStyle, conditionalFontDefaults[W.TableStyleOverrideValues.LastRow]);
+                firstColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstColumn, firstColumnStyle, conditionalFontDefaults[W.TableStyleOverrideValues.FirstColumn]);
+                lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastColumn, lastColumnStyle, conditionalFontDefaults[W.TableStyleOverrideValues.LastColumn]);
+                band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Horizontal, band1HorizontalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band1Horizontal]);
+                band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Vertical, band1VerticalStyle, conditionalFontDefaults[W.TableStyleOverrideValues.Band1Vertical]);
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
@@ -217,6 +218,29 @@ namespace OfficeIMO.Word.Pdf {
                 lastColumnStyle,
                 band1HorizontalStyle,
                 band1VerticalStyle);
+        }
+
+        private static Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults> ResolveNativeConditionalFontDefaults(
+            IReadOnlyList<W.Style> styleChain, WordDocument document, NativeDocumentDefaults tableDefaults) {
+            var result = new Dictionary<W.TableStyleOverrideValues, NativeDocumentDefaults>();
+            foreach (W.TableStyleOverrideValues type in new[] {
+                W.TableStyleOverrideValues.FirstRow, W.TableStyleOverrideValues.LastRow,
+                W.TableStyleOverrideValues.FirstColumn, W.TableStyleOverrideValues.LastColumn,
+                W.TableStyleOverrideValues.Band1Horizontal, W.TableStyleOverrideValues.Band1Vertical
+            }) {
+                NativeDocumentDefaults defaults = tableDefaults;
+                foreach (W.Style style in styleChain) {
+                    foreach (W.TableStyleProperties properties in style.Elements<W.TableStyleProperties>().Where(properties => properties.Type?.Value == type)) {
+                        W.RunPropertiesBaseStyle? runs = properties.GetFirstChild<W.RunPropertiesBaseStyle>();
+                        defaults = defaults with {
+                            FontSize = GetNativeRunPropertiesBaseStyleFontSize(runs) ?? defaults.FontSize,
+                            FontFamily = ResolveNativeRunFontsFamily(document, runs?.GetFirstChild<W.RunFonts>()) ?? defaults.FontFamily
+                        };
+                    }
+                }
+                result[type] = defaults;
+            }
+            return result;
         }
 
         private static NativeTableConditionalStyleDefaults GetNativeTableConditionalStyleDefaults(W.Style style, W.TableStyleOverrideValues type, NativeTableConditionalStyleDefaults inherited, NativeDocumentDefaults nativeDefaults) {
@@ -270,14 +294,14 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (spacing != null) {
-                    double naturalLineHeight = ResolveNativeWordSingleLineHeight(fontFamily, nativeDefaults.FontFamily);
-                    paragraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, fontFamily, nativeDefaults.FontFamily);
+                    double naturalLineHeight = ResolveNativeWordSingleLineHeight(nativeDefaults.FontFamily);
+                    paragraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, nativeDefaults.FontFamily);
                     paragraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
                     paragraphLineSpacingRule = paragraphLineHeight.HasValue || paragraphLineSpacingPoints.HasValue
                         ? spacing.LineRule?.Value
                         : null;
 
-                    double effectiveFontSize = fontSize ?? result.FontSize ?? nativeDefaults.FontSize;
+                    double effectiveFontSize = nativeDefaults.FontSize;
                     double effectiveLineHeight = paragraphLineSpacingPoints.HasValue && effectiveFontSize > 0D
                         ? ResolveNativeLineSpacingHeight(paragraphLineSpacingPoints.Value, spacing.LineRule?.Value, effectiveFontSize, naturalLineHeight)
                         : paragraphLineHeight ?? result.ParagraphLineHeight ?? naturalLineHeight;
