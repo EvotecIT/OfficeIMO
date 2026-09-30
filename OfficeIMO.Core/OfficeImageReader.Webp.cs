@@ -288,9 +288,9 @@ public static partial class OfficeImageReader {
     internal static bool HasValidWebpAlphaHeader(byte[] data, int offset, int length) {
         if (length < 2) return false;
         byte control = data[offset];
-        // Compression method 0 is the only defined value, preprocessing values 2-3 are reserved,
+        // Compression methods 0 (raw) and 1 (lossless) are defined; preprocessing values 2-3 are reserved,
         // and the two high bits are reserved for future use.
-        return (control & 0xC3) == 0 && (control & 0x30) <= 0x10;
+        return (control & 0xC0) == 0 && (control & 0x03) <= 1 && (control & 0x30) <= 0x10;
     }
 
     internal static bool TryReadWebpImageHeader(
