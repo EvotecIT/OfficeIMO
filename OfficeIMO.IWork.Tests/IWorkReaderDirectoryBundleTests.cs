@@ -38,6 +38,12 @@ public sealed class IWorkReaderDirectoryBundleTests {
         Assert.True(Assert.Single(reader.GetCapabilities()).SupportsDirectoryBundle);
         Assert.Equal(ReaderInputKind.IWork, reader.Detect(bundle.Path).Kind);
         Assert.False(reader.Detect(bundle.Path).ContentInspected);
+        string trailing = bundle.Path + System.IO.Path.DirectorySeparatorChar;
+        Assert.Equal(result.Source.SourceHash, reader.ReadDocument(trailing).Source.SourceHash);
+        Assert.Equal(result.Source.SourceHash, (await reader.ReadDocumentAsync(trailing)).Source.SourceHash);
+        Assert.Equal(ReaderInputKind.IWork, reader.Detect(trailing).Kind);
+        Assert.Equal(new[] { bundle.Path }, reader.EnumerateDocumentPaths(new[] { trailing }).ToArray());
+        Assert.Equal(1, reader.ReadFolderDetailed(trailing).FilesParsed);
 
         ReaderPathDocumentResult detailed = reader.ReadPathDocumentsDetailed(bundle.Path);
         Assert.Equal(1, detailed.FilesParsed);
@@ -46,6 +52,25 @@ public sealed class IWorkReaderDirectoryBundleTests {
         Assert.Equal(1, folder.FilesParsed);
         Assert.Equal(result.Source.SourceHash, Assert.Single(folder.Files).SourceHash);
         Assert.Equal(result.Source.LengthBytes, folder.BytesRead);
+    }
+
+    [Fact]
+    public void Folder_budget_preserves_the_selected_handlers_default_input_limit() {
+        using var bundle = new ExtractedBundle("nim-iwork/simple.pages", ".pages");
+        string path = System.IO.Path.Combine(bundle.Root, "sample.bounded");
+        File.WriteAllText(path, "12345678901");
+        int calls = 0;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHandler(new ReaderHandlerRegistration {
+            Id = "bounded-test", Kind = ReaderInputKind.Text, Extensions = new[] { ".bounded" },
+            DefaultMaxInputBytes = 10,
+            ReadPath = (_, _, _) => { calls++; return Array.Empty<ReaderChunk>(); }
+        }).Build();
+        Assert.Throws<IOException>(() => reader.ReadDocument(path));
+        ReaderIngestResult folder = reader.ReadFolderDetailed(bundle.Root,
+            new ReaderFolderOptions { MaxTotalBytes = 100 });
+        Assert.Equal(0, folder.FilesParsed);
+        Assert.Equal(1, folder.FilesSkipped);
+        Assert.Equal(0, calls);
     }
 
     [Fact]

@@ -7,12 +7,35 @@ namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
     private static bool IsRegisteredDirectoryBundle(string path) =>
-        TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler)
+        TryResolveCustomHandlerByPath(NormalizeDirectoryPackagePath(path), out ReaderHandlerDescriptor handler)
         && handler.ReadDirectoryBundle != null;
+
+    private static string NormalizeDirectoryPackagePath(string path) {
+        string full = Path.GetFullPath(path);
+        int rootLength = (Path.GetPathRoot(full) ?? string.Empty).Length;
+        int length = full.Length;
+        while (length > rootLength && (full[length - 1] == Path.DirectorySeparatorChar
+            || full[length - 1] == Path.AltDirectorySeparatorChar)) length--;
+        return full.Substring(0, length);
+    }
+
+    private static ReaderOptions ApplyFolderInputBudget(string path, ReaderOptions? options, long maximumBytes) {
+        ReaderOptions effective = NormalizeOptions(options);
+        bool directory = Directory.Exists(path);
+        if (directory) path = NormalizeDirectoryPackagePath(path);
+        long? inputLimit = directory &&
+            TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler)
+            && handler.ReadDirectoryBundle != null
+                ? ResolveSelectedHandlerMaxInputBytes(handler, path, effective) ?? DefaultUnidentifiedStreamMaxInputBytes
+                : ResolveInitialMaxInputBytes(path, effective);
+        effective.MaxInputBytes = Math.Min(inputLimit ?? long.MaxValue, maximumBytes);
+        return effective;
+    }
 
     private static OfficeDocumentReadResult ReadDirectoryBundle(string path,
         ReaderOptions? options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
+        path = NormalizeDirectoryPackagePath(path);
         if (!TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler)
             || handler.ReadDirectoryBundle == null) {
             throw new IOException($"'{path}' is a directory. Use {nameof(ReadFolder)}(...) to ingest directories.");
@@ -38,6 +61,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static ReaderDetectionResult DetectDirectoryBundle(string path) {
+        path = NormalizeDirectoryPackagePath(path);
         if (!TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler)
             || handler.ReadDirectoryBundle == null) {
             throw new IOException($"'{path}' is a directory without a registered document-package handler.");

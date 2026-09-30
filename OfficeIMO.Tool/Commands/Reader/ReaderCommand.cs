@@ -96,7 +96,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
                 readerOptions,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         } else {
-            sourcePath = Path.GetFullPath(options.InputPath!);
+            sourcePath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(options.InputPath!));
             bool directoryBundle = Directory.Exists(sourcePath) && reader.GetCapabilities().Any(capability =>
                 capability.SupportsDirectoryBundle && capability.Extensions.Contains(
                     Path.GetExtension(sourcePath), StringComparer.OrdinalIgnoreCase));

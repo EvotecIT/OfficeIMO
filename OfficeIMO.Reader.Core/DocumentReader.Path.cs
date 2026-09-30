@@ -215,10 +215,8 @@ internal static partial class DocumentReaderEngine {
                 document = BuildSourceDocument(source, false, null,
                     new[] { "Skipped before parsing because MaxTotalBytes would be exceeded." });
             } else {
-                ReaderOptions readOptions = NormalizeOptions(options);
-                if (effectiveFolder.MaxTotalBytes.HasValue) {
-                    readOptions.MaxInputBytes = Math.Min(readOptions.MaxInputBytes ?? long.MaxValue, remainingBytes);
-                }
+                ReaderOptions readOptions = effectiveFolder.MaxTotalBytes.HasValue
+                    ? ApplyFolderInputBudget(file, options, remainingBytes) : NormalizeOptions(options);
                 document = remainingBytes == 0
                     ? BuildSourceDocument(source, false, null, new[] { "Skipped before parsing because MaxTotalBytes is exhausted." })
                     : ReadSingleDocument(file, readOptions, cancellationToken);
@@ -268,7 +266,7 @@ internal static partial class DocumentReaderEngine {
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {
         if (IsRegisteredDirectoryBundle(folderPath)) {
             cancellationToken.ThrowIfCancellationRequested();
-            yield return folderPath;
+            yield return NormalizeDirectoryPackagePath(folderPath);
             yield break;
         }
         var directories = new Queue<string>();

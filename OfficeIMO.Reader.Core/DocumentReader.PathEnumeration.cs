@@ -32,7 +32,7 @@ internal static partial class DocumentReaderEngine {
                             cancellationToken, out long length)) continue;
                     totalBytes += length;
                 }
-                yield return path;
+                yield return NormalizeDirectoryPackagePath(path);
                 continue;
             }
 
@@ -70,7 +70,7 @@ internal static partial class DocumentReaderEngine {
             if (maximumBytes <= 0) return false;
             try {
                 OfficeDocumentReadResult result = ReadDirectoryBundle(path,
-                    new ReaderOptions { MaxInputBytes = maximumBytes, ComputeHashes = false }, cancellationToken);
+                    ApplyFolderInputBudget(path, new ReaderOptions { ComputeHashes = false }, maximumBytes), cancellationToken);
                 length = result.Source.LengthBytes!.Value;
                 return true;
             } catch (OperationCanceledException) {

@@ -15,7 +15,7 @@ public sealed class ReaderDirectoryBundleCommandTests {
         string bundle = ExtractBundle(temporary.Path);
         using var output = new StringWriter();
         using var error = new StringWriter();
-        int exitCode = await ReaderCommand.RunAsync(new[] { "read", bundle, "--format", "json" },
+        int exitCode = await ReaderCommand.RunAsync(new[] { "read", bundle + Path.DirectorySeparatorChar, "--format", "json" },
             Stream.Null, output, error);
         Assert.Equal((int)OfficeImoToolExitCode.Success, exitCode);
         OfficeDocumentReadResult document = OfficeDocumentReadResultJson.Deserialize(output.ToString());
