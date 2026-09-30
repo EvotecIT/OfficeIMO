@@ -3462,7 +3462,7 @@
         "./_site/api/zip/xrefmap.json"
       ],
       "preferLast": true,
-      "maxReferences": 90000,
+      "maxReferences": 125000,
       "maxDuplicates": 100
     },
     {
