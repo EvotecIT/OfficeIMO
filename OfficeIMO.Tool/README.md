@@ -39,6 +39,10 @@ statuses remain `NotRun` unless standards validation is explicitly configured.
 officeimo invoice inspect invoice.xml
 officeimo invoice validate invoice.xml
 
+# Replace existing source headers while retaining XML extensions.
+officeimo invoice edit invoice.xml --output invoice.edited.xml `
+    --number INV-002 --issue-date 2026-09-30 --buyer-reference BUYER-002
+
 # Convert with an explicit, pinned target contract.
 officeimo invoice convert invoice.xml --output invoice.ubl.xml `
     --release En16931_1_3_16 --syntax Ubl --profile En16931
@@ -60,9 +64,18 @@ officeimo invoice validate invoice.xml --standards-release En16931_1_3_16 `
 
 `render` creates a separate presentation PDF; `hybrid` embeds the captured CII XML.
 An explicit target is required for conversion and rendering. Unmapped source data
-and unsupported target fields block writing. `--allow-profile-loss` permits only
+and unsupported target fields block those operations. `--allow-profile-loss` permits only
 the documented reductions of lower Factur-X profiles and returns warnings for
 them. XML standards validation does not certify the PDF's archival conformance.
+
+`edit` accepts `--number`, `--issue-date`, `--due-date`, `--buyer-reference` and
+`--payment-reference`; dates use `yyyy-MM-dd`. It replaces existing unique
+plaintext fields and retains other XML content. Signed XML and unsupported date
+representations are blocked. It retains the input syntax/profile and accepts no
+target options. A successful edit can report model or mapping errors; inspect
+those JSON findings and request standards validation when required. Requested
+standards stages must pass on exact edited bytes before publication. Use
+`batch edit` to apply the same captured replacements to several inputs.
 
 File outputs are created atomically and never overwrite existing files. Batch
 writing uses `--output-directory`, naming each output `<input-stem>.invoice.xml`

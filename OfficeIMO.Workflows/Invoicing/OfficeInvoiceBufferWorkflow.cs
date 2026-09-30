@@ -18,6 +18,8 @@ public static partial class OfficeInvoiceBufferWorkflow {
 
     private static async Task<OfficeInvoiceWorkflowResult> ProcessAsync(OfficeInvoiceWorkflowRequest request,
         InvoiceValidator? validator, CancellationToken token) {
+        if (request.Operation == OfficeInvoiceWorkflowOperation.EditSource)
+            return await ProcessSourceEditAsync(request, validator, token).ConfigureAwait(false);
         string hash = Convert.ToHexString(SHA256.HashData(request.Xml));
         var diagnostics = new OperationDiagnostics();
         InvoiceReadResult? source = null;

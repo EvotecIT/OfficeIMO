@@ -16,6 +16,7 @@ internal sealed class InvoiceArguments {
     internal InvoiceSpecificationRelease? StandardsRelease;
     internal InvoicePdfLayoutOptions Layout = new();
     internal PdfOptions? Pdf;
+    internal InvoiceSourceEdits? SourceEdits;
 
     internal static InvoiceArguments Parse(string[] args) {
         var result = new InvoiceArguments();
@@ -29,6 +30,7 @@ internal sealed class InvoiceArguments {
             "convert" => OfficeInvoiceWorkflowOperation.Convert,
             "render" => OfficeInvoiceWorkflowOperation.RenderPresentationPdf,
             "hybrid" => OfficeInvoiceWorkflowOperation.RenderHybridPdf,
+            "edit" => OfficeInvoiceWorkflowOperation.EditSource,
             _ => throw new ArgumentException("Unknown invoice operation.")
         };
         bool projection = false;
@@ -43,7 +45,8 @@ internal sealed class InvoiceArguments {
             if (!argument.StartsWith("--", StringComparison.Ordinal)) { result.Inputs.Add(argument); continue; }
             if (argument is not ("--output" or "--output-directory" or "--release" or "--syntax" or "--profile" or
                 "--standards-release" or "--rule-bundle" or "--peppol-rules" or "--facturx-rules" or "--saxon-jar" or "--java" or
-                "--language" or "--font" or "--columns" or "--unit-display" or "--payment-display" or "--max-items" or "--max-input-bytes" or "--max-output-bytes"))
+                "--language" or "--font" or "--columns" or "--unit-display" or "--payment-display" or "--max-items" or "--max-input-bytes" or "--max-output-bytes" or
+                "--number" or "--issue-date" or "--due-date" or "--buyer-reference" or "--payment-reference"))
                 throw new ArgumentException("Unknown invoice option: " + argument);
             if (++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal)) throw new ArgumentException("Missing value for " + argument);
             if (!result.Options.TryAdd(argument, args[index])) throw new ArgumentException("Duplicate invoice option: " + argument);
@@ -54,6 +57,13 @@ internal sealed class InvoiceArguments {
             ParseEnum<InvoiceSyntax>(result.Required("--syntax")), ParseEnum<InvoiceProfile>(result.Required("--profile")),
             projection ? InvoiceProjectionPolicy.AllowProfileDefinedDataLoss : InvoiceProjectionPolicy.RejectDataLoss);
         else if (projection) throw new ArgumentException("Profile loss requires an explicit target.");
+        bool hasEdits = result.Options.Keys.Any(k => k is "--number" or "--issue-date" or "--due-date" or "--buyer-reference" or "--payment-reference");
+        if (result.Operation == OfficeInvoiceWorkflowOperation.EditSource) {
+            if (target || projection) throw new ArgumentException("Source editing retains its original syntax/profile and does not accept target options.");
+            if (!hasEdits) throw new ArgumentException("Source editing requires at least one field replacement.");
+            result.SourceEdits = new(result.Get("--number"), ParseDate(result.Get("--issue-date")), ParseDate(result.Get("--due-date")),
+                result.Get("--buyer-reference"), result.Get("--payment-reference"));
+        } else if (hasEdits) throw new ArgumentException("Source-field replacements require edit.");
         if (result.Options.TryGetValue("--standards-release", out string? release)) result.StandardsRelease = ParseEnum<InvoiceSpecificationRelease>(release);
         if (!result.StandardsRelease.HasValue && result.Options.Keys.Any(k => k is "--rule-bundle" or "--peppol-rules" or "--facturx-rules" or "--saxon-jar" or "--java"))
             throw new ArgumentException("Standards artifacts require --standards-release.");
@@ -90,13 +100,15 @@ internal sealed class InvoiceArguments {
         return result;
     }
     internal IEnumerable<OfficeInvoiceFileWorkflowRequest> Requests() {
-        bool writes = Operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderHybridPdf or OfficeInvoiceWorkflowOperation.RenderPresentationPdf;
+        bool writes = Operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderHybridPdf or OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.EditSource;
         if (!writes && Options.Keys.Any(k => k is "--output" or "--output-directory")) throw new ArgumentException("Inspection and validation do not create files.");
         foreach (string input in Inputs) {
             string? output = writes ? Batch
-                ? Path.Combine(Required("--output-directory"), Path.GetFileNameWithoutExtension(input) + ".invoice" + (Operation == OfficeInvoiceWorkflowOperation.Convert ? ".xml" : ".pdf"))
+                ? Path.Combine(Required("--output-directory"), Path.GetFileNameWithoutExtension(input) + ".invoice" + (Operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.EditSource ? ".xml" : ".pdf"))
                 : Required("--output") : null;
-            yield return new(input, Operation, output, Target, StandardsRelease, Layout, Pdf);
+            yield return Operation == OfficeInvoiceWorkflowOperation.EditSource
+                ? OfficeInvoiceFileWorkflowRequest.ForSourceEdit(input, output!, SourceEdits!, StandardsRelease)
+                : new(input, Operation, output, Target, StandardsRelease, Layout, Pdf);
         }
     }
     internal InvoiceValidator? Validator() {
@@ -107,6 +119,9 @@ internal sealed class InvoiceArguments {
     }
     private string Required(string key) => Get(key) ?? throw new ArgumentException("Required invoice option: " + key);
     private string? Get(string key) => Options.GetValueOrDefault(key);
+    private static DateTime? ParseDate(string? value) => value == null ? null :
+        DateTime.TryParseExact(value, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.None, out DateTime date) ? date : throw new ArgumentException("Invoice dates require yyyy-MM-dd.");
     private static T ParseEnum<T>(string value) where T : struct, Enum {
         value = value.Trim();
         return value.Length > 0 && !value.Contains(',') && Enum.TryParse<T>(value, true, out T parsed) &&

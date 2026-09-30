@@ -22,11 +22,11 @@ public sealed class OfficeInvoiceWorkflowResult {
     public string InputSha256 { get; }
     /// <summary>Length of captured input bytes.</summary>
     public int InputByteLength { get; }
-    /// <summary>True when the selected operation completed. Inspection completion does not mean model or standards validity.</summary>
+    /// <summary>True when the selected operation completed. Inspection and source-edit completion do not mean model validity. Requested output standards checks must pass.</summary>
     public bool Succeeded { get; }
-    /// <summary>Parsed source and its mapping findings. Its editable model belongs to this result, not the request or caller.</summary>
+    /// <summary>Parsed input, or edited XML for EditSource, and its mapping findings. Null when a preservation edit retains XML that the semantic parser cannot read. Its editable model belongs to this result.</summary>
     public InvoiceReadResult? Source { get; }
-    /// <summary>Semantic validation of the source, including recognized aggregate-only profiles.</summary>
+    /// <summary>Semantic validation of the processed source, including recognized aggregate-only profiles. Null when its semantic model is unavailable.</summary>
     public InvoiceModelValidationResult? ModelValidation { get; }
     /// <summary>Bounded model, mapping, target and execution findings.</summary>
     public IReadOnlyList<InvoiceDiagnostic> Diagnostics { get; }

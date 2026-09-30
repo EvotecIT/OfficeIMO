@@ -15,7 +15,9 @@ public enum OfficeInvoiceWorkflowOperation {
     /// <summary>Render a separate presentation PDF from a qualified CII projection.</summary>
     RenderPresentationPdf,
     /// <summary>Render a hybrid PDF containing the same captured CII XML as its visible invoice.</summary>
-    RenderHybridPdf
+    RenderHybridPdf,
+    /// <summary>Replace selected existing source headers while retaining unmapped XML content.</summary>
+    EditSource
 }
 
 /// <summary>Captured memory-only request. The workflow never follows invoice URLs or writes files.</summary>
@@ -27,19 +29,33 @@ public sealed class OfficeInvoiceWorkflowRequest {
     /// <summary>Captures bounded XML and independent rendering settings. Conversion and rendering require an explicit target; standards validation requires an explicit release.</summary>
     public OfficeInvoiceWorkflowRequest(byte[] xml, OfficeInvoiceWorkflowOperation operation = OfficeInvoiceWorkflowOperation.Inspect,
         InvoiceXmlOptions? target = null, InvoiceSpecificationRelease? validationRelease = null,
-        InvoicePdfLayoutOptions? layout = null, PdfOptions? pdfOptions = null, string? inputName = null) {
+        InvoicePdfLayoutOptions? layout = null, PdfOptions? pdfOptions = null, string? inputName = null)
+        : this(xml, operation, target, validationRelease, layout, pdfOptions, inputName, null) { }
+
+    private OfficeInvoiceWorkflowRequest(byte[] xml, OfficeInvoiceWorkflowOperation operation,
+        InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease,
+        InvoicePdfLayoutOptions? layout, PdfOptions? pdfOptions, string? inputName, InvoiceSourceEdits? sourceEdits) {
         ArgumentNullException.ThrowIfNull(xml);
         if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new ArgumentException("Invoice XML must contain between one byte and 16 MiB.", nameof(xml));
-        ValidateContract(operation, target, validationRelease);
+        ValidateContract(operation, target, validationRelease, sourceEdits);
         if (inputName?.Length > 4096) throw new ArgumentException("Input name exceeds 4,096 characters.", nameof(inputName));
         _xml = (byte[])xml.Clone();
         _layout = (layout ?? new InvoicePdfLayoutOptions()).Clone();
         _pdfOptions = pdfOptions?.Clone();
-        Operation = operation; Target = target; ValidationRelease = validationRelease; InputName = inputName;
+        Operation = operation; Target = target; ValidationRelease = validationRelease; InputName = inputName; SourceEdits = sourceEdits;
     }
-    internal static void ValidateContract(OfficeInvoiceWorkflowOperation operation, InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease) {
+    /// <summary>Captures preservation-aware header replacements. Completion does not establish model validity; requested standards checks validate exact edited XML and must pass before output is returned.</summary>
+    public static OfficeInvoiceWorkflowRequest ForSourceEdit(byte[] xml, InvoiceSourceEdits edits,
+        InvoiceSpecificationRelease? validationRelease = null, string? inputName = null) {
+        ArgumentNullException.ThrowIfNull(edits);
+        return new(xml, OfficeInvoiceWorkflowOperation.EditSource, null, validationRelease, null, null, inputName, edits);
+    }
+
+    internal static void ValidateContract(OfficeInvoiceWorkflowOperation operation, InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease, InvoiceSourceEdits? sourceEdits = null) {
         if (!Enum.IsDefined(operation)) throw new ArgumentOutOfRangeException(nameof(operation));
+        if (operation == OfficeInvoiceWorkflowOperation.EditSource && (sourceEdits == null || target != null))
+            throw new ArgumentException("Source editing requires captured edits and retains its original syntax/profile. Use ForSourceEdit.", nameof(sourceEdits));
         if (operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.RenderHybridPdf && target == null)
             throw new ArgumentException("Writing invoice output requires an explicit target contract.", nameof(target));
         if (operation is OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.RenderHybridPdf && target!.Syntax != InvoiceSyntax.Cii)
@@ -55,6 +71,8 @@ public sealed class OfficeInvoiceWorkflowRequest {
     public InvoiceXmlOptions? Target { get; }
     /// <summary>Explicit standards release. Null requests model checks without standards validation.</summary>
     public InvoiceSpecificationRelease? ValidationRelease { get; }
+    /// <summary>Immutable source replacements, supplied only by ForSourceEdit.</summary>
+    public InvoiceSourceEdits? SourceEdits { get; }
     /// <summary>Caller-supplied name for batch identification; never interpreted as a path.</summary>
     public string? InputName { get; }
     /// <summary>Length of captured input bytes.</summary>

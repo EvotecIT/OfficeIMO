@@ -43,6 +43,20 @@ the fonts your content needs and `InvoicePdfLayoutOptions` for appearance and
 resource limits. The returned output XML is the same captured invoice used for
 the visible PDF; hybrid output embeds those exact bytes.
 
+For bounded header replacements that retain XML extensions, create a request with
+`OfficeInvoiceWorkflowRequest.ForSourceEdit(xml, new InvoiceSourceEdits(number:
+"INV-002"))`. The file equivalent is
+`OfficeInvoiceFileWorkflowRequest.ForSourceEdit("invoice.xml", "edited.xml",
+edits)`, which uses the same output preflight and atomic publication contract.
+`EditSource` retains the original syntax/profile and accepts no conversion target.
+Its `Succeeded` status means every requested edit completed; model and mapping
+findings can still contain errors. `Source` and `ModelValidation` describe the
+edited XML, or remain unavailable when its retained data exceeds the semantic
+mapper. Passing an explicit validation release and validator requires the exact
+edited XML to pass schema and business rules before any artifact is returned.
+See the [source-editing contract](../OfficeIMO.Invoicing/README.md#read-and-edit-safely)
+for supported fields, representations and bounds.
+
 Standards validation requires both `validationRelease` and a configured
 `InvoiceValidator` supplied to `RunAsync`. A requested validator that is missing,
 or a schema/business-rule stage that does not pass, blocks output. Otherwise

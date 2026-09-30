@@ -19,14 +19,25 @@ public sealed class OfficeInvoiceFileWorkflowRequest {
     /// <summary>Captures explicit source, operation, target and rendering settings. Writing requires an output path.</summary>
     public OfficeInvoiceFileWorkflowRequest(string inputPath, OfficeInvoiceWorkflowOperation operation = OfficeInvoiceWorkflowOperation.Inspect,
         string? outputPath = null, InvoiceXmlOptions? target = null, InvoiceSpecificationRelease? validationRelease = null,
-        InvoicePdfLayoutOptions? layout = null, PdfOptions? pdfOptions = null) {
+        InvoicePdfLayoutOptions? layout = null, PdfOptions? pdfOptions = null)
+        : this(inputPath, operation, outputPath, target, validationRelease, layout, pdfOptions, null) { }
+
+    private OfficeInvoiceFileWorkflowRequest(string inputPath, OfficeInvoiceWorkflowOperation operation,
+        string? outputPath, InvoiceXmlOptions? target, InvoiceSpecificationRelease? validationRelease,
+        InvoicePdfLayoutOptions? layout, PdfOptions? pdfOptions, InvoiceSourceEdits? sourceEdits) {
         InputPath = Path.GetFullPath(inputPath);
         OutputPath = outputPath == null ? null : Path.GetFullPath(outputPath);
-        OfficeInvoiceWorkflowRequest.ValidateContract(operation, target, validationRelease);
-        bool writes = operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderHybridPdf or OfficeInvoiceWorkflowOperation.RenderPresentationPdf;
+        OfficeInvoiceWorkflowRequest.ValidateContract(operation, target, validationRelease, sourceEdits);
+        bool writes = operation is OfficeInvoiceWorkflowOperation.Convert or OfficeInvoiceWorkflowOperation.RenderHybridPdf or OfficeInvoiceWorkflowOperation.RenderPresentationPdf or OfficeInvoiceWorkflowOperation.EditSource;
         if (writes != (OutputPath != null)) throw new ArgumentException("Only writing operations require and accept an output path.", nameof(outputPath));
-        Operation = operation; Target = target; ValidationRelease = validationRelease;
+        Operation = operation; Target = target; ValidationRelease = validationRelease; SourceEdits = sourceEdits;
         Layout = (layout ?? new()).Clone(); PdfOptions = pdfOptions?.Clone();
+    }
+    /// <summary>Captures source edits for publication to a new XML file. Source syntax/profile and unmapped XML are retained.</summary>
+    public static OfficeInvoiceFileWorkflowRequest ForSourceEdit(string inputPath, string outputPath, InvoiceSourceEdits edits,
+        InvoiceSpecificationRelease? validationRelease = null) {
+        ArgumentNullException.ThrowIfNull(edits);
+        return new(inputPath, OfficeInvoiceWorkflowOperation.EditSource, outputPath, null, validationRelease, null, null, edits);
     }
     /// <summary>Absolute input path.</summary>
     public string InputPath { get; }
@@ -38,6 +49,8 @@ public sealed class OfficeInvoiceFileWorkflowRequest {
     public InvoiceXmlOptions? Target { get; }
     /// <summary>Requested exact-byte standards release.</summary>
     public InvoiceSpecificationRelease? ValidationRelease { get; }
+    /// <summary>Immutable replacements supplied by ForSourceEdit.</summary>
+    public InvoiceSourceEdits? SourceEdits { get; }
 }
 
 /// <summary>Invoice execution and local-file publication evidence.</summary>
@@ -93,7 +106,9 @@ public static class OfficeInvoiceFileWorkflow {
             await stream.ReadExactlyAsync(xml.AsMemory(), cancellationToken).ConfigureAwait(false);
             if (stream.ReadByte() != -1) throw new InvalidDataException("Invoice input changed while being captured.");
             inputBytes += length;
-            memory.Add(new(xml, request.Operation, request.Target, request.ValidationRelease, request.Layout, request.PdfOptions, request.InputPath));
+            memory.Add(request.Operation == OfficeInvoiceWorkflowOperation.EditSource
+                ? OfficeInvoiceWorkflowRequest.ForSourceEdit(xml, request.SourceEdits!, request.ValidationRelease, request.InputPath)
+                : new(xml, request.Operation, request.Target, request.ValidationRelease, request.Layout, request.PdfOptions, request.InputPath));
         }
         var executions = await OfficeInvoiceBufferWorkflow.RunBatchAsync(memory, limits, validator, cancellationToken).ConfigureAwait(false);
         var results = new List<OfficeInvoiceFileWorkflowResult>();

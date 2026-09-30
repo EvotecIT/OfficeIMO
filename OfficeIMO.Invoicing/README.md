@@ -137,6 +137,39 @@ reported. Rewriting blocks by default when it would discard them. The explicit
 unknown extensions. `GetOriginalBytes()` always returns the original bytes,
 even after model edits.
 
+For selected header changes on a source with unmapped extensions, use the
+preservation editor:
+
+```csharp
+var source = InvoiceSourceDocument.Load("invoice.xml");
+var result = InvoiceSourceEditor.Apply(source, new InvoiceSourceEdits(
+    number: "INV-002",
+    issueDate: new DateTime(2026, 9, 30),
+    buyerReference: "BUYER-002"));
+if (result.Succeeded)
+    File.WriteAllBytes("edited.xml", result.Document!.ToBytes());
+foreach (var diagnostic in result.Diagnostics)
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+```
+
+`InvoiceSourceEdits` replaces an existing number, issue date, due date, buyer
+reference or payment reference. Each field must have one unambiguous plaintext
+location. All replacements are checked before any mutation; a failed plan returns
+no edited document. Number changes retain payment references unless a replacement
+is supplied separately. Signed XML, structured or annotated fields, unsupported
+date representations and UBL credit-note due dates are rejected.
+
+Unedited sources return their exact original bytes. Editing emits UTF-8 XML and
+retains other elements, attributes, comments, processing instructions and text,
+including carriage returns; prefix placement, CDATA spelling and declaration
+formatting can change. Input and output are bounded to 16 MiB, depth 128,
+100,000 XML reader nodes and 200,000 attributes. Text replacements are limited to
+4,096 characters. Dates accept existing CII format 102 or plain UBL `yyyy-MM-dd`.
+Completion establishes that the requested edits were applied, so validate the
+resulting business data and exact XML against the intended standards release.
+The [shared workflows](../OfficeIMO.Workflows/README.md#invoice-inspection-conversion-and-rendering)
+compose these checks and safe file publication.
+
 Duplicate invoice-currency or accounting-currency VAT totals are reported as
 unmapped data. UBL parsing retains the first invoice-currency total that includes
 a VAT breakdown, keeping that group's amount and breakdown together. For CII

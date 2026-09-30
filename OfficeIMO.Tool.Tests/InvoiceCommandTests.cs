@@ -11,6 +11,56 @@ public sealed class InvoiceCommandTests {
     private static readonly string[] Target = ["--release", "En16931_1_3_16", "--syntax", "Ubl", "--profile", "En16931"];
 
     [Fact]
+    public async Task SourceEditPublishesPreservedXmlAndReportsBlockedSignedInput() {
+        using var scope = new Files(); string input = scope.Invoice("input.xml"), output = scope.Path("edited.xml");
+        byte[] original = File.ReadAllBytes(input);
+        var result = await Run(["invoice", "edit", input, "--output", output, "--number", "EDITED-123", "--issue-date", "2028-02-29"]);
+        Assert.Equal(0, result.Code);
+        Assert.Equal(original, File.ReadAllBytes(input));
+        var edited = InvoiceSourceDocument.Load(output);
+        Assert.Equal("EDITED-123", edited.Number); Assert.Equal(new DateTime(2028, 2, 29), edited.IssueDate);
+        Assert.Equal(InvoiceSourceDocument.Load(input).PaymentReference, edited.PaymentReference);
+        using var json = JsonDocument.Parse(result.Output);
+        Assert.Equal("EditSource", json.RootElement.GetProperty("operation").GetString());
+        Assert.True(json.RootElement.GetProperty("published").GetBoolean());
+        var signed = System.Xml.Linq.XDocument.Parse(Encoding.UTF8.GetString(original));
+        signed.Root!.Add(new System.Xml.Linq.XElement("{http://www.w3.org/2000/09/xmldsig#}Signature"));
+        File.WriteAllText(input, signed.ToString());
+        string blockedOutput = scope.Path("blocked.xml");
+        var blocked = await Run(["invoice", "edit", input, "--output", blockedOutput, "--number", "BLOCKED"]);
+        Assert.Equal(1, blocked.Code); Assert.False(File.Exists(blockedOutput));
+        using var blockedJson = JsonDocument.Parse(blocked.Output);
+        Assert.Contains(blockedJson.RootElement.GetProperty("diagnostics").EnumerateArray(), d => d.GetProperty("location").GetString() == "Source.Signature");
+    }
+
+    [Fact]
+    public async Task BatchSourceEditCreatesXmlOutputsUsingSharedFailurePolicy() {
+        using var scope = new Files(); string first = scope.Invoice("first.xml"), second = scope.Invoice("second.xml");
+        string outputRoot = scope.Path("outputs");
+        var result = await Run(["invoice", "batch", "edit", first, second, "--output-directory", outputRoot, "--buyer-reference", "NEW-BUYER"]);
+        Assert.Equal(0, result.Code);
+        Assert.Equal("NEW-BUYER", InvoiceSourceDocument.Load(System.IO.Path.Combine(outputRoot, "first.invoice.xml")).BuyerReference);
+        Assert.Equal("NEW-BUYER", InvoiceSourceDocument.Load(System.IO.Path.Combine(outputRoot, "second.invoice.xml")).BuyerReference);
+        Assert.Equal(2, Directory.GetFiles(outputRoot).Length);
+    }
+
+    [Theory]
+    [InlineData("--issue-date", "2028-02-30")]
+    [InlineData("--number", "invalid\0number")]
+    [InlineData("--number", "")]
+    [InlineData("--syntax", "Ubl")]
+    public async Task InvalidSourceEditOptionsFailBeforeInputCapture(string option, string value) {
+        var result = await Run(["invoice", "edit", "absent.xml", "--output", "absent-output.xml", option, value]);
+        Assert.Equal(2, result.Code); Assert.Equal(string.Empty, result.Output);
+    }
+
+    [Fact]
+    public async Task MissingEditsAndEditsOnOtherOperationsAreUsageErrors() {
+        Assert.Equal(2, (await Run(["invoice", "edit", "absent.xml", "--output", "absent-output.xml"])).Code);
+        Assert.Equal(2, (await Run(["invoice", "inspect", "absent.xml", "--number", "EDITED"])).Code);
+    }
+
+    [Fact]
     public async Task InspectionJsonSeparatesCompletedInspectionFromUnrunStandards() {
         using var scope = new Files(); string input = scope.Invoice("input.xml");
         var result = await Run(["invoice", "inspect", input]);

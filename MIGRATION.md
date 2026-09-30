@@ -31,6 +31,14 @@ VAT-breakdown validation diagnostics identify the exact `DeclaredTaxes[index]`
 occurrence. Update any application routing that matched the former collection-only
 paths.
 
+`OfficeInvoiceWorkflowOperation` includes `EditSource`. Update exhaustive
+operation switches to handle it. For this operation, `Source` and
+`ModelValidation` describe the edited XML, and `Succeeded` means that the
+requested replacements completed. Model or mapping errors can remain in the
+report; requested standards validation must pass before output is returned.
+Create captured edit requests through `ForSourceEdit` on the memory or file
+request type.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds
