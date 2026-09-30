@@ -17,18 +17,20 @@ public sealed class CsvIncrementalCancellationTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     public async Task CancelledAdvanceHidesCurrentRowAndEndsReader(bool parallel, bool lifetimeCancellation) {
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Name\nAlpha\nBeta\n"));
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n"));
         using var lifetime = new CancellationTokenSource();
         using var operation = new CancellationTokenSource();
         using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(input,
             cancellationToken: lifetime.Token,
             readerOptions: new CsvDataReaderOptions {
+                Schema = CreateSchema(),
                 ParallelProcessing = parallel ? new CsvDataReaderParallelOptions {
                     BatchSize = 1, MaxDegreeOfParallelism = 2
                 } : null
             });
         Assert.True(await reader.ReadAsync());
-        Assert.Equal("Alpha", reader.GetString(0));
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Alpha", reader.GetString(1));
         if (lifetimeCancellation) lifetime.Cancel(); else operation.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => reader.ReadAsync(operation.Token));
         Assert.Throws<InvalidOperationException>(() => reader.GetString(0));
@@ -40,11 +42,12 @@ public sealed class CsvIncrementalCancellationTests {
     [InlineData(false)]
     [InlineData(true)]
     public async Task SynchronousAdvanceAfterLifetimeCancellationEndsReader(bool parallel) {
-        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Name\nAlpha\nBeta\n"));
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n"));
         using var lifetime = new CancellationTokenSource();
         using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(input,
             cancellationToken: lifetime.Token,
             readerOptions: new CsvDataReaderOptions {
+                Schema = CreateSchema(),
                 ParallelProcessing = parallel ? new CsvDataReaderParallelOptions {
                     BatchSize = 1, MaxDegreeOfParallelism = 2
                 } : null
@@ -55,5 +58,8 @@ public sealed class CsvIncrementalCancellationTests {
         Assert.Throws<InvalidOperationException>(() => reader.GetString(0));
         Assert.Throws<InvalidOperationException>(() => reader.Read());
     }
+
+    private static CsvSchema CreateSchema() => new CsvSchemaBuilder()
+        .Column("Id").AsInt32().Column("Name").AsString().Done().Build();
 }
 #endif

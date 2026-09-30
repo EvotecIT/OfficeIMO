@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
             internal OriginalDynamicOwnerCaches(FixedArrayOwner owner) => Owner = owner;
         }
 
-        private void TryCaptureOriginalDynamicSpillCaches() {
+        private void TryCaptureOriginalDynamicSpillCaches(FixedArraySheetIndex? sheetIndex = null) {
             DynamicSpillOwnership ownership = SpillOwnership;
             if (ownership.OriginalScanAttempted) return;
             ownership.OriginalScanAttempted = true;
@@ -86,11 +86,13 @@ namespace OfficeIMO.Excel {
             if (currentFingerprint == null || !currentFingerprint.SequenceEqual(ownership.OriginalFingerprint))
                 return;
 
+            sheetIndex ??= GetFixedArraySheetIndex();
+
             var anchors = new Dictionary<long, OriginalDynamicOwnerCaches>();
             var children = new Dictionary<long, OriginalDynamicOwnerCaches>();
             var states = new List<OriginalDynamicOwnerCaches>();
             long remainingCells = MaxResolvedFormulaRangeCells;
-            foreach (FixedArrayOwner owner in GetFixedArraySheetIndex().DynamicOwners) {
+            foreach (FixedArrayOwner owner in sheetIndex.DynamicOwners) {
                 long count = (long)(owner.Bottom - owner.Top + 1) * (owner.Right - owner.Left + 1);
                 if (ownership.WrittenOwners.Contains(DynamicCellKey(owner.Top, owner.Left))
                     || count < 1 || count > remainingCells) continue;
@@ -113,7 +115,7 @@ namespace OfficeIMO.Excel {
                 if (state.Valid && state.AnchorSeen)
                     foreach (var entry in state.Cells)
                         if (!ownership.Cells.ContainsKey(entry.Key)) {
-                            GetFixedArraySheetIndex().Cells.TryGetValue(entry.Key, out entry.Value.SourceCell);
+                            sheetIndex.Cells.TryGetValue(entry.Key, out entry.Value.SourceCell);
                             ownership.Cells.Add(entry.Key, entry.Value);
                         }
         }

@@ -25,7 +25,9 @@ var csv = await CsvDocument.LoadAsync(stream, cancellationToken: cancellationTok
 using DbDataReader reader = csv.CreateDataReader();
 ```
 
-`LoadAsync(Stream, ...)` retains its existing stream-position restoration behavior.
+`LoadAsync(Stream, ...)` reads a seekable stream from its beginning and restores
+its original position afterward. To snapshot CSV after a non-CSV prefix, pass a
+bounded stream view or copy the remaining CSV bytes to a separate stream.
 
 `CsvDocument.SaveAsync(Stream, ...)` writes records incrementally instead of
 serializing the complete CSV before the first write. If formatting, cancellation,

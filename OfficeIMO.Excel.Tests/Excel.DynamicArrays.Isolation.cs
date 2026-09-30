@@ -57,6 +57,11 @@ namespace OfficeIMO.Tests {
             int childColumn = anchorColumn + 1;
             Assert.Throws<InvalidOperationException>(() => sheet.CellValue(2, childColumn, 99));
             sheet.CellValue(2, deleting ? 8 : 7, 99);
+            sheet.CellValue(1, 1, 1);
+            document.RecalculateSupportedFormulas();
+            Assert.True(sheet.TryGetCellText(1, anchorColumn, out var shrunk));
+            Assert.Equal("1", shrunk);
+            Assert.False(sheet.TryGetCellText(2, childColumn, out _));
             sheet.CellValue(1, 1, 3);
             document.RecalculateSupportedFormulas();
             Assert.True(sheet.TryGetCellText(3, childColumn, out var grown));
@@ -80,12 +85,64 @@ namespace OfficeIMO.Tests {
                 throw new InvalidOperationException("Rollback probe");
             }, new ExcelMutationPlanOptions(), CancellationToken.None));
             Assert.Throws<InvalidOperationException>(() => sheet.CellValue(2, 8, 99));
-            sheet.CellValue(2, 9, 99);
-            sheet.CellValue(1, 1, 3);
+            sheet.InsertColumns(3);
+            sheet.CellValue(1, 1, 1);
             document.RecalculateSupportedFormulas();
-            Assert.True(sheet.TryGetCellText(3, 8, out var grown));
-            Assert.Equal("6", grown);
+            Assert.True(sheet.TryGetCellText(1, 8, out var anchor));
+            Assert.Equal("1", anchor);
+            Assert.False(sheet.TryGetCellText(2, 9, out _));
             Assert.Empty(document.ValidateOpenXml());
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void DynamicArrays_LoadedSpillRetainsOwnershipAcrossWorksheetMutations(bool unrelatedSheet) {
+            using var stream = new System.IO.MemoryStream();
+            using (var original = ExcelDocument.Create()) {
+                var sheet = original.AddWorksheet("Data");
+                original.AddWorksheet("Other");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                original.RecalculateSupportedFormulas();
+                original.Save(stream);
+            }
+            stream.Position = 0;
+            using var document = ExcelDocument.Load(stream);
+            var data = document["Data"];
+            (unrelatedSheet ? document["Other"] : data).InsertColumns(3);
+            data.CellValue(1, 1, 1);
+            document.RecalculateSupportedFormulas();
+            int anchorColumn = unrelatedSheet ? 7 : 8;
+            Assert.True(data.TryGetCellText(1, anchorColumn, out var anchor));
+            Assert.Equal("1", anchor);
+            Assert.False(data.TryGetCellText(2, anchorColumn + 1, out _));
+            Assert.Empty(document.ValidateOpenXml());
+        }
+
+        [Fact]
+        public void DynamicArrays_ColumnMutationDoesNotAdoptExternallyChangedLoadedChild() {
+            using var stream = new System.IO.MemoryStream();
+            using (var original = ExcelDocument.Create()) {
+                var sheet = original.AddWorksheet("Data");
+                sheet.CellValue(1, 1, 2);
+                sheet.SetDynamicArrayFormula("G1", "SEQUENCE(A1,2)");
+                original.RecalculateSupportedFormulas();
+                original.Save(stream);
+            }
+            stream.Position = 0;
+            using var document = ExcelDocument.Load(stream);
+            var data = document["Data"];
+            var child = Assert.Single(data.WorksheetPart.Worksheet.Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>(),
+                cell => cell.CellReference?.Value == "H2");
+            child.CellValue = new DocumentFormat.OpenXml.Spreadsheet.CellValue("99");
+            data.InsertColumns(3);
+            data.CellValue(1, 1, 1);
+            document.RecalculateSupportedFormulas();
+            Assert.True(data.TryGetCachedFormulaValue(1, 8, out var error));
+            Assert.Equal("#SPILL!", error);
+            Assert.True(data.TryGetCellText(2, 9, out var retained));
+            Assert.Equal("99", retained);
         }
 
     }

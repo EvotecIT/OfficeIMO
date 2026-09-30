@@ -609,35 +609,28 @@ public sealed class CsvDataReaderApiTests {
 
     [Fact]
     public void CreateDataReader_CancellationInterruptsSchemaInference() {
-        var csv = new StringBuilder("Id,Value\n");
-        const int rowCount = 250_000;
-        for (int row = 0; row < rowCount; row++) {
-            csv.Append(row).Append(',').Append("value-").Append(row).Append('\n');
-        }
-        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Value\n1,Alpha\n2,Beta\n"));
         CsvDocument document = CsvDocument.Load(
             stream,
             new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
         using var cancellation = new CancellationTokenSource();
-        using var startCancellation = new ManualResetEventSlim();
-        var cancellationThread = new Thread(() => {
-            startCancellation.Wait();
-            Thread.Sleep(1);
-            cancellation.Cancel();
-        });
-        cancellationThread.Start();
-        try {
-            Assert.False(cancellation.IsCancellationRequested);
-            startCancellation.Set();
-            Assert.ThrowsAny<OperationCanceledException>(() =>
-                document.CreateDataReader(
-                    new CsvDataReaderOptions {
-                        InferSchema = true,
-                        SchemaSampleSize = rowCount
-                    },
-                    cancellation.Token));
-        } finally {
-            cancellationThread.Join();
+        var culture = new CancelingInferenceCulture(cancellation);
+        document.WithCulture(culture);
+        Assert.False(cancellation.IsCancellationRequested);
+        Assert.ThrowsAny<OperationCanceledException>(() => document.CreateDataReader(
+            new CsvDataReaderOptions { InferSchema = true }, cancellation.Token));
+        Assert.True(culture.FormatRequests > 0);
+    }
+
+    private sealed class CancelingInferenceCulture : CultureInfo {
+        private readonly CancellationTokenSource _cancellation;
+        internal CancelingInferenceCulture(CancellationTokenSource cancellation) : base("") =>
+            _cancellation = cancellation;
+        internal int FormatRequests { get; private set; }
+        public override object? GetFormat(Type? formatType) {
+            FormatRequests++;
+            _cancellation.Cancel();
+            return base.GetFormat(formatType);
         }
     }
 

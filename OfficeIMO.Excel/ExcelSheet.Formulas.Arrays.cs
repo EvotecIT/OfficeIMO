@@ -51,34 +51,39 @@ namespace OfficeIMO.Excel {
         private FixedArraySheetIndex GetFixedArraySheetIndex() {
             var sheets = ArrayCalculationContexts.GetOrCreateValue(_formulaEvaluationCache!).Sheets;
             if (!sheets.TryGetValue(Name, out FixedArraySheetIndex? index)) {
-                index = new FixedArraySheetIndex();
-                Metadata? metadata = null;
-                foreach (Cell candidate in WorksheetRoot.Descendants<Cell>()) {
-                    if (candidate.CellFormula != null) index.FormulaCells.Add(candidate);
-                    if (candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Array
-                        && IsSupportedArrayCall(candidate.CellFormula.Text)
-                        && TryFixedArrayBounds(candidate.CellFormula.Reference?.Value ?? "",
-                            out int top, out int left, out int bottom, out int right)) {
-                        bool dynamic = false;
-                        if (candidate.CellMetaIndex != null) {
-                            var part = _excelDocument.WorkbookPartRoot.CellMetadataPart;
-                            if (part != null && !part.IsRootElementLoaded)
-                                ValidateInCellImageMetadataPart(part, "Cell metadata");
-                            metadata ??= part?.Metadata;
-                            dynamic = CreateFormulaArrayInfo(candidate, metadata)?.IsDynamic == true;
-                        }
-                        var owner = new FixedArrayOwner { Cell = candidate, Top = top, Left = left,
-                            Bottom = bottom, Right = right, Dynamic = dynamic };
-                        (dynamic ? index.DynamicOwners : index.Owners).Add(owner);
-                        if (dynamic) index.DynamicByCell.Add(candidate, owner);
-                    }
-                }
-                if (index.DynamicOwners.Count > 0)
-                    foreach (Cell candidate in WorksheetRoot.Descendants<Cell>())
-                        if (TryParseCellReference(candidate.CellReference?.Value ?? "", out int row, out int column))
-                            index.Cells[DynamicCellKey(row, column)] = candidate;
+                index = BuildFixedArraySheetIndex();
                 sheets[Name] = index;
             }
+            return index;
+        }
+
+        private FixedArraySheetIndex BuildFixedArraySheetIndex() {
+            var index = new FixedArraySheetIndex();
+            Metadata? metadata = null;
+            foreach (Cell candidate in WorksheetRoot.Descendants<Cell>()) {
+                if (candidate.CellFormula != null) index.FormulaCells.Add(candidate);
+                if (candidate.CellFormula?.FormulaType?.Value == CellFormulaValues.Array
+                    && IsSupportedArrayCall(candidate.CellFormula.Text)
+                    && TryFixedArrayBounds(candidate.CellFormula.Reference?.Value ?? "",
+                        out int top, out int left, out int bottom, out int right)) {
+                    bool dynamic = false;
+                    if (candidate.CellMetaIndex != null) {
+                        var part = _excelDocument.WorkbookPartRoot.CellMetadataPart;
+                        if (part != null && !part.IsRootElementLoaded)
+                            ValidateInCellImageMetadataPart(part, "Cell metadata");
+                        metadata ??= part?.Metadata;
+                        dynamic = CreateFormulaArrayInfo(candidate, metadata)?.IsDynamic == true;
+                    }
+                    var owner = new FixedArrayOwner { Cell = candidate, Top = top, Left = left,
+                        Bottom = bottom, Right = right, Dynamic = dynamic };
+                    (dynamic ? index.DynamicOwners : index.Owners).Add(owner);
+                    if (dynamic) index.DynamicByCell.Add(candidate, owner);
+                }
+            }
+            if (index.DynamicOwners.Count > 0)
+                foreach (Cell candidate in WorksheetRoot.Descendants<Cell>())
+                    if (TryParseCellReference(candidate.CellReference?.Value ?? "", out int row, out int column))
+                        index.Cells[DynamicCellKey(row, column)] = candidate;
             return index;
         }
         private static long DynamicCellKey(int row, int column) => ((long)row << 15) | (uint)column;
