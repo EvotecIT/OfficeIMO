@@ -351,10 +351,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+        [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
         public void OfficeGifReaderTransfersSelectedCanvasWithoutFullCanvasSnapshots() {
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
+            const int canvasSize = 2048;
+#else
+            const int canvasSize = 4;
+#endif
             byte[] source = CreateIndexedGif(
-                2048,
-                2048,
+                canvasSize,
+                canvasSize,
                 new[] { OfficeColor.Red, OfficeColor.Black },
                 new byte[] { 0 },
                 imageWidth: 1,
@@ -365,21 +373,21 @@ namespace OfficeIMO.Tests {
                 .Concat(previousDisposal)
                 .Concat(source.Skip(descriptorOffset))
                 .ToArray();
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
             OfficeGifReader.TryDecodeFrame(CreateSinglePixelGif(), 0, out _, out _);
 
-#if NET8_0_OR_GREATER
             long before = GC.GetAllocatedBytesForCurrentThread();
 #endif
             Assert.True(OfficeGifReader.TryDecodeFrame(
                 gif, 0, out OfficeRasterImage? selected, out int frameCount));
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
             long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 #endif
 
             Assert.Equal(1, frameCount);
-            Assert.Equal((2048, 2048), (selected!.Width, selected.Height));
+            Assert.Equal((canvasSize, canvasSize), (selected!.Width, selected.Height));
             Assert.Equal(OfficeColor.Red, selected.GetPixel(0, 0));
-#if NET8_0_OR_GREATER
+#if DRAWING_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
             Assert.True(allocated < 24L * 1024L * 1024L,
                 $"Selected GIF frame allocated {allocated:N0} bytes.");
 #endif
