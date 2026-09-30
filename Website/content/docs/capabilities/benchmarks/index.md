@@ -71,8 +71,10 @@ accidentally make the measurement pass. Ordinary CI runs the Email correctness
 suite with `Category!=Performance`.
 
 ```shell
-dotnet test OfficeIMO.Email.Tests -c Release -f net8.0 --filter "Category=Performance"
+dotnet test OfficeIMO.Email.Tests -c Release -f net8.0 -p:EmailPerformanceEvidence=true --filter "Category=Performance"
 ```
+
+The property enables the original retained-memory workload at compilation. Rebuild when changing it; omit `--no-build`. Return to ordinary correctness testing without the property.
 
 [Read the Email performance contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.email-performance.md) for the fixture sizes, assertions, and environment controls.
 
