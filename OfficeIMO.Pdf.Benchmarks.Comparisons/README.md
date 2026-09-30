@@ -57,6 +57,9 @@ The output records managed and browser print artifacts, source hashes, text,
 diagnostics and all-page comparisons. It is observation evidence: this corpus
 has no H4 visual acceptance manifest, so `--verify-acceptance` does not certify it.
 Validate the declared content, links, image/color regions and geometry separately.
+Static-gap PDFs from all engines use independent Poppler extraction and page
+rasters. HTML diagnostics and PDF conversion warnings are recorded separately;
+failed ancillary scene exports remain failures without discarding valid PDF evidence.
 The conformance fixture's base print lane does not request PDF/A or PDF/UA;
 those require distinct public-policy calls and independent validators on their
 exact output bytes. Reference-specific `snap` placement is labeled separately

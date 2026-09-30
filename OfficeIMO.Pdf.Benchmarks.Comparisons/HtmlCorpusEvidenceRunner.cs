@@ -151,8 +151,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
         await File.WriteAllBytesAsync(sourcePath, sourceBytes).ConfigureAwait(false);
         var failures = new List<string>();
 
-        HtmlCorpusStaticEvidence? officeImo = TryRender(
-            () => RenderOfficeImo(input, caseDirectory, failures), "OfficeIMO", failures);
+        HtmlCorpusStaticEvidence? officeImo = await TryRenderAsync(
+            () => RenderOfficeImoAsync(input, caseDirectory, failures, rasterizer), "OfficeIMO", failures).ConfigureAwait(false);
         HtmlCorpusPdfEvidence? peachPdf = await TryRenderAsync(
             () => RenderPeachPdfAsync(scenario, caseDirectory, rasterizer, failures), "PeachPDF", failures).ConfigureAwait(false);
         HtmlCorpusBrowserEvidence? chromium = await TryRenderAsync(
@@ -234,10 +234,11 @@ internal static partial class HtmlCorpusEvidenceRunner {
             failures);
     }
 
-    private static HtmlCorpusStaticEvidence RenderOfficeImo(
+    private static async Task<HtmlCorpusStaticEvidence> RenderOfficeImoAsync(
         HtmlCorpusEvidenceInput input,
         string caseDirectory,
-        ICollection<string> failures) {
+        ICollection<string> failures,
+        ExternalPdfRasterizer rasterizer) {
         HtmlRenderingCorpusCase scenario = input.Scenario;
         using var sourceStream = new MemoryStream(input.SourceBytes, writable: false);
         HtmlConversionDocument source = HtmlConversionDocument.Load(sourceStream);
@@ -304,12 +305,20 @@ internal static partial class HtmlCorpusEvidenceRunner {
         File.WriteAllBytes(Path.Combine(caseDirectory, screenPngName), screenPng);
         File.WriteAllBytes(Path.Combine(caseDirectory, screenToPdfName), screenToPdf);
 
-        HtmlCorpusTextEvidence printText = ReadPdfText(printPdf, scenario.TextMarkers, failures, "OfficeIMO print PDF");
+        HtmlCorpusTextEvidence printText = input.IsStaticGap
+            ? await ReadExternalPdfTextAsync(Path.Combine(caseDirectory, printPdfName), scenario.TextMarkers,
+                failures, "OfficeIMO print PDF", rasterizer).ConfigureAwait(false)
+            : ReadPdfText(printPdf, scenario.TextMarkers, failures, "OfficeIMO print PDF");
         HtmlCorpusTextEvidence screenText = ObserveText(screenResult.Document.Text, scenario.TextMarkers, failures, "OfficeIMO screen scene");
-        HtmlCorpusOutputEvidence printOutput = CreatePdfEvidence(printPdfName, printPdf, caseDirectory, "officeimo-print");
+        HtmlCorpusOutputEvidence printOutput = input.IsStaticGap
+            ? await CreateExternalPdfEvidenceAsync(printPdfName, printPdf, caseDirectory, "officeimo-print", rasterizer).ConfigureAwait(false)
+            : CreatePdfEvidence(printPdfName, printPdf, caseDirectory, "officeimo-print");
         HtmlCorpusOutputEvidence screenOutput = CreatePngEvidence(screenPngName, screenPng);
-        HtmlCorpusOutputEvidence screenToPdfOutput = CreatePdfEvidence(screenToPdfName, screenToPdf, caseDirectory, "officeimo-screen-to-pdf");
-        HtmlCorpusSceneEvidence scene = WriteSceneEvidence(printResult.RenderResult.Document, caseDirectory);
+        HtmlCorpusOutputEvidence screenToPdfOutput = input.IsStaticGap
+            ? await CreateExternalPdfEvidenceAsync(screenToPdfName, screenToPdf, caseDirectory, "officeimo-screen-to-pdf", rasterizer).ConfigureAwait(false)
+            : CreatePdfEvidence(screenToPdfName, screenToPdf, caseDirectory, "officeimo-screen-to-pdf");
+        HtmlCorpusSceneEvidence scene = WriteSceneEvidence(printResult.RenderResult.Document, caseDirectory,
+            input.IsStaticGap ? failures : null);
 
         return new HtmlCorpusStaticEvidence(
             printOutput,
@@ -328,7 +337,8 @@ internal static partial class HtmlCorpusEvidenceRunner {
             screenRequest.ProfileId,
             screenToPdfRequest.ProfileId,
             printResult.RenderResult.Diagnostics,
-            screenResult.Diagnostics);
+            screenResult.Diagnostics,
+            printResult.Output.Warnings);
     }
 
     private static async Task<HtmlCorpusPdfEvidence> RenderPeachPdfAsync(
@@ -471,26 +481,32 @@ internal static partial class HtmlCorpusEvidenceRunner {
         return new HtmlCorpusOutputEvidence(relativePath, "image/png", png.LongLength, Sha256(png), 1, new[] { page });
     }
 
-    private static HtmlCorpusSceneEvidence WriteSceneEvidence(HtmlRenderDocument document, string caseDirectory) {
+    private static HtmlCorpusSceneEvidence WriteSceneEvidence(HtmlRenderDocument document, string caseDirectory,
+        ICollection<string>? ancillaryFailures = null) {
         var rasterPages = new List<HtmlCorpusPageArtifact>(document.Pages.Count);
         var svgPages = new List<HtmlCorpusPageArtifact>(document.Pages.Count);
         foreach (HtmlRenderPage page in document.Pages) {
-            byte[] png = RenderScenePagePng(page);
-            string pngName = "officeimo-print-scene-page-" + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png";
-            File.WriteAllBytes(Path.Combine(caseDirectory, pngName), png);
-            OfficeRasterImage image = DecodePng(png, pngName);
-            rasterPages.Add(new HtmlCorpusPageArtifact(
-                page.PageNumber, pngName, image.Width, image.Height,
-                png.LongLength, Sha256(png), Array.Empty<string>()));
+            try {
+                byte[] png = RenderScenePagePng(page);
+                string pngName = "officeimo-print-scene-page-" + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".png";
+                File.WriteAllBytes(Path.Combine(caseDirectory, pngName), png);
+                OfficeRasterImage image = DecodePng(png, pngName);
+                rasterPages.Add(new HtmlCorpusPageArtifact(
+                    page.PageNumber, pngName, image.Width, image.Height,
+                    png.LongLength, Sha256(png), Array.Empty<string>()));
 
-            string svg = OfficeDrawingSvgExporter.ToSvg(page.CreateDrawing(), 1D);
-            byte[] svgBytes = Encoding.UTF8.GetBytes(svg);
-            string svgName = "officeimo-print-scene-page-" + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".svg";
-            File.WriteAllBytes(Path.Combine(caseDirectory, svgName), svgBytes);
-            svgPages.Add(new HtmlCorpusPageArtifact(
-                page.PageNumber, svgName,
-                (int)Math.Ceiling(page.Width), (int)Math.Ceiling(page.Height),
-                svgBytes.LongLength, Sha256(svgBytes), Array.Empty<string>()));
+                string svg = OfficeDrawingSvgExporter.ToSvg(page.CreateDrawing(), 1D);
+                byte[] svgBytes = Encoding.UTF8.GetBytes(svg);
+                string svgName = "officeimo-print-scene-page-" + page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + ".svg";
+                File.WriteAllBytes(Path.Combine(caseDirectory, svgName), svgBytes);
+                svgPages.Add(new HtmlCorpusPageArtifact(
+                    page.PageNumber, svgName,
+                    (int)Math.Ceiling(page.Width), (int)Math.Ceiling(page.Height),
+                    svgBytes.LongLength, Sha256(svgBytes), Array.Empty<string>()));
+            } catch (Exception exception) when (ancillaryFailures != null) {
+                ancillaryFailures.Add("OfficeIMO scene export page " + page.PageNumber + " failed: "
+                    + exception.GetType().Name + ": " + exception.Message);
+            }
         }
         return new HtmlCorpusSceneEvidence(
             document.Pages.Count,
