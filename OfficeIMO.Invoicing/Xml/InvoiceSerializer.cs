@@ -50,6 +50,7 @@ public static partial class InvoiceSerializer {
         void Projection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path,
             options.ProjectionPolicy == InvoiceProjectionPolicy.AllowProfileDefinedDataLoss ? InvoiceDiagnosticSeverity.Warning : InvoiceDiagnosticSeverity.Error);
         void RequiredProjection(string path, string text) => diagnostics.Add("INV-TARGET-PROJECTION", text, path);
+        if (!IsReducedFacturX(options)) CheckIndependentPaymentData(invoice, options, Unsupported);
         if (invoice.Payments.Count != 0 && !IsReducedFacturX(options)) {
             CheckPaymentProfile(invoice, options, Unsupported);
             CheckSingletonPaymentField(invoice, payment => payment.MeansCode, "MeansCode",

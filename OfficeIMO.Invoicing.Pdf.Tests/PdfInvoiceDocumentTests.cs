@@ -9,6 +9,22 @@ namespace OfficeIMO.Invoicing.Pdf.Tests;
 
 public class PdfInvoiceDocumentTests {
     [Fact]
+    public void StandalonePaymentDataIsVisibleAndMatchesTheEmbeddedXml() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments.Clear();
+        invoice.PaymentReference = "standalone-reference";
+        invoice.CreditorIdentifier = "standalone-creditor";
+        invoice.DirectDebitMandateReference = "standalone-mandate";
+        PdfInvoiceDocument snapshot = PdfInvoiceDocument.Create(invoice, Contract());
+        byte[] pdf = snapshot.ToPdfBytes(Options());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("standalone-reference", text, StringComparison.Ordinal);
+        Assert.Contains("standalone-creditor", text, StringComparison.Ordinal);
+        Assert.Contains("standalone-mandate", text, StringComparison.Ordinal);
+        Assert.Empty(snapshot.ToInvoice().Payments);
+        WriteEvidence("standalone-payment", pdf);
+    }
+    [Fact]
     public void InvoicePdfRenderingRejectsOversizedVisibleLineAndObservesCancellation() {
         Invoice invoice = InvoiceFixture.Create();
         var layout = new InvoicePdfLayoutOptions { MaxLineTextCharacters = 5 };

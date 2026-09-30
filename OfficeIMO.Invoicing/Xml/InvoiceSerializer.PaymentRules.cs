@@ -1,6 +1,23 @@
 namespace OfficeIMO.Invoicing;
 
 public static partial class InvoiceSerializer {
+    private static void CheckIndependentPaymentData(Invoice invoice, InvoiceXmlOptions options, Action<string, string> unsupported) {
+        void Conflict(string? header, Func<InvoicePayment, string?> selector, string field) {
+            if (header == null) return;
+            for (int index = 0; index < invoice.Payments.Count; index++) {
+                string? value = selector(invoice.Payments[index]);
+                if (value != null && value != header)
+                    unsupported("Payments[" + index + "]." + field, "Payment value '" + value + "' conflicts with invoice-level value '" + header + "'.");
+            }
+        }
+        Conflict(invoice.CreditorIdentifier, payment => payment.CreditorIdentifier, "CreditorIdentifier");
+        Conflict(invoice.PaymentReference, payment => payment.Reference, "Reference");
+        Conflict(invoice.DirectDebitMandateReference, payment => payment.MandateReference, "MandateReference");
+        if (options.Syntax == InvoiceSyntax.Ubl && invoice.Payments.Count == 0 && invoice.PaymentReference != null)
+            unsupported("PaymentReference", "UBL requires the remittance reference to belong to an explicit payment instruction. Supply its means code without inventing one during conversion.");
+        if (options.Syntax == InvoiceSyntax.Ubl && invoice.Payments.Count == 0 && invoice.DirectDebitMandateReference != null)
+            unsupported("DirectDebitMandateReference", "UBL requires the mandate to belong to an explicit payment instruction.");
+    }
     private static void CheckPaymentProfile(Invoice invoice, InvoiceXmlOptions options, Action<string, string> unsupported) {
         for (int index = 0; index < invoice.Payments.Count; index++) {
             InvoicePayment payment = invoice.Payments[index];

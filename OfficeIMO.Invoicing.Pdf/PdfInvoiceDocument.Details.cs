@@ -29,8 +29,14 @@ public sealed partial class PdfInvoiceDocument {
         }
         if (_invoice.Payee != null) DetailGroup(content, Label(InvoicePdfText.Payee), Party(_invoice.Payee), theme);
         if (_invoice.TaxRepresentative != null) DetailGroup(content, Label(InvoicePdfText.TaxRepresentative), Party(_invoice.TaxRepresentative), theme);
-        if (_invoice.Payments.Count != 0 || _invoice.PaymentTerms != null) {
+        if (_invoice.Payments.Count != 0 || _invoice.PaymentTerms != null || _invoice.PaymentReference != null ||
+            _invoice.CreditorIdentifier != null || _invoice.DirectDebitMandateReference != null) {
             content.H2(Label(InvoicePdfText.Payment), PdfAlign.Left, theme?.Text);
+            var independent = new List<string[]>();
+            if (_invoice.PaymentReference != null) independent.Add(new[] { Label(InvoicePdfText.Reference), _invoice.PaymentReference });
+            if (_invoice.CreditorIdentifier != null) independent.Add(new[] { Label(InvoicePdfText.Creditor), _invoice.CreditorIdentifier });
+            if (_invoice.DirectDebitMandateReference != null) independent.Add(new[] { Label(InvoicePdfText.Mandate), _invoice.DirectDebitMandateReference });
+            if (independent.Count != 0) content.Table(independent, style: DetailTableStyle(theme));
             foreach (InvoicePayment payment in _invoice.Payments) {
                 var rows = new List<string[]> { new[] { Label(InvoicePdfText.PaymentMeans), Join(payment.MeansCode, payment.MeansText).Replace("\n", " ") } };
                 if (payment.Reference != null) rows.Add(new[] { Label(InvoicePdfText.Reference), payment.Reference });

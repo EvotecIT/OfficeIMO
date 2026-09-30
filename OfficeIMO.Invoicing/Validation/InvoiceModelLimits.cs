@@ -12,7 +12,8 @@ internal sealed class InvoiceModelLimits {
     internal int Check(Invoice invoice) {
         Text(invoice.Number, invoice.TypeCode, invoice.Currency, invoice.BusinessProcessId, invoice.BuyerReference, invoice.TaxPointDateCode,
             invoice.ProjectReference, invoice.ContractReference, invoice.PurchaseOrderReference, invoice.SalesOrderReference, invoice.ReceivingAdviceReference,
-            invoice.DespatchAdviceReference, invoice.TenderReference, invoice.AccountingReference, invoice.PaymentTerms, invoice.TaxCurrency);
+            invoice.DespatchAdviceReference, invoice.TenderReference, invoice.AccountingReference, invoice.PaymentTerms, invoice.TaxCurrency,
+            invoice.PaymentReference, invoice.CreditorIdentifier, invoice.DirectDebitMandateReference);
         Party(invoice.Seller); Party(invoice.Buyer); Party(invoice.Payee); Party(invoice.TaxRepresentative); Identifier(invoice.ObjectIdentifier);
         if (invoice.Delivery != null) { Text(invoice.Delivery.Name); Address(invoice.Delivery.Address); Identifier(invoice.Delivery.LocationIdentifier); }
         Each(invoice.Notes, note => Text(note.Text, note.SubjectCode));

@@ -59,6 +59,9 @@ public static partial class InvoiceModelValidator {
         }
         check.Money(invoice.PrepaidAmount, "PrepaidAmount");
         check.Money(invoice.RoundingAmount, "RoundingAmount");
+        if (invoice.PaymentReference != null) check.Required(invoice.PaymentReference, "PaymentReference");
+        if (invoice.CreditorIdentifier != null) check.Required(invoice.CreditorIdentifier, "CreditorIdentifier");
+        if (invoice.DirectDebitMandateReference != null) check.Required(invoice.DirectDebitMandateReference, "DirectDebitMandateReference");
         if (invoice.PrepaidAmount < 0m) check.Error("INV-PREPAID", "Prepaid amount cannot be negative.", "PrepaidAmount");
         if ((invoice.TaxCurrency != null) != invoice.TaxAmountInAccountingCurrency.HasValue)
             check.Error("INV-TAX-CURRENCY", "Supply both the accounting currency and its VAT amount.", "TaxCurrency");

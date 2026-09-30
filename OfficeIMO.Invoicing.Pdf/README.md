@@ -5,7 +5,13 @@ This optional adapter depends on `OfficeIMO.Invoicing` and `OfficeIMO.Pdf`.
 XML-only applications can use `OfficeIMO.Invoicing`; PDF-only applications can use
 `OfficeIMO.Pdf`. Neither engine depends on this adapter or on the other engine.
 
-## Build and install locally
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Invoicing.Pdf --version 3.4.4
+```
+
+## Build from source
 
 From the repository root, pack the adapter and its first-party dependencies into
 a local feed, then add the adapter package to your application:

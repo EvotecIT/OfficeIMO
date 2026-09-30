@@ -4,6 +4,43 @@ namespace OfficeIMO.Invoicing.Validation.Tests;
 
 public partial class InvoiceStandardsTests {
     [InvoiceStandardsTheory]
+    [InlineData("reference")]
+    [InlineData("creditor")]
+    [InlineData("mandate")]
+    public async Task FacturXPermitsPaymentDataWithoutInventedPaymentMeans(string field) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments.Clear();
+        if (field == "reference") invoice.PaymentReference = "standalone-reference";
+        if (field == "creditor") invoice.CreditorIdentifier = "standalone-creditor";
+        if (field == "mandate") invoice.DirectDebitMandateReference = "standalone-mandate";
+        InvoiceXmlOptions options = InvoiceTestContracts.FacturX(InvoiceProfile.En16931);
+        byte[] xml = InvoiceSerializer.Write(invoice, options);
+        var validator = new InvoiceValidator(Bundle(), Runner());
+        InvoiceValidationReport report = await validator.ValidateAsync(xml, options.Release);
+        Assert.True(report.IsValid, Report(report));
+        InvoiceReadResult read = InvoiceParser.Read(xml);
+        Assert.Empty(read.Invoice.Payments);
+        Assert.True(read.HasCompleteMapping);
+        Assert.True(InvoiceConverter.Convert(xml, options).Succeeded);
+        InvoiceValidationReport rewrite = await validator.ValidateAsync(read.Write(options), options.Release);
+        Assert.True(rewrite.IsValid, Report(rewrite));
+    }
+
+    [InvoiceStandardsTheory]
+    [InlineData(InvoiceSyntax.Ubl)]
+    public async Task En16931UblPreservesStandaloneSellerCreditorIdentifier(InvoiceSyntax syntax) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments.Clear();
+        invoice.CreditorIdentifier = "standalone-creditor";
+        InvoiceXmlOptions options = InvoiceTestContracts.En16931(syntax);
+        byte[] xml = InvoiceSerializer.Write(invoice, options);
+        InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(xml, options.Release);
+        Assert.True(report.IsValid, Report(report));
+        InvoiceReadResult read = InvoiceParser.Read(xml);
+        Assert.Empty(read.Invoice.Payments);
+        Assert.Equal(xml, read.Write(options));
+    }
+    [InvoiceStandardsTheory]
     [InlineData(InvoiceSyntax.Cii, InvoiceProfile.En16931, InvoiceSpecificationRelease.En16931_1_3_16)]
     [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.En16931, InvoiceSpecificationRelease.En16931_1_3_16)]
     [InlineData(InvoiceSyntax.Cii, InvoiceProfile.XRechnung, InvoiceSpecificationRelease.XRechnung_3_0_2_2026_08_31)]

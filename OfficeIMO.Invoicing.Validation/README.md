@@ -3,7 +3,13 @@
 Validate exact CII or UBL invoice bytes against an explicit schema and business-rule
 release. The package runs on .NET 8 and .NET 10. It makes no network requests.
 
-## Build and install locally
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Invoicing.Validation --version 3.4.4
+```
+
+## Build from source
 
 From the repository root, pack both projects, then add the validation package to
 your application. NuGet resolves its invoice-model dependency from the same feed:

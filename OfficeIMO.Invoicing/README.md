@@ -4,7 +4,15 @@ Create, read, edit and convert electronic invoices with one typed .NET model.
 The core has no external runtime dependencies and supports .NET Standard 2.0,
 .NET 8, .NET 10 and .NET Framework 4.7.2.
 
-## Build and install locally
+## Install
+
+```powershell
+dotnet add package OfficeIMO.Invoicing --version 3.4.4
+```
+
+This package does not depend on a PDF engine or an external validation runtime.
+
+## Build from source
 
 From the repository root, pack the project into a local feed, then add that
 package to your application:
@@ -13,8 +21,6 @@ package to your application:
 dotnet pack OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj -c Release -o artifacts/invoice-feed
 dotnet add path/to/Application.csproj package OfficeIMO.Invoicing --source artifacts/invoice-feed
 ```
-
-This package does not depend on a PDF engine or an external validation runtime.
 
 ## Create invoice XML
 
@@ -72,7 +78,7 @@ Successful serialization alone does not establish standards compliance.
 | Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role. Tax registrations retain their identifier and arbitrary source scheme. Target inspection reports the exact indexed registration when a target permits only VAT, one seller fiscal registration, or a canonical CII `VA`/`FC` scheme. |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
-| Payments | Ordered payment-means occurrences with their own description, account, reference, direct-debit and masked-card data. UBL preserves card network identifiers; CII reports them as unsupported. Conflicting CII invoice-level references, creditor identifiers or mandates are reported by exact payment index. |
+| Payments | Ordered payment-means occurrences with their own description, account, reference, direct-debit and masked-card data. Independent `PaymentReference`, `CreditorIdentifier` and `DirectDebitMandateReference` retain invoice-level data when no payment means is declared. UBL requires a payment instruction for a remittance reference or mandate; conversion reports those fields rather than inventing a means code. UBL preserves card network identifiers; CII reports them as unsupported. Conflicting invoice-level and occurrence values are reported by exact payment index. |
 | References | Orders, preceding invoices, contracts, projects, delivery, periods, accounting and supporting documents. CII preserves a sales-order-only reference; UBL reports that it requires the associated purchase-order reference. External locations preserve well-formed absolute URIs, including FTP and URN schemes, without fetching them. |
 
 IBAN classification checks the registered country prefix, national length and character
@@ -128,6 +134,34 @@ rounding difference for taxable categories; zero-tax categories require exactly
 zero VAT. Totals must match the resulting amounts exactly. These
 checks do not replace release-specific rules. `UpdateDeclaredAmounts` explicitly
 recalculates lines, VAT and totals after financial edits.
+
+For aggregate-only MINIMUM or BASIC WL data, recalculation retains the available
+tax bases and VAT amounts and rebuilds dependent totals, including prepayment
+edits. It does not create missing invoice lines. Target inspection still rejects
+adjustments that the selected profile cannot carry, such as a MINIMUM prepayment
+or a lower-profile rounding adjustment.
+
+Accounting-currency VAT needs an explicit decision after financial edits. When
+the invoice VAT total changes or has no retained baseline,
+`UpdateDeclaredAmounts` clears `TaxAmountInAccountingCurrency` and retains
+`TaxCurrency`; validation blocks writing until the amount is refreshed. An
+unchanged retained VAT total preserves its imported accounting-currency amount.
+Changing the invoice currency or an established tax currency also clears that
+amount. Set both currencies before supplying a refreshed amount.
+Supply the applicable exchange rate as accounting-currency units per
+invoice-currency unit to calculate that amount explicitly:
+
+```csharp
+invoice.TaxCurrency = "PLN";
+var edit = InvoiceEditor.Recalculate(invoice, taxExchangeRate: 4.25m);
+foreach (var diagnostic in edit.Diagnostics)
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+```
+
+`InvoiceEditor.Recalculate(invoice)` reports a required accounting-currency
+refresh as `INV-ACCOUNTING-VAT-REFRESH`. Neither API chooses a tax-point date,
+fetches exchange rates, nor infers a rate from historical amounts. Supply the
+rate required by the transaction's accounting rules.
 
 Model validation requires a seller business, legal or VAT identifier, and an
 account for credit-transfer payment codes 30 and 58. VAT checks cover category-specific
