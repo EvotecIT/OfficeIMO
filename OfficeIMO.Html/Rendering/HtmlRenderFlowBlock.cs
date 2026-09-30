@@ -381,7 +381,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsibleMarginTopGroup: CollapsibleMarginTopGroup,
             collapsibleMarginBottomGroup: CollapsibleMarginBottomGroup,
             avoidBreakRanges: AvoidBreakRanges.Select(range =>
-                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment)),
+                new HtmlRenderAvoidBreakRange(Math.Max(0D, range.Start - adjustment), range.End - adjustment, range.Soft)),
             pagedPaintExtent: Math.Max(adjustedHeight, PagedPaintExtent - adjustment));
     }
 
@@ -497,9 +497,9 @@ internal sealed class HtmlRenderFlowBlock {
     }
 }
 
-internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double End) {
-    internal HtmlRenderAvoidBreakRange Translate(double offset) => new HtmlRenderAvoidBreakRange(Start + offset, End + offset);
-    internal HtmlRenderAvoidBreakRange WithEnd(double end) => new HtmlRenderAvoidBreakRange(Start, end);
+internal readonly record struct HtmlRenderAvoidBreakRange(double Start, double End, bool Soft = false) {
+    internal HtmlRenderAvoidBreakRange Translate(double offset) => new HtmlRenderAvoidBreakRange(Start + offset, End + offset, Soft);
+    internal HtmlRenderAvoidBreakRange WithEnd(double end) => new HtmlRenderAvoidBreakRange(Start, end, Soft);
 }
 
 internal sealed class HtmlRenderForcedBreak {

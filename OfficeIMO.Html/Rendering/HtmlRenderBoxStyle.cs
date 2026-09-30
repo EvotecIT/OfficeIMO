@@ -132,6 +132,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool ExplicitWidthUsesPercentage;
     internal double? ExplicitHeight;
     internal double? MinWidth;
+    internal double? MinWidthWithIndefiniteReference;
     internal double? MaxWidth;
     internal bool MaxWidthUsesPercentage;
     internal double? MinHeight;

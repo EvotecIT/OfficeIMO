@@ -196,7 +196,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     && IsAllowedLineBreak(block, cursor, offset, checkInteriorBreaks: true)
                     && !(block.AvoidBreakInside && block.Height <= pageHeight + 0.0001D
                         && offset > 0.0001D && offset < block.Height - 0.0001D)
-                    && !BreaksAvoidedRangeThatFitsPage(block, cursor, offset, pageHeight);
+                    && !BreaksAvoidedRangeThatFitsPage(block, cursor, offset, pageHeight, cursor + available);
             }));
     }
 
@@ -248,6 +248,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             collapsibleMarginBottomGroup: block.CollapsibleMarginBottomGroup,
             avoidBreakRanges: block.AvoidBreakRanges.Select(range => new HtmlRenderAvoidBreakRange(
                 range.Start >= cut - 0.0001D ? range.Start + gap : range.Start,
-                range.End > cut + 0.0001D ? range.End + gap : range.End)));
+                range.End > cut + 0.0001D ? range.End + gap : range.End,
+                range.Soft)));
     }
 }

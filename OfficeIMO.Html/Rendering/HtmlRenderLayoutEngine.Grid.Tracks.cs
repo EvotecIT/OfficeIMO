@@ -573,19 +573,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bool isReplacedChild = IsReplacedImageElement(child)
                 || IsFormControlElement(child.LocalName.ToLowerInvariant());
             if (includeDescendantInsets && establishesLineBoundary && !isReplacedChild) {
+                HtmlRenderBoxStyle intrinsicStyle = childStyle;
+                if (childStyle.ExplicitWidthUsesPercentage || childStyle.MaxWidthUsesPercentage
+                    || childStyle.MinWidthWithIndefiniteReference.HasValue) {
+                    // A percentage of this indefinite intrinsic width is cyclic.
+                    // Retain definite constraints, including absolute max-width.
+                    intrinsicStyle = childStyle.Clone();
+                    if (childStyle.ExplicitWidthUsesPercentage) {
+                        intrinsicStyle.ExplicitWidth = null;
+                        intrinsicStyle.ExplicitWidthUsesPercentage = false;
+                    }
+                    if (childStyle.MaxWidthUsesPercentage) {
+                        intrinsicStyle.MaxWidth = null;
+                        intrinsicStyle.MaxWidthUsesPercentage = false;
+                    }
+                    if (childStyle.MinWidthWithIndefiniteReference.HasValue) {
+                        intrinsicStyle.MinWidth = childStyle.MinWidthWithIndefiniteReference;
+                    }
+                }
                 IReadOnlyList<GridIntrinsicTextRun> childRuns = ResolveGridInFlowTextRuns(
-                    new FlexItem(child, childStyle, 0), availableSize, depth + 1,
+                    new FlexItem(child, intrinsicStyle, 0), availableSize, depth + 1,
                     skipSizedNestedTables, includeDescendantInsets);
-                double extraWidth = Math.Max(0D, childStyle.HorizontalInsets + childStyle.MarginLeft + childStyle.MarginRight);
-                double minimum = MeasureGridMinContentRuns(childRuns) + extraWidth;
-                double maximum = MeasureGridMaxContentRuns(childRuns) + extraWidth;
-                if (childStyle.ExplicitWidth.HasValue && !childStyle.ExplicitWidthUsesPercentage) {
-                    TryResolveDefiniteGridContribution(new FlexItem(child, childStyle, 0), availableSize, out double authored);
+                double minimum = ResolveGridMeasuredContribution(intrinsicStyle, MeasureGridMinContentRuns(childRuns));
+                double maximum = ResolveGridMeasuredContribution(intrinsicStyle, MeasureGridMaxContentRuns(childRuns));
+                if (intrinsicStyle.ExplicitWidth.HasValue && !intrinsicStyle.ExplicitWidthUsesPercentage) {
+                    TryResolveDefiniteGridContribution(new FlexItem(child, intrinsicStyle, 0), availableSize, out double authored);
                     minimum = authored;
                     maximum = authored;
                 }
                 result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
-                result.Add(GridIntrinsicTextRun.Replaced(minimum, Math.Max(minimum, maximum), childStyle));
+                result.Add(GridIntrinsicTextRun.Replaced(minimum, Math.Max(minimum, maximum), intrinsicStyle));
                 result.Add(GridIntrinsicTextRun.ForcedBreak(childStyle));
                 continue;
             }

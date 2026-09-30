@@ -973,7 +973,11 @@ internal sealed partial class HtmlRenderStyleResolver {
             || (attributeWidth?.IndexOf('%') ?? -1) >= 0;
         double? parentContentHeight = ResolveDefiniteContentHeight(parent);
         style.ExplicitHeight = ReadVerticalLength(computed.GetValue("height"), includeAttributes ? dimensionSource.GetAttribute("height") : null, parentContentHeight, fontSize);
-        style.MinWidth = ReadLength(computed.GetValue("min-width"), null, reference, fontSize);
+        string cssMinWidth = computed.GetValue("min-width");
+        style.MinWidth = ReadLength(cssMinWidth, null, reference, fontSize);
+        style.MinWidthWithIndefiniteReference = cssMinWidth.IndexOf('%') >= 0
+            ? ReadLength(cssMinWidth, null, 0D, fontSize)
+            : null;
         string cssMaxWidth = computed.GetValue("max-width");
         style.MaxWidth = ReadLength(cssMaxWidth, null, reference, fontSize);
         style.MaxWidthUsesPercentage = cssMaxWidth.IndexOf('%') >= 0;

@@ -230,16 +230,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Select(line => new HtmlInlineBreakProgress(contentY + line.CrossOffset, 0, line.Items[0].Element))
                 .ToList()
             : Array.Empty<HtmlInlineBreakProgress>();
-        // A fitting flex row, including its wrapped lines, moves together when
-        // the current page has too little room. Oversized rows retain their
-        // item and line break offsets so they can still fragment across pages.
+        // Prefer keeping a fitting flex row together when little page space
+        // remains. This is a layout preference, not authored break-inside:avoid:
+        // legal interior breaks may use substantial space on the current page.
         IEnumerable<HtmlRenderAvoidBreakRange> lineKeepRanges = _options.Mode == HtmlRenderMode.Paged
             && lines.Count > 0
             && lines.All(line => line.Items.All(item => item.Block!.ForcedBreaks.Count == 0))
             && lines.All(line => line.Items.All(item => item.Element == null
                 || !ContainsFloatingDescendant(item.Element, item.MainSize, item.Style, depth + 1)))
             ? new[] { new HtmlRenderAvoidBreakRange(contentY + lines.Min(line => line.CrossOffset),
-                contentY + lines.Max(line => line.CrossOffset + line.CrossSize)) }
+                contentY + lines.Max(line => line.CrossOffset + line.CrossSize), Soft: true) }
             : Array.Empty<HtmlRenderAvoidBreakRange>();
         IEnumerable<HtmlRenderAvoidBreakRange> itemKeepRanges = _options.Mode == HtmlRenderMode.Paged
             ? lines.SelectMany(line => line.Items.SelectMany(item => {
@@ -463,7 +463,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 return Math.Min(availableWidth, nestedWidth + style.HorizontalInsets);
             }
         }
-        IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth);
+        IReadOnlyList<GridIntrinsicTextRun> runs = ResolveGridInFlowTextRuns(item, availableWidth, includeDescendantInsets: true);
         double measured = runs.Count == 0 ? 0D : MeasureGridMaxContentRuns(runs);
         if (item.Element != null) {
             foreach (IElement child in item.Element.Children) {
@@ -482,12 +482,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         + intrinsicStyle.MarginLeft + intrinsicStyle.MarginRight);
                     continue;
                 }
-                if (childStyle.ExplicitWidthUsesPercentage) continue;
-                // The flattened text runs omit an in-flow block child's own padding.
-                measured = Math.Max(measured, ResolveGridMaxContentContribution(new FlexItem(child, childStyle, 0), availableWidth));
             }
         }
-        return Math.Min(availableWidth, measured + style.HorizontalInsets);
+        return measured + style.HorizontalInsets;
     }
 
     private double ResolveFlexIntrinsicItemWidth(FlexItem item, double availableWidth, int intrinsicDepth) {

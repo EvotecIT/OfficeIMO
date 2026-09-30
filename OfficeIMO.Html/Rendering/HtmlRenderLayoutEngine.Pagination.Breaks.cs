@@ -30,20 +30,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
             double offset = offsets[index];
             if (offset <= start + 0.0001D) break;
             if (IsAllowedLineBreak(block, start, offset)
-                && !BreaksAvoidedRangeThatFitsPage(block, start, offset, fullPageHeight)) return offset;
+                && !BreaksAvoidedRangeThatFitsPage(block, start, offset, fullPageHeight, limit)) return offset;
         }
 
         return start;
     }
 
-    // When this page's full body can fit the card, prefer its entry or end.
-    // Otherwise retain interior offsets for a legal split.
-    private static bool BreaksAvoidedRangeThatFitsPage(HtmlRenderFlowBlock block, double start, double candidate, double fullPageHeight) =>
+    // Keep authored ranges intact. A synthetic flex-row keep is weaker when
+    // moving the whole row would leave more than half the page unused.
+    private static bool BreaksAvoidedRangeThatFitsPage(HtmlRenderFlowBlock block, double start, double candidate, double fullPageHeight, double pageLimit) =>
         fullPageHeight > 0D && block.AvoidBreakRanges.Any(range =>
             start <= range.Start + 0.0001D
             && candidate > range.Start + 0.0001D
             && candidate < range.End - 0.0001D
-            && range.End - range.Start <= fullPageHeight + 0.0001D);
+            && range.End - range.Start <= fullPageHeight + 0.0001D
+            && !(range.Soft && pageLimit - range.Start > fullPageHeight * 0.5D + 0.0001D));
 
     private static HtmlRenderTrailingGroup? ResolveTrailingGroup(HtmlRenderFlowBlock block, double start, double available, double fullPageHeight, out double fragmentLimit) {
         HtmlRenderTrailingGroup? active = block.TrailingGroups.FirstOrDefault(group => group.AppliesAt(start));

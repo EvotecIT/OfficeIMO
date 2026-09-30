@@ -216,6 +216,49 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexRow_CyclicFigureWidthHonorsDefiniteNestedMaximum() {
+        string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(800, 1));
+        string html = "<style>body{margin:0;font-family:Arial,sans-serif}</style><div style='display:flex;width:745.7px'>"
+            + "<div id='prose' style='width:100%;min-width:0;margin-right:32px;background:#eeeeee'>Article prose beside a figure.</div>"
+            + "<div id='sidebar' style='min-width:0;background:#ddeeff'><div style='width:100%;max-width:100%'>"
+            + "<div style='max-width:840px'><figure style='margin:0'><img src='data:image/png;base64," + image
+            + "' style='width:100%;max-width:100%;height:auto'>"
+            + "<figcaption>This family portrait includes the edge of Jupiter with its Great Red Spot, and Jupiter's four largest moons, known as the Galilean satellites. From top to bottom, the moons are Io, Europa, Ganymede, and Callisto.</figcaption>"
+            + "</figure></div></div></div></div>";
+
+        HtmlRenderDocument rendered = RenderFlex(html, 745.7D);
+        HtmlRenderShape prose = FindFlexShape(rendered, "div#prose");
+        HtmlRenderShape sidebar = FindFlexShape(rendered, "div#sidebar");
+        HtmlRenderImage renderedImage = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
+
+        Assert.InRange(prose.Width, 335D, 336D);
+        Assert.InRange(sidebar.Width, 377D, 379D);
+        Assert.Equal(prose.X + prose.Width + 32D, sidebar.X, 1);
+        Assert.Equal(sidebar.Width, renderedImage.Width, 1);
+    }
+
+    [Fact]
+    public void HtmlFlexRow_CyclicNestedMinimumDoesNotUseOuterFlexWidth() {
+        const string html = """
+            <style>body{margin:0}</style>
+            <div style="display:flex;width:600px">
+              <div id="prose" style="width:100%;min-width:0;margin-right:20px;background:#eeeeee">Prose</div>
+              <div id="sidebar" style="min-width:0;background:#ddeeff">
+                <div style="width:100%;min-width:100%"><div style="width:200px">Figure</div></div>
+              </div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 600D);
+        HtmlRenderShape prose = FindFlexShape(rendered, "div#prose");
+        HtmlRenderShape sidebar = FindFlexShape(rendered, "div#sidebar");
+
+        Assert.InRange(prose.Width, 434D, 436D);
+        Assert.InRange(sidebar.Width, 144D, 146D);
+        Assert.Equal(prose.X + prose.Width + 20D, sidebar.X, 1);
+    }
+
+    [Fact]
     public void HtmlFlexRow_IntrinsicImageMeasurementDoesNotEnforceRenderedSurfaceLimit() {
         string image = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1000, 100));
         string html = "<div style='display:flex;width:600px;gap:80px'>"
