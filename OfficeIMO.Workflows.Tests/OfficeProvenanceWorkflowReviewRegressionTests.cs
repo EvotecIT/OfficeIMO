@@ -675,6 +675,9 @@ public sealed partial class OfficeProvenanceWorkflowTests {
         Assert.Contains("absolute file-based external provenance manifest", result.Summary, StringComparison.OrdinalIgnoreCase);
         Assert.False(verifier.SawRelativeManifest);
         Assert.Null(verifier.ObservedDirectory);
+        Assert.Equal(OfficeProvenanceCheckStatus.Completed, result.Checks.Structural);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.TextIntegrity);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.Verification);
     }
 
     [Fact]
@@ -1169,7 +1172,8 @@ public sealed partial class OfficeProvenanceWorkflowTests {
 
         public OfficeProvenanceSignalResult Detect(string filePath) {
             // A hostile same-user provider can undo directory sealing; exercise the identity/hash check after that.
-            File.SetUnixFileMode(Path.GetDirectoryName(filePath)!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            if (!OperatingSystem.IsWindows())
+                File.SetUnixFileMode(Path.GetDirectoryName(filePath)!, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             string replacementPath = filePath + ".replacement";
             File.WriteAllText(replacementPath, "replacement");
             File.Move(replacementPath, filePath, overwrite: true);

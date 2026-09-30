@@ -39,11 +39,18 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeProvenanceFileSnapshot? inputSnapshot = null;
         long inputBytes = 0;
         string? inputSha256 = null;
+        var checks = new OfficeProvenanceWorkflowChecks(OfficeProvenanceCheckStatus.NotRequested,
+            OfficeProvenanceCheckStatus.NotRequested, OfficeProvenanceCheckStatus.NotRequested, OfficeProvenanceCheckStatus.NotRequested);
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
 
         try {
             cancellationToken.ThrowIfCancellationRequested();
             validated = ValidateProvenanceRequest(request);
+            if (validated.Operation == OfficeProvenanceWorkflowOperation.Assess) checks = checks with {
+                TextIntegrity = !validated.Assessment.InspectTextIntegrity ? OfficeProvenanceCheckStatus.Disabled : OfficeProvenanceCheckStatus.NotRequested,
+                Verification = _provenanceVerifier == null ? OfficeProvenanceCheckStatus.NotConfigured : OfficeProvenanceCheckStatus.NotRequested,
+                ProviderSignals = _provenanceSignalDetectors.Count == 0 ? OfficeProvenanceCheckStatus.NotConfigured : OfficeProvenanceCheckStatus.NotRequested
+            };
             string ownerPackage = validated.Capability.OwnerPackage;
             Report(progress, validated.Id, "validate", "Validating provenance input and limits", 0.05D);
             cancellationToken.ThrowIfCancellationRequested();
@@ -84,6 +91,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 OfficeProvenanceWorkflowOperation.Remove => validated.RemovalInputInspection,
                 _ => validated.Inspection
             };
+            checks = checks with { Structural = OfficeProvenanceCheckStatus.Failed };
             OfficeProvenanceReport structural = await Task.Run(
                 () => OfficeProvenanceWorkflowAdapter.Inspect(
                     validated.Owner,
@@ -101,6 +109,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                     $"The input contents identify as {structural.Format}, which does not match the registered {validated.Format.Extension} format.");
             }
 
+            checks = checks with { Structural = OfficeProvenanceCheckStatus.Completed };
+
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Inspect) {
                 inputSnapshot.VerifyPrimaryFile(cancellationToken);
                 inputSnapshot.Dispose();
@@ -114,6 +124,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
 
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Assess) {
                 Report(progress, validated.Id, "assess", "Collecting optional verification and signal evidence", 0.55D);
+                checks = checks with { TextIntegrity = !validated.Assessment.InspectTextIntegrity ? OfficeProvenanceCheckStatus.Disabled :
+                    IsTextLike(structural.Format) ? OfficeProvenanceCheckStatus.NotRequested : OfficeProvenanceCheckStatus.Unsupported };
+                // Encoding resolution is part of the text check and may itself fail.
+                if (validated.Assessment.InspectTextIntegrity && IsTextLike(structural.Format))
+                    checks = checks with { TextIntegrity = OfficeProvenanceCheckStatus.Failed };
                 Encoding? textEncoding = validated.Assessment.InspectTextIntegrity && IsTextLike(structural.Format)
                     ? OfficeProvenanceWorkflowAdapter.ResolveTextEncoding(
                         validated.Owner,
@@ -122,6 +137,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         validated.Assessment.TextIntegrity.MaxEncodedBytes,
                         cancellationToken)
                     : null;
+                // Successful encoding preflight does not mean the Unicode scan has started.
+                if (validated.Assessment.InspectTextIntegrity && IsTextLike(structural.Format))
+                    checks = checks with { TextIntegrity = OfficeProvenanceCheckStatus.NotRequested };
                 bool hasExternalProviders = _provenanceVerifier != null || _provenanceSignalDetectors.Count != 0;
                 if (hasExternalProviders) {
                     inputSnapshot!.CaptureExternalManifestDependencies(
@@ -140,7 +158,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                         _provenanceVerifier,
                         _provenanceSignalDetectors,
                         cancellationToken,
-                        textEncoding),
+                        textEncoding, (check, state) => checks = check switch {
+                            OfficeProvenanceAssessment.Check.TextIntegrity => checks with { TextIntegrity = state },
+                            OfficeProvenanceAssessment.Check.Verification => checks with { Verification = state },
+                            _ => checks with { ProviderSignals = state }
+                        }),
                     cancellationToken).ConfigureAwait(false);
                 cancellationToken.ThrowIfCancellationRequested();
                 inputSnapshot!.VerifyPrimaryFile(cancellationToken);
@@ -310,7 +332,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 0,
                 stopwatch.Elapsed,
                 "Cancelled",
-                diagnostics, inputPath: validated?.InputPath ?? request.InputPath, inputSha256: inputSha256);
+                diagnostics, inputPath: validated?.InputPath ?? request.InputPath, inputSha256: inputSha256, checks: checks);
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             TryCleanupStaging(ref stagingPath, diagnostics);
@@ -333,7 +355,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 0,
                 stopwatch.Elapsed,
                 "Provenance workflow failed: " + exception.Message,
-                diagnostics, inputPath: validated?.InputPath ?? request.InputPath, inputSha256: inputSha256);
+                diagnostics, inputPath: validated?.InputPath ?? request.InputPath, inputSha256: inputSha256, checks: checks);
         } finally {
             try {
                 inputSnapshot?.Dispose();

@@ -50,6 +50,8 @@ internal static class ProvenanceOutput {
     private static async Task WriteTextResultAsync(TextWriter writer, ProvenanceResultDto result) {
         await writer.WriteLineAsync(result.Status + " | " + result.Operation + " | " + result.Summary).ConfigureAwait(false);
         await writer.WriteLineAsync("Owner: " + result.OwnerPackage).ConfigureAwait(false);
+        await writer.WriteLineAsync("Checks: structural=" + result.Checks.Structural + "; text integrity=" + result.Checks.TextIntegrity +
+            "; verification=" + result.Checks.Verification + "; provider signals=" + result.Checks.ProviderSignals).ConfigureAwait(false);
         if (result.OutputPath is not null) await writer.WriteLineAsync("Output: " + result.OutputPath).ConfigureAwait(false);
         ProvenanceReportDto? report = result.Inspection ?? result.Assessment?.Structural ?? result.After ?? result.Before;
         if (report is not null) {

@@ -27,6 +27,43 @@ public sealed class OfficeProvenanceAuditTests : IDisposable {
         Assert.True(OfficeProvenanceAudit.HasFindings(completed));
         Assert.Equal(OfficeProvenanceCheckStatus.Completed, completed.Assessment!.TextIntegrityStatus);
     }
+    [Theory]
+    [InlineData("text")]
+    [InlineData("verifier")]
+    [InlineData("detector")]
+    [InlineData("cancel")]
+    public async Task FailedAssessmentRetainsAttemptedCheckCoverage(string failure) {
+        string path = Write("text.txt", failure == "text" ? new string('\u202E', 4097) : "ok");
+        using var cancellation = new CancellationTokenSource();
+        var runner = new OfficeWorkflowRunner(failure is "verifier" or "cancel" ? new ThrowingVerifier(cancellation, failure == "cancel") : null,
+            failure == "detector" ? [new ThrowingDetector()] : null);
+        var result = await runner.RunProvenanceAsync(new() { InputPath = path, Operation = OfficeProvenanceWorkflowOperation.Assess }, cancellationToken: cancellation.Token);
+        Assert.False(result.Succeeded);
+        Assert.Null(result.Assessment);
+        Assert.Equal(OfficeProvenanceCheckStatus.Completed, result.Checks.Structural);
+        Assert.Equal(failure == "text" ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.Completed, result.Checks.TextIntegrity);
+        Assert.Equal(failure is "verifier" or "cancel" ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.NotConfigured, result.Checks.Verification);
+        Assert.Equal(failure == "detector" ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.NotConfigured, result.Checks.ProviderSignals);
+        using var json = JsonDocument.Parse(OfficeProvenanceReportSerializer.Serialize(result));
+        Assert.Equal(result.Checks.TextIntegrity.ToString(), json.RootElement.GetProperty("checks").GetProperty("textIntegrity").GetString());
+        using var sarif = JsonDocument.Parse(OfficeProvenanceSarif.Serialize([result]));
+        var run = sarif.RootElement.GetProperty("runs")[0];
+        Assert.Equal("Completed", run.GetProperty("artifacts")[0].GetProperty("properties").GetProperty("structuralStatus").GetString());
+        Assert.Equal(result.Checks.Verification.ToString(), run.GetProperty("artifacts")[0].GetProperty("properties").GetProperty("verificationStatus").GetString());
+        Assert.False(run.GetProperty("invocations")[0].GetProperty("executionSuccessful").GetBoolean());
+    }
+    private sealed class ThrowingVerifier(CancellationTokenSource cancellation, bool cancel) : IOfficeProvenanceVerifier {
+        public string Name => "test";
+        public OfficeProvenanceVerificationResult Verify(string path, OfficeProvenanceVerificationOptions options) {
+            if (cancel) { cancellation.Cancel(); cancellation.Token.ThrowIfCancellationRequested(); }
+            throw new InvalidOperationException("Verifier failure");
+        }
+    }
+    private sealed class ThrowingDetector : IOfficeProvenanceSignalDetector {
+        public string Name => "test";
+        public OfficeProvenanceSignalKind SignalKind => OfficeProvenanceSignalKind.DeterministicArtifact;
+        public OfficeProvenanceSignalResult Detect(string path) => throw new InvalidOperationException("Detector failure");
+    }
     [Fact]
     public async Task DiscoveryIsBoundedFilteredAndDoesNotHideExplicitMissingInputs() {
         string first = Write("first.txt", "ok"); Write("sub/second.txt", "\u202E"); Write("bin/generated.txt", "\u202E"); Write("skip.txt", "\u202E"); Write("unknown.zzz", "unsupported");
@@ -36,6 +73,7 @@ public sealed class OfficeProvenanceAuditTests : IDisposable {
         Assert.Throws<InvalidDataException>(() => OfficeProvenanceAudit.Discover(new() { Inputs = [_root], Include = ["*.not-there"] }));
         var result = Assert.Single(await OfficeProvenanceAudit.RunAsync(new() { Inputs = [Path.Combine(_root, "missing.txt")] }));
         Assert.Equal(OfficeWorkflowFailureKind.InputNotFound, result.FailureKind);
+        Assert.Equal(OfficeProvenanceCheckStatus.NotRequested, result.Checks.Structural);
         Assert.Equal(Path.Combine(_root, "missing.txt"), result.InputPath);
     }
     [Theory]

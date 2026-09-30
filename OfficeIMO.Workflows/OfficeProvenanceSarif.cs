@@ -16,9 +16,10 @@ public static class OfficeProvenanceSarif {
                 ["hashes"] = report.InputSha256 == null ? null : new JsonObject { ["sha-256"] = report.InputSha256 },
                 ["properties"] = new JsonObject {
                     ["workflowStatus"] = report.Status.ToString(),
-                    ["textIntegrityStatus"] = report.Assessment?.TextIntegrityStatus.ToString() ?? "NotRequested",
-                    ["verificationStatus"] = report.Assessment?.VerificationStatus.ToString() ?? "NotRequested",
-                    ["providerSignalsStatus"] = report.Assessment?.ProviderSignalsStatus.ToString() ?? "NotRequested"
+                    ["structuralStatus"] = report.Checks.Structural.ToString(),
+                    ["textIntegrityStatus"] = report.Checks.TextIntegrity.ToString(),
+                    ["verificationStatus"] = report.Checks.Verification.ToString(),
+                    ["providerSignalsStatus"] = report.Checks.ProviderSignals.ToString()
                 } };
             if (report.InputSha256 == null) artifact.Remove("hashes");
             artifacts.Add(artifact);
@@ -29,7 +30,7 @@ public static class OfficeProvenanceSarif {
                 Add("officeimo.text." + finding.Kind, finding.Risk == OfficeTextIntegrityRisk.PotentiallyDangerous ? "error" :
                     finding.Risk == OfficeTextIntegrityRisk.ContextDependent ? "warning" : "note",
                     finding.UnicodeNotation + " (" + finding.Kind + ", " + finding.Risk + ")", finding.TextOffset, finding.TextLength);
-            if (report.Assessment?.VerificationStatus == OfficeProvenanceCheckStatus.Failed || report.Assessment?.ProviderSignalsStatus == OfficeProvenanceCheckStatus.Failed)
+            if (report.Checks.Verification == OfficeProvenanceCheckStatus.Failed || report.Checks.ProviderSignals == OfficeProvenanceCheckStatus.Failed)
                 Add("officeimo.provider", "error", "An optional provider check failed. Review the provider-specific result.", null, null);
             void Add(string rule, string level, string message, int? offset, int? length) {
                 var location = new JsonObject { ["artifactLocation"] = new JsonObject { ["uri"] = uri, ["index"] = artifactIndex } };
@@ -44,7 +45,7 @@ public static class OfficeProvenanceSarif {
                 ["tool"] = new JsonObject { ["driver"] = new JsonObject { ["name"] = "OfficeIMO", ["informationUri"] = "https://officeimo.com" } },
                 ["columnKind"] = "utf16CodeUnits", ["artifacts"] = artifacts, ["results"] = results,
                 ["invocations"] = new JsonArray(new JsonObject { ["executionSuccessful"] = reports.All(item => item.Succeeded &&
-                    item.Assessment?.VerificationStatus != OfficeProvenanceCheckStatus.Failed && item.Assessment?.ProviderSignalsStatus != OfficeProvenanceCheckStatus.Failed) })
+                    item.Checks.Verification != OfficeProvenanceCheckStatus.Failed && item.Checks.ProviderSignals != OfficeProvenanceCheckStatus.Failed) })
             }) }.ToJsonString();
     }
     private static string ToUri(string path) => Path.IsPathFullyQualified(path)

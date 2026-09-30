@@ -207,6 +207,8 @@ public static class OfficeProvenanceAssessment {
             signalDetectors,
             cancellationToken);
 
+    internal enum Check { TextIntegrity, Verification, ProviderSignals }
+
     internal static OfficeProvenanceAssessmentReport AssessSnapshotFile(
         string snapshotFilePath,
         string logicalFilePath,
@@ -215,7 +217,8 @@ public static class OfficeProvenanceAssessment {
         IOfficeProvenanceVerifier? verifier = null,
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors = null,
         CancellationToken cancellationToken = default,
-        Encoding? textEncoding = null) => AssessFileCore(
+        Encoding? textEncoding = null,
+        Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null) => AssessFileCore(
             snapshotFilePath,
             logicalFilePath,
             structural,
@@ -223,7 +226,7 @@ public static class OfficeProvenanceAssessment {
             verifier,
             signalDetectors,
             cancellationToken,
-            textEncoding);
+            textEncoding, checkStatus);
 
     private static OfficeProvenanceAssessmentReport AssessFileCore(
         string filePath,
@@ -233,7 +236,8 @@ public static class OfficeProvenanceAssessment {
         IOfficeProvenanceVerifier? verifier,
         IEnumerable<IOfficeProvenanceSignalDetector>? signalDetectors,
         CancellationToken cancellationToken,
-        Encoding? textEncoding = null) {
+        Encoding? textEncoding = null,
+        Action<Check, OfficeProvenanceCheckStatus>? checkStatus = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         if (string.IsNullOrWhiteSpace(logicalFilePath)) throw new ArgumentException("A logical file path is required.", nameof(logicalFilePath));
         string fullPath = Path.GetFullPath(filePath);
@@ -245,14 +249,19 @@ public static class OfficeProvenanceAssessment {
         cancellationToken.ThrowIfCancellationRequested();
         OfficeTextIntegrityReport? textIntegrity = null;
         if (options.InspectTextIntegrity && IsTextLike(structural.Format)) {
+            checkStatus?.Invoke(Check.TextIntegrity, OfficeProvenanceCheckStatus.Failed);
             textIntegrity = OfficeTextIntegrityInspector.InspectFile(
                 fullPath,
                 options.TextIntegrity,
                 logicalFullPath,
                 textEncoding,
                 cancellationToken);
+            checkStatus?.Invoke(Check.TextIntegrity, OfficeProvenanceCheckStatus.Completed);
             cancellationToken.ThrowIfCancellationRequested();
+        } else {
+            checkStatus?.Invoke(Check.TextIntegrity, !options.InspectTextIntegrity ? OfficeProvenanceCheckStatus.Disabled : OfficeProvenanceCheckStatus.Unsupported);
         }
+        if (verifier != null) checkStatus?.Invoke(Check.Verification, OfficeProvenanceCheckStatus.Failed);
         OfficeProvenanceVerificationResult? verification = verifier == null
             ? null
             : Verify(verifier, fullPath, options.Verification, cancellationToken);
@@ -265,10 +274,14 @@ public static class OfficeProvenanceAssessment {
             throw OfficeProvenanceProviderContractException.Create(
                 $"The '{verifier.Name}' provenance verifier returned inconsistent provider metadata.");
         }
+        checkStatus?.Invoke(Check.Verification, verification == null ? OfficeProvenanceCheckStatus.NotConfigured :
+            verification.Status is OfficeProvenanceVerificationStatus.Error or OfficeProvenanceVerificationStatus.ProviderUnavailable
+                ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.Completed);
         var signals = new List<OfficeProvenanceSignalResult>();
         if (signalDetectors != null) {
             foreach (IOfficeProvenanceSignalDetector detector in signalDetectors) {
                 cancellationToken.ThrowIfCancellationRequested();
+                checkStatus?.Invoke(Check.ProviderSignals, OfficeProvenanceCheckStatus.Failed);
                 if (detector == null) throw new ArgumentException("Signal detector collections cannot contain null entries.", nameof(signalDetectors));
                 OfficeProvenanceSignalResult result = Detect(detector, fullPath, cancellationToken) ??
                     throw OfficeProvenanceProviderContractException.Create(
@@ -281,6 +294,9 @@ public static class OfficeProvenanceAssessment {
                 signals.Add(result);
             }
         }
+        checkStatus?.Invoke(Check.ProviderSignals, signals.Count == 0 ? OfficeProvenanceCheckStatus.NotConfigured :
+            signals.Any(item => item.Status is OfficeProvenanceSignalStatus.Error or OfficeProvenanceSignalStatus.ProviderUnavailable)
+                ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.Completed);
         cancellationToken.ThrowIfCancellationRequested();
         return new OfficeProvenanceAssessmentReport(structural, verification, textIntegrity, signals.AsReadOnly(),
             !options.InspectTextIntegrity ? OfficeProvenanceCheckStatus.Disabled :
