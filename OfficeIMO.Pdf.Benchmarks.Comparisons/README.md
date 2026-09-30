@@ -41,6 +41,27 @@ The split, merge, and page-selection suites use 5-, 20-, 100-, and 500-page sour
 
 Every timed producer/read combination must first pass page-count and complete deterministic-content validation. Split, merge, and selection include one producer-native post-save reopen and expected-page-count check in every measured lane. Their setup additionally opens outputs with PdfPig and checks output count, page count, order, and every required narrative and table row. A failed or mutation-blocked workflow is reported as compatibility evidence and is not published as a performance result.
 
+## Frozen static conversion cases
+
+`html-corpus-evidence --corpus static-gaps` reuses the artifact runner for eighteen
+frozen, self-contained print inputs. The manifest under
+`OfficeIMO.TestAssets/Documents/Html/Qualification/StaticPdfGaps` records input
+hashes, embedded font provenance, image producer/pixel references, required
+content and links, and geometry/diagnostic criteria. Browser requests are denied;
+fonts and images use data URIs. OfficeIMO uses scale 1 and zero caller margins;
+every input authors A4 portrait pages with 24 CSS-pixel margins.
+
+Run a named case with `--case webp-compressed-filters` and an explicit new
+`--output` directory. Commit and rebuild before adding `--require-clean-source`.
+The output records managed and browser print artifacts, source hashes, text,
+diagnostics and all-page comparisons. It is observation evidence: this corpus
+has no H4 visual acceptance manifest, so `--verify-acceptance` does not certify it.
+Validate the declared content, links, image/color regions and geometry separately.
+The conformance fixture's base print lane does not request PDF/A or PDF/UA;
+those require distinct public-policy calls and independent validators on their
+exact output bytes. Reference-specific `snap` placement is labeled separately
+from published CSS semantics; unsupported browser features are not an oracle.
+
 ## Interoperability corpus
 
 `Corpus/pdf-corpus.json` combines repository fixtures, generated documents, and pinned public files. Downloaded files are opt-in, written under an ignored output directory, and accepted only when their SHA-256 matches the manifest. The corpus currently covers:

@@ -55,7 +55,9 @@ internal sealed record HtmlCorpusStaticEvidence(
     long ManagedAllocatedBytes,
     string ProfilePrint,
     string ProfileScreen,
-    string ProfileScreenToPdf);
+    string ProfileScreenToPdf,
+    IReadOnlyList<OfficeIMO.Html.HtmlDiagnostic> PrintDiagnostics,
+    IReadOnlyList<OfficeIMO.Html.HtmlDiagnostic> ScreenDiagnostics);
 
 internal sealed record HtmlCorpusOperationMetrics(
     double ElapsedMilliseconds,

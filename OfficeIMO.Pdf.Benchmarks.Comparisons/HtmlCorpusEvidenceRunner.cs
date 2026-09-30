@@ -69,6 +69,10 @@ internal static partial class HtmlCorpusEvidenceRunner {
 
         await using HtmlBrowserSession browser = await HtmlPdfComparisonRenderers.OpenChromiumSessionAsync().ConfigureAwait(false);
         await browser.Page.SetViewportSizeAsync(BrowserViewportWidth, BrowserViewportHeight).ConfigureAwait(false);
+        if (cases.Any(input => input.IsStaticGap)) {
+            // Frozen gap inputs contain all resources. Outbound requests are never part of the comparison.
+            await browser.Page.RouteAsync("**/*", route => route.AbortAsync()).ConfigureAwait(false);
+        }
         string chromiumVersion = browser.Browser?.Version ?? "unknown";
 
         var failures = new List<string>();
@@ -239,6 +243,7 @@ internal static partial class HtmlCorpusEvidenceRunner {
         HtmlConversionDocument source = HtmlConversionDocument.Load(sourceStream);
         HtmlToPdfOptions printOptions = new(scenario.CreateOptions());
         printOptions.Margins = HtmlRenderMargins.All(0D);
+        if (input.IsStaticGap) printOptions.Scale = 1D;
         HtmlRenderRequest printRequest = HtmlRenderRequest.Create(
             HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, printOptions);
 
@@ -321,7 +326,9 @@ internal static partial class HtmlCorpusEvidenceRunner {
             allocated,
             printRequest.ProfileId,
             screenRequest.ProfileId,
-            screenToPdfRequest.ProfileId);
+            screenToPdfRequest.ProfileId,
+            printResult.RenderResult.Diagnostics,
+            screenResult.Diagnostics);
     }
 
     private static async Task<HtmlCorpusPdfEvidence> RenderPeachPdfAsync(
@@ -608,11 +615,12 @@ internal static partial class HtmlCorpusEvidenceRunner {
     private sealed record GitCommandResult(bool Succeeded, string Output, string Error);
 
     private static void WriteHelp() {
-        Console.WriteLine("html-corpus-evidence [--corpus <representative|advanced-held-out>] [--case <id>] [--output <new-directory>] [--verify-acceptance] [--require-clean-source]");
+        Console.WriteLine("html-corpus-evidence [--corpus <representative|advanced-held-out|static-gaps>] [--case <id>] [--output <new-directory>] [--verify-acceptance] [--require-clean-source]");
         Console.WriteLine("Captures every H4 source through OfficeIMO print, screen and screen-to-PDF; PeachPDF print; and Chromium screen and print. It writes all-page PDF rasters, OfficeIMO scene PNG/SVG files, text, geometry, pixel comparisons, and the advanced held-out per-capability acceptance result.");
     }
 
     private static HtmlCorpusEvidenceInputSet LoadCorpus(string selection) {
+        if (string.Equals(selection, "static-gaps", StringComparison.OrdinalIgnoreCase)) return LoadStaticGapCorpus();
         if (string.Equals(selection, "representative", StringComparison.OrdinalIgnoreCase)) {
             return new HtmlCorpusEvidenceInputSet(
                 "officeimo-html-h4-representative",
@@ -645,14 +653,15 @@ internal static partial class HtmlCorpusEvidenceRunner {
                     item.Manifest.Capabilities,
                     item.SourceBytes)).ToArray());
         }
-        throw new ArgumentException("Unknown H4 corpus selection: " + selection + ". Use representative or advanced-held-out.");
+        throw new ArgumentException("Unknown H4 corpus selection: " + selection + ". Use representative, advanced-held-out or static-gaps.");
     }
 
     private sealed record HtmlCorpusEvidenceInput(
         HtmlRenderingCorpusCase Scenario,
         string SourceRelativePath,
         IReadOnlyList<string> Capabilities,
-        byte[] SourceBytes);
+        byte[] SourceBytes,
+        bool IsStaticGap = false);
 
     private sealed record HtmlCorpusEvidenceInputSet(
         string CorpusId,
