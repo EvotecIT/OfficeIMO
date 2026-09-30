@@ -19,7 +19,7 @@ RtfDocument rtf = html.ToRtfDocument();
 
 RtfToHtmlResult roundTrip = rtf.ToHtmlResult(
     RtfToHtmlOptions.CreateWebSafeProfile());
-roundTrip.Report.RequireNoLoss();
+roundTrip.RtfReport.RequireNoLoss();
 ```
 
 For a complete responsive and print-aware review document, select the named print profile and a shared theme:

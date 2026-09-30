@@ -10,6 +10,8 @@ public sealed partial class RtfDocument {
         if (source == null) throw new ArgumentNullException(nameof(source));
         RtfDocument imported = source.Clone();
         var report = new RtfConversionReport();
+        foreach (RtfConversionDiagnostic diagnostic in imported._sourceNormalizationDiagnostics) report.Add(diagnostic);
+        _sourceNormalizationDiagnostics.AddRange(imported._sourceNormalizationDiagnostics);
         Dictionary<int, int> fontMap = ImportFonts(imported);
         Dictionary<int, int> colorMap = ImportColors(imported);
         Dictionary<int, int> revisionAuthorMap = ImportRevisionAuthors(imported);

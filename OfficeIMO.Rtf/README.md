@@ -28,6 +28,15 @@ RtfReadResult read = RtfDocument.LoadResult("input.rtf");
 read.SaveLossless("unchanged-copy.rtf");
 ```
 
+Use `ToRtfResult()` when a semantic save must account for source content that the model cannot retain. Its report includes unbound destinations, read-policy omissions and stale encapsulated HTML, even when optional read warnings are disabled:
+
+```csharp
+RtfConversionResult<string> normalized = read.Document.ToRtfResult();
+string acceptedRtf = normalized.RequireNoLoss();
+```
+
+The report belongs to that write operation. A lossless copy preserves the original source; it does not apply semantic edits.
+
 Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`, `ToBytesLossless()`, and `TryGetLosslessBytes(...)` make that contract observable. Character-only input can be written as lossless bytes only when every source character has an exact single-byte representation; the API reports or throws instead of silently transcoding it.
 
 RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.

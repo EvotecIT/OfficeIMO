@@ -11,6 +11,7 @@ internal static partial class RtfSemanticReader {
         var diagnostics = new List<RtfDiagnostic>(tree.Diagnostics);
         var binder = new Binder(options, diagnostics, cancellationToken);
         RtfDocument document = binder.Bind(tree.Root);
+        document.RecordReadNormalizationDiagnostics(diagnostics);
         return new RtfReadResult(document, tree, diagnostics.AsReadOnly());
     }
 
@@ -205,6 +206,10 @@ internal static partial class RtfSemanticReader {
 
             bool isIgnorableDestination = RtfDestinationRegistry.IsIgnorableDestinationGroup(group);
             if (allowDestinationSkip && (RtfDestinationRegistry.ShouldSkipSemanticBinding(destination) || isIgnorableDestination)) {
+                if (RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination) ||
+                    (isIgnorableDestination && !RtfDestinationRegistry.IsKnown(destination))) {
+                    _document.RecordUnboundDestination(destination, group.Position);
+                }
                 if (_options.WarnOnUnsupportedDestinations &&
                     (RtfDestinationRegistry.IsUnsupportedSemanticDestination(destination) ||
                      (isIgnorableDestination && !RtfDestinationRegistry.IsKnown(destination)))) {

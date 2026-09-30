@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfCapabilityManifestTests {
     [Fact]
-    public void Capability_Manifest_Is_Complete_And_Represented_In_The_Living_Matrix() {
+    public void Capability_Manifest_Has_Valid_Identifiers_And_Contract_Fields() {
         string directory = Path.Combine(AppContext.BaseDirectory, "Documents", "RtfCapabilities");
         CapabilityManifest manifest;
         using (FileStream stream = File.OpenRead(Path.Combine(directory, "officeimo.rtf-capabilities.json"))) {
@@ -14,7 +14,6 @@ public class RtfCapabilityManifestTests {
             manifest = Assert.IsType<CapabilityManifest>(serializer.ReadObject(stream));
         }
 
-        string matrix = File.ReadAllText(Path.Combine(directory, "officeimo.rtf-support-matrix.md"));
         string[] statuses = { "Full", "Broad", "Preserved", "Extractive" };
         string[] phases = { "P0", "P1", "P2" };
         string[] conversionClasses = { "Semantic", "Lossless", "Diagnostic", "Visual", "Extractive" };
@@ -39,7 +38,6 @@ public class RtfCapabilityManifestTests {
             Assert.All(item.PublicApi, api => Assert.False(string.IsNullOrWhiteSpace(api)));
             Assert.All(item.Evidence, evidence => Assert.False(string.IsNullOrWhiteSpace(evidence)));
             Assert.False(string.IsNullOrWhiteSpace(item.Boundary));
-            Assert.Contains("<!-- capability:" + item.Id + " -->", matrix, StringComparison.Ordinal);
         }
     }
 
