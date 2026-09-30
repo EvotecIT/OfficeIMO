@@ -6,10 +6,10 @@ namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyParagraphLayout(WordParagraph source, RtfParagraph destination) {
-        destination.PageBreakBefore = source.PageBreakBefore;
-        destination.KeepWithNext = source.KeepWithNext;
-        destination.KeepLinesTogether = source.KeepLinesTogether;
-        destination.SuppressLineNumbers = source._paragraphProperties?.SuppressLineNumbers != null;
+        destination.DirectPageBreakBefore = ReadToggle(source._paragraphProperties?.PageBreakBefore);
+        destination.DirectKeepWithNext = ReadToggle(source._paragraphProperties?.KeepNext);
+        destination.DirectKeepLinesTogether = ReadToggle(source._paragraphProperties?.KeepLines);
+        destination.DirectSuppressLineNumbers = ReadToggle(source._paragraphProperties?.SuppressLineNumbers);
         destination.AutoHyphenation = source._paragraphProperties?.SuppressAutoHyphens == null ? null : false;
         destination.ContextualSpacing = GetContextualSpacing(source);
         destination.AdjustRightIndent = GetAdjustRightIndent(source);
@@ -28,13 +28,11 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyParagraphLayout(WordParagraph destination, RtfParagraph source) {
-        destination.PageBreakBefore = source.PageBreakBefore;
-        destination.KeepWithNext = source.KeepWithNext;
-        destination.KeepLinesTogether = source.KeepLinesTogether;
-        if (source.SuppressLineNumbers) {
-            ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
-            properties.SuppressLineNumbers = new SuppressLineNumbers();
-        }
+        ParagraphProperties flow = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();
+        flow.PageBreakBefore = source.DirectPageBreakBefore.HasValue ? new PageBreakBefore { Val = source.PageBreakBefore } : null;
+        flow.KeepNext = source.DirectKeepWithNext.HasValue ? new KeepNext { Val = source.KeepWithNext } : null;
+        flow.KeepLines = source.DirectKeepLinesTogether.HasValue ? new KeepLines { Val = source.KeepLinesTogether } : null;
+        flow.SuppressLineNumbers = source.DirectSuppressLineNumbers.HasValue ? new SuppressLineNumbers { Val = source.SuppressLineNumbers } : null;
 
         if (source.AutoHyphenation == false) {
             ParagraphProperties properties = destination._paragraph.ParagraphProperties ??= new ParagraphProperties();

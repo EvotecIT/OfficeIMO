@@ -343,10 +343,10 @@ internal static partial class RtfSemanticReader {
                     state.AnsiCodePage = ResolveFontCodePage(control.Parameter, state.DocumentAnsiCodePage);
                     return;
                 case "cf":
-                    state.ForegroundColorIndex = control.Parameter.GetValueOrDefault() == 0 ? null : control.Parameter;
+                    state.ForegroundColorIndex = control.Parameter;
                     return;
                 case "highlight":
-                    state.HighlightColorIndex = control.Parameter.GetValueOrDefault() == 0 ? null : control.Parameter;
+                    state.HighlightColorIndex = control.Parameter;
                     return;
                 case "cs":
                     state.CharacterStyleId = control.Parameter;
@@ -356,6 +356,12 @@ internal static partial class RtfSemanticReader {
                     return;
                 case "s":
                     state.ParagraphStyleId = control.Parameter;
+                    if (state.UseDefaultCharacterFormatting) {
+                        state.UseDefaultCharacterFormatting = false;
+                        state.DirectBold = null;
+                        state.DirectItalic = null;
+                        state.DirectUnderlineStyle = null;
+                    }
                     return;
                 case "ls":
                     state.ListId = control.Parameter;

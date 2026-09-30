@@ -5,7 +5,10 @@ namespace OfficeIMO.Rtf;
 /// </summary>
 public sealed partial class RtfParagraphBorder {
     /// <summary>Border line style.</summary>
-    public RtfParagraphBorderStyle Style { get; set; } = RtfParagraphBorderStyle.None;
+    public RtfParagraphBorderStyle Style { get => DirectStyle ?? RtfParagraphBorderStyle.None; set => DirectStyle = value; }
+
+    /// <summary>Authored border style. An explicit None clears an inherited border; null inherits.</summary>
+    public RtfParagraphBorderStyle? DirectStyle { get; set; }
 
     /// <summary>Border width value carried by the RTF <c>\brdrw</c> control.</summary>
     public int? Width { get; set; }
@@ -15,7 +18,7 @@ public sealed partial class RtfParagraphBorder {
 
     /// <summary>Whether any border formatting is present.</summary>
     public bool HasAnyValue =>
-        Style != RtfParagraphBorderStyle.None ||
+        DirectStyle.HasValue ||
         Width.HasValue ||
         ColorIndex.HasValue;
 }

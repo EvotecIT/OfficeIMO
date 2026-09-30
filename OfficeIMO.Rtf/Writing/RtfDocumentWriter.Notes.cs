@@ -79,15 +79,15 @@ internal static partial class RtfDocumentWriter {
         });
     }
 
-    private static void WriteDetachedNotes(StringBuilder builder, RtfDocument document, HashSet<RtfNote> referencedNotes, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteDetachedNotes(StringBuilder builder, RtfDocument document, HashSet<RtfNote> referencedNotes, RtfWriteContext context) {
         foreach (RtfNote note in document.Notes) {
             if (!referencedNotes.Contains(note)) {
-                WriteNote(builder, note, defaultLanguageId, unicodeSkipCount);
+                WriteNote(builder, note, context);
             }
         }
     }
 
-    private static void WriteNote(StringBuilder builder, RtfNote note, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteNote(StringBuilder builder, RtfNote note, RtfWriteContext context) {
         builder.Append(@"{\");
         builder.Append(note.Kind switch {
             RtfNoteKind.Annotation => "annotation",
@@ -95,12 +95,12 @@ internal static partial class RtfDocumentWriter {
             _ => "footnote"
         });
         if (note.Kind == RtfNoteKind.Annotation) {
-            WriteAnnotationMetadata(builder, note, unicodeSkipCount);
+            WriteAnnotationMetadata(builder, note, context.UnicodeSkipCount);
             builder.Append(@"\chatn");
         }
 
         foreach (RtfParagraph paragraph in note.Paragraphs) {
-            WriteParagraph(builder, paragraph, defaultLanguageId, unicodeSkipCount);
+            WriteParagraph(builder, paragraph, context);
         }
 
         builder.Append('}');

@@ -958,7 +958,7 @@ public static partial class WordRtfConverterExtensions {
                 wordRun = wordParagraph.AddText(run.Text);
             }
 
-            ApplyRtfRunFormatting(run, wordRun, rtfDocument);
+            ApplyRtfRunFormatting(rtfDocument != null && rtfDocument.Styles.Count > 0 ? rtfDocument.GetRunFormatting(paragraph, run) : run, wordRun, rtfDocument);
 
             if (run.Note != null) {
                 AppendNote(wordRun, run.Note, rtfDocument);

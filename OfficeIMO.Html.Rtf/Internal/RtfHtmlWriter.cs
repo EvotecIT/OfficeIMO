@@ -145,7 +145,8 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendParagraph(StringBuilder builder, RtfParagraph paragraph, RtfToHtmlOptions options, RtfDocument document) {
-        string tagName = GetParagraphTagName(paragraph);
+        RtfParagraph effective = document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph) : paragraph;
+        string tagName = GetParagraphTagName(effective);
         builder.Append('<');
         builder.Append(tagName);
         AppendLanguageDirectionAttributes(builder, null, paragraph.Direction);
@@ -156,9 +157,10 @@ internal static partial class RtfHtmlWriter {
             AppendParagraphControlAttributes(builder, paragraph);
             AppendParagraphFrameAttributes(builder, paragraph);
         }
-        AppendParagraphStyle(builder, paragraph, document);
+        if (options.IncludeRoundTripMetadata && document.Styles.Count > 0) AppendParagraphDirectFormatting(builder, paragraph);
+        AppendParagraphStyle(builder, effective, document);
         builder.Append('>');
-        AppendInlines(builder, paragraph.Inlines, options, document);
+        AppendInlines(builder, paragraph.Inlines, options, document, paragraph);
         builder.Append("</");
         builder.Append(tagName);
         builder.Append('>');
@@ -271,12 +273,12 @@ internal static partial class RtfHtmlWriter {
         builder.Append(';');
     }
 
-    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendInlines(StringBuilder builder, IReadOnlyList<IRtfInline> inlines, RtfToHtmlOptions options, RtfDocument document, RtfParagraph? paragraph = null) {
         for (int index = 0; index < inlines.Count; index++) {
             IRtfInline inline = inlines[index];
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(builder, run, inlines, ref index, options, document);
+                    AppendRun(builder, run, inlines, ref index, options, document, paragraph);
                     break;
                 case RtfBreak rtfBreak:
                     AppendBreak(builder, rtfBreak.Kind, options.IncludeRoundTripMetadata);
@@ -310,7 +312,16 @@ internal static partial class RtfHtmlWriter {
         IReadOnlyList<IRtfInline> inlines,
         ref int index,
         RtfToHtmlOptions options,
-        RtfDocument document) {
+        RtfDocument document,
+        RtfParagraph? paragraph) {
+        RtfRun authored = run;
+        if (document.Styles.Count > 0) run = document.GetRunFormatting(paragraph ?? new RtfParagraph(), run);
+        bool directWrapper = options.IncludeRoundTripMetadata && document.Styles.Count > 0;
+        if (directWrapper) {
+            builder.Append("<span");
+            AppendRunDirectFormatting(builder, authored);
+            builder.Append('>');
+        }
         bool revisionOpened = AppendRevisionStart(builder, run, document, options.IncludeRoundTripMetadata);
         int opened = 0;
         string? hyperlink = ResolveHtmlUrl(run.Hyperlink?.ToString(), options, "RtfHtmlHyperlinkRejected", "run.Hyperlink");
@@ -335,7 +346,7 @@ internal static partial class RtfHtmlWriter {
         while (!options.IncludeRoundTripMetadata &&
                index + 1 < inlines.Count &&
                inlines[index + 1] is RtfRun nextRun &&
-               HaveEquivalentHtmlFormatting(run, nextRun)) {
+               HaveEquivalentHtmlFormatting(run, document.Styles.Count > 0 ? document.GetRunFormatting(paragraph ?? new RtfParagraph(), nextRun) : nextRun)) {
             builder.Append(Encode(nextRun.Text));
             index++;
         }
@@ -353,6 +364,7 @@ internal static partial class RtfHtmlWriter {
 
         AppendNote(builder, run.Note, options, document);
         AppendRevisionEnd(builder, run, revisionOpened);
+        if (directWrapper) builder.Append("</span>");
     }
 
     private static void OpenTag(StringBuilder builder, string tag, bool condition, ref int opened) {

@@ -123,7 +123,7 @@ internal static partial class RtfHtmlWriter {
             return;
         }
 
-        AddEnum(values, prefix + ".style", border.Style == RtfParagraphBorderStyle.None ? (RtfParagraphBorderStyle?)null : border.Style);
+        AddEnum(values, prefix + ".style", border.DirectStyle);
         AddNullableInt(values, prefix + ".width", border.Width);
         AddNullableInt(values, prefix + ".color", border.ColorIndex);
     }

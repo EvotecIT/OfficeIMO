@@ -2,9 +2,19 @@ namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
     private sealed class CharacterState : RtfTextDecodingState {
-        public bool Bold { get; set; }
-        public bool Italic { get; set; }
-        public RtfUnderlineStyle UnderlineStyle { get; set; } = RtfUnderlineStyle.None;
+        public bool UseDefaultCharacterFormatting { get; set; }
+        public bool Bold { get => DirectBold ?? false; set => DirectBold = value; }
+
+        /// <summary>Authored Bold override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public bool? DirectBold { get; set; }
+        public bool Italic { get => DirectItalic ?? false; set => DirectItalic = value; }
+
+        /// <summary>Authored Italic override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public bool? DirectItalic { get; set; }
+        public RtfUnderlineStyle UnderlineStyle { get => DirectUnderlineStyle ?? RtfUnderlineStyle.None; set => DirectUnderlineStyle = value; }
+
+        /// <summary>Authored UnderlineStyle override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public RtfUnderlineStyle? DirectUnderlineStyle { get; set; }
         public bool Strike { get; set; }
         public bool DoubleStrike { get; set; }
         public bool Hidden { get; set; }
@@ -39,7 +49,10 @@ internal static partial class RtfSemanticReader {
         public int? CharacterRevisionSaveId { get; set; }
         public int? InsertionRevisionSaveId { get; set; }
         public int? DeletionRevisionSaveId { get; set; }
-        public RtfTextAlignment Alignment { get; set; } = RtfTextAlignment.Left;
+        public RtfTextAlignment Alignment { get => DirectAlignment ?? RtfTextAlignment.Left; set => DirectAlignment = value; }
+
+        /// <summary>Authored Alignment override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public RtfTextAlignment? DirectAlignment { get; set; }
         public RtfTextDirection? ParagraphDirection { get; set; }
         public int? ParagraphStyleId { get; set; }
         public int? ListId { get; set; }
@@ -71,10 +84,22 @@ internal static partial class RtfSemanticReader {
         public RtfParagraphBorder LeftBorder { get; } = new RtfParagraphBorder();
         public RtfParagraphBorder BottomBorder { get; } = new RtfParagraphBorder();
         public RtfParagraphBorder RightBorder { get; } = new RtfParagraphBorder();
-        public bool PageBreakBefore { get; set; }
-        public bool KeepWithNext { get; set; }
-        public bool KeepLinesTogether { get; set; }
-        public bool SuppressLineNumbers { get; set; }
+        public bool PageBreakBefore { get => DirectPageBreakBefore ?? false; set => DirectPageBreakBefore = value; }
+
+        /// <summary>Authored PageBreakBefore override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public bool? DirectPageBreakBefore { get; set; }
+        public bool KeepWithNext { get => DirectKeepWithNext ?? false; set => DirectKeepWithNext = value; }
+
+        /// <summary>Authored KeepWithNext override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public bool? DirectKeepWithNext { get; set; }
+        public bool KeepLinesTogether { get => DirectKeepLinesTogether ?? false; set => DirectKeepLinesTogether = value; }
+
+        /// <summary>Authored KeepLinesTogether override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public bool? DirectKeepLinesTogether { get; set; }
+        public bool SuppressLineNumbers { get => DirectSuppressLineNumbers ?? false; set => DirectSuppressLineNumbers = value; }
+
+        /// <summary>Authored SuppressLineNumbers override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+        public bool? DirectSuppressLineNumbers { get; set; }
         public bool? AutoHyphenation { get; set; }
         public bool? ContextualSpacing { get; set; }
         public bool? AdjustRightIndent { get; set; }
@@ -91,9 +116,10 @@ internal static partial class RtfSemanticReader {
 
         public CharacterState Clone() {
             var clone = new CharacterState {
-                Bold = Bold,
-                Italic = Italic,
-                UnderlineStyle = UnderlineStyle,
+                UseDefaultCharacterFormatting = UseDefaultCharacterFormatting,
+                DirectBold = DirectBold,
+                DirectItalic = DirectItalic,
+                DirectUnderlineStyle = DirectUnderlineStyle,
                 Strike = Strike,
                 DoubleStrike = DoubleStrike,
                 Hidden = Hidden,
@@ -127,7 +153,7 @@ internal static partial class RtfSemanticReader {
                 CharacterRevisionSaveId = CharacterRevisionSaveId,
                 InsertionRevisionSaveId = InsertionRevisionSaveId,
                 DeletionRevisionSaveId = DeletionRevisionSaveId,
-                Alignment = Alignment,
+                DirectAlignment = DirectAlignment,
                 ParagraphDirection = ParagraphDirection,
                 ParagraphStyleId = ParagraphStyleId,
                 ListId = ListId,
@@ -152,10 +178,10 @@ internal static partial class RtfSemanticReader {
                 ShadingPattern = ShadingPattern,
                 CurrentParagraphBorderSide = CurrentParagraphBorderSide,
                 CurrentPageBorderSide = CurrentPageBorderSide,
-                PageBreakBefore = PageBreakBefore,
-                KeepWithNext = KeepWithNext,
-                KeepLinesTogether = KeepLinesTogether,
-                SuppressLineNumbers = SuppressLineNumbers,
+                DirectPageBreakBefore = DirectPageBreakBefore,
+                DirectKeepWithNext = DirectKeepWithNext,
+                DirectKeepLinesTogether = DirectKeepLinesTogether,
+                DirectSuppressLineNumbers = DirectSuppressLineNumbers,
                 AutoHyphenation = AutoHyphenation,
                 ContextualSpacing = ContextualSpacing,
                 AdjustRightIndent = AdjustRightIndent,
@@ -189,6 +215,7 @@ internal static partial class RtfSemanticReader {
         }
 
         public void ResetCharacter() {
+            UseDefaultCharacterFormatting = true;
             Bold = false;
             Italic = false;
             UnderlineStyle = RtfUnderlineStyle.None;
@@ -228,8 +255,7 @@ internal static partial class RtfSemanticReader {
         }
 
         public void ResetParagraph() {
-            ResetCharacter();
-            Alignment = RtfTextAlignment.Left;
+            DirectAlignment = null;
             ParagraphDirection = null;
             ParagraphStyleId = null;
             ListId = null;
@@ -260,10 +286,10 @@ internal static partial class RtfSemanticReader {
             ClearBorder(LeftBorder);
             ClearBorder(BottomBorder);
             ClearBorder(RightBorder);
-            PageBreakBefore = false;
-            KeepWithNext = false;
-            KeepLinesTogether = false;
-            SuppressLineNumbers = false;
+            DirectPageBreakBefore = null;
+            DirectKeepWithNext = null;
+            DirectKeepLinesTogether = null;
+            DirectSuppressLineNumbers = null;
             AutoHyphenation = null;
             ContextualSpacing = null;
             AdjustRightIndent = null;
@@ -301,13 +327,13 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void CopyBorder(RtfParagraphBorder source, RtfParagraphBorder destination) {
-            destination.Style = source.Style;
+            destination.DirectStyle = source.DirectStyle;
             destination.Width = source.Width;
             destination.ColorIndex = source.ColorIndex;
         }
 
         private static void ClearBorder(RtfParagraphBorder border) {
-            border.Style = RtfParagraphBorderStyle.None;
+            border.DirectStyle = null;
             border.Width = null;
             border.ColorIndex = null;
         }

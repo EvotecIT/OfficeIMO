@@ -12,9 +12,10 @@ public static partial class WordRtfConverterExtensions {
             run.StyleId = FindRtfStyleId(rtfDocument, wordRun.CharacterStyleId!, RtfStyleKind.Character);
         }
 
-        run.Bold = wordRun.Bold;
-        run.Italic = wordRun.Italic;
-        run.UnderlineStyle = ToRtfUnderlineStyle(wordRun.Underline.ToOpenXml());
+        run.DirectBold = ReadToggle(wordRun.ScopedRunProperties?.Bold);
+        run.DirectItalic = ReadToggle(wordRun.ScopedRunProperties?.Italic);
+        run.DirectUnderlineStyle = wordRun.ScopedRunProperties?.Underline != null
+            ? ToRtfUnderlineStyle(wordRun.Underline.ToOpenXml()) : null;
         if (TryGetUnderlineColor(wordRun, out byte underlineRed, out byte underlineGreen, out byte underlineBlue)) {
             run.UnderlineColorIndex = GetOrAddColor(rtfDocument, underlineRed, underlineGreen, underlineBlue);
         }
@@ -35,6 +36,7 @@ public static partial class WordRtfConverterExtensions {
             TryParseHexColor(wordRun.ColorHex, out byte foregroundRed, out byte foregroundGreen, out byte foregroundBlue)) {
             run.ForegroundColorIndex = GetOrAddColor(rtfDocument, foregroundRed, foregroundGreen, foregroundBlue);
         }
+        if (string.Equals(wordRun.ColorHex, "auto", StringComparison.OrdinalIgnoreCase)) run.ForegroundColorIndex = 0;
 
         if (wordRun.Highlight.HasValue &&
             TryGetRtfHighlightColor(wordRun.Highlight.Value.ToOpenXml(), out byte highlightRed, out byte highlightGreen, out byte highlightBlue)) {
@@ -60,8 +62,8 @@ public static partial class WordRtfConverterExtensions {
             wordRun.CharacterStyleId = GetWordStyleId(run.StyleId.Value, RtfStyleKind.Character);
         }
 
-        wordRun.Bold = run.Bold;
-        wordRun.Italic = run.Italic;
+        wordRun.ApplyDirectEmphasis(run.DirectBold, run.DirectItalic,
+            run.DirectUnderlineStyle.HasValue ? ToWordUnderlineStyle(run.UnderlineStyle) : null);
         if (run.UnderlineStyle != RtfUnderlineStyle.None) {
             wordRun.SetUnderline(ToWordUnderlineStyle(run.UnderlineStyle).ToOfficeEnum());
             if (run.UnderlineColorIndex.HasValue && rtfDocument != null) {
@@ -99,6 +101,8 @@ public static partial class WordRtfConverterExtensions {
             string? colorHex = GetColorHex(rtfDocument, run.ForegroundColorIndex.Value);
             if (colorHex != null) {
                 wordRun.ColorHex = colorHex;
+            } else if (run.ForegroundColorIndex == 0) {
+                wordRun.ColorHex = "auto";
             }
         }
 
@@ -185,6 +189,8 @@ public static partial class WordRtfConverterExtensions {
 
     private static UnderlineValues ToWordUnderlineStyle(RtfUnderlineStyle style) {
         switch (style) {
+            case RtfUnderlineStyle.None:
+                return UnderlineValues.None;
             case RtfUnderlineStyle.Words:
                 return UnderlineValues.Words;
             case RtfUnderlineStyle.Double:

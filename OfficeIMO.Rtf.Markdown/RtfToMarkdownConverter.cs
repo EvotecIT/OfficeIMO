@@ -13,6 +13,7 @@ internal static class RtfToMarkdownConverter {
 
     internal static MarkdownDoc Convert(RtfDocument document, RtfToMarkdownConversionContext context) {
         RtfTableTraversalGuard.ValidateDocument(document);
+        context.Document = document;
         var blocks = new List<IMarkdownBlock>(document.Blocks.Count + document.Notes.Count + 1);
         int imageIndex = 0;
         var listStartLookup = new ListStartLookup(document);
@@ -598,7 +599,9 @@ internal static class RtfToMarkdownConverter {
         ReportUnsupportedParagraphFormatting(paragraph, context);
         InlineSequence sequence = CreateInlineSequence();
         for (int i = 0; i < paragraph.Inlines.Count; i++) {
-            AppendInline(sequence, paragraph.Inlines[i], context, ref imageIndex);
+            IRtfInline inline = paragraph.Inlines[i];
+            if (inline is RtfRun run && context.Document?.Styles.Count > 0) inline = context.Document.GetRunFormatting(paragraph, run);
+            AppendInline(sequence, inline, context, ref imageIndex);
         }
 
         return sequence;

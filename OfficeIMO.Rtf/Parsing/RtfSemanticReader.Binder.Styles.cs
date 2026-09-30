@@ -501,7 +501,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void CopyStyleBorder(RtfParagraphBorder source, RtfParagraphBorder destination) {
-            destination.Style = source.Style;
+            destination.DirectStyle = source.DirectStyle;
             destination.Width = source.Width;
             destination.ColorIndex = source.ColorIndex;
         }

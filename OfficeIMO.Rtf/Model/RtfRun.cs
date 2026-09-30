@@ -11,11 +11,20 @@ public sealed partial class RtfRun : IRtfInline {
     /// <summary>Run text.</summary>
     public string Text { get; set; }
 
+    /// <summary>Whether a native plain reset selects document defaults beneath this run's direct and character-style formatting.</summary>
+    public bool UseDefaultCharacterFormatting { get; set; }
+
     /// <summary>Whether the run is bold.</summary>
-    public bool Bold { get; set; }
+    public bool Bold { get => DirectBold ?? false; set => DirectBold = value; }
+
+    /// <summary>Authored Bold override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectBold { get; set; }
 
     /// <summary>Whether the run is italic.</summary>
-    public bool Italic { get; set; }
+    public bool Italic { get => DirectItalic ?? false; set => DirectItalic = value; }
+
+    /// <summary>Authored Italic override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectItalic { get; set; }
 
     /// <summary>Whether the run is underlined. Setting this property uses single underline when enabled.</summary>
     public bool Underline {
@@ -24,7 +33,10 @@ public sealed partial class RtfRun : IRtfInline {
     }
 
     /// <summary>Underline style for the run.</summary>
-    public RtfUnderlineStyle UnderlineStyle { get; set; } = RtfUnderlineStyle.None;
+    public RtfUnderlineStyle UnderlineStyle { get => DirectUnderlineStyle ?? RtfUnderlineStyle.None; set => DirectUnderlineStyle = value; }
+
+    /// <summary>Authored UnderlineStyle override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public RtfUnderlineStyle? DirectUnderlineStyle { get; set; }
 
     /// <summary>Whether the run is struck through.</summary>
     public bool Strike { get; set; }

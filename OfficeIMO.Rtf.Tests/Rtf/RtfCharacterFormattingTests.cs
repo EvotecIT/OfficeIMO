@@ -109,9 +109,9 @@ public class RtfCharacterFormattingTests {
 
         RtfRun rtfRun = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs, run => run.Text == "Styled");
         Assert.Equal(RtfUnderlineStyle.DoubleWave, rtfRun.UnderlineStyle);
-        Assert.Equal(1, rtfRun.UnderlineColorIndex);
+        Assert.Equal("#4472C4", rtfDocument.GetColor(rtfRun.UnderlineColorIndex!.Value)!.ToString());
         Assert.Contains(@"\uldbwave", rtf, StringComparison.Ordinal);
-        Assert.Contains(@"\ulc1", rtf, StringComparison.Ordinal);
+        Assert.Contains($@"\ulc{rtfRun.UnderlineColorIndex}", rtf, StringComparison.Ordinal);
         WordParagraph roundTripRun = Assert.Single(roundTrip.Paragraphs, run => run.Text == "Styled");
         Assert.Equal(WordUnderlineStyle.WavyDouble, roundTripRun.Underline);
         Assert.Equal("4472C4", roundTripRun._run?.RunProperties?.Underline?.Color?.Value);

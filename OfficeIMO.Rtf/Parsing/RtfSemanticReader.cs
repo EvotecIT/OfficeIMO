@@ -318,9 +318,10 @@ internal static partial class RtfSemanticReader {
 
             ApplyParagraphState(_currentParagraph, state);
             var run = new RtfRun(text) {
-                Bold = state.Bold,
-                Italic = state.Italic,
-                UnderlineStyle = state.UnderlineStyle,
+                UseDefaultCharacterFormatting = state.UseDefaultCharacterFormatting,
+                DirectBold = state.DirectBold,
+                DirectItalic = state.DirectItalic,
+                DirectUnderlineStyle = state.DirectUnderlineStyle,
                 Strike = state.Strike,
                 DoubleStrike = state.DoubleStrike,
                 Hidden = state.Hidden,
@@ -371,7 +372,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void ApplyParagraphState(RtfParagraph paragraph, CharacterState state) {
-            paragraph.Alignment = state.Alignment;
+            paragraph.DirectAlignment = state.DirectAlignment;
             paragraph.Direction = state.ParagraphDirection;
             paragraph.StyleId = state.ParagraphStyleId;
             paragraph.ListId = state.ListId;
@@ -397,10 +398,10 @@ internal static partial class RtfSemanticReader {
             CopyParagraphBorder(state.LeftBorder, paragraph.LeftBorder);
             CopyParagraphBorder(state.BottomBorder, paragraph.BottomBorder);
             CopyParagraphBorder(state.RightBorder, paragraph.RightBorder);
-            paragraph.PageBreakBefore = state.PageBreakBefore;
-            paragraph.KeepWithNext = state.KeepWithNext;
-            paragraph.KeepLinesTogether = state.KeepLinesTogether;
-            paragraph.SuppressLineNumbers = state.SuppressLineNumbers;
+            paragraph.DirectPageBreakBefore = state.DirectPageBreakBefore;
+            paragraph.DirectKeepWithNext = state.DirectKeepWithNext;
+            paragraph.DirectKeepLinesTogether = state.DirectKeepLinesTogether;
+            paragraph.DirectSuppressLineNumbers = state.DirectSuppressLineNumbers;
             paragraph.AutoHyphenation = state.AutoHyphenation;
             paragraph.ContextualSpacing = state.ContextualSpacing;
             paragraph.AdjustRightIndent = state.AdjustRightIndent;
@@ -413,7 +414,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void CopyParagraphBorder(RtfParagraphBorder source, RtfParagraphBorder destination) {
-            destination.Style = source.Style;
+            destination.DirectStyle = source.DirectStyle;
             destination.Width = source.Width;
             destination.ColorIndex = source.ColorIndex;
         }

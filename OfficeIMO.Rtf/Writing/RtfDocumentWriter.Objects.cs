@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    private static void WriteObject(StringBuilder builder, RtfObject rtfObject, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteObject(StringBuilder builder, RtfObject rtfObject, RtfWriteContext context) {
         builder.Append(@"{\object");
         builder.Append(rtfObject.Kind switch {
             RtfObjectKind.Embedded => @"\objemb",
@@ -16,15 +16,15 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\objh", rtfObject.Height);
         AppendOptionalTwips(builder, @"\objscalex", rtfObject.ScaleX);
         AppendOptionalTwips(builder, @"\objscaley", rtfObject.ScaleY);
-        WriteObjectTextDestination(builder, "objclass", rtfObject.ClassName, unicodeSkipCount);
-        WriteObjectTextDestination(builder, "objname", rtfObject.Name, unicodeSkipCount);
+        WriteObjectTextDestination(builder, "objclass", rtfObject.ClassName, context.UnicodeSkipCount);
+        WriteObjectTextDestination(builder, "objname", rtfObject.Name, context.UnicodeSkipCount);
         if (rtfObject.Data.Length > 0) {
             builder.Append(@"{\*\objdata ");
             WriteHexBytes(builder, rtfObject.Data);
             builder.Append('}');
         }
 
-        WriteObjectResult(builder, rtfObject, defaultLanguageId, unicodeSkipCount);
+        WriteObjectResult(builder, rtfObject, context);
         builder.Append('}');
     }
 
@@ -37,7 +37,7 @@ internal static partial class RtfDocumentWriter {
         builder.Append('}');
     }
 
-    private static void WriteObjectResult(StringBuilder builder, RtfObject rtfObject, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteObjectResult(StringBuilder builder, RtfObject rtfObject, RtfWriteContext context) {
         if (rtfObject.ResultImage == null && rtfObject.Result.Inlines.Count == 0) return;
 
         builder.Append(@"{\result ");
@@ -46,9 +46,9 @@ internal static partial class RtfDocumentWriter {
         }
 
         if (rtfObject.Result.Inlines.Count > 0) {
-            var state = new RunWriteState(defaultLanguageId);
+            var state = new RunWriteState(context.DefaultLanguageId);
             foreach (IRtfInline inline in rtfObject.Result.Inlines) {
-                WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+                WriteInline(builder, inline, state, context);
             }
 
             ResetRunState(builder, state);

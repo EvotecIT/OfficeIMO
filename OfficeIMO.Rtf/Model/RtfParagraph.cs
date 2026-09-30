@@ -18,7 +18,10 @@ public sealed partial class RtfParagraph : IRtfBlock {
     public IReadOnlyList<RtfTabStop> TabStops => _tabStops.AsReadOnly();
 
     /// <summary>Paragraph alignment.</summary>
-    public RtfTextAlignment Alignment { get; set; } = RtfTextAlignment.Left;
+    public RtfTextAlignment Alignment { get => DirectAlignment ?? RtfTextAlignment.Left; set => DirectAlignment = value; }
+
+    /// <summary>Authored Alignment override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public RtfTextAlignment? DirectAlignment { get; set; }
 
     /// <summary>Explicit paragraph text direction represented by <c>\ltrpar</c> or <c>\rtlpar</c>.</summary>
     public RtfTextDirection? Direction { get; set; }
@@ -99,16 +102,28 @@ public sealed partial class RtfParagraph : IRtfBlock {
     public RtfParagraphBorder RightBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Whether a page break should be emitted before this paragraph.</summary>
-    public bool PageBreakBefore { get; set; }
+    public bool PageBreakBefore { get => DirectPageBreakBefore ?? false; set => DirectPageBreakBefore = value; }
+
+    /// <summary>Authored PageBreakBefore override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectPageBreakBefore { get; set; }
 
     /// <summary>Whether this paragraph should stay on the same page as the following paragraph.</summary>
-    public bool KeepWithNext { get; set; }
+    public bool KeepWithNext { get => DirectKeepWithNext ?? false; set => DirectKeepWithNext = value; }
+
+    /// <summary>Authored KeepWithNext override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectKeepWithNext { get; set; }
 
     /// <summary>Whether all lines in this paragraph should stay together on the same page.</summary>
-    public bool KeepLinesTogether { get; set; }
+    public bool KeepLinesTogether { get => DirectKeepLinesTogether ?? false; set => DirectKeepLinesTogether = value; }
+
+    /// <summary>Authored KeepLinesTogether override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectKeepLinesTogether { get; set; }
 
     /// <summary>Whether line numbering is suppressed for this paragraph.</summary>
-    public bool SuppressLineNumbers { get; set; }
+    public bool SuppressLineNumbers { get => DirectSuppressLineNumbers ?? false; set => DirectSuppressLineNumbers = value; }
+
+    /// <summary>Authored SuppressLineNumbers override. Null inherits from the selected style; an explicit default clears that style value.</summary>
+    public bool? DirectSuppressLineNumbers { get; set; }
 
     /// <summary>Paragraph-level automatic hyphenation override represented by <c>\hyphpar</c>.</summary>
     public bool? AutoHyphenation { get; set; }

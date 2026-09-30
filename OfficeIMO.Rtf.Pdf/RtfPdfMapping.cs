@@ -50,26 +50,22 @@ internal static class RtfPdfMapping {
     }
 
     internal static PdfCore.PdfParagraphStyle? ToPdfParagraphStyle(RtfDocument document, RtfParagraph paragraph) {
-        RtfStyle? style = paragraph.StyleId.HasValue
-            ? document.Styles.FirstOrDefault(item => item.Id == paragraph.StyleId.Value && item.Kind == RtfStyleKind.Paragraph)
-            : null;
+        if (document.Styles.Count > 0) paragraph = document.GetParagraphFormatting(paragraph);
 
-        int? leftIndent = paragraph.LeftIndentTwips ?? style?.LeftIndentTwips;
-        int? rightIndent = paragraph.RightIndentTwips ?? style?.RightIndentTwips;
-        int? firstLineIndent = paragraph.FirstLineIndentTwips ?? style?.FirstLineIndentTwips;
-        int? spaceBefore = paragraph.SpaceBeforeTwips ?? style?.SpaceBeforeTwips;
-        int? spaceAfter = paragraph.SpaceAfterTwips ?? style?.SpaceAfterTwips;
-        bool? spaceBeforeAuto = paragraph.SpaceBeforeAuto ?? style?.SpaceBeforeAuto;
-        bool? spaceAfterAuto = paragraph.SpaceAfterAuto ?? style?.SpaceAfterAuto;
-        int? lineSpacing = paragraph.LineSpacingTwips ?? style?.LineSpacingTwips;
-        bool? lineSpacingMultiple = paragraph.LineSpacingMultiple ?? style?.LineSpacingMultiple;
-        bool keepTogether = paragraph.KeepLinesTogether || style?.KeepLinesTogether == true;
-        bool keepWithNext = paragraph.KeepWithNext || style?.KeepWithNext == true;
-        bool widowControl = paragraph.WidowControl ?? style?.WidowControl ?? false;
+        int? leftIndent = paragraph.LeftIndentTwips;
+        int? rightIndent = paragraph.RightIndentTwips;
+        int? firstLineIndent = paragraph.FirstLineIndentTwips;
+        int? spaceBefore = paragraph.SpaceBeforeTwips;
+        int? spaceAfter = paragraph.SpaceAfterTwips;
+        bool? spaceBeforeAuto = paragraph.SpaceBeforeAuto;
+        bool? spaceAfterAuto = paragraph.SpaceAfterAuto;
+        int? lineSpacing = paragraph.LineSpacingTwips;
+        bool? lineSpacingMultiple = paragraph.LineSpacingMultiple;
+        bool keepTogether = paragraph.KeepLinesTogether;
+        bool keepWithNext = paragraph.KeepWithNext;
+        bool widowControl = paragraph.WidowControl ?? false;
         int? defaultTabWidth = document.Settings.DefaultTabWidthTwips;
-        IReadOnlyList<RtfTabStop> tabStops = paragraph.TabStops.Count > 0
-            ? paragraph.TabStops
-            : style?.TabStops ?? Array.Empty<RtfTabStop>();
+        IReadOnlyList<RtfTabStop> tabStops = paragraph.TabStops;
         bool hasTabStops = tabStops.Count > 0;
 
         if (!HasParagraphLayout(leftIndent, rightIndent, firstLineIndent, spaceBefore, spaceAfter, spaceBeforeAuto, spaceAfterAuto, lineSpacing, keepTogether, keepWithNext, widowControl, defaultTabWidth, hasTabStops)) {
@@ -114,12 +110,7 @@ internal static class RtfPdfMapping {
     }
 
     internal static bool HasPageBreakBefore(RtfDocument document, RtfParagraph paragraph) {
-        if (paragraph.PageBreakBefore) {
-            return true;
-        }
-
-        return paragraph.StyleId.HasValue &&
-               document.Styles.FirstOrDefault(item => item.Id == paragraph.StyleId.Value && item.Kind == RtfStyleKind.Paragraph)?.PageBreakBefore == true;
+        return document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph).PageBreakBefore : paragraph.PageBreakBefore;
     }
 
     internal static PdfCore.PdfPageBorder? ToPdfPageBorder(RtfDocument document, RtfPageBorders borders) {

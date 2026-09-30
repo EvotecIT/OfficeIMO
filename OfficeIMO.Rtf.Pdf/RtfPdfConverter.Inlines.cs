@@ -8,7 +8,7 @@ internal static partial class RtfPdfConverter {
             pdf.PageBreak();
         }
 
-        PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(paragraph.Alignment);
+        PdfCore.PdfAlign align = RtfPdfMapping.ToPdfAlign(document.Styles.Count > 0 ? document.GetParagraphFormatting(paragraph).Alignment : paragraph.Alignment);
         PdfCore.PdfParagraphStyle? style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph);
         List<PdfCore.PdfTextRun> pendingRuns = new List<PdfCore.PdfTextRun>();
         bool emitted = false;
@@ -17,7 +17,7 @@ internal static partial class RtfPdfConverter {
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, run, pendingRuns, options, state);
+                    AppendRun(document, document.Styles.Count > 0 ? document.GetRunFormatting(paragraph, run) : run, pendingRuns, options, state);
                     break;
                 case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Page || rtfBreak.Kind == RtfBreakKind.SoftPage:
                     FlushParagraph(pdf, pendingRuns, align, style);
@@ -80,7 +80,7 @@ internal static partial class RtfPdfConverter {
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
-                    AppendRun(document, run, runs, options, state, collectNotes, inheritedLinkUri, inheritedLinkDestinationName, inheritedLinkContents);
+                    AppendRun(document, document.Styles.Count > 0 ? document.GetRunFormatting(paragraph, run) : run, runs, options, state, collectNotes, inheritedLinkUri, inheritedLinkDestinationName, inheritedLinkContents);
                     break;
                 case RtfBreak:
                     runs.Add(PdfCore.PdfTextRun.LineBreak());

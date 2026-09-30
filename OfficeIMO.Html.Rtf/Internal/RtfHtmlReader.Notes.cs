@@ -148,9 +148,10 @@ internal static partial class RtfHtmlReader {
         }
 
         private void CopyRun(RtfRun source, RtfRun target, RtfDocument sourceDocument) {
-            target.Bold = source.Bold;
-            target.Italic = source.Italic;
-            target.UnderlineStyle = source.UnderlineStyle;
+            target.UseDefaultCharacterFormatting = source.UseDefaultCharacterFormatting;
+            target.DirectBold = source.DirectBold;
+            target.DirectItalic = source.DirectItalic;
+            target.DirectUnderlineStyle = source.DirectUnderlineStyle;
             target.Strike = source.Strike;
             target.DoubleStrike = source.DoubleStrike;
             target.Hidden = source.Hidden;
@@ -201,7 +202,7 @@ internal static partial class RtfHtmlReader {
         private int? RemapColorIndex(int? sourceColorIndex, RtfDocument sourceDocument) {
             if (!sourceColorIndex.HasValue) return null;
             RtfColor? color = sourceDocument.GetColor(sourceColorIndex.Value);
-            return color == null ? null : GetOrAddColorIndex(color);
+            return color == null ? 0 : GetOrAddColorIndex(color);
         }
     }
 }

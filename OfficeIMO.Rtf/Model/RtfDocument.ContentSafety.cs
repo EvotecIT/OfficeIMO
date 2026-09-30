@@ -221,7 +221,7 @@ public sealed partial class RtfDocument {
         OfficeContentSafetyBuilder builder,
         IDictionary<string, RtfContentSafetyTarget>? targets) {
         if (string.IsNullOrWhiteSpace(run.Text)) return;
-        RtfEffectiveCharacterStyle effective = ResolveRtfCharacterStyle(document, paragraph, run);
+        RtfRun effective = document.GetRunFormatting(paragraph, run);
         OfficeContentConcealmentKind? kind = null;
         string? evidence = null;
         if (run.Hidden) {
@@ -255,41 +255,8 @@ public sealed partial class RtfDocument {
         if (targets != null) foreach (OfficeContentSafetyFinding item in unicode) targets[item.Id] = RtfContentSafetyTarget.ForRunRange(run, item);
     }
 
-    private static RtfEffectiveCharacterStyle ResolveRtfCharacterStyle(RtfDocument document, RtfParagraph paragraph, RtfRun run) {
-        var effective = new RtfEffectiveCharacterStyle();
-        ApplyRtfStyleChain(document, paragraph.StyleId, effective);
-        ApplyRtfStyleChain(document, run.StyleId, effective);
-        if (run.FontSize.HasValue) effective.FontSize = run.FontSize;
-        if (run.ForegroundColorIndex.HasValue) effective.ForegroundColorIndex = run.ForegroundColorIndex;
-        return effective;
-    }
-
     private static int? ResolveRtfParagraphStyleBackground(RtfDocument document, int? styleId) {
-        var chain = new Stack<RtfStyle>();
-        var visited = new HashSet<int>();
-        RtfStyle? current = styleId.HasValue ? document.Styles.FirstOrDefault(item => item.Id == styleId.Value) : null;
-        while (current != null && visited.Add(current.Id)) {
-            chain.Push(current);
-            current = current.BasedOnStyleId.HasValue ? document.Styles.FirstOrDefault(item => item.Id == current.BasedOnStyleId.Value) : null;
-        }
-        int? background = null;
-        while (chain.Count > 0) background = chain.Pop().BackgroundColorIndex ?? background;
-        return background;
-    }
-
-    private static void ApplyRtfStyleChain(RtfDocument document, int? styleId, RtfEffectiveCharacterStyle target) {
-        var chain = new Stack<RtfStyle>();
-        var visited = new HashSet<int>();
-        RtfStyle? current = styleId.HasValue ? document.Styles.FirstOrDefault(item => item.Id == styleId.Value) : null;
-        while (current != null && visited.Add(current.Id)) {
-            chain.Push(current);
-            current = current.BasedOnStyleId.HasValue ? document.Styles.FirstOrDefault(item => item.Id == current.BasedOnStyleId.Value) : null;
-        }
-        while (chain.Count > 0) {
-            RtfStyle style = chain.Pop();
-            if (style.FontSize.HasValue) target.FontSize = style.FontSize;
-            if (style.ForegroundColorIndex.HasValue) target.ForegroundColorIndex = style.ForegroundColorIndex;
-        }
+        return document.GetParagraphFormatting(new RtfParagraph { StyleId = styleId }).BackgroundColorIndex;
     }
 
     private static bool TryGetRtfContrast(RtfDocument document, int? foregroundIndex, int? backgroundIndex, out double ratio, out string evidence) {
@@ -303,11 +270,6 @@ public sealed partial class RtfDocument {
     private static OfficeColor ResolveRtfColor(RtfDocument document, int? index, OfficeColor fallback) {
         RtfColor? color = index.HasValue ? document.GetColor(index.Value) : null;
         return color == null ? fallback : OfficeColor.FromRgb(color.Red, color.Green, color.Blue);
-    }
-
-    private sealed class RtfEffectiveCharacterStyle {
-        internal double? FontSize { get; set; }
-        internal int? ForegroundColorIndex { get; set; }
     }
 
     private sealed class RtfContentSafetyTarget {

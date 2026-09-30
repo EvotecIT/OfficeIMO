@@ -49,6 +49,16 @@ public static partial class WordRtfConverterExtensions {
             if (double.TryParse(run.FontSize?.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) destination.FontSize = halfPoints / 2d;
             string? font = run.RunFonts?.Ascii?.Value ?? run.RunFonts?.HighAnsi?.Value ?? run.RunFonts?.EastAsia?.Value;
             if (!string.IsNullOrWhiteSpace(font)) destination.FontId = document.AddFont(font!);
+            string? color = run.Color?.Val?.Value;
+            if (string.Equals(color, "auto", StringComparison.OrdinalIgnoreCase)) destination.ForegroundColorIndex = 0;
+            else if (color != null && TryParseHexColor(color, out byte red, out byte green, out byte blue)) destination.ForegroundColorIndex = GetOrAddColor(document, red, green, blue);
+            Shading? characterShading = run.GetFirstChild<Shading>();
+            string? fill = characterShading?.Fill?.Value;
+            if (characterShading?.Val?.Value == ShadingPatternValues.Clear ||
+                characterShading?.Val?.Value == ShadingPatternValues.Solid) {
+                if (string.Equals(fill, "auto", StringComparison.OrdinalIgnoreCase)) destination.HighlightColorIndex = 0;
+                else if (fill != null && TryParseHexColor(fill, out byte fillRed, out byte fillGreen, out byte fillBlue)) destination.HighlightColorIndex = GetOrAddColor(document, fillRed, fillGreen, fillBlue);
+            }
         }
 
         StyleParagraphProperties? paragraph = source.StyleParagraphProperties;
@@ -155,6 +165,14 @@ public static partial class WordRtfConverterExtensions {
         if (source.UnderlineStyle.HasValue) run.Underline = new Underline { Val = ToWordUnderlineStyle(source.UnderlineStyle.Value) };
         if (source.FontSize.HasValue) run.FontSize = new FontSize { Val = (source.FontSize.Value * 2d).ToString("0.##", CultureInfo.InvariantCulture) };
         if (source.FontId.HasValue && TryGetFontName(document, source.FontId.Value, out string? fontName)) run.RunFonts = new RunFonts { Ascii = fontName, HighAnsi = fontName, EastAsia = fontName, ComplexScript = fontName };
+        if (source.ForegroundColorIndex.HasValue) {
+            string? color = GetColorHex(document, source.ForegroundColorIndex.Value);
+            if (color != null || source.ForegroundColorIndex == 0) run.Color = new Color { Val = color ?? "auto" };
+        }
+        if (source.HighlightColorIndex.HasValue) {
+            string? fill = GetColorHex(document, source.HighlightColorIndex.Value);
+            if (fill != null || source.HighlightColorIndex == 0) run.Append(new Shading { Val = ShadingPatternValues.Clear, Fill = fill ?? "auto" });
+        }
         if (run.HasChildren) style.Append(run);
 
         var paragraph = new StyleParagraphProperties();

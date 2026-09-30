@@ -198,9 +198,11 @@ internal static partial class RtfHtmlReader {
             }
 
             int? styleId = IsInlineStyleScope(name) ? ReadStyleIdAttribute(token) : null;
-            if (style.HasInlineFormatting || styleId.HasValue) {
-                _styles.Push(new HtmlStyleScope(name, style, styleId));
+            var direct = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-direct-run"));
+            if (style.HasInlineFormatting || styleId.HasValue || direct.Count > 0) {
+                _styles.Push(new HtmlStyleScope(name, style, styleId, direct.Count > 0 ? direct : null));
             }
+            if (name is "p" or "div" or "section" or "article" or "blockquote" or "li" or "h1" or "h2" or "h3" or "h4" or "h5" or "h6") RestoreParagraphDirectFormatting(token);
         }
 
         internal void End(string name) {
@@ -373,6 +375,7 @@ internal static partial class RtfHtmlReader {
 
             ApplyCharacterMetrics(run);
             ApplyRevision(run);
+            RestoreRunDirectFormatting(run);
         }
 
         internal void TrimEmptyTrailingParagraph() {
@@ -670,10 +673,11 @@ internal static partial class RtfHtmlReader {
     }
 
     private sealed class HtmlStyleScope {
-        internal HtmlStyleScope(string name, HtmlStyleDeclaration style, int? styleId) {
+        internal HtmlStyleScope(string name, HtmlStyleDeclaration style, int? styleId, Dictionary<string, string>? directFormatting = null) {
             Name = name;
             Style = style;
             StyleId = styleId;
+            DirectFormatting = directFormatting;
         }
 
         internal string Name { get; }
@@ -681,5 +685,6 @@ internal static partial class RtfHtmlReader {
         internal HtmlStyleDeclaration Style { get; }
 
         internal int? StyleId { get; }
+        internal Dictionary<string, string>? DirectFormatting { get; }
     }
 }

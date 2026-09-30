@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    private static void WriteTable(StringBuilder builder, RtfTable table, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteTable(StringBuilder builder, RtfTable table, RtfWriteContext context) {
         builder.Append(@"\pard");
         foreach (RtfTableRow row in table.Rows) {
             builder.Append(@"\trowd\trgaph");
@@ -66,7 +66,7 @@ internal static partial class RtfDocumentWriter {
 
             builder.AppendLine();
             foreach (RtfTableCell cell in row.Cells) {
-                WriteCell(builder, cell, defaultLanguageId, unicodeSkipCount);
+                WriteCell(builder, cell, context);
             }
 
             builder.Append(@"\row");
@@ -341,9 +341,9 @@ internal static partial class RtfDocumentWriter {
         builder.Append('3');
     }
 
-    private static void WriteCell(StringBuilder builder, RtfTableCell cell, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteCell(StringBuilder builder, RtfTableCell cell, RtfWriteContext context) {
         if (cell.Blocks.Any(block => block is RtfTable)) {
-            WriteCellWithNestedTables(builder, cell, defaultLanguageId, unicodeSkipCount);
+            WriteCellWithNestedTables(builder, cell, context);
             return;
         }
 
@@ -354,11 +354,12 @@ internal static partial class RtfDocumentWriter {
 
         for (int i = 0; i < cell.Paragraphs.Count; i++) {
             RtfParagraph paragraph = cell.Paragraphs[i];
-            WriteListText(builder, paragraph.ListText, defaultLanguageId, unicodeSkipCount);
-            WriteParagraphStart(builder, paragraph, inTable: true, unicodeSkipCount);
-            var state = new RunWriteState(defaultLanguageId);
+            WriteListText(builder, paragraph.ListText, context);
+            WriteParagraphStart(builder, paragraph, inTable: true, context);
+            var state = new RunWriteState(context.DefaultLanguageId);
+            state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
             foreach (IRtfInline inline in paragraph.Inlines) {
-                WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+                WriteInline(builder, inline, state, context);
             }
 
             ResetRunState(builder, state);
@@ -366,20 +367,21 @@ internal static partial class RtfDocumentWriter {
         }
     }
 
-    private static void WriteCellWithNestedTables(StringBuilder builder, RtfTableCell cell, int? defaultLanguageId, int unicodeSkipCount) {
+    private static void WriteCellWithNestedTables(StringBuilder builder, RtfTableCell cell, RtfWriteContext context) {
         bool wroteNestedTable = false;
         foreach (IRtfBlock block in cell.Blocks) {
             if (block is RtfParagraph paragraph) {
                 if (wroteNestedTable && paragraph.Inlines.Count == 0) continue;
-                WriteListText(builder, paragraph.ListText, defaultLanguageId, unicodeSkipCount);
-                WriteParagraphStart(builder, paragraph, inTable: true, unicodeSkipCount);
-                var state = new RunWriteState(defaultLanguageId);
-                foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+                WriteListText(builder, paragraph.ListText, context);
+                WriteParagraphStart(builder, paragraph, inTable: true, context);
+                var state = new RunWriteState(context.DefaultLanguageId);
+                state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
+                foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, context);
                 ResetRunState(builder, state);
                 builder.Append(@"\par");
             } else if (block is RtfTable nested) {
                 if (wroteNestedTable) WriteNestedTableBoundary(builder, 2);
-                WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, 2);
+                WriteNestedTable(builder, nested, context, 2);
                 wroteNestedTable = true;
             }
         }
@@ -387,26 +389,27 @@ internal static partial class RtfDocumentWriter {
         builder.Append(@"\pard\intbl \cell");
     }
 
-    private static void WriteNestedTable(StringBuilder builder, RtfTable table, int? defaultLanguageId, int unicodeSkipCount, int level) {
+    private static void WriteNestedTable(StringBuilder builder, RtfTable table, RtfWriteContext context, int level) {
         foreach (RtfTableRow row in table.Rows) {
             foreach (RtfTableCell cell in row.Cells) {
                 bool wroteNestedTable = false;
                 for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
                     IRtfBlock block = cell.Blocks[blockIndex];
                     if (block is RtfParagraph paragraph) {
-                        WriteListText(builder, paragraph.ListText, defaultLanguageId, unicodeSkipCount);
-                        WriteParagraphStart(builder, paragraph, inTable: true, unicodeSkipCount);
+                        WriteListText(builder, paragraph.ListText, context);
+                        WriteParagraphStart(builder, paragraph, inTable: true, context);
                         builder.Append(@"\itap");
                         builder.Append(level.ToString(CultureInfo.InvariantCulture));
                         builder.Append(' ');
-                        var state = new RunWriteState(defaultLanguageId);
-                        foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, defaultLanguageId, unicodeSkipCount);
+                        var state = new RunWriteState(context.DefaultLanguageId);
+                        state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
+                        foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, context);
                         ResetRunState(builder, state);
                         if (blockIndex < cell.Blocks.Count - 1) builder.Append(@"\par");
                     } else if (block is RtfTable nested) {
                         int nestedLevel = Math.Min(15, level + 1);
                         if (wroteNestedTable) WriteNestedTableBoundary(builder, nestedLevel);
-                        WriteNestedTable(builder, nested, defaultLanguageId, unicodeSkipCount, nestedLevel);
+                        WriteNestedTable(builder, nested, context, nestedLevel);
                         wroteNestedTable = true;
                     }
                 }

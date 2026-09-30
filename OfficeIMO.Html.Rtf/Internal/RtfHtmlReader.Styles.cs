@@ -143,7 +143,7 @@ internal static partial class RtfHtmlReader {
         }
 
         private static void ApplyBorder(Dictionary<string, string> values, string prefix, RtfParagraphBorder border) {
-            border.Style = ReadEnum(values, prefix + ".style", RtfParagraphBorderStyle.None);
+            border.DirectStyle = ReadEnum<RtfParagraphBorderStyle>(values, prefix + ".style");
             border.Width = ReadInt(values, prefix + ".width");
             border.ColorIndex = ReadInt(values, prefix + ".color");
         }
