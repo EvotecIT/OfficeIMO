@@ -52,6 +52,14 @@ formula caches return `bool`, and text formulas such as `="12"` return `string`
 instead of being inferred as numeric values. Match the returned value type before
 performing numeric casts.
 
+## Excel pivot items without data
+
+New pivot fields default to `ShowAll = false`, which hides items without data.
+To preserve the previous display behavior, pass field options such as
+`new ExcelPivotFieldOptions("Region", showAll: true)` to `AddPivotTable` or its
+fluent builder. Headless `MaterializePivotTable` does not support showing items
+without data; refresh those layouts in Excel instead.
+
 ## Excel time-only and elapsed values
 
 Date-format interpretation distinguishes calendar dates from time-only and

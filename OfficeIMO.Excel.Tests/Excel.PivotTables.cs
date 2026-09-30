@@ -1219,6 +1219,16 @@ namespace OfficeIMO.Tests {
                 Assert.True(numberField.SharedItems!.ContainsNumber!.Value);
                 Assert.Equal(3, numberField.SharedItems.Elements<NumberItem>().Count());
 
+                var fields = pivotPart.PivotTableDefinition!.PivotFields!.Elements<PivotField>().ToArray();
+                for (int fieldIndex = 0; fieldIndex < 2; fieldIndex++) {
+                    var field = cacheFields[fieldIndex];
+                    int keyCount = field.FieldGroup?.GetFirstChild<GroupItems>()?.ChildElements.Count
+                        ?? field.SharedItems!.ChildElements.Count;
+                    Assert.Equal(Enumerable.Range(0, keyCount).Select(index => (uint)index),
+                        fields[fieldIndex].Items!.Elements<Item>().Where(item => item.Index != null)
+                            .Select(item => item.Index!.Value));
+                }
+
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -1376,7 +1386,11 @@ namespace OfficeIMO.Tests {
                 Assert.False(monthsField.DefaultSubtotal!.Value);
                 Assert.False(monthsField.Compact!.Value);
                 Assert.True(monthsField.Outline!.Value);
-                Assert.Null(monthsField.Items);
+                var monthCacheField = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!
+                    .CacheFields!.Elements<CacheField>().ElementAt(4);
+                int monthKeys = monthCacheField.FieldGroup!.GetFirstChild<GroupItems>()!.ChildElements.Count;
+                Assert.Equal(Enumerable.Range(0, monthKeys).Select(index => (uint)index),
+                    monthsField.Items!.Elements<Item>().Select(item => item.Index!.Value));
 
                 var filterPivotPart = pivotParts.Single(part => part.PivotTableDefinition!.Name == "FilterPivot");
                 var pageFields = filterPivotPart.PivotTableDefinition!.PageFields!.Elements<PageField>().ToList();

@@ -12,6 +12,18 @@ namespace OfficeIMO.Excel {
 
         private const string WholeDayPivotFilterExtensionUri = "{0605FD5F-26C8-4aeb-8148-2DB25E43C511}";
 
+        private static void EnsurePivotAxisItems(PivotField field, CacheField cache) {
+            if (field.Axis == null || field.Items != null) return;
+            GroupItems? groupItems = cache.FieldGroup?.GetFirstChild<GroupItems>();
+            if (cache.DatabaseField?.Value == false && groupItems == null) return;
+            int count = groupItems?.ChildElements.Count ?? cache.SharedItems?.ChildElements.Count ?? 0;
+            bool subtotal = field.DefaultSubtotal?.Value != false;
+            var items = new Items { Count = (uint)(count + (subtotal ? 1 : 0)) };
+            for (int index = 0; index < count; index++) items.Append(new Item { Index = (uint)index });
+            if (subtotal) items.Append(new Item { ItemType = ItemValues.Default });
+            field.Items = items;
+        }
+
         private static PageField CreatePageField(int fieldIndex, ExcelPivotFieldOptions? options, IReadOnlyList<string> values) {
             var pageField = new PageField { Field = fieldIndex };
             if (options == null || string.IsNullOrWhiteSpace(options.SelectedItem)) {

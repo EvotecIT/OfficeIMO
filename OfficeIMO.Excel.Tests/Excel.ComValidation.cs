@@ -106,8 +106,7 @@ namespace OfficeIMO.Tests {
                 foreach (string path in paths) {
                     object? workbook = null;
                     try {
-                        workbook = workbooks!.GetType().InvokeMember("Open", BindingFlags.InvokeMethod, null, workbooks,
-                            new object[] { path, 0, true });
+                        workbook = InvokeExcelComWhenReady(workbooks!, "Open", new object[] { path, 0, true });
                         if (expectedValues != null) {
                             excelType.InvokeMember("CalculateFull", BindingFlags.InvokeMethod, null, excel, null);
                             CheckExcelComValues(workbook!, expectedValues, failures);
@@ -116,7 +115,7 @@ namespace OfficeIMO.Tests {
                         failures.Enqueue($"{Path.GetFileName(path)}: {DescribeExcelComFailure(ex)}");
                     } finally {
                         try {
-                            workbook?.GetType().InvokeMember("Close", BindingFlags.InvokeMethod, null, workbook, new object[] { false });
+                            if (workbook != null) InvokeExcelComWhenReady(workbook, "Close", new object[] { false });
                         } catch (Exception ex) when (ex is COMException or MissingMethodException or TargetInvocationException) {
                             failures.Enqueue($"{Path.GetFileName(path)} close: {DescribeExcelComFailure(ex)}");
                         }
@@ -130,7 +129,7 @@ namespace OfficeIMO.Tests {
                 failures.Enqueue(DescribeExcelComFailure(ex));
             } finally {
                 try {
-                    excel?.GetType().InvokeMember("Quit", BindingFlags.InvokeMethod, null, excel, null);
+                    if (excel != null) InvokeExcelComWhenReady(excel, "Quit", null);
                 } catch (Exception ex) when (ex is COMException or MissingMethodException or TargetInvocationException) {
                     failures.Enqueue("Excel quit: " + DescribeExcelComFailure(ex));
                 }
@@ -142,6 +141,26 @@ namespace OfficeIMO.Tests {
                     Marshal.FinalReleaseComObject(excel);
                 }
             }
+        }
+
+        private static object? InvokeExcelComWhenReady(object target, string method, object[]? arguments) {
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
+            while (true) {
+                try {
+                    return target.GetType().InvokeMember(method, BindingFlags.InvokeMethod, null, target, arguments);
+                } catch (Exception exception) when (IsExcelComBusy(exception) && elapsed.Elapsed < ExcelComOpenTimeout) {
+                    // Excel rejects calls while refreshing a pivot. Only retry a call
+                    // that the COM server explicitly refused; crashes remain failures.
+                    Thread.Sleep(50);
+                }
+            }
+        }
+
+        private static bool IsExcelComBusy(Exception exception) {
+            Exception actual = exception is TargetInvocationException { InnerException: not null } invocation
+                ? invocation.InnerException! : exception;
+            return actual is COMException && (actual.HResult == unchecked((int)0x80010001)
+                || actual.HResult == unchecked((int)0x8001010A));
         }
 
 #if NET5_0_OR_GREATER

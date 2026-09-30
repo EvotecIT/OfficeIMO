@@ -501,6 +501,7 @@ namespace OfficeIMO.Excel {
                 pivotPart.AddPart(cacheDefPart);
 
                 var pivotFields = new PivotFields { Count = (uint)allFields.Count };
+                CacheField[] cacheFieldsForItems = cacheDef.CacheFields!.Elements<CacheField>().ToArray();
                 for (int i = 0; i < allFields.Count; i++) {
                     ExcelPivotFieldOptions? options = null;
                     if (fieldOptionMap != null) {
@@ -514,6 +515,7 @@ namespace OfficeIMO.Excel {
                     if (dataFieldIndices.Contains(i)) pivotField.DataField = true;
                     IReadOnlyList<string> values = options != null ? allFieldValueMap[i] : Array.Empty<string>();
                     ApplyPivotFieldOptions(pivotField, options, workbookPart, values);
+                    EnsurePivotAxisItems(pivotField, cacheFieldsForItems[i]);
                     pivotFields.Append(pivotField);
                 }
                 ReportPivotTiming("AddPivotTable.BuildPivotFields");
