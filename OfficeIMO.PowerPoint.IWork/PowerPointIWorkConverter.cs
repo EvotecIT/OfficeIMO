@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.IWork;
@@ -8,6 +9,8 @@ namespace OfficeIMO.PowerPoint.IWork;
 public static partial class PowerPointIWorkConverter {
     private static KeynoteToPowerPointResult ProjectKeynote(
         IWorkSourceDocument source, IWorkConversionOptions? options = null) {
+        CancellationToken cancellationToken = source.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         IWorkConversionOptions settings = (options ?? new IWorkConversionOptions()).Clone();
         IWorkConversionMode mode = settings.Mode;
         IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
@@ -73,28 +76,31 @@ public static partial class PowerPointIWorkConverter {
                 var slidePairs = new List<(IWorkKeynoteSlide Source, PowerPointSlide Target)>(
                     projection.Slides.Count);
                 foreach (IWorkKeynoteSlide sourceSlide in projection.Slides) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     PowerPointSlide slide = presentation.AddSlide();
                     if (sourceSlide.Name.Length > 0) slide.Name = sourceSlide.Name;
                     slide.Hidden = sourceSlide.IsSkipped;
                     slidePairs.Add((sourceSlide, slide));
                 }
                 foreach ((IWorkKeynoteSlide sourceSlide, PowerPointSlide slide) in slidePairs) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     foreach (IWorkKeynoteDrawable drawable in sourceSlide.Drawables) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         switch (drawable.Kind) {
                             case IWorkKeynoteDrawableKind.TextBox:
                                 IWorkTextBox textBox = drawable.TextBox!;
                                 if (drawable.IsTitlePlaceholder) {
                                     AddRichTextBox(slide, textBox,
                                         canvasWidth * 0.04875d, canvasHeight * 0.06d,
-                                        canvasWidth * 0.9d, canvasHeight / 7.5d);
+                                        canvasWidth * 0.9d, canvasHeight / 7.5d, cancellationToken);
                                 } else {
                                     AddRichTextBox(slide, textBox,
                                         canvasWidth * 0.06375d, canvasHeight * 0.22d,
-                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d);
+                                        canvasWidth * 0.87d, canvasHeight * 0.6533333333333333d, cancellationToken);
                                 }
                                 break;
                             case IWorkKeynoteDrawableKind.Table:
-                                AddEditableTable(slide, drawable.Table!);
+                                AddEditableTable(slide, drawable.Table!, cancellationToken);
                                 break;
                             case IWorkKeynoteDrawableKind.Image:
                                 AddEditableImage(slide, drawable.Image!, canvasWidth, canvasHeight);
@@ -102,7 +108,7 @@ public static partial class PowerPointIWorkConverter {
                         }
                     }
                     if (sourceSlide.PresenterNoteContent.Paragraphs.Count > 0) {
-                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent);
+                        SetRichPresenterNotes(slide.Notes, sourceSlide.PresenterNoteContent, cancellationToken);
                     }
                 }
             } else {
@@ -120,6 +126,7 @@ public static partial class PowerPointIWorkConverter {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
+            cancellationToken.ThrowIfCancellationRequested();
             return new KeynoteToPowerPointResult(presentation, source, projection,
                 projection.CreateConversionReport(kind, preview, destinationDiagnostics,
                     settings.AllowPartialEditableReconstruction));
@@ -139,7 +146,8 @@ public static partial class PowerPointIWorkConverter {
         return ((slideWidth - width) / 2d, (slideHeight - height) / 2d, width, height);
     }
 
-    private static void AddEditableTable(PowerPointSlide slide, IWorkTable source) {
+    private static void AddEditableTable(PowerPointSlide slide, IWorkTable source,
+        CancellationToken cancellationToken) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return;
         double left = source.Geometry?.LeftPoints ?? 72d;
         double top = source.Geometry?.TopPoints ?? 72d;
@@ -167,16 +175,18 @@ public static partial class PowerPointIWorkConverter {
         table.FirstColumn = source.HeaderColumnCount > 0;
         table.LastRow = source.FooterRowCount > 0;
         foreach (IWorkTableCell sourceCell in source.Cells) {
+            cancellationToken.ThrowIfCancellationRequested();
             PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
             if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
                 IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
                     richText.Paragraphs.Select(_ => string.Empty));
                 var listState = new IWorkPowerPointListState();
                 for (int index = 0; index < paragraphs.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     IWorkTextParagraph sourceParagraph = richText.Paragraphs[index];
                     ApplyParagraphStyle(paragraphs[index], sourceParagraph,
                         listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph);
+                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken);
                 }
                 if (sourceCell.Row <= source.HeaderRowCount
                     || sourceCell.Column <= source.HeaderColumnCount
@@ -194,16 +204,19 @@ public static partial class PowerPointIWorkConverter {
                 || sourceCell.Row > source.RowCount - source.FooterRowCount) target.Bold = true;
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {
+            cancellationToken.ThrowIfCancellationRequested();
             table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
                 merge.LastRow - 1, merge.LastColumn - 1);
         }
         if (columnWidth.HasValue && source.Geometry is not { WidthPoints: > 0 }) {
             for (int column = 0; column < source.ColumnCount; column++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 table.SetColumnWidthPoints(column, columnWidth.Value);
             }
         }
         if (rowHeight.HasValue && source.Geometry is not { HeightPoints: > 0 }) {
             for (int row = 0; row < source.RowCount; row++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 table.SetRowHeightPoints(row, rowHeight.Value);
             }
         }
@@ -474,7 +487,8 @@ public static partial class PowerPointIWorkConverter {
     }
 
     private static void AddRichTextBox(PowerPointSlide slide, IWorkTextBox source,
-        double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight) {
+        double fallbackLeft, double fallbackTop, double fallbackWidth, double fallbackHeight,
+        CancellationToken cancellationToken) {
         double left = source.Geometry?.LeftPoints ?? fallbackLeft;
         double top = source.Geometry?.TopPoints ?? fallbackTop;
         double width = source.Geometry?.WidthPoints ?? fallbackWidth;
@@ -490,6 +504,7 @@ public static partial class PowerPointIWorkConverter {
         bool first = true;
         var listState = new IWorkPowerPointListState();
         foreach (IWorkTextParagraph sourceParagraph in source.Content.Paragraphs) {
+            cancellationToken.ThrowIfCancellationRequested();
             PowerPointParagraph paragraph;
             if (first) {
                 paragraph = textBox.Paragraphs[0];
@@ -500,20 +515,22 @@ public static partial class PowerPointIWorkConverter {
             }
             ApplyParagraphStyle(paragraph, sourceParagraph,
                 listState.StartsAtSourceLabel(sourceParagraph));
-            WriteParagraphContent(paragraph, sourceParagraph);
+            WriteParagraphContent(paragraph, sourceParagraph, cancellationToken);
         }
     }
 
-    private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source) {
+    private static void SetRichPresenterNotes(PowerPointNotes notes, IWorkTextContent source,
+        CancellationToken cancellationToken) {
         IReadOnlyList<PowerPointParagraph> paragraphs = notes.SetParagraphs(
             source.Paragraphs.Select(_ => string.Empty));
         var listState = new IWorkPowerPointListState();
         for (int paragraphIndex = 0; paragraphIndex < source.Paragraphs.Count; paragraphIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             IWorkTextParagraph sourceParagraph = source.Paragraphs[paragraphIndex];
             PowerPointParagraph paragraph = paragraphs[paragraphIndex];
             ApplyParagraphStyle(paragraph, sourceParagraph,
                 listState.StartsAtSourceLabel(sourceParagraph));
-            WriteParagraphContent(paragraph, sourceParagraph);
+            WriteParagraphContent(paragraph, sourceParagraph, cancellationToken);
         }
         notes.Save();
     }
@@ -572,12 +589,14 @@ public static partial class PowerPointIWorkConverter {
     }
 
     private static void WriteParagraphContent(PowerPointParagraph paragraph,
-        IWorkTextParagraph source) {
+        IWorkTextParagraph source, CancellationToken cancellationToken) {
         paragraph.Text = string.Empty;
         bool canReuseInitialRun = true;
         foreach (IWorkTextRun sourceRun in source.Runs) {
+            cancellationToken.ThrowIfCancellationRequested();
             string[] lines = sourceRun.Text.Split(new[] { '\n' });
             for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (lineIndex > 0) {
                     paragraph.AddLineBreak();
                     canReuseInitialRun = false;

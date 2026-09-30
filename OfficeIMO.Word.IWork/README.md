@@ -35,6 +35,17 @@ This retains bounded recoverable editable content and reports incomplete details
 
 Under the partial policy, positioned tables become flowing editable Word tables and finite measurements are rounded to DOCX units. `IWORK_PAGES_TABLE_LAYOUT_APPROXIMATED` and `IWORK_PAGES_DOCX_PRECISION` identify those approximations; original geometry remains on the source projection.
 
+The path and stream convenience APIs accept cancellation after the options:
+
+```csharp
+using var cancellation = new CancellationTokenSource();
+using PagesToWordResult cancellable = WordIWorkConverter.ConvertPagesToWordResult(
+    "source.pages", readOptions: null, conversionOptions: options,
+    cancellationToken: cancellation.Token);
+```
+
+This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; reopen the source with a new token after cancellation. Saving is a separate destination-owner operation.
+
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Word`. It does not add iWork support to the default Word package graph.
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for supported structures and conversion limits.

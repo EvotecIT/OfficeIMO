@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Globalization;
 using OfficeIMO.Drawing;
 using OfficeIMO.IWork;
@@ -16,6 +17,8 @@ namespace OfficeIMO.Word.IWork;
 public static partial class WordIWorkConverter {
     private static PagesToWordResult ProjectPages(IWorkSourceDocument source,
         IWorkConversionOptions? options = null) {
+        CancellationToken cancellationToken = source.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         IWorkConversionOptions settings = (options ?? new IWorkConversionOptions()).Clone();
         IWorkConversionMode mode = settings.Mode;
         IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
@@ -115,11 +118,12 @@ public static partial class WordIWorkConverter {
                             semanticSections.Add(section);
                             currentPageIndex++;
                         }
-                    });
+                    }, cancellationToken: cancellationToken);
                 if (projection.PageLayout != null) {
                     foreach (WordSection section in document.Sections) ApplyPageLayout(section, projection.PageLayout);
                 }
                 for (int drawableIndex = 0; drawableIndex < projection.Drawables.Count; drawableIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     IWorkPagesDrawable sourceDrawable = projection.Drawables[drawableIndex];
                     WordParagraph? pageHost = sourceDrawable.PageIndex.HasValue
                         && pageHosts.TryGetValue(sourceDrawable.PageIndex.Value, out WordParagraph? host)
@@ -128,7 +132,7 @@ public static partial class WordIWorkConverter {
                     uint zOrder = checked(251658240U + (uint)drawableIndex);
                     switch (sourceDrawable.Kind) {
                         case IWorkPagesDrawableKind.TextBox:
-                            AddRichTextBox(document, sourceDrawable.TextBox!, nativeLists, pageHost).ZOrder = zOrder;
+                            AddRichTextBox(document, sourceDrawable.TextBox!, nativeLists, pageHost, cancellationToken).ZOrder = zOrder;
                             break;
                         case IWorkPagesDrawableKind.Image:
                             AddImage(document, sourceDrawable.Image!, contentWidth, contentHeight, pageHost).ZOrder = zOrder;
@@ -140,7 +144,7 @@ public static partial class WordIWorkConverter {
                                     ? anchor
                                     : null;
                             WordTable? insertedTable = AddTable(document,
-                                sourceDrawable.Table!, nativeLists, pageHost, priorTable);
+                                sourceDrawable.Table!, nativeLists, pageHost, priorTable, cancellationToken);
                             if (sourceDrawable.PageIndex.HasValue && insertedTable != null) {
                                 pageTableAnchors[sourceDrawable.PageIndex.Value] = insertedTable;
                             }
@@ -149,11 +153,12 @@ public static partial class WordIWorkConverter {
                 }
                 bool hasAnyEvenPageTemplate = projection.Sections.Any(section => section.HasEvenPageTemplate);
                 for (int sectionIndex = 0; sectionIndex < projection.Sections.Count; sectionIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     IWorkPagesSection sourceSection = projection.Sections[sectionIndex];
                     if (sectionIndex >= semanticSections.Count) break;
                     WordSection targetSection = semanticSections[sectionIndex];
                     AddSectionHeadersAndFooters(targetSection, sourceSection, nativeLists,
-                        hasAnyEvenPageTemplate);
+                        hasAnyEvenPageTemplate, cancellationToken);
                 }
             } else {
                 byte[] bytes = preview!.GetBytes();
@@ -168,6 +173,7 @@ public static partial class WordIWorkConverter {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
+            cancellationToken.ThrowIfCancellationRequested();
             return new PagesToWordResult(document, source, projection,
                 projection.CreateConversionReport(kind, preview, destinationDiagnostics,
                     settings.AllowPartialEditableReconstruction));
@@ -236,25 +242,25 @@ public static partial class WordIWorkConverter {
 
     private static void AddSectionHeadersAndFooters(WordSection target,
         IWorkPagesSection source, IWorkNativeListCatalog nativeLists,
-        bool hasAnyEvenPageTemplate) {
+        bool hasAnyEvenPageTemplate, CancellationToken cancellationToken) {
         if (source.HasDefaultPageTemplate) {
             WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Default);
             WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Default);
             foreach (IWorkTextContent content in source.DefaultPageHeaderContents) {
-                AddRichText(content, header.AddParagraph, nativeLists);
+                AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
             foreach (IWorkTextContent content in source.DefaultPageFooterContents) {
-                AddRichText(content, footer.AddParagraph, nativeLists);
+                AddRichText(content, footer.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
         }
         if (source.HasFirstPageTemplate) {
             WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.First);
             WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.First);
             foreach (IWorkTextContent content in source.FirstPageHeaderContents) {
-                AddRichText(content, header.AddParagraph, nativeLists);
+                AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
             foreach (IWorkTextContent content in source.FirstPageFooterContents) {
-                AddRichText(content, footer.AddParagraph, nativeLists);
+                AddRichText(content, footer.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
         }
         if (hasAnyEvenPageTemplate) {
@@ -267,17 +273,17 @@ public static partial class WordIWorkConverter {
                 ? source.EvenPageFooterContents
                 : source.DefaultPageFooterContents;
             foreach (IWorkTextContent content in headerContents) {
-                AddRichText(content, header.AddParagraph, nativeLists);
+                AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
             foreach (IWorkTextContent content in footerContents) {
-                AddRichText(content, footer.AddParagraph, nativeLists);
+                AddRichText(content, footer.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
         }
     }
 
     private static WordTable? AddTable(WordDocument document, IWorkTable source,
         IWorkNativeListCatalog nativeLists,
-        WordParagraph? pageHost = null, WordTable? tableHost = null) {
+        WordParagraph? pageHost, WordTable? tableHost, CancellationToken cancellationToken) {
         if (source.RowCount == 0 || source.ColumnCount == 0) return null;
         WordTable table = pageHost == null
             ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
@@ -290,9 +296,13 @@ public static partial class WordIWorkConverter {
         }
         if (source.DefaultRowHeight is > 0) {
             int height = ToSignedTwips(source.DefaultRowHeight.Value);
-            foreach (WordTableRow row in table.Rows) row.Height = height;
+            foreach (WordTableRow row in table.Rows) {
+                cancellationToken.ThrowIfCancellationRequested();
+                row.Height = height;
+            }
         }
         foreach (IWorkTableCell sourceCell in source.Cells) {
+            cancellationToken.ThrowIfCancellationRequested();
             WordTableCell target = table.Rows[sourceCell.Row - 1].Cells[sourceCell.Column - 1];
             bool header = sourceCell.Row <= source.HeaderRowCount
                 || sourceCell.Column <= source.HeaderColumnCount
@@ -304,7 +314,7 @@ public static partial class WordIWorkConverter {
                         removeExistingParagraphs: first);
                     first = false;
                     return paragraph;
-                }, nativeLists, forceBold: header);
+                }, nativeLists, forceBold: header, cancellationToken: cancellationToken);
             } else {
                 WordParagraph paragraph = target.AddParagraph(CellText(sourceCell),
                     removeExistingParagraphs: true);
@@ -312,6 +322,7 @@ public static partial class WordIWorkConverter {
             }
         }
         foreach (IWorkTableMergeRange merge in source.MergedRanges) {
+            cancellationToken.ThrowIfCancellationRequested();
             table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
                 merge.LastRow - merge.FirstRow + 1, merge.LastColumn - merge.FirstColumn + 1);
         }
@@ -324,7 +335,7 @@ public static partial class WordIWorkConverter {
     }
 
     private static WordTextBox AddRichTextBox(WordDocument document, IWorkTextBox source,
-        IWorkNativeListCatalog nativeLists, WordParagraph? pageHost = null) {
+        IWorkNativeListCatalog nativeLists, WordParagraph? pageHost, CancellationToken cancellationToken) {
         WordTextBox textBox = pageHost == null
             ? document.AddTextBox(string.Empty)
             : pageHost.AddTextBox(string.Empty, WordImageTextWrapping.Square);
@@ -347,7 +358,7 @@ public static partial class WordIWorkConverter {
             var result = new WordParagraph(document, paragraph, newRun: false);
             if (value.Length > 0) result.AddText(value);
             return result;
-        }, nativeLists);
+        }, nativeLists, cancellationToken: cancellationToken);
         if (!content.Elements<OpenXmlParagraph>().Any()) {
             content.Append(new OpenXmlParagraph(new OpenXmlRun()));
         }
@@ -364,10 +375,11 @@ public static partial class WordIWorkConverter {
         IWorkNativeListCatalog nativeLists,
         Func<WordParagraph>? addPageBreak = null,
         Action<IWorkParagraphBreakKind>? addSectionBreak = null,
-        bool forceBold = false) {
+        bool forceBold = false, CancellationToken cancellationToken = default) {
         ulong? previousListIdentifier = null;
         bool hasPreviousListParagraph = false;
         foreach (IWorkTextParagraph sourceParagraph in content.Paragraphs) {
+            cancellationToken.ThrowIfCancellationRequested();
             WordParagraph paragraph = addParagraph(string.Empty);
             ApplyParagraphStyle(paragraph, sourceParagraph);
             if (forceBold) paragraph.Bold = true;
@@ -383,6 +395,7 @@ public static partial class WordIWorkConverter {
                 hasPreviousListParagraph = false;
             }
             foreach (IWorkTextRun sourceRun in sourceParagraph.Runs) {
+                cancellationToken.ThrowIfCancellationRequested();
                 AddStyledTextRun(paragraph, sourceRun, forceBold);
             }
             if (sourceParagraph.BreakKind == IWorkParagraphBreakKind.Page) addPageBreak?.Invoke();

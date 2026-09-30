@@ -55,6 +55,20 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The verifying form is `IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, options)`.
 
+## Cancellation
+
+Path, stream, and byte-array `Open` overloads accept a `CancellationToken` after the read options. The token governs loading and all later semantic projections and conversions from that source. Once it is cancelled, reopen the source with a new token for another operation. Caller-owned streams remain open when loading succeeds or is cancelled.
+
+```csharp
+using var cancellation = new CancellationTokenSource();
+IWorkSourceDocument source = IWorkSourceDocument.Open(
+    "budget.numbers", IWorkDocumentKind.Numbers, options: null,
+    cancellationToken: cancellation.Token);
+IWorkNumbersProjection workbook = source.ReadNumbers();
+```
+
+The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
+
 ## Opt in to an Office destination adapter
 
 Install only the adapter for the destination format you need. The Word, Excel, and PowerPoint packages do not depend on iWork.

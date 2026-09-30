@@ -68,17 +68,23 @@ public sealed partial class IWorkSourceDocument {
         return Create(package, hint: expectedKind, options: resolved, expectedKind: expectedKind);
     }
 
-    internal static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
+    /// <summary>Opens a file or directory bundle with cancellation and verifies its application kind.</summary>
+    /// <remarks>The token also governs subsequent semantic projections and destination conversion from this source.</remarks>
+    public static IWorkSourceDocument Open(string path, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         return OpenPath(path, expectedKind, options, cancellationToken);
     }
 
-    internal static IWorkSourceDocument Open(string path, IWorkReadOptions? options,
+    /// <summary>Opens a file or directory bundle with cancellation and detects its application kind.</summary>
+    /// <remarks>The token also governs subsequent semantic projections and destination conversion from this source.</remarks>
+    public static IWorkSourceDocument Open(string path, IWorkReadOptions? options,
         CancellationToken cancellationToken) => OpenPath(path, expectedKind: null,
             options, cancellationToken);
 
-    internal static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
+    /// <summary>Opens a caller-owned ZIP stream with cancellation and verifies its application kind.</summary>
+    /// <remarks>The stream remains open. The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(Stream stream, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options, CancellationToken cancellationToken) {
         ValidateDocumentKind(expectedKind, nameof(expectedKind));
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
@@ -86,7 +92,9 @@ public sealed partial class IWorkSourceDocument {
         return Create(package, expectedKind, resolved, expectedKind, cancellationToken);
     }
 
-    internal static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options,
+    /// <summary>Opens a caller-owned ZIP stream with cancellation and detects its application kind.</summary>
+    /// <remarks>The stream remains open. The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(Stream stream, IWorkReadOptions? options,
         CancellationToken cancellationToken) {
         IWorkReadOptions resolved = (options ?? new IWorkReadOptions()).Snapshot();
         IWorkPackageData package = IWorkContainerReader.Read(stream, resolved, cancellationToken);
@@ -113,6 +121,24 @@ public sealed partial class IWorkSourceDocument {
         if (data == null) throw new ArgumentNullException(nameof(data));
         using var stream = new MemoryStream(data, writable: false);
         return Open(stream, expectedKind, options);
+    }
+
+    /// <summary>Opens package bytes with cancellation and detects the application kind.</summary>
+    /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options,
+        CancellationToken cancellationToken) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using var stream = new MemoryStream(data, writable: false);
+        return Open(stream, options, cancellationToken);
+    }
+
+    /// <summary>Opens package bytes with cancellation and verifies the application kind.</summary>
+    /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
+    public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
+        IWorkReadOptions? options, CancellationToken cancellationToken) {
+        if (data == null) throw new ArgumentNullException(nameof(data));
+        using var stream = new MemoryStream(data, writable: false);
+        return Open(stream, expectedKind, options, cancellationToken);
     }
 
     internal IWorkObjectIndex Index => _index;

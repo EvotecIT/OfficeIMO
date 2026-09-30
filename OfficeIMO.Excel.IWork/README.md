@@ -43,6 +43,17 @@ foreach (NumbersWorksheetMapping mapping in normalized.WorksheetMappings) {
 }
 ```
 
+The path and stream convenience APIs accept cancellation after the options:
+
+```csharp
+using var cancellation = new CancellationTokenSource();
+using NumbersToExcelResult cancellable = ExcelIWorkConverter.ConvertNumbersToExcelResult(
+    "source.numbers", readOptions: null, conversionOptions: options,
+    cancellationToken: cancellation.Token);
+```
+
+This token governs loading, projection, and destination construction. It also governs later projections from `cancellable.Source`; reopen the source with a new token after cancellation. Saving is a separate destination-owner operation.
+
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Excel`. It does not add iWork support to the default Excel package graph.
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for supported structures and conversion limits.

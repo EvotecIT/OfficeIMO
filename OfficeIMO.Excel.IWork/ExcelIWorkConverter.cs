@@ -1,3 +1,4 @@
+using System.Threading;
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
@@ -7,6 +8,8 @@ namespace OfficeIMO.Excel.IWork;
 public static partial class ExcelIWorkConverter {
     private static NumbersToExcelResult ProjectNumbers(IWorkSourceDocument source,
         IWorkConversionOptions? options = null) {
+        CancellationToken cancellationToken = source.CancellationToken;
+        cancellationToken.ThrowIfCancellationRequested();
         IWorkConversionOptions settings = (options ?? new IWorkConversionOptions()).Clone();
         IWorkConversionMode mode = settings.Mode;
         IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
@@ -81,16 +84,19 @@ public static partial class ExcelIWorkConverter {
         try {
             if (editable) {
                 for (int sheetIndex = 0; sheetIndex < projection.Sheets.Count; sheetIndex++) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     IWorkNumbersSheet sourceSheet = projection.Sheets[sheetIndex];
                     if (sourceSheet.TextBoxes.Count > 0 || sourceSheet.Tables.Count == 0) {
                         ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name, nameMode);
                         worksheetMappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
                             null, null, sourceSheet.Name, textSheet.Name));
                         for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             textSheet.CellAt(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
                         }
                     }
                     for (int tableIndex = 0; tableIndex < sourceSheet.Tables.Count; tableIndex++) {
+                        cancellationToken.ThrowIfCancellationRequested();
                         IWorkTable table = sourceSheet.Tables[tableIndex];
                         string tableSheetName = sourceSheet.Tables.Count == 1
                             && sourceSheet.TextBoxes.Count == 0
@@ -101,6 +107,7 @@ public static partial class ExcelIWorkConverter {
                         worksheetMappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
                             tableIndex + 1, table.Name, tableSheetName, sheet.Name));
                         foreach (IWorkTableCell cell in table.Cells) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             bool isDuration = cell.Kind == IWorkCellKind.Duration
                                 || cell.Kind == IWorkCellKind.Formula
                                     && cell.ValueKind == IWorkCellKind.Duration;
@@ -153,7 +160,7 @@ public static partial class ExcelIWorkConverter {
                                 bool headerCell = cell.Row <= table.HeaderRowCount
                                     || cell.Column <= table.HeaderColumnCount
                                     || cell.Row > table.RowCount - table.FooterRowCount;
-                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell));
+                                targetCell.SetRichText(ToExcelRichTextRuns(richText, headerCell, cancellationToken));
                             }
                             if (cell.Row <= table.HeaderRowCount || cell.Column <= table.HeaderColumnCount
                                 || cell.Row > table.RowCount - table.FooterRowCount) {
@@ -166,6 +173,7 @@ public static partial class ExcelIWorkConverter {
                             if (isDuration && cell.Value is double) targetCell.DurationHours();
                         }
                         foreach (IWorkTableMergeRange merge in table.MergedRanges) {
+                            cancellationToken.ThrowIfCancellationRequested();
                             sheet.MergeRange(CellReference(merge.FirstRow, merge.FirstColumn)
                                 + ":" + CellReference(merge.LastRow, merge.LastColumn));
                         }
@@ -195,6 +203,7 @@ public static partial class ExcelIWorkConverter {
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
+            cancellationToken.ThrowIfCancellationRequested();
             return new NumbersToExcelResult(document, source, projection,
                 projection.CreateConversionReport(kind, preview, destinationDiagnostics,
                     settings.AllowPartialEditableReconstruction), worksheetMappings);
@@ -230,15 +239,18 @@ public static partial class ExcelIWorkConverter {
             || paragraph.BreakKind is IWorkParagraphBreakKind.Section
                 or IWorkParagraphBreakKind.Layout or IWorkParagraphBreakKind.Page);
 
-    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold) {
+    private static ExcelRichTextRun[] ToExcelRichTextRuns(IWorkTextContent content, bool forceBold,
+        CancellationToken cancellationToken) {
         var runs = new List<ExcelRichTextRun>();
         for (int paragraphIndex = 0; paragraphIndex < content.Paragraphs.Count; paragraphIndex++) {
+            cancellationToken.ThrowIfCancellationRequested();
             if (paragraphIndex > 0) {
                 var separator = new ExcelRichTextRun("\n");
                 if (forceBold) separator.Bold = true;
                 runs.Add(separator);
             }
             foreach (IWorkTextRun source in content.Paragraphs[paragraphIndex].Runs) {
+                cancellationToken.ThrowIfCancellationRequested();
                 var run = new ExcelRichTextRun(source.Text);
                 if (forceBold) run.Bold = true;
                 else if (source.Style.Bold.HasValue) run.Bold = source.Style.Bold.Value;
