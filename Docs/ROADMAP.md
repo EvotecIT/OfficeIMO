@@ -80,7 +80,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I2: independent Apple qualification
 
-- [ ] Add independently exported Apple PDF and Office references for multi-page Pages documents, multi-table Numbers workbooks, and multi-slide Keynote decks. Record producer version, source/export hashes, font provenance, licensing, expected content, and reference limitations.
+- [ ] Extend the [independent Numbers formula export evidence](officeimo.iwork-support-matrix.md#corpus-evidence) to multi-page Pages documents, multi-slide Keynote decks, additional Numbers semantics, and other producer versions. Record producer version, source/export hashes, font provenance, licensing, expected content, and reference limitations.
 - [ ] Compare saved-and-reopened editable outputs for content, structure, formulas, geometry, and rendered appearance. Keep parser-boundary tests separate from document-level quality evidence; run the iWork contract on macOS as well as Windows and Linux.
 
 ### I3: everyday semantic coverage

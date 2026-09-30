@@ -46,6 +46,8 @@ Editable reconstruction means the supported content is represented as normal DOC
 
 Numbers `NormalizeWorksheetNames` defaults to `false`. Enabling it uses the Excel owner's collision-safe normalization. `NumbersToExcelResult.WorksheetMappings` preserves source sheet/table ordinals and names beside destination names. Renames are typed approximations and do not add cross-table formula support.
 
+Numbers retains generic source error text when it has no known XLSX error mapping and emits `IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED`. Formula expressions remain available, but generic error presentation does not establish equivalent Excel error semantics.
+
 `IWorkDiagnostic.LossKind` separates proven omissions, approximations, failures, and information. Text content separately exposes `HasInvalidSourceText`, `HasUnresolvedInlineObjects`, and `IsFormattingComplete`; unresolved replacement markers are not labelled invalid UTF-8. `PreservedRecordCount` counts source records, while `UnassessedRecordCount` identifies the records without a field-level fidelity assessment. `IWORK_RECORD_FIDELITY_UNASSESSED` has category `Unassessed` and is rejected by `RequireNoLoss()`; it is not evidence that all source content was omitted.
 
 ## Visual fallback
@@ -67,6 +69,8 @@ The checked-in interoperability corpus uses unmodified fixtures with recorded so
 Tests assert path/stream parity, cumulative decompression and materialization bounds, application detection, source-record retention, rich text and drawable geometry, bounded style inheritance, section-specific headers/footers, formulas and cached values, merges and tables across all three applications, embedded images, explicit handling of pre-BNC cell storage, strict preview selection, destination limits, explicit visual fallback, and save/reopen of the resulting DOCX, XLSX, and PPTX packages. Fixture sources, revisions, expected content, checksums, and licenses are recorded in `OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md`.
 
 This corpus proves the current read contract; it does not establish a stable iWork write contract.
+
+Independent Numbers 14.5 XLSX and PDF exports qualify the two-table formula fixture separately from parser tests. Saved-and-reopened OfficeIMO output agrees on 28 expressions and 24 stable typed cached values after accounting for Apple's table-title row. Volatile timestamps and generic error caches are excluded. The reference manifest records producer/build, hashes, export settings, licensing, and embedded font provenance. Other fixtures, producer versions, rendering, and full styling remain unqualified by this comparison.
 
 ## Intentional authoring boundary
 

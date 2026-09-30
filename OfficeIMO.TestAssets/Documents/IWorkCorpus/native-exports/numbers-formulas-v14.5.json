@@ -1,0 +1,339 @@
+{
+  "schemaVersion": 1,
+  "sourceFixture": "numbers-parser/test-10-formulas.numbers",
+  "sourceSha256": "dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f",
+  "producer": {
+    "application": "Apple Numbers",
+    "version": "14.5",
+    "build": "7045.0.17",
+    "operatingSystem": "macOS 27.0 26A428",
+    "exportedUtc": "2026-09-30T10:44:24Z",
+    "documentLocale": "pl-PL"
+  },
+  "exportOptions": {
+    "xlsx": "One worksheet per table; overview sheet disabled; no password",
+    "pdf": "Source print settings; best image quality; no password",
+    "nativeTableTitleRowOffset": 1
+  },
+  "sourceLicense": "MIT, Jon Connell; see OfficeIMO.IWork/THIRD-PARTY-NOTICES.md at the repository root",
+  "pdf": {
+    "pageCount": 2,
+    "pageBoxesPoints": [
+      [
+        0,
+        0,
+        826.3889,
+        1169.444
+      ],
+      [
+        0,
+        0,
+        595,
+        842
+      ]
+    ],
+    "fonts": [
+      "AAAAAB+HelveticaNeue",
+      "AAAAAC+HelveticaNeue"
+    ],
+    "fontProvenance": "Apple Numbers/Quartz embedded subsets; no standalone font files copied"
+  },
+  "limitations": [
+    "Native XLSX export inserts a table-title row; reference formulas and coordinates therefore have one added row.",
+    "Volatile NOW caches are recalculated by Numbers; compare expressions rather than timestamps.",
+    "Native error formulas have no cached value; generic source error presentation is not qualified as equivalent.",
+    "These references qualify this two-table fixture only; rendering, full styling, cross-table formulas and other producer versions need additional evidence."
+  ],
+  "artifacts": [
+    {
+      "path": "numbers-formulas-v14.5.xlsx",
+      "sha256": "8c1184a0793fd4a580f2116d5664b4d0438b888016812f855cd405d84e497a70"
+    },
+    {
+      "path": "numbers-formulas-v14.5.pdf",
+      "sha256": "c06a24b4e2de6e1226ed6a569c613ca009ebb1659eb5f31a83a570c543ab5c46"
+    }
+  ],
+  "formulaExpectations": [
+    {
+      "tableIndex": 1,
+      "sourceCell": "B1",
+      "sourceFormula": "A1",
+      "nativeExportCell": "B2",
+      "nativeExportFormula": "A2",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C1",
+      "sourceFormula": "$B$1=1",
+      "nativeExportCell": "C2",
+      "nativeExportFormula": "$B$2=1",
+      "nativeCacheType": "b",
+      "nativeCachedValue": "1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B2",
+      "sourceFormula": "A1+A2",
+      "nativeExportCell": "B3",
+      "nativeExportFormula": "A2+A3",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "3",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C2",
+      "sourceFormula": "A$2&B2",
+      "nativeExportCell": "C3",
+      "nativeExportFormula": "A$3&B3",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "23",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B3",
+      "sourceFormula": "A1*A2",
+      "nativeExportCell": "B4",
+      "nativeExportFormula": "A2*A3",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "2",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C3",
+      "sourceFormula": "NOW()",
+      "nativeExportCell": "C4",
+      "nativeExportFormula": "NOW()",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "46295.529641203706",
+      "compareCache": false
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B4",
+      "sourceFormula": "A1-A2",
+      "nativeExportCell": "B5",
+      "nativeExportFormula": "A2-A3",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "-1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C4",
+      "sourceFormula": "NOW()+0.1",
+      "nativeExportCell": "C5",
+      "nativeExportFormula": "NOW()+0.1",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "46295.6296412037",
+      "compareCache": false
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B5",
+      "sourceFormula": "A1/A2",
+      "nativeExportCell": "B6",
+      "nativeExportFormula": "A2/A3",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "0.5",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C5",
+      "sourceFormula": "$C4-C3",
+      "nativeExportCell": "C6",
+      "nativeExportFormula": "$C5-C4",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "0.1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B6",
+      "sourceFormula": "SUM(A1:A2)",
+      "nativeExportCell": "B7",
+      "nativeExportFormula": "SUM(A2:A3)",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "3",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C6",
+      "sourceFormula": "IF(A6>6,TRUE,FALSE)",
+      "nativeExportCell": "C7",
+      "nativeExportFormula": "IF(A7>6,TRUE,FALSE)",
+      "nativeCacheType": "b",
+      "nativeCachedValue": "0",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B7",
+      "sourceFormula": "MEDIAN(A1:A2)",
+      "nativeExportCell": "B8",
+      "nativeExportFormula": "MEDIAN(A2:A3)",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "1.5",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C7",
+      "sourceFormula": "IF(A7>0,TRUE,FALSE)",
+      "nativeExportCell": "C8",
+      "nativeExportFormula": "IF(A8>0,TRUE,FALSE)",
+      "nativeCacheType": "b",
+      "nativeCachedValue": "1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "B8",
+      "sourceFormula": "AVERAGE(A1:A2)",
+      "nativeExportCell": "B9",
+      "nativeExportFormula": "AVERAGE(A2:A3)",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "1.5",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "C8",
+      "sourceFormula": "A8<>10",
+      "nativeExportCell": "C9",
+      "nativeExportFormula": "A9<>10",
+      "nativeCacheType": "b",
+      "nativeCachedValue": "1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 1,
+      "sourceCell": "A9",
+      "sourceFormula": "A9",
+      "nativeExportCell": "A10",
+      "nativeExportFormula": "A10",
+      "nativeCacheType": "n",
+      "nativeCachedValue": null,
+      "compareCache": false
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B1",
+      "sourceFormula": "A1&A2&A3",
+      "nativeExportCell": "B2",
+      "nativeExportFormula": "A2&A3&A4",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "XXX_1XXX_2XXX_3",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B2",
+      "sourceFormula": "LEN(A2)+LEN(A3)",
+      "nativeExportCell": "B3",
+      "nativeExportFormula": "LEN(A3)+LEN(A4)",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "10",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B3",
+      "sourceFormula": "LEFT(A3,1)",
+      "nativeExportCell": "B4",
+      "nativeExportFormula": "LEFT(A4,1)",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "X",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B4",
+      "sourceFormula": "MID(A4,2,2)",
+      "nativeExportCell": "B5",
+      "nativeExportFormula": "MID(A5,2,2)",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "XX",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B5",
+      "sourceFormula": "RIGHT(A5,2)",
+      "nativeExportCell": "B6",
+      "nativeExportFormula": "RIGHT(A6,2)",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "_5",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B6",
+      "sourceFormula": "FIND(\"_\",A6)",
+      "nativeExportCell": "B7",
+      "nativeExportFormula": "FIND(\"_\",A7)",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "4",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B7",
+      "sourceFormula": "FIND(\"YYY\",A7)",
+      "nativeExportCell": "B8",
+      "nativeExportFormula": "FIND(\"YYY\",A8)",
+      "nativeCacheType": "n",
+      "nativeCachedValue": null,
+      "compareCache": false
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B8",
+      "sourceFormula": "IF(FIND(\"_\",A8)>2,A1,A2)",
+      "nativeExportCell": "B9",
+      "nativeExportFormula": "IF(FIND(\"_\",A9)>2,A2,A3)",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "XXX_1",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B9",
+      "sourceFormula": "100*(A9*2)%",
+      "nativeExportCell": "B10",
+      "nativeExportFormula": "100*(A10*2)%",
+      "nativeCacheType": "n",
+      "nativeCachedValue": "0.5",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B10",
+      "sourceFormula": "IF(A10<5,\"smaller\",\"larger\")",
+      "nativeExportCell": "B11",
+      "nativeExportFormula": "IF(A11<5,\"smaller\",\"larger\")",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "smaller",
+      "compareCache": true
+    },
+    {
+      "tableIndex": 2,
+      "sourceCell": "B11",
+      "sourceFormula": "IF(A11<=5,\"smaller\",\"larger\")",
+      "nativeExportCell": "B12",
+      "nativeExportFormula": "IF(A12<=5,\"smaller\",\"larger\")",
+      "nativeCacheType": "str",
+      "nativeCachedValue": "larger",
+      "compareCache": true
+    }
+  ]
+}

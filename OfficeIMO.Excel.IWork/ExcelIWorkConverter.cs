@@ -40,6 +40,19 @@ public static partial class ExcelIWorkConverter {
                     "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
+        long approximatedErrorCount = editable
+            ? projection.Sheets.SelectMany(sheet => sheet.Tables).SelectMany(table => table.Cells)
+                .LongCount(cell => (cell.Kind == IWorkCellKind.Error
+                    || cell.Kind == IWorkCellKind.Formula && cell.ValueKind == IWorkCellKind.Error)
+                    && !IsNativeExcelError(ErrorText(cell)))
+            : 0;
+        if (approximatedErrorCount > 0) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_NUMBERS_ERROR_VALUE_APPROXIMATED",
+                    approximatedErrorCount + " source error value(s) have no known native XLSX error mapping. Their visible source error text and complete formula expressions were retained; this does not preserve native error-value semantics.",
+                    lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
+            }).ToArray();
+        }
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
                 diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {
