@@ -30,10 +30,11 @@ public sealed class PdfOcrMergeResult {
 
 /// <summary>Accepted OCR words and evidence for one page.</summary>
 public sealed class PdfOcrPageMergeResult {
-    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null, OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null, double? recognitionWidth = null, double? recognitionHeight = null) {
+    internal PdfOcrPageMergeResult(int pageNumber, IReadOnlyList<PdfRecognizedWord> words, int rejectedLowConfidenceCount, int rejectedNativeOverlapCount, IReadOnlyList<string> diagnostics, string text, string? provider = null, string? model = null, string? language = null, IReadOnlyList<PdfOcrWordEvidence>? wordEvidence = null, OfficeIMO.Drawing.OfficeScanProcessingReport? scanProcessing = null, double? recognitionWidth = null, double? recognitionHeight = null, IReadOnlyList<PdfOcrProviderDiagnostic>? providerDiagnostics = null) {
         PageNumber = pageNumber; Words = words; RejectedLowConfidenceCount = rejectedLowConfidenceCount; RejectedNativeOverlapCount = rejectedNativeOverlapCount; Diagnostics = diagnostics; Text = text;
         Provider = provider; Model = model; Language = language;
         ScanProcessing = scanProcessing;
+        ProviderDiagnostics = providerDiagnostics ?? Array.Empty<PdfOcrProviderDiagnostic>();
         RecognitionWidth = recognitionWidth; RecognitionHeight = recognitionHeight;
         WordEvidence = wordEvidence ?? Array.AsReadOnly(words.Select(word => new PdfOcrWordEvidence(word, PdfOcrWordDisposition.Accepted)).ToArray());
     }
@@ -49,6 +50,8 @@ public sealed class PdfOcrPageMergeResult {
     public int RejectedNativeOverlapCount { get; }
     /// <summary>Rendering, provider, and normalization diagnostics.</summary>
     public IReadOnlyList<string> Diagnostics { get; }
+    /// <summary>Immutable provider diagnostics, retaining severity and recoverability through review and publication.</summary>
+    public IReadOnlyList<PdfOcrProviderDiagnostic> ProviderDiagnostics { get; }
     /// <summary>Affine scan transformations and their inverse geometry, relative to the image after optional region and perspective preparation.
     /// Use each word's Geometry for original-page coordinates. Null means affine cleanup was disabled or retained its input after a reported limit.</summary>
     public OfficeIMO.Drawing.OfficeScanProcessingReport? ScanProcessing { get; }
@@ -78,7 +81,7 @@ public sealed class PdfOcrPageMergeResult {
             Provider,
             Model,
             Language,
-            WordEvidence, ScanProcessing, RecognitionWidth, RecognitionHeight);
+            WordEvidence, ScanProcessing, RecognitionWidth, RecognitionHeight, ProviderDiagnostics);
     }
 }
 

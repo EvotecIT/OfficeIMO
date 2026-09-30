@@ -25,6 +25,8 @@ Missing segments cannot establish a correct reading-order pair. Exact-table scor
 
 Run the scoring and runner contracts with `dotnet run --project Build/PdfQualityCorpus -c Release -f net8.0 -- verify-runner-contracts`.
 
+The [English layout qualification](../EnglishLayout/README.md) adds a ReportLab/Poppler producer family with explicit acceptance limits for columns, isolated closing text, and a borderless ledger. This Pango/Cairo manifest retains measurement-only status: it does not declare a general OCR quality pass.
+
 ### Reproduce the historical baseline
 
 The [recorded comparison](../../Docs/quality/multilingual-layout/2026-09-08-linux-net8.json) uses product revisions `316af053340445f7d9933b8560c7f729ff98d8af` and `ea1c48d52dc6e1d718c0397567d599230f6e5f0f` with this same fixture manifest. Build the historical product in a separate checkout and run the committed baseline host from the current checkout:

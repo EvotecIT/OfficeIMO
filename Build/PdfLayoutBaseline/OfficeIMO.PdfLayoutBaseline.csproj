@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../PdfQualityCorpus/MultilingualLayoutCorpus.cs" Link="MultilingualLayoutCorpus.cs" />
+    <Compile Include="../PdfQualityCorpus/LayoutAcceptance.cs" Link="LayoutAcceptance.cs" />
     <Compile Include="../PdfQualityCorpus/ScanTextAccuracy.cs" Link="ScanTextAccuracy.cs" />
     <Reference Include="OfficeIMO.Core"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Core/bin/Release/net8.0/OfficeIMO.Core.dll</HintPath></Reference>
     <Reference Include="OfficeIMO.Pdf"><HintPath>$(PdfLayoutBaselineRoot)/OfficeIMO.Pdf/bin/Release/net8.0/OfficeIMO.Pdf.dll</HintPath></Reference>

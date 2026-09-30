@@ -9,6 +9,16 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## OCR outcomes and AI evaluation
+
+Calls through `OcrEngineRunner` now throw `OcrEngineExecutionException` for provider exceptions, null results, and nonrecoverable error diagnostics. Catch this type and inspect `Kind` instead of parsing provider exception messages. Provider exception text and inner exceptions are omitted; caller cancellation and shared timeouts remain distinct. Reader's continue-on-error mode records a failed candidate rather than enriching from a nonrecoverable result.
+
+Invalid Reader OCR confidence values now become `null` instead of being clamped to zero or one. Treat them as unavailable quality evidence. PDF workflows reject recognition with no eligible words and no native text; deliberate empty review selections still create an unchanged source copy. Image workflows reject empty recognition before review and publication.
+
+AI Date fields require formats with a year, month, and day. Partial formats return `Invalid` rather than inventing calendar components. Numeric currency-context validation stops at line breaks.
+
+The synthetic AI evaluation report uses schema `officeimo.ai.evaluation.v3` and `contractPassed`. A successful initial contract evaluation returns exit code `4` until independent semantic review is complete. Use the example's offline `--review-evaluation` command with semantic-review v2 labels bound to both evaluation and per-run report hashes; exit code `0` then means every selected case passed both contract and review checks. Earlier v1 labels must be regenerated and independently assessed against the current evaluation.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

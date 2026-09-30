@@ -11,6 +11,15 @@ internal static partial class MultilingualLayoutCorpus {
         Verify(0, new[] { expected, expected }, "duplicate tables");
         Verify(0, Array.Empty<string[][]>(), "missing table");
         Verify(3, new[] { new[] { new[] { " Name ", "Count" }, expected[1], expected[2] } }, "whitespace normalization");
+        var strict = new LayoutAcceptance(0, 0, true, true);
+        ScanTextAccuracy exact = ScanTextAccuracy.Measure("A B", "A B");
+        if (!strict.IsSatisfied(exact, 2, 2, 1, 1, 0, 0, 0) ||
+            strict.IsSatisfied(exact, 2, 2, 0, 1, 0, 0, 0) ||
+            strict.IsSatisfied(exact, 1, 2, 1, 1, 0, 0, 0) ||
+            strict.IsSatisfied(exact, 2, 2, 1, 1, 0, 0, 1) ||
+            strict.IsSatisfied(exact, 2, 2, 1, 1, 2, 3, 1) ||
+            strict.IsSatisfied(ScanTextAccuracy.Measure("A B", "A C"), 2, 2, 1, 1, 0, 0, 0))
+            throw new InvalidOperationException("Layout qualification accepted incomplete order, incorrect text, or unexpected tables.");
 
         void Verify(int score, string[][][] actual, string contract) {
             int measured = CountExactTableRows(expected, actual);

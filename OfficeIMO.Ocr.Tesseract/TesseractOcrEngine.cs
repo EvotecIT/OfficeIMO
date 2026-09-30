@@ -74,9 +74,11 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
             string outputPath = outputBase + ".tsv";
             OcrTemporaryStorage.WriteAllBytes(inputPath, request.Payload);
             string? language = string.IsNullOrWhiteSpace(request.Language) ? _options.Language : request.Language!.Trim();
+            string workingDirectory = Environment.CurrentDirectory;
             OcrProcessResult processResult = await OcrProcessRunner.RunAsync(new OcrProcessCommand {
                 FileName = _options.ExecutablePath,
-                Arguments = BuildRecognitionArguments(inputPath, outputBase, language),
+                Arguments = BuildRecognitionArguments(GetInputArgument(inputPath, workingDirectory), outputBase, language),
+                WorkingDirectory = workingDirectory,
                 Timeout = _options.Timeout,
                 MaxStandardOutputCharacters = _options.MaxProcessOutputCharacters,
                 MaxStandardErrorCharacters = _options.MaxProcessOutputCharacters
@@ -146,6 +148,16 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
         arguments.Add("-c");
         arguments.Add("tessedit_create_tsv=1");
         return arguments;
+    }
+
+    // Leptonica rewrites absolute /tmp paths to the Darwin user temporary directory.
+    // A relative input path bypasses that provider-specific rewriting, while retaining the
+    // caller's working directory for executable, tessdata, and additional configuration paths.
+    private static string GetInputArgument(string inputPath, string workingDirectory) {
+        if (!System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.OSX) ||
+            !inputPath.StartsWith("/tmp/", StringComparison.Ordinal)) return inputPath;
+        var directory = new Uri(workingDirectory.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
+        return Uri.UnescapeDataString(directory.MakeRelativeUri(new Uri(inputPath)).ToString());
     }
 
     private static void TryDeleteDirectory(string path) {

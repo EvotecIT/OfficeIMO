@@ -147,7 +147,7 @@ public sealed class StudioOcrPublicationTests {
             var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(new() {
                 InputPath = inputPath, OutputPath = outputPath, Ocr = options.Pdf,
                 InputStream = options.InputStream, OutputStream = options.OutputStream,
-                PublicationGuard = options.PublicationGuard, ReviewAsync = options.ReviewAsync,
+                PublicationGuard = options.PublicationGuard, ReviewCorrectionsAsync = options.ReviewCorrectionsAsync,
                 ConflictPolicy = options.OutputConflictPolicy == OfficeConversionFileConflictPolicy.Replace
                     ? OfficeWorkflowConflictPolicy.Replace : OfficeWorkflowConflictPolicy.Fail
             }, engine, cancellationToken);
