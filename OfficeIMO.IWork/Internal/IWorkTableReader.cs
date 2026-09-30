@@ -190,13 +190,13 @@ internal static partial class IWorkTableReader {
         ReadHeaderDimensions(source, store, model, rows, columns, projectionBudget,
             references, rowHeights, columnWidths, diagnostics, ref supportsEditableReconstruction);
 
-        IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store, model, references,
-            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
+        IReadOnlyDictionary<uint, string> strings = ReadStrings(source, store, model, references,
+            projectionBudget,
             out bool stringStorageComplete);
-        IWorkTableRichTextCatalog richStrings = IWorkTableRichTextCatalog.Create(index, store, model,
-            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries, references);
-        IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store, model, references,
-            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
+        IWorkTableRichTextCatalog richStrings = IWorkTableRichTextCatalog.Create(source, store, model,
+            projectionBudget, references);
+        IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(source, store, model, references,
+            projectionBudget,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
         if (!stringStorageComplete) {
             supportsEditableReconstruction = false;

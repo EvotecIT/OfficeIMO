@@ -30,46 +30,21 @@ internal sealed class IWorkTableRichTextCatalog {
     internal IReadOnlyDictionary<uint, IWorkTextContent> Materialized => _materialized;
     internal IReadOnlyDictionary<uint, IWorkObjectIdentity> OmittedStorages => _omitted;
 
-    internal static IWorkTableRichTextCatalog Create(IWorkObjectIndex index, IWorkWireMessage store,
-        IWorkArchiveRecord model, IWorkProjectionBudget budget, IWorkReadOptions options,
-        int maximumEntries, IWorkSourceReferenceIssueCollector references) {
-        var catalog = new IWorkTableRichTextCatalog(index, budget, options, references);
+    internal static IWorkTableRichTextCatalog Create(IWorkSourceDocument source, IWorkWireMessage store,
+        IWorkArchiveRecord model, IWorkProjectionBudget budget, IWorkSourceReferenceIssueCollector references) {
+        var catalog = new IWorkTableRichTextCatalog(source.Index, budget, source.Options, references);
         if (!store.HasField(17)) return catalog;
         IWorkArchiveRecord? list = references.ReadOne(model, store, 17, "4/17");
-        if (store.FieldCount(17) != 1 || list?.MessageType != DataListArchive
-            || !IWorkTableReader.TryGetCatalogEntryCount(list, maximumEntries, options,
-                "rich-text", out int entryCount)) {
-            catalog.FullyReconstructed = false;
-            catalog.StructureComplete = false;
+        if (store.FieldCount(17) != 1 || list?.MessageType != DataListArchive) {
+            catalog.FullyReconstructed = catalog.StructureComplete = false;
             return catalog;
         }
         catalog._list = list;
-        budget.AddTableCatalogEntries(entryCount);
-        IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
-            index.Message(list), 3, out bool malformedEntries);
-        if (malformedEntries) {
-            catalog.FullyReconstructed = false;
-            catalog.StructureComplete = false;
-        }
-        var seen = new HashSet<uint>();
-        int position = 0;
-        foreach (IWorkWireMessage entry in entries) {
-            position++;
-            ulong? key = entry.GetUnsigned(1);
-            if (entry.FieldCount(1) != 1 || entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-                || !key.HasValue || key.Value > uint.MaxValue) {
-                catalog.FullyReconstructed = false;
-                catalog.StructureComplete = false;
-                continue;
-            }
-            uint normalized = (uint)key.Value;
-            if (!seen.Add(normalized)) {
-                catalog._entries.Remove(normalized);
-                catalog.FullyReconstructed = false;
-                catalog.StructureComplete = false;
-                continue;
-            }
-            catalog._entries.Add(normalized, (entry, position));
+        IWorkTableCatalogIndex declarations = IWorkTableCatalogIndex.Read(source, list, budget, references, "rich-text");
+        catalog.FullyReconstructed = catalog.StructureComplete = declarations.IsComplete;
+        foreach (var entry in declarations.Entries) {
+            source.CancellationToken.ThrowIfCancellationRequested();
+            if (declarations.CanResolveKey(entry.Key)) catalog._entries.Add(entry.Key, (entry.Message, entry.Position));
         }
         return catalog;
     }

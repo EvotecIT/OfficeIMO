@@ -113,7 +113,8 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     private static MemoryStream SelectedRichTextPackage(IWorkDocumentKind kind, byte[]? attributes = null,
-        int failure = -1, byte[]? additionalRecords = null, bool aliases = false, bool duplicateKeys = false) {
+        int failure = -1, byte[]? additionalRecords = null, bool aliases = false, bool duplicateKeys = false,
+        byte[]? catalogPayload = null) {
         byte[] cell = new byte[16]; cell[0] = 5; cell[1] = 9;
         WriteUInt32(cell, 8, 1u << 4); WriteUInt32(cell, 12, 1);
         byte[] secondCell = (byte[])cell.Clone(); WriteUInt32(secondCell, 12, 2);
@@ -134,6 +135,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] catalog = Message(selectedEntry,
             duplicateKeys ? Message(selectedEntry, selectedEntry)
                 : BytesField(3, Message(VarintField(1, 2), ReferenceField(9, aliases ? 14ul : 17ul))));
+        catalog = catalogPayload ?? catalog;
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(roots,
             ArchiveRecord(10, 6000, Message(BytesField(1, GeometryDrawable(72, 72, 120, 40)),
                 ReferenceField(2, failure == 4 ? 999ul : 11ul))),

@@ -7,7 +7,9 @@ public enum IWorkSourceDeclarationIssueKind {
     /// <summary>The declared message set has an unsupported or ambiguous envelope.</summary>
     RejectedMessageSet,
     /// <summary>A decoded declaration has invalid metadata needed to select its content.</summary>
-    InvalidSelectionMetadata
+    InvalidSelectionMetadata,
+    /// <summary>A decoded declaration contains an invalid or unsupported scalar value.</summary>
+    InvalidValue
 }
 
 /// <summary>One selected source path whose declarations could not be assessed. It does not identify references or omitted objects.</summary>

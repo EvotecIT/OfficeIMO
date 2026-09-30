@@ -235,8 +235,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(records.Select(record => ArchiveRecord(record.Identifier, record.MessageType,
                 record.Payload, record.ObjectReferences.ToArray())).ToArray())))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
-        return IWorkTableRichTextCatalog.Create(source.Index, IWorkProtobuf.Parse(store, source.Options),
-            source.Index.Find(104)!, new IWorkProjectionBudget(source.Options), source.Options,
-            source.Options.MaximumTableCatalogEntries, new IWorkSourceReferenceIssueCollector(source));
+        return IWorkTableRichTextCatalog.Create(source, IWorkProtobuf.Parse(store, source.Options),
+            source.Index.Find(104)!, new IWorkProjectionBudget(source.Options), new IWorkSourceReferenceIssueCollector(source));
     }
 }

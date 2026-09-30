@@ -201,6 +201,10 @@ these methods.
 
 ## OfficeIMO 3.4: one document and conversion grammar
 
+### iWork catalog ambiguity and declaration evidence
+
+String, formula and rich-text catalogs reject duplicate keys even when a duplicate value is malformed. An unreadable entry or key leaves key uniqueness unassessed, so catalog values remain unresolved; valid numeric formula caches remain recoverable through `AllowPartialEditableReconstruction`. Inspect `SourceDeclarationIssues` for the physical catalog paths. Handle the new `IWorkSourceDeclarationIssueKind.InvalidValue` member in exhaustive switches; it identifies invalid plain-string catalog values.
+
 ### iWork formula assessment counts
 
 `IWorkConversionReport.FormulaCells` includes materialized error cells whose supported version-5 headers declare formulas. Check `ExpressionIsAssessed` before interpreting `ExpressionIsComplete`; an undecoded cell has cache status `IWorkFormulaCacheStatus.Unassessed`. Include `UnassessedExpressionCount` and `UnassessedCacheCount` when summing the expression and cache categories in `FormulaSummary`. The corresponding workflow facts are `sourceUnassessedFormulaExpressionCount` and `sourceUnassessedFormulaCacheCount`. Handle the new enum member in exhaustive cache-status switches.
