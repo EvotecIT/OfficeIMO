@@ -92,7 +92,6 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 ### I4: shared consumer integration
 
 - [ ] Expose opt-in iWork routes through shared workflow registration, CLI, and Studio with one conversion policy, limits, loss reports, review preview, and safe output publication contract. Keep source identity and incomplete-coverage decisions visible.
-- [ ] Treat supported iWork directory bundles as documents through explicit Reader package handling rather than recursive folder ingestion. Preserve bundle path and byte limits, physical-root checks, cancellation, and source hashing.
 
 ### I5: runtime and Apple host acceptance
 

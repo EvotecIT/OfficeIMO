@@ -83,6 +83,8 @@ The positional destination is optional for DOCX, XLSX, and PPTX to PDF conversio
 
 Markdown and JSON destinations are semantic Reader projections rather than fixed-layout renderings. They use the same handlers as `officeimo reader read` and support every input format reported by `officeimo reader capabilities`.
 
+`officeimo reader read` accepts iWork directory bundles with `.pages`, `.numbers`, or `.key` extensions as individual documents. Folder discovery also keeps each bundle intact. Export files and asset directories must be outside the source bundle; reported size and content hashes describe the bounded captured package. These Reader outputs are semantic extraction, with the same rendering limits as other Reader routes.
+
 All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing PDF, Markdown, or JSON file should be replaced.
 
 ## Command areas

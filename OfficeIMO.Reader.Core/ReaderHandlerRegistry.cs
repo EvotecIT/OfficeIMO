@@ -184,6 +184,7 @@ internal sealed class ReaderHandlerDescriptor {
         Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
         Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream,
         Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentPath,
+        Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDirectoryBundle,
         Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream,
         Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentPathAsync,
         Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? readDocumentStreamAsync,
@@ -207,6 +208,7 @@ internal sealed class ReaderHandlerDescriptor {
         ReadPath = readPath;
         ReadStream = readStream;
         ReadDocumentPath = readDocumentPath;
+        ReadDirectoryBundle = readDirectoryBundle;
         ReadDocumentStream = readDocumentStream;
         ReadDocumentPathAsync = readDocumentPathAsync;
         ReadDocumentStreamAsync = readDocumentStreamAsync;
@@ -232,6 +234,7 @@ internal sealed class ReaderHandlerDescriptor {
     public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
     public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; }
+    public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDirectoryBundle { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; }
     public Func<string, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentPathAsync { get; }
     public Func<Stream, string?, ReaderOptions, CancellationToken, Task<OfficeDocumentReadResult>>? ReadDocumentStreamAsync { get; }
@@ -248,6 +251,7 @@ internal sealed class ReaderHandlerDescriptor {
         if (registration.ReadPath == null &&
             registration.ReadStream == null &&
             registration.ReadDocumentPath == null &&
+            registration.ReadDirectoryBundle == null &&
             registration.ReadDocumentStream == null &&
             registration.ReadDocumentPathAsync == null &&
             registration.ReadDocumentStreamAsync == null) {
@@ -295,6 +299,7 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadPath,
             registration.ReadStream,
             registration.ReadDocumentPath,
+            registration.ReadDirectoryBundle,
             registration.ReadDocumentStream,
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync,
@@ -313,6 +318,7 @@ internal sealed class ReaderHandlerDescriptor {
             SupportsPath = SupportsPathInput,
             SupportsStream = SupportsStreamInput,
             SupportsDocumentPath = ReadDocumentPath != null || ReadDocumentPathAsync != null,
+            SupportsDirectoryBundle = ReadDirectoryBundle != null,
             SupportsDocumentStream = ReadDocumentStream != null || ReadDocumentStreamAsync != null,
             SupportsAsyncPath = ReadDocumentPathAsync != null,
             SupportsAsyncStream = ReadDocumentStreamAsync != null,

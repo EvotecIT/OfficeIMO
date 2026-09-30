@@ -16,6 +16,7 @@ public sealed partial class IWorkSourceDocument {
         CancellationToken cancellationToken) {
         Kind = kind;
         ContainerKind = package.ContainerKind;
+        ContainerLengthBytes = package.ContainerLengthBytes;
         Entries = Array.AsReadOnly(package.Entries.ToArray());
         Records = Array.AsReadOnly(records.ToArray());
         _options = options;
@@ -34,6 +35,8 @@ public sealed partial class IWorkSourceDocument {
     public IWorkDocumentKind Kind { get; }
     /// <summary>Gets the physical source layout.</summary>
     public IWorkContainerKind ContainerKind { get; }
+    /// <summary>Gets the ZIP byte length, or aggregate physical file bytes captured from a directory bundle before nested expansion.</summary>
+    public long ContainerLengthBytes { get; }
     /// <summary>Gets preserved package entries, including resources and metadata.</summary>
     public IReadOnlyList<IWorkPackageEntry> Entries { get; }
     /// <summary>Gets every preserved IWA payload record, including auxiliary payloads.</summary>

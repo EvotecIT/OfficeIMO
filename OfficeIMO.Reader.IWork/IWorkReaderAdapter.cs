@@ -21,10 +21,19 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IWorkDocumentKind? expected = ExpectedKind(path);
+        IWorkReadOptions bounded = (options.ReadOptions ?? new IWorkReadOptions()).Clone();
+        if (readerOptions.MaxInputBytes is long maximumBytes) {
+            bounded.MaximumPackageBytes = Math.Min(bounded.MaximumPackageBytes, maximumBytes);
+        }
         IWorkSourceDocument source = expected.HasValue
-            ? IWorkSourceDocument.Open(path, expected.Value, options.ReadOptions, cancellationToken)
-            : IWorkSourceDocument.Open(path, options.ReadOptions, cancellationToken);
-        return Project(source, path, readerOptions, options, cancellationToken);
+            ? IWorkSourceDocument.Open(path, expected.Value, bounded, cancellationToken)
+            : IWorkSourceDocument.Open(path, bounded, cancellationToken);
+        OfficeDocumentReadResult result = Project(source, path, readerOptions, options, cancellationToken);
+        if (source.ContainerKind == IWorkContainerKind.DirectoryBundle) {
+            result.Source.LengthBytes = source.ContainerLengthBytes;
+            if (readerOptions.ComputeHashes) result.Source.SourceHash = source.ComputePackageContentHash();
+        }
+        return result;
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName,

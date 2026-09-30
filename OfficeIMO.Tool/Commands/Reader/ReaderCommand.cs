@@ -97,8 +97,15 @@ The dependency-bounded tool does not configure OCR or hosted providers.
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         } else {
             sourcePath = Path.GetFullPath(options.InputPath!);
-            if (!File.Exists(sourcePath)) {
+            bool directoryBundle = Directory.Exists(sourcePath) && reader.GetCapabilities().Any(capability =>
+                capability.SupportsDirectoryBundle && capability.Extensions.Contains(
+                    Path.GetExtension(sourcePath), StringComparer.OrdinalIgnoreCase));
+            if (!File.Exists(sourcePath) && !directoryBundle) {
                 throw new FileNotFoundException("Input file '" + sourcePath + "' does not exist.", sourcePath);
+            }
+            if (directoryBundle) {
+                ReaderToolPathSafety.EnsureOutsideInput(sourcePath,
+                    options.OutputPath == "-" ? null : options.OutputPath, options.AssetsPath);
             }
             if (!string.IsNullOrWhiteSpace(options.OutputPath) && options.OutputPath != "-") {
                 ReaderToolPathSafety.EnsureDistinctFile(sourcePath, options.OutputPath!);

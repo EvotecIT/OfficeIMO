@@ -9,6 +9,13 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## Reader capability schema version 6
+
+Reader capability manifests use schema version 6 and add `SupportsDirectoryBundle`.
+Applications that validate capability schema versions must accept version 6.
+Directory-package handlers register `ReadDirectoryBundle`; ordinary path handlers
+continue to accept files. The document-result schema remains version 8.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

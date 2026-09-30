@@ -19,6 +19,11 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) {
+            return await Task.Run(() => ReadDirectoryBundle(path, options, cancellationToken).Chunks,
+                cancellationToken).ConfigureAwait(false);
+        }
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
@@ -108,6 +113,11 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
+        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (Directory.Exists(path)) {
+            return await Task.Run(() => ReadDirectoryBundle(path, options, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
+        }
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
         EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));

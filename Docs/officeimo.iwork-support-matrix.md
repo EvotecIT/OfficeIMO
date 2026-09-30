@@ -14,6 +14,8 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 `IWorkSourceDocument.Open` is the shared loading and inspection entry point. It accepts paths, streams, and byte arrays; exposes normalized package entries, IWA payload records, producer build history, previews, diagnostics, and application-specific typed projections; and can be converted more than once with independent destination options. Adapter result APIs retain that same source model beside the generated Office document.
 
+`OfficeIMO.Reader.IWork` registers directory bundles as individual documents. Path reading, async reading, folder ingestion, and discovery retain the package owner's bounds, physical-root checks, cancellation, and captured content hash. Resources inside a registered bundle are not ingested as separate documents. `ContainerLengthBytes` records ZIP bytes or physical bundle file bytes before nested expansion; `ComputePackageContentHash()` hashes the captured normalized entries and does not reopen the filesystem.
+
 ## Package and IWA boundary
 
 | Capability | Current contract |
