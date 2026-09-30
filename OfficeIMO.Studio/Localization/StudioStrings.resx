@@ -2344,4 +2344,5 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.Mode.EditableOnly" xml:space="preserve"><value>Editable content only</value></data>
   <data name="Conversion.Mode.VisualOnly" xml:space="preserve"><value>Embedded visual preview</value></data>
   <data name="Conversion.IWork.SourceUnitCounts" xml:space="preserve"><value>{0} identified source units · {1} reconstructed · {2} omitted · {3} unassessed</value></data>
+  <data name="Conversion.IWork.FormulaCounts" xml:space="preserve"><value>Source formulas: {0} complete · {1} incomplete. Recovered caches: {2} complete · {3} partial · {4} approximate · {5} missing</value></data>
 </root>

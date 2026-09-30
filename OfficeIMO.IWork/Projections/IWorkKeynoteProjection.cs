@@ -130,7 +130,7 @@ public sealed partial class IWorkKeynoteProjection {
                     + slide.Tables.Count(table => table.RowCount > 0 && table.ColumnCount > 0)
                     + slide.Tables.Where(table => table.RowCount > 0 && table.ColumnCount > 0).Sum(table => table.Cells.Count)
                     + (slide.TitleBox != null ? 1 : 0) + (slide.PresenterNotes.Length > 0 ? 1 : 0)),
-            ReconstructedUnits(), OmittedUnits());
+            ReconstructedUnits(), OmittedUnits(), Slides.SelectMany(slide => slide.Tables));
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,

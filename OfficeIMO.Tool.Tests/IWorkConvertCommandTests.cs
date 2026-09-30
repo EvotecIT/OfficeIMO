@@ -24,6 +24,21 @@ public sealed class IWorkConvertCommandTests {
     }
 
     [Fact]
+    public async Task Numbers_CLI_retains_source_formula_and_cache_assessments() {
+        using var files = new Files("numbers-parser/test-10-formulas.numbers");
+        var result = await RunAsync("convert", files.Input);
+        Assert.Equal(0, result.Code);
+        using JsonDocument json = JsonDocument.Parse(result.Output);
+        JsonElement facts = json.RootElement.GetProperty("conversionEvidence").GetProperty("facts");
+        Assert.Equal("28", facts.GetProperty("sourceFormulaCellCount").GetString());
+        Assert.Equal("28", facts.GetProperty("sourceCompleteFormulaExpressionCount").GetString());
+        Assert.Equal("26", facts.GetProperty("sourceCompleteFormulaCacheCount").GetString());
+        Assert.Equal("2", facts.GetProperty("sourceApproximateFormulaCacheCount").GetString());
+        using var saved = OfficeIMO.Excel.ExcelDocument.Load(json.RootElement.GetProperty("outputPath").GetString()!);
+        Assert.Equal(2, saved.Sheets.Count);
+    }
+
+    [Fact]
     public async Task Apple_conflicts_require_force_and_replacement_passes_reopen_validation() {
         using var files = new Files("nim-iwork/simple.numbers");
         string destination = Path.ChangeExtension(files.Input, ".xlsx");

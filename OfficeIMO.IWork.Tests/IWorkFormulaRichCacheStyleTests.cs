@@ -20,6 +20,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(cell.RichText!.IsComplete);
             Assert.True(result.Projection.HasEditableContent);
             Assert.True(result.IsVisualFallback);
+            AssertSourceFormula(result.Report);
         } else {
             using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
             IWorkTableCell cell = Assert.Single(Assert.Single(
@@ -29,6 +30,13 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(cell.RichText!.IsComplete);
             Assert.True(result.Projection.HasEditableContent);
             Assert.True(result.IsVisualFallback);
+            AssertSourceFormula(result.Report);
+        }
+        static void AssertSourceFormula(IWorkConversionReport report) {
+            IWorkFormulaCellStatus assessment = Assert.Single(report.FormulaCells);
+            Assert.True(assessment.ExpressionIsComplete);
+            Assert.Equal(IWorkFormulaCacheStatus.Complete, assessment.CacheStatus);
+            Assert.Equal(10ul, assessment.TableIdentity!.RecordIdentifier);
         }
     }
 

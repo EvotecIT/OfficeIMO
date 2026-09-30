@@ -6,7 +6,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> preservedRecords,
         IReadOnlyList<IWorkDiagnostic> diagnostics, IWorkPreviewAsset? visualPreview,
         int totalRecordCount, int preservedRecordCount, int reconstructedItemCount,
-        IReadOnlyList<IWorkSourceUnit>? sourceUnits = null) {
+        IReadOnlyList<IWorkSourceUnit>? sourceUnits = null,
+        IReadOnlyList<IWorkFormulaCellStatus>? formulaCells = null) {
         SourceKind = sourceKind;
         ProjectionKind = projectionKind;
         BuildVersions = Array.AsReadOnly(buildVersions.ToArray());
@@ -19,6 +20,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         SourceUnits = Array.AsReadOnly((sourceUnits ?? Array.Empty<IWorkSourceUnit>()).ToArray());
         SourceUnitCounts = Array.AsReadOnly(((IWorkSourceUnitKind[])Enum.GetValues(typeof(IWorkSourceUnitKind)))
             .Select(kind => new IWorkSourceUnitCount(kind, SourceUnits)).ToArray());
+        FormulaCells = Array.AsReadOnly((formulaCells ?? Array.Empty<IWorkFormulaCellStatus>()).ToArray());
+        FormulaSummary = new IWorkFormulaSummary(FormulaCells);
         var fidelityDiagnostics = new List<global::OfficeIMO.OfficeConversionFidelityDiagnostic>();
         foreach (IWorkDiagnostic diagnostic in Diagnostics) {
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
@@ -73,6 +76,10 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IReadOnlyList<IWorkSourceUnit> SourceUnits { get; }
     /// <summary>Gets per-kind counts of identified selected source units. Reconstructed units can still contain omitted, approximated, or unassessed fields; visual fallback does not establish individual unit coverage.</summary>
     public IReadOnlyList<IWorkSourceUnitCount> SourceUnitCounts { get; }
+    /// <summary>Gets source expression and cache assessments for projected formula cells, including during visual fallback. These do not establish destination formula preservation or cache freshness.</summary>
+    public IReadOnlyList<IWorkFormulaCellStatus> FormulaCells { get; }
+    /// <summary>Gets aggregate source expression/cache completeness. Undecoded cells and inactive table records are excluded.</summary>
+    public IWorkFormulaSummary FormulaSummary { get; }
     /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
     public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None);

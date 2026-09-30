@@ -39,6 +39,8 @@ public sealed class IWorkAppleExportQualificationTests {
         using var native = ZipFile.OpenRead(Path.Combine(references, "numbers-formulas-v14.5.xlsx"));
         JsonElement[] expectations = evidence.GetProperty("formulaExpectations").EnumerateArray().ToArray();
         Assert.Equal(28, expectations.Length);
+        Assert.Equal(expectations.Length, result.Report.FormulaSummary.TotalCount);
+        Assert.Equal(expectations.Length, result.Report.FormulaSummary.CompleteExpressionCount);
         var actualSheets = Enumerable.Range(1, 2).ToDictionary(index => index, index => ReadCells(converted, index));
         var nativeSheets = Enumerable.Range(1, 2).ToDictionary(index => index, index => ReadCells(native, index));
         Assert.Equal(28, actualSheets.Values.Sum(cells => cells.Values.Count(cell => cell.Element(Spreadsheet + "f") != null)));

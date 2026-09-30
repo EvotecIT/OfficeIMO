@@ -66,6 +66,13 @@ public static class IWorkWorkflow {
             ["reconstructedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.ReconstructedCount).ToString(CultureInfo.InvariantCulture),
             ["omittedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.OmittedCount).ToString(CultureInfo.InvariantCulture),
             ["unassessedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.UnassessedCount).ToString(CultureInfo.InvariantCulture),
+            ["sourceFormulaCellCount"] = report.FormulaSummary.TotalCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceCompleteFormulaExpressionCount"] = report.FormulaSummary.CompleteExpressionCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceIncompleteFormulaExpressionCount"] = report.FormulaSummary.IncompleteExpressionCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceCompleteFormulaCacheCount"] = report.FormulaSummary.CompleteCacheCount.ToString(CultureInfo.InvariantCulture),
+            ["sourcePartialFormulaCacheCount"] = report.FormulaSummary.PartialCacheCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceApproximateFormulaCacheCount"] = report.FormulaSummary.ApproximateCacheCount.ToString(CultureInfo.InvariantCulture),
+            ["sourceMissingFormulaCacheCount"] = report.FormulaSummary.MissingCacheCount.ToString(CultureInfo.InvariantCulture),
             ["partialEditableReconstruction"] = report.IsPartialEditableReconstruction.ToString(),
             ["visualCoverage"] = report.VisualPreview?.Coverage.ToString() ?? "NotApplicable"
         });

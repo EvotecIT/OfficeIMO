@@ -123,7 +123,7 @@ public sealed partial class IWorkPagesProjection {
                     + TextBoxObjects.Count + Images.Count
                     + Tables.Count(table => table.RowCount > 0 && table.ColumnCount > 0)
                     + Tables.Where(table => table.RowCount > 0 && table.ColumnCount > 0).Sum(table => table.Cells.Count),
-            ReconstructedUnits(reconstructedSectionCount), OmittedUnits(reconstructedSectionCount));
+            ReconstructedUnits(reconstructedSectionCount), OmittedUnits(reconstructedSectionCount), Tables);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,

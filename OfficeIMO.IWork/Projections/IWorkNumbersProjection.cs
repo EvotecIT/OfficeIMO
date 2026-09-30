@@ -45,7 +45,7 @@ public sealed partial class IWorkNumbersProjection {
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
-                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits());
+                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits(), Sheets.SelectMany(sheet => sheet.Tables));
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,

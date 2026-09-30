@@ -17,6 +17,10 @@ public sealed partial class IWorkBoundaryTests {
             result.Projection.Sheets).Tables).Cells);
 
         Assert.False(result.IsVisualFallback);
+        IWorkFormulaCellStatus assessment = Assert.Single(result.Report.FormulaCells);
+        Assert.True(assessment.ExpressionIsComplete);
+        Assert.Equal(IWorkFormulaCacheStatus.Partial, assessment.CacheStatus);
+        Assert.Equal(1, result.Report.FormulaSummary.PartialCacheCount);
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
         Assert.Equal("Beforeafter", cell.Value);
         Assert.True(cell.FormulaIsComplete);
@@ -52,6 +56,9 @@ public sealed partial class IWorkBoundaryTests {
             result.Projection.Sheets).Tables).Cells);
 
         Assert.True(result.IsVisualFallback);
+        IWorkFormulaCellStatus assessment = Assert.Single(result.Report.FormulaCells);
+        Assert.False(assessment.ExpressionIsComplete);
+        Assert.Equal(IWorkFormulaCacheStatus.Partial, assessment.CacheStatus);
         Assert.False(cell.FormulaIsComplete);
         Assert.False(cell.CachedValueIsComplete);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

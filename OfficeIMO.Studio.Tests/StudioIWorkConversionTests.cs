@@ -107,6 +107,40 @@ public sealed class StudioIWorkConversionTests {
         }, CancellationToken.None);
     }
 
+    [Theory]
+    [InlineData(840, 600)]
+    [InlineData(1280, 800)]
+    public async Task Numbers_source_formula_assessments_are_visible_after_conversion(int width, int height) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = width > 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "formulas.numbers");
+            File.Copy(Fixture("formulas.numbers"), source);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var queue = model.ConversionWorkbench;
+            queue.AddDroppedPaths([source]);
+            var job = Assert.Single(queue.Jobs);
+            var view = new ConversionWorkbenchView { DataContext = model };
+            var window = new Window { Width = width, Height = height, Content = view };
+            try {
+                window.Show(); window.UpdateLayout();
+                await queue.RunQueueCommand.ExecuteAsync(null);
+                Assert.Equal(ConversionJobState.Completed, job.State);
+                Assert.Equal("28", job.ConversionEvidence!.Facts["sourceFormulaCellCount"]);
+                Assert.Equal("28", job.ConversionEvidence.Facts["sourceCompleteFormulaExpressionCount"]);
+                Assert.Contains("Source formulas: 28 complete", job.ConversionEvidenceSummary);
+                Assert.Contains("Recovered caches:", job.ConversionEvidenceSummary);
+                await queue.PreviewOutputCommand.ExecuteAsync(null);
+                Assert.NotEmpty(queue.OutputPreviewPages);
+                view.FindControl<StackPanel>("ConversionEvidencePanel")!.BringIntoView(); window.UpdateLayout();
+                Capture(window, "apple-formulas-" + width);
+                return true;
+            } finally { window.Close(); }
+        }, CancellationToken.None);
+    }
+
     [Fact]
     public async Task Startup_Apple_document_enters_conversion_instead_of_a_PDF_tab() {
         using var session = TestAppBuilder.StartSession();

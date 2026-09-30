@@ -152,7 +152,8 @@ public sealed partial class IWorkSourceDocument {
         IReadOnlyList<IWorkDiagnostic> projectionDiagnostics,
         IWorkPreviewAsset? preview, int reconstructedItemCount,
         IEnumerable<IWorkObjectIdentity?>? reconstructedUnits = null,
-        IEnumerable<IWorkObjectIdentity?>? omittedUnits = null) {
+        IEnumerable<IWorkObjectIdentity?>? omittedUnits = null,
+        IEnumerable<IWorkTable>? tables = null) {
         if (projectionKind is not (IWorkProjectionKind.EditableReconstruction
                 or IWorkProjectionKind.VisualFallback)) {
             throw new ArgumentOutOfRangeException(nameof(projectionKind),
@@ -172,7 +173,8 @@ public sealed partial class IWorkSourceDocument {
             Records.Count,
             allPreserved.Length,
             reconstructedItemCount,
-            IWorkSourceUnitInventory.Create(this, projectionKind, reconstructedUnits, omittedUnits));
+            IWorkSourceUnitInventory.Create(this, projectionKind, reconstructedUnits, omittedUnits),
+            IWorkFormulaInventory.Create(this, tables));
     }
 
     private static IWorkSourceDocument OpenPath(string path, IWorkDocumentKind? expectedKind,

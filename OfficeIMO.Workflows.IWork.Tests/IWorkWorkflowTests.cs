@@ -28,6 +28,9 @@ public sealed class IWorkWorkflowTests {
         int omitted = int.Parse(evidence.Facts["omittedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
         int unassessed = int.Parse(evidence.Facts["unassessedSourceUnitCount"], System.Globalization.CultureInfo.InvariantCulture);
         Assert.True(reconstructed > 0);
+        int formulas = int.Parse(evidence.Facts["sourceFormulaCellCount"], System.Globalization.CultureInfo.InvariantCulture);
+        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceIncompleteFormulaExpressionCount"]));
+        Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaCacheCount"]) + int.Parse(evidence.Facts["sourcePartialFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceApproximateFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceMissingFormulaCacheCount"]));
         Assert.Equal(unitCount, reconstructed + omitted + unassessed);
         Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
