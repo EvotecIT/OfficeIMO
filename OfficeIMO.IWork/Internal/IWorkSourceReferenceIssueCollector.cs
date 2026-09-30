@@ -5,6 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 /// <summary>Observes only reference fields selected by a projection; it does not walk inactive records.</summary>
 internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument source) {
     private readonly List<IWorkSourceReferenceIssue> _issues = new();
+    private readonly HashSet<(ulong Owner, string Path)> _recordedFields = new();
     private int _inspectedReferenceCount;
 
     internal IReadOnlyList<IWorkSourceReferenceIssue> Issues => _issues;
@@ -31,13 +32,18 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
 
     private void Record(IWorkArchiveRecord owner, IWorkWireMessage message, int field,
         string? path, bool rejectedSet) {
+        string fieldPath = path ?? field.ToString(CultureInfo.InvariantCulture);
+        var fieldKey = (owner.Identifier, fieldPath);
+        // Shared text/template archives may be selected more than once. Their physical
+        // reference occurrences are source evidence, independent of the number of uses.
+        if (_recordedFields.Contains(fieldKey)) return;
         int declared = message.FieldCount(field);
         // Charge the entire selected field before parsing/materializing evidence. This conservative
         // bound also limits the inspection work when only some occurrences actually fail.
         if (declared > source.Options.MaximumSourceReferenceIssues - _inspectedReferenceCount)
             throw new InvalidDataException($"iWork source reference issues exceed the configured limit of {source.Options.MaximumSourceReferenceIssues}.");
         _inspectedReferenceCount += declared;
-        string fieldPath = path ?? field.ToString(CultureInfo.InvariantCulture);
+        _recordedFields.Add(fieldKey);
         var identity = new IWorkObjectIdentity(owner);
         int position = 0;
         foreach (IWorkWireValue value in message.EnumerateValues(field)) {

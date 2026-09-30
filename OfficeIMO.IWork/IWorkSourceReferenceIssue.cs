@@ -10,7 +10,7 @@ public enum IWorkSourceReferenceIssueKind {
     RejectedReferenceSet
 }
 
-/// <summary>One unresolved declared reference occurrence, separate from identified source-object accounting.</summary>
+/// <summary>One unresolved declared source-field occurrence, reported once even when its owner is selected repeatedly.</summary>
 public sealed class IWorkSourceReferenceIssue {
     internal IWorkSourceReferenceIssue(IWorkObjectIdentity owner, string fieldPath, int referenceIndex,
         ulong? targetIdentifier, IWorkSourceReferenceIssueKind kind) {

@@ -107,7 +107,7 @@ public sealed partial class IWorkKeynoteProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared show, slide-tree, slide and drawable reference occurrences in assessed content paths.</summary>
+    /// <summary>Gets unresolved declared show, slide-tree, slide, drawable, text-storage and presenter-note reference occurrences in assessed content paths.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets the source presentation canvas size.</summary>
     public IWorkCanvasSize? SlideSize { get; }
@@ -417,12 +417,13 @@ internal static partial class IWorkKeynoteReader {
     }
 
     private static IWorkArchiveRecord? DrawableStorage(IWorkObjectIndex index, IWorkArchiveRecord drawable,
+        IWorkSourceReferenceIssueCollector references,
         out bool complete) {
         complete = true;
         IWorkWireMessage message = index.Message(drawable);
         if (drawable.MessageType == TextShapeArchive) {
-            IWorkArchiveRecord? field4 = index.Dereference(message, 4);
-            IWorkArchiveRecord? field2 = index.Dereference(message, 2);
+            IWorkArchiveRecord? field4 = references.ReadOne(drawable, message, 4);
+            IWorkArchiveRecord? field2 = references.ReadOne(drawable, message, 2);
             bool directAmbiguous = message.FieldCount(4) > 1
                 || message.FieldCount(2) > 1
                 || field4 != null && field2 != null && field4.Identifier != field2.Identifier;
@@ -441,7 +442,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
         if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) complete = false;
         if (super == null) return null;
-        IWorkArchiveRecord? nested = index.Dereference(super, 2);
+        IWorkArchiveRecord? nested = references.ReadOne(drawable, super, 2, "1/2");
         if (super.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
             || super.FieldCount(2) > 1
             || super.HasField(2) && (nested == null || nested.MessageType != TextStorageArchive)) {

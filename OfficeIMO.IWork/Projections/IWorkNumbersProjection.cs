@@ -25,7 +25,7 @@ public sealed partial class IWorkNumbersProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared sheet/drawable reference occurrences in assessed content paths.</summary>
+    /// <summary>Gets unresolved declared sheet, drawable and text-storage reference occurrences in assessed content paths.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
@@ -220,10 +220,10 @@ internal static class IWorkNumbersReader {
                     bool storageReferenceComplete = storageOwner != null
                         && storageOwner.FieldCount(2) == 1
                         && !storageOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
-                    IWorkArchiveRecord? storage = storageReferenceComplete
-                        ? index.Dereference(storageOwner!, 2)
+                    IWorkArchiveRecord? storage = storageOwner != null
+                        ? references.ReadOne(drawable, storageOwner, 2)
                         : null;
-                    if (storage != null && storage.MessageType == TextStorageArchive) {
+                    if (storageReferenceComplete && storage != null && storage.MessageType == TextStorageArchive) {
                         string text;
                         bool textComplete;
                         try {

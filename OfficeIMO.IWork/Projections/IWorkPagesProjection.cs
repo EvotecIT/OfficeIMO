@@ -74,7 +74,7 @@ public sealed partial class IWorkPagesProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared body/drawable graph reference occurrences in assessed content paths.</summary>
+    /// <summary>Gets unresolved declared body, drawable, text-storage, section and header/footer reference occurrences in assessed content paths.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets source sections with their associated header and footer content.</summary>
     public IReadOnlyList<IWorkPagesSection> Sections { get; }
@@ -232,7 +232,7 @@ internal static partial class IWorkPagesReader {
                 if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction, bodyContent);
                 int maximumSectionCount = bodyContent.Paragraphs.Count(paragraph =>
                     paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
-                ReadHeadersAndFooters(index, body, sections, projectionBudget, diagnostics,
+                ReadHeadersAndFooters(index, body, sections, projectionBudget, references, diagnostics,
                     maximumSectionCount, omittedUnits, ref supportsEditableReconstruction);
             }
         }
@@ -258,8 +258,8 @@ internal static partial class IWorkPagesReader {
                     shape.EntryPath, shape.Identifier));
                 continue;
             }
-            IWorkArchiveRecord? field4Storage = index.Dereference(shapeMessage, 4);
-            IWorkArchiveRecord? field2Storage = index.Dereference(shapeMessage, 2);
+            IWorkArchiveRecord? field4Storage = references.ReadOne(shape, shapeMessage, 4);
+            IWorkArchiveRecord? field2Storage = references.ReadOne(shape, shapeMessage, 2);
             IWorkArchiveRecord? storage = field4Storage ?? field2Storage;
             bool hasAmbiguousStorage = shapeMessage.FieldCount(4) > 1
                 || shapeMessage.FieldCount(2) > 1
@@ -451,6 +451,7 @@ internal static partial class IWorkPagesReader {
 
     private static void ReadHeadersAndFooters(IWorkObjectIndex index, IWorkArchiveRecord body,
         List<IWorkPagesSection> sections, IWorkProjectionBudget projectionBudget,
+        IWorkSourceReferenceIssueCollector references,
         List<IWorkDiagnostic> diagnostics, int maximumSectionCount, List<IWorkObjectIdentity> omittedUnits,
         ref bool supportsEditableReconstruction) {
         IWorkWireMessage bodyMessage = index.Message(body);
@@ -508,8 +509,9 @@ internal static partial class IWorkPagesReader {
             List<IWorkTextContent>? evenPageFooters = null;
             List<IWorkTextContent>? defaultPageHeaders = null;
             List<IWorkTextContent>? defaultPageFooters = null;
-            IReadOnlyList<IWorkArchiveRecord> referencedSections = index.DereferenceAll(
-                entry, 2, out int unresolvedSectionCount);
+            IReadOnlyList<IWorkArchiveRecord> referencedSections = references.ReadAll(
+                body, entry, 2, out int unresolvedSectionCount,
+                "17/1[" + (sectionIndex + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + "]/2");
             if (unresolvedSectionCount > 0 || referencedSections.Count != 1
                 || referencedSections[0].MessageType != SectionArchive) {
                 supportsEditableReconstruction = false;
@@ -554,9 +556,7 @@ internal static partial class IWorkPagesReader {
                 }
                 bool templateReferenceComplete = sectionMessage.FieldCount(field) == 1
                     && !sectionMessage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
-                IWorkArchiveRecord? archive = templateReferenceComplete
-                    ? index.Dereference(sectionMessage, field)
-                    : null;
+                IWorkArchiveRecord? archive = references.ReadOne(section, sectionMessage, field);
                 if (!templateReferenceComplete
                     || archive == null || archive.MessageType != HeadersFootersArchive) {
                     supportsEditableReconstruction = false;
@@ -577,9 +577,9 @@ internal static partial class IWorkPagesReader {
                     continue;
                 }
                 AddSectionStorageText(index, archiveMessage, 1, archive, headers, new HashSet<ulong>(),
-                    textCache, projectionBudget, diagnostics, omittedUnits, ref supportsEditableReconstruction);
+                    textCache, projectionBudget, references, diagnostics, omittedUnits, ref supportsEditableReconstruction);
                 AddSectionStorageText(index, archiveMessage, 2, archive, footers, new HashSet<ulong>(),
-                    textCache, projectionBudget, diagnostics, omittedUnits, ref supportsEditableReconstruction);
+                    textCache, projectionBudget, references, diagnostics, omittedUnits, ref supportsEditableReconstruction);
             }
             sections.Add(new IWorkPagesSection(sectionIndex++,
                 firstPageHeaders, firstPageFooters, evenPageHeaders, evenPageFooters,
@@ -590,10 +590,11 @@ internal static partial class IWorkPagesReader {
     private static void AddSectionStorageText(IWorkObjectIndex index, IWorkWireMessage message, int field,
         IWorkArchiveRecord archive, List<IWorkTextContent> destination, HashSet<ulong> seen,
         Dictionary<ulong, IWorkTextContent> textCache, IWorkProjectionBudget projectionBudget,
+        IWorkSourceReferenceIssueCollector references,
         List<IWorkDiagnostic> diagnostics, List<IWorkObjectIdentity> omittedUnits,
         ref bool supportsEditableReconstruction) {
-        IReadOnlyList<IWorkArchiveRecord> storages = index.DereferenceAll(
-            message, field, out int unresolvedStorageCount);
+        IReadOnlyList<IWorkArchiveRecord> storages = references.ReadAll(
+            archive, message, field, out int unresolvedStorageCount);
         if (unresolvedStorageCount > 0) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

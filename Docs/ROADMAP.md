@@ -74,7 +74,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I1: conversion safety and fidelity
 
-- [ ] Extend the [selected-object and reference-issue inventories](officeimo.iwork-support-matrix.md#conversion-acceptance-and-fidelity) to deeper text, style and table dependencies and unparseable graph declarations, with bounded accounting for content that cannot yet be identified. Deepen per-object destination outcomes without treating inactive templates or auxiliary records as omitted content.
+- [ ] Extend the [selected-object and reference-issue inventories](officeimo.iwork-support-matrix.md#conversion-acceptance-and-fidelity) to deeper text attributes, style and table dependencies and unparseable graph declarations, with bounded accounting for content that cannot yet be identified. Deepen per-object destination outcomes without treating inactive templates or auxiliary records as omitted content.
 - [ ] Deepen field-level fidelity assessment beyond conservative unassessed source-record accounting. Extend the [projected formula/cache assessments](officeimo.iwork-support-matrix.md#conversion-acceptance-and-fidelity) to undecoded cells and deepen per-object omitted or approximated features with accurate fidelity categories.
 
 ### I2: independent Apple qualification

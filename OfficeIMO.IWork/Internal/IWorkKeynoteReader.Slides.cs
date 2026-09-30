@@ -133,7 +133,7 @@ internal static partial class IWorkKeynoteReader {
                 }
                 continue;
             }
-            IWorkArchiveRecord? storage = DrawableStorage(index, drawable, out bool storageComplete);
+            IWorkArchiveRecord? storage = DrawableStorage(index, drawable, references, out bool storageComplete);
             if (!storageComplete || storage == null) {
                 supportsEditableReconstruction = false;
                 if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DRAWABLE_UNSUPPORTED")) {
@@ -245,8 +245,8 @@ internal static partial class IWorkKeynoteReader {
         IWorkTextContent notes = new(Array.Empty<IWorkTextParagraph>(),
             isComplete: true, isTextComplete: true);
         bool hasNoteReference = message.HasField(27);
-        IReadOnlyList<IWorkArchiveRecord> noteRecords = index.DereferenceAll(
-            message, 27, out int unresolvedNoteCount);
+        IReadOnlyList<IWorkArchiveRecord> noteRecords = references.ReadAll(
+            slide, message, 27, out int unresolvedNoteCount);
         if (hasNoteReference && (unresolvedNoteCount > 0 || noteRecords.Count != 1)) {
             MarkNotesIncomplete(slide, diagnostics, ref supportsEditableReconstruction);
         } else if (noteRecords.Count == 1
@@ -264,7 +264,7 @@ internal static partial class IWorkKeynoteReader {
                 noteStorages = Array.Empty<IWorkArchiveRecord>();
                 unresolvedStorageCount = 1;
             } else {
-                noteStorages = index.DereferenceAll(noteMessage, 1, out unresolvedStorageCount);
+                noteStorages = references.ReadAll(note, noteMessage, 1, out unresolvedStorageCount);
             }
             if (unresolvedStorageCount == 0 && noteStorages.Count == 1
                 && noteStorages[0].MessageType == TextStorageArchive) {
