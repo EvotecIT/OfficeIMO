@@ -1,0 +1,21 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T08:03:18.1561646Z",
+  "regeneration": "Build/Verification/New-ExcelPivotErrorRankingOracle.ps1",
+  "file": "pivot-value-error-count-numbers-bottom-count-conformance.xlsx",
+  "sha256": "c33591a93f4641c7c7b212e186cf5970eeec87d68d5c305f0572c2aada12816b",
+  "sourceRange": "Source!A1:B7",
+  "errorCells": "Source!B3",
+  "errorFormula": "=NA()",
+  "filterType": 2,
+  "value1": 1.0,
+  "aggregateFunction": -4113,
+  "outputRange": "A4:B6",
+  "grandTotal": 0.0,
+  "grandError": null,
+  "displayedItems": [
+    "Bravo"
+  ]
+}

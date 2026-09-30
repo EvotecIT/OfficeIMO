@@ -35,24 +35,21 @@ namespace OfficeIMO.Excel {
     /// shapes fail closed and are left for Excel to calculate.
     /// </summary>
     internal static class ExcelFormulaExpressionParser {
-        private static readonly HashSet<string> SupportedFunctions = new HashSet<string>(
-            ("SUM AVERAGE AVERAGEA MIN MINA MAX MAXA COUNT COUNTA COUNTBLANK SUBTOTAL COUNTIF SUMIF AVERAGEIF " +
-             "COUNTIFS SUMIFS AVERAGEIFS MINIFS MAXIFS PRODUCT MEDIAN LARGE SMALL MODE.SNGL MODE GEOMEAN HARMEAN " +
-             "AVEDEV DEVSQ SUMXMY2 SUMX2MY2 SUMX2PY2 SUMSQ SUMPRODUCT STDEV.S STDEV.P VAR.S VAR.P PERCENTILE.INC " +
-             "PERCENTILE.EXC QUARTILE.INC QUARTILE.EXC PERCENTRANK.INC PERCENTRANK.EXC RANK.EQ RANK.AVG COVAR " +
-             "COVARIANCE.P COVARIANCE.S CORREL SLOPE INTERCEPT RSQ FORECAST.LINEAR PMT PV FV NPER NPV VLOOKUP HLOOKUP " +
-             "XLOOKUP INDEX MATCH XMATCH ABS SIGN ROUND ROUNDUP ROUNDDOWN MROUND TRUNC INT CEILING.MATH FLOOR.MATH " +
-             "CEILING FLOOR POWER SQRT LN LOG10 EXP PI RADIANS DEGREES MOD ROW COLUMN ROWS COLUMNS DATE TIME DATEVALUE " +
-             "TIMEVALUE TODAY NOW YEAR MONTH DAY HOUR MINUTE SECOND DATEDIF YEARFRAC EDATE EOMONTH DAYS DAYS360 WEEKDAY " +
-             "WEEKNUM ISOWEEKNUM NETWORKDAYS WORKDAY.INTL WORKDAY IF IFS SWITCH CHOOSE ISBLANK ISNUMBER ISTEXT ISERROR " +
-             "ISERR ISNA ISFORMULA AND OR NOT IFERROR IFNA CONCAT CONCATENATE TEXT TEXTJOIN TEXTBEFORE TEXTAFTER " +
-             "FORMULATEXT LEFT RIGHT MID LEN TRIM UPPER LOWER PROPER SUBSTITUTE FIND SEARCH VALUE EXACT REPT")
-                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries),
-            StringComparer.OrdinalIgnoreCase);
+        internal static bool TryParseTextLiteral(string token, out string text) {
+            text = string.Empty;
+            if (token.Length < 2 || token[0] != '"' || token[token.Length - 1] != '"') return false;
+            for (int index = 1; index < token.Length - 1; index++) {
+                if (token[index] != '"') continue;
+                if (index + 1 >= token.Length - 1 || token[index + 1] != '"') return false;
+                index++;
+            }
+            text = token.Substring(1, token.Length - 2).Replace("\"\"", "\"");
+            return true;
+        }
 
         internal static bool TryParseSupportedFunctionCall(string formula, out ExcelFormulaFunctionCallSyntax? call) {
             if (TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? parsed)
-                && SupportedFunctions.Contains(parsed!.Name)) {
+                && ExcelFormulaCapabilities.IsBuiltInFunction(parsed!.Name)) {
                 call = parsed;
                 return true;
             }

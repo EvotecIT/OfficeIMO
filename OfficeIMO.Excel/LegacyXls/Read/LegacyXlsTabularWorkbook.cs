@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private readonly IReadOnlyList<SheetInfo> _sheets;
         private readonly IReadOnlyList<string> _tableNames;
         private readonly IReadOnlyList<string> _sharedStrings;
-        private readonly bool[] _dateStyles;
+        private readonly ExcelSerialDateStyle[] _dateStyles;
         private readonly bool _uses1904DateSystem;
         private bool _disposed;
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             ExcelReadOptions options,
             out IReadOnlyList<SheetInfo> sheets,
             out IReadOnlyList<string> sharedStrings,
-            out bool[] dateStyles,
+            out ExcelSerialDateStyle[] dateStyles,
             out bool uses1904DateSystem) {
             var parsedSheets = new List<SheetInfo>();
             var cellFormats = new List<XfInfo>();
@@ -272,12 +272,11 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
             SheetInfo[] worksheets = ValidateWorksheets(parsedSheets, bytes.Length);
 
-            var styles = new bool[cellFormats.Count];
+            var styles = new ExcelSerialDateStyle[cellFormats.Count];
             for (int index = 0; index < styles.Length; index++) {
                 ushort formatId = ResolveEffectiveNumberFormat(cellFormats, index);
-                styles[index] = BiffBuiltInNumberFormat.IsDateLike(formatId)
-                    || customNumberFormats.TryGetValue(formatId, out string? code)
-                    && ExcelNumberFormatClassifier.LooksLikeDateFormat(code);
+                customNumberFormats.TryGetValue(formatId, out string? code);
+                styles[index] = ExcelNumberFormatClassifier.ClassifySerialDateStyle(formatId, code);
             }
 
             sheets = worksheets;

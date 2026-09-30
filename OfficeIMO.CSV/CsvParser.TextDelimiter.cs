@@ -14,7 +14,7 @@ internal static partial class CsvParser
             ? options.Delimiter
             : options.DelimiterText![0];
 
-    private static string GetDelimiterText(CsvLoadOptions options) =>
+    internal static string GetDelimiterText(CsvLoadOptions options) =>
         string.IsNullOrEmpty(options.DelimiterText)
             ? options.Delimiter.ToString()
             : options.DelimiterText!;

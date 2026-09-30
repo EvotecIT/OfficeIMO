@@ -207,6 +207,8 @@ namespace OfficeIMO.Excel {
             PreserveFormatting = preserveFormatting;
             EnableDrill = enableDrill;
             HasValuesAxisField = hasValuesAxisField;
+            RowSourceFields = rowFields;
+            ColumnSourceFields = columnFields;
         }
 
         /// <summary>
@@ -373,6 +375,14 @@ namespace OfficeIMO.Excel {
         /// Gets column field names.
         /// </summary>
         public IReadOnlyList<string> ColumnFields { get; }
+        /// <summary>Source fields on the row axis, excluding the Values pseudo-field.</summary>
+        public IReadOnlyList<string> RowSourceFields { get; internal set; }
+        /// <summary>Source fields on the column axis, excluding the Values pseudo-field.</summary>
+        public IReadOnlyList<string> ColumnSourceFields { get; internal set; }
+        /// <summary>Axis containing exactly one Values pseudo-field, or null when absent or ambiguous.</summary>
+        public ExcelPivotTableAxis? ValuesAxis { get; internal set; }
+        /// <summary>Zero-based position of the Values pseudo-field within its axis, or null when absent or ambiguous.</summary>
+        public int? ValuesAxisPosition { get; internal set; }
 
         /// <summary>Whether a row or column axis includes Excel's synthetic Values field.</summary>
         public bool HasValuesAxisField { get; }

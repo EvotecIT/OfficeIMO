@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel {
             private const int StringCacheSize = 256;
             private const int MaximumCachedStringBytes = 256;
             private const byte DateStyleCellKindFlag = 0x80;
-            private const byte CellKindMask = 0x7F;
+            private const byte CalendarStyleCellKindFlag = 0x40;
+            private const byte CellKindMask = 0x3F;
             private const int SharedStringIndexValueLength = -2;
 
             private readonly ExcelSheetReader _owner;
@@ -419,7 +420,7 @@ namespace OfficeIMO.Excel {
                         deferObjectMaterialization =
                             targetKind == XmlDataReaderTargetKind.Numeric
                             && dateStyle;
-                        ReadNumberValue(cellIndex, value, dateStyle, targetKind, out primitiveKind, out doubleValue, out dateTimeValue, out objectValue);
+                        ReadNumberValue(cellIndex, value, dateStyle, (encodedCellKind & CalendarStyleCellKindFlag) != 0, targetKind, out primitiveKind, out doubleValue, out dateTimeValue, out objectValue);
                         return;
                     default:
                         return;
@@ -814,6 +815,7 @@ namespace OfficeIMO.Excel {
                 int ordinal,
                 ReadOnlySpan<byte> value,
                 bool dateStyle,
+                bool calendarStyle,
                 XmlDataReaderTargetKind targetKind,
                 out XmlDataReaderPrimitiveKind primitiveKind,
                 out double doubleValue,
@@ -826,7 +828,7 @@ namespace OfficeIMO.Excel {
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
                 if (targetKind == XmlDataReaderTargetKind.String) {
                     if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
-                        objectValue = _owner.FromExcelSerialDate(serialDate).ToString(_options.Culture);
+                        objectValue = _owner.FromExcelSerialDate(serialDate, calendarStyle).ToString(_options.Culture);
                     } else {
                         objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
                     }
@@ -837,7 +839,7 @@ namespace OfficeIMO.Excel {
                 if (TryParseDouble(trimmed, out double number)) {
                     if (dateStyle
                         && targetKind != XmlDataReaderTargetKind.Numeric) {
-                        DateTime date = _owner.FromExcelSerialDate(number);
+                        DateTime date = _owner.FromExcelSerialDate(number, calendarStyle);
                         if (targetKind == XmlDataReaderTargetKind.DateTime) {
                             primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
                             dateTimeValue = date;
@@ -870,6 +872,7 @@ namespace OfficeIMO.Excel {
 
                 ReadDecodedNumberValue(
                     dateStyle,
+                    calendarStyle,
                     DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]),
                     targetKind,
                     out primitiveKind,
@@ -880,6 +883,7 @@ namespace OfficeIMO.Excel {
 
             private void ReadDecodedNumberValue(
                 bool dateStyle,
+                bool calendarStyle,
                 string value,
                 XmlDataReaderTargetKind targetKind,
                 out XmlDataReaderPrimitiveKind primitiveKind,
@@ -897,7 +901,7 @@ namespace OfficeIMO.Excel {
                 if (parsedNumber
                     && dateStyle
                     && targetKind != XmlDataReaderTargetKind.Numeric) {
-                    DateTime date = _owner.FromExcelSerialDate(number);
+                    DateTime date = _owner.FromExcelSerialDate(number, calendarStyle);
                     if (targetKind == XmlDataReaderTargetKind.DateTime) {
                         primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
                         dateTimeValue = date;
@@ -1021,6 +1025,7 @@ namespace OfficeIMO.Excel {
                 byte encoded = (byte)kind;
                 if (kind == Utf8CellKind.Number && styleIndex >= 0 && IsDateStyle(styleIndex)) {
                     encoded |= DateStyleCellKindFlag;
+                    if (_owner.Styles.IsDateSystemShiftStyle((uint)styleIndex)) encoded |= CalendarStyleCellKindFlag;
                 }
                 return encoded;
             }

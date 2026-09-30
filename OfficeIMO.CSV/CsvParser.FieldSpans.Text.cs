@@ -19,7 +19,8 @@ internal static partial class CsvParser
         ReadOnlySpan<char> text,
         CsvLoadOptions options,
         int recordsToSkip,
-        ref TVisitor fieldVisitor)
+        ref TVisitor fieldVisitor,
+        bool? textMayContainQuote = null)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (HasFieldLengthLimits(options))
@@ -60,7 +61,7 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var lineNumber = 1;
         var useAvx2UnquotedFastPath = true;
-        var textMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0;
+        var mayContainQuote = textMayContainQuote ?? (text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0);
         var unquotedDelimiterIndexCapacity = 16;
         var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
         char[]? scratch = null;
@@ -123,7 +124,7 @@ internal static partial class CsvParser
                             recordIndex,
                             ref useAvx2UnquotedFastPath,
                             ref unquotedDelimiterIndexCapacity,
-                            textMayContainQuote,
+                            mayContainQuote,
                             delimiterVector,
                             ref position,
                             projectedFieldVisitor,

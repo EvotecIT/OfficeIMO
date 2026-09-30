@@ -117,12 +117,14 @@ namespace OfficeIMO.Excel {
                     return "Formula uses semicolon argument separators; OfficeIMO's lightweight evaluator expects Open XML comma-separated formulas.";
                 }
 
-                if (formula.IndexOf('&') >= 0) {
-                    return "Formula uses the text concatenation operator, which OfficeIMO's lightweight evaluator does not currently support.";
-                }
-
                 if (formula.IndexOf('{') >= 0 || formula.IndexOf('}') >= 0) {
                     return "Formula uses array constants, which OfficeIMO's lightweight evaluator does not currently support.";
+                }
+
+                foreach (string arrayFunction in ExcelFormulaCapabilities.ArrayFunctionNames) {
+                    if (ContainsFunction(formula, arrayFunction, StringComparison.OrdinalIgnoreCase)) {
+                        return $"Array function '{arrayFunction}' requires a matching fixed authored range, supported arguments, and a result within the array limits.";
+                    }
                 }
 
                 if (ExcelFormulaExpressionParser.TryParseSupportedFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? supportedFunction)) {

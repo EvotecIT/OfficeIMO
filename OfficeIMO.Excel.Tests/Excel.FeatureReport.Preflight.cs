@@ -452,15 +452,20 @@ namespace OfficeIMO.Tests {
                 report.EnsureCan(ExcelPreflightCapability.CalculateFormulas)).Message);
         }
 
-        [Fact]
-        public void FeatureReport_Preflight_BlocksUnsupportedFormulasEvenWhenDependenciesOnlyMissCaches() {
+        [Theory]
+        [InlineData("UNIQUE(B1:B1)")]
+        [InlineData("SUM(UNIQUE(B1:B1))")]
+        [InlineData("SUM(_xlfn.UNIQUE(B1:B1))")]
+        [InlineData("SUM(_xlfn._xlws.UNIQUE(B1:B1))")]
+        [InlineData("SUM(SORT(B1:B1))+LEN(\"UNIQUE(\")")]
+        public void FeatureReport_Preflight_BlocksUnsupportedFormulasEvenWhenDependenciesOnlyMissCaches(string formula) {
             string filePath = Path.Combine(_directoryWithFiles, "FeatureReport.Preflight.UnsupportedFormulaChain.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(1, 2, "A1+1");
-                sheet.CellFormula(1, 3, "UNIQUE(B1:B1)");
+                sheet.CellFormula(1, 3, formula);
                 document.Save();
             }
 
@@ -474,8 +479,21 @@ namespace OfficeIMO.Tests {
                 string diagnostics = string.Join(Environment.NewLine,
                     report.GetCapabilityDiagnostics(ExcelPreflightCapability.CalculateFormulas));
                 Assert.Contains("Formula calculation blockers", diagnostics);
-                Assert.Contains("UNIQUE", diagnostics);
+                Assert.Contains("Array function", diagnostics);
             }
+        }
+
+        [Theory]
+        [InlineData("SUM(B1,LEN(\"UNIQUE(\"))")]
+        [InlineData("SUM(B1,LEN(\"_xlfn._xlws.FILTER(\"))")]
+        public void FeatureReport_Preflight_IgnoresArrayNamesInsideStringLiterals(string formula) {
+            using var document = ExcelDocument.Create();
+            var sheet = document.AddWorksheet("Calc");
+            sheet.CellValue(1, 1, 2d);
+            sheet.CellFormula(1, 2, "A1+1");
+            sheet.CellFormula(1, 3, formula);
+            Assert.True(document.InspectFeatures().Can(ExcelPreflightCapability.CalculateFormulas));
+            Assert.Equal(2, document.Calculate());
         }
 
         [Fact]

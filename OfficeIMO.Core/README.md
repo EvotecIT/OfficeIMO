@@ -15,6 +15,58 @@ The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT 
 dotnet add package OfficeIMO.Core
 ```
 
+## Per-column row mapping
+
+`RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
+`DbDataReader`. CSV and Excel use this shared mapper. `FromColumns` tries aliases
+in the supplied order; required missing columns and ambiguous duplicate matches
+fail before row projection.
+
+```csharp
+using OfficeIMO.Data;
+using System.Data.Common;
+using System.Globalization;
+
+static IEnumerable<Invoice> ReadInvoices(DbDataReader reader) =>
+    reader.RowsAs<Invoice>(map => map
+        .FromColumns<int>(new[] { "Id", "InvoiceId" },
+            (row, value) => { row.Id = value; return row; })
+        .FromColumn<decimal>("Amount",
+            (row, value) => { row.Amount = value; return row; },
+            new RowMappingColumnOptions { Culture = CultureInfo.GetCultureInfo("fr-FR") })
+        .FromColumn<DateTime>("Date",
+            (row, value) => { row.Date = value; return row; },
+            new RowMappingColumnOptions { DateTimeFormats = new[] { "yyyyMMdd" } })
+        .FromColumn<string>("Note",
+            (row, value) => { row.Note = value; return row; },
+            new RowMappingColumnOptions { Optional = true }));
+
+public sealed class Invoice {
+    public int Id { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime Date { get; set; }
+    public string? Note { get; set; } = "No note";
+}
+```
+
+Optional means the source column may be absent. Its assignment is skipped,
+preserving the model's initialized value. Present empty or invalid values still
+follow the normal conversion and nullability rules. Even when every configured
+column is optional and absent, each source row produces a model.
+
+The mapper snapshots each binding's culture and date-format list when it is
+configured. Per-column date/time formats replace the reader's format list and
+are tried before ordinary culture-based parsing. A per-column `TypeConverter`
+replaces the reader's converter for that binding. Returning `(false, null)`
+selects built-in conversion; handled results, including null, take precedence.
+The converter receives the value exposed by the reader before built-in
+conversion. Excel numeric mappings retain the original date serial when a
+converter declines.
+
+The same controls apply to `RowsAs`, `RowsAsAsync` and `RowsAsParallel`.
+Parallel converters must support concurrent calls. Source-value redaction
+continues to follow the reader's mapping-error policy.
+
 ## Image export density
 
 `OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.

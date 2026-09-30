@@ -6,6 +6,19 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
+        private bool TryEvaluateDateDifValue(string args, out FormulaArgumentValue result) {
+            result = default;
+            var tokens = SplitFormulaArguments(args);
+            if (tokens.Count == 3 && TryEvaluateFormulaOrNumeric(tokens[0], out double start)
+                && TryEvaluateFormulaOrNumeric(tokens[1], out double end) && Math.Floor(end) < Math.Floor(start)) {
+                result = FormulaArgumentValue.Error("#NUM!");
+                return true;
+            }
+            if (!TryEvaluateDateDif(tokens, out double number)) return false;
+            result = new FormulaArgumentValue(number, InvariantNumberText.Get(number));
+            return true;
+        }
+
         private bool TryEvaluateDateTimeFunction(string function, string args, out double result) {
             result = 0;
             var tokens = SplitFormulaArguments(args);
@@ -53,30 +66,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (function == "DATE") {
-                if (numbers.Count != 3
-                    || !TryGetWholeNumber(numbers[0], out int year)
-                    || !TryGetWholeNumber(numbers[1], out int month)
-                    || !TryGetWholeNumber(numbers[2], out int day)) {
-                    return false;
-                }
-
-                if (year >= 0 && year <= 1899) {
-                    year += 1900;
-                }
-
-                if (year < 1 || year > 9999) {
-                    return false;
-                }
-
-                try {
-                    result = ToExcelDateSerial(new DateTime(year, 1, 1).AddMonths(month - 1).AddDays(day - 1));
-                } catch (ArgumentOutOfRangeException) {
-                    return false;
-                }
-
+                if (!TryEvaluateDateValue(args, out FormulaArgumentValue dateValue) || !dateValue.Number.HasValue) return false;
+                result = dateValue.Number.Value;
                 return true;
             }
-
             if (function == "TIME") {
                 if (numbers.Count != 3) {
                     return false;
@@ -102,10 +95,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 try {
-                    DateTime shifted = startDate.AddMonths(months);
-                    result = function == "EOMONTH"
-                        ? ToExcelDateSerial(new DateTime(shifted.Year, shifted.Month, DateTime.DaysInMonth(shifted.Year, shifted.Month)))
-                        : ToExcelDateSerial(shifted);
+                    result = GetFormulaMonthShift(numbers[0], startDate, months, function == "EOMONTH");
                 } catch (ArgumentOutOfRangeException) {
                     return false;
                 }
@@ -120,7 +110,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                result = (endDate - startDate).TotalDays;
+                result = Math.Floor(numbers[0]) - Math.Floor(numbers[1]);
                 return true;
             }
 
@@ -139,7 +129,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                result = europeanMethod ? Days360European(startDate, endDate) : Days360Us(startDate, endDate);
+                result = GetFormulaDays360(startSerial, startDate, endSerial, endDate, europeanMethod);
                 return true;
             }
 
@@ -154,7 +144,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                int day = (int)date.DayOfWeek;
+                int day = (int)GetFormulaWeekday(numbers[0]);
                 if (returnType == 1) {
                     result = day + 1;
                     return true;
@@ -192,7 +182,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 return TryGetWeekStartDay(returnType, out DayOfWeek weekStart)
-                    && TryGetWeekNumber(date, weekStart, returnType == 21, out result);
+                    && TryGetFormulaWeekNumber(numbers[0], date, weekStart, returnType == 21, out result);
             }
 
             if (numbers.Count != 1) {
@@ -208,22 +198,23 @@ namespace OfficeIMO.Excel {
 
             switch (function) {
                 case "YEAR":
-                    result = dateTime.Year;
+                    result = _excelDocument.DateSystem == ExcelDateSystem.NineteenHundred && Math.Floor(numbers[0]) == 0d ? 1900 : dateTime.Year;
                     return true;
                 case "MONTH":
-                    result = dateTime.Month;
+                    result = _excelDocument.DateSystem == ExcelDateSystem.NineteenHundred && Math.Floor(numbers[0]) == 0d ? 1 : dateTime.Month;
                     return true;
                 case "DAY":
-                    result = dateTime.Day;
+                    result = _excelDocument.DateSystem == ExcelDateSystem.NineteenHundred && Math.Floor(numbers[0]) == 60d ? 29
+                        : _excelDocument.DateSystem == ExcelDateSystem.NineteenHundred && Math.Floor(numbers[0]) == 0d ? 0 : dateTime.Day;
                     return true;
                 case "HOUR":
-                    result = dateTime.Hour;
+                    result = GetFormulaTimePart(numbers[0], 3600d, 24d);
                     return true;
                 case "MINUTE":
-                    result = dateTime.Minute;
+                    result = GetFormulaTimePart(numbers[0], 60d, 60d);
                     return true;
                 case "SECOND":
-                    result = dateTime.Second;
+                    result = GetFormulaTimePart(numbers[0], 1d, 60d);
                     return true;
                 default:
                     return false;
@@ -243,58 +234,6 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private bool TryEvaluateNetworkDays(IReadOnlyList<string> tokens, out double result) {
-            result = 0;
-            if (tokens.Count < 2 || tokens.Count > 3
-                || !TryEvaluateFormulaOrNumeric(tokens[0], out double startSerial)
-                || !TryEvaluateFormulaOrNumeric(tokens[1], out double endSerial)
-                || !TryGetDateFromSerial(startSerial, out DateTime startDate)
-                || !TryGetDateFromSerial(endSerial, out DateTime endDate)) {
-                return false;
-            }
-
-            var holidays = new HashSet<DateTime>();
-            if (tokens.Count == 3 && !TryResolveHolidayDates(tokens[2], holidays)) {
-                return false;
-            }
-
-            int direction = startDate <= endDate ? 1 : -1;
-            DateTime current = direction == 1 ? startDate : endDate;
-            DateTime last = direction == 1 ? endDate : startDate;
-            int days = 0;
-            while (current <= last) {
-                if (current.DayOfWeek != DayOfWeek.Saturday
-                    && current.DayOfWeek != DayOfWeek.Sunday
-                    && !holidays.Contains(current.Date)) {
-                    days++;
-                }
-
-                current = current.AddDays(1);
-            }
-
-            result = days * direction;
-            return true;
-        }
-
-        private bool TryResolveHolidayDates(string token, HashSet<DateTime> holidays) {
-            List<FormulaArgumentValue> values;
-            if (token.IndexOf(':') >= 0) {
-                if (!TryResolveFormulaRange(token, out values)) {
-                    return false;
-                }
-            } else if (!TryResolveFormulaArguments(token, out values)) {
-                return false;
-            }
-
-            foreach (var value in values) {
-                if (value.Number.HasValue && TryGetDateFromSerial(value.Number.Value, out DateTime date)) {
-                    holidays.Add(date);
-                }
-            }
-
-            return true;
-        }
-
         private bool TryEvaluateYearFrac(IReadOnlyList<string> tokens, out double result) {
             result = 0;
             if (tokens.Count < 2
@@ -302,9 +241,13 @@ namespace OfficeIMO.Excel {
                 || !TryEvaluateFormulaOrNumeric(tokens[0], out double startSerial)
                 || !TryEvaluateFormulaOrNumeric(tokens[1], out double endSerial)
                 || !TryGetDateFromSerial(startSerial, out DateTime startDate)
-                || !TryGetDateFromSerial(endSerial, out DateTime endDate)
-                || endDate < startDate) {
+                || !TryGetDateFromSerial(endSerial, out DateTime endDate)) {
                 return false;
+            }
+
+            if (endSerial < startSerial) {
+                (startSerial, endSerial) = (endSerial, startSerial);
+                (startDate, endDate) = (endDate, startDate);
             }
 
             int basis = 0;
@@ -318,15 +261,17 @@ namespace OfficeIMO.Excel {
                     return true;
                 case 1:
                     result = ActualActualYearFraction(startDate, endDate);
+                    if (_excelDocument.DateSystem == ExcelDateSystem.NineteenHundred && startSerial < 60d && endSerial >= 60d)
+                        result += 1d / DaysInYear(1900);
                     return true;
                 case 2:
-                    result = (endDate - startDate).TotalDays / 360d;
+                    result = (Math.Floor(endSerial) - Math.Floor(startSerial)) / 360d;
                     return true;
                 case 3:
-                    result = (endDate - startDate).TotalDays / 365d;
+                    result = (Math.Floor(endSerial) - Math.Floor(startSerial)) / 365d;
                     return true;
                 case 4:
-                    result = Days360European(startDate, endDate) / 360d;
+                    result = GetFormulaYearFracEuropean(startDate, endDate) / 360d;
                     return true;
                 default:
                     return false;
@@ -345,14 +290,6 @@ namespace OfficeIMO.Excel {
                 endDay = 30;
             }
 
-            return ((endDate.Year - startDate.Year) * 360)
-                + ((endDate.Month - startDate.Month) * 30)
-                + endDay - startDay;
-        }
-
-        private static int Days360European(DateTime startDate, DateTime endDate) {
-            int startDay = Math.Min(startDate.Day, 30);
-            int endDay = Math.Min(endDate.Day, 30);
             return ((endDate.Year - startDate.Year) * 360)
                 + ((endDate.Month - startDate.Month) * 30)
                 + endDay - startDay;
@@ -388,18 +325,6 @@ namespace OfficeIMO.Excel {
                     weekStart = DayOfWeek.Sunday;
                     return false;
             }
-        }
-
-        private static bool TryGetWeekNumber(DateTime date, DayOfWeek weekStart, bool isoSystem, out double result) {
-            if (isoSystem) {
-                result = GetIsoWeekNumber(date);
-                return true;
-            }
-
-            DateTime firstDay = new DateTime(date.Year, 1, 1);
-            DateTime firstWeekStart = firstDay.AddDays(-GetDayOffset(firstDay.DayOfWeek, weekStart));
-            result = Math.Floor((date.Date - firstWeekStart).TotalDays / 7d) + 1d;
-            return result >= 1d && result <= 54d;
         }
 
         private static int GetIsoWeekNumber(DateTime date) {
@@ -452,139 +377,33 @@ namespace OfficeIMO.Excel {
                 || !TryEvaluateFormulaOrNumeric(tokens[1], out double endSerial)
                 || !TryGetDateFromSerial(startSerial, out DateTime startDate)
                 || !TryGetDateFromSerial(endSerial, out DateTime endDate)
-                || endDate < startDate
+                || Math.Floor(endSerial) < Math.Floor(startSerial)
                 || !TryResolveTextArgument(tokens[2], out string unit)) {
                 return false;
             }
 
             switch (unit.ToUpperInvariant()) {
                 case "D":
-                    result = (endDate - startDate).TotalDays;
+                    result = Math.Floor(endSerial) - Math.Floor(startSerial);
                     return true;
                 case "M":
-                    result = GetCompletedMonths(startDate, endDate);
+                    result = GetFormulaCompletedMonths(startSerial, startDate, endSerial, endDate);
                     return true;
                 case "Y":
-                    result = GetCompletedYears(startDate, endDate);
+                    result = GetFormulaCompletedYears(startSerial, startDate, endSerial, endDate);
                     return true;
                 case "YM":
-                    result = GetRemainingCompletedMonthsAfterYears(startDate, endDate);
+                    result = GetFormulaCompletedMonths(startSerial, startDate, endSerial, endDate) % 12;
                     return true;
                 case "YD":
-                    result = GetDaysAfterLastAnniversary(startDate, endDate);
+                    result = GetFormulaAnniversaryDays(startSerial, startDate, endSerial, endDate);
                     return true;
                 case "MD":
-                    result = GetRemainingDaysAfterMonths(startDate, endDate);
+                    result = GetFormulaRemainingDays(startSerial, startDate, endSerial, endDate);
                     return true;
                 default:
                     return false;
             }
-        }
-
-        private static int GetCompletedYears(DateTime startDate, DateTime endDate) {
-            int years = endDate.Year - startDate.Year;
-            if (endDate < AddYearsClamped(startDate, years)) {
-                years--;
-            }
-
-            return years;
-        }
-
-        private static int GetCompletedMonths(DateTime startDate, DateTime endDate) {
-            int months = (endDate.Year - startDate.Year) * 12 + endDate.Month - startDate.Month;
-            if (endDate.Day < startDate.Day) {
-                months--;
-            }
-
-            return months;
-        }
-
-        private static int GetRemainingCompletedMonthsAfterYears(DateTime startDate, DateTime endDate) {
-            int years = GetCompletedYears(startDate, endDate);
-            DateTime anniversary = AddYearsClamped(startDate, years);
-            int months = endDate.Month - anniversary.Month;
-            if (months < 0) {
-                months += 12;
-            }
-
-            if (endDate.Day < anniversary.Day) {
-                months--;
-                if (months < 0) {
-                    months += 12;
-                }
-            }
-
-            return months;
-        }
-
-        private static int GetDaysAfterLastAnniversary(DateTime startDate, DateTime endDate) {
-            DateTime anniversary = CreateClampedDate(endDate.Year, startDate.Month, startDate.Day);
-            if (anniversary > endDate) {
-                anniversary = CreateClampedDate(endDate.Year - 1, startDate.Month, startDate.Day);
-            }
-
-            return (int)(endDate - anniversary).TotalDays;
-        }
-
-        private static int GetRemainingDaysAfterMonths(DateTime startDate, DateTime endDate) {
-            if (endDate.Day >= startDate.Day) {
-                return endDate.Day - startDate.Day;
-            }
-
-            DateTime previousMonth = endDate.AddMonths(-1);
-            int daysInPreviousMonth = DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month);
-            return endDate.Day + daysInPreviousMonth - startDate.Day;
-        }
-
-        private static DateTime AddYearsClamped(DateTime date, int years) {
-            return CreateClampedDate(date.Year + years, date.Month, date.Day);
-        }
-
-        private static DateTime CreateClampedDate(int year, int month, int day) {
-            int clampedDay = Math.Min(day, DateTime.DaysInMonth(year, month));
-            return new DateTime(year, month, clampedDay);
-        }
-
-        private bool TryEvaluateWorkday(string function, IReadOnlyList<string> tokens, out double result) {
-            result = 0;
-            int maxTokens = function == "WORKDAY.INTL" ? 4 : 3;
-            if (tokens.Count < 2 || tokens.Count > maxTokens
-                || !TryEvaluateFormulaOrNumeric(tokens[0], out double startSerial)
-                || !TryGetWholeNumberArgument(tokens[1], out int days)
-                || !TryGetDateFromSerial(startSerial, out DateTime current)) {
-                return false;
-            }
-
-            bool[] weekendMask = DefaultWeekendMask();
-            int holidayIndex = 2;
-            if (function == "WORKDAY.INTL") {
-                holidayIndex = 3;
-                if (tokens.Count >= 3 && !TryResolveWeekendMask(tokens[2], weekendMask)) {
-                    return false;
-                }
-            }
-
-            var holidays = new HashSet<DateTime>();
-            if (tokens.Count > holidayIndex && !TryResolveHolidayDates(tokens[holidayIndex], holidays)) {
-                return false;
-            }
-
-            if (days == 0) {
-                result = ToExcelDateSerial(current);
-                return true;
-            }
-
-            int direction = days > 0 ? 1 : -1;
-            int remaining = Math.Abs(days);
-            while (remaining > 0) {
-                current = current.AddDays(direction);
-                if (!IsMaskedWeekend(current.DayOfWeek, weekendMask) && !holidays.Contains(current.Date)) {
-                    remaining--;
-                }
-            }
-
-            result = ToExcelDateSerial(current);
-            return true;
         }
 
         private bool TryEvaluateDateTimeTextValue(string function, IReadOnlyList<string> tokens, out double result) {

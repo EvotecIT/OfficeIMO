@@ -1,0 +1,13 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T02:37:33.4762962Z",
+  "regeneration": "Build/Verification/New-ExcelPivotDateGroupOracle.ps1",
+  "file": "date-group-refresh-conformance.xlsx",
+  "sha256": "5bf58ef152dc5e3cb58662a68860ea9177ae25d02824bcd8eed79dfa0c9894e2",
+  "sourceRange": "Source!A1:B6",
+  "outputRange": "A4:C10",
+  "grouping": "Years and Months",
+  "mutation": "OrderDate A3 and A4 changed to 2025-01-15, contracting five date keys to three"
+}

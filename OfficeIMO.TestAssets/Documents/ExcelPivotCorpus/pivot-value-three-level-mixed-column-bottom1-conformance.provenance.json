@@ -1,0 +1,19 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-29T00:26:02.0783638Z",
+  "regeneration": "Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1",
+  "file": "pivot-value-three-level-mixed-column-bottom1-conformance.xlsx",
+  "sha256": "0f7c6ffdc98b2b8fc366c2699055ecd19131af6e42c52c1152584c6594fa2cc2",
+  "sourceRange": "Source!A1:D13",
+  "filteredField": "Channel",
+  "axis": "Mixed",
+  "filterType": 2,
+  "threshold": 1.0,
+  "threshold2": null,
+  "outputRange": "A4:D12",
+  "grandTotal": 85.0
+}

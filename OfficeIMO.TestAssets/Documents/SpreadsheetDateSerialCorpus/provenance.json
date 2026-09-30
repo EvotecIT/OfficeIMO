@@ -1,0 +1,4964 @@
+{
+  "Producer": "Microsoft Excel",
+  "Version": "16.0",
+  "Build": 20326.0,
+  "GeneratedUtc": "2026-09-27T17:54:51.7978424Z",
+  "Results": [
+    {
+      "Date1904": false,
+      "Sha256": "16BEB56DB0D7A0D78E0D606A13427FF04BDA13FB1114B618C3AF3E7EBA74B877",
+      "Cells": [
+        {
+          "Formula": "-0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": -0.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "ggmmss",
+          "Serial": -0.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mm:ss",
+          "Serial": -0.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mmgg",
+          "Serial": -0.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "Standardowy",
+          "Serial": -0.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 2,
+          "NativeText": "-0.5"
+        },
+        {
+          "Formula": "0",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 3,
+          "NativeText": "1900-01-00 00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "[g]:mm:ss",
+          "Serial": 0.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 3,
+          "NativeText": "0:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 3,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "ggmmss",
+          "Serial": 0.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 3,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "0",
+          "Format": "mm:ss",
+          "Serial": 0.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 3,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "mmgg",
+          "Serial": 0.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 3,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "0",
+          "Format": "Standardowy",
+          "Serial": 0.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 3,
+          "NativeText": "0"
+        },
+        {
+          "Formula": "1",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 4,
+          "NativeText": "1900-01-01 00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 4,
+          "NativeText": "24:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 4,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "ggmmss",
+          "Serial": 1.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 4,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1",
+          "Format": "mm:ss",
+          "Serial": 1.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 4,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "mmgg",
+          "Serial": 1.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 4,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1",
+          "Format": "Standardowy",
+          "Serial": 1.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 4,
+          "NativeText": "1"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 5,
+          "NativeText": "1900-01-01 12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 5,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 5,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 5,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 5,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 5,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 5,
+          "NativeText": "1.5"
+        },
+        {
+          "Formula": "59",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 6,
+          "NativeText": "1900-02-28 00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 6,
+          "NativeText": "1416:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 6,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "ggmmss",
+          "Serial": 59.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 6,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "59",
+          "Format": "mm:ss",
+          "Serial": 59.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 6,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "mmgg",
+          "Serial": 59.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 6,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "59",
+          "Format": "Standardowy",
+          "Serial": 59.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 6,
+          "NativeText": "59"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 7,
+          "NativeText": "1900-02-28 12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 7,
+          "NativeText": "1428:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 7,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "ggmmss",
+          "Serial": 59.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 7,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mm:ss",
+          "Serial": 59.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 7,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mmgg",
+          "Serial": 59.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 7,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "Standardowy",
+          "Serial": 59.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 7,
+          "NativeText": "59.5"
+        },
+        {
+          "Formula": "60",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 8,
+          "NativeText": "1900-02-29 00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 8,
+          "NativeText": "1440:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 8,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "ggmmss",
+          "Serial": 60.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 8,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "60",
+          "Format": "mm:ss",
+          "Serial": 60.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 8,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "mmgg",
+          "Serial": 60.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 8,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "60",
+          "Format": "Standardowy",
+          "Serial": 60.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 8,
+          "NativeText": "60"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 9,
+          "NativeText": "1900-02-29 12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 9,
+          "NativeText": "1452:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 9,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "ggmmss",
+          "Serial": 60.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 9,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mm:ss",
+          "Serial": 60.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 9,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mmgg",
+          "Serial": 60.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 9,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "Standardowy",
+          "Serial": 60.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 9,
+          "NativeText": "60.5"
+        },
+        {
+          "Formula": "61",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 10,
+          "NativeText": "1900-03-01 00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 10,
+          "NativeText": "1464:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 10,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "ggmmss",
+          "Serial": 61.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 10,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "61",
+          "Format": "mm:ss",
+          "Serial": 61.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 10,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "mmgg",
+          "Serial": 61.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 10,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "61",
+          "Format": "Standardowy",
+          "Serial": 61.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 10,
+          "NativeText": "61"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 11,
+          "NativeText": "1900-03-01 12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 11,
+          "NativeText": "1476:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 11,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "ggmmss",
+          "Serial": 61.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 11,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mm:ss",
+          "Serial": 61.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 11,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mmgg",
+          "Serial": 61.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 11,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "Standardowy",
+          "Serial": 61.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 11,
+          "NativeText": "61.5"
+        },
+        {
+          "Formula": "1462",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 12,
+          "NativeText": "1904-01-01 00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "[g]:mm:ss",
+          "Serial": 1462.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 12,
+          "NativeText": "35088:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 12,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "ggmmss",
+          "Serial": 1462.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 12,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mm:ss",
+          "Serial": 1462.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 12,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mmgg",
+          "Serial": 1462.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 12,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1462",
+          "Format": "Standardowy",
+          "Serial": 1462.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 12,
+          "NativeText": "1462"
+        },
+        {
+          "Formula": "45000",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 13,
+          "NativeText": "2023-03-15 00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "[g]:mm:ss",
+          "Serial": 45000.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 13,
+          "NativeText": "1080000:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 13,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "ggmmss",
+          "Serial": 45000.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 13,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mm:ss",
+          "Serial": 45000.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 13,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mmgg",
+          "Serial": 45000.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 13,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "45000",
+          "Format": "Standardowy",
+          "Serial": 45000.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 13,
+          "NativeText": "45000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 14,
+          "NativeText": "1900-01-01 12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 14,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 14,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 14,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 14,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 14,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 14,
+          "NativeText": "1.5"
+        }
+      ],
+      "File": "serials-1900.xlsx"
+    },
+    {
+      "Date1904": false,
+      "Sha256": "5DECD4B1C7B44917055A9D5779E67F622C9541C687406F8CA8A74B6E65295BA3",
+      "Cells": [
+        {
+          "Formula": "-0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": -0.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "ggmmss",
+          "Serial": -0.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mm:ss",
+          "Serial": -0.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mmgg",
+          "Serial": -0.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "Standardowy",
+          "Serial": -0.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 2,
+          "NativeText": "-0.5"
+        },
+        {
+          "Formula": "0",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 3,
+          "NativeText": "1900-01-00 00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "[g]:mm:ss",
+          "Serial": 0.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 3,
+          "NativeText": "0:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 3,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "ggmmss",
+          "Serial": 0.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 3,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "0",
+          "Format": "mm:ss",
+          "Serial": 0.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 3,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "mmgg",
+          "Serial": 0.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 3,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "0",
+          "Format": "Standardowy",
+          "Serial": 0.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 3,
+          "NativeText": "0"
+        },
+        {
+          "Formula": "1",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 4,
+          "NativeText": "1900-01-01 00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 4,
+          "NativeText": "24:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 4,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "ggmmss",
+          "Serial": 1.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 4,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1",
+          "Format": "mm:ss",
+          "Serial": 1.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 4,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "mmgg",
+          "Serial": 1.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 4,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1",
+          "Format": "Standardowy",
+          "Serial": 1.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 4,
+          "NativeText": "1"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 5,
+          "NativeText": "1900-01-01 12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 5,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 5,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 5,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 5,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 5,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 5,
+          "NativeText": "1.5"
+        },
+        {
+          "Formula": "59",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 6,
+          "NativeText": "1900-02-28 00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 6,
+          "NativeText": "1416:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 6,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "ggmmss",
+          "Serial": 59.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 6,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "59",
+          "Format": "mm:ss",
+          "Serial": 59.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 6,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "mmgg",
+          "Serial": 59.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 6,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "59",
+          "Format": "Standardowy",
+          "Serial": 59.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 6,
+          "NativeText": "59"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 7,
+          "NativeText": "1900-02-28 12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 7,
+          "NativeText": "1428:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 7,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "ggmmss",
+          "Serial": 59.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 7,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mm:ss",
+          "Serial": 59.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 7,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mmgg",
+          "Serial": 59.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 7,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "Standardowy",
+          "Serial": 59.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 7,
+          "NativeText": "59.5"
+        },
+        {
+          "Formula": "60",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 8,
+          "NativeText": "1900-02-29 00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 8,
+          "NativeText": "1440:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 8,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "ggmmss",
+          "Serial": 60.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 8,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "60",
+          "Format": "mm:ss",
+          "Serial": 60.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 8,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "mmgg",
+          "Serial": 60.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 8,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "60",
+          "Format": "Standardowy",
+          "Serial": 60.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 8,
+          "NativeText": "60"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 9,
+          "NativeText": "1900-02-29 12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 9,
+          "NativeText": "1452:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 9,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "ggmmss",
+          "Serial": 60.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 9,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mm:ss",
+          "Serial": 60.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 9,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mmgg",
+          "Serial": 60.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 9,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "Standardowy",
+          "Serial": 60.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 9,
+          "NativeText": "60.5"
+        },
+        {
+          "Formula": "61",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 10,
+          "NativeText": "1900-03-01 00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 10,
+          "NativeText": "1464:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 10,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "ggmmss",
+          "Serial": 61.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 10,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "61",
+          "Format": "mm:ss",
+          "Serial": 61.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 10,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "mmgg",
+          "Serial": 61.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 10,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "61",
+          "Format": "Standardowy",
+          "Serial": 61.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 10,
+          "NativeText": "61"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 11,
+          "NativeText": "1900-03-01 12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 11,
+          "NativeText": "1476:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 11,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "ggmmss",
+          "Serial": 61.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 11,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mm:ss",
+          "Serial": 61.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 11,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mmgg",
+          "Serial": 61.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 11,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "Standardowy",
+          "Serial": 61.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 11,
+          "NativeText": "61.5"
+        },
+        {
+          "Formula": "1462",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 12,
+          "NativeText": "1904-01-01 00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "[g]:mm:ss",
+          "Serial": 1462.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 12,
+          "NativeText": "35088:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 12,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "ggmmss",
+          "Serial": 1462.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 12,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mm:ss",
+          "Serial": 1462.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 12,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mmgg",
+          "Serial": 1462.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 12,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1462",
+          "Format": "Standardowy",
+          "Serial": 1462.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 12,
+          "NativeText": "1462"
+        },
+        {
+          "Formula": "45000",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 13,
+          "NativeText": "2023-03-15 00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "[g]:mm:ss",
+          "Serial": 45000.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 13,
+          "NativeText": "1080000:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 13,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "ggmmss",
+          "Serial": 45000.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 13,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mm:ss",
+          "Serial": 45000.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 13,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mmgg",
+          "Serial": 45000.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 13,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "45000",
+          "Format": "Standardowy",
+          "Serial": 45000.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 13,
+          "NativeText": "45000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 14,
+          "NativeText": "1900-01-01 12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 14,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 14,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 14,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 14,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 14,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 14,
+          "NativeText": "1.5"
+        }
+      ],
+      "File": "serials-1900.xls"
+    },
+    {
+      "Date1904": false,
+      "Sha256": "391122BE781CA7FCB0AEF76E44F5B188ADAC3902468D310DB907C5935E60A4E0",
+      "Cells": [
+        {
+          "Formula": "-0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": -0.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "ggmmss",
+          "Serial": -0.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mm:ss",
+          "Serial": -0.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mmgg",
+          "Serial": -0.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 2,
+          "NativeText": "###################################"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "Standardowy",
+          "Serial": -0.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 2,
+          "NativeText": "-0.5"
+        },
+        {
+          "Formula": "0",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 3,
+          "NativeText": "1900-01-00 00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "[g]:mm:ss",
+          "Serial": 0.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 3,
+          "NativeText": "0:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 3,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "ggmmss",
+          "Serial": 0.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 3,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "0",
+          "Format": "mm:ss",
+          "Serial": 0.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 3,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "mmgg",
+          "Serial": 0.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 3,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "0",
+          "Format": "Standardowy",
+          "Serial": 0.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 3,
+          "NativeText": "0"
+        },
+        {
+          "Formula": "1",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 4,
+          "NativeText": "1900-01-01 00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 4,
+          "NativeText": "24:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 4,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "ggmmss",
+          "Serial": 1.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 4,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1",
+          "Format": "mm:ss",
+          "Serial": 1.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 4,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "mmgg",
+          "Serial": 1.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 4,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1",
+          "Format": "Standardowy",
+          "Serial": 1.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 4,
+          "NativeText": "1"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 5,
+          "NativeText": "1900-01-01 12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 5,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 5,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 5,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 5,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 5,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 5,
+          "NativeText": "1.5"
+        },
+        {
+          "Formula": "59",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 6,
+          "NativeText": "1900-02-28 00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 6,
+          "NativeText": "1416:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 6,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "ggmmss",
+          "Serial": 59.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 6,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "59",
+          "Format": "mm:ss",
+          "Serial": 59.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 6,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "mmgg",
+          "Serial": 59.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 6,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "59",
+          "Format": "Standardowy",
+          "Serial": 59.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 6,
+          "NativeText": "59"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 7,
+          "NativeText": "1900-02-28 12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 7,
+          "NativeText": "1428:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 7,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "ggmmss",
+          "Serial": 59.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 7,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mm:ss",
+          "Serial": 59.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 7,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mmgg",
+          "Serial": 59.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 7,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "Standardowy",
+          "Serial": 59.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 7,
+          "NativeText": "59.5"
+        },
+        {
+          "Formula": "60",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 8,
+          "NativeText": "1900-02-29 00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 8,
+          "NativeText": "1440:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 8,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "ggmmss",
+          "Serial": 60.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 8,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "60",
+          "Format": "mm:ss",
+          "Serial": 60.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 8,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "mmgg",
+          "Serial": 60.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 8,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "60",
+          "Format": "Standardowy",
+          "Serial": 60.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 8,
+          "NativeText": "60"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 9,
+          "NativeText": "1900-02-29 12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 9,
+          "NativeText": "1452:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 9,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "ggmmss",
+          "Serial": 60.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 9,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mm:ss",
+          "Serial": 60.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 9,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mmgg",
+          "Serial": 60.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 9,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "Standardowy",
+          "Serial": 60.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 9,
+          "NativeText": "60.5"
+        },
+        {
+          "Formula": "61",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 10,
+          "NativeText": "1900-03-01 00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 10,
+          "NativeText": "1464:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 10,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "ggmmss",
+          "Serial": 61.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 10,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "61",
+          "Format": "mm:ss",
+          "Serial": 61.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 10,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "mmgg",
+          "Serial": 61.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 10,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "61",
+          "Format": "Standardowy",
+          "Serial": 61.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 10,
+          "NativeText": "61"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 11,
+          "NativeText": "1900-03-01 12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 11,
+          "NativeText": "1476:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 11,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "ggmmss",
+          "Serial": 61.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 11,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mm:ss",
+          "Serial": 61.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 11,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mmgg",
+          "Serial": 61.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 11,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "Standardowy",
+          "Serial": 61.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 11,
+          "NativeText": "61.5"
+        },
+        {
+          "Formula": "1462",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 12,
+          "NativeText": "1904-01-01 00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "[g]:mm:ss",
+          "Serial": 1462.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 12,
+          "NativeText": "35088:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 12,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "ggmmss",
+          "Serial": 1462.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 12,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mm:ss",
+          "Serial": 1462.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 12,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mmgg",
+          "Serial": 1462.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 12,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1462",
+          "Format": "Standardowy",
+          "Serial": 1462.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 12,
+          "NativeText": "1462"
+        },
+        {
+          "Formula": "45000",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 13,
+          "NativeText": "2023-03-15 00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "[g]:mm:ss",
+          "Serial": 45000.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 13,
+          "NativeText": "1080000:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 13,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "ggmmss",
+          "Serial": 45000.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 13,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mm:ss",
+          "Serial": 45000.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 13,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mmgg",
+          "Serial": 45000.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 13,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "45000",
+          "Format": "Standardowy",
+          "Serial": 45000.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 13,
+          "NativeText": "45000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 14,
+          "NativeText": "1900-01-01 12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 14,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 14,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 14,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 14,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 14,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 14,
+          "NativeText": "1.5"
+        }
+      ],
+      "File": "serials-1900.xlsb"
+    },
+    {
+      "Date1904": true,
+      "Sha256": "0AE8AECB9C5781CA199B70DB654D8451B6934FEC097ED97AF8FF352D8AD06732",
+      "Cells": [
+        {
+          "Formula": "-0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 2,
+          "NativeText": "-1904-01-01 12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": -0.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 2,
+          "NativeText": "-12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 2,
+          "NativeText": "-12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "ggmmss",
+          "Serial": -0.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 2,
+          "NativeText": "-120000"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mm:ss",
+          "Serial": -0.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 2,
+          "NativeText": "-00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mmgg",
+          "Serial": -0.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 2,
+          "NativeText": "-0112"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "Standardowy",
+          "Serial": -0.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 2,
+          "NativeText": "-0.5"
+        },
+        {
+          "Formula": "0",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 3,
+          "NativeText": "1904-01-01 00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "[g]:mm:ss",
+          "Serial": 0.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 3,
+          "NativeText": "0:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 3,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "ggmmss",
+          "Serial": 0.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 3,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "0",
+          "Format": "mm:ss",
+          "Serial": 0.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 3,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "mmgg",
+          "Serial": 0.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 3,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "0",
+          "Format": "Standardowy",
+          "Serial": 0.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 3,
+          "NativeText": "0"
+        },
+        {
+          "Formula": "1",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 4,
+          "NativeText": "1904-01-02 00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 4,
+          "NativeText": "24:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 4,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "ggmmss",
+          "Serial": 1.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 4,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1",
+          "Format": "mm:ss",
+          "Serial": 1.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 4,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "mmgg",
+          "Serial": 1.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 4,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1",
+          "Format": "Standardowy",
+          "Serial": 1.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 4,
+          "NativeText": "1"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 5,
+          "NativeText": "1904-01-02 12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 5,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 5,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 5,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 5,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 5,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 5,
+          "NativeText": "1.5"
+        },
+        {
+          "Formula": "59",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 6,
+          "NativeText": "1904-02-29 00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 6,
+          "NativeText": "1416:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 6,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "ggmmss",
+          "Serial": 59.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 6,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "59",
+          "Format": "mm:ss",
+          "Serial": 59.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 6,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "mmgg",
+          "Serial": 59.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 6,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "59",
+          "Format": "Standardowy",
+          "Serial": 59.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 6,
+          "NativeText": "59"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 7,
+          "NativeText": "1904-02-29 12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 7,
+          "NativeText": "1428:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 7,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "ggmmss",
+          "Serial": 59.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 7,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mm:ss",
+          "Serial": 59.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 7,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mmgg",
+          "Serial": 59.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 7,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "Standardowy",
+          "Serial": 59.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 7,
+          "NativeText": "59.5"
+        },
+        {
+          "Formula": "60",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 8,
+          "NativeText": "1904-03-01 00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 8,
+          "NativeText": "1440:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 8,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "ggmmss",
+          "Serial": 60.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 8,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "60",
+          "Format": "mm:ss",
+          "Serial": 60.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 8,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "mmgg",
+          "Serial": 60.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 8,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "60",
+          "Format": "Standardowy",
+          "Serial": 60.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 8,
+          "NativeText": "60"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 9,
+          "NativeText": "1904-03-01 12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 9,
+          "NativeText": "1452:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 9,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "ggmmss",
+          "Serial": 60.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 9,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mm:ss",
+          "Serial": 60.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 9,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mmgg",
+          "Serial": 60.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 9,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "Standardowy",
+          "Serial": 60.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 9,
+          "NativeText": "60.5"
+        },
+        {
+          "Formula": "61",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 10,
+          "NativeText": "1904-03-02 00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 10,
+          "NativeText": "1464:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 10,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "ggmmss",
+          "Serial": 61.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 10,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "61",
+          "Format": "mm:ss",
+          "Serial": 61.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 10,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "mmgg",
+          "Serial": 61.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 10,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "61",
+          "Format": "Standardowy",
+          "Serial": 61.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 10,
+          "NativeText": "61"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 11,
+          "NativeText": "1904-03-02 12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 11,
+          "NativeText": "1476:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 11,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "ggmmss",
+          "Serial": 61.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 11,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mm:ss",
+          "Serial": 61.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 11,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mmgg",
+          "Serial": 61.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 11,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "Standardowy",
+          "Serial": 61.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 11,
+          "NativeText": "61.5"
+        },
+        {
+          "Formula": "1462",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 12,
+          "NativeText": "1908-01-02 00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "[g]:mm:ss",
+          "Serial": 1462.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 12,
+          "NativeText": "35088:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 12,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "ggmmss",
+          "Serial": 1462.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 12,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mm:ss",
+          "Serial": 1462.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 12,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mmgg",
+          "Serial": 1462.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 12,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1462",
+          "Format": "Standardowy",
+          "Serial": 1462.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 12,
+          "NativeText": "1462"
+        },
+        {
+          "Formula": "45000",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 13,
+          "NativeText": "2027-03-16 00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "[g]:mm:ss",
+          "Serial": 45000.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 13,
+          "NativeText": "1080000:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 13,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "ggmmss",
+          "Serial": 45000.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 13,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mm:ss",
+          "Serial": 45000.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 13,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mmgg",
+          "Serial": 45000.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 13,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "45000",
+          "Format": "Standardowy",
+          "Serial": 45000.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 13,
+          "NativeText": "45000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 14,
+          "NativeText": "1904-01-02 12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 14,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 14,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 14,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 14,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 14,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 14,
+          "NativeText": "1.5"
+        }
+      ],
+      "File": "serials-1904.xlsx"
+    },
+    {
+      "Date1904": true,
+      "Sha256": "773D903E8B9C6FC267BF24D9EE12B52A9649EEC7DFD425CCF242AB8968A0D3C1",
+      "Cells": [
+        {
+          "Formula": "-0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 2,
+          "NativeText": "-1904-01-01 12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": -0.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 2,
+          "NativeText": "-12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 2,
+          "NativeText": "-12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "ggmmss",
+          "Serial": -0.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 2,
+          "NativeText": "-120000"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mm:ss",
+          "Serial": -0.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 2,
+          "NativeText": "-00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mmgg",
+          "Serial": -0.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 2,
+          "NativeText": "-0112"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "Standardowy",
+          "Serial": -0.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 2,
+          "NativeText": "-0.5"
+        },
+        {
+          "Formula": "0",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 3,
+          "NativeText": "1904-01-01 00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "[g]:mm:ss",
+          "Serial": 0.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 3,
+          "NativeText": "0:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 3,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "ggmmss",
+          "Serial": 0.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 3,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "0",
+          "Format": "mm:ss",
+          "Serial": 0.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 3,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "mmgg",
+          "Serial": 0.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 3,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "0",
+          "Format": "Standardowy",
+          "Serial": 0.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 3,
+          "NativeText": "0"
+        },
+        {
+          "Formula": "1",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 4,
+          "NativeText": "1904-01-02 00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 4,
+          "NativeText": "24:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 4,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "ggmmss",
+          "Serial": 1.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 4,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1",
+          "Format": "mm:ss",
+          "Serial": 1.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 4,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "mmgg",
+          "Serial": 1.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 4,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1",
+          "Format": "Standardowy",
+          "Serial": 1.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 4,
+          "NativeText": "1"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 5,
+          "NativeText": "1904-01-02 12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 5,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 5,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 5,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 5,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 5,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 5,
+          "NativeText": "1.5"
+        },
+        {
+          "Formula": "59",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 6,
+          "NativeText": "1904-02-29 00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 6,
+          "NativeText": "1416:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 6,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "ggmmss",
+          "Serial": 59.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 6,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "59",
+          "Format": "mm:ss",
+          "Serial": 59.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 6,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "mmgg",
+          "Serial": 59.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 6,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "59",
+          "Format": "Standardowy",
+          "Serial": 59.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 6,
+          "NativeText": "59"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 7,
+          "NativeText": "1904-02-29 12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 7,
+          "NativeText": "1428:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 7,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "ggmmss",
+          "Serial": 59.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 7,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mm:ss",
+          "Serial": 59.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 7,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mmgg",
+          "Serial": 59.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 7,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "Standardowy",
+          "Serial": 59.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 7,
+          "NativeText": "59.5"
+        },
+        {
+          "Formula": "60",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 8,
+          "NativeText": "1904-03-01 00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 8,
+          "NativeText": "1440:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 8,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "ggmmss",
+          "Serial": 60.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 8,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "60",
+          "Format": "mm:ss",
+          "Serial": 60.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 8,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "mmgg",
+          "Serial": 60.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 8,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "60",
+          "Format": "Standardowy",
+          "Serial": 60.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 8,
+          "NativeText": "60"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 9,
+          "NativeText": "1904-03-01 12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 9,
+          "NativeText": "1452:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 9,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "ggmmss",
+          "Serial": 60.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 9,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mm:ss",
+          "Serial": 60.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 9,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mmgg",
+          "Serial": 60.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 9,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "Standardowy",
+          "Serial": 60.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 9,
+          "NativeText": "60.5"
+        },
+        {
+          "Formula": "61",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 10,
+          "NativeText": "1904-03-02 00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 10,
+          "NativeText": "1464:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 10,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "ggmmss",
+          "Serial": 61.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 10,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "61",
+          "Format": "mm:ss",
+          "Serial": 61.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 10,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "mmgg",
+          "Serial": 61.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 10,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "61",
+          "Format": "Standardowy",
+          "Serial": 61.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 10,
+          "NativeText": "61"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 11,
+          "NativeText": "1904-03-02 12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 11,
+          "NativeText": "1476:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 11,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "ggmmss",
+          "Serial": 61.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 11,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mm:ss",
+          "Serial": 61.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 11,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mmgg",
+          "Serial": 61.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 11,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "Standardowy",
+          "Serial": 61.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 11,
+          "NativeText": "61.5"
+        },
+        {
+          "Formula": "1462",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 12,
+          "NativeText": "1908-01-02 00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "[g]:mm:ss",
+          "Serial": 1462.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 12,
+          "NativeText": "35088:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 12,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "ggmmss",
+          "Serial": 1462.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 12,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mm:ss",
+          "Serial": 1462.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 12,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mmgg",
+          "Serial": 1462.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 12,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1462",
+          "Format": "Standardowy",
+          "Serial": 1462.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 12,
+          "NativeText": "1462"
+        },
+        {
+          "Formula": "45000",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 13,
+          "NativeText": "2027-03-16 00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "[g]:mm:ss",
+          "Serial": 45000.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 13,
+          "NativeText": "1080000:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 13,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "ggmmss",
+          "Serial": 45000.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 13,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mm:ss",
+          "Serial": 45000.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 13,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mmgg",
+          "Serial": 45000.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 13,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "45000",
+          "Format": "Standardowy",
+          "Serial": 45000.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 13,
+          "NativeText": "45000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 14,
+          "NativeText": "1904-01-02 12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 14,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 14,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 14,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 14,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 14,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 14,
+          "NativeText": "1.5"
+        }
+      ],
+      "File": "serials-1904.xls"
+    },
+    {
+      "Date1904": true,
+      "Sha256": "B742CE779D53BAF0521C7DF0381B6D3B07447040ABDDCFE426D457EC4424AACB",
+      "Cells": [
+        {
+          "Formula": "-0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 2,
+          "NativeText": "-1904-01-01 12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": -0.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 2,
+          "NativeText": "-12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "gg:mm:ss",
+          "Serial": -0.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 2,
+          "NativeText": "-12:00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "ggmmss",
+          "Serial": -0.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 2,
+          "NativeText": "-120000"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mm:ss",
+          "Serial": -0.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 2,
+          "NativeText": "-00:00"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "mmgg",
+          "Serial": -0.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 2,
+          "NativeText": "-0112"
+        },
+        {
+          "Formula": "-0.5",
+          "Format": "Standardowy",
+          "Serial": -0.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 2,
+          "NativeText": "-0.5"
+        },
+        {
+          "Formula": "0",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 3,
+          "NativeText": "1904-01-01 00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "[g]:mm:ss",
+          "Serial": 0.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 3,
+          "NativeText": "0:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "gg:mm:ss",
+          "Serial": 0.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 3,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "ggmmss",
+          "Serial": 0.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 3,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "0",
+          "Format": "mm:ss",
+          "Serial": 0.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 3,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "0",
+          "Format": "mmgg",
+          "Serial": 0.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 3,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "0",
+          "Format": "Standardowy",
+          "Serial": 0.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 3,
+          "NativeText": "0"
+        },
+        {
+          "Formula": "1",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 4,
+          "NativeText": "1904-01-02 00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 4,
+          "NativeText": "24:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "gg:mm:ss",
+          "Serial": 1.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 4,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "ggmmss",
+          "Serial": 1.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 4,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1",
+          "Format": "mm:ss",
+          "Serial": 1.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 4,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1",
+          "Format": "mmgg",
+          "Serial": 1.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 4,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1",
+          "Format": "Standardowy",
+          "Serial": 1.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 4,
+          "NativeText": "1"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 5,
+          "NativeText": "1904-01-02 12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 5,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 5,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 5,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 5,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 5,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "1.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 5,
+          "NativeText": "1.5"
+        },
+        {
+          "Formula": "59",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 6,
+          "NativeText": "1904-02-29 00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 6,
+          "NativeText": "1416:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "gg:mm:ss",
+          "Serial": 59.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 6,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "ggmmss",
+          "Serial": 59.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 6,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "59",
+          "Format": "mm:ss",
+          "Serial": 59.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 6,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59",
+          "Format": "mmgg",
+          "Serial": 59.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 6,
+          "NativeText": "0200"
+        },
+        {
+          "Formula": "59",
+          "Format": "Standardowy",
+          "Serial": 59.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 6,
+          "NativeText": "59"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 7,
+          "NativeText": "1904-02-29 12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 59.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 7,
+          "NativeText": "1428:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "gg:mm:ss",
+          "Serial": 59.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 7,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "ggmmss",
+          "Serial": 59.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 7,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mm:ss",
+          "Serial": 59.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 7,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "mmgg",
+          "Serial": 59.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 7,
+          "NativeText": "0212"
+        },
+        {
+          "Formula": "59.5",
+          "Format": "Standardowy",
+          "Serial": 59.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 7,
+          "NativeText": "59.5"
+        },
+        {
+          "Formula": "60",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 8,
+          "NativeText": "1904-03-01 00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 8,
+          "NativeText": "1440:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "gg:mm:ss",
+          "Serial": 60.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 8,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "ggmmss",
+          "Serial": 60.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 8,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "60",
+          "Format": "mm:ss",
+          "Serial": 60.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 8,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60",
+          "Format": "mmgg",
+          "Serial": 60.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 8,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "60",
+          "Format": "Standardowy",
+          "Serial": 60.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 8,
+          "NativeText": "60"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 9,
+          "NativeText": "1904-03-01 12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 60.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 9,
+          "NativeText": "1452:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "gg:mm:ss",
+          "Serial": 60.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 9,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "ggmmss",
+          "Serial": 60.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 9,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mm:ss",
+          "Serial": 60.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 9,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "mmgg",
+          "Serial": 60.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 9,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "60.5",
+          "Format": "Standardowy",
+          "Serial": 60.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 9,
+          "NativeText": "60.5"
+        },
+        {
+          "Formula": "61",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 10,
+          "NativeText": "1904-03-02 00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 10,
+          "NativeText": "1464:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "gg:mm:ss",
+          "Serial": 61.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 10,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "ggmmss",
+          "Serial": 61.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 10,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "61",
+          "Format": "mm:ss",
+          "Serial": 61.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 10,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61",
+          "Format": "mmgg",
+          "Serial": 61.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 10,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "61",
+          "Format": "Standardowy",
+          "Serial": 61.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 10,
+          "NativeText": "61"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 11,
+          "NativeText": "1904-03-02 12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 61.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 11,
+          "NativeText": "1476:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "gg:mm:ss",
+          "Serial": 61.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 11,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "ggmmss",
+          "Serial": 61.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 11,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mm:ss",
+          "Serial": 61.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 11,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "mmgg",
+          "Serial": 61.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 11,
+          "NativeText": "0312"
+        },
+        {
+          "Formula": "61.5",
+          "Format": "Standardowy",
+          "Serial": 61.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 11,
+          "NativeText": "61.5"
+        },
+        {
+          "Formula": "1462",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 12,
+          "NativeText": "1908-01-02 00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "[g]:mm:ss",
+          "Serial": 1462.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 12,
+          "NativeText": "35088:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "gg:mm:ss",
+          "Serial": 1462.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 12,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "ggmmss",
+          "Serial": 1462.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 12,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mm:ss",
+          "Serial": 1462.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 12,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "1462",
+          "Format": "mmgg",
+          "Serial": 1462.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 12,
+          "NativeText": "0100"
+        },
+        {
+          "Formula": "1462",
+          "Format": "Standardowy",
+          "Serial": 1462.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 12,
+          "NativeText": "1462"
+        },
+        {
+          "Formula": "45000",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 13,
+          "NativeText": "2027-03-16 00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "[g]:mm:ss",
+          "Serial": 45000.0,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 13,
+          "NativeText": "1080000:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "gg:mm:ss",
+          "Serial": 45000.0,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 13,
+          "NativeText": "00:00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "ggmmss",
+          "Serial": 45000.0,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 13,
+          "NativeText": "000000"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mm:ss",
+          "Serial": 45000.0,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 13,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "45000",
+          "Format": "mmgg",
+          "Serial": 45000.0,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 13,
+          "NativeText": "0300"
+        },
+        {
+          "Formula": "45000",
+          "Format": "Standardowy",
+          "Serial": 45000.0,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 13,
+          "NativeText": "45000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "rrrr-mm-dd gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 1,
+          "RequestedFormat": "yyyy-mm-dd hh:mm:ss",
+          "Row": 14,
+          "NativeText": "1904-01-02 12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "[g]:mm:ss",
+          "Serial": 1.5,
+          "Column": 2,
+          "RequestedFormat": "[h]:mm:ss",
+          "Row": 14,
+          "NativeText": "36:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "gg:mm:ss",
+          "Serial": 1.5,
+          "Column": 3,
+          "RequestedFormat": "hh:mm:ss",
+          "Row": 14,
+          "NativeText": "12:00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "ggmmss",
+          "Serial": 1.5,
+          "Column": 4,
+          "RequestedFormat": "hhmmss",
+          "Row": 14,
+          "NativeText": "120000"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mm:ss",
+          "Serial": 1.5,
+          "Column": 5,
+          "RequestedFormat": "mm:ss",
+          "Row": 14,
+          "NativeText": "00:00"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "mmgg",
+          "Serial": 1.5,
+          "Column": 6,
+          "RequestedFormat": "mmhh",
+          "Row": 14,
+          "NativeText": "0112"
+        },
+        {
+          "Formula": "=1+0.5",
+          "Format": "Standardowy",
+          "Serial": 1.5,
+          "Column": 7,
+          "RequestedFormat": "General",
+          "Row": 14,
+          "NativeText": "1.5"
+        }
+      ],
+      "File": "serials-1904.xlsb"
+    }
+  ]
+}

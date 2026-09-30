@@ -14,6 +14,13 @@ namespace OfficeIMO.Excel {
             _buffer = buffer;
         }
 
+        internal byte[] BorrowBuffer(out int length) {
+            byte[]? buffer = _buffer;
+            if (buffer == null) throw new ObjectDisposedException(nameof(OpenXmlPooledPartStream));
+            length = checked((int)Length);
+            return buffer;
+        }
+
         public override byte[] ToArray() {
             if (_buffer == null) throw new ObjectDisposedException(nameof(OpenXmlPooledPartStream));
             return base.ToArray();

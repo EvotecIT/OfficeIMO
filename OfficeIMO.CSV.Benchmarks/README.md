@@ -2,6 +2,118 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
+## Asynchronous input
+
+`CsvAsyncReadBenchmarks` compares a `LoadAsync(...).CreateDataReader()` snapshot
+with incremental `OpenDataReaderAsync` on 1,000 and 100,000 rows containing distinct
+labels and either plain notes or quoted Unicode multiline notes. `FirstRow`
+measures opening and returning one row; `AllRows` consumes every field.
+Snapshot initialization reads the complete file in both cases. Incremental
+initialization reads the header and then advances through source buffers.
+Setup validates every observed field, row count, ID sum, and character count
+for both APIs before timing. Input creation and removal are outside timing.
+BenchmarkDotNet reports elapsed time and allocations; allocation totals do
+not establish peak resident memory. File reads use the warmed operating-system
+cache after setup, so this lane does not measure cold-disk throughput.
+
+Run the local evidence lane with:
+
+```powershell
+./Build/Run-LibraryComparisonBenchmarks.ps1 -Workload csvasyncread -RunMode quick -Framework net10.0 -OutputRoot ./Ignore/Benchmarks/AsyncCsv
+```
+
+Use `-PlanOnly` to inspect the 16-case matrix without executing it. The lane
+does not update the website evidence catalog or generated comparison tables.
+Raw reports stay in the captured artifact folder. The derived normalized JSON
+is written beside that folder so re-importing the raw reports can still verify
+the complete captured file set and hashes.
+`-RunMode full` uses six warmup and twelve measured iterations per case and
+retains outliers. Setup checks the worker's affinity against the runner's
+declaration and records its actual affinity and priority in the log. Repeat
+the complete matrix on each discovered processor domain before interpreting
+relative timings, and retain the raw samples when background load is present.
+
+`CsvWideAsyncReadBenchmarks` uses 32 columns and 5,000 or 25,000 rows with a
+distinct value in every field. It measures the same snapshot and incremental
+first-row and full-traversal contracts, validates every field before timing,
+and returns the same row, cell, character, and signature totals from both
+readers. Run the eight-case lane with `-Workload csvwideasyncread`. It follows
+the same full-run warmup, measurement, affinity, and outlier policy as
+`csvasyncread`. The fixture is generated outside timing and reads use the
+warmed operating-system cache. This lane is for field-materializing public
+readers; it does not compare a span-only scan with a string-returning API.
+
+`CsvLargeFirstRowBenchmarks` repeats the same validated three-field FirstRow
+contract against one million rows. Run its four-case lane with
+`-Workload csvlargefirstrow`; full mode retains six warmups and twelve measured
+iterations and fixes worker priority at Normal. Fixture generation and validation remain outside timing. This lane
+measures API initialization and first-row consumption without PowerShell dispatch.
+
+## Sustained input and sampled memory
+
+`Build/Benchmarks/csv-sustained-read.benchmark.ps1` declares a separate PowerForge
+lane with 100,000 and 1,000,000 rows, six fields, distinct strings, decimal values,
+dates, booleans, and plain or quoted Unicode multiline notes. It compares snapshot
+and incremental initialization for asynchronous first-row or complete string-field consumption and ordered
+sequential or parallel typed projection. Typed projection enumerates synchronously
+after asynchronous initialization. `AllRowsAsync` awaits every `ReadAsync` call,
+consumes every string field, and checks the complete ordered result; it is a
+different consumer contract from typed projection. Parallel projection uses four workers and
+1,024-row batches by default, and consumes results without retaining a row array.
+
+Fixture creation and complete field/order validation happen outside timing.
+Every measured operation produces a checksum that the runner validates. Two
+warmups and seven rotated measurements retain all samples. The shared runner
+collects managed garbage before each operation, outside timing; reads use the
+warmed operating-system cache. Timing includes PowerShell dispatch, so use the
+BenchmarkDotNet lane above for precise first-row API latency.
+
+Build the CSV library for `net10.0`, then run in a fresh PowerShell process on
+.NET 10 with a PSPublishModule build containing `PowerForge.BenchmarkMemoryProbe`:
+
+```powershell
+./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 -OutputRoot ./Ignore/Benchmarks/CsvSustainedTime
+./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 -SampleMemory -OutputRoot ./Ignore/Benchmarks/CsvSustainedMemory
+```
+
+`-ModulePath` selects a module build, `-BinaryRoot` selects the CSV library build,
+and `-Plan` expands the 32 cases. Use `-Operation AllRowsAsync` for the eight-case
+full asynchronous traversal slice. Record processor/cache topology and repeat both
+lanes with `-AffinityMask` on every relevant Windows or Linux processor domain.
+Use `-Degree` and `-Batch` to qualify other parallel configurations separately.
+
+For resident observations without pages left by another reader workload, start
+one fresh `pwsh -NoProfile -File` process per row count, shape, engine, and
+operation. Select one case with `-Rows`, `-Shape Plain` or `Multiline`,
+`-Engine Snapshot` or `Incremental`, and `-Operation`, and use `-SampleMemory`.
+For example:
+
+```powershell
+pwsh -NoProfile -File ./Build/Benchmarks/Run-CsvSustainedReadBenchmarks.ps1 -Rows 1000000 -Shape Plain -Engine Incremental -Operation AllRowsAsync -SampleMemory -AffinityMask 0xFFFF -OutputRoot ./Ignore/Benchmarks/CsvIsolatedPlain
+```
+
+A single selected engine validates only that reader in setup, against independent
+expected values. The default two-engine lane validates both. Fixture generation,
+runtime loading, and selected-reader validation occur before sampling; resident
+baseline therefore includes their committed pages. Warmups use the selected
+workload. This measures a warmed process dedicated to one case, rather than
+cold startup or the library's isolated native footprint. Record absolute
+resident baseline and peak alongside their increase, and verify distinct
+`ProcessId` metadata for separately launched cases. Timing, validation, metrics,
+and artifacts remain owned by the shared PowerForge runner.
+
+The memory lane uses PowerForge's five-millisecond probe. It reports baseline
+and sampled peak managed heap and resident process memory, their increases, and
+the number of observations. Peaks are lower bounds: polling can miss brief
+transients. Managed heap includes uncollected objects, and resident memory
+includes runtime state and previously committed pages. Sampler thread startup
+and polling also consume resources. Use the separate uninstrumented lane for
+throughput; allocation totals remain a separate BenchmarkDotNet measurement.
+
+The runner retains generated CSV files under a named `fixtures-*` folder in the
+output root so failed validation can be investigated. Remove that exact folder
+after retaining the compact reports and provenance needed to reproduce the run.
+
 ## Text export and quote density
 
 `CsvTextWriteBenchmarks` writes 1,000 two-column rows through the public
@@ -45,14 +157,14 @@ To run only the larger mixed-field file workload, use
 The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
 records the file workloads, repeated comparisons, and reader allocation analysis.
 
-## Historical generated workstation snapshot
+## Local workstation benchmark snapshot
 
-This single-workstation table is retained so the older focused investigations
-remain reproducible. It is not the current cross-platform product ranking.
+This single-workstation table records a focused local run. It is not the current
+cross-platform product ranking.
 Lower is faster within a row only; the rows use different contracts and cannot
 be combined into one library ranking. Treat differences below 5% as ties. The
-snapshot uses three warmups, nine measured iterations, means, and semantic
-preflight validation of every typed or prepared value.
+run's settings and source revision are recorded in the dated benchmark evidence;
+each method validates its input or output contract before timing.
 
 Use the hash-pinned library-comparison suite and website matrix below for
 current evidence. They keep CSV, XLSX, and XLSB workloads separate and expose
@@ -61,10 +173,10 @@ Windows, Linux, and macOS results independently.
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (27ms) | n/a | 1.74x (47ms) | n/a | 0.99x (26ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.06x (2ms) | 4.47x (9ms) | OfficeIMO.CSV fastest |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (31ms) | 2.65x (82ms) | 1.43x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
+| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (46ms) | n/a | 1.21x (56ms) | n/a | 0.78x (36ms) | Fastest: Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.22x (3ms) | 1.56x (4ms) | Fastest: OfficeIMO.CSV |
+| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Format and write rows | MeanMs | 1.00x (44ms) | 2.71x (119ms) | 1.12x (49ms) | n/a | n/a | Fastest: OfficeIMO.CSV |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-09-28 | .NET 8.0.31 | Validate and write rows | MeanMs | 1.00x (13ms) | 2.84x (36ms) | 1.84x (23ms) | 2.42x (30ms) | 1.29x (16ms) | Fastest: OfficeIMO.CSV |
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Dated four-reader CSV snapshot (2026-08-31)

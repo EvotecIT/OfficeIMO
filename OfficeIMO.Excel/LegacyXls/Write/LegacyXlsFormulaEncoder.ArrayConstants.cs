@@ -444,7 +444,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 return true;
             }
 
-            if (LegacyXlsErrorValue.TryGetCode(text, out byte errorCode)) {
+            if (ExcelErrorCode.TryGetCode(text, out byte errorCode)) {
                 stream.WriteByte(0x10);
                 stream.WriteByte(errorCode);
                 WritePadding(stream, 7);

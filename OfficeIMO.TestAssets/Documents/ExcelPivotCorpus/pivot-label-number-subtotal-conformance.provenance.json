@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T08:49:54.5113197Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericSubtotalOracle.ps1",
+  "file": "pivot-label-number-subtotal-conformance.xlsx",
+  "sha256": "0533ccaa3c5eea6b5398be35de55077c13711c105a639d935a45baaa70716f53",
+  "sourceRange": "Source!A1:C4",
+  "numberFormat": "#,##0",
+  "outputRange": "A4:C10",
+  "firstSubtotal": "1,000 Total",
+  "secondSubtotal": "2,000 Total",
+  "grandTotal": 60.0
+}

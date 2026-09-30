@@ -1,0 +1,19 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T06:27:58.7728379Z",
+  "regeneration": "Build/Verification/New-ExcelSharedPivotCacheOracle.ps1",
+  "file": "pivot-shared-cache-views-conformance.xlsx",
+  "sha256": "224ef3f20e5a68ddbd8624c506b2d00490c5044a36ba7a1f44e81bec4b3e182f",
+  "sourceRange": "Source!A1:B5",
+  "pivotNames": [
+    "RowsPivot",
+    "ColumnsPivot"
+  ],
+  "pivotCacheIndex": 1,
+  "rowOutputRange": "A4:B8",
+  "columnOutputRange": "B5:F7",
+  "rowGrandTotal": 100.0,
+  "columnGrandTotal": 100.0
+}

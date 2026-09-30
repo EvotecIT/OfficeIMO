@@ -1,0 +1,13 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T04:11:56.4043355Z",
+  "regeneration": "Build/Verification/New-ExcelPivotGroupedFilterOracle.ps1",
+  "source": "manual-group-filter-conformance.xlsx",
+  "file": "manual-group-filter-refresh-conformance.xlsx",
+  "sha256": "791bf9eca64631f6e8523dcdabeb5e94d93e612f05089aba1b8441d0f14de961",
+  "mutation": "Source!A2 changed from hidden Apple to visible Broccoli, then refreshed",
+  "outputRange": "A4:C9",
+  "grandTotal": 70.0
+}
