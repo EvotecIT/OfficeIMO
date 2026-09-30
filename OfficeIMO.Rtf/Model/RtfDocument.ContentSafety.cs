@@ -301,9 +301,8 @@ public sealed partial class RtfDocument {
     }
 
     private static OfficeColor ResolveRtfColor(RtfDocument document, int? index, OfficeColor fallback) {
-        if (!index.HasValue || index.Value <= 0 || index.Value > document.Colors.Count) return fallback;
-        RtfColor color = document.Colors[index.Value - 1];
-        return OfficeColor.FromRgb(color.Red, color.Green, color.Blue);
+        RtfColor? color = index.HasValue ? document.GetColor(index.Value) : null;
+        return color == null ? fallback : OfficeColor.FromRgb(color.Red, color.Green, color.Blue);
     }
 
     private sealed class RtfEffectiveCharacterStyle {

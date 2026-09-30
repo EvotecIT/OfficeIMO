@@ -37,8 +37,14 @@ public sealed partial class RtfDocument {
     /// <summary>Font table entries.</summary>
     public IReadOnlyList<RtfFont> Fonts => _fonts.AsReadOnly();
 
-    /// <summary>Color table entries. Index zero is the RTF auto/default color slot.</summary>
+    /// <summary>Color table entries, including interior automatic-color slots.</summary>
     public IReadOnlyList<RtfColor> Colors => _colors.AsReadOnly();
+
+    /// <summary>Resolves an authored RTF color index. Automatic and missing colors return null.</summary>
+    public RtfColor? GetColor(int colorIndex) {
+        int index = colorIndex - 1;
+        return index < 0 || index >= _colors.Count || _colors[index].IsAutomatic ? null : _colors[index];
+    }
 
     /// <summary>Stylesheet entries.</summary>
     public IReadOnlyList<RtfStyle> Styles => _styles.AsReadOnly();
@@ -318,7 +324,7 @@ public sealed partial class RtfDocument {
         return id;
     }
 
-    /// <summary>Adds a color to the color table and returns its one-based RTF color index.</summary>
+    /// <summary>Adds a color to the color table and returns its RTF color index.</summary>
     public int AddColor(byte red, byte green, byte blue) {
         _colors.Add(new RtfColor(red, green, blue));
         return _colors.Count;

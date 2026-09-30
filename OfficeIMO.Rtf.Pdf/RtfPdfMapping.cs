@@ -30,17 +30,8 @@ internal static class RtfPdfMapping {
     }
 
     internal static PdfCore.PdfColor? ToPdfColor(RtfDocument document, int? oneBasedColorIndex) {
-        if (!oneBasedColorIndex.HasValue || oneBasedColorIndex.Value <= 0) {
-            return null;
-        }
-
-        int index = oneBasedColorIndex.Value - 1;
-        if (index < 0 || index >= document.Colors.Count) {
-            return null;
-        }
-
-        RtfColor color = document.Colors[index];
-        return PdfCore.PdfColor.FromRgb(color.Red, color.Green, color.Blue);
+        RtfColor? color = oneBasedColorIndex.HasValue ? document.GetColor(oneBasedColorIndex.Value) : null;
+        return color == null ? null : PdfCore.PdfColor.FromRgb(color.Red, color.Green, color.Blue);
     }
 
     internal static PdfCore.PdfPageNumberStyle ToPdfPageNumberStyle(RtfPageNumberFormat format) {

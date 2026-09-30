@@ -6,6 +6,7 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private static IReadOnlyList<RtfFileReference> ReadFileReferences(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? fileTable = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "filetbl");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, fileTable);
             if (fileTable == null) return Array.Empty<RtfFileReference>();
 
             var files = new List<RtfFileReference>();

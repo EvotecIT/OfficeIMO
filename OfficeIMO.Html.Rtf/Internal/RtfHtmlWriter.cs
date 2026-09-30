@@ -580,13 +580,8 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static bool TryGetColor(RtfDocument document, int? index, out RtfColor? color) {
-        if (!index.HasValue || index.Value <= 0 || index.Value > document.Colors.Count) {
-            color = null;
-            return false;
-        }
-
-        color = document.Colors[index.Value - 1];
-        return true;
+        color = index.HasValue ? document.GetColor(index.Value) : null;
+        return color != null;
     }
 
     private static bool TryGetFont(RtfDocument document, int? id, out RtfFont? font) {

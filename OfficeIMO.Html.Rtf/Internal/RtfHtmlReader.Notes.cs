@@ -199,12 +199,9 @@ internal static partial class RtfHtmlReader {
         }
 
         private int? RemapColorIndex(int? sourceColorIndex, RtfDocument sourceDocument) {
-            if (!sourceColorIndex.HasValue || sourceColorIndex.Value <= 0 || sourceColorIndex.Value > sourceDocument.Colors.Count) {
-                return sourceColorIndex;
-            }
-
-            RtfColor color = sourceDocument.Colors[sourceColorIndex.Value - 1];
-            return GetOrAddColorIndex(color);
+            if (!sourceColorIndex.HasValue) return null;
+            RtfColor? color = sourceDocument.GetColor(sourceColorIndex.Value);
+            return color == null ? null : GetOrAddColorIndex(color);
         }
     }
 }

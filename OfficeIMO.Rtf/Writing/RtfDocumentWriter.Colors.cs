@@ -6,6 +6,10 @@ internal static partial class RtfDocumentWriter {
 
         builder.Append(@"{\colortbl;");
         foreach (RtfColor color in document.Colors) {
+            if (color.IsAutomatic) {
+                builder.Append(';');
+                continue;
+            }
             builder.Append(@"\red");
             builder.Append(color.Red.ToString(CultureInfo.InvariantCulture));
             builder.Append(@"\green");

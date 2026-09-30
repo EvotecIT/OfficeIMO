@@ -64,6 +64,7 @@ internal static partial class RtfHtmlReader {
                 }
 
                 var color = new RtfColor(ToByte(red.Value), ToByte(green.Value), ToByte(blue.Value)) {
+                    IsAutomatic = ReadBool(values, prefix + ".automatic") == true,
                     ThemeColor = ReadEnum<RtfThemeColor>(values, prefix + ".theme"),
                     Tint = ReadInt(values, prefix + ".tint"),
                     Shade = ReadInt(values, prefix + ".shade")

@@ -622,7 +622,7 @@ internal static partial class RtfHtmlReader {
         private int GetOrAddColorIndex(RtfColor color) {
             for (int index = 0; index < _document.Colors.Count; index++) {
                 RtfColor existing = _document.Colors[index];
-                if (existing.Red == color.Red &&
+                if (!existing.IsAutomatic && existing.Red == color.Red &&
                     existing.Green == color.Green &&
                     existing.Blue == color.Blue &&
                     existing.ThemeColor == color.ThemeColor &&

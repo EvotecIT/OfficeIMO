@@ -22,6 +22,9 @@ public sealed partial class RtfColor {
     /// <summary>Blue component.</summary>
     public byte Blue { get; }
 
+    /// <summary>Whether this entry is an empty automatic-color slot rather than an explicit RGB color.</summary>
+    public bool IsAutomatic { get; internal set; }
+
     /// <summary>Optional theme color token associated with this RGB color.</summary>
     public RtfThemeColor? ThemeColor { get; set; }
 

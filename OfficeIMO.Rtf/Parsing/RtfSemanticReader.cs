@@ -51,6 +51,7 @@ internal static partial class RtfSemanticReader {
         }
 
         public RtfDocument Bind(RtfGroup root) {
+            root = NormalizeExplicitFirstColor(root);
             _document = RtfDocument.Create();
             RtfControlWord? ansiCodePageControl = FindAnsiCodePageControl(root);
             RtfDocumentCharacterSet? characterSet = FindDocumentCharacterSet(root);
@@ -87,12 +88,12 @@ internal static partial class RtfSemanticReader {
             ReadInfo(root, _document.Info, ansiCodePage, unicodeSkipCount);
             _document.ReplaceUserProperties(ReadUserProperties(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceDocumentVariables(ReadDocumentVariables(root, ansiCodePage, unicodeSkipCount));
-            RtfHtmlEncapsulation? htmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount);
+            RtfHtmlEncapsulation? htmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount: 1);
             _currentParagraph = new RtfParagraph();
             _currentSection = new RtfSection();
 
             bool hasExplicitAnsiCodePage = ansiCodePageControl != null;
-            WalkGroup(root, CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount), depth: 0, allowDestinationSkip: true);
+            WalkGroup(root, CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount: 1), depth: 0, allowDestinationSkip: true);
             FlushParagraphIfNeeded(force: _document.Blocks.Count == 0,
                 _finalParagraphState ?? CreateInitialState(ansiCodePage, hasExplicitAnsiCodePage, unicodeSkipCount));
             CompleteOpenSection();

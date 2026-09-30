@@ -84,7 +84,11 @@ public sealed partial class RtfDocument {
         var map = new Dictionary<int, int>();
         for (int index = 0; index < source.Colors.Count; index++) {
             RtfColor color = source.Colors[index];
-            int existingIndex = _colors.FindIndex(item => item.Red == color.Red && item.Green == color.Green && item.Blue == color.Blue &&
+            if (color.IsAutomatic) {
+                map[index + 1] = 0;
+                continue;
+            }
+            int existingIndex = _colors.FindIndex(item => !item.IsAutomatic && item.Red == color.Red && item.Green == color.Green && item.Blue == color.Blue &&
                 item.ThemeColor == color.ThemeColor && item.Tint == color.Tint && item.Shade == color.Shade);
             if (existingIndex < 0) {
                 _colors.Add(new RtfColor(color.Red, color.Green, color.Blue) {

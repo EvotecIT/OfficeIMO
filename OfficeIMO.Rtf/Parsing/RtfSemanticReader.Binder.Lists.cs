@@ -42,6 +42,7 @@ internal static partial class RtfSemanticReader {
 
         private static IReadOnlyList<RtfListDefinition> ReadListDefinitions(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? listTable = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "listtable");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, listTable);
             if (listTable == null) return Array.Empty<RtfListDefinition>();
 
             var definitions = new List<RtfListDefinition>();

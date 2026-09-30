@@ -151,7 +151,7 @@ internal static partial class RtfSemanticReader {
         private static void ReadInfo(RtfGroup root, RtfDocumentInfo info, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? generatorGroup = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "generator");
             if (generatorGroup != null) {
-                info.Generator = EmptyToNull(CollectPlainText(generatorGroup, ansiCodePage, unicodeSkipCount).Trim().TrimEnd(';').Trim());
+                info.Generator = EmptyToNull(CollectPlainText(generatorGroup, ansiCodePage, GetUnicodeSkipCountBefore(root, generatorGroup)).Trim().TrimEnd(';').Trim());
             }
 
             RtfGroup? infoGroup = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "info");
@@ -159,7 +159,8 @@ internal static partial class RtfSemanticReader {
 
             foreach (RtfNode node in infoGroup.Children) {
                 if (node is RtfGroup child) {
-                    string value = CollectPlainText(child, ansiCodePage, unicodeSkipCount).Trim();
+                    string value = CollectPlainText(child, ansiCodePage,
+                        GetUnicodeSkipCountBefore(infoGroup, child, GetUnicodeSkipCountBefore(root, infoGroup))).Trim();
                     switch (child.Destination) {
                         case "title":
                             info.Title = value;
@@ -566,6 +567,15 @@ internal static partial class RtfSemanticReader {
             }
 
             return null;
+        }
+
+        private static int GetUnicodeSkipCountBefore(RtfGroup parent, RtfNode? target, int initialCount = 1) {
+            int count = initialCount;
+            foreach (RtfNode node in parent.Children) {
+                if (ReferenceEquals(node, target)) break;
+                if (node is RtfControlWord control && control.Name == "uc" && control.Parameter is >= 0) count = control.Parameter.Value;
+            }
+            return count;
         }
 
         private static RtfControlWord? FindUnicodeSkipCountControl(RtfGroup root) {

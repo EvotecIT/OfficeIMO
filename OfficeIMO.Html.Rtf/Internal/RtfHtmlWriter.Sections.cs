@@ -110,6 +110,7 @@ internal static partial class RtfHtmlWriter {
             AddInt(values, prefix + ".red", color.Red);
             AddInt(values, prefix + ".green", color.Green);
             AddInt(values, prefix + ".blue", color.Blue);
+            AddNullableBool(values, prefix + ".automatic", color.IsAutomatic ? true : (bool?)null);
             AddEnum(values, prefix + ".theme", color.ThemeColor);
             AddNullableInt(values, prefix + ".tint", color.Tint);
             AddNullableInt(values, prefix + ".shade", color.Shade);

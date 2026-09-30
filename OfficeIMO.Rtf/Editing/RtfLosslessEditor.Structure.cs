@@ -21,7 +21,14 @@ public sealed partial class RtfLosslessEditor {
     /// <summary>Inserts a plain paragraph at a direct root-node index.</summary>
     public void InsertRootParagraph(int index, string text) {
         if (text == null) throw new ArgumentNullException(nameof(text));
-        InsertRootRtf(index, @"\pard " + RtfTextEncoding.EncodeText(text) + @"\par");
+        if (index < 0 || index > RootNodeCount) throw new ArgumentOutOfRangeException(nameof(index));
+        var children = new List<RtfNode>(_syntaxTree.Root.Children);
+        children.InsertRange(index, new RtfNode[] {
+            new RtfControlWord(0, "pard", null, false, @"\pard "),
+            CreateEncodedText(0, text, RtfTextEncoding.EncodeText(text)),
+            new RtfControlWord(0, "par", null, false, @"\par")
+        });
+        _syntaxTree = _syntaxTree.WithRoot(new RtfGroup(_syntaxTree.Root.Position, children));
     }
 
     /// <summary>Removes direct root syntax nodes and returns the number removed.</summary>

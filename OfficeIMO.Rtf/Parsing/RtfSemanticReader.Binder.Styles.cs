@@ -6,6 +6,7 @@ internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private static IReadOnlyList<RtfStyle> ReadStylesheet(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? stylesheet = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "stylesheet");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, stylesheet);
             if (stylesheet == null) return Array.Empty<RtfStyle>();
 
             var styles = new List<RtfStyle>();
