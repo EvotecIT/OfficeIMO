@@ -128,6 +128,19 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HEADER_DIMENSIONS_UNSUPPORTED");
         Assert.NotEmpty(result.Report.PreservedRecords);
         if (defect == "duplicate") Assert.False(result.Projection.Sheets[0].Tables[0].RowHeights.ContainsKey(1));
+        if (defect != "missing-bucket") {
+            IWorkSourceDeclarationIssue issue = Assert.Single(result.Report.SourceDeclarationIssues);
+            Assert.Equal(defect == "duplicate" ? 13ul : 12ul, issue.Owner.RecordIdentifier);
+            Assert.Equal(defect switch {
+                "duplicate" => "2[2]/1",
+                "out-of-range" => "2[1]/1",
+                "hidden" => "2[1]/3",
+                _ => "2[1]/2"
+            }, issue.FieldPath);
+            Assert.Equal(1, issue.DeclaredValueCount);
+            Assert.Equal(defect is "duplicate" or "out-of-range" ? IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata
+                : IWorkSourceDeclarationIssueKind.InvalidValue, issue.Kind);
+        }
     }
 
     [Fact]
@@ -153,9 +166,12 @@ public sealed partial class IWorkBoundaryTests {
         Message(VarintField(1, index), FloatField(2, size), VarintField(3, hidingState), VarintField(4, 0));
 
     private static MemoryStream DimensionPackage(IWorkDocumentKind kind, byte[]? firstRowHeader = null,
-        bool duplicate = false, bool missingBucket = false, float scale = 1f, bool repeatTable = false) {
+        bool duplicate = false, bool missingBucket = false, float scale = 1f, bool repeatTable = false,
+        byte[]? firstBucketPayload = null, byte[]? secondBucketPayload = null, byte[]? columnBucketPayload = null,
+        bool repeatBucket = false, uint firstBucketType = 6006) {
         byte[] store = Message(
-            BytesField(1, Message(VarintField(1, 1), ReferenceField(2, missingBucket ? 99UL : 12UL), ReferenceField(2, 13))),
+            BytesField(1, Message(VarintField(1, 1), ReferenceField(2, missingBucket ? 99UL : 12UL), ReferenceField(2, 13),
+                repeatBucket ? ReferenceField(2, 12) : Message())),
             ReferenceField(2, 14), BytesField(3, Message()));
         byte[] model = Message(BytesField(4, store), VarintField(6, 3), VarintField(7, 2),
             StringField(8, "Dimensions"), DoubleField(16, 10), DoubleField(17, 20));
@@ -165,6 +181,9 @@ public sealed partial class IWorkBoundaryTests {
             duplicate ? BytesField(2, DimensionHeader(0, 22)) : Array.Empty<byte>());
         byte[] columnBucket = Message(VarintField(1, 1), BytesField(2, DimensionHeader(0, 40.5f)),
             BytesField(2, DimensionHeader(1, 0)));
+        firstBucket = firstBucketPayload ?? firstBucket;
+        secondBucket = secondBucketPayload ?? secondBucket;
+        columnBucket = columnBucketPayload ?? columnBucket;
         var records = new List<byte[]>();
         if (kind == IWorkDocumentKind.Numbers) {
             records.Add(ArchiveRecord(1, 1, Message(ReferenceField(1, 2))));
@@ -187,7 +206,7 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord(20, 6000, Message(ReferenceField(2, 21)), new ulong[] { 21 }));
             records.Add(ArchiveRecord(21, 6001, model, new ulong[] { 12, 13, 14 }));
         }
-        records.Add(ArchiveRecord(12, 6006, firstBucket));
+        records.Add(ArchiveRecord(12, firstBucketType, firstBucket));
         records.Add(ArchiveRecord(13, 6006, secondBucket));
         records.Add(ArchiveRecord(14, 6006, columnBucket));
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))),

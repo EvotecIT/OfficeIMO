@@ -203,7 +203,11 @@ these methods.
 
 ### iWork catalog ambiguity and declaration evidence
 
-String, formula and rich-text catalogs reject duplicate keys even when a duplicate value is malformed. An unreadable entry or key leaves key uniqueness unassessed, so catalog values remain unresolved; valid numeric formula caches remain recoverable through `AllowPartialEditableReconstruction`. Inspect `SourceDeclarationIssues` for the physical catalog paths. Handle the new `IWorkSourceDeclarationIssueKind.InvalidValue` member in exhaustive switches; it identifies invalid plain-string catalog values.
+String, formula and rich-text catalogs reject duplicate keys even when a duplicate value is malformed. An unreadable entry or key leaves key uniqueness unassessed, so catalog values remain unresolved; valid numeric formula caches remain recoverable through `AllowPartialEditableReconstruction`. Inspect `SourceDeclarationIssues` for the physical catalog paths. Handle the new `IWorkSourceDeclarationIssueKind.InvalidValue` member in exhaustive switches; it identifies invalid plain-string catalog values and unsupported dimension-size or visibility values.
+
+### iWork ambiguous table sizing
+
+An unreadable row or column index, unresolved sizing bucket, or repeated row-bucket reference prevents trusting overrides on that axis, including those in other selected buckets. `SourceDeclarationIssues` retains physical header paths and invalid size or visibility values; unresolved bucket references remain in `SourceReferenceIssues`. Use `AllowPartialEditableReconstruction` to retain the other axis and healthy sizes at unambiguous indexes. The destination owner applies its existing default-size and geometry rules.
 
 ### iWork formula assessment counts
 
