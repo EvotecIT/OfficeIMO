@@ -56,6 +56,15 @@ internal sealed class OfficeAv1SymbolReader {
         return value;
     }
 
+    /// <summary>Reads AV1 NS(n) for a bounded alphabet without adapting probabilities.</summary>
+    internal int ReadNonSymmetric(int count) {
+        if (count < 1 || count > 16) throw new ArgumentOutOfRangeException(nameof(count));
+        int width = FloorLog2(count) + 1;
+        int threshold = (1 << width) - count;
+        int value = ReadLiteral(width - 1);
+        return value < threshold ? value : (value << 1) - threshold + (ReadBool() ? 1 : 0);
+    }
+
     private int ReadCore(int[]? cdf, int count) {
         _cancellation.ThrowIfCancellationRequested();
         Require(!_finished && !_failed && _symbolsRemaining > 0);

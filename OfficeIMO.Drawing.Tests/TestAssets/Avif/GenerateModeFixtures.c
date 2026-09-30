@@ -73,16 +73,27 @@ static void make_modes(FILE *out,int scenario,int updates,int *first) {
     assert(memcmp(enc.y,dec.y,sizeof(enc.y))==0&&memcmp(enc.uv,dec.uv,sizeof(enc.uv))==0&&memcmp(enc.angles,dec.angles,sizeof(enc.angles))==0&&memcmp(enc.alphas,dec.alphas,sizeof(enc.alphas))==0);
     od_ec_enc_clear(&enc.entropy.enc);
 }
+static int mode_first_leaf(char **argv,mode_codec *m,unsigned char **bytes,int *q,int *values) {
+    int skip,ci;mode_init(m,1,1);
+    int pixels=first_leaf(argv,&m->entropy,bytes,&skip,&ci,q);
+    modes(m,0,0,pixels,pixels,atoi(argv[10]),0,0,-1,values);
+    return pixels;
+}
 static void mode_prefix(char **argv) {
-    mode_codec m;mode_init(&m,1,1);unsigned char *bytes;int skip,ci,q;
-    int pixels=first_leaf(argv,&m.entropy,&bytes,&skip,&ci,&q),values[9];
-    modes(&m,0,0,pixels,pixels,atoi(argv[10]),0,0,-1,values);
+    mode_codec m;unsigned char *bytes;int q,values[9];
+    int pixels=mode_first_leaf(argv,&m,&bytes,&q,values);
     FILE *out=fopen(argv[9],"wb");assert(out);fprintf(out,"{\"pixels\":%d,\"preludeQ\":%d,\"modes\":[",pixels,q);
     for(int i=0;i<9;i++)fprintf(out,"%s%d",i?",":"",values[i]);fprintf(out,"]}\n");fclose(out);free(bytes);
 }
+#ifdef OFFICEIMO_AV1_COMPONENT_INCLUDE
+#define main mode_component_main
+#endif
 int main(int argc,char **argv) {
     if(argc==11) {mode_prefix(argv);return 0;}assert(argc==2);
     FILE *out=fopen(argv[1],"wb");assert(out);fprintf(out,"{\"producer\":\"AOM v3.13.1 tables/entropy, original intra-mode syntax harness\",\"nativeSelfCheck\":true,\"cases\":[");
     int first=1;for(int s=0;s<12;s++)for(int u=0;u<=1;u++)make_modes(out,s,u,&first);
     fprintf(out,"]}\n");fclose(out);return 0;
 }
+#ifdef OFFICEIMO_AV1_COMPONENT_INCLUDE
+#undef main
+#endif
