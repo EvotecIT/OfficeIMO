@@ -11,10 +11,17 @@ Usage:
   officeimo convert <input.docx|input.xlsx|input.pptx> [output.pdf] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
+  officeimo convert <input.pages|input.numbers|input.key> [output.docx|output.xlsx|output.pptx]
+                    [--iwork-mode auto|editable|visual] [--allow-partial]
+                    [--allow-incomplete-preview] [--normalize-worksheet-names]
+                    [--max-input-bytes <bytes>] [--max-output-bytes <bytes>] [--force]
   officeimo convert <input> <output.md|output.markdown|output.json>
                     [--assets <directory>] [--max-input-bytes <bytes>] [--force]
 
 PDF output uses the first-party Word, Excel, or PowerPoint PDF adapter.
+Apple OOXML output uses the shared iWork workflow adapter and writes structured JSON evidence.
+Defaults reject partial editable reconstruction and previews without known complete coverage.
+Apple workflow conversion accepts ZIP files; directory bundles can be read as Markdown or JSON.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
 The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
 """;
@@ -37,6 +44,10 @@ The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
         if (route.Help) {
             await WriteUtf8Async(standardOutput, Usage + Environment.NewLine, cancellationToken).ConfigureAwait(false);
             return (int)OfficeImoToolExitCode.Success;
+        }
+
+        if (route.Format == ConvertOutputFormat.IWork) {
+            return await IWorkConvertCommand.RunAsync(args, standardOutput, standardError, cancellationToken).ConfigureAwait(false);
         }
 
         if (route.Format == ConvertOutputFormat.Pdf) {
@@ -75,6 +86,7 @@ The default destination for DOCX, XLSX, and PPTX input is a sibling PDF file.
 
 internal enum ConvertOutputFormat {
     Pdf,
+    IWork,
     Markdown,
     Json
 }
@@ -101,6 +113,8 @@ internal sealed class ConvertRoute {
         string? maxInputBytes = null;
         bool force = false;
         bool hasPdfOnlyOption = false;
+        bool hasAppleOnlyOption = false;
+        bool hasOutputLimit = false;
 
         for (int index = 0; index < args.Length; index++) {
             string token = args[index];
@@ -122,6 +136,18 @@ internal sealed class ConvertRoute {
                     maxInputBytes = NextValue(args, ref index, token);
                     break;
                 case "--max-output-bytes":
+                    _ = NextValue(args, ref index, token);
+                    hasOutputLimit = true;
+                    break;
+                case "--iwork-mode":
+                    _ = NextValue(args, ref index, token);
+                    hasAppleOnlyOption = true;
+                    break;
+                case "--allow-partial":
+                case "--allow-incomplete-preview":
+                case "--normalize-worksheet-names":
+                    hasAppleOnlyOption = true;
+                    break;
                 case "--max-characters-in-part":
                     _ = NextValue(args, ref index, token);
                     hasPdfOnlyOption = true;
@@ -152,7 +178,13 @@ internal sealed class ConvertRoute {
         }
 
         outputPath ??= optionOutputPath;
-        ConvertOutputFormat format = ParseOutputFormat(outputPath);
+        ConvertOutputFormat format = outputPath is null && Path.GetExtension(inputPath).ToLowerInvariant() is ".pages" or ".numbers" or ".key"
+            ? ConvertOutputFormat.IWork : ParseOutputFormat(outputPath);
+        if (format == ConvertOutputFormat.IWork) {
+            if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple OOXML conversion does not accept assets or XML-part limits.");
+            return new ConvertRoute { Format = format };
+        }
+        if (hasAppleOnlyOption) throw new ConvertUsageException("iWork acceptance options require an Apple-to-OOXML conversion.");
         if (format == ConvertOutputFormat.Pdf) {
             if (assetsPath != null) {
                 throw new ConvertUsageException("--assets is only valid for Markdown or JSON output.");
@@ -160,9 +192,9 @@ internal sealed class ConvertRoute {
             return new ConvertRoute { Format = format };
         }
 
-        if (hasPdfOnlyOption) {
+        if (hasPdfOnlyOption || hasOutputLimit) {
             throw new ConvertUsageException(
-                "--max-output-bytes and --max-characters-in-part are only valid for PDF output.");
+                "--max-output-bytes requires PDF or Apple OOXML output; --max-characters-in-part requires PDF output.");
         }
 
         var readerArguments = new List<string> {
@@ -194,10 +226,11 @@ internal sealed class ConvertRoute {
         if (string.IsNullOrWhiteSpace(outputPath)) return ConvertOutputFormat.Pdf;
         return Path.GetExtension(outputPath).ToLowerInvariant() switch {
             ".pdf" => ConvertOutputFormat.Pdf,
+            ".docx" or ".xlsx" or ".pptx" => ConvertOutputFormat.IWork,
             ".md" or ".markdown" => ConvertOutputFormat.Markdown,
             ".json" => ConvertOutputFormat.Json,
             _ => throw new ConvertUsageException(
-                "The output path must use the .pdf, .md, .markdown, or .json extension.")
+                "The output path must use the .pdf, .docx, .xlsx, .pptx, .md, .markdown, or .json extension.")
         };
     }
 

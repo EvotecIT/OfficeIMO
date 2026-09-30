@@ -238,6 +238,9 @@ public sealed class OfficeWorkflowRequest {
 
 /// <summary>Runs typed local OfficeIMO document workflows for desktop, command-line, and service hosts.</summary>
 public interface IOfficeWorkflowRunner {
+    /// <summary>Executable routes of this runner. Implementations with opt-in adapters override this view.</summary>
+    IReadOnlyList<OfficeWorkflowRoute> ConversionRoutes => OfficeWorkflowCatalog.ExecutableRoutes;
+
     /// <summary>Runs one workflow request.</summary>
     Task<OfficeWorkflowResult> RunAsync(
         OfficeWorkflowRequest request,

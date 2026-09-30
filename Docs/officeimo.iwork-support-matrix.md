@@ -16,6 +16,8 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 `OfficeIMO.Reader.IWork` registers directory bundles as individual documents. Path reading, async reading, folder ingestion, and discovery retain the package owner's bounds, physical-root checks, cancellation, and captured content hash. Resources inside a registered bundle are not ingested as separate documents. `ContainerLengthBytes` records ZIP bytes or physical bundle file bytes before nested expansion; `ComputePackageContentHash()` hashes the captured normalized entries and does not reopen the filesystem.
 
+`OfficeIMO.Workflows.IWork` registers all three Apple-to-OOXML routes without adding iWork to the default workflow dependency graph. ZIP files and provider ZIP streams use bounded captured inputs, destination reopen validation, source verification, and safe publication. Defaults reject explicitly partial editable reconstruction and visual previews without known complete coverage. `ConversionEvidence` retains typed fidelity categories and compact source/projection facts after destination disposal. Directory-bundle workflow conversion and its publication-time package identity check remain outside this contract. The CLI exposes these routes through `officeimo convert`.
+
 ## Package and IWA boundary
 
 | Capability | Current contract |

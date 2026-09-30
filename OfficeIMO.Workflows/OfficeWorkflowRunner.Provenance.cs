@@ -18,7 +18,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
     /// <summary>Creates a workflow runner with optional cryptographic and provider-specific provenance services.</summary>
     public OfficeWorkflowRunner(
         IOfficeProvenanceVerifier? provenanceVerifier,
-        IEnumerable<IOfficeProvenanceSignalDetector>? provenanceSignalDetectors = null) {
+        IEnumerable<IOfficeProvenanceSignalDetector>? provenanceSignalDetectors = null)
+        : this(provenanceVerifier, provenanceSignalDetectors, null) { }
+
+    /// <summary>Creates a runner with provenance providers and opt-in canonical conversion implementations.</summary>
+    public OfficeWorkflowRunner(
+        IOfficeProvenanceVerifier? provenanceVerifier,
+        IEnumerable<IOfficeProvenanceSignalDetector>? provenanceSignalDetectors,
+        IEnumerable<OfficeWorkflowConversionRegistration>? conversions) {
+        (_conversions, ConversionRoutes) = SnapshotRegistrations(conversions ?? Array.Empty<OfficeWorkflowConversionRegistration>());
         _provenanceVerifier = provenanceVerifier;
         _provenanceSignalDetectors = (provenanceSignalDetectors ?? Array.Empty<IOfficeProvenanceSignalDetector>())
             .Select(detector => detector ?? throw new ArgumentException(

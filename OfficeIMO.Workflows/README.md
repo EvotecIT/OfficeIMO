@@ -4,6 +4,12 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Opt-in Apple conversion
+
+[OfficeIMO.Workflows.IWork](../OfficeIMO.Workflows.IWork/README.md) supplies Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes. `IWorkWorkflow.CreateRunner()` shares this runner's source capture, limits, destination reopen validation, and publication contract. `IOfficeWorkflowRunner.ConversionRoutes` exposes the configured executable routes; the static `OfficeWorkflowCatalog` describes built-in executability. The default workflow package remains independent of iWork.
+
+`OfficeWorkflowConversionRegistration` adds an implementation of an existing canonical route to a runner. It cannot replace built-in owners. Opt-in converters accept captured ZIP/file streams, write to a bounded caller-owned output stream, and return immutable `OfficeWorkflowConversionEvidence`. Current opt-in destination formats are DOCX, XLSX, and PPTX. `OfficeWorkflowResult.ConversionEvidence` retains fidelity categories and compact source facts; successful reopen does not establish visual equivalence.
+
 ## Project reports and table exchange
 
 `ProjectReportWorkflow` exports a calculated Project view through the existing document owners:

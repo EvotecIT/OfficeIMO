@@ -827,6 +827,8 @@ _Dependency footprint:_ OfficeIMO Core and PDF plus HtmlTinkerX. This optional p
 
 _Dependency footprint:_ first-party OfficeIMO format and conversion packages only; no hosted service, browser process, vendor detector, or bundled provenance executable.
 
+[OfficeIMO.Workflows.IWork](OfficeIMO.Workflows.IWork/README.md) adds opt-in Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint ZIP/stream routes with typed fidelity evidence, complete-preview acceptance, source snapshots, and the same validated publication contract. It keeps iWork outside the default workflow dependency graph.
+
 #### [OfficeIMO.Tool](OfficeIMO.Tool/README.md)
 
 - [x] One `officeimo` executable with explicit `html`, `reader`, `markup`, `workflow`, `provenance`, `agent`, and `mcp` command areas

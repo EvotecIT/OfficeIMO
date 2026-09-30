@@ -65,6 +65,7 @@ public sealed partial class OfficeWorkflowRunner {
         bool emitHtmlTaggedStructure = true,
         IReadOnlyDictionary<string, byte[]>? htmlResourceSnapshots = null) {
         ArgumentNullException.ThrowIfNull(input);
+        if (request.Registration is not null) return ConvertRegistered(request, input, diagnostics, cancellationToken);
         OfficeWorkflowRoute route = request.Route!;
         OfficeWorkflowConversionOptions settings = request.ConversionOptions ?? new();
         PdfReadOptions? readOptions = settings.CreateReadOptions();

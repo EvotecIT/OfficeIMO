@@ -105,7 +105,8 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
         IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics,
         PdfHealthReport? healthReport = null,
         OfficeWorkflowOutputRecovery? recovery = null,
-        OfficeIMO.Pdf.PdfSignatureValidationReport? signatureReport = null) {
+        OfficeIMO.Pdf.PdfSignatureValidationReport? signatureReport = null,
+        OfficeWorkflowConversionEvidence? conversionEvidence = null) {
         RequestId = requestId;
         Operation = operation;
         Status = status;
@@ -119,6 +120,7 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
         HealthReport = healthReport;
         Recovery = recovery;
         SignatureReport = signatureReport;
+        ConversionEvidence = conversionEvidence;
     }
 
     /// <summary>Caller-provided request identifier.</summary>
@@ -147,6 +149,8 @@ public sealed class OfficeWorkflowResult : IOfficeResult {
     public PdfHealthReport? HealthReport { get; }
     /// <summary>Signature evidence for the prepared output. For unconfirmed publication this does not prove destination contents.</summary>
     public OfficeIMO.Pdf.PdfSignatureValidationReport? SignatureReport { get; }
+    /// <summary>Typed fidelity and source evidence from an opt-in converter, including for an unconfirmed provider publication.</summary>
+    public OfficeWorkflowConversionEvidence? ConversionEvidence { get; }
     /// <summary>True only for successfully completed requests.</summary>
     public bool Succeeded => Status == OfficeWorkflowStatus.Completed;
 }
