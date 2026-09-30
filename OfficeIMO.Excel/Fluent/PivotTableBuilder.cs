@@ -381,8 +381,7 @@ namespace OfficeIMO.Excel.Fluent {
                 pivotFilters: _pivotFilters.Count == 0 ? null : _pivotFilters,
                 calculatedFields: _calculatedFields.Count == 0 ? null : _calculatedFields,
                 groupings: _groupings.Count == 0 ? null : _groupings,
-                options: CreateOptions(),
-                valuesAxisPosition: _valuesAxisPosition);
+                options: CreateOptions());
             return _sheet;
         }
 
@@ -390,7 +389,8 @@ namespace OfficeIMO.Excel.Fluent {
             if (!_refreshOnOpen.HasValue
                 && !_saveSourceData.HasValue
                 && !_preserveFormatting.HasValue
-                && !_enableDrill.HasValue) {
+                && !_enableDrill.HasValue
+                && !_valuesAxisPosition.HasValue) {
                 return null;
             }
 
@@ -398,7 +398,8 @@ namespace OfficeIMO.Excel.Fluent {
                 RefreshOnOpen = _refreshOnOpen,
                 SaveSourceData = _saveSourceData,
                 PreserveFormatting = _preserveFormatting,
-                EnableDrill = _enableDrill
+                EnableDrill = _enableDrill,
+                ValuesAxisPosition = _valuesAxisPosition
             };
         }
 

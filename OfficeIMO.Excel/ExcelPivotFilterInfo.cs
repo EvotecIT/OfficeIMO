@@ -18,8 +18,14 @@ namespace OfficeIMO.Excel {
             string? description,
             bool? isTop = null,
             bool? isPercent = null,
-            string? filterValue = null,
-            bool wholeDay = false) {
+            string? filterValue = null)
+            : this(fieldName, type, value1, value2, dataFieldName, name, description,
+                isTop, isPercent, filterValue, false) { }
+
+        internal ExcelPivotFilterInfo(
+            string fieldName, ExcelPivotFilterType? type, string? value1, string? value2,
+            string? dataFieldName, string? name, string? description, bool? isTop,
+            bool? isPercent, string? filterValue, bool wholeDay) {
             FieldName = fieldName;
             Type = type;
             Value1 = value1;

@@ -40,11 +40,10 @@ new CsvDocument()
 |---|---|
 | Edit, transform, or save rows | `CsvDocument.Load(...)` or `new CsvDocument()` |
 | Read rows once with a forward-only cursor | `CsvDocument.OpenDataReader(...)` |
-| Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenStreamingDataReaderAsync(...)` |
+| Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenDataReaderAsync(...)` |
 
-`OpenDataReaderAsync(...)` remains available for callers that need its existing
-behavior: an asynchronous source read followed by a memory-backed cursor. The
-incremental async reader is the choice when the file should not be buffered first.
+For a memory-backed snapshot, use `LoadAsync(...)` followed by
+`CreateDataReader()`. The incremental reader avoids buffering the complete file.
 Profiles, schema inference, explicit mapping, and parallel projection are optional
 settings on these paths, not separate document models.
 
@@ -208,17 +207,13 @@ await foreach (Person person in reader.RowsAsAsync<Person>(cancellationToken)) {
 }
 ```
 
-`OpenDataReaderAsync` performs the bounded source read asynchronously and returns a
-memory-backed reader owned by the caller. Automatic, explicit `RowMapper<T>`, and factory
-mapping all have async overloads. This is asynchronous I/O and cursor traversal, not
-parallel row mapping; use `RowsAsParallel<T>()` for CPU-heavy synchronous projection.
-
-For incremental I/O on .NET 8 and later, open the reader with
-`OpenStreamingDataReaderAsync` instead. Each `ReadAsync` advances through the source
-without loading a whole-file snapshot:
+`OpenDataReaderAsync` opens an incremental reader owned by the caller. Each
+`ReadAsync` advances through the source without loading a whole-file snapshot.
+Automatic, explicit `RowMapper<T>`, and factory mapping all have async overloads.
+For direct field access:
 
 ```csharp
-await using DbDataReader reader = await CsvDocument.OpenStreamingDataReaderAsync(
+await using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
     "people.csv",
     loadOptions: new CsvLoadOptions { Delimiter = ',' },
     cancellationToken: cancellationToken);
@@ -246,6 +241,13 @@ The stream overload consumes the current position and leaves the caller's stream
 open. The path overload owns its file. The opening cancellation token remains
 active until disposal; each `ReadAsync` also accepts an operation token. A cancelled
 or failed record cannot be resumed. `Read` and `HasRows` may perform synchronous I/O.
+
+For a materialized snapshot, use `LoadAsync` followed by `CreateDataReader`:
+
+```csharp
+var csv = await CsvDocument.LoadAsync("people.csv", cancellationToken: cancellationToken);
+using DbDataReader reader = csv.CreateDataReader();
+```
 
 Use the explicit overload when assignments must be declared without reflection,
 including trimming- and NativeAOT-sensitive applications. This overload still
@@ -486,9 +488,7 @@ must be thread-safe; keep the reader sequential when a converter depends on
 mutable single-threaded state.
 
 `OpenDataReader` is the streaming forward-only entry point. On .NET 8 and later,
-`OpenDataReaderAsync` performs bounded asynchronous source I/O and returns a
-memory-backed reader whose `ReadAsync` cursor works with `RowsAsAsync<T>`.
-`OpenStreamingDataReaderAsync` performs incremental asynchronous source I/O with
+`OpenDataReaderAsync` performs incremental asynchronous source I/O with
 explicit delimiters or bounded detection, and optional ordered parallel typed projection.
 Use `CsvDocument.Load` when an editable materialized document is required.
 `LoadAsync` materializes the document. `SaveAsync` formats and writes one record

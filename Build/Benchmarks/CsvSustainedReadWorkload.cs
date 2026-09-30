@@ -74,8 +74,8 @@ public sealed class CsvSustainedReadWorkload
     {
         var options = new CsvLoadOptions { Culture = CultureInfo.InvariantCulture };
         using (DbDataReader reader = incremental
-            ? await CsvDocument.OpenStreamingDataReaderAsync(_path, options).ConfigureAwait(false)
-            : await CsvDocument.OpenDataReaderAsync(_path, options).ConfigureAwait(false))
+            ? await CsvDocument.OpenDataReaderAsync(_path, options).ConfigureAwait(false)
+            : (await CsvDocument.LoadAsync(_path, options).ConfigureAwait(false)).CreateDataReader())
         {
             if (operation == "FirstRow")
             {

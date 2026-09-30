@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             if (!singleMeasure) measures.Add(new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Count, "Count"));
             Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddPivotTable("A1:C2", "E1", "Pivot",
                 rowFields: new[] { "Region" }, columnFields: new[] { "Channel" }, dataFields: measures,
-                dataOnRows: valuesOnRows, valuesAxisPosition: position));
+                dataOnRows: valuesOnRows, options: new ExcelPivotTableOptions { ValuesAxisPosition = position }));
             Assert.Empty(sheet.WorksheetPart.PivotTableParts);
             Assert.Null(document.WorkbookPartRoot.Workbook.PivotCaches);
             Assert.Empty(sheet.GetPivotTables());

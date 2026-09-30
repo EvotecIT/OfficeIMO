@@ -112,7 +112,10 @@ namespace OfficeIMO.Excel {
             foreach (OriginalDynamicOwnerCaches state in states)
                 if (state.Valid && state.AnchorSeen)
                     foreach (var entry in state.Cells)
-                        if (!ownership.Cells.ContainsKey(entry.Key)) ownership.Cells.Add(entry.Key, entry.Value);
+                        if (!ownership.Cells.ContainsKey(entry.Key)) {
+                            GetFixedArraySheetIndex().Cells.TryGetValue(entry.Key, out entry.Value.SourceCell);
+                            ownership.Cells.Add(entry.Key, entry.Value);
+                        }
         }
 
         private bool ReadOriginalDynamicSpillCells(

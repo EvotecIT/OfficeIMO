@@ -13,7 +13,7 @@ public sealed partial class CsvDocument
     /// Initialization reads the header and, when requested, at most SchemaSampleSize data records.
     /// Delimiter detection replays a bounded prefix. Dispose the reader to close its file.
     /// </summary>
-    public static Task<DbDataReader> OpenStreamingDataReaderAsync(string path,
+    public static Task<DbDataReader> OpenDataReaderAsync(string path,
         CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default)
     {
@@ -29,7 +29,7 @@ public sealed partial class CsvDocument
     /// a parsing failure ends the reader. The opening token remains active for its lifetime.
     /// Delimiter detection samples at most 64 Ki characters and replays the prefix.
     /// </summary>
-    public static Task<DbDataReader> OpenStreamingDataReaderAsync(Stream stream,
+    public static Task<DbDataReader> OpenDataReaderAsync(Stream stream,
         CsvLoadOptions? loadOptions = null, CsvDataReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default)
     {

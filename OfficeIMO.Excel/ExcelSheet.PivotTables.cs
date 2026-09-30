@@ -211,8 +211,7 @@ namespace OfficeIMO.Excel {
         /// <param name="pivotFilters">Optional label and value filters.</param>
         /// <param name="calculatedFields">Optional formula-backed pivot cache fields.</param>
         /// <param name="groupings">Optional date or numeric grouping metadata.</param>
-        /// <param name="options">Optional pivot cache and workbook-interaction settings.</param>
-        /// <param name="valuesAxisPosition">Zero-based placement of Values among the fields on its row or column axis. Defaults to last.</param>
+        /// <param name="options">Optional pivot layout, cache and workbook-interaction settings.</param>
         public void AddPivotTable(
             string sourceRange,
             string destinationCell,
@@ -245,8 +244,8 @@ namespace OfficeIMO.Excel {
             IEnumerable<ExcelPivotFilter>? pivotFilters = null,
             IEnumerable<ExcelPivotCalculatedField>? calculatedFields = null,
             IEnumerable<ExcelPivotGrouping>? groupings = null,
-            ExcelPivotTableOptions? options = null,
-            int? valuesAxisPosition = null) {
+            ExcelPivotTableOptions? options = null) {
+            int? valuesAxisPosition = options?.ValuesAxisPosition;
             if (string.IsNullOrWhiteSpace(sourceRange)) throw new ArgumentNullException(nameof(sourceRange));
             if (string.IsNullOrWhiteSpace(destinationCell)) throw new ArgumentNullException(nameof(destinationCell));
             if (!A1.TryParseRange(sourceRange, out int r1, out int c1, out int r2, out int c2)) {

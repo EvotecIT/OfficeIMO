@@ -4,8 +4,8 @@ This project compares raw .NET CSV paths without PowerShell object overhead. Use
 
 ## Asynchronous input
 
-`CsvAsyncReadBenchmarks` measures `OpenDataReaderAsync` and
-`OpenStreamingDataReaderAsync` with 1,000 and 100,000 rows containing distinct
+`CsvAsyncReadBenchmarks` compares a `LoadAsync(...).CreateDataReader()` snapshot
+with incremental `OpenDataReaderAsync` on 1,000 and 100,000 rows containing distinct
 labels and either plain notes or quoted Unicode multiline notes. `FirstRow`
 measures opening and returning one row; `AllRows` consumes every field.
 Snapshot initialization reads the complete file in both cases. Incremental

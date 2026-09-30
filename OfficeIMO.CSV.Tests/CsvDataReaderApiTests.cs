@@ -50,7 +50,7 @@ public sealed class CsvDataReaderApiTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
-    public async Task OpenDataReaderAsyncUsesAsyncIoAndReturnsMemoryBackedAsyncCursor() {
+    public async Task OpenDataReaderAsyncUsesAsyncIoAndReturnsIncrementalCursor() {
         byte[] bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n");
         await using var stream = new AsyncOnlyReadStream(bytes);
 
@@ -69,7 +69,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public async Task OpenDataReaderAsyncReadsFromCurrentSeekablePositionAndRestoresIt() {
+    public async Task OpenDataReaderAsyncReadsFromCurrentSeekablePositionAndAdvancesIt() {
         byte[] prefix = Encoding.UTF8.GetBytes("ignored-prefix");
         byte[] payload = Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n");
         using var stream = new MemoryStream(prefix.Concat(payload).ToArray());
@@ -80,7 +80,7 @@ public sealed class CsvDataReaderApiTests {
             new CsvLoadOptions { MaxInputBytes = payload.Length },
             new CsvDataReaderOptions { InferSchema = true });
 
-        Assert.Equal(prefix.Length, stream.Position);
+        Assert.True(stream.Position > prefix.Length);
         Assert.Equal("Id", reader.GetName(0));
         Assert.Equal("Name", reader.GetName(1));
         Assert.True(await reader.ReadAsync(CancellationToken.None));
@@ -90,13 +90,13 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public async Task OpenDataReaderAsyncDoesNotRetainOpeningCancellationInReturnedCursor() {
+    public async Task MaterializedAsyncSnapshotDoesNotRetainOpeningCancellationInReturnedCursor() {
         using var openingCancellation = new CancellationTokenSource();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
 
-        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
-            stream,
+        var document = await CsvDocument.LoadAsync(stream,
             new CsvLoadOptions { CancellationToken = openingCancellation.Token });
+        using DbDataReader reader = document.CreateDataReader();
         openingCancellation.Cancel();
 
         Assert.True(await reader.ReadAsync(CancellationToken.None));

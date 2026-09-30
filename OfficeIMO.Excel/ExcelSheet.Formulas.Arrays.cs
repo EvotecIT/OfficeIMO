@@ -8,10 +8,6 @@ namespace OfficeIMO.Excel {
             internal readonly Dictionary<string, FixedArraySheetIndex> Sheets = new Dictionary<string, FixedArraySheetIndex>(StringComparer.OrdinalIgnoreCase);
             internal readonly Dictionary<string, FormulaArrayValue> Results = new Dictionary<string, FormulaArrayValue>(StringComparer.OrdinalIgnoreCase);
             internal readonly Dictionary<string, DynamicArrayPlan> DynamicPlans = new Dictionary<string, DynamicArrayPlan>(StringComparer.OrdinalIgnoreCase);
-            internal readonly Dictionary<long, FormulaArgumentValue> DynamicCells = new Dictionary<long, FormulaArgumentValue>();
-            internal readonly HashSet<long> DynamicRetiredCells = new HashSet<long>();
-            internal bool PlanningDynamicOwners;
-            internal bool DynamicOwnersPlanned;
         }
 
         private bool TryGetCalculatedArray(Cell cell, out FormulaArrayValue array) {
@@ -22,6 +18,10 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class FixedArraySheetIndex {
+            internal readonly Dictionary<long, FormulaArgumentValue> DynamicCells = new Dictionary<long, FormulaArgumentValue>();
+            internal readonly HashSet<long> DynamicRetiredCells = new HashSet<long>();
+            internal bool PlanningDynamicOwners;
+            internal bool DynamicOwnersPlanned;
             internal readonly List<FixedArrayOwner> Owners = new List<FixedArrayOwner>();
             internal readonly List<FixedArrayOwner> DynamicOwners = new List<FixedArrayOwner>();
             internal readonly Dictionary<Cell, FixedArrayOwner> DynamicByCell = new Dictionary<Cell, FixedArrayOwner>();

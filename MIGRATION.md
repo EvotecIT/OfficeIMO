@@ -9,7 +9,23 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
-## CSV asynchronous stream saves
+## CSV asynchronous reads and stream saves
+
+On .NET 8 and later, `CsvDocument.OpenDataReaderAsync` reads incrementally.
+Opening reads the header and any configured schema sample; later `ReadAsync`
+calls perform source I/O. Source limits and parsing errors can therefore occur
+during traversal. The opening cancellation token remains active until the
+reader is disposed, and cancellation or a failed advance ends the reader.
+Caller-owned streams remain open, but their position advances and is not restored.
+
+For a materialized snapshot with memory-backed traversal, load the document first:
+
+```csharp
+var csv = await CsvDocument.LoadAsync(stream, cancellationToken: cancellationToken);
+using DbDataReader reader = csv.CreateDataReader();
+```
+
+`LoadAsync(Stream, ...)` retains its existing stream-position restoration behavior.
 
 `CsvDocument.SaveAsync(Stream, ...)` writes records incrementally instead of
 serializing the complete CSV before the first write. If formatting, cancellation,
@@ -1830,11 +1846,11 @@ The low-level `CsvFile` compression helper is no longer public. Use
 `TextReader` / `TextWriter` streams so file and compression behavior stays with
 the operation being performed.
 
-CSV `LoadAsync` and `SaveAsync` use asynchronous source or destination I/O but
-still materialize the document or serialized output. Use `OpenDataReader` for a
-bounded forward-only cursor. That reader remains synchronous and can be cast to
-`ICsvDataReaderPositionMetadata` for logical record numbers and available
-physical start/end line numbers.
+CSV `LoadAsync` materializes an editable document. `SaveAsync` writes records
+incrementally. Use `OpenDataReader` for synchronous forward-only reading or,
+on .NET 8 and later, `OpenDataReaderAsync` for incremental asynchronous I/O.
+Both readers expose `ICsvDataReaderPositionMetadata` for logical record numbers
+and available physical start/end line numbers.
 
 `WriteRows` keeps typed cell dispatch without boxing when its typed `Write`
 overloads are used. Use `WriteRowsAsync` for an `IAsyncEnumerable<T>` source; it

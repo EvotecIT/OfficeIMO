@@ -152,7 +152,7 @@ public class CsvProfileTests {
     public async Task IncrementalStrictReaderRejectsMalformedRows(string text) {
         using var source = new MemoryStream(Encoding.UTF8.GetBytes(text));
         await Assert.ThrowsAnyAsync<CsvException>(async () => {
-            using var reader = await CsvDocument.OpenStreamingDataReaderAsync(source, CsvProfiles.CreateLoadOptions(CsvProfile.Strict));
+            using var reader = await CsvDocument.OpenDataReaderAsync(source, CsvProfiles.CreateLoadOptions(CsvProfile.Strict));
             while (await reader.ReadAsync()) { }
         });
         Assert.True(source.CanRead);

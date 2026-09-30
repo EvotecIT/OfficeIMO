@@ -157,10 +157,10 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     {
         if (_closed) return false;
         ThrowIfFailed();
-        cancellationToken.ThrowIfCancellationRequested();
-        _stop.Token.ThrowIfCancellationRequested();
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            _stop.Token.ThrowIfCancellationRequested();
             if (!await EnsureCurrentBatchAsync(cancellationToken).ConfigureAwait(false))
             {
                 _hasRows ??= false;
@@ -180,10 +180,10 @@ internal sealed class CsvParallelDataReader : DbDataReader,
     {
         if (_closed) return false;
         ThrowIfFailed();
-        cancellationToken.ThrowIfCancellationRequested();
-        _stop.Token.ThrowIfCancellationRequested();
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            _stop.Token.ThrowIfCancellationRequested();
             if (!EnsureCurrentBatch(cancellationToken))
             {
                 _hasRows ??= false;

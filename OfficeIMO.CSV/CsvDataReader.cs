@@ -845,12 +845,12 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
 
     private async ValueTask<bool> ReadIncrementalAsync(ICsvAsyncDataReaderRowSource rows, bool asynchronous, CancellationToken cancellationToken)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed) return false;
         if (_incrementalReadFailed) throw new InvalidOperationException("The CSV reader cannot continue after a failed advance.");
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            _processingCancellationToken.ThrowIfCancellationRequested();
             if (_hasBufferedRow) return ReadSlow(cancellationToken);
             // Both synchronous and asynchronous failed advances hide the previous row.
             ClearCurrentRow();
@@ -880,17 +880,16 @@ internal sealed partial class CsvDataReader : DbDataReader, ICsvDataReaderDialec
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool ReadCore(CancellationToken cancellationToken)
     {
+#if NET8_0_OR_GREATER
+        if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
+            return ReadIncrementalAsync(asynchronousRows, asynchronous: false, cancellationToken).GetAwaiter().GetResult();
+#endif
         cancellationToken.ThrowIfCancellationRequested();
         _processingCancellationToken.ThrowIfCancellationRequested();
         if (_closed)
         {
             return false;
         }
-
-#if NET8_0_OR_GREATER
-        if (_textRowSource is ICsvAsyncDataReaderRowSource asynchronousRows)
-            return ReadIncrementalAsync(asynchronousRows, asynchronous: false, cancellationToken).GetAwaiter().GetResult();
-#endif
 
         if (_useDirectTextSourceStrings && !_hasBufferedRow)
         {
