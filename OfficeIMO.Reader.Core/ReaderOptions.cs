@@ -25,6 +25,9 @@ public sealed class ReaderOptions {
     /// </summary>
     public long? MaxInputBytes { get; set; }
 
+    // Aggregate ingestion limits must not override the actual handler's default input limit.
+    internal long? InputByteBudget { get; set; }
+
     /// <summary>
     /// OpenXML security: maximum characters allowed per part when opening OpenXML packages (best-effort).
     /// When null, the OpenXML SDK default is used.

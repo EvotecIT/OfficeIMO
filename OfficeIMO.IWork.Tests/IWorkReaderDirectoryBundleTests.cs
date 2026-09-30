@@ -54,20 +54,27 @@ public sealed class IWorkReaderDirectoryBundleTests {
         Assert.Equal(result.Source.LengthBytes, folder.BytesRead);
     }
 
-    [Fact]
-    public void Folder_budget_preserves_the_selected_handlers_default_input_limit() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Folder_budget_preserves_the_selected_handlers_default_input_limit(bool preferContent) {
         using var bundle = new ExtractedBundle("nim-iwork/simple.pages", ".pages");
-        string path = System.IO.Path.Combine(bundle.Root, "sample.bounded");
-        File.WriteAllText(path, "12345678901");
+        string path = System.IO.Path.Combine(bundle.Root, preferContent ? "sample.txt" : "sample.bounded");
+        File.WriteAllText(path, preferContent ? "# Detected Markdown\n\nBody" : "12345678901");
         int calls = 0;
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHandler(new ReaderHandlerRegistration {
-            Id = "bounded-test", Kind = ReaderInputKind.Text, Extensions = new[] { ".bounded" },
+            Id = "bounded-test", Kind = ReaderInputKind.Text, Extensions = new[] { ".bounded", ".txt" },
+            DefaultMaxInputBytes = preferContent ? 100 : 10,
+            ReadPath = (_, _, _) => { calls++; return Array.Empty<ReaderChunk>(); }
+        }).AddHandler(new ReaderHandlerRegistration {
+            Id = "markdown-test", Kind = ReaderInputKind.Markdown, Extensions = new[] { ".md" },
             DefaultMaxInputBytes = 10,
             ReadPath = (_, _, _) => { calls++; return Array.Empty<ReaderChunk>(); }
         }).Build();
-        Assert.Throws<IOException>(() => reader.ReadDocument(path));
+        var options = new ReaderOptions { DetectionMode = preferContent ? ReaderDetectionMode.PreferContent : ReaderDetectionMode.ContentWhenUnknown };
+        Assert.Throws<IOException>(() => reader.ReadDocument(path, options));
         ReaderIngestResult folder = reader.ReadFolderDetailed(bundle.Root,
-            new ReaderFolderOptions { MaxTotalBytes = 100 });
+            new ReaderFolderOptions { MaxTotalBytes = 100 }, options);
         Assert.Equal(0, folder.FilesParsed);
         Assert.Equal(1, folder.FilesSkipped);
         Assert.Equal(0, calls);

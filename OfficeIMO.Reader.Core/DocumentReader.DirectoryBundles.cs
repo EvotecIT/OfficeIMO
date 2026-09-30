@@ -19,19 +19,6 @@ internal static partial class DocumentReaderEngine {
         return full.Substring(0, length);
     }
 
-    private static ReaderOptions ApplyFolderInputBudget(string path, ReaderOptions? options, long maximumBytes) {
-        ReaderOptions effective = NormalizeOptions(options);
-        bool directory = Directory.Exists(path);
-        if (directory) path = NormalizeDirectoryPackagePath(path);
-        long? inputLimit = directory &&
-            TryResolveCustomHandlerByPath(path, out ReaderHandlerDescriptor handler)
-            && handler.ReadDirectoryBundle != null
-                ? ResolveSelectedHandlerMaxInputBytes(handler, path, effective) ?? DefaultUnidentifiedStreamMaxInputBytes
-                : ResolveInitialMaxInputBytes(path, effective);
-        effective.MaxInputBytes = Math.Min(inputLimit ?? long.MaxValue, maximumBytes);
-        return effective;
-    }
-
     private static OfficeDocumentReadResult ReadDirectoryBundle(string path,
         ReaderOptions? options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

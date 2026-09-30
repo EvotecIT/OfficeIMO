@@ -216,7 +216,7 @@ internal static partial class DocumentReaderEngine {
                     new[] { "Skipped before parsing because MaxTotalBytes would be exceeded." });
             } else {
                 ReaderOptions readOptions = effectiveFolder.MaxTotalBytes.HasValue
-                    ? ApplyFolderInputBudget(file, options, remainingBytes) : NormalizeOptions(options);
+                    ? ApplyFolderInputBudget(options, remainingBytes) : NormalizeOptions(options);
                 document = remainingBytes == 0
                     ? BuildSourceDocument(source, false, null, new[] { "Skipped before parsing because MaxTotalBytes is exhausted." })
                     : ReadSingleDocument(file, readOptions, cancellationToken);

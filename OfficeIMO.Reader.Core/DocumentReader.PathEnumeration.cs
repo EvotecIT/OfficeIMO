@@ -70,7 +70,7 @@ internal static partial class DocumentReaderEngine {
             if (maximumBytes <= 0) return false;
             try {
                 OfficeDocumentReadResult result = ReadDirectoryBundle(path,
-                    ApplyFolderInputBudget(path, new ReaderOptions { ComputeHashes = false }, maximumBytes), cancellationToken);
+                    ApplyFolderInputBudget(new ReaderOptions { ComputeHashes = false }, maximumBytes), cancellationToken);
                 length = result.Source.LengthBytes!.Value;
                 return true;
             } catch (OperationCanceledException) {
