@@ -7,6 +7,7 @@ public sealed class Markdown_Reader_Performance_Contract_Tests {
 #if NET8_0_OR_GREATER
     [Fact]
 #if MARKDOWN_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void TableHeavyParse_DoesNotRebindTheGrowingDocumentForEveryBlock() {

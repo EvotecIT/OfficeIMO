@@ -306,6 +306,7 @@ public sealed class ReaderPageLocationTests {
 
     [Fact]
 #if READER_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void Search_MaximumResultsBoundsOccurrenceCollectionForLargeBlocks() {
@@ -339,6 +340,7 @@ public sealed class ReaderPageLocationTests {
 
     [Fact]
 #if READER_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void Search_LimitedFallbackCorrelationDoesNotCopyUnboundedFragmentText() {
@@ -392,6 +394,7 @@ public sealed class ReaderPageLocationTests {
 
     [Fact]
 #if READER_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void Search_PageMappingScalesAcrossManyFragments() {

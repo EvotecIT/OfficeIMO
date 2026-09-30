@@ -243,6 +243,7 @@ public sealed class OpenDocumentConversionContracts {
 #if NET8_0_OR_GREATER
     [Fact]
 #if OPENDOCUMENT_CONVERTERS_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void DeepNestedInlineNodesUseBoundedAllocationInOdtAndOdp() {

@@ -11,7 +11,9 @@ The MIME, mbox, MSG resource-limit, PST reopen, conversion, and deduplication te
 Run the large MIME/mbox/MSG allocation workloads and PST scale measurements explicitly:
 
 ```powershell
-dotnet test OfficeIMO.Email.Tests -c Release -f net8.0 --filter "Category=Performance"
+dotnet test OfficeIMO.Email.Tests -c Release -f net8.0 -p:EmailPerformanceEvidence=true --filter "Category=Performance"
 ```
 
-The Email Performance Evidence workflow runs that measurement lane on Windows, Linux, and macOS and retains its results. It checks observed elapsed time and managed-memory envelopes; compare failures under the same workload and runtime. An unfiltered local `dotnet test` includes both lanes.
+The Email Performance Evidence workflow runs that measurement lane on Windows, Linux, and macOS and retains its results. It checks observed elapsed time and managed-memory envelopes; compare failures under the same workload and runtime.
+
+The property enables the original retained-memory workload at compilation. Do not pass `--no-build` when changing it. Run the ordinary command without the property to rebuild the correctness variant.

@@ -10,6 +10,7 @@ namespace OfficeIMO.Tests;
 public sealed partial class ReaderEpubModularTests {
 #if NET8_0_OR_GREATER && READER_PERFORMANCE_EVIDENCE
     [Fact]
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
     public void EpubDocument_DoesNotPreallocateUntrustedDeclaredChapterLength() {
         string epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-length-" + Guid.NewGuid().ToString("N") + ".epub");
