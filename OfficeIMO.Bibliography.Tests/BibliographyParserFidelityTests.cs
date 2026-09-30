@@ -15,6 +15,9 @@ public sealed class BibliographyParserFidelityTests {
 
         string[] expected = collectiveInterleaving ? new[] { "Smith", "Research Group", "Brown", "Jones" } : new[] { "Smith", "Brown", "Jones" };
         Assert.Equal(expected, item.Contributors.Select(static contributor => contributor.Name.Literal ?? contributor.Name.Family));
+        Assert.Equal(new[] { "Smith", "Brown", "Jones" }, item.Contributors
+            .Where(static contributor => contributor.Name.Literal != "Research Group")
+            .Select(static contributor => contributor.Name.Family));
         Assert.DoesNotContain(item.NativeFields, static field => field.Name == "AU");
     }
 
