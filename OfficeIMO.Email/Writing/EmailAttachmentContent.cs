@@ -2,14 +2,15 @@ namespace OfficeIMO.Email;
 
 internal static class EmailAttachmentContent {
     internal static byte[]? ReadOrNull(EmailAttachment attachment, long maximumBytes) {
-        if (attachment.Content != null) return attachment.Content;
-        if (attachment.ContentSource == null) return null;
-        if (attachment.ContentSource.Length.HasValue && attachment.ContentSource.Length.Value > maximumBytes) {
+        if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) return attachment.Content;
+        if (attachment.ContentSource == null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) return null;
+        long? length = EmailAttachmentStreamScope.GetLength(attachment);
+        if (length.HasValue && length.Value > maximumBytes) {
             throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes),
-                attachment.ContentSource.Length.Value, maximumBytes);
+                length.Value, maximumBytes);
         }
 
-        using (Stream input = attachment.ContentSource.OpenRead()) {
+        using (Stream input = EmailAttachmentStreamScope.OpenRead(attachment)) {
             if (input == null || !input.CanRead) {
                 throw new InvalidDataException("The attachment content source did not return a readable stream.");
             }

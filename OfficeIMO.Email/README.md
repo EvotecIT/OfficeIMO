@@ -1,5 +1,52 @@
 # OfficeIMO.Email
 
+## Attachment extraction and draft composition
+
+Extract decoded attachments into a directory controlled by the application:
+
+```csharp
+EmailAttachmentExtractionResult extraction = EmailAttachmentExtractor.Extract(message, "attachments",
+    new EmailAttachmentExtractionOptions(recurseEmbeddedMessages: true));
+
+foreach (EmailAttachmentExtractionEntry entry in extraction.Entries) {
+    Console.WriteLine($"{entry.SourcePath}: {entry.OutputPath} {entry.Sha256}");
+}
+```
+
+The result is a hash and provenance manifest. Each entry keeps its original filename, logical attachment
+indexes, committed path, byte count, and diagnostics. Portable filenames include a deterministic index
+and source-path hash. Existing files are never overwritten. Embedded messages are exported as EML through
+the regular writer, so their conversion and signature policies still apply. Linked attachment paths are
+never opened, hidden attachments are excluded by default, and inline attachments can be excluded explicitly.
+The defaults visit at most 1,000 entries, allow 64 MiB per file and 256 MiB per operation, and permit four
+levels of nested attachment traversal when enabled. A rejected streaming payload may consume one sentinel
+byte beyond its limit. The aggregate budget counts decoded source reads, including failed attempts, and
+generated embedded EML bytes. Embedded source content is staged once through the shared writer staging
+owner; it is not reopened during serialization. `ExtractAsync` stages and copies source streams asynchronously.
+Earlier committed files remain available if a later attachment fails or the operation
+is cancelled. Keep the destination directory under application control while extraction runs.
+
+Create reply and forward artifacts without sending them:
+
+```csharp
+var composition = new EmailCompositionOptions();
+composition.OwnAddresses.Add("alias@example.com");
+EmailCompositionResult reply = EmailComposer.ReplyAll(message,
+    new EmailAddress("me@example.com", "Example User"), "Thanks for the update.", composition);
+reply.Document.Save("reply.eml");
+```
+
+`Reply` prefers Reply-To over From. `ReplyAll` also selects the original To/Cc recipients, excludes the
+composing address and configured aliases, and deduplicates addresses. Bcc is never copied. Exchange
+directory addresses that need resolution produce diagnostics. The new draft receives References and
+In-Reply-To, bounded to the most recent 100 identifiers by default. Source transport headers, signatures,
+MAPI metadata, attachments, and the original Message-ID are not inherited.
+
+`Forward` starts with no recipients or attachments; add the intended recipients and attachments explicitly.
+These builders quote the plain-text alternative, with a 256 KiB character limit and Unicode-safe truncation.
+HTML-only messages return a missing-plain-body diagnostic. Inspect the result before handing a draft to a
+transport such as Mailozaurr.
+
 `OfficeIMO.Email` provides a first-party engine for persisted email and Outlook artifacts without a third-party message, compound-file, MIME, RTF, or platform-UI runtime.
 
 ```powershell
