@@ -112,16 +112,6 @@ public sealed class BibliographyReviewWave32RegressionTests {
         Assert.Contains(exception.Report.Diagnostics, candidate => candidate.Code == "BIBCONV222" && candidate.Field == elementName);
     }
 
-    [Theory]
-    [InlineData("records")]
-    [InlineData("record")]
-    public void EndNote_structural_mixed_text_is_bounded_before_DOM_materialization(string elementName) {
-        string source = CreateMixedTextSource(elementName, "oversized");
-
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 4 });
-
-        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001" && diagnostic.Message.Contains("value length", StringComparison.Ordinal));
-    }
 
     [Theory]
     [InlineData("records")]

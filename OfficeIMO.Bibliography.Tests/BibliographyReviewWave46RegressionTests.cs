@@ -28,17 +28,22 @@ public sealed class BibliographyReviewWave46RegressionTests {
         }
     }
 
-    [Fact]
-    public void EndNote_byte_loading_scans_the_complete_XML_declaration_for_legacy_encoding() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EndNote_byte_loading_scans_the_complete_XML_declaration_for_legacy_encoding(bool longDeclaration) {
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         Encoding windows1252 = Encoding.GetEncoding(1252, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-        string source = "<?xml version=\"1.0\"" + new string(' ', 8192) + "encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Café €</title></titles></record></records></xml>";
-        using var stream = new MemoryStream(windows1252.GetBytes(source));
+        string title = longDeclaration ? "Café €" : "Café";
+        string source = "<?xml version=\"1.0\"" + new string(' ', longDeclaration ? 8192 : 1) + "encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>" + title + "</title></titles></record></records></xml>";
+        byte[] bytes = windows1252.GetBytes(source);
+        using var stream = new MemoryStream(bytes);
 
         BibliographyReadResult read = BibliographyDocument.Load(stream, BibliographyFormat.EndNoteXml);
 
         Assert.False(read.HasErrors);
-        Assert.Equal("Café €", Assert.Single(read.Document.Items).Title);
+        Assert.Equal(title, Assert.Single(read.Document.Items).Title);
+        Assert.Equal(bytes, read.Document.GetOriginalBytes());
     }
 
     [Fact]

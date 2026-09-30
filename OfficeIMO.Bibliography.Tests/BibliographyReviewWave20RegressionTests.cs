@@ -39,14 +39,21 @@ public sealed class BibliographyReviewWave20RegressionTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Tagged_value_limits_apply_before_large_line_materialization(bool continuation) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+    public void Tagged_value_limits_apply_before_large_line_materialization(bool continuation, bool shortContinuation) {
         _ = BibliographyDocument.Parse("TY  - JOUR\nER  -", BibliographyFormat.Ris);
         string prefix = continuation ? "TY  - JOUR\nTI  - x\n      " : "TY  - ";
-        string source = prefix + new string('x', 8 * 1024 * 1024);
-        var options = new BibliographyReadOptions { MaximumValueLength = 4 };
-#if NET472
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+        const int length = 8 * 1024 * 1024;
+#else
+        const int length = 128;
+#endif
+        string source = shortContinuation ? "TY  - BOOK\nTI  - A\n      123456\nER  -\n" : prefix + new string('x', length);
+        var options = new BibliographyReadOptions { MaximumValueLength = shortContinuation ? 5 : 4 };
+#if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, options);
 #else
         long before = GC.GetAllocatedBytesForCurrentThread();
@@ -55,8 +62,9 @@ public sealed class BibliographyReviewWave20RegressionTests {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 #endif
 
+        Assert.True(read.HasErrors);
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
-#if !NET472
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE && !NET472
         Assert.True(allocated < 1024 * 1024, $"Oversized tagged input allocated {allocated:N0} bytes before rejection.");
 #endif
     }

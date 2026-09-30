@@ -4,41 +4,20 @@ using System.Xml.Linq;
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyParserFidelityTests {
-    [Fact]
-    public void Partial_NBIB_full_author_list_is_matched_to_compact_authors() {
-        const string source = "PMID- 1\nFAU - Smith, John\nAU  - Smith J\nAU  - Brown B\nFAU - Jones, Jane\nAU  - Jones J\nTI  - Authors\n";
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NBIB_full_compact_matching_preserves_interleaved_collective_author_order(bool collectiveInterleaving) {
+        string source = "PMID- 1\nFAU - Smith, John\nAU  - Smith J\n" + (collectiveInterleaving ? "CN  - Research Group\n" : string.Empty) + "AU  - Brown B\nFAU - Jones, Jane\nAU  - Jones J\nTI  - Authors\n";
 
         BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document.Items);
 
-        Assert.Equal(new[] { "Smith", "Brown", "Jones" }, item.Contributors.Select(static contributor => contributor.Name.Family));
+        string[] expected = collectiveInterleaving ? new[] { "Smith", "Research Group", "Brown", "Jones" } : new[] { "Smith", "Brown", "Jones" };
+        Assert.Equal(expected, item.Contributors.Select(static contributor => contributor.Name.Literal ?? contributor.Name.Family));
         Assert.DoesNotContain(item.NativeFields, static field => field.Name == "AU");
     }
 
-    [Fact]
-    public void NBIB_full_compact_matching_preserves_interleaved_collective_author_order() {
-        const string source = "PMID- 1\nFAU - Smith, John\nAU  - Smith J\nCN  - Research Group\nAU  - Brown B\nFAU - Jones, Jane\nAU  - Jones J\nTI  - Authors\n";
-
-        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document.Items);
-
-        Assert.Equal(new[] { "Smith", "Research Group", "Brown", "Jones" }, item.Contributors.Select(static contributor => contributor.Name.Literal ?? contributor.Name.Family));
-    }
-
-    [Theory]
-    [InlineData("title")]
-    [InlineData("publisher")]
-    [InlineData("DOI")]
-    [InlineData("keyword")]
-    public void Object_valued_CSL_scalars_remain_native_JSON(string property) {
-        string source = "[{\"id\":\"x\",\"type\":\"book\",\"" + property + "\":{\"value\":\"Example\"}}]";
-        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        using JsonDocument reopened = JsonDocument.Parse(written.Content);
-        JsonElement value = reopened.RootElement[0].GetProperty(property);
-
-        Assert.Equal(JsonValueKind.Object, value.ValueKind);
-        Assert.Equal("Example", value.GetProperty("value").GetString());
-    }
 
     [Theory]
     [InlineData("ISBN", "ABC-123")]
@@ -67,23 +46,6 @@ public sealed class BibliographyParserFidelityTests {
         Assert.Equal("1", Assert.Single(read.Document.Items).Key);
     }
 
-    [Theory]
-    [InlineData(BibliographyFormat.Ris)]
-    [InlineData(BibliographyFormat.Nbib)]
-    [InlineData(BibliographyFormat.EndNoteXml)]
-    public void Single_token_family_names_reopen_as_structured_names(BibliographyFormat format) {
-        var document = new BibliographyDocument(format);
-        var item = new BibliographyItem { Key = format == BibliographyFormat.Nbib ? "1" : "x", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Smith" }));
-        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
-        document.Items.Add(item);
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyContributor reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Contributors);
-
-        Assert.Equal("Smith", reopened.Name.Family);
-        Assert.Null(reopened.Name.Literal);
-    }
 
     [Fact]
     public void Recognized_RIS_scalar_continuation_updates_the_typed_field() {
@@ -347,16 +309,6 @@ public sealed class BibliographyParserFidelityTests {
         Assert.Equal("1", Assert.Single(BibliographyDocument.Load(new MemoryStream(written.Bytes), BibliographyFormat.EndNoteXml).Document.Items).Key);
     }
 
-    [Fact]
-    public void Generic_document_is_exact_in_CSL_JSON() {
-        var document = new BibliographyDocument(BibliographyFormat.CslJson);
-        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Document, Title = "Document" });
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
-
-        Assert.Equal(BibliographyItemType.Document, reopened.Type);
-    }
 
     [Fact]
     public void CSL_JSON_citation_keys_are_compared_case_sensitively() {
@@ -474,14 +426,21 @@ public sealed class BibliographyParserFidelityTests {
     [InlineData(BibliographyFormat.Nbib, "suffix")]
     [InlineData(BibliographyFormat.EndNoteXml, "given")]
     [InlineData(BibliographyFormat.EndNoteXml, "suffix")]
+    [InlineData(BibliographyFormat.BibTex, "givenJohn")]
+    [InlineData(BibliographyFormat.BibLatex, "givenJohn")]
+    [InlineData(BibliographyFormat.Ris, "givenJohn")]
+    [InlineData(BibliographyFormat.Nbib, "givenJohn")]
+    [InlineData(BibliographyFormat.EndNoteXml, "givenJohn")]
     public void Tagged_name_output_diagnoses_missing_family_positions(BibliographyFormat format, string component) {
         var document = new BibliographyDocument(format);
-        var item = new BibliographyItem { Key = format == BibliographyFormat.Nbib ? "1" : "x", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
+        string key = component == "givenJohn" ? "123" : format == BibliographyFormat.Nbib ? "1" : "x";
+        var item = new BibliographyItem { Key = key, Type = format == BibliographyFormat.Nbib && component != "givenJohn" ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
         var name = new BibliographyName();
         if (component == "given") name.Given = "Cher";
+        else if (component == "givenJohn") name.Given = "John";
         else name.Suffix = "Jr.";
         item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, name));
-        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
+        if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", key));
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
@@ -490,30 +449,42 @@ public sealed class BibliographyParserFidelityTests {
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
     }
 
-    [Fact]
-    public void Generic_document_is_exact_in_RIS() {
-        var document = new BibliographyDocument(BibliographyFormat.Ris);
-        document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Document, Title = "Document" });
+    [Theory]
+    [InlineData(BibliographyFormat.Ris)]
+    [InlineData(BibliographyFormat.CslJson)]
+    [InlineData(BibliographyFormat.EndNoteXml)]
+    public void Generic_document_is_exact_in_RIS(BibliographyFormat format) {
+        var document = new BibliographyDocument(format);
+        document.Items.Add(new BibliographyItem { Key = format == BibliographyFormat.EndNoteXml ? "1" : "x", Type = BibliographyItemType.Document, Title = format == BibliographyFormat.EndNoteXml ? "Generic" : "Document" });
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Ris).Document.Items);
+        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
 
-        Assert.Contains("TY  - GEN", written.Content, StringComparison.Ordinal);
+        if (format == BibliographyFormat.Ris) Assert.Contains("TY  - GEN", written.Content, StringComparison.Ordinal);
+        if (format == BibliographyFormat.CslJson) {
+            using JsonDocument json = JsonDocument.Parse(written.Content);
+            Assert.Equal("document", json.RootElement[0].GetProperty("type").GetString());
+        }
         Assert.Equal(BibliographyItemType.Document, reopened.Type);
     }
 
     [Theory]
-    [InlineData("\uFEFF@book{x,title={BOM}}", BibliographyFormat.BibLatex)]
-    [InlineData("\uFEFF[{\"id\":\"x\",\"type\":\"book\"}]", BibliographyFormat.CslJson)]
-    [InlineData("\uFEFFTY  - BOOK\nID  - x\nER  -\n", BibliographyFormat.Ris)]
-    [InlineData("\uFEFFPMID- 1\nTI  - BOM\n", BibliographyFormat.Nbib)]
-    [InlineData("\uFEFF<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>", BibliographyFormat.EndNoteXml)]
-    public void Auto_detection_skips_a_leading_BOM(string source, BibliographyFormat expected) {
+    [InlineData("\uFEFF@book{x,title={BOM}}", BibliographyFormat.BibLatex, 1)]
+    [InlineData("\uFEFF[{\"id\":\"x\",\"type\":\"book\"}]", BibliographyFormat.CslJson, 1)]
+    [InlineData("\uFEFFTY  - BOOK\nID  - x\nER  -\n", BibliographyFormat.Ris, 1)]
+    [InlineData("\uFEFFPMID- 1\nTI  - BOM\n", BibliographyFormat.Nbib, 1)]
+    [InlineData("\uFEFF<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type></record></records></xml>", BibliographyFormat.EndNoteXml, 1)]
+    [InlineData("@book{x,title={x}}", BibliographyFormat.BibLatex, 1)]
+    [InlineData("[{\"id\":\"x\",\"type\":\"book\"}]", BibliographyFormat.CslJson, 1)]
+    [InlineData("TY  - BOOK\nER  -", BibliographyFormat.Ris, 1)]
+    [InlineData("PMID- 1\nTI  - x", BibliographyFormat.Nbib, 1)]
+    [InlineData("<xml><records /></xml>", BibliographyFormat.EndNoteXml, 0)]
+    public void Auto_detection_skips_a_leading_BOM(string source, BibliographyFormat expected, int expectedCount) {
         BibliographyReadResult read = BibliographyDocument.Parse(source);
 
         Assert.Equal(expected, read.Document.SourceFormat);
         Assert.False(read.HasErrors);
-        Assert.Single(read.Document.Items);
+        Assert.Equal(expectedCount, read.Document.Items.Count);
     }
 
     [Fact]

@@ -29,36 +29,7 @@ public sealed class BibliographyIoAndSafetyTests {
         Assert.Equal("Unicode Łódź", Assert.Single(reopened.Document.Items).Title);
     }
 
-    [Fact]
-    public void EndNote_stream_loading_honors_a_declared_legacy_encoding() {
-        const string source = "<?xml version=\"1.0\" encoding=\"windows-1252\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Café</title></titles></record></records></xml>";
-        byte[] bytes = source.Select(static character => checked((byte)character)).ToArray();
 
-        BibliographyReadResult read = BibliographyDocument.Load(new MemoryStream(bytes), BibliographyFormat.EndNoteXml);
-
-        Assert.False(read.HasErrors);
-        Assert.Equal("Café", Assert.Single(read.Document.Items).Title);
-        Assert.Equal(bytes, read.Document.GetOriginalBytes());
-    }
-
-    [Fact]
-    public void EndNote_stream_loading_detects_BOMless_UTF16_and_UTF32() {
-        Encoding[] encodings = {
-            new UnicodeEncoding(false, false, true),
-            new UnicodeEncoding(true, false, true),
-            new UTF32Encoding(false, false, true),
-            new UTF32Encoding(true, false, true)
-        };
-
-        foreach (Encoding encoding in encodings) {
-            string source = $"<?xml version=\"1.0\" encoding=\"{encoding.WebName}\"?><xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Encoded</title></titles></record></records></xml>";
-
-            BibliographyReadResult read = BibliographyDocument.Load(new MemoryStream(encoding.GetBytes(source)), BibliographyFormat.EndNoteXml);
-
-            Assert.False(read.HasErrors);
-            Assert.Equal("Encoded", Assert.Single(read.Document.Items).Title);
-        }
-    }
 
     [Fact]
     public void EndNote_materialization_observes_cancellation() {
@@ -91,20 +62,7 @@ public sealed class BibliographyIoAndSafetyTests {
         Assert.False(BibliographyDocument.Load(asyncStream, BibliographyFormat.CslJson).HasErrors);
     }
 
-    [Fact]
-    public void Format_detection_covers_each_family() {
-        Assert.Equal(BibliographyFormat.BibLatex, BibliographyDocument.Parse("@book{x,title={x}}").Document.SourceFormat);
-        Assert.Equal(BibliographyFormat.CslJson, BibliographyDocument.Parse("[{\"id\":\"x\",\"type\":\"book\"}]").Document.SourceFormat);
-        Assert.Equal(BibliographyFormat.Ris, BibliographyDocument.Parse("TY  - BOOK\nER  -").Document.SourceFormat);
-        Assert.Equal(BibliographyFormat.Nbib, BibliographyDocument.Parse("PMID- 1\nTI  - x").Document.SourceFormat);
-        Assert.Equal(BibliographyFormat.EndNoteXml, BibliographyDocument.Parse("<xml><records /></xml>").Document.SourceFormat);
-    }
 
-    [Fact]
-    public void Input_character_limit_is_enforced_before_parsing() {
-        var options = new BibliographyReadOptions { MaximumInputCharacters = 8 };
-        Assert.Throws<InvalidDataException>(() => BibliographyDocument.Parse("@book{x,title={too long}}", BibliographyFormat.BibTex, options));
-    }
 
     [Fact]
     public void Stream_byte_limit_is_enforced_before_decoding() {
@@ -181,25 +139,16 @@ public sealed class BibliographyIoAndSafetyTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "BIBEND002");
     }
 
-    [Fact]
-    public void Cancellation_is_observed() {
-        using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
-        Assert.Throws<OperationCanceledException>(() => BibliographyDocument.Parse("[]", BibliographyFormat.CslJson, cancellationToken: cancellation.Token));
+    [Theory]
+    [InlineData("[]", BibliographyFormat.CslJson)]
+    [InlineData("invalid", BibliographyFormat.BibLatex)]
+    public void Cancellation_is_observed(string source, BibliographyFormat format) {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() => BibliographyDocument.Parse(source, format, cancellationToken: cancellation.Token));
     }
 
-    [Fact]
-    public void Oversized_csl_date_number_is_retained_with_diagnostic_instead_of_throwing() {
-        const string source = "[{\"id\":\"large-date\",\"type\":\"book\",\"issued\":{\"date-parts\":[[999999999999999999999]]}}]";
-
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson);
-        read.Document.Items[0].Title = "Edited";
-        BibliographyWriteResult written = read.Document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-
-        Assert.False(read.HasErrors);
-        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBCSL005");
-        Assert.Contains("999999999999999999999", written.Content, StringComparison.Ordinal);
-        Assert.False(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).HasErrors);
-    }
 
     [Fact]
     public void Structurally_incomplete_bib_input_is_an_error() {

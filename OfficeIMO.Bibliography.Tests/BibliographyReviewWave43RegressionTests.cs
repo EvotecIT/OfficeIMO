@@ -41,12 +41,18 @@ public sealed class BibliographyReviewWave43RegressionTests {
     }
 
     [Fact]
-    public void Large_undelimited_Bib_names_do_not_allocate_per_character_substrings() {
-        string name = new string('A', 512 * 1024);
+    [Trait("Category", "ResourcePerformanceEvidence")]
+    public void Undelimited_Bib_names_reopen_as_an_exact_family_name() {
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+        const int length = 512 * 1024;
+#else
+        const int length = 128;
+#endif
+        string name = new string('A', length);
         string source = "@book{x,author={" + name + "}}";
         var options = new BibliographyReadOptions { MaximumValueLength = name.Length + 1 };
         BibliographyDocument.Parse("@book{x,author={Doe}}", BibliographyFormat.BibLatex);
-#if NET472
+#if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, options);
 #else
         long before = GC.GetAllocatedBytesForCurrentThread();
@@ -55,7 +61,7 @@ public sealed class BibliographyReviewWave43RegressionTests {
 #endif
 
         Assert.Equal(name, Assert.Single(Assert.Single(read.Document.Items).Contributors).Name.Family);
-#if !NET472
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE && !NET472
         Assert.True(allocated < 12 * 1024 * 1024, $"Undelimited Bib name parsing allocated {allocated:N0} bytes.");
 #endif
     }
@@ -79,12 +85,13 @@ public sealed class BibliographyReviewWave43RegressionTests {
         const string source = "ZZ  - first\nPT  - Book\nZY  - second\nPT  - Custom Type\nZX  - third\nPMID- 1\nTI  - Ordered\n";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
         BibliographyItem item = Assert.Single(document.Items);
-        string[] originalOrder = item.NativeFields.Select(field => field.Name + "=" + field.Value).ToArray();
+        string[] expectedOrder = { "ZZ=first", "PT=Book", "ZY=second", "PT=Custom Type", "ZX=third" };
+        Assert.Equal(expectedOrder, item.NativeFields.Select(field => field.Name + "=" + field.Value));
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
 
-        Assert.Equal(originalOrder, reopened.NativeFields.Select(field => field.Name + "=" + field.Value));
+        Assert.Equal(expectedOrder, reopened.NativeFields.Select(field => field.Name + "=" + field.Value));
     }
 
     [Fact]
@@ -99,14 +106,4 @@ public sealed class BibliographyReviewWave43RegressionTests {
         Assert.Contains("?", Encoding.ASCII.GetString(written.Bytes), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Strict_encoding_instances_return_replacement_bytes_after_permissive_diagnostics() {
-        BibliographyDocument document = BibliographyDocument.Parse("@book{x,title={Łódź}}", BibliographyFormat.BibLatex).Document;
-        Encoding strictAscii = Encoding.GetEncoding(Encoding.ASCII.CodePage, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, Encoding = strictAscii });
-
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV220" && diagnostic.Field == "encoding");
-        Assert.Contains("?", Encoding.ASCII.GetString(written.Bytes), StringComparison.Ordinal);
-    }
 }

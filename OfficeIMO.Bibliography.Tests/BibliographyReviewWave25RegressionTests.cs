@@ -57,21 +57,24 @@ public sealed class BibliographyReviewWave25RegressionTests {
     }
 
     [Theory]
-    [InlineData(BibliographyFormat.Ris)]
-    [InlineData(BibliographyFormat.Nbib)]
-    [InlineData(BibliographyFormat.EndNoteXml)]
-    public void Family_only_multiword_names_reopen_as_family_only(BibliographyFormat format) {
+    [InlineData(BibliographyFormat.Ris, "Van Helsing")]
+    [InlineData(BibliographyFormat.Nbib, "Van Helsing")]
+    [InlineData(BibliographyFormat.EndNoteXml, "Van Helsing")]
+    [InlineData(BibliographyFormat.Ris, "Smith")]
+    [InlineData(BibliographyFormat.Nbib, "Smith")]
+    [InlineData(BibliographyFormat.EndNoteXml, "Smith")]
+    public void Family_only_multiword_names_reopen_as_family_only(BibliographyFormat format, string family) {
         var document = new BibliographyDocument(format);
         var item = new BibliographyItem { Key = "1", Type = format == BibliographyFormat.Nbib ? BibliographyItemType.ArticleJournal : BibliographyItemType.Book, Title = "Names" };
         if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Van Helsing" }));
+        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = family }));
         document.Items.Add(item);
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         BibliographyContributor reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Contributors);
 
-        Assert.Equal("Van Helsing", reopened.Name.Family);
-        Assert.True(string.IsNullOrEmpty(reopened.Name.Given));
+        Assert.Equal(family, reopened.Name.Family);
+        Assert.Null(reopened.Name.Given);
         Assert.Null(reopened.Name.Literal);
     }
 }
