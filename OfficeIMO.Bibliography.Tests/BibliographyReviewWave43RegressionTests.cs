@@ -42,6 +42,9 @@ public sealed class BibliographyReviewWave43RegressionTests {
 
     [Fact]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Undelimited_Bib_names_reopen_as_an_exact_family_name() {
 #if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
         const int length = 512 * 1024;

@@ -89,6 +89,9 @@ public sealed class BibliographyReviewWave21RegressionTests {
 
     [Fact]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Tagged_aggregate_limits_apply_before_continuation_concatenation() {
 #if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
         const int length = 512 * 1024;

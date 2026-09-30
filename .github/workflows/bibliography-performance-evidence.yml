@@ -26,7 +26,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration Release --framework net8.0 -p:BibliographyPerformanceEvidence=true --filter "Category=ResourcePerformanceEvidence" --logger "console;verbosity=normal" --logger trx --results-directory artifacts/bibliography-performance
+          dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration Release --framework net8.0 -p:BibliographyPerformanceEvidence=true --filter "Category=Performance" --logger "console;verbosity=normal" --logger trx --results-directory artifacts/bibliography-performance
       - uses: actions/upload-artifact@v7
         if: always()
         with:

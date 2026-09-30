@@ -43,6 +43,9 @@ public sealed class BibliographyReviewWave20RegressionTests {
     [InlineData(true, false)]
     [InlineData(true, true)]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Tagged_value_limits_apply_before_large_line_materialization(bool continuation, bool shortContinuation) {
         _ = BibliographyDocument.Parse("TY  - JOUR\nER  -", BibliographyFormat.Ris);
         string prefix = continuation ? "TY  - JOUR\nTI  - x\n      " : "TY  - ";
