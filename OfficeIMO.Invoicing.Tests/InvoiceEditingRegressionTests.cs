@@ -159,4 +159,63 @@ public class InvoiceEditingRegressionTests {
         Assert.Contains(InvoiceSerializer.InspectTarget(aggregate, options), d => d.Location == "DeclaredTaxes[0].Category");
         Assert.False(InvoiceEditor.Recalculate(aggregate).Succeeded);
     }
+
+    [Theory]
+    [InlineData(InvoiceSyntax.Cii, InvoiceProfile.XRechnung)]
+    [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.XRechnung)]
+    [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.PeppolBis)]
+    public void DirectDebitProfileChecksUseTheHeaderValuesActuallyEmitted(InvoiceSyntax syntax, InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments[0].MeansCode = "59";
+        invoice.Payments[0].Account = null;
+        invoice.Payments[0].DebitedAccount = "DE89370400440532013000";
+        invoice.DirectDebitMandateReference = "header-mandate";
+        invoice.CreditorIdentifier = "DE98ZZZ09999999999";
+        InvoiceXmlOptions options = InvoiceTestContracts.For(syntax, profile);
+        Assert.DoesNotContain(InvoiceSerializer.InspectTarget(invoice, options), d => d.Severity == InvoiceDiagnosticSeverity.Error);
+        Invoice read = InvoiceParser.Read(InvoiceSerializer.Write(invoice, options)).Invoice;
+        Assert.Equal("header-mandate", read.Payments[0].MandateReference);
+        Assert.Equal("DE98ZZZ09999999999", read.Payments[0].CreditorIdentifier);
+    }
+
+    [Theory]
+    [InlineData(InvoiceSyntax.Cii, InvoiceProfile.XRechnung)]
+    [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.XRechnung)]
+    [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.PeppolBis)]
+    public void HeaderMandateCannotBypassTheGermanDirectDebitGroupRequirements(InvoiceSyntax syntax, InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments[0].MeansCode = "1";
+        invoice.Payments[0].Account = null;
+        invoice.DirectDebitMandateReference = "header-mandate";
+        InvoiceXmlOptions options = InvoiceTestContracts.For(syntax, profile);
+        IReadOnlyList<InvoiceDiagnostic> diagnostics = InvoiceSerializer.InspectTarget(invoice, options);
+        Assert.Contains(diagnostics, d => d.Location == "Payments[0].CreditorIdentifier");
+        Assert.Contains(diagnostics, d => d.Location == "Payments[0].DebitedAccount");
+        Assert.Throws<InvalidDataException>(() => InvoiceSerializer.Write(invoice, options));
+    }
+
+    [Fact]
+    public void HeaderOnlyCiiDirectDebitDataCannotBypassXRechnungRequirements() {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments.Clear();
+        invoice.DirectDebitMandateReference = "header-mandate";
+        InvoiceXmlOptions options = InvoiceTestContracts.For(InvoiceSyntax.Cii, InvoiceProfile.XRechnung);
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, options), d => d.Location == "CreditorIdentifier");
+        Assert.Contains(InvoiceSerializer.InspectTarget(invoice, options), d => d.Location == "Payments");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void CurrencyInvalidationAndRepeatedEditingReportTheOutstandingRefresh(bool invoiceCurrency) {
+        Invoice invoice = InvoiceFixture.Create();
+        InvoiceCalculator.UpdateDeclaredAmounts(invoice);
+        invoice.TaxCurrency = "USD";
+        invoice.TaxAmountInAccountingCurrency = 22m;
+        if (invoiceCurrency) invoice.Currency = "GBP"; else invoice.TaxCurrency = "PLN";
+        for (int attempt = 0; attempt < 2; attempt++)
+            Assert.Contains(InvoiceEditor.Recalculate(invoice).Diagnostics, d => d.Code == "INV-ACCOUNTING-VAT-REFRESH");
+        Assert.DoesNotContain(InvoiceEditor.Recalculate(invoice, 1.1m).Diagnostics, d => d.Code == "INV-ACCOUNTING-VAT-REFRESH");
+        Assert.Equal(20.9m, invoice.TaxAmountInAccountingCurrency);
+    }
 }

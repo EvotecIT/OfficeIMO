@@ -4,6 +4,27 @@ namespace OfficeIMO.Invoicing.Validation.Tests;
 
 public partial class InvoiceStandardsTests {
     [InvoiceStandardsTheory]
+    [InlineData(InvoiceSyntax.Cii, InvoiceProfile.XRechnung)]
+    [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.XRechnung)]
+    [InlineData(InvoiceSyntax.Ubl, InvoiceProfile.PeppolBis)]
+    public async Task InvoiceLevelPaymentFallbacksPassTheirActualProfileRules(InvoiceSyntax syntax, InvoiceProfile profile) {
+        Invoice invoice = InvoiceFixture.Create();
+        invoice.Payments[0].MeansCode = "59";
+        invoice.Payments[0].Account = null;
+        invoice.Payments[0].DebitedAccount = "DE89370400440532013000";
+        invoice.DirectDebitMandateReference = "header-mandate";
+        invoice.CreditorIdentifier = "DE98ZZZ09999999999";
+        if (profile == InvoiceProfile.PeppolBis) {
+            invoice.Seller.ElectronicAddress = new InvoiceIdentifier("1234567890128", "0088");
+            invoice.Buyer.ElectronicAddress = new InvoiceIdentifier("1234567890135", "0088");
+        }
+        InvoiceXmlOptions options = InvoiceTestContracts.For(syntax, profile);
+        byte[] xml = InvoiceSerializer.Write(invoice, options);
+        InvoiceValidationReport report = await new InvoiceValidator(Bundle(), Runner()).ValidateAsync(xml, options.Release);
+        Assert.True(report.IsValid, Report(report));
+        Assert.True(InvoiceParser.Read(xml).HasCompleteMapping);
+    }
+    [InvoiceStandardsTheory]
     [InlineData("reference")]
     [InlineData("creditor")]
     [InlineData("mandate")]

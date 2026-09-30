@@ -17,8 +17,20 @@ public static partial class InvoiceSerializer {
             unsupported("PaymentReference", "UBL requires the remittance reference to belong to an explicit payment instruction. Supply its means code without inventing one during conversion.");
         if (options.Syntax == InvoiceSyntax.Ubl && invoice.Payments.Count == 0 && invoice.DirectDebitMandateReference != null)
             unsupported("DirectDebitMandateReference", "UBL requires the mandate to belong to an explicit payment instruction.");
+        if (options.Syntax == InvoiceSyntax.Cii && invoice.Payments.Count == 0 && RequiresGermanPaymentRules(invoice, options) &&
+            (invoice.DirectDebitMandateReference != null || invoice.CreditorIdentifier != null)) {
+            if (string.IsNullOrWhiteSpace(invoice.CreditorIdentifier))
+                unsupported("CreditorIdentifier", "This profile's direct-debit group requires a bank-assigned creditor identifier.");
+            unsupported("Payments", "This profile's invoice-level direct-debit data requires a debited account on an explicit payment instruction.");
+        }
     }
+    private static bool RequiresGermanPaymentRules(Invoice invoice, InvoiceXmlOptions options) =>
+        options.Release != InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 &&
+        (options.Profile == InvoiceProfile.XRechnung || options.Profile == InvoiceProfile.PeppolBis &&
+            invoice.Seller.Address?.CountryCode == "DE" && invoice.Buyer.Address?.CountryCode == "DE");
     private static void CheckPaymentProfile(Invoice invoice, InvoiceXmlOptions options, Action<string, string> unsupported) {
+        string? ciiMandate = invoice.DirectDebitMandateReference ?? FirstPaymentValue(invoice, value => value.MandateReference);
+        string? creditor = invoice.CreditorIdentifier ?? FirstPaymentValue(invoice, value => value.CreditorIdentifier);
         for (int index = 0; index < invoice.Payments.Count; index++) {
             InvoicePayment payment = invoice.Payments[index];
             string path = "Payments[" + index + "]";
@@ -29,17 +41,18 @@ public static partial class InvoiceSerializer {
             if (options.Profile == InvoiceProfile.En16931 || options.Release == InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2) continue;
 
             bool directDebit = payment.MeansCode == "49" || payment.MeansCode == "59";
-            if (directDebit && string.IsNullOrWhiteSpace(payment.MandateReference))
+            string? mandate = options.Syntax == InvoiceSyntax.Cii
+                ? ciiMandate
+                : payment.MandateReference ?? invoice.DirectDebitMandateReference;
+            if (directDebit && string.IsNullOrWhiteSpace(mandate))
                 unsupported(path + ".MandateReference", "XRechnung and Peppol direct debit require a mandate reference for payment codes 49 and 59.");
 
-            bool germanPaymentRules = options.Profile == InvoiceProfile.XRechnung ||
-                invoice.Seller.Address?.CountryCode == "DE" && invoice.Buyer.Address?.CountryCode == "DE";
-            if (!germanPaymentRules) continue;
+            if (!RequiresGermanPaymentRules(invoice, options)) continue;
 
-            bool hasDebitGroup = payment.MandateReference != null || payment.DebitedAccount != null ||
-                options.Syntax == InvoiceSyntax.Cii && payment.CreditorIdentifier != null;
+            bool hasDebitGroup = mandate != null || payment.DebitedAccount != null ||
+                options.Syntax == InvoiceSyntax.Cii && creditor != null;
             if (hasDebitGroup || payment.MeansCode == "59") {
-                if (string.IsNullOrWhiteSpace(payment.CreditorIdentifier))
+                if (string.IsNullOrWhiteSpace(creditor))
                     unsupported(path + ".CreditorIdentifier", "This profile's direct-debit group requires a bank-assigned creditor identifier.");
                 if (string.IsNullOrWhiteSpace(payment.DebitedAccount))
                     unsupported(path + ".DebitedAccount", "This profile's direct-debit group requires a debited account identifier.");

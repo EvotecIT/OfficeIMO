@@ -18,10 +18,9 @@ public static class InvoiceEditor {
     /// <summary>Updates invoice declarations and reports expected calculation failures. The caller supplies any tax-point exchange rate.</summary>
     public static InvoiceEditResult Recalculate(Invoice invoice, decimal? taxExchangeRate = null) {
         if (invoice == null) throw new ArgumentNullException(nameof(invoice));
-        bool hadAccountingVat = invoice.TaxAmountInAccountingCurrency.HasValue;
         try {
             InvoiceCalculation calculation = InvoiceCalculator.UpdateDeclaredAmounts(invoice, taxExchangeRate);
-            IReadOnlyList<InvoiceDiagnostic> diagnostics = hadAccountingVat && !invoice.TaxAmountInAccountingCurrency.HasValue
+            IReadOnlyList<InvoiceDiagnostic> diagnostics = invoice.TaxCurrency != null && !invoice.TaxAmountInAccountingCurrency.HasValue
                 ? new[] { new InvoiceDiagnostic("INV-ACCOUNTING-VAT-REFRESH", "Invoice VAT changed or had no retained baseline. Supply a refreshed accounting-currency VAT amount or recalculate with an explicit tax-point exchange rate before writing.", "TaxAmountInAccountingCurrency", InvoiceDiagnosticSeverity.Warning) }
                 : Array.Empty<InvoiceDiagnostic>();
             return new InvoiceEditResult(calculation, diagnostics);
