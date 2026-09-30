@@ -23,21 +23,11 @@ public sealed partial class PdfInvoiceDocument {
         if (_invoice.BuyerReference != null) identity.Add(new[] { Label(InvoicePdfText.BuyerReference), _invoice.BuyerReference, Label(InvoicePdfText.Currency), _invoice.Currency });
         content.Table(identity, style: new PdfTableStyle { HeaderRowCount = 0, RowStripeFill = null, SpacingAfter = 14, FontSize = 9,
             ColumnWidthWeights = new List<double> { 1.2, 2.8, 1, 2 } });
-        var lines = new List<string[]> { new[] { Label(InvoicePdfText.Item), Label(InvoicePdfText.Quantity), Label(InvoicePdfText.NetPrice), Label(InvoicePdfText.Vat), Label(InvoicePdfText.NetAmount) } };
-        for (int index = 0; index < _invoice.Lines.Count; index++) {
-            InvoiceLine line = _invoice.Lines[index];
-            lines.Add(new[] {
-                LineText(line), NumberText(line.Quantity) + " " + line.UnitCode,
-                NumberText(line.UnitPrice) + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode,
-                line.Tax.Code + (line.Tax.Rate.HasValue ? " " + NumberText(line.Tax.Rate.Value) + "%" : string.Empty),
-                Money(_amounts.Lines[index])
-            });
-        }
         if (_invoice.Lines.Count != 0)
-            content.Table(lines, style: new PdfTableStyle {
+            content.Table(LineRows(), style: new PdfTableStyle {
                 HeaderRowCount = 1, SpacingAfter = 12, FontSize = 9,
-                ColumnWidthWeights = new List<double> { 3.7, 1.3, 1.7, 1.1, 1.7 },
-                Alignments = new List<PdfColumnAlign> { PdfColumnAlign.Left, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right, PdfColumnAlign.Right }
+                ColumnWidthWeights = LineColumnWeights(),
+                Alignments = LineColumnAlignments()
             });
         if (_invoice.AllowancesAndCharges.Count != 0) {
             TableGroup(content, Label(InvoicePdfText.DocumentAdjustments), _invoice.AllowancesAndCharges.Select(item => new[] {
@@ -92,21 +82,25 @@ public sealed partial class PdfInvoiceDocument {
         string.Join("\n", party.Identifiers.Select(identifier => Identifier(Label(InvoicePdfText.Identifier), identifier))),
         Identifier(Label(InvoicePdfText.LegalRegistration), party.LegalRegistration), Identifier(Label(InvoicePdfText.ElectronicAddress), party.ElectronicAddress),
         party.LegalInformation, party.Contact?.Name, party.Contact?.Email, party.Contact?.Telephone);
-    private string LineText(InvoiceLine line) => Join(line.Id + ". " + line.Name, line.Description, line.Note,
+    private string LineText(InvoiceLine line, bool selectedColumns = false) {
+        bool Inline(InvoicePdfLineColumn column) => !selectedColumns || !_layout.LineColumns.Contains(column);
+        return Join((Inline(InvoicePdfLineColumn.LineIdentifier) ? line.Id + ". " : string.Empty) + line.Name,
+        Inline(InvoicePdfLineColumn.Description) ? line.Description : null, line.Note,
         line.OrderLineReference == null ? null : Label(InvoicePdfText.OrderLine) + ": " + line.OrderLineReference,
-        line.AccountingReference == null ? null : Label(InvoicePdfText.AccountingReference) + ": " + line.AccountingReference,
-        Identifier(Label(InvoicePdfText.ObjectIdentifier), line.ObjectIdentifier), Identifier(Label(InvoicePdfText.StandardItem), line.StandardItemIdentifier),
-        line.SellerItemIdentifier == null ? null : Label(InvoicePdfText.SellerItem) + ": " + line.SellerItemIdentifier,
-        line.BuyerItemIdentifier == null ? null : Label(InvoicePdfText.BuyerItem) + ": " + line.BuyerItemIdentifier,
+        line.AccountingReference == null || !Inline(InvoicePdfLineColumn.AccountingReference) ? null : Label(InvoicePdfText.AccountingReference) + ": " + line.AccountingReference,
+        Identifier(Label(InvoicePdfText.ObjectIdentifier), line.ObjectIdentifier), Inline(InvoicePdfLineColumn.StandardItem) ? Identifier(Label(InvoicePdfText.StandardItem), line.StandardItemIdentifier) : null,
+        line.SellerItemIdentifier == null || !Inline(InvoicePdfLineColumn.SellerItem) ? null : Label(InvoicePdfText.SellerItem) + ": " + line.SellerItemIdentifier,
+        line.BuyerItemIdentifier == null || !Inline(InvoicePdfLineColumn.BuyerItem) ? null : Label(InvoicePdfText.BuyerItem) + ": " + line.BuyerItemIdentifier,
         line.OriginCountryCode == null ? null : Label(InvoicePdfText.Origin) + ": " + line.OriginCountryCode,
         string.Join("\n", line.Classifications.Select(item => Label(InvoicePdfText.Classification) + " (" + item.ListId +
             (item.ListVersion == null ? string.Empty : ", " + Label(InvoicePdfText.Version) + " " + item.ListVersion) + "): " + item.Value)),
         string.Join("\n", line.Attributes.Select(item => item.Name + ": " + item.Value)),
-        Period(line.Period) is string period ? Label(InvoicePdfText.Period) + ": " + period : null,
-        line.GrossPrice.HasValue ? Label(InvoicePdfText.GrossPrice) + ": " + NumberText(line.GrossPrice.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode : null,
-        line.PriceDiscount.HasValue ? Label(InvoicePdfText.PriceDiscount) + ": " + NumberText(line.PriceDiscount.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + line.UnitCode : null,
+        Inline(InvoicePdfLineColumn.Period) && Period(line.Period) is string period ? Label(InvoicePdfText.Period) + ": " + period : null,
+        Inline(InvoicePdfLineColumn.GrossPrice) && line.GrossPrice.HasValue ? Label(InvoicePdfText.GrossPrice) + ": " + NumberText(line.GrossPrice.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode) : null,
+        Inline(InvoicePdfLineColumn.PriceDiscount) && line.PriceDiscount.HasValue ? Label(InvoicePdfText.PriceDiscount) + ": " + NumberText(line.PriceDiscount.Value) + " " + _invoice.Currency + " / " + NumberText(line.PriceBaseQuantity) + " " + Unit(line.UnitCode) : null,
         line.AllowancesAndCharges.Count == 0 ? null : string.Join("\n", line.AllowancesAndCharges.Select(item =>
             Label(item.IsCharge ? InvoicePdfText.Charge : InvoicePdfText.Allowance) + ": " + Money(item.Amount) + "\n" + AdjustmentDetails(item))));
+    }
     private string AdjustmentDetails(InvoiceAllowanceCharge item) => Join(
         item.Reason, item.ReasonCode == null ? null : Label(InvoicePdfText.ReasonCode) + ": " + item.ReasonCode,
         item.BaseAmount.HasValue ? Label(InvoicePdfText.Base) + ": " + Money(item.BaseAmount.Value) : null,

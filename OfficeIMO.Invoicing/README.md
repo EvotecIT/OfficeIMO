@@ -74,7 +74,7 @@ Successful serialization alone does not establish standards compliance.
 | Area | Supported data |
 | --- | --- |
 | Syntax and profiles | Factur-X 1.09.2 / ZUGFeRD 2.5.2 CII D22B with MINIMUM, BASIC WL, BASIC, EN 16931 and EXTENDED; EN 16931 1.3.16 and XRechnung 3.0.2 in CII D16B or UBL 2.1; Peppol BIS Billing 3.0.21 in UBL 2.1 |
-| Documents | Invoice and credit note; document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. |
+| Documents | Invoice (380), credit note (381), partial invoice (326), corrected invoice (384), prepayment invoice (386) and self-billed invoice (389); document currency and accounting-currency VAT. UBL credit notes cannot carry a due date or project reference; writing or converting those fields reports unsupported target data. Peppol BIS Billing rejects self-billed invoices because they require a separate self-billing contract. |
 | Parties | Seller, buyer, payee, tax representative, addresses, identifiers and contacts within each semantic role. Tax registrations retain their identifier and arbitrary source scheme. Target inspection reports the exact indexed registration when a target permits only VAT, one seller fiscal registration, or a canonical CII `VA`/`FC` scheme. |
 | Lines | Quantities, price base quantities, net/gross prices, discounts, allowances, charges, item identifiers, classifications and attributes |
 | VAT and totals | Category/rate breakdowns, exemptions, document adjustments, prepayments and payable rounding |
@@ -91,6 +91,22 @@ Lower Factur-X profiles intentionally carry less business data. The default
 selected profile omits. `AllowProfileDefinedDataLoss` permits only that declared
 profile reduction and returns the same findings as warnings from `InspectTarget`.
 MINIMUM and BASIC WL carry calculated aggregates without XML line occurrences.
+
+Use the constants in `InvoiceDocumentTypes` to select a document type. The qualified
+type mapping covers the following pinned contracts; required business data still
+depends on the selected type and profile:
+
+| Contract | Syntax | Qualified types |
+| --- | --- | --- |
+| EN 16931 1.3.16 | CII D16B, UBL 2.1 | 326, 380, 381, 384, 386, 389 |
+| XRechnung 3.0.2, 2026-08-31 rules | CII D16B, UBL 2.1 | 326, 380, 381, 384, 386, 389 |
+| Peppol BIS Billing 3.0.21 | UBL 2.1 | 326, 380, 381, 384, 386 |
+| Factur-X 1.09.2 / ZUGFeRD 2.5.2, all five profiles | CII D22B | 326, 380, 381, 384, 386, 389 |
+
+A corrected invoice can identify the original through `PrecedingInvoices`.
+Selecting prepayment type 386 does not infer a paid amount; set `PrepaidAmount`
+when the business record actually includes a payment. Selecting self-billed type
+389 does not change seller/buyer roles or establish permission to self-bill.
 
 XRechnung is the only national CIUS with an authoring contract because this
 release includes its CII/UBL syntax mappings, pinned rules and corpus evidence.

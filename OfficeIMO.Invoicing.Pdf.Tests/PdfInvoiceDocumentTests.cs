@@ -405,7 +405,7 @@ public class PdfInvoiceDocumentTests {
     }
     [Theory]
     [InlineData("396")]
-    [InlineData("384")]
+    [InlineData("383")]
     [InlineData("999")]
     public void UnsupportedPresentationTypesAreRejected(string typeCode) {
         Invoice invoice = InvoiceFixture.Create();

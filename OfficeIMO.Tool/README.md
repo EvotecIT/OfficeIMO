@@ -46,7 +46,10 @@ officeimo invoice convert invoice.xml --output invoice.ubl.xml `
 # Create a hybrid invoice with Polish labels and an embedded font.
 officeimo invoice hybrid invoice.xml --output invoice.pdf `
     --release FacturX_1_09_2_Zugferd_2_5_2 --syntax Cii --profile En16931 `
-    --language pl-PL --font ./fonts/InvoiceFont.ttf
+    --language pl-PL --font ./fonts/InvoiceFont.ttf `
+    --columns Item,Quantity,Unit,NetPrice,Vat,NetAmount `
+    --unit-display Description --payment-display Description `
+    --modern --compact-details --page-identity
 
 officeimo invoice batch validate first.xml second.xml --max-items 100 --stop-on-failure
 

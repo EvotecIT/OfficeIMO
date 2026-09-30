@@ -91,9 +91,10 @@ identify its exact CII authoring contract. There is no implicit release overload
 The PDF uses the
 same declared amounts and calculation as its XML, includes `factur-x.xml` as an
 alternative representation, and derives its XMP profile from that attachment.
-PDF presentation accepts document type 380 (invoice) and 381 (credit note), and
-rejects other document types before creating the snapshot. The layout includes
-invoice and credit-note headings, repeated line-table headers,
+PDF presentation accepts document types 380 (invoice), 381 (credit note), 326
+(partial invoice), 384 (corrected invoice), 386 (prepayment invoice) and 389
+(self-billed invoice), and rejects other types before creating the snapshot.
+The layout uses a translated heading for each type and includes repeated line-table headers,
 VAT and payable totals, party details, payment instructions and references.
 Totals stay together when page space permits. Generated labels are available in
 English, German, Polish, French, Spanish, Italian, Dutch, Portuguese, Czech and
@@ -102,6 +103,56 @@ bilingual or multilingual layout and formats values with the first culture.
 `InvoicePdfLanguagePack.Create` supports partial custom translations with explicit
 English fallback. Layout options are captured with the invoice, so later caller
 changes cannot alter an existing snapshot.
+
+## Choose columns and continuation-page details
+
+Both layouts share ordered column selection, unit/payment descriptions and page
+identity settings. Keep `Item` and `NetAmount`, choose two to eight distinct
+columns, and use a wider page when the selected columns need more space:
+
+```csharp
+var layout = InvoicePdfLayoutOptions.ForCultures("pl-PL", "en-GB");
+layout.Theme = InvoicePdfTheme.Modern(PdfColor.FromRgb(63, 92, 255));
+layout.LineColumns.Clear();
+foreach (var column in new[] {
+    InvoicePdfLineColumn.Item, InvoicePdfLineColumn.Quantity,
+    InvoicePdfLineColumn.Unit, InvoicePdfLineColumn.NetPrice,
+    InvoicePdfLineColumn.Vat, InvoicePdfLineColumn.NetAmount
+}) layout.LineColumns.Add(column);
+layout.UnitCodeDisplay = InvoicePdfCodeDisplay.CodeAndDescription;
+layout.PaymentCodeDisplay = InvoicePdfCodeDisplay.Description;
+layout.CompactDetails = true;
+layout.IncludePageIdentity = true;
+var snapshot = PdfInvoiceDocument.Create(invoice, contract, layout);
+File.WriteAllBytes("invoice.pdf", snapshot.ToPdfBytes(options));
+```
+
+Optional columns also include line ID, description, service period, seller/buyer
+item IDs, standard item ID, accounting reference, gross price and price discount.
+Business details assigned to those columns appear there once; the `Item` column
+retains the remaining item metadata. Column selection controls the visible table
+and does not change the embedded XML.
+
+The default code display preserves raw codes. Translated descriptions cover
+common UN/ECE units (`C62`, `HUR`, `DAY`, `WEE`, `MON`, `KGM`, `MTR`, `MTK`, `LTR`)
+and UNCL 4461 payment codes (`10`, `30`, `48`, `49`, `58`, `59`) in the ten built-in
+languages. Unknown codes remain visible, and authored payment text is retained.
+Use `InvoicePdfLanguagePack.WithCodeDescriptions` to supply additional descriptions:
+
+```csharp
+var pack = InvoicePdfLanguagePack.ForCulture("en-GB").WithCodeDescriptions(
+    units: new Dictionary<string, string> { ["XBX"] = "box" });
+layout.Languages.Clear();
+layout.Languages.Add(pack);
+```
+
+Compact details reduce heading spacing and table padding while keeping all
+values. Page identity is opt-in and requires a single-line invoice number up to
+80 characters. It replaces footer text on all pages with the invoice number and
+localized page count, while retaining configured first/even headers and footer
+graphics. Invoice numbers are literal text, including braces. Leave it disabled
+to keep a caller-supplied footer. Defaults retain the five established line
+columns and existing spacing.
 
 `ToPdfBytes` enables the shared multilingual font-fallback planner and uses the
 managed Arabic joining and bidirectional shaping provider unless the caller supplies

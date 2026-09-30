@@ -25,6 +25,9 @@ Standards validation:
 
 Rendering and batches:
   --language <en-US,pl-PL,...> --font <ttf-or-otf>
+  --columns <Item,Quantity,Unit,NetPrice,Vat,NetAmount>   Two to eight distinct columns including Item and NetAmount
+  --unit-display Code|Description|CodeAndDescription --payment-display Code|Description|CodeAndDescription
+  --modern --compact-details --page-identity
   --max-items <1-10000> --max-input-bytes <bytes> --max-output-bytes <bytes> --stop-on-failure
 
 JSON carries model, mapping, target and exact-byte standards evidence separately.

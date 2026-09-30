@@ -69,20 +69,37 @@ public sealed class InvoiceCommandTests {
         using var scope = new Files(); string input = scope.Invoice("input.xml"), output = scope.Path("hybrid.pdf");
         var result = await Run(["invoice", "hybrid", input, "--output", output,
             "--release", "FacturX_1_09_2_Zugferd_2_5_2", "--syntax", "Cii", "--profile", "En16931",
-            "--language", "pl-PL", "--font", System.IO.Path.Combine(AppContext.BaseDirectory, "Fixtures", "SourceSerif4-Regular.otf")]);
+            "--language", "pl-PL", "--font", System.IO.Path.Combine(AppContext.BaseDirectory, "Fixtures", "SourceSerif4-Regular.otf"),
+            "--columns", "Item,Quantity,Unit,NetPrice,Vat,NetAmount", "--unit-display", "Description", "--payment-display", "Description",
+            "--modern", "--compact-details", "--page-identity"]);
         Assert.Equal(0, result.Code);
         byte[] pdf = File.ReadAllBytes(output);
         byte[] xml = Assert.Single(PdfDocument.Load(pdf).Attachments.Extract()).Bytes;
         Assert.Equal("INV-2026-001", InvoiceParser.Read(xml).Invoice.Number);
-        Assert.Contains("119,00 EUR", PdfReadDocument.Open(pdf).ExtractText());
+        string text = PdfReadDocument.Open(pdf).ExtractText();
+        Assert.Contains("119,00 EUR", text);
+        Assert.Contains("sztuka", text);
+        Assert.Contains("Przelew SEPA", text);
+        Assert.Contains("Strona 1 /", text);
     }
 
     [Theory]
     [InlineData("--release", "0")]
+    [InlineData("--release", " 0")]
     [InlineData("--profile", "")]
     [InlineData("--unknown", "value")]
     public async Task InvalidOptionsReturnUsageWithoutExecuting(string option, string value) {
         var result = await Run(["invoice", "convert", "absent.xml", option, value]);
+        Assert.Equal(2, result.Code); Assert.Equal(string.Empty, result.Output);
+    }
+
+    [Theory]
+    [InlineData("--columns", "Item,NetAmount,Item")]
+    [InlineData("--columns", "Quantity,NetAmount")]
+    [InlineData("--unit-display", "Code,Description")]
+    public async Task InvalidPresentationOptionsFailBeforeInputCapture(string option, string value) {
+        var result = await Run(["invoice", "render", "absent.xml", "--output", "absent.pdf",
+            "--release", "En16931_1_3_16", "--syntax", "Cii", "--profile", "En16931", option, value]);
         Assert.Equal(2, result.Code); Assert.Equal(string.Empty, result.Output);
     }
 

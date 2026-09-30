@@ -163,5 +163,21 @@ public enum InvoicePdfText {
     /// <summary>Payment reference label used by the modern summary card.</summary>
     PaymentReference,
     /// <summary>Approval block heading.</summary>
-    Approvals
+    Approvals,
+    /// <summary>Partial-invoice heading.</summary>
+    PartialInvoice,
+    /// <summary>Corrected-invoice heading.</summary>
+    CorrectedInvoice,
+    /// <summary>Prepayment-invoice heading.</summary>
+    PrepaymentInvoice,
+    /// <summary>Self-billed-invoice heading.</summary>
+    SelfBilledInvoice,
+    /// <summary>Unit of measure column.</summary>
+    Unit,
+    /// <summary>Line identifier column.</summary>
+    LineIdentifier,
+    /// <summary>Item description column.</summary>
+    Description,
+    /// <summary>Current-page label.</summary>
+    Page
 }

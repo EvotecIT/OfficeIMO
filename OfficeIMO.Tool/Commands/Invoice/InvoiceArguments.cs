@@ -36,10 +36,14 @@ internal sealed class InvoiceArguments {
             string argument = args[index];
             if (argument == "--allow-profile-loss") { if (projection) throw new ArgumentException("Duplicate --allow-profile-loss."); projection = true; continue; }
             if (argument == "--stop-on-failure") { result.Limits.ContinueOnFailure = false; continue; }
+            if (argument is "--compact-details" or "--page-identity" or "--modern") {
+                if (!result.Options.TryAdd(argument, "true")) throw new ArgumentException("Duplicate invoice option: " + argument);
+                continue;
+            }
             if (!argument.StartsWith("--", StringComparison.Ordinal)) { result.Inputs.Add(argument); continue; }
             if (argument is not ("--output" or "--output-directory" or "--release" or "--syntax" or "--profile" or
                 "--standards-release" or "--rule-bundle" or "--peppol-rules" or "--facturx-rules" or "--saxon-jar" or "--java" or
-                "--language" or "--font" or "--max-items" or "--max-input-bytes" or "--max-output-bytes"))
+                "--language" or "--font" or "--columns" or "--unit-display" or "--payment-display" or "--max-items" or "--max-input-bytes" or "--max-output-bytes"))
                 throw new ArgumentException("Unknown invoice option: " + argument);
             if (++index >= args.Length || args[index].StartsWith("--", StringComparison.Ordinal)) throw new ArgumentException("Missing value for " + argument);
             if (!result.Options.TryAdd(argument, args[index])) throw new ArgumentException("Duplicate invoice option: " + argument);
@@ -53,7 +57,21 @@ internal sealed class InvoiceArguments {
         if (result.Options.TryGetValue("--standards-release", out string? release)) result.StandardsRelease = ParseEnum<InvoiceSpecificationRelease>(release);
         if (!result.StandardsRelease.HasValue && result.Options.Keys.Any(k => k is "--rule-bundle" or "--peppol-rules" or "--facturx-rules" or "--saxon-jar" or "--java"))
             throw new ArgumentException("Standards artifacts require --standards-release.");
+        if (result.Operation is not (OfficeInvoiceWorkflowOperation.RenderHybridPdf or OfficeInvoiceWorkflowOperation.RenderPresentationPdf) &&
+            result.Options.Keys.Any(k => k is "--language" or "--font" or "--columns" or "--unit-display" or "--payment-display" or "--compact-details" or "--page-identity" or "--modern"))
+            throw new ArgumentException("Presentation options require render or hybrid.");
         if (result.Options.TryGetValue("--language", out string? cultures)) result.Layout = InvoicePdfLayoutOptions.ForCultures(cultures.Split(','));
+        if (result.Options.TryGetValue("--columns", out string? columns)) {
+            result.Layout.LineColumns.Clear();
+            foreach (string column in columns.Split(',')) result.Layout.LineColumns.Add(ParseEnum<InvoicePdfLineColumn>(column));
+        }
+        if (result.Options.TryGetValue("--unit-display", out string? unitDisplay)) result.Layout.UnitCodeDisplay = ParseEnum<InvoicePdfCodeDisplay>(unitDisplay);
+        if (result.Options.TryGetValue("--payment-display", out string? paymentDisplay)) result.Layout.PaymentCodeDisplay = ParseEnum<InvoicePdfCodeDisplay>(paymentDisplay);
+        result.Layout.CompactDetails = result.Options.ContainsKey("--compact-details");
+        result.Layout.IncludePageIdentity = result.Options.ContainsKey("--page-identity");
+        if (result.Options.ContainsKey("--modern")) result.Layout.Theme = new InvoicePdfTheme();
+        try { result.Layout = result.Layout.Clone(); }
+        catch (InvalidOperationException exception) { throw new ArgumentException(exception.Message, exception); }
         if (result.Options.TryGetValue("--font", out string? fontPath)) {
             using var fontFile = File.OpenRead(fontPath);
             if (fontFile.Length is <= 0 or > 16 * 1024 * 1024) throw new ArgumentException("Embedded font must contain between 1 byte and 16 MiB.");
@@ -89,8 +107,11 @@ internal sealed class InvoiceArguments {
     }
     private string Required(string key) => Get(key) ?? throw new ArgumentException("Required invoice option: " + key);
     private string? Get(string key) => Options.GetValueOrDefault(key);
-    private static T ParseEnum<T>(string value) where T : struct, Enum => !string.IsNullOrWhiteSpace(value) && Enum.TryParse<T>(value, true, out T parsed) &&
-        Enum.IsDefined(parsed) && !char.IsDigit(value[0]) && value[0] != '-' ? parsed : throw new ArgumentException("Invalid " + typeof(T).Name + ": " + value);
+    private static T ParseEnum<T>(string value) where T : struct, Enum {
+        value = value.Trim();
+        return value.Length > 0 && !value.Contains(',') && Enum.TryParse<T>(value, true, out T parsed) &&
+            Enum.IsDefined(parsed) && !char.IsDigit(value[0]) && value[0] is not ('-' or '+') ? parsed : throw new ArgumentException("Invalid " + typeof(T).Name + ": " + value);
+    }
     private static int PositiveInt(string value, int maximum) => int.TryParse(value, out int result) && result > 0 && result <= maximum ? result : throw new ArgumentException("Invalid positive item limit.");
     private static long PositiveLong(string value) => long.TryParse(value, out long result) && result > 0 ? result : throw new ArgumentException("Invalid positive byte limit.");
 }
