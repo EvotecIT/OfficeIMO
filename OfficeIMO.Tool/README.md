@@ -189,6 +189,8 @@ The server exposes:
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
 
+Install the [OfficeIMO Document Tools plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools#readme) for Codex, Claude Code, or another client supporting portable Agent Plugins. It bundles document and mailbox skills with a pinned NuGet tool launcher. Configure authorized document roots before starting the client.
+
 ## Exit codes
 
 | Code | Meaning |

@@ -7,6 +7,7 @@ Use this index to find package guides, cross-package contracts, generated eviden
 - [Repository overview](../README.md) — package map, dependency model, supported formats, and platform coverage.
 - [Migration guide](../MIGRATION.md) — version-to-version package, API, and behavior changes.
 - [Examples](../OfficeIMO.Examples/README.md) — runnable examples across the package family.
+- [Agent plugin](../.agents/plugins/officeimo-document-tools/README.md) — local MCP and portable skills, Codex and Claude installation, authorized file access, and supported operations.
 - [Roadmap](ROADMAP.md) — the single backlog for open cross-package and product work.
 - [Microsoft Project milestones](ROADMAP.md#microsoft-project-document-library) — planned XML/MPP/MPX lifecycle, scheduling, conversions, and acceptance evidence.
 - [Project document API](../OfficeIMO.Project/README.md) and [operation matrix](../OfficeIMO.Project/SUPPORT.md) — typed/fluent XML, native MPP/MPT, MPX, advanced calculation, portable reports, mapped data exchange, and producer-specific limits.
