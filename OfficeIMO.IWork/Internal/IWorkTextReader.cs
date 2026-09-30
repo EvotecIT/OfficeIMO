@@ -1,6 +1,6 @@
 namespace OfficeIMO.IWork.Internal;
 
-internal static class IWorkTextReader {
+internal static partial class IWorkTextReader {
     private static readonly System.Text.UTF8Encoding StrictUtf8 = new(false, true);
     private const uint CharacterStyleArchive = 2021;
     private const uint ParagraphStyleArchive = 2022;
@@ -8,7 +8,8 @@ internal static class IWorkTextReader {
     private const uint HyperlinkArchive = 2032;
 
     internal static IWorkTextContent Read(IWorkObjectIndex index, IWorkArchiveRecord storage,
-        IWorkProjectionBudget projectionBudget, bool tolerateStyleDepth = false) {
+        IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector? references,
+        bool tolerateStyleDepth = false) {
         IWorkWireMessage message = index.Message(storage);
         bool textComplete = true;
         string text = ReadText(message, projectionBudget, ref textComplete);
@@ -16,13 +17,13 @@ internal static class IWorkTextReader {
         bool hasUnresolvedInlineObjects = text.IndexOf('\ufffc') >= 0 || text.IndexOf('\ufffb') >= 0;
         bool complete = true;
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
-            projectionBudget, ref complete);
+            storage, projectionBudget, references, ref complete);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
-            projectionBudget, ref complete);
+            storage, projectionBudget, references, ref complete);
         IReadOnlyList<AttributeBoundary> characterStyles = ReadObjectTable(message, 8, text.Length,
-            projectionBudget, ref complete);
+            storage, projectionBudget, references, ref complete);
         IReadOnlyList<AttributeBoundary> hyperlinks = ReadObjectTable(message, 11, text.Length,
-            projectionBudget, ref complete);
+            storage, projectionBudget, references, ref complete);
         var paragraphStyleCache = new Dictionary<ulong, Cached<IWorkParagraphStyle>>();
         var listStyleCache = new Dictionary<(ulong Identifier, double? LeftIndentPoints),
             Cached<(int Level, string? Label)>>();
@@ -34,10 +35,10 @@ internal static class IWorkTextReader {
             ulong? paragraphStyleId = ObjectAt(paragraphStyles, paragraph.Start, carryMissing: true);
             ulong? listStyleId = ObjectAt(listStyles, paragraph.Start, carryMissing: true);
             IWorkParagraphStyle paragraphStyle = ResolveParagraphStyle(index, paragraphStyleId,
-                projectionBudget, paragraphStyleCache, tolerateStyleDepth, ref complete);
+                projectionBudget, paragraphStyleCache, tolerateStyleDepth, references, ref complete);
             (int listLevel, string? listLabel) = ResolveList(index, listStyleId,
                 paragraphStyle.LeftIndentPoints,
-                projectionBudget, listStyleCache, tolerateStyleDepth, ref complete);
+                projectionBudget, listStyleCache, tolerateStyleDepth, references, ref complete);
             if (listLabel != null) projectionBudget.AddTextCharacters(listLabel.Length);
             var boundaries = new SortedSet<int> { paragraph.Start, paragraph.End };
             AddBoundaries(boundaries, characterStyles, paragraph.Start, paragraph.End);
@@ -58,7 +59,7 @@ internal static class IWorkTextReader {
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
                 IWorkTextStyle characterStyle = ResolveTextStyle(index, characterStyleId,
                     paragraphStyle.TextStyle, projectionBudget,
-                    textStyleCache, tolerateStyleDepth, ref complete);
+                    textStyleCache, tolerateStyleDepth, references, ref complete);
                 if (characterStyle.FontName != null) {
                     projectionBudget.AddTextCharacters(characterStyle.FontName.Length);
                 }
@@ -103,109 +104,6 @@ internal static class IWorkTextReader {
         return string.Concat(parts);
     }
 
-    private static IReadOnlyList<AttributeBoundary> ReadObjectTable(IWorkWireMessage storage,
-        int field, int textLength, IWorkProjectionBudget projectionBudget, ref bool complete) {
-        if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
-        if (storage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
-            complete = false;
-            return Array.Empty<AttributeBoundary>();
-        }
-        byte[] tableBytes = storage.GetBytes(field)!;
-        int boundaryCount;
-        int totalTableFieldCount;
-        try {
-            boundaryCount = storage.CountNestedFields(tableBytes, 1,
-                out totalTableFieldCount);
-        } catch (InvalidDataException) {
-            complete = false;
-            return Array.Empty<AttributeBoundary>();
-        }
-        projectionBudget.AddTextBoundaries(boundaryCount);
-        if (storage.FieldCount(field) != 1 || totalTableFieldCount != boundaryCount) {
-            complete = false;
-            return Array.Empty<AttributeBoundary>();
-        }
-        IWorkWireMessage table;
-        try {
-            table = storage.ParseNestedMessage(tableBytes);
-        } catch (InvalidDataException) {
-            complete = false;
-            return Array.Empty<AttributeBoundary>();
-        }
-        var result = new List<AttributeBoundary>();
-        if (table.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) complete = false;
-        foreach (byte[] entryBytes in table.EnumerateRepeatedBytes(1)) {
-            IWorkWireMessage entry;
-            try {
-                entry = table.ParseNestedMessage(entryBytes);
-            } catch (InvalidDataException) {
-                complete = false;
-                continue;
-            }
-            ulong? rawIndex = entry.GetUnsigned(1);
-            if (entry.FieldCount(1) != 1
-                || entry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-                || !rawIndex.HasValue || rawIndex.Value > int.MaxValue
-                || rawIndex.Value > (ulong)textLength) {
-                complete = false;
-                continue;
-            }
-            bool hasObject = entry.HasField(2);
-            bool malformedReference = false;
-            IWorkWireMessage? reference = hasObject
-                ? IWorkObjectIndex.TryGetMessage(entry, 2, out malformedReference)
-                : null;
-            if (hasObject && (entry.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
-                    || malformedReference || reference?.FieldCount(1) != 1
-                    || reference?.GetUnsigned(1) == null
-                    || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint))) {
-                complete = false;
-                continue;
-            }
-            result.Add(new AttributeBoundary((int)rawIndex.Value,
-                reference?.GetUnsigned(1), hasObject));
-        }
-        AttributeBoundary[] ordered = result.OrderBy(boundary => boundary.Index).ToArray();
-        for (int index = 1; index < ordered.Length; index++) {
-            if (ordered[index - 1].Index == ordered[index].Index) complete = false;
-        }
-        ulong? carried = null;
-        foreach (AttributeBoundary boundary in ordered) {
-            if (boundary.HasObject) carried = boundary.Identifier;
-            boundary.CarriedIdentifier = carried;
-        }
-        return ordered;
-    }
-
-    private static ulong? ObjectAt(IReadOnlyList<AttributeBoundary> boundaries, int offset,
-        bool carryMissing) {
-        int upper = UpperBound(boundaries, offset);
-        if (upper == 0) return null;
-        AttributeBoundary boundary = boundaries[upper - 1];
-        return carryMissing ? boundary.CarriedIdentifier
-            : boundary.HasObject ? boundary.Identifier : null;
-    }
-
-    private static void AddBoundaries(SortedSet<int> destination,
-        IReadOnlyList<AttributeBoundary> source, int start, int end) {
-        int index = UpperBound(source, start);
-        while (index < source.Count && source[index].Index < end) {
-            destination.Add(source[index].Index);
-            index++;
-        }
-    }
-
-    private static int UpperBound(IReadOnlyList<AttributeBoundary> boundaries, int offset) {
-        int low = 0;
-        int high = boundaries.Count;
-        while (low < high) {
-            int middle = low + (high - low) / 2;
-            if (boundaries[middle].Index <= offset) low = middle + 1;
-            else high = middle;
-        }
-        return low;
-    }
-
     private static bool SplitsSurrogatePair(string text, int offset) =>
         offset > 0 && offset < text.Length
         && char.IsHighSurrogate(text[offset - 1])
@@ -215,6 +113,7 @@ internal static class IWorkTextReader {
         ulong? identifier, IWorkProjectionBudget projectionBudget,
         Dictionary<ulong, Cached<IWorkParagraphStyle>> cache,
         bool tolerateStyleDepth,
+        IWorkSourceReferenceIssueCollector? references,
         ref bool complete) {
         if (!identifier.HasValue) return new ParagraphStyleData().ToPublic();
         if (cache.TryGetValue(identifier.Value, out Cached<IWorkParagraphStyle> cached)) {
@@ -225,7 +124,7 @@ internal static class IWorkTextReader {
         var data = new ParagraphStyleData();
         IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
-            type => type == ParagraphStyleArchive, tolerateStyleDepth, ref resolvedCompletely);
+            type => type == ParagraphStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
@@ -248,6 +147,7 @@ internal static class IWorkTextReader {
         IWorkTextStyle inherited, IWorkProjectionBudget projectionBudget,
         Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>> cache,
         bool tolerateStyleDepth,
+        IWorkSourceReferenceIssueCollector? references,
         ref bool complete) {
         if (!identifier.HasValue) return inherited;
         var key = new TextStyleCacheKey(identifier.Value, inherited);
@@ -260,7 +160,7 @@ internal static class IWorkTextReader {
         IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
             type => type is CharacterStyleArchive or ParagraphStyleArchive,
-            tolerateStyleDepth, ref resolvedCompletely);
+            tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
@@ -277,7 +177,7 @@ internal static class IWorkTextReader {
 
     private static IReadOnlyList<IWorkWireMessage> ReadStyleChain(IWorkObjectIndex index,
         ulong identifier, int maximumDepth, Func<uint, bool> allowedType,
-        bool tolerateStyleDepth, ref bool complete) {
+        bool tolerateStyleDepth, IWorkSourceReferenceIssueCollector? references, ref bool complete) {
         var chain = new List<IWorkWireMessage>();
         var seen = new HashSet<ulong>();
         ulong current = identifier;
@@ -314,7 +214,8 @@ internal static class IWorkTextReader {
                 break;
             }
             if (super == null) break;
-            IWorkArchiveRecord? parent = index.Dereference(super, 3);
+            IWorkArchiveRecord? parent = references == null ? index.Dereference(super, 3)
+                : references.ReadOne(record, super, 3, "1/3");
             if (super.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                 || super.HasField(3) && parent == null) {
                 complete = false;
@@ -405,6 +306,7 @@ internal static class IWorkTextReader {
         IWorkProjectionBudget projectionBudget,
         Dictionary<(ulong Identifier, double? LeftIndentPoints), Cached<(int Level, string? Label)>> cache,
         bool tolerateStyleDepth,
+        IWorkSourceReferenceIssueCollector? references,
         ref bool complete) {
         if (!identifier.HasValue) return (-1, null);
         var cacheKey = (identifier.Value, paragraphLeftIndentPoints);
@@ -416,7 +318,7 @@ internal static class IWorkTextReader {
         var data = new ListStyleData();
         IReadOnlyList<IWorkWireMessage> chain = ReadStyleChain(index, identifier.Value,
             projectionBudget.MaximumTextStyleInheritanceDepth,
-            type => type == ListStyleArchive, tolerateStyleDepth, ref resolvedCompletely);
+            type => type == ListStyleArchive, tolerateStyleDepth, references, ref resolvedCompletely);
         for (int styleIndex = chain.Count - 1; styleIndex >= 0; styleIndex--) {
             IWorkWireMessage message = chain[styleIndex];
             ApplyStyleName(message, value => data.Name = value, projectionBudget, ref resolvedCompletely);
@@ -643,18 +545,6 @@ internal static class IWorkTextReader {
     private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     private static byte Component(float value) => (byte)Math.Round(Math.Max(0, Math.Min(1, value)) * 255,
         MidpointRounding.AwayFromZero);
-
-    private sealed class AttributeBoundary {
-        internal AttributeBoundary(int index, ulong? identifier, bool hasObject) {
-            Index = index;
-            Identifier = identifier;
-            HasObject = hasObject;
-        }
-        internal int Index { get; }
-        internal ulong? Identifier { get; }
-        internal bool HasObject { get; }
-        internal ulong? CarriedIdentifier { get; set; }
-    }
 
     private readonly struct Cached<T> {
         internal Cached(T value, bool isComplete) {

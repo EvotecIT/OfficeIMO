@@ -86,11 +86,13 @@ internal static class IWorkTableRichTextReader {
                 fullyReconstructed = false;
                 continue;
             }
+            // Catalog text is read eagerly, including unused entries. Formatting-reference
+            // evidence needs selected-cell traversal before it can be attached here.
             if (!storageContents.TryGetValue(storage.Identifier, out IWorkTextContent? content)) {
                 content = TryReadRecord(index, storage, options, recordMessages,
                         out IWorkWireMessage? storageMessage) && storageMessage != null
                     ? IWorkTextReader.Read(index, storage, projectionBudget,
-                        tolerateStyleDepth: true)
+                        references: null, tolerateStyleDepth: true)
                     : null;
                 storageContents.Add(storage.Identifier, content);
             }

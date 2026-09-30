@@ -74,7 +74,7 @@ public sealed partial class IWorkPagesProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared body, drawable, text-storage, section and header/footer reference occurrences in assessed content paths.</summary>
+    /// <summary>Gets unresolved declared body, drawable, text-storage, section, header/footer and assessed text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets source sections with their associated header and footer content.</summary>
     public IReadOnlyList<IWorkPagesSection> Sections { get; }
@@ -228,7 +228,7 @@ internal static partial class IWorkPagesReader {
                     body.EntryPath, body.Identifier));
                 omittedUnits.Add(new IWorkObjectIdentity(body));
             } else {
-                bodyContent = IWorkTextReader.Read(index, body, projectionBudget);
+                bodyContent = IWorkTextReader.Read(index, body, projectionBudget, references);
                 if (!bodyContent.IsComplete) MarkTextIncomplete(body, diagnostics, ref supportsEditableReconstruction, bodyContent);
                 int maximumSectionCount = bodyContent.Paragraphs.Count(paragraph =>
                     paragraph.BreakKind == IWorkParagraphBreakKind.Section) + 1;
@@ -300,7 +300,7 @@ internal static partial class IWorkPagesReader {
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                     continue;
                 }
-                text = IWorkTextReader.Read(index, storage, projectionBudget);
+                text = IWorkTextReader.Read(index, storage, projectionBudget, references);
                 textCache.Add(storage.Identifier, text);
             }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, text);
@@ -631,7 +631,7 @@ internal static partial class IWorkPagesReader {
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                     continue;
                 }
-                text = IWorkTextReader.Read(index, storage, projectionBudget);
+                text = IWorkTextReader.Read(index, storage, projectionBudget, references);
                 textCache.Add(storage.Identifier, text);
             }
             if (text == null) throw new InvalidDataException("The cached Pages text content is unavailable.");

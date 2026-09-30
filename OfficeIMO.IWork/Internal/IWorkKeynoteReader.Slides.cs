@@ -156,7 +156,7 @@ internal static partial class IWorkKeynoteReader {
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                     continue;
                 }
-                text = IWorkTextReader.Read(index, storage, projectionBudget);
+                text = IWorkTextReader.Read(index, storage, projectionBudget, references);
                 textCache.Add(storage.Identifier, text);
             }
             if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, text);
@@ -278,7 +278,7 @@ internal static partial class IWorkKeynoteReader {
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                 }
                 if (!storageMalformed) {
-                    notes = IWorkTextReader.Read(index, storage, projectionBudget);
+                    notes = IWorkTextReader.Read(index, storage, projectionBudget, references);
                     if (!notes.IsComplete) {
                         MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, notes);
                     }
