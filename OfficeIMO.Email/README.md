@@ -604,6 +604,35 @@ resources plus a prepared `HtmlConversionDocument`. `OfficeIMO.Email.Image` and 
 same bridge; Reader can then project the prepared safe document to text or Markdown. The core `OfficeIMO.Email` package
 does not reference AngleSharp or another HTML engine.
 
+## Inspect local email data
+
+`OfficeIMO.Email.Data.EmailDataInspector` reports metadata through the existing artifact readers:
+
+```csharp
+using OfficeIMO.Email.Data;
+
+EmailDataInspectionReport report = EmailDataInspector.Inspect("message.eml",
+    new EmailDataInspectionOptions(maxSamples: 32));
+foreach (EmailDataBodyAlternative body in report.Bodies)
+    Console.WriteLine($"{body.Kind}: {body.CharacterCount} UTF-16 units; charset {body.DeclaredCharset}");
+```
+
+Individual-message reports include body alternatives, declared charsets, attachment metadata, protected-wrapper
+classification, transport-signature header names and bounded diagnostic code/severity samples. They omit body
+text, signature values, linked paths and original diagnostic messages, and never open deferred attachment streams.
+Signature presence does not establish authenticity: `CryptographicallyVerified` is false.
+
+Store and OAB inspection reports catalogs and declared counts without projecting all messages or address-book
+entries. ICS/VCF inspection reports parsed root counts; use those format owners' `Validate()` operations for
+semantic validation. These reports do not promise completeness beyond the selected owner's catalog or read policy.
+
+The default inspection profile bounds individual messages and decoded properties to 16 MiB, store files to
+4 GiB and 10,000 items, and OAB components to 64 MiB. `OpenOptions` supplies explicit owner-specific policies;
+the overload accepting an existing `EmailDataOpenResult` keeps the caller's read policy and resource ownership.
+Sample truncation and a bounded signature-header scan are visible in the report. Install `OfficeIMO.Email.Html`
+for the optional HTML safety adapter. Inspection does not access the network, discover certificates, decrypt,
+verify signatures, follow linked attachments or change the source.
+
 ## Resource limits
 
 `EmailReaderOptions` is immutable and applies limits before retaining decoded content. It controls source size, header size and count, MIME part count and depth, per-attachment and aggregate attachment bytes, embedded-message depth, CFB directory entries, MAPI properties and decoded property bytes, and TNEF attributes.

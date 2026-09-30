@@ -214,6 +214,7 @@ officeimo mcp serve --stdio
 The server exposes:
 
 - `officeimo_inspect`
+- `officeimo_inspect_email`
 - `officeimo_search`
 - `officeimo_search_email`
 - `officeimo_fetch`
@@ -221,6 +222,20 @@ The server exposes:
 - `officeimo_capabilities`
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
+
+Use `officeimo agent inspect-email ./message.eml --max-output-characters 6000` or `officeimo_inspect_email`
+for the bounded mail-data and HTML safety report. EML/MSG/OFT/TNEF reports include body alternatives, charsets,
+attachment metadata, protection classification and unverified signature status. ICS/VCF reports root counts;
+store/OAB reports cover catalogs without inspecting every message or entry. The optional HTML pass reports
+concealment and the shared active-content policy, without body previews or signature values. Its status makes
+unavailable and oversized inspection explicit. When details exceed the output budget they are omitted and
+`truncated` is true; summary counts remain, and an insufficient minimum budget is rejected. Existing allowed-root
+and source-identity restrictions apply.
+
+Mail-data identities use the same bounded discovery profile as inspection. They hash individual files or the
+selected Store/OAB owner sources, including OAB Full Details components, and are checked again after inspection.
+Supporting legacy OAB components remain outside the entry catalog. Identity checks may reopen and hash the
+source; report samples limit retained output rather than source hashing I/O.
 
 ## Exit codes
 

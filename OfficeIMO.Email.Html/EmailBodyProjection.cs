@@ -252,16 +252,7 @@ public static class EmailBodyProjection {
 
     private static string CreateSafeEmailHtml(HtmlConversionDocument document) {
         AngleSharp.Html.Dom.IHtmlDocument safe = document.CreateNativeDocumentForConversion();
-        foreach (IElement element in safe.QuerySelectorAll("script,iframe,object,embed,form,meta[http-equiv]").ToArray()) {
-            element.Remove();
-        }
-        foreach (IElement element in safe.All) {
-            foreach (IAttr attribute in element.Attributes
-                .Where(attribute => attribute.Name.StartsWith("on", StringComparison.OrdinalIgnoreCase))
-                .ToArray()) {
-                element.RemoveAttribute(attribute.Name);
-            }
-        }
+        EmailHtmlActiveContent.Remove(safe);
         string styles = string.Concat(safe.Head?.QuerySelectorAll("style")
             .Select(element => element.OuterHtml) ?? Enumerable.Empty<string>());
         return styles + (safe.Body?.InnerHtml ?? safe.DocumentElement?.InnerHtml ?? string.Empty);

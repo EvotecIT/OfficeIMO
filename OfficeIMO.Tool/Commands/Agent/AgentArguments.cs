@@ -6,6 +6,7 @@ namespace OfficeIMO.Tool.Commands.Agent;
 internal enum AgentCommandKind {
     Help,
     Inspect,
+    InspectEmail,
     Search,
     SearchEmail,
     Fetch,
@@ -52,6 +53,7 @@ internal sealed class AgentArguments {
         var parsed = new AgentArguments {
             Command = args[0].ToLowerInvariant() switch {
                 "inspect" => AgentCommandKind.Inspect,
+                "inspect-email" => AgentCommandKind.InspectEmail,
                 "search" => AgentCommandKind.Search,
                 "search-email" => AgentCommandKind.SearchEmail,
                 "fetch" => AgentCommandKind.Fetch,
@@ -165,6 +167,7 @@ internal sealed class AgentArguments {
             throw new AgentUsageException("Search-email requires --query and uses --checkpoint instead of an integer cursor.");
         switch (Command) {
             case AgentCommandKind.Inspect:
+            case AgentCommandKind.InspectEmail:
                 RequirePath();
                 RejectSearchOrFetchOptions();
                 break;

@@ -76,6 +76,16 @@ public sealed class McpProtocolTests {
                 ["path"] = outsideRoot, ["query"] = "body needle"
             }, cancellationToken: timeout.Token);
             Assert.True(denied.IsError);
+            var inspectedEmail = await client.CallToolAsync("officeimo_inspect_email", new Dictionary<string, object?> {
+                ["path"] = Path.Combine(mailbox, "message.eml"), ["maxOutputCharacters"] = 512
+            }, cancellationToken: timeout.Token);
+            Assert.False(inspectedEmail.IsError);
+            Assert.Equal("EmailDocument", inspectedEmail.StructuredContent!.Value.GetProperty("kind").GetString());
+            Assert.Equal("Unverified", inspectedEmail.StructuredContent.Value.GetProperty("signatureStatus").GetString());
+            var inspectedOutside = await client.CallToolAsync("officeimo_inspect_email", new Dictionary<string, object?> {
+                ["path"] = outsidePath
+            }, cancellationToken: timeout.Token);
+            Assert.True(inspectedOutside.IsError);
         } finally {
             if (Directory.Exists(testRoot)) Directory.Delete(testRoot, recursive: true);
         }
@@ -107,6 +117,7 @@ public sealed class McpProtocolTests {
                 "officeimo_convert",
                 "officeimo_fetch",
                 "officeimo_inspect",
+                "officeimo_inspect_email",
                 "officeimo_search",
                 "officeimo_search_email"
             },

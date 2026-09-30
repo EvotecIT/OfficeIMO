@@ -87,3 +87,14 @@ an `OfficeIMO.ContentSafety.OfficeContentCleanupSelection` containing the chosen
 `cleanupSelection` to remove those exact findings before projection. This uses the shared content-safety
 owner and leaves the original body unchanged. Review retained text and selected attachment payloads before
 sharing; this operation does not promise complete anonymization or retain original integrity assurance.
+
+`EmailHtmlDataInspector.Inspect("message.eml")` combines the core mail-data report with inspection of the
+original HTML through `HtmlContentSafety` and the shared email body's active-content policy. It reports concealed
+text mechanisms and instruction-like risk classifications, plus counts of blocked elements and event-handler
+attributes. Finding text, hashes and previews are omitted. The original body is left intact; no resource is fetched.
+
+The HTML source is bounded to one million UTF-16 units by default. `HtmlInspectionStatus` distinguishes a completed
+inspection from an oversized body, an unavailable inspection (including engine finding limits), a missing HTML
+body and catalog-only inspection. Finding samples that reach their bound remain explicit. A completed HTML
+inspection is not a malware verdict or proof that all content is safe; RTF/plain-text and unselected store items
+are not qualified by this adapter. Cancellation is observed before and after the shared synchronous HTML passes.

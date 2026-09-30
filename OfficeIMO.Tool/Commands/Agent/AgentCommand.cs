@@ -8,6 +8,7 @@ OfficeIMO.Tool - compact agent operations
 
 Usage:
   officeimo agent inspect <path> [--max-output-characters <512-64000>]
+  officeimo agent inspect-email <path> [--max-output-characters <512-64000>]
   officeimo agent search <path> [--query <text>] [--subject <text>] [--sender <text>] [--folder-id <id>]
                                [--since <ISO-8601>] [--before <ISO-8601>] [--has-attachments <bool>]
                                [--is-read <bool>] [--include-descendants] [--take <1-25>] [--cursor <n>]
@@ -46,6 +47,9 @@ Output is one compact JSON object. Inspect or search first, then fetch selected 
         try {
             var service = new OfficeImoAgentService();
             object result = parsed.Command switch {
+                AgentCommandKind.InspectEmail => await service.InspectEmailDataAsync(parsed.Path!,
+                    parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultInspectOutputCharacters,
+                    cancellationToken).ConfigureAwait(false),
                 AgentCommandKind.Inspect => await service.InspectAsync(
                     parsed.Path!,
                     parsed.MaxOutputCharacters ?? OfficeImoAgentService.DefaultInspectOutputCharacters,

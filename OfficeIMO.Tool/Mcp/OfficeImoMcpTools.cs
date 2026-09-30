@@ -39,6 +39,17 @@ internal sealed class OfficeImoMcpTools {
             () => _service.InspectAsync(path, maxOutputCharacters, cancellationToken),
             result => "Inspected " + result.Kind + "; sourceId=" + result.SourceId + ".").ConfigureAwait(false);
 
+    [McpServerTool(Name = "officeimo_inspect_email", Title = "Inspect local email data and HTML safety",
+        ReadOnly = true, Destructive = false, Idempotent = true, OpenWorld = false,
+        UseStructuredContent = true, OutputSchemaType = typeof(AgentEmailInspectResult))]
+    [Description("Return bounded mail-data metadata, charset/attachment diagnostics and optional HTML policy findings. Store/OAB catalogs only; no payload preview, network, decryption or signature verification.")]
+    public async Task<CallToolResult> InspectEmailAsync(
+        [Description("Local EML/MSG/OFT/TNEF, ICS/VCF, mailbox or OAB path within allowed roots.")] string path,
+        [Description("Maximum serialized result characters, from 512 through 64000.")] int maxOutputCharacters = OfficeImoAgentService.DefaultInspectOutputCharacters,
+        CancellationToken cancellationToken = default) =>
+        await ExecuteAsync(() => _service.InspectEmailDataAsync(path, maxOutputCharacters, cancellationToken),
+            result => "Inspected " + result.Kind + "; sourceId=" + result.SourceId + ".").ConfigureAwait(false);
+
     [McpServerTool(
         Name = "officeimo_search",
         Title = "Search an Office document or mailbox",
