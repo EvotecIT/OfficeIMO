@@ -137,7 +137,8 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
                 bool usable = quality.WordCount >= _policy.MinimumWordCount && !string.IsNullOrWhiteSpace(candidate.Text) &&
                     !quality.HasWarningsOrErrors && !quality.HasOmittedSpans;
                 if (retained && usable && (selectedQuality!.HasWarningsOrErrors || selectedQuality.HasOmittedSpans ||
-                    selectedQuality.WordCount < _policy.MinimumWordCount || quality.UncertainWordFraction < selectedQuality.UncertainWordFraction)) {
+                    selectedQuality.WordCount < _policy.MinimumWordCount || string.IsNullOrWhiteSpace(selected!.Text) ||
+                    quality.UncertainWordFraction < selectedQuality.UncertainWordFraction)) {
                     selected = candidate; selectedQuality = quality; selectedIndex = summaries.Count - 1;
                 }
             }

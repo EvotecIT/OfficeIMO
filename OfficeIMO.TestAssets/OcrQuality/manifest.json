@@ -1,7 +1,7 @@
 {
   "version": 1,
   "labels": "OcrQuality/labels.json",
-  "labelsSha256": "b20f13d204b024349c80e6b0c49cd5f056d121b4e96589ef83f819891710ff19",
+  "labelsSha256": "d33bf7dceadad77cbbab6a5e2e9d118e079f411db90eda3796912b09034a7e77",
   "sources": [
     {
       "file": "OcrQuality/fw9.pdf",

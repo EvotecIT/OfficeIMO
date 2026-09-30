@@ -48,6 +48,22 @@ public sealed class AdaptiveOcrTests {
         Assert.Equal("adaptive-ocr-review-recommended", result.Result.Diagnostics[0].Code);
     }
 
+    [Theory]
+    [InlineData("")]
+    [InlineData(" \t")]
+    public async Task PassingRetryRepairsMissingAggregateTextWithoutApprovingDisagreement(string missing) {
+        var baseline = Words("A", 1); baseline.Text = missing;
+        var engine = new AdaptiveOcrEngine("adaptive", new[] {
+            Attempt("baseline", () => baseline), Attempt("retry", () => Words("A", 1))
+        });
+        AdaptiveOcrResult result = await engine.RecognizeWithReviewAsync(Request());
+        Assert.Equal("A", result.Result.Text);
+        Assert.Equal(1, result.SelectedAttempt);
+        Assert.True(result.Quality.MeetsThresholds);
+        Assert.True(result.HasDisagreement);
+        Assert.True(result.ReviewRecommended);
+    }
+
     [Fact]
     public async Task ShorterHighConfidenceRetryCannotDiscardBaselineCoverage() {
         var engine = new AdaptiveOcrEngine("adaptive", new[] {
