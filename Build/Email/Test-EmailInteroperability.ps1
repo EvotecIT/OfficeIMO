@@ -16,6 +16,7 @@ param(
     [string] $Framework = 'net8.0',
     [string] $Configuration = 'Release',
     [string] $OutputPath = '',
+    [string] $ArtifactsPath,
     [switch] $NoRestore,
     [switch] $NoBuild
 )
@@ -100,6 +101,7 @@ foreach ($entry in $lanes.GetEnumerator()) {
         '--logger', ('trx;LogFileName=' + $name + '.trx'), '--results-directory', $laneOutput)
     if ($NoRestore) { $arguments += '--no-restore' }
     if ($NoBuild) { $arguments += '--no-build' }
+    if ($ArtifactsPath) { $arguments += @('--artifacts-path', $ArtifactsPath) }
     Write-Host "Email qualification: $name ($Framework)"
     try {
         # Use the repository cwd for restore/configuration and relative test assets.

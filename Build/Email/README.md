@@ -13,6 +13,8 @@ $env:OFFICEIMO_EMAIL_STORE_LIBPFF_WSL = 'Ubuntu'
 `OutputPath` must be new or empty. The default creates a unique temporary directory.
 `NoBuild` and `NoRestore` are available for an already built test assembly. Supported
 frameworks are `net8.0`, `net10.0`, and Windows `net472`.
+`ArtifactsPath` forwards the SDK's build-output option; use a separate directory
+when Windows and Linux validate the same mounted source checkout.
 
 | Lane | Evidence | Existing opt-in prerequisite |
 | --- | --- | --- |

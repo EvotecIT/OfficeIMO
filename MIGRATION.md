@@ -40,6 +40,19 @@ Store selective reads honor narrower `EmailStoreItemReadOptions.MaxDecodedProper
 directories, Mbox and eager EMLX/OLM items. EMLX combines message and metadata-trailer bytes; OLM counts
 UTF-8 scalar text and attribute values per item. ZIP/XML input and attachment budgets remain separate.
 
+## Email parent-only reads and comparisons
+
+`EmailReaderOptions` adds `includeEmbeddedMessages`, and `EmailSemanticComparisonOptions` adds
+`includeEmbeddedMessageContent`. Both default to `true`. Rebuild compiled applications that construct
+these option types against the updated package; the constructor signatures have changed.
+
+Use `includeEmbeddedMessages: false` with `includeAttachmentContent: false` when a workflow needs only
+the parent message and attachment metadata. Store selective reads apply the same boundary when
+`EmailStoreItemReadParts.EmbeddedItems` is omitted. Embedded content is then absent from `LoadedParts`.
+For an already loaded model, `includeEmbeddedMessageContent: false` excludes embedded documents from
+semantic comparison. Archive candidate analysis uses these parent-only contracts and does not establish
+that candidate attachment payloads are equal.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

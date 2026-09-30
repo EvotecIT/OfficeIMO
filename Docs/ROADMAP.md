@@ -242,6 +242,10 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 - [ ] Reduce AsciiDoc's lossless collection and semantic graph overhead beyond the current validated large baseline of 29.34 MiB allocated and 19.50 MiB retained for a 558 KiB source. Preserve exact spans, parent navigation, semantic editing, bounded nesting, table and list-continuation behavior, and byte-identical writing, and add Linux/macOS evidence.
 - [ ] Deepen RTF semantic parsing and writing beyond the current Broad and Preserved contracts for complex and nested tables, fields and form-field data, embedded pictures and objects, advanced destination groups, Unicode and code-page interactions, lists and overrides, and producer-specific controls. Extend the independent Word, WordPad, and Outlook corpus with editable semantic round trips and deterministic preservation diagnostics rather than treating syntax preservation or adapter reopening as full semantic coverage.
 
+## Email artifacts and archives
+
+- [ ] Qualify the external lanes in the [email interoperability runner](../Build/Email/README.md) against pinned, licensed, independently produced fixtures and named classic Outlook versions. Record producer versions, source hashes, expected semantics and host coverage for MSGReader/MimeKit corpora, Outlook exchange and PST operations, real S/MIME artifacts, and caller-owned PST/OST read/conversion. Keep private content and certificate material out of published evidence, and distinguish disabled lanes from qualified producers.
+
 ## Electronic invoices
 
 - [ ] Run the equivalent XML read, XML write, pinned-rules validation, and PDF-generation workloads on Windows and macOS target hosts. Retain elapsed and managed-allocation evidence for every operation, confirm or adjust the configured platform ceilings from those measurements, and keep the canonical XML and XML/PDF agreement gates identical to the qualified Linux run.
