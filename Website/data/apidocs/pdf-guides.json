@@ -1,0 +1,3 @@
+[
+  { "title": "Create PDF documents", "url": "/docs/pdf/", "kind": "guide", "targets": ["OfficeIMO.Pdf.PdfDocument"] }
+]

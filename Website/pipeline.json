@@ -1682,7 +1682,8 @@
       "includeNamespace": "OfficeIMO.Pdf",
       "injectCriticalCss": true,
       "quickStartTypes": "PdfDocument",
-      "packageId": "OfficeIMO.Pdf"
+      "packageId": "OfficeIMO.Pdf",
+      "relatedContentManifest": "./data/apidocs/pdf-guides.json"
     },
     {
       "task": "apidocs",
