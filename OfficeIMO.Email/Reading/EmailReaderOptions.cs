@@ -21,7 +21,8 @@ public sealed class EmailReaderOptions {
         int maxMapiPropertyCount = 100000,
         long maxDecodedPropertyBytes = 512L * 1024L * 1024L,
         int maxTnefAttributeCount = 100000,
-        int maxAttachmentCount = 10000) {
+        int maxAttachmentCount = 10000,
+        bool includeEmbeddedMessages = true) {
         if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
         if (maxHeaderBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderBytes));
         if (maxHeaderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderCount));
@@ -51,6 +52,7 @@ public sealed class EmailReaderOptions {
         MaxDecodedPropertyBytes = maxDecodedPropertyBytes;
         MaxTnefAttributeCount = maxTnefAttributeCount;
         MaxAttachmentCount = maxAttachmentCount;
+        IncludeEmbeddedMessages = includeEmbeddedMessages;
     }
 
     /// <summary>Maximum artifact size accepted by the reader.</summary>
@@ -71,6 +73,8 @@ public sealed class EmailReaderOptions {
     public int MaxNestedMessageDepth { get; }
     /// <summary>Whether decoded attachment content is retained.</summary>
     public bool IncludeAttachmentContent { get; }
+    /// <summary>Whether embedded messages are parsed into nested documents. Attachment metadata remains available.</summary>
+    public bool IncludeEmbeddedMessages { get; }
     /// <summary>Whether original artifact bytes are retained for explicit lossless writing.</summary>
     public bool PreserveRawSource { get; }
     /// <summary>Maximum CFB directory entries accepted while reading MSG.</summary>

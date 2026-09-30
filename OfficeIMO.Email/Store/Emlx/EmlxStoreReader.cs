@@ -8,12 +8,15 @@ internal sealed class EmlxStoreReader {
     private const string FolderId = "emlx:folder:apple-mail";
     private readonly EmailStoreReaderOptions _options;
     private readonly bool? _includeAttachmentContent;
+    private readonly bool _includeEmbeddedMessages;
     private readonly long _propertyLimit;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
 
-    internal EmlxStoreReader(EmailStoreReaderOptions options, bool? includeAttachmentContent = null, long? maxDecodedPropertyBytes = null) {
+    internal EmlxStoreReader(EmailStoreReaderOptions options, bool? includeAttachmentContent = null, long? maxDecodedPropertyBytes = null,
+        bool includeEmbeddedMessages = true) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _includeAttachmentContent = includeAttachmentContent;
+        _includeEmbeddedMessages = includeEmbeddedMessages;
         _propertyLimit = Math.Min(options.MaxDecodedPropertyBytesPerItem, maxDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem);
     }
 
@@ -84,6 +87,7 @@ internal sealed class EmlxStoreReader {
         EmailStoreItemReadParts loadedParts = EmailStoreItemReadParts.All;
         if (!(_includeAttachmentContent ?? _options.RetainAttachmentContent))
             loadedParts &= ~EmailStoreItemReadParts.AttachmentContent;
+        if (!_includeEmbeddedMessages) loadedParts &= ~EmailStoreItemReadParts.EmbeddedItems;
         folder.MutableItems.Add(new EmailStoreItem(
             itemId, FolderId, document, loadedParts: loadedParts, format: EmailStoreFormat.Emlx) { DecodedPropertyBytes = decodedPropertyBytes });
         return new EmailStoreReadResult(store, _diagnostics.AsReadOnly(), stream.Length);
@@ -91,7 +95,7 @@ internal sealed class EmlxStoreReader {
 
     private EmailReadResult ReadMessage(byte[] messageBytes, CancellationToken cancellationToken) {
         return EmailStoreMessageReader.Read(messageBytes, _options, cancellationToken,
-            _includeAttachmentContent, _propertyLimit);
+            _includeAttachmentContent, _propertyLimit, _includeEmbeddedMessages);
     }
 
     private long ReadMetadata(Stream stream, EmailDocument document, string itemName, long previousDecodedBytes,

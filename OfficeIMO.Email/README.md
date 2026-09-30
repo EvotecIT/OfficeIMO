@@ -535,6 +535,27 @@ EmailStoreItemReference firstReference = session.EnumerateItems(
 EmailDocument firstMessage = session.ReadItem(firstReference).Document;
 ```
 
+`session.AnalyzeArchive()` returns read-only folder and UTC month distributions, large attachment metadata and
+semantic duplicate candidates. It projects bounded bodies, recipients and attachment metadata; it does not request
+attachment payloads or embedded-item content. Matching candidates can contain different attachment bytes and
+unloaded properties, so the report does not establish duplicate equality or select mail for deletion.
+
+```csharp
+EmailArchiveAnalysisReport analysis = session.AnalyzeArchive(
+    new EmailArchiveAnalysisOptions(maxItems: 10_000, maxLargeAttachments: 25));
+Console.WriteLine($"Scanned {analysis.ItemsScanned}; exhausted references: {analysis.ExhaustedSelectedReferences}");
+Console.WriteLine($"Candidate groups: {analysis.DuplicateCandidateGroupCount}");
+```
+
+The report rechecks a SHA-256 of the complete persisted source. That source hashing performs I/O even though
+attachment payloads are not decoded for analysis. `OpenSnapshot` can reuse its owned snapshot fingerprint.
+Header-only and potentially partial local items are excluded from candidate matching. Scan limits, failed analyses,
+source warnings, omitted distribution buckets, omitted candidate IDs/groups and diagnostic totals remain explicit.
+`ExhaustedSelectedReferences` describes the session's regular-reference enumeration; it does not prove that a
+damaged source catalog includes every original item. Failed analysis can occur after an item was projected.
+`EstimatedCandidateDeclaredBytes` uses available item size declarations and excludes the largest member in each
+candidate group. It is neither verified duplicate savings nor a physical PST compaction estimate. No archive is changed.
+
 Long-running PST/OST/OLM/EMLX/Mbox/mail-directory migrations can opt into an atomic checkpoint. The checkpoint binds
 the exact source byte fingerprint, bounded source catalog, destination, conversion options, writer state, item provenance,
 and verification journal. Resume rejects changed sources or options instead of silently continuing against different data:

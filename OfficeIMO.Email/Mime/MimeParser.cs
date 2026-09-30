@@ -222,7 +222,8 @@ internal static partial class MimeParser {
         if (!isBody) {
             state.CountAttachment();
         }
-        bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
+        bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent &&
+            (!embeddedMessage || !state.Options.IncludeEmbeddedMessages) &&
             !semanticBodyPart;
         int payloadDiagnosticStart = state.Diagnostics.Count;
         long decodedLength = MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
@@ -233,6 +234,7 @@ internal static partial class MimeParser {
                 EmailAttachment skipped = CreateAttachment(headers, contentType, disposition, fileName,
                     inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength,
                     isRelatedSibling);
+                if (embeddedMessage) skipped.MapiAttachMethod = 5;
                 skipped.MimeDecodingWasAmbiguous = state.Diagnostics
                     .Skip(payloadDiagnosticStart)
                     .Any(IsAmbiguousMimeDecodingDiagnostic);
@@ -289,10 +291,13 @@ internal static partial class MimeParser {
             EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
                 inlineDisposition, attachmentDisposition, state.Options.IncludeAttachmentContent ? decoded : null,
                 decoded.LongLength, isRelatedSibling);
+            embedded.MapiAttachMethod = 5;
             embedded.MimeDecodingWasAmbiguous = state.Diagnostics
                 .Skip(payloadDiagnosticStart)
                 .Any(IsAmbiguousMimeDecodingDiagnostic);
-            if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
+            if (!state.Options.IncludeEmbeddedMessages) {
+                // The caller requested only the parent representation.
+            } else if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_NESTED_MESSAGE_LIMIT",
                     "The embedded message was retained but not parsed because the nested-message limit was reached.",
                     EmailDiagnosticSeverity.Warning, location));
