@@ -2,17 +2,23 @@ namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave42RegressionTests {
     [Theory]
-    [InlineData(17)]
-    [InlineData(999)]
-    public void Named_unknown_EndNote_types_diagnose_noncanonical_numeric_codes(int code) {
-        string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Custom Type\">" + code.ToString(System.Globalization.CultureInfo.InvariantCulture) + "</ref-type></record></records></xml>";
+    [InlineData("Custom Type", "17")]
+    [InlineData("Custom Type", "999")]
+    [InlineData("Book", "17")]
+    [InlineData("Book", "abc")]
+    [InlineData("Book", "")]
+    [InlineData("Book", "  ")]
+    public void Named_unknown_EndNote_types_diagnose_noncanonical_numeric_codes(string name, string code) {
+        string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"" + name + "\">" + code + "</ref-type></record></records></xml>";
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml);
+
+        read.Document.Items[0].Title = "After";
 
         BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, diagnostic => diagnostic.Code == "BIBEND004" && diagnostic.Field == "ref-type");
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
             read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
 
-        Assert.Contains(code.ToString(System.Globalization.CultureInfo.InvariantCulture), diagnostic.Message, StringComparison.Ordinal);
+        if (!string.IsNullOrWhiteSpace(code)) Assert.Contains(code, diagnostic.Message, StringComparison.Ordinal);
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222" && diagnostic.Field == "ref-type");
     }
 

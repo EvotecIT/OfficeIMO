@@ -2,6 +2,11 @@
 
 The email performance contracts guard two common failure modes: copying a large MIME message too many times and scaling mailbox parsing by message count rather than source size.
 
+The Email Performance Evidence workflow runs the MIME, MSG, mbox, and PST scale
+measurements only when manually dispatched. Ordinary correctness CI excludes
+`Category=Performance` and retains deterministic format, resource-limit, reopen,
+conversion, and deduplication proof.
+
 Run the evidence with:
 
 ```powershell
@@ -12,7 +17,9 @@ dotnet test OfficeIMO.Email.Tests/OfficeIMO.Email.Tests.csproj `
     --logger "console;verbosity=detailed"
 ```
 
-The tests measure allocations on the parsing thread after constructing the fixture. They also apply a generous time ceiling to catch hangs and accidental super-linear work without turning ordinary machine variance into failures.
+The tests measure allocations on the parsing thread after constructing the fixture.
+Their time ceiling can flag hangs or accidental super-linear work, but the observed
+time and memory budgets still depend on the runtime and host.
 
 ## Current baseline
 

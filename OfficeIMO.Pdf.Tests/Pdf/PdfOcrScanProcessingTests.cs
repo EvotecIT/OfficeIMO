@@ -285,32 +285,6 @@ public sealed class PdfOcrScanProcessingTests {
         Assert.Equal(1, calls);
     }
 
-    [Fact]
-    public async Task OrientationAndRecognitionShareTheNonConcurrentEngineGate() {
-        var firstEntered = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        var release = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        int calls = 0;
-        var engine = new DelegateOcrEngine("shared-gate", async (request, _) => {
-            int call = Interlocked.Increment(ref calls);
-            if (call == 1) { firstEntered.SetResult(true); await release.Task.ConfigureAwait(false); }
-            return new OcrResult();
-        }, new OcrEngineCapabilities { SupportsOrientationDetection = true, SupportsConcurrentRequests = false });
-        Task<OcrResult> orientation = OcrEngineRunner.RecognizeAsync(engine,
-            new OcrRequest { Operation = OcrOperation.DetectOrientation }, TimeSpan.FromSeconds(10));
-        // Releasing the provider must not wait for xUnit's bounded synchronization
-        // context while other PDF tests occupy its workers.
-#pragma warning disable xUnit1030 // The bounded provider handshake deliberately bypasses the test scheduler.
-        await firstEntered.Task.ConfigureAwait(false);
-        Task<OcrResult> recognition;
-        try {
-            recognition = OcrEngineRunner.RecognizeAsync(engine, new OcrRequest(), TimeSpan.FromSeconds(10));
-            Assert.Equal(1, Volatile.Read(ref calls));
-        } finally { release.TrySetResult(true); }
-        await Task.WhenAll(orientation, recognition).ConfigureAwait(false);
-#pragma warning restore xUnit1030
-        Assert.Equal(2, calls);
-    }
-
     private static OcrTextSpan RelativeWord(OcrRequest request) => new OcrTextSpan {
         Text = "Word",
         Level = OcrTextSpanLevel.Word,

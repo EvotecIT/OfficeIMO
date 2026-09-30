@@ -1,0 +1,35 @@
+name: Bibliography resource performance evidence
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.418
+            10.0.112
+      - name: Measure Bibliography resource amplification
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Bibliography.Tests/OfficeIMO.Bibliography.Tests.csproj --configuration Release --framework net8.0 -p:BibliographyPerformanceEvidence=true --filter "Category=ResourcePerformanceEvidence" --logger "console;verbosity=normal" --logger trx --results-directory artifacts/bibliography-performance
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: bibliography-performance-${{ matrix.os }}
+          path: artifacts/bibliography-performance
+          if-no-files-found: warn

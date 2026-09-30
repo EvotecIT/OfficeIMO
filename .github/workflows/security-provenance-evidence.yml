@@ -48,25 +48,32 @@ jobs:
       - name: Restore evidence projects
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet restore OfficeIMO.Security.Benchmarks/OfficeIMO.Security.Benchmarks.csproj
           dotnet restore OfficeIMO.Provenance.Benchmarks/OfficeIMO.Provenance.Benchmarks.csproj
 
       - name: Validate equivalent workloads and exact outputs
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Security.Benchmarks/OfficeIMO.Security.Benchmarks.csproj -- validate
           dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Provenance.Benchmarks/OfficeIMO.Provenance.Benchmarks.csproj -- validate
 
       - name: Capture and enforce evidence budgets
+        if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           $output = ".benchmark-artifacts/security-evidence/${{ runner.os }}"
           $budget = 'Build/BenchmarkBudgets/security-provenance.json'
           dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Security.Benchmarks/OfficeIMO.Security.Benchmarks.csproj -- evidence --repeat 3 --json "$output/security-cms.json" --budget $budget
           dotnet run --configuration $env:BUILD_CONFIGURATION --framework net10.0 --no-restore --project OfficeIMO.Provenance.Benchmarks/OfficeIMO.Provenance.Benchmarks.csproj -- evidence --repeat 3 --json "$output/provenance.json" --budget $budget
 
       - name: Upload evidence
-        if: always()
+        if: always() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v7
         with:
           name: security-provenance-evidence-${{ runner.os }}

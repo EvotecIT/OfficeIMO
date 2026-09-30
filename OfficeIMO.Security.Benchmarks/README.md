@@ -28,8 +28,9 @@ allocation plus retained managed heap, sampled managed peak, absolute process
 peak working set, CMS/content sizes, runtime, OS, commit, and dirty-tree state.
 The checked-in budget covers both verification engines with OfficeIMO-produced
 and platform-produced CMS signatures over 1 KiB detached content. The evidence
-workflow enforces the same contract on Windows, Linux, and macOS and uploads
-each JSON report.
+workflow collects and enforces these budgets on Windows, Linux, and macOS when
+manually dispatched, and uploads each JSON report. Ordinary pull-request runs
+execute the deterministic `validate` preflight.
 
 The project stays outside `OfficeIMO.sln`. BenchmarkDotNet and the platform
 PKCS package remain benchmark-only dependencies and do not enter OfficeIMO

@@ -459,7 +459,8 @@ public partial class DrawingTests {
     }
 
     [Theory]
-    [InlineData(0x01)]
+    [InlineData(0x02)]
+    [InlineData(0x03)]
     [InlineData(0x20)]
     [InlineData(0x40)]
     public void WebpAlphaChunksRejectReservedHeaderValues(int invalidControl) {

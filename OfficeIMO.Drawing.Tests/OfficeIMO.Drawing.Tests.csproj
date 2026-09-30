@@ -31,6 +31,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="TestAssets\WebpAlpha\*.webp" />
+    <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

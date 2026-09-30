@@ -1960,13 +1960,14 @@ the complete 21-operation mutation portfolio, managed rendering, and declared
 compliance claim gating against hash-pinned Open Preservation Foundation and
 veraPDF fixtures. The real-world corpus lane applies the same deep PDF stages to
 a deterministic sample of a checksum-pinned public GovDocs archive in isolated
-processes. The performance gate
+processes. The opt-in PDF Performance Evidence workflow
 uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
 SVG rendering, PNG rendering, output integrity, absolute allocation and heap
 budgets, generous elapsed-time ceilings, and cached allocation savings. Relative
 cached speedup is opt-in through `--verify-timing-budgets` for controlled
-benchmark hosts; ordinary CI records it without treating shared-runner timing as
-a release comparison.
+benchmark hosts. Ordinary correctness CI runs the PDF tests without these
+host-dependent performance budgets. The budget runner stays outside the normal
+solution and can also be run directly with the commands above.
 
 Pixel baselines are strict when the installed Poppler major/minor version
 matches the recorded renderer. A different renderer version still runs semantic

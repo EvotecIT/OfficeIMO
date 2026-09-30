@@ -32,7 +32,7 @@ Pass one or more scenario names such as `Screenshot`, `HighEntropy`, or `VeryLar
 
 ## Release-quality evidence suite
 
-The repository-level release gate uses the same benchmark assembly through PowerForge's structured evidence runner. Build the benchmark project first, then run the suite from the repository root with PowerShell on .NET 10 or newer and PSPublishModule 3.0.141 or later:
+The opt-in evidence suite uses the same benchmark assembly through PowerForge's structured evidence runner. Build the benchmark project first, then run the suite from the repository root with PowerShell on .NET 10 or newer and PSPublishModule 3.0.141 or later:
 
 ```powershell
 dotnet build OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj -c Release -f net10.0
@@ -55,17 +55,16 @@ around the workload operation on its executing thread, excluding host dispatch a
 setup or teardown. A non-planning run fails when any case is not
 `Succeeded`.
 
-Pull-request runs download the matching operating-system artifact from the latest successful
-`master` workflow and use PowerForge `Test-BenchmarkGate` comparisons. The first run permits new
-scenario keys; after they are present on `master`, subsequent Windows, Linux, and macOS runs gate
-the full matrix. Process-memory gates use an absolute noise allowance as well as relative
-tolerance because a zero baseline is common for short operations. Hosted CI gates validated output,
-managed allocation, peak working set, peak private bytes, cancellation, and image error. It reports
-elapsed time and the native estimate without gating them: hosted-runner timing varies between runs,
-and subtracting the live managed heap from process private bytes cannot reliably attribute memory
-to native allocations when garbage collection changes the live heap. Use controlled repeat runs
-to investigate those diagnostics. Pass a reference summary when
-reproducing the same comparison locally:
+Pull-request and `master` runs execute `--validate` for output fidelity and bounded cancellation.
+Dispatch the Release Quality Evidence workflow to collect time, allocation, and process-memory
+measurements on Windows, Linux, and macOS. Its optional `reference_ref` input builds and measures
+a chosen Git reference in the same job, then applies PowerForge `Test-BenchmarkGate` comparisons.
+Process-memory comparisons use an absolute noise allowance as well as relative tolerance because
+a zero baseline is common for short operations. Elapsed time and the native estimate remain
+diagnostic: hosted-runner timing varies, and subtracting the live managed heap from process private
+bytes cannot reliably attribute memory to native allocations when garbage collection changes the
+live heap. Use controlled repeat runs to investigate those diagnostics. Pass a reference summary
+when reproducing the same comparison locally:
 
 ```powershell
 pwsh ./Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1 `
