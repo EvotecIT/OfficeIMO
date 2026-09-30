@@ -14,7 +14,7 @@ The existing language provisioner downloads checksum-pinned `tessdata_fast` mode
 
 The default exit code gates completed recognition, source hashes, and word geometry inside the raster. Accuracy limits remain measured failures. Append `--require-quality` to require every declared CER and WER limit as well. Exits are 0 for the selected gate passing, 1 for a failed gate, 2 for setup or manifest errors, and 3 for cancellation. Ctrl+C and the 15-minute run deadline prevent publication of a final scorecard. Partial text and raster evidence can remain for diagnosis. An existing final scorecard is never overwritten.
 
-The [native qualification workflow](../../.github/workflows/ocr-native-quality.yml) runs the shared OCR contracts and this operational gate on hosted Windows, Linux, and macOS. Only a completed platform scorecard establishes execution evidence for that platform; the workflow definition alone does not.
+The [native qualification workflow](../../.github/workflows/ocr-native-quality.yml) runs the shared OCR contracts and this operational gate on hosted Windows, Linux, and macOS when explicitly dispatched. It is an opt-in evidence run outside ordinary pull-request correctness gates. Only a completed platform scorecard establishes execution evidence for that platform; the workflow definition alone does not.
 
 ## Inputs and labels
 

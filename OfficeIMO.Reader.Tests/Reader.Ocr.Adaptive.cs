@@ -211,6 +211,33 @@ public sealed class AdaptiveOcrTests {
         Assert.True(called); Assert.Equal(1, request.Payload[0]);
     }
 
+    [Theory]
+    [InlineData(OcrOperation.RecognizeText, "12345", "", false)]
+    [InlineData(OcrOperation.RecognizeText, "", "12345", false)]
+    [InlineData(OcrOperation.RecognizeText, "12", "345", false)]
+    [InlineData(OcrOperation.RecognizeText, "12", "34", true)]
+    [InlineData(OcrOperation.DetectOrientation, "12345", "", false)]
+    [InlineData(OcrOperation.DetectOrientation, "", "12345", false)]
+    [InlineData(OcrOperation.DetectOrientation, "12", "345", false)]
+    [InlineData(OcrOperation.DetectOrientation, "12", "34", true)]
+    public async Task EveryOperationEnforcesCombinedAggregateAndSpanTextBudget(
+        OcrOperation operation, string text, string spanText, bool withinBudget) {
+        var provider = new DelegateOcrEngine("provider", (_, _) => Task.FromResult(new OcrResult {
+            Text = text, Spans = new[] { new OcrTextSpan { Text = spanText } }
+        }), new OcrEngineCapabilities { SupportsOrientationDetection = true });
+        var engine = new AdaptiveOcrEngine("adaptive", new[] { new OcrRecognitionAttempt("baseline", provider) },
+            maximumTextCharacters: 4);
+        var request = Request(); request.Operation = operation;
+        if (withinBudget) {
+            OcrResult result = await engine.RecognizeAsync(request);
+            Assert.Equal(text, result.Text);
+            Assert.Equal(spanText, Assert.Single(result.Spans).Text);
+        } else {
+            OcrEngineExecutionException error = await Assert.ThrowsAsync<OcrEngineExecutionException>(() => engine.RecognizeAsync(request));
+            Assert.Equal(OcrEngineFailureKind.InvalidResult, error.Kind);
+        }
+    }
+
     private static OcrRequest Request() => new() { Payload = new byte[] { 1 }, MediaType = "image/png" };
     private static OcrRecognitionAttempt Attempt(string name, Func<OcrResult> run) => new(name, new DelegateOcrEngine(name, (_, _) => Task.FromResult(run())));
     private static OcrResult Words(string text, params double?[] confidence) => new() {

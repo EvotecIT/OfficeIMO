@@ -2,26 +2,12 @@ name: Native OCR operational qualification
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - 'OfficeIMO.Ocr/**'
-      - 'OfficeIMO.Ocr.Process/**'
-      - 'OfficeIMO.Ocr.Tesseract/**'
-      - 'OfficeIMO.Pdf.Ocr/**'
-      - 'OfficeIMO.Pdf/**'
-      - 'OfficeIMO.Core/**'
-      - 'Build/PdfQualityCorpus/**'
-      - 'OfficeIMO.TestAssets/OcrQuality/**'
-      - 'OfficeIMO.TestAssets/ScanQuality/**'
-      - 'OfficeIMO.Reader.Tests/Reader.Ocr*.cs'
-      - '.gitattributes'
-      - '.github/workflows/ocr-native-quality.yml'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ocr-native-${{ github.event.pull_request.number || github.ref }}
+  group: ocr-native-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

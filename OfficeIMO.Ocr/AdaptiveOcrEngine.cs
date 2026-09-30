@@ -74,7 +74,11 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
             OcrRequest snapshot = CopyRequest(request);
             TimeSpan remaining = _timeout - clock.Elapsed;
             if (remaining <= TimeSpan.Zero) throw new OcrEngineTimeoutException(Id, _timeout, providerCallStarted: false);
-            return await _engines[0].RecognizeAsync(snapshot, remaining, _capture, cancellationToken).ConfigureAwait(false);
+            OcrResult result = await _engines[0].RecognizeAsync(snapshot, remaining, _capture, cancellationToken).ConfigureAwait(false);
+            CheckTextBudget(result);
+            cancellationToken.ThrowIfCancellationRequested();
+            if (clock.Elapsed >= _timeout) throw new OcrEngineTimeoutException(Id, _timeout, providerCallStarted: true);
+            return result;
         }
         return (await RecognizeWithReviewAsync(request, cancellationToken).ConfigureAwait(false)).Result;
     }
