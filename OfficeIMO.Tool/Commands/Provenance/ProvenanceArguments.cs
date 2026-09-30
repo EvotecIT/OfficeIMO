@@ -9,12 +9,16 @@ internal enum ProvenanceCommandKind {
     Inspect,
     Assess,
     Remove,
-    Batch
+    Batch,
+    Audit,
+    Check
 }
 
 internal enum ProvenanceOutputFormat {
     Json,
-    Text
+    Text,
+    Ndjson,
+    Sarif
 }
 
 internal sealed class ProvenanceArguments {
@@ -24,6 +28,11 @@ internal sealed class ProvenanceArguments {
     internal string? OutputPath { get; private set; }
     internal string? OutputDirectory { get; private set; }
     internal ProvenanceOutputFormat Format { get; private set; } = ProvenanceOutputFormat.Json;
+    internal bool Recursive { get; private set; } = true;
+    internal List<string> Include { get; } = new();
+    internal List<string> Exclude { get; } = new();
+    internal bool FailOnCarriers { get; private set; }
+    internal bool FailOnDangerousText { get; private set; } = true;
     internal bool Force { get; private set; }
     internal bool RemoveC2paManifests { get; private set; } = true;
     internal bool RemoveExternalC2paReferences { get; private set; } = true;
@@ -43,6 +52,8 @@ internal sealed class ProvenanceArguments {
                 "inspect" => ProvenanceCommandKind.Inspect,
                 "assess" => ProvenanceCommandKind.Assess,
                 "remove" => ProvenanceCommandKind.Remove,
+                "audit" => ProvenanceCommandKind.Audit,
+                "check" => ProvenanceCommandKind.Check,
                 "batch" => ProvenanceCommandKind.Batch,
                 _ => throw new ProvenanceUsageException("Unknown provenance command '" + args[0] + "'.")
             }
@@ -62,6 +73,21 @@ internal sealed class ProvenanceArguments {
             string token = args[index];
             if (IsHelp(token)) return new ProvenanceArguments { Command = ProvenanceCommandKind.Help };
             switch (token) {
+                case "--include":
+                    EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Audit, ProvenanceCommandKind.Check);
+                    parsed.Include.Add(ReadValue(args, ref index, token)); break;
+                case "--exclude":
+                    EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Audit, ProvenanceCommandKind.Check);
+                    parsed.Exclude.Add(ReadValue(args, ref index, token)); break;
+                case "--no-recursive":
+                    EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Audit, ProvenanceCommandKind.Check);
+                    parsed.Recursive = false; break;
+                case "--fail-on":
+                    EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Check);
+                    string policy = ReadValue(args, ref index, token);
+                    if (policy is not "carriers" and not "dangerous-text" and not "any") throw new ProvenanceUsageException("--fail-on must be carriers, dangerous-text, or any.");
+                    parsed.FailOnCarriers = policy is "carriers" or "any";
+                    parsed.FailOnDangerousText = policy is "dangerous-text" or "any"; break;
                 case "--format":
                     parsed.Format = ParseOutputFormat(ReadValue(args, ref index, token));
                     break;
@@ -114,7 +140,7 @@ internal sealed class ProvenanceArguments {
                     parsed.MaximumOutputBytes = ParseLong(ReadValue(args, ref index, token), token, 1, long.MaxValue);
                     break;
                 case "--max-items":
-                    EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Batch);
+                    EnsureCommand(parsed.Command, token, ProvenanceCommandKind.Batch, ProvenanceCommandKind.Audit, ProvenanceCommandKind.Check);
                     parsed.MaximumItems = checked((int)ParseLong(ReadValue(args, ref index, token), token, 1, 10_000));
                     break;
                 default:
@@ -131,6 +157,14 @@ internal sealed class ProvenanceArguments {
     }
 
     private void Validate() {
+        if (Format is ProvenanceOutputFormat.Ndjson or ProvenanceOutputFormat.Sarif && Command is not ProvenanceCommandKind.Audit and not ProvenanceCommandKind.Check)
+            throw new ProvenanceUsageException("ndjson and sarif formats are supported by audit and check.");
+        if (Command is ProvenanceCommandKind.Audit or ProvenanceCommandKind.Check) {
+            if (Inputs.Count == 0) throw new ProvenanceUsageException("audit/check requires at least one file or directory.");
+            if (Command == ProvenanceCommandKind.Check && FailOnDangerousText && !InspectTextIntegrity)
+                throw new ProvenanceUsageException("A dangerous-text check requires text inspection. Remove --no-text-integrity or choose --fail-on carriers.");
+            return;
+        }
         if (Command == ProvenanceCommandKind.Capabilities) {
             if (Inputs.Count != 0) throw new ProvenanceUsageException("capabilities does not accept input paths.");
             return;
@@ -167,7 +201,9 @@ internal sealed class ProvenanceArguments {
     private static ProvenanceOutputFormat ParseOutputFormat(string value) => value.ToLowerInvariant() switch {
         "json" => ProvenanceOutputFormat.Json,
         "text" => ProvenanceOutputFormat.Text,
-        _ => throw new ProvenanceUsageException("--format must be json or text.")
+        "ndjson" => ProvenanceOutputFormat.Ndjson,
+        "sarif" => ProvenanceOutputFormat.Sarif,
+        _ => throw new ProvenanceUsageException("--format must be json, text, ndjson, or sarif.")
     };
 
     private static string ReadValue(string[] args, ref int index, string option) {
@@ -190,7 +226,7 @@ internal sealed class ProvenanceArguments {
     }
 
     private static void EnsureAssessment(ProvenanceArguments parsed, string option) {
-        bool allowed = parsed.Command == ProvenanceCommandKind.Assess ||
+        bool allowed = parsed.Command is ProvenanceCommandKind.Assess or ProvenanceCommandKind.Audit or ProvenanceCommandKind.Check ||
                        parsed.Command == ProvenanceCommandKind.Batch && parsed.BatchOperation == OfficeProvenanceWorkflowOperation.Assess;
         if (!allowed) throw new ProvenanceUsageException(option + " is valid only with assess or batch assess.");
     }

@@ -309,6 +309,14 @@ Documents written by the earlier setter contain the smaller physical angle and a
 
 `GoogleSheetsDiffPlanner.CreateCheckpoint` now records a hash-format version and uses culture- and runtime-independent numeric fingerprints. Previously persisted `GoogleSheetsSyncCheckpoint` values without a format version cannot be safely compared after upgrading; `BuildAsync` rejects them before contacting Google. Compare the source and remote spreadsheet without the old checkpoint, reconcile any differences, then create and persist a new checkpoint with the observed Drive version only when the two are synchronized. Do not mark old hashes as the new format.
 
+### Provenance report transport and check states
+
+CLI single and batch reports use `officeimo.provenance.result.v2` and `officeimo.provenance.batch.v2`. Update consumers that validate the former v1 schema identifiers. Existing evidence arrays remain; reports add input paths, SHA-256 hashes, coverage notes and explicit check states. Unicode findings include the numeric code point as well as its notation and UTF-16 offsets.
+
+The browser provenance download uses this shared result contract instead of the former anonymous `schemaVersion: 1` envelope. Read `inspection` for an inspection and `before`, `after`, and `changes` for carrier removal. Enum values are strings with camelCase property names. Cryptographic and provider checks remain distinct from structural inspection.
+
+A null `assessment.textIntegrity` means no text report was produced. Use `assessment.textIntegrityStatus` or `checks.textIntegrity` to distinguish disabled, unsupported and unrequested checks. Use the verification/provider check states to distinguish an absent provider from a check that completed or failed. Do not interpret null as a completed zero-finding report.
+
 ### Provenance format ownership
 
 `OfficeIMO.Workflows` now accepts provenance requests only for extensions registered to a named OfficeIMO format owner, and it verifies that the file contents match that structural format. This keeps path, byte, command-line, and browser claims aligned with formats OfficeIMO can genuinely reopen and preserve.

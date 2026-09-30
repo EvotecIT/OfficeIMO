@@ -22,8 +22,10 @@ public sealed class OfficeProvenanceWorkflowResult {
         OfficeProvenanceReport? after = null,
         IReadOnlyList<OfficeProvenanceChange>? changes = null,
         bool wasReserialized = false,
-        bool wereInvalidatedSignaturesRemoved = false) {
+        bool wereInvalidatedSignaturesRemoved = false,
+        string? inputPath = null, string? inputSha256 = null, string? outputSha256 = null) {
         RequestId = requestId;
+        InputPath = inputPath; InputSha256 = inputSha256; OutputSha256 = outputSha256;
         Operation = operation;
         Status = status;
         FailureKind = failureKind;
@@ -43,6 +45,12 @@ public sealed class OfficeProvenanceWorkflowResult {
         WereInvalidatedSignaturesRemoved = wereInvalidatedSignaturesRemoved;
     }
 
+    /// <summary>Logical input path or memory-only file name.</summary>
+    public string? InputPath { get; }
+    /// <summary>SHA-256 of the exact inspected input bytes, when a snapshot was captured.</summary>
+    public string? InputSha256 { get; }
+    /// <summary>SHA-256 of the verified output bytes, when an artifact was produced.</summary>
+    public string? OutputSha256 { get; }
     /// <summary>Caller-provided request identifier.</summary>
     public string RequestId { get; }
     /// <summary>Executed operation.</summary>

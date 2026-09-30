@@ -86,6 +86,22 @@ public sealed class OfficeProvenanceAssessmentOptions {
     public bool InspectTextIntegrity { get; set; } = true;
 }
 
+/// <summary>Describes whether an assessment check actually ran.</summary>
+public enum OfficeProvenanceCheckStatus {
+    /// <summary>The check completed and its findings can be interpreted.</summary>
+    Completed,
+    /// <summary>The caller disabled the check.</summary>
+    Disabled,
+    /// <summary>The format has no qualified implementation for this check.</summary>
+    Unsupported,
+    /// <summary>No provider was configured.</summary>
+    NotConfigured,
+    /// <summary>The check failed or its provider was unavailable.</summary>
+    Failed,
+    /// <summary>The operation did not request the check.</summary>
+    NotRequested
+}
+
 /// <summary>Combined structural, cryptographic, Unicode, and provider-specific evidence.</summary>
 public sealed class OfficeProvenanceAssessmentReport {
     /// <summary>Creates a combined assessment without collapsing evidence into an authorship verdict.</summary>
@@ -93,10 +109,13 @@ public sealed class OfficeProvenanceAssessmentReport {
         OfficeProvenanceReport structural,
         OfficeProvenanceVerificationResult? verification,
         OfficeTextIntegrityReport? textIntegrity,
-        IReadOnlyList<OfficeProvenanceSignalResult>? providerSignals = null) {
+        IReadOnlyList<OfficeProvenanceSignalResult>? providerSignals = null,
+        OfficeProvenanceCheckStatus? textIntegrityStatus = null) {
         Structural = structural ?? throw new ArgumentNullException(nameof(structural));
         Verification = verification;
         TextIntegrity = textIntegrity;
+        TextIntegrityStatus = textIntegrity != null ? OfficeProvenanceCheckStatus.Completed :
+            textIntegrityStatus ?? OfficeProvenanceCheckStatus.NotRequested;
         ProviderSignals = new List<OfficeProvenanceSignalResult>(providerSignals ?? Array.Empty<OfficeProvenanceSignalResult>()).AsReadOnly();
     }
 
@@ -106,6 +125,16 @@ public sealed class OfficeProvenanceAssessmentReport {
     public OfficeProvenanceVerificationResult? Verification { get; }
     /// <summary>Gets exact Unicode findings for text-like inputs.</summary>
     public OfficeTextIntegrityReport? TextIntegrity { get; }
+    /// <summary>Gets whether Unicode inspection completed, was disabled, or is unsupported.</summary>
+    public OfficeProvenanceCheckStatus TextIntegrityStatus { get; }
+    /// <summary>Gets whether cryptographic verification ran; inspect the provider status for its conclusion.</summary>
+    public OfficeProvenanceCheckStatus VerificationStatus => Verification == null ? OfficeProvenanceCheckStatus.NotConfigured :
+        Verification.Status is OfficeProvenanceVerificationStatus.Error or OfficeProvenanceVerificationStatus.ProviderUnavailable
+            ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.Completed;
+    /// <summary>Gets whether configured signal detectors completed.</summary>
+    public OfficeProvenanceCheckStatus ProviderSignalsStatus => ProviderSignals.Count == 0 ? OfficeProvenanceCheckStatus.NotConfigured :
+        ProviderSignals.Any(item => item.Status is OfficeProvenanceSignalStatus.Error or OfficeProvenanceSignalStatus.ProviderUnavailable)
+            ? OfficeProvenanceCheckStatus.Failed : OfficeProvenanceCheckStatus.Completed;
     /// <summary>Gets provider-specific watermark or disclosure results.</summary>
     public IReadOnlyList<OfficeProvenanceSignalResult> ProviderSignals { get; }
     /// <summary>Gets whether the configured verifier validated a content credential.</summary>
@@ -253,7 +282,9 @@ public static class OfficeProvenanceAssessment {
             }
         }
         cancellationToken.ThrowIfCancellationRequested();
-        return new OfficeProvenanceAssessmentReport(structural, verification, textIntegrity, signals.AsReadOnly());
+        return new OfficeProvenanceAssessmentReport(structural, verification, textIntegrity, signals.AsReadOnly(),
+            !options.InspectTextIntegrity ? OfficeProvenanceCheckStatus.Disabled :
+            textIntegrity != null ? OfficeProvenanceCheckStatus.Completed : OfficeProvenanceCheckStatus.Unsupported);
     }
 
     private static bool IsTextLike(OfficeProvenanceAssetFormat format) =>

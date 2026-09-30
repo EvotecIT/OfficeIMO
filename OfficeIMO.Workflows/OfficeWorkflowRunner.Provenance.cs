@@ -38,6 +38,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         string? stagingPath = null;
         OfficeProvenanceFileSnapshot? inputSnapshot = null;
         long inputBytes = 0;
+        string? inputSha256 = null;
         WorkflowFailureStage failureStage = WorkflowFailureStage.Validation;
 
         try {
@@ -58,6 +59,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             inputSnapshot.SealForProviderAccess();
             string operationInputPath = inputSnapshot.FilePath;
             inputBytes = inputSnapshot.Length;
+            inputSha256 = inputSnapshot.Sha256Hex;
+            if (validated.ExpectedInputSha256 is not null && !string.Equals(inputSha256, validated.ExpectedInputSha256, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidDataException("The input changed after review. Assess it again before creating a copy.");
             diagnostics.Add(new OfficeWorkflowDiagnostic(
                 validated.Operation switch {
                     OfficeProvenanceWorkflowOperation.Inspect => "InspectionSnapshot",
@@ -105,7 +109,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 return CreateProvenanceResult(
                     validated, OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,
                     ownerPackage, null, inputBytes, 0, stopwatch.Elapsed,
-                    DescribeInspection(structural), diagnostics, inspection: structural);
+                    DescribeInspection(structural), diagnostics, inspection: structural, inputSha256: inputSha256);
             }
 
             if (validated.Operation == OfficeProvenanceWorkflowOperation.Assess) {
@@ -147,7 +151,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 return CreateProvenanceResult(
                     validated, OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,
                     ownerPackage, null, inputBytes, 0, stopwatch.Elapsed,
-                    DescribeAssessment(assessment), diagnostics, assessment: assessment);
+                    DescribeAssessment(assessment), diagnostics, assessment: assessment, inputSha256: inputSha256);
             }
 
             if (validated.Owner == ProvenanceOwner.Core && !SupportsCoreRemoval(structural.Format)) {
@@ -233,13 +237,14 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             failureStage = WorkflowFailureStage.Output;
             string ownedStagingPath = stagingPath;
             stagingPath = null;
-            string publishedPath = PublishVerified(
+            string publishedPath = await PublishVerifiedAsync(
                 ownedStagingPath,
                 validated.OutputPath!,
                 validated.ConflictPolicy,
                 validated.BatchBlockedOutputIdentities,
                 validated.BatchOwnReservedOutputIdentity,
                 stagedFingerprint,
+                validated.PublicationGuard,
                 validated.ConflictPolicy == OfficeWorkflowConflictPolicy.Replace &&
                 OfficeWorkflowPathIdentity.AreEquivalentWithPortableFallback(validated.InputPath, validated.OutputPath!)
                     ? inputSnapshot
@@ -266,7 +271,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                             ["retainedPath"] = path,
                             ["exceptionType"] = exception.GetType().Name
                         }));
-                });
+                }).ConfigureAwait(false);
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             long outputBytes = stagedFingerprint.Length;
             diagnostics.Add(new OfficeWorkflowDiagnostic(
@@ -282,7 +287,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 after: reopened,
                 changes: removal.Changes,
                 wasReserialized: removal.WasReserialized,
-                wereInvalidatedSignaturesRemoved: removal.WereInvalidatedSignaturesRemoved);
+                wereInvalidatedSignaturesRemoved: removal.WereInvalidatedSignaturesRemoved,
+                inputSha256: inputSha256, outputSha256: stagedFingerprint.Sha256Hex);
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             bool stagingCleaned = TryCleanupStaging(ref stagingPath, diagnostics);
@@ -304,7 +310,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 0,
                 stopwatch.Elapsed,
                 "Cancelled",
-                diagnostics);
+                diagnostics, inputPath: validated?.InputPath ?? request.InputPath, inputSha256: inputSha256);
         } catch (Exception exception) when (exception is not OutOfMemoryException and not StackOverflowException) {
             TryDisposeSnapshot(ref inputSnapshot, diagnostics);
             TryCleanupStaging(ref stagingPath, diagnostics);
@@ -327,7 +333,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
                 0,
                 stopwatch.Elapsed,
                 "Provenance workflow failed: " + exception.Message,
-                diagnostics);
+                diagnostics, inputPath: validated?.InputPath ?? request.InputPath, inputSha256: inputSha256);
         } finally {
             try {
                 inputSnapshot?.Dispose();
@@ -393,387 +399,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         }
     }
 
-    internal sealed class StagedArtifactFingerprint : IDisposable {
-        private readonly string? _physicalIdentity;
-        private readonly bool _usesPhysicalIdentity;
-        private FileStream? _lease;
-        private FileStream? _publishedLease;
-
-        private StagedArtifactFingerprint(
-            long length,
-            byte[] sha256,
-            string? physicalIdentity,
-            bool usesPhysicalIdentity,
-            FileStream lease) {
-            Length = length;
-            Sha256 = sha256;
-            _physicalIdentity = physicalIdentity;
-            _usesPhysicalIdentity = usesPhysicalIdentity;
-            _lease = lease;
-        }
-
-        internal long Length { get; }
-        private byte[] Sha256 { get; }
-
-        internal static StagedArtifactFingerprint Capture(
-            string path,
-            long maximumBytes,
-            CancellationToken cancellationToken,
-            string artifactDescription = "staged provenance artifact") => CaptureCore(
-                path,
-                maximumBytes,
-                expectedLength: null,
-                expectedSha256: null,
-                cancellationToken,
-                artifactDescription,
-                OfficeWorkflowPathIdentity.SupportsPhysicalIdentity);
-
-        /// <summary>Exercises the portable length-and-hash fingerprint path when filesystem identity is unavailable.</summary>
-        internal static StagedArtifactFingerprint CapturePortable(
-            string path,
-            long maximumBytes,
-            CancellationToken cancellationToken = default) => CaptureCore(
-                path,
-                maximumBytes,
-                expectedLength: null,
-                expectedSha256: null,
-                cancellationToken,
-                "staged provenance artifact",
-                usesPhysicalIdentity: false);
-
-        internal static StagedArtifactFingerprint CaptureExpected(
-            string path,
-            long maximumBytes,
-            long expectedLength,
-            byte[] expectedSha256,
-            CancellationToken cancellationToken) => CaptureCore(
-                path,
-                maximumBytes,
-                expectedLength,
-                expectedSha256 ?? throw new ArgumentNullException(nameof(expectedSha256)),
-                cancellationToken,
-                "staged provenance artifact",
-                OfficeWorkflowPathIdentity.SupportsPhysicalIdentity);
-
-        private static StagedArtifactFingerprint CaptureCore(
-            string path,
-            long maximumBytes,
-            long? expectedLength,
-            byte[]? expectedSha256,
-            CancellationToken cancellationToken,
-            string artifactDescription,
-            bool usesPhysicalIdentity) {
-            var stream = OpenForIdentity(path);
-            try {
-                if (stream.Length > maximumBytes) {
-                    throw OfficeProvenanceLimitException.CreateOutput(
-                        $"The {artifactDescription} exceeds the configured output limit of {maximumBytes} bytes.");
-                }
-                byte[] sha256 = ComputeHash(stream, cancellationToken);
-                if (expectedLength.HasValue &&
-                    (stream.Length != expectedLength.Value ||
-                     !CryptographicOperations.FixedTimeEquals(sha256, expectedSha256!))) {
-                    throw new InvalidDataException(
-                        "The staged provenance artifact did not match the bytes returned by its format owner.");
-                }
-                stream.Position = 0;
-                string? physicalIdentity = usesPhysicalIdentity
-                    ? OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream)
-                    : null;
-                return new StagedArtifactFingerprint(stream.Length, sha256, physicalIdentity, usesPhysicalIdentity, stream);
-            } catch {
-                stream.Dispose();
-                throw;
-            }
-        }
-
-        internal void VerifyStagingPath(string path, long maximumBytes, CancellationToken cancellationToken) {
-            if (!MatchesPath(path, maximumBytes, cancellationToken)) {
-                throw new InvalidDataException(
-                    "The staged provenance artifact changed after output validation; publication was blocked.");
-            }
-        }
-
-        internal bool TryPinPublishedPath(string path, long maximumBytes, CancellationToken cancellationToken) {
-            FileStream stream = OpenForIdentity(path);
-            try {
-                if (!MatchesStream(path, stream, maximumBytes, cancellationToken)) return false;
-                _publishedLease?.Dispose();
-                _publishedLease = stream;
-                return true;
-            } catch {
-                stream.Dispose();
-                throw;
-            } finally {
-                if (!ReferenceEquals(_publishedLease, stream)) stream.Dispose();
-            }
-        }
-
-        internal void VerifyPublishedPath(string path, long maximumBytes, CancellationToken cancellationToken) {
-            if (_publishedLease is null || !MatchesPath(path, maximumBytes, cancellationToken)) {
-                throw new InvalidDataException(
-                    "The published provenance artifact changed before publication was finalized.");
-            }
-        }
-
-        internal void ReleasePublishedLease() {
-            _publishedLease?.Dispose();
-            _publishedLease = null;
-        }
-
-        internal void ReleaseStagingLease() {
-            _lease?.Dispose();
-            _lease = null;
-        }
-
-        internal void TryDeleteMatchingPath(string path, long maximumBytes, CancellationToken cancellationToken) {
-            string quarantinePath = Path.Combine(
-                Path.GetDirectoryName(Path.GetFullPath(path))!,
-                ".officeimo-provenance-rollback-" + Guid.NewGuid().ToString("N") + ".tmp");
-            bool moved = false;
-            try {
-                File.Move(path, quarantinePath, overwrite: false);
-                moved = true;
-                bool matches;
-                using (FileStream stream = OpenForIdentity(quarantinePath)) {
-                    matches = MatchesStream(quarantinePath, stream, maximumBytes, cancellationToken);
-                }
-                if (matches) {
-                    File.Delete(quarantinePath);
-                    moved = false;
-                    return;
-                }
-
-                File.Move(quarantinePath, path, overwrite: false);
-                moved = false;
-            } catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException or IOException or UnauthorizedAccessException) {
-                // Never delete a known destination pathname after a failed identity check. If a
-                // different writer claimed it, retain the random quarantine rather than losing data.
-            } finally {
-                if (moved && File.Exists(quarantinePath)) {
-                    try {
-                        if (!File.Exists(path)) {
-                            File.Move(quarantinePath, path, overwrite: false);
-                            moved = false;
-                        }
-                    } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { }
-                }
-            }
-        }
-
-        public void Dispose() {
-            ReleasePublishedLease();
-            ReleaseStagingLease();
-        }
-
-        internal bool MatchesPath(string path, long maximumBytes, CancellationToken cancellationToken) {
-            try {
-                using FileStream stream = OpenForIdentity(path);
-                return MatchesStream(path, stream, maximumBytes, cancellationToken);
-            } catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException) {
-                return false;
-            }
-        }
-
-        private bool MatchesStream(
-            string path,
-            FileStream stream,
-            long maximumBytes,
-            CancellationToken cancellationToken) {
-            if (stream.Length > maximumBytes || stream.Length != Length) return false;
-            if (_usesPhysicalIdentity) {
-                string physicalIdentity = OfficeWorkflowPathIdentity.GetPhysicalIdentityKey(path, stream);
-                if (!string.Equals(physicalIdentity, _physicalIdentity, StringComparison.Ordinal)) return false;
-            }
-            byte[] currentHash = ComputeHash(stream, cancellationToken);
-            return CryptographicOperations.FixedTimeEquals(currentHash, Sha256);
-        }
-
-        private static FileStream OpenForIdentity(string path) => new(
-            path,
-            FileMode.Open,
-            FileAccess.Read,
-            FileShare.ReadWrite | FileShare.Delete,
-            81920,
-            FileOptions.SequentialScan);
-
-        private static byte[] ComputeHash(Stream stream, CancellationToken cancellationToken) {
-            stream.Position = 0;
-            using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
-            var buffer = new byte[81920];
-            int read;
-            while ((read = stream.Read(buffer, 0, buffer.Length)) != 0) {
-                cancellationToken.ThrowIfCancellationRequested();
-                algorithm.AppendData(buffer, 0, read);
-            }
-            return algorithm.GetHashAndReset();
-        }
-    }
-
-    private static string PublishVerified(
-        string stagingPath,
-        string requestedPath,
-        OfficeWorkflowConflictPolicy policy,
-        SortedSet<string>? blockedOutputIdentities,
-        string? ownReservedOutputIdentity,
-        StagedArtifactFingerprint staged,
-        OfficeProvenanceFileSnapshot? expectedDisplacedInput,
-        long maximumBytes,
-        CancellationToken cancellationToken,
-        Action beforePublish,
-        Action<string> beforeCommitFinalized,
-        Action<string, Exception> backupCleanupFailed) {
-        bool published = false;
-        try {
-            beforePublish();
-            cancellationToken.ThrowIfCancellationRequested();
-            staged.VerifyStagingPath(stagingPath, maximumBytes, cancellationToken);
-            staged.ReleaseStagingLease();
-
-            string publishedPath;
-            switch (policy) {
-                case OfficeWorkflowConflictPolicy.Fail:
-                    EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
-                    File.Move(stagingPath, requestedPath, overwrite: false);
-                    publishedPath = requestedPath;
-                    PinAndFinalize(publishedPath);
-                    break;
-                case OfficeWorkflowConflictPolicy.Rename:
-                    publishedPath = PublishRenamed();
-                    break;
-                case OfficeWorkflowConflictPolicy.Replace:
-                    publishedPath = PublishReplacement();
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(policy), policy, "Unsupported conflict policy.");
-            }
-
-            published = true;
-            return publishedPath;
-        } finally {
-            if (!published) {
-                staged.ReleasePublishedLease();
-                staged.TryDeleteMatchingPath(stagingPath, maximumBytes, CancellationToken.None);
-            }
-        }
-
-        void PinAndFinalize(string path) {
-            try {
-                if (!staged.TryPinPublishedPath(path, maximumBytes, cancellationToken)) {
-                    throw new InvalidDataException(
-                        "The staged provenance artifact changed while it was being published.");
-                }
-                beforeCommitFinalized(path);
-            } catch {
-                staged.ReleasePublishedLease();
-                staged.TryDeleteMatchingPath(path, maximumBytes, CancellationToken.None);
-                throw;
-            }
-        }
-
-        void EnsureBatchCandidateDoesNotOverlapAnotherRequest(string path) {
-            if (blockedOutputIdentities is null) return;
-            string identity = OfficeWorkflowPathIdentity.NormalizeWithPortableFallback(path);
-            bool isOwnReservation = string.Equals(identity, ownReservedOutputIdentity, StringComparison.Ordinal);
-            bool hasHierarchyCollision = TryFindAncestorOrDescendant(
-                identity,
-                blockedOutputIdentities,
-                out string? collisionIdentity) &&
-                !string.Equals(collisionIdentity, ownReservedOutputIdentity, StringComparison.Ordinal);
-            if ((!isOwnReservation && blockedOutputIdentities.Contains(identity)) || hasHierarchyCollision) {
-                throw new IOException(
-                    "The provenance output now overlaps another batch request path and cannot be published safely.");
-            }
-        }
-
-        string PublishRenamed() {
-            for (int suffix = 0; suffix < 10_000; suffix++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                string candidate = suffix == 0 ? requestedPath : AddSuffix(requestedPath, suffix);
-                if (blockedOutputIdentities is not null) {
-                    string identity = OfficeWorkflowPathIdentity.NormalizeWithPortableFallback(candidate);
-                    bool isOwnReservation = string.Equals(
-                        identity,
-                        ownReservedOutputIdentity,
-                        StringComparison.Ordinal);
-                    bool hasHierarchyCollision = TryFindAncestorOrDescendant(
-                        identity,
-                        blockedOutputIdentities,
-                        out string? collisionIdentity) &&
-                        !string.Equals(collisionIdentity, ownReservedOutputIdentity, StringComparison.Ordinal);
-                    if ((!isOwnReservation && blockedOutputIdentities.Contains(identity)) ||
-                        hasHierarchyCollision) continue;
-                }
-                try {
-                    File.Move(stagingPath, candidate, overwrite: false);
-                } catch (IOException) when (File.Exists(candidate) || Directory.Exists(candidate)) {
-                    // Another request owns this candidate. Try the next deterministic suffix.
-                    continue;
-                }
-                PinAndFinalize(candidate);
-                return candidate;
-            }
-            throw new IOException("No available numbered output path could be reserved.");
-        }
-
-        string PublishReplacement() {
-            EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
-            if (!File.Exists(requestedPath)) {
-                if (expectedDisplacedInput != null) {
-                    throw new IOException(
-                        "The provenance input changed while its verified replacement was being published.");
-                }
-                bool destinationAppeared = false;
-                try {
-                    File.Move(stagingPath, requestedPath, overwrite: false);
-                } catch (IOException) when (File.Exists(requestedPath)) {
-                    // The destination appeared during the claim. Validate and replace it below.
-                    destinationAppeared = true;
-                }
-                if (!destinationAppeared) {
-                    PinAndFinalize(requestedPath);
-                    return requestedPath;
-                }
-            }
-
-            EnsureBatchCandidateDoesNotOverlapAnotherRequest(requestedPath);
-            if (expectedDisplacedInput != null) {
-                bool inputCommitted = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchangedAndFinalize(
-                    stagingPath,
-                    requestedPath,
-                    backupPath => expectedDisplacedInput.MatchesCapturedSource(backupPath, cancellationToken),
-                    installedPath => staged.TryPinPublishedPath(installedPath, maximumBytes, cancellationToken),
-                    beforeCommitFinalized,
-                    backupCleanupFailed);
-                if (!inputCommitted) {
-                    staged.ReleasePublishedLease();
-                    throw new IOException(
-                        "The provenance input changed while its verified replacement was being published.");
-                }
-                return requestedPath;
-            }
-
-            using StagedArtifactFingerprint destination = StagedArtifactFingerprint.Capture(
-                requestedPath,
-                maximumBytes,
-                cancellationToken,
-                "existing provenance destination");
-            destination.ReleaseStagingLease();
-            bool committed = OfficeFileCommit.TryCommitTemporaryFileAtomicallyIfDestinationUnchangedAndFinalize(
-                stagingPath,
-                requestedPath,
-                backupPath => destination.MatchesPath(backupPath, maximumBytes, cancellationToken),
-                installedPath => staged.TryPinPublishedPath(installedPath, maximumBytes, cancellationToken),
-                beforeCommitFinalized,
-                backupCleanupFailed);
-            if (!committed) {
-                staged.ReleasePublishedLease();
-                throw new IOException("The provenance destination changed while the verified artifact was being published.");
-            }
-            return requestedPath;
-        }
-    }
-
     private static ValidatedProvenanceRequest ValidateProvenanceRequest(OfficeProvenanceWorkflowRequest request) {
         if (string.IsNullOrWhiteSpace(request.Id)) throw new ArgumentException("Request id cannot be empty.", nameof(request));
         if (!Enum.IsDefined(typeof(OfficeProvenanceWorkflowOperation), request.Operation)) {
@@ -823,7 +448,12 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             throw new ArgumentException("Inspect and assess are report-only operations and do not publish an artifact.", nameof(request));
         }
 
+        if (request.ExpectedInputSha256 is not null && (request.ExpectedInputSha256.Length != 64 ||
+            request.ExpectedInputSha256.Any(character => !Uri.IsHexDigit(character))))
+            throw new ArgumentException("ExpectedInputSha256 must be a 64-character hexadecimal SHA-256 digest.");
         return new ValidatedProvenanceRequest(
+            request.ExpectedInputSha256,
+            request.PublicationGuard,
             request.Id,
             request.Operation,
             inputPath,
@@ -967,9 +597,10 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         $"Inspected {report.Format}; found {report.Evidence.Count:N0} structural provenance carrier(s).";
 
     private static string DescribeAssessment(OfficeProvenanceAssessmentReport report) =>
-        $"Assessed {report.Structural.Format}; found {report.Structural.Evidence.Count:N0} structural carrier(s), " +
-        $"{report.TextIntegrity?.Findings.Count ?? 0:N0} text-integrity finding(s), and " +
-        $"{report.ProviderSignals.Count:N0} provider signal result(s).";
+        $"Assessed {report.Structural.Format}; structural carriers: {report.Structural.Evidence.Count:N0}; " +
+        $"text integrity: {report.TextIntegrityStatus}" +
+        (report.TextIntegrity == null ? "; " : $" ({report.TextIntegrity.Findings.Count:N0} finding(s)); ") +
+        $"verification: {report.VerificationStatus}; provider signals: {report.ProviderSignalsStatus}.";
 
     private static string DescribeRemoval(OfficeProvenanceRemovalResult result, OfficeProvenanceReport reopened) =>
         $"Applied {result.Changes.Count:N0} provenance change(s); {reopened.Evidence.Count:N0} carrier(s) remain after verified publication.";
@@ -991,7 +622,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
         OfficeProvenanceReport? after = null,
         IReadOnlyList<OfficeProvenanceChange>? changes = null,
         bool wasReserialized = false,
-        bool wereInvalidatedSignaturesRemoved = false) => new(
+        bool wereInvalidatedSignaturesRemoved = false,
+        string? inputSha256 = null, string? outputSha256 = null) => new(
             request.Id,
             request.Operation,
             status,
@@ -1009,9 +641,11 @@ public sealed partial class OfficeWorkflowRunner : IOfficeProvenanceWorkflowRunn
             after,
             changes,
             wasReserialized,
-            wereInvalidatedSignaturesRemoved);
+            wereInvalidatedSignaturesRemoved, request.InputPath, inputSha256, outputSha256);
 
     private sealed record ValidatedProvenanceRequest(
+        string? ExpectedInputSha256,
+        IOfficeWorkflowPublicationGuard? PublicationGuard,
         string Id,
         OfficeProvenanceWorkflowOperation Operation,
         string InputPath,

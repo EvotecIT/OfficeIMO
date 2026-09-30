@@ -224,6 +224,8 @@ public sealed partial class OfficeWorkflowRunner {
         Id = source.Id,
         Operation = source.Operation,
         InputPath = source.InputPath,
+        ExpectedInputSha256 = source.ExpectedInputSha256,
+        PublicationGuard = source.PublicationGuard,
         OutputPath = source.OutputPath,
         ConflictPolicy = source.ConflictPolicy,
         Inspection = CloneBatchInspectionOptions(source.Inspection)!,

@@ -387,6 +387,7 @@ public sealed partial class MainWindowViewModel {
         CancelComparisonOpen();
         if (ConversionWorkbench.CanCancel) ConversionWorkbench.CancelCommand.Execute(null);
         if (OutputWorkbench.CanCancel) OutputWorkbench.CancelCommand.Execute(null);
+        if (ProvenanceWorkbench.CanCancel) ProvenanceWorkbench.CancelCommand.Execute(null);
         if (DocumentHealth.CanCancel) DocumentHealth.CancelCommand.Execute(null);
         if (OcrWorkbench.CanCancel) OcrWorkbench.CancelCommand.Execute(null);
         if (OcrSession.IsBusy) OcrSession.CancelCommand.Execute(null);

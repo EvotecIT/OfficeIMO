@@ -272,6 +272,7 @@
             </Grid>
             <workflow:OutputIntakeWorkbenchView Grid.Row="1" IsVisible="{Binding IsOutputMode}" />
             <Grid Grid.Row="1" IsVisible="{Binding IsJobsMode}"><workflow:StudioJobsView DataContext="{Binding Jobs}" /></Grid>
+            <workflow:ProvenanceWorkbenchView Grid.Row="1" IsVisible="{Binding IsProvenanceMode}" />
             <workflow:DocumentHealthView x:Name="DocumentHealthView" Grid.Row="1" IsVisible="{Binding IsDocumentHealthMode}" />
             <Grid Grid.Row="1" IsVisible="{Binding IsSettingsMode}">
               <settings:SettingsView DataContext="{Binding Settings}" />

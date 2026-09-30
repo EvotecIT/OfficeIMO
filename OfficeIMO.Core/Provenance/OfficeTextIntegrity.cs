@@ -325,9 +325,12 @@ public static class OfficeTextIntegrityInspector {
         byte[] data,
         int maximumCharacters,
         Encoding? requestedEncoding,
-        CancellationToken cancellationToken) {
-        Encoding encoding = requestedEncoding ?? StrictUtf8;
-        int offset = 0;
+        CancellationToken cancellationToken) => DecodeText(data, maximumCharacters, requestedEncoding, cancellationToken, out _, out _);
+
+    internal static string DecodeText(byte[] data, int maximumCharacters, Encoding? requestedEncoding,
+        CancellationToken cancellationToken, out Encoding encoding, out int offset) {
+        encoding = requestedEncoding ?? StrictUtf8;
+        offset = 0;
         if (requestedEncoding is not null) {
             byte[] preamble = encoding.GetPreamble();
             if (preamble.Length != 0 && StartsWith(data, preamble)) offset = preamble.Length;
