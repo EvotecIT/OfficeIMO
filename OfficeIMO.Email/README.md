@@ -353,6 +353,47 @@ template.Save("updated.oft");
 
 ## Standalone iCalendar and vCard documents
 
+`EmailPortableContentExport.ToCalendar(item)` exports an Outlook appointment or task as a standalone ICS stream.
+`ToVCard(item)` exports an individual contact. Both return an editable document, a detached UTF-8 byte snapshot and
+diagnostics. Unchanged imported semantic content retains its unknown properties. Regeneration uses the same loss
+checks as EML conversion and blocks opaque recurrence, nonportable addresses or changed imported semantics by
+default. Select `EmailConversionLossPolicy.Warn` explicitly when reviewing a lossy projection. These exports do not
+preserve the mail envelope, ordinary attachments or transport signatures.
+
+When a message contains several projected calendar or contact MIME parts, export retains every matching part.
+The imported source byte limit applies across those parts, with at most 1,000 semantic parts per item.
+MIME calendar methods are carried into roots that omit `METHOD`. Unencoded vCard property charset declarations
+are updated to UTF-8; quoted-printable and Base64 payload spellings keep their source charset. These normalizations
+have explicit diagnostics. Decoded parsing allows bounded UTF-8 expansion without counting it as imported bytes.
+
+```csharp
+EmailPortableContentExportResult<IcsDocument> exported =
+    EmailPortableContentExport.ToCalendar(item);
+File.WriteAllBytes("meeting.ics", exported.ToBytes());
+
+EmailPortableContentExportResult<VCardDocument> cards =
+    EmailPortableContentCollection.ToVCards(selectedContacts,
+        new EmailPortableContentExportOptions(maxOutputBytes: 8 * 1024 * 1024));
+File.WriteAllBytes("contacts.vcf", cards.ToBytes());
+```
+
+`EmailPortableContentCollection.ToCalendars` keeps separate VCALENDAR roots rather than combining timezone,
+UID or METHOD scopes. Collection output has one aggregate byte limit and an item limit. The source byte limit
+applies to each item's imported semantic content. Generated output is bounded while the codec accumulates it;
+these options do not limit the size of a caller-created in-memory Outlook model.
+
+`EmailContactConsolidation.Review` takes provenance-tagged `EmailContactSource` contacts. It groups candidates
+by exact SMTP addresses and, when supplied, a complete `OfflineAddressBookIdentityIndex` with an unambiguous
+authoritative address match. Display names never create a match. Shared addresses can belong to different people,
+so a candidate group is a review suggestion. `EmailContactSource.FromAddressBook` uses the OAB owner's contact
+mapping and rejects distribution lists.
+
+Review groups retain conflicting field variants, ordered repeated values, parameters and source IDs.
+`Consolidate(review, groupIndex, choices)` creates an independent vCard. Every conflicting field needs an explicit
+zero-based choice index keyed by `EmailContactReviewField.Key`; `-1` explicitly omits that field. Required vCard
+fields, output size and property limits are checked. Reviewing contacts can project opaque Outlook identity data
+with warnings; inspect `review.Diagnostics` before consolidation. The APIs do not update a store or directory.
+
 `IcsDocument` and `VCardDocument` expose the same ordered content-line model used by MIME projections. Repeated,
 grouped, unknown, IANA, and `X-` properties and their parameters remain available for inspection and mutation instead
 of being discarded by a narrow typed projection:

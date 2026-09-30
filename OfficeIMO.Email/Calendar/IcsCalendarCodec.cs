@@ -39,8 +39,8 @@ internal static partial class IcsCalendarCodec {
         return attachment;
     }
 
-    internal static byte[] Create(EmailDocument document) {
-        var output = new StringBuilder();
+    internal static byte[] Create(EmailDocument document, long maxOutputBytes = long.MaxValue, CancellationToken cancellationToken = default) {
+        var output = new EmailContentLineOutput(maxOutputBytes, cancellationToken);
         AppendLine(output, "BEGIN:VCALENDAR");
         AppendLine(output, "PRODID:-//Evotec//OfficeIMO.Email//EN");
         AppendLine(output, "VERSION:2.0");
@@ -92,7 +92,7 @@ internal static partial class IcsCalendarCodec {
     internal static bool HasUsableTypedRecurrence(OutlookRecurrence? recurrence) => recurrence != null &&
         (recurrence.StateDecoded || recurrence.RawState == null);
 
-    private static void WriteEvent(StringBuilder output, EmailDocument document) {
+    private static void WriteEvent(EmailContentLineOutput output, EmailDocument document) {
         OutlookAppointment appointment = document.Appointment ?? new OutlookAppointment();
         OutlookRecurrence? recurrence = HasUsableTypedRecurrence(appointment.Recurrence)
             ? appointment.Recurrence
@@ -154,7 +154,7 @@ internal static partial class IcsCalendarCodec {
             WriteExceptionEvents(output, document, appointment, recurrenceExport.Exceptions);
     }
 
-    private static void WriteTask(StringBuilder output, EmailDocument document) {
+    private static void WriteTask(EmailContentLineOutput output, EmailDocument document) {
         OutlookTask task = document.Task ?? new OutlookTask();
         OutlookRecurrence? recurrence = HasUsableTypedRecurrence(task.Recurrence) ? task.Recurrence : null;
         OutlookRecurrenceIcsExportResult? recurrenceExport = recurrence == null ? null :
@@ -218,7 +218,7 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, "END:VTODO");
     }
 
-    private static void WriteExceptionEvents(StringBuilder output, EmailDocument document,
+    private static void WriteExceptionEvents(EmailContentLineOutput output, EmailDocument document,
         OutlookAppointment appointment, IReadOnlyList<OutlookRecurrenceIcsException> exceptions) {
         if (exceptions.Count == 0) return;
         string uid = GetUid(document, appointment.Start);
@@ -248,7 +248,7 @@ internal static partial class IcsCalendarCodec {
         }
     }
 
-    private static void WriteTimeZone(StringBuilder output, OutlookTimeZoneDefinition definition,
+    private static void WriteTimeZone(EmailContentLineOutput output, OutlookTimeZoneDefinition definition,
         int seriesStartYear) {
         if (string.IsNullOrWhiteSpace(definition.KeyName) || definition.Rules.Count == 0) return;
         OutlookTimeZoneRule initial = definition.GetRule(seriesStartYear);
@@ -276,7 +276,7 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, "END:VTIMEZONE");
     }
 
-    private static void WriteObservance(StringBuilder output, string name, DateTime start,
+    private static void WriteObservance(EmailContentLineOutput output, string name, DateTime start,
         TimeSpan offsetFrom, TimeSpan offsetTo, OutlookTimeZoneTransition? transition, int? nextRuleYear,
         OutlookTimeZoneRule rule) {
         AppendLine(output, string.Concat("BEGIN:", name));
@@ -315,7 +315,7 @@ internal static partial class IcsCalendarCodec {
             IcsTemporalValue.Zoned(local, timeZoneId!);
     }
 
-    private static void AppendTemporal(StringBuilder output, string propertyName, IcsTemporalValue value) {
+    private static void AppendTemporal(EmailContentLineOutput output, string propertyName, IcsTemporalValue value) {
         string name = propertyName;
         string formatted;
         if (value.Kind == IcsTemporalValueKind.Date) {
@@ -331,7 +331,7 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, string.Concat(name, ":", formatted));
     }
 
-    private static void WriteCommon(StringBuilder output, EmailDocument document, DateTimeOffset? fallbackDate) {
+    private static void WriteCommon(EmailContentLineOutput output, EmailDocument document, DateTimeOffset? fallbackDate) {
         string uid = GetUid(document, fallbackDate);
         AppendText(output, "UID", uid);
         AppendLine(output, string.Concat("DTSTAMP:", FormatUtc(document.Date ?? fallbackDate ?? DeterministicEpoch)));
@@ -343,18 +343,18 @@ internal static partial class IcsCalendarCodec {
                 !string.IsNullOrWhiteSpace(category)).Select(EscapeText))));
     }
 
-    private static void WriteCalendarSensitivity(StringBuilder output, int? sensitivity) {
+    private static void WriteCalendarSensitivity(EmailContentLineOutput output, int? sensitivity) {
         if (sensitivity == 0) AppendLine(output, "CLASS:PUBLIC");
         else if (sensitivity == 3) AppendLine(output, "CLASS:CONFIDENTIAL");
         else if (sensitivity == 1 || sensitivity == 2) AppendLine(output, "CLASS:PRIVATE");
     }
 
-    private static void WriteOrganizerAndAttendees(StringBuilder output, EmailDocument document) {
+    private static void WriteOrganizerAndAttendees(EmailContentLineOutput output, EmailDocument document) {
         WriteOrganizer(output, document.From);
         WriteAttendees(output, document);
     }
 
-    private static void WriteOrganizer(StringBuilder output, EmailAddress? address) {
+    private static void WriteOrganizer(EmailContentLineOutput output, EmailAddress? address) {
         if (!HasPortableMailtoAddress(address)) return;
         string organizer = string.Concat("ORGANIZER");
         if (!string.IsNullOrWhiteSpace(address!.DisplayName)) organizer += string.Concat(";CN=\"",
@@ -362,7 +362,7 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, string.Concat(organizer, ":mailto:", EscapeUriValue(address.Address!)));
     }
 
-    private static void WriteAttendees(StringBuilder output, EmailDocument document) {
+    private static void WriteAttendees(EmailContentLineOutput output, EmailDocument document) {
         foreach (EmailRecipient recipient in document.Recipients.Where(recipient =>
             (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
              recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
@@ -587,13 +587,13 @@ internal static partial class IcsCalendarCodec {
         return ParseDate(trigger, diagnostics, location, out _);
     }
 
-    private static void WriteReminderMetadata(StringBuilder output, DateTimeOffset? reminderTime,
+    private static void WriteReminderMetadata(EmailContentLineOutput output, DateTimeOffset? reminderTime,
         DateTimeOffset? reminderSignalTime) {
         AppendDateTime(output, "X-OFFICEIMO-REMINDER-TIME", reminderTime);
         AppendDateTime(output, "X-OFFICEIMO-REMINDER-SIGNAL-TIME", reminderSignalTime);
     }
 
-    private static void WriteAlarm(StringBuilder output, bool? isSet, int? deltaMinutes,
+    private static void WriteAlarm(EmailContentLineOutput output, bool? isSet, int? deltaMinutes,
         DateTimeOffset? absoluteTime, string? subject) {
         if (isSet != true) {
             AppendBoolean(output, "X-OFFICEIMO-REMINDER-SET", isSet);
@@ -610,16 +610,16 @@ internal static partial class IcsCalendarCodec {
         AppendLine(output, "END:VALARM");
     }
 
-    private static void AppendInteger(StringBuilder output, string name, int? value) {
+    private static void AppendInteger(EmailContentLineOutput output, string name, int? value) {
         if (value.HasValue) AppendLine(output,
             string.Concat(name, ":", value.Value.ToString(CultureInfo.InvariantCulture)));
     }
 
-    private static void AppendBoolean(StringBuilder output, string name, bool? value) {
+    private static void AppendBoolean(EmailContentLineOutput output, string name, bool? value) {
         if (value.HasValue) AppendLine(output, string.Concat(name, ":", value.Value ? "TRUE" : "FALSE"));
     }
 
-    private static void AppendDateTime(StringBuilder output, string name, DateTimeOffset? value) {
+    private static void AppendDateTime(EmailContentLineOutput output, string name, DateTimeOffset? value) {
         if (value.HasValue) AppendLine(output, string.Concat(name, ":", FormatUtc(value.Value)));
     }
 
@@ -633,11 +633,11 @@ internal static partial class IcsCalendarCodec {
         return string.Concat(hash.ToString("x16", CultureInfo.InvariantCulture), "@officeimo.local");
     }
 
-    private static void AppendText(StringBuilder output, string name, string? value) {
+    private static void AppendText(EmailContentLineOutput output, string name, string? value) {
         if (!string.IsNullOrWhiteSpace(value)) AppendLine(output, string.Concat(name, ":", EscapeText(value!)));
     }
 
-    private static void AppendLine(StringBuilder output, string line) {
+    private static void AppendLine(EmailContentLineOutput output, string line) {
         const int maximumOctets = 75;
         var current = new StringBuilder();
         int octets = 0;
