@@ -19,6 +19,16 @@ AI Date fields require formats with a year, month, and day. Partial formats retu
 
 The synthetic AI evaluation report uses schema `officeimo.ai.evaluation.v3` and `contractPassed`. A successful initial contract evaluation returns exit code `4` until independent semantic review is complete. Use the example's offline `--review-evaluation` command with semantic-review v2 labels bound to both evaluation and per-run report hashes; exit code `0` then means every selected case passed both contract and review checks. Earlier v1 labels must be regenerated and independently assessed against the current evaluation.
 
+## Email transport signature regeneration
+
+`EmailDocumentWriter` blocks regenerated output that retains DKIM, DomainKey, or ARC signatures by default.
+Applications that intentionally rewrite such messages must select
+`new EmailWriterOptions(OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures)` or
+`new EmailWriterOptions(OfficeSignatureMutationPolicy.PreserveSignatureMarkup)` explicitly. The enum is in the
+`OfficeIMO` namespace. These choices return an invalidation diagnostic and do not change the separate S/MIME policy.
+For an unchanged archival copy, read with `preserveRawSource: true` and write with `usePreservedRawSource: true`.
+Regenerated output drops original payload length and digest headers instead of carrying stale values forward.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

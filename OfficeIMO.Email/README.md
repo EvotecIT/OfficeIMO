@@ -148,6 +148,19 @@ sources were opened for that operation, `DiagnosticCodes` retains stable evidenc
 no known loss, explicitly accepted loss, and a blocked write. Transport adapters can carry that result without defining
 another message or artifact model.
 
+Regenerating a message with DKIM, DomainKey, or ARC signatures is blocked by default because serialization can
+invalidate those signatures. Choose `new EmailWriterOptions(OfficeSignatureMutationPolicy.RemoveInvalidatedSignatures)`
+to remove the signature chain from the output, or `PreserveSignatureMarkup` to retain it with an invalidation warning.
+The enum is in the `OfficeIMO` namespace. Neither option verifies signatures or overrides the separate S/MIME loss
+policy. Unchanged raw-source output preserves the original bytes and headers. Regenerated output omits retained
+`Content-Length`, `Content-MD5`, `Content-Digest`, `Repr-Digest`, and `Digest` headers and reports their removal.
+These policies also cover embedded messages and do not mutate the input model's header collection.
+
+Use `EmailAttachmentTextReader.Read(attachment, maxBytes, cancellationToken)` for text attachments. It honors the
+MIME `charset`, uses a Unicode BOM when present, and returns the text, effective charset, bytes consumed, and decoding
+diagnostics. Charsetless text uses UTF-8 with Windows-1252 recovery; unavailable charsets and malformed byte sequences
+produce warnings. The byte limit applies to decoded attachment bytes before text decoding.
+
 ## Compare message semantics
 
 Semantic comparison hashes a canonical, versioned projection rather than serialized bytes. The migration profile

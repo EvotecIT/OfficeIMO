@@ -92,8 +92,7 @@ internal static class EmailArtifactReaderAdapter {
         int limit = Math.Max(256, maxChars);
         string normalized = (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
         int index = 0;
-        for (int offset = 0; offset < normalized.Length; offset += limit) {
-            string part = normalized.Substring(offset, Math.Min(limit, normalized.Length - offset));
+        foreach (string part in DocumentReaderEngine.SplitAdapterProjection(normalized, limit)) {
             yield return new ReaderChunk {
                 Id = $"{(kind == ReaderInputKind.VCard ? "vcard" : "calendar")}:{Path.GetFileName(sourceName)}:{index.ToString("D4", CultureInfo.InvariantCulture)}",
                 Kind = kind,

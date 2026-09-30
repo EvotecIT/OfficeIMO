@@ -217,14 +217,28 @@ internal static class EmailReaderProjection {
         if ((attachment.Content == null || attachment.Content.Length == 0) && attachment.ContentSource == null) return;
         string sourceName = ResolveAttachmentSourceName(fileName, attachment.ContentType);
         try {
-            using Stream stream = attachment.OpenContentStream();
+            bool rtfAttachment = string.Equals(TryExtension(sourceName), ".rtf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(attachment.ContentType, "text/rtf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(attachment.ContentType, "application/rtf", StringComparison.OrdinalIgnoreCase);
+            bool textAttachment = !rtfAttachment && (IsPlainTextAttachment(sourceName, attachment.ContentType) ||
+                attachment.ContentType?.StartsWith("text/", StringComparison.OrdinalIgnoreCase) == true);
+            EmailAttachmentTextResult? decoded = textAttachment
+                ? EmailAttachmentTextReader.Read(attachment, options.MaxInputBytes ?? 16L * 1024L * 1024L, cancellationToken)
+                : null;
+            if (decoded != null) {
+                projection.Diagnostics.AddRange(decoded.Diagnostics);
+                string[] decodeWarnings = decoded.Diagnostics.Select(item => item.Code + ": " + item.Message).ToArray();
+                if (decodeWarnings.Length > 0)
+                    attachmentChunk.Warnings = (attachmentChunk.Warnings ?? Array.Empty<string>()).Concat(decodeWarnings).ToArray();
+            }
+            using Stream stream = decoded != null
+                ? new MemoryStream(EncodeAttachmentProjection(decoded.Text, sourceName), writable: false)
+                : attachment.OpenContentStream();
             IReadOnlyList<ReaderChunk> nested;
             if (ReaderNestedContent.CanRead(sourceName)) {
                 nested = ReaderNestedContent.Read(stream, sourceName, CloneWithoutHashes(options), cancellationToken);
             } else if (IsPlainTextAttachment(sourceName, attachment.ContentType)) {
-                using var reader = new StreamReader(stream, Encoding.UTF8, true, 4096, leaveOpen: true);
-                string text = reader.ReadToEnd();
-                nested = BuildPlainAttachmentChunks(text, options.MaxChars);
+                nested = BuildPlainAttachmentChunks(decoded!.Text, options.MaxChars);
             } else {
                 return;
             }
@@ -248,11 +262,23 @@ internal static class EmailReaderProjection {
         }
     }
 
+    private static byte[] EncodeAttachmentProjection(string text, string sourceName) {
+        byte[] content = Encoding.UTF8.GetBytes(text);
+        string? extension = TryExtension(sourceName)?.ToLowerInvariant();
+        if (extension != ".html" && extension != ".htm" && extension != ".xhtml") return content;
+        // The HTML owner must not reinterpret decoded text using a retained legacy meta charset.
+        byte[] preamble = new UTF8Encoding(true).GetPreamble();
+        var encoded = new byte[preamble.Length + content.Length];
+        Buffer.BlockCopy(preamble, 0, encoded, 0, preamble.Length);
+        Buffer.BlockCopy(content, 0, encoded, preamble.Length, content.Length);
+        return encoded;
+    }
+
     private static IReadOnlyList<ReaderChunk> BuildPlainAttachmentChunks(string text, int maxChars) {
         int limit = Math.Max(256, maxChars);
         var chunks = new List<ReaderChunk>();
-        for (int offset = 0, index = 0; offset < text.Length; offset += limit, index++) {
-            string part = text.Substring(offset, Math.Min(limit, text.Length - offset));
+        int index = 0;
+        foreach (string part in DocumentReaderEngine.SplitAdapterProjection(text, limit)) {
             chunks.Add(new ReaderChunk {
                 Id = "text:" + index.ToString("D4", CultureInfo.InvariantCulture),
                 Kind = ReaderInputKind.Text,
@@ -260,6 +286,7 @@ internal static class EmailReaderProjection {
                 Text = part,
                 Markdown = part
             });
+            index++;
         }
         return chunks;
     }
@@ -334,8 +361,8 @@ internal static class EmailReaderProjection {
     private static void AddBody(string body, string bodyKind, string logicalPath, string subject, int messageIndex,
         Projection projection, ReaderOptions options, EmailDocumentProjectionCursor cursor) {
         int limit = Math.Max(256, options.MaxChars);
-        for (int offset = 0, partIndex = 0; offset < body.Length; offset += limit, partIndex++) {
-            string part = body.Substring(offset, Math.Min(limit, body.Length - offset));
+        int partIndex = 0;
+        foreach (string part in DocumentReaderEngine.SplitAdapterProjection(body, limit)) {
             int blockIndex = cursor.NextBlockIndex++;
             projection.Chunks.Add(new ReaderChunk {
                 Id = $"email:body:{messageIndex.ToString("D6", CultureInfo.InvariantCulture)}:{partIndex.ToString("D4", CultureInfo.InvariantCulture)}",
@@ -345,6 +372,7 @@ internal static class EmailReaderProjection {
                 Markdown = bodyKind == "plain" ? part : "```" + bodyKind + "\n" + part + "\n```",
                 Warnings = bodyKind == "plain" ? null : new[] { "EMAIL_" + bodyKind.ToUpperInvariant() + "_BODY_PRESERVED: The source body is retained without executing active content." }
             });
+            partIndex++;
         }
     }
 
@@ -486,7 +514,7 @@ internal static class EmailReaderProjection {
     private static void Add(StringBuilder builder, string name, string? value) { if (!string.IsNullOrWhiteSpace(value)) builder.Append("- ").Append(name).Append(": ").AppendLine(value!.Replace("\r", " ").Replace("\n", " ").Trim()); }
     private static string Join(EmailDocument document, EmailRecipientKind kind) => string.Join(", ", document.Recipients.Where(recipient => recipient.Kind == kind).Select(recipient => recipient.Address.ToString()).Where(static value => !string.IsNullOrWhiteSpace(value)));
     private static string? Date(DateTimeOffset? value) => value?.ToString("O", CultureInfo.InvariantCulture);
-    private static string Limit(string value, int maxChars, List<string> warnings, string label) { int limit = Math.Max(256, maxChars); if (value.Length <= limit) return value; warnings.Add(label + " was truncated due to ReaderOptions.MaxChars."); return value.Substring(0, limit); }
+    private static string Limit(string value, int maxChars, List<string> warnings, string label) { int limit = Math.Max(256, maxChars); if (value.Length <= limit) return value; warnings.Add(label + " was truncated due to ReaderOptions.MaxChars."); return DocumentReaderEngine.TruncateAdapterProjection(value, limit); }
     private static IReadOnlyList<string>? DiagnosticsToWarnings(IReadOnlyList<EmailDiagnostic> diagnostics) { string[] values = diagnostics.Where(static item => item.Severity != EmailDiagnosticSeverity.Information).Select(static item => item.Code + ": " + item.Message).ToArray(); return values.Length == 0 ? null : values; }
     private static void EnrichChunks(IEnumerable<ReaderChunk> chunks, OfficeDocumentSource source, bool computeHashes) { foreach (ReaderChunk chunk in chunks) { chunk.SourceId = source.SourceId; chunk.SourceHash = source.SourceHash; chunk.SourceLengthBytes = source.LengthBytes; chunk.SourceLastWriteUtc = source.LastWriteUtc; chunk.TokenEstimate = chunk.Text.Length == 0 ? 0 : Math.Max(1, (chunk.Text.Length + 3) / 4); if (computeHashes) chunk.ChunkHash = Hash(chunk.Text + "\n" + chunk.Markdown); } }
     private static string NormalizeSourceKey(string value) => Path.DirectorySeparatorChar == '\\' ? value.ToLowerInvariant() : value;

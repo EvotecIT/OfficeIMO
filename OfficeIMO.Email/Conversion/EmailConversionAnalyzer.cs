@@ -7,6 +7,11 @@ internal static class EmailConversionAnalyzer {
         if (options == null) throw new ArgumentNullException(nameof(options));
 
         var diagnostics = new List<EmailDiagnostic>();
+        bool reusesSource = (options.UsePreservedRawSource || document.Protection.IsProtected) &&
+            document.Format == targetFormat && document.RawSource != null &&
+            document.RawSourceModelFingerprint != null &&
+            EmailDocumentStateFingerprint.Matches(document, document.RawSourceModelFingerprint);
+        if (!reusesSource) EmailTransportIntegrity.Analyze(document, options, diagnostics);
 
         if (document.Protection.IsProtected && !CanPassThroughProtectedSource(document, targetFormat)) {
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,

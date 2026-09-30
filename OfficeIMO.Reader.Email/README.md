@@ -2,6 +2,10 @@
 
 One Reader package for the complete `OfficeIMO.Email` data surface:
 
+Email body, text attachment, iCalendar, and vCard chunks retain complete Unicode scalars at `MaxChars` boundaries.
+Text attachments use the shared email charset decoder before projection or delegation to a registered text handler.
+Decoding recovery warnings appear in the document diagnostics and attachment chunk warnings.
+
 - EML, MSG/OFT, TNEF, Mbox/MBX, iCalendar, and vCard artifacts
 - MHT/MHTML web archives with embedded MIME resources projected through `OfficeIMO.Reader.Html`
 - PST, OST, OLM, EMLX, Maildir, and mailbox-directory sessions

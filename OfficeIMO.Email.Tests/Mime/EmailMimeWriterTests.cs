@@ -231,7 +231,7 @@ public sealed class EmailMimeWriterTests {
         document.Headers.Add(new EmailHeader("Received", received, received));
         document.Headers.Add(new EmailHeader("DKIM-Signature", signature, signature));
 
-        byte[] bytes = new EmailDocumentWriter().ToBytes(document);
+        byte[] bytes = new EmailDocumentWriter(new EmailWriterOptions(OfficeSignatureMutationPolicy.PreserveSignatureMarkup)).ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
         EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
 
