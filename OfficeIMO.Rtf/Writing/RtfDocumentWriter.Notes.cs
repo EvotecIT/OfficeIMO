@@ -107,8 +107,10 @@ internal static partial class RtfDocumentWriter {
                 !(inline is RtfBookmarkMarker) && !(inline is RtfRun run && string.IsNullOrEmpty(run.Text) && run.Note == null));
             bool needsReference = index == 0 && note.Kind != RtfNoteKind.Annotation &&
                 !(firstContent is RtfGeneratedText generated && generated.Kind == RtfGeneratedTextKind.NoteReference);
+            // An authored empty final paragraph needs its terminator to survive native import.
+            // A nonempty final paragraph must omit it to avoid a phantom trailing list item.
             WriteParagraph(builder, note.Paragraphs[index], context,
-                terminateParagraph: note.Kind == RtfNoteKind.Annotation || index < note.Paragraphs.Count - 1,
+                terminateParagraph: note.Kind == RtfNoteKind.Annotation || index < note.Paragraphs.Count - 1 || (index > 0 && firstContent == null),
                 prefix: needsReference ? new RtfGeneratedText(RtfGeneratedTextKind.NoteReference) : null);
         }
 
