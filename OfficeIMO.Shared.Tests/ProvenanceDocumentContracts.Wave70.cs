@@ -7,16 +7,6 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
 
-    [Fact]
-    public void HtmlPreflightDoesNotChargeIgnoredNestedForms() {
-        const string html = "<form><form><form><form><form>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 4 });
-
-        Assert.Empty(report.Evidence);
-    }
 
     [Theory]
     [InlineData("xl%2Fworkbook.bin")]

@@ -5,30 +5,23 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public class OfficeStreamWriterTests {
-        [Fact]
-        public void WriteAllBytesTruncatesAndRewindsSeekableDestination() {
+        [Theory]
+        [InlineData(false, new byte[] { 1, 2, 3, 4 })]
+        [InlineData(true, new byte[] { 5, 6, 7 })]
+        public async Task WriteAllBytesSyncAndAsyncTruncateAndRewindSeekableDestination(bool useAsync, byte[] bytes) {
             using var destination = new MemoryStream(new byte[64], writable: true);
 
-            OfficeStreamWriter.WriteAllBytes(destination, new byte[] { 1, 2, 3, 4 });
+            if (useAsync) {
+                await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, CancellationToken.None);
+            } else {
+                OfficeStreamWriter.WriteAllBytes(destination, bytes);
+            }
 
             Assert.Equal(0, destination.Position);
-            Assert.Equal(4, destination.Length);
-            Assert.Equal(new byte[] { 1, 2, 3, 4 }, destination.ToArray());
+            Assert.Equal(bytes.Length, destination.Length);
+            Assert.Equal(bytes, destination.ToArray());
         }
 
-        [Fact]
-        public async Task WriteAllBytesAsyncTruncatesAndRewindsSeekableDestination() {
-            using var destination = new MemoryStream(new byte[64], writable: true);
-
-            await OfficeStreamWriter.WriteAllBytesAsync(
-                destination,
-                new byte[] { 5, 6, 7 },
-                CancellationToken.None);
-
-            Assert.Equal(0, destination.Position);
-            Assert.Equal(3, destination.Length);
-            Assert.Equal(new byte[] { 5, 6, 7 }, destination.ToArray());
-        }
 
         [Fact]
         public void WriteAllBytesRejectsReadOnlyDestinationWithoutChangingIt() {

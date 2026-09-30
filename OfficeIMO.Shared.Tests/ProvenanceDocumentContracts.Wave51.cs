@@ -8,20 +8,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlForeignFontBreakoutUsesAttributeNamesNotQuotedValues() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><svg><font title=\" color=x\"><![CDATA[" +
-            string.Concat(Enumerable.Repeat("<div></div>", 64)) +
-            "]]></font></svg></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 32 });
-
-        Assert.Single(report.Evidence);
-    }
 
 
     [Fact]

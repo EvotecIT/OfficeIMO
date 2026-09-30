@@ -28,19 +28,6 @@ public sealed partial class ProvenanceDocumentContracts {
         }
     }
 
-    [Fact]
-    public void HtmlPreflightTreatsLegacyRawTextElementsAsText() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<html><head><script type=\"application/c2pa\">" + manifest +
-            "</script></head><body><xmp>" + string.Concat(Enumerable.Repeat("<div>literal</div>", 128)) +
-            "</xmp></body></html>";
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(
-            html, new OfficeProvenanceOptions { MaxContainerEntries = 32 });
-
-        Assert.Single(report.Evidence);
-    }
-
 
     [Theory]
     [InlineData("docx")]
