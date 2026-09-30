@@ -2,6 +2,8 @@ using OfficeIMO.IWork;
 using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.IWork;
 
 namespace OfficeIMO.IWork.Tests;
 
@@ -87,6 +89,22 @@ public sealed partial class IWorkBoundaryTests {
             using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
             Assert.Equal("42", reopened.Slides[0].Tables.First().GetCell(1, 0).Text);
         }
+    }
+
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages, "recovered.pages")]
+    [InlineData(IWorkDocumentKind.Numbers, "recovered.numbers")]
+    [InlineData(IWorkDocumentKind.Keynote, "recovered.key")]
+    public void Reader_keeps_recovered_row_coordinates_and_incomplete_source_warning(IWorkDocumentKind kind, string name) {
+        using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2,
+            tilePayload: Message(BytesField(5, new byte[] { 0x80 }), BytesField(5, TileTestRow(1))));
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddIWorkHandler().Build();
+        OfficeDocumentReadResult result = reader.ReadDocument(package, name);
+        ReaderTable table = Assert.Single(result.Tables);
+        Assert.Equal(2, table.TotalRowCount);
+        Assert.Equal(string.Empty, Assert.Single(table.Rows[0]));
+        Assert.Equal("42", Assert.Single(table.Rows[1]));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_TILE_ROWS_UNSUPPORTED");
     }
 
     private static byte[] TileTestRow(ulong row) {
