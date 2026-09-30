@@ -6,6 +6,36 @@ namespace OfficeIMO.Tests.Rtf;
 
 public sealed class RtfNativeListAndNoteGrammarTests {
     [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void NoteReferenceBookmarksAndEmptyRunsDoNotCauseDuplicateMarkers(bool emptyRun) {
+        const string input = @"{\rtf1\ansi Body\chftn{\footnote\pard{\*\bkmkstart noteRef}\chftn{\*\bkmkend noteRef}Note text}\par}";
+        RtfDocument document = RtfDocument.Read(input).Document;
+        if (emptyRun) {
+            document = RtfDocument.Create();
+            var note = new RtfNote(RtfNoteKind.Footnote);
+            RtfParagraph paragraph = note.AddParagraph();
+            paragraph.AddText(string.Empty);
+            paragraph.AddBookmarkStart("noteRef");
+            paragraph.AddGeneratedText(RtfGeneratedTextKind.NoteReference);
+            paragraph.AddBookmarkEnd("noteRef");
+            paragraph.AddText("Note text");
+            document.AddParagraph("Body").AddNoteReference(note);
+        }
+        for (int pass = 0; pass < 3; pass++) {
+            document = RtfDocument.Read(document.ToRtf()).Document;
+            RtfParagraph paragraph = Assert.Single(document.Notes[0].Paragraphs);
+            Assert.Equal("Note text", paragraph.ToPlainText());
+            Assert.Single(paragraph.Inlines.OfType<RtfGeneratedText>());
+            Assert.Collection(paragraph.Inlines,
+                inline => Assert.Equal(RtfBookmarkMarkerKind.Start, Assert.IsType<RtfBookmarkMarker>(inline).Kind),
+                inline => Assert.Equal(RtfGeneratedTextKind.NoteReference, Assert.IsType<RtfGeneratedText>(inline).Kind),
+                inline => Assert.Equal(RtfBookmarkMarkerKind.End, Assert.IsType<RtfBookmarkMarker>(inline).Kind),
+                inline => Assert.Equal("Note text", Assert.IsType<RtfRun>(inline).Text));
+        }
+    }
+
+    [Theory]
     [InlineData(RtfNoteKind.Footnote)]
     [InlineData(RtfNoteKind.Endnote)]
     public void NativeNotesHaveOneInternalReferenceBeforeTheFullAuthoredText(RtfNoteKind kind) {

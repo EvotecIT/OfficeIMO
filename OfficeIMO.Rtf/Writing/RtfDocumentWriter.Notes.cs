@@ -103,8 +103,10 @@ internal static partial class RtfDocumentWriter {
             RtfParagraph paragraph = note.Paragraphs[index];
             // Native readers reserve the first note character for its reference marker.
             // Preserve an existing marker when reopening generated RTF instead of duplicating it.
+            IRtfInline? firstContent = paragraph.Inlines.FirstOrDefault(inline =>
+                !(inline is RtfBookmarkMarker) && !(inline is RtfRun run && string.IsNullOrEmpty(run.Text) && run.Note == null));
             bool needsReference = index == 0 && note.Kind != RtfNoteKind.Annotation &&
-                !(paragraph.Inlines.FirstOrDefault() is RtfGeneratedText generated && generated.Kind == RtfGeneratedTextKind.NoteReference);
+                !(firstContent is RtfGeneratedText generated && generated.Kind == RtfGeneratedTextKind.NoteReference);
             WriteParagraph(builder, note.Paragraphs[index], context,
                 terminateParagraph: note.Kind == RtfNoteKind.Annotation || index < note.Paragraphs.Count - 1,
                 prefix: needsReference ? new RtfGeneratedText(RtfGeneratedTextKind.NoteReference) : null);
