@@ -91,13 +91,11 @@ public sealed partial class IWorkBoundaryTests {
             Record(wrapperId, 6218, wrapperPayload),
             Record(storageId, 2001, storagePayload)
         };
-        var index = new IWorkObjectIndex(records, options);
-        IWorkWireMessage store = IWorkProtobuf.Parse(
-            Message(ReferenceField(17, listId)), options);
-
-        IReadOnlyDictionary<uint, IWorkTextContent> strings = IWorkTableRichTextReader.Read(
-            index, store, new IWorkProjectionBudget(options), options,
-            options.MaximumTableCatalogEntries, out bool complete);
+        var catalog = CreateRichCatalog(records, options);
+        Assert.Empty(catalog.Materialized);
+        catalog.TryRead(1, out _);
+        var strings = catalog.Materialized;
+        bool complete = catalog.FullyReconstructed;
 
         Assert.False(complete);
         Assert.Empty(strings);
@@ -125,13 +123,11 @@ public sealed partial class IWorkBoundaryTests {
             Record(wrapperId, 6218, Message(ReferenceField(1, storageId))),
             Record(storageId, 2001, storagePayload)
         };
-        var index = new IWorkObjectIndex(records, options);
-        IWorkWireMessage store = IWorkProtobuf.Parse(
-            Message(ReferenceField(17, listId)), options);
-
-        IReadOnlyDictionary<uint, IWorkTextContent> strings = IWorkTableRichTextReader.Read(
-            index, store, new IWorkProjectionBudget(options), options,
-            options.MaximumTableCatalogEntries, out bool complete);
+        var catalog = CreateRichCatalog(records, options);
+        Assert.Empty(catalog.Materialized);
+        catalog.TryRead(1, out _);
+        var strings = catalog.Materialized;
+        bool complete = catalog.FullyReconstructed;
 
         Assert.True(complete);
         Assert.Equal("Value", strings[1].PlainText);
@@ -163,13 +159,11 @@ public sealed partial class IWorkBoundaryTests {
             Record(styleId + 1, 2022, Message(BytesField(1, Message(ReferenceField(3, styleId + 2))))),
             Record(styleId + 2, 2022, Message())
         };
-        var index = new IWorkObjectIndex(records, options);
-        IWorkWireMessage store = IWorkProtobuf.Parse(
-            Message(ReferenceField(17, listId)), options);
-
-        IReadOnlyDictionary<uint, IWorkTextContent> strings = IWorkTableRichTextReader.Read(
-            index, store, new IWorkProjectionBudget(options), options,
-            options.MaximumTableCatalogEntries, out bool complete);
+        var catalog = CreateRichCatalog(records, options);
+        Assert.Empty(catalog.Materialized);
+        catalog.TryRead(1, out _);
+        var strings = catalog.Materialized;
+        bool complete = catalog.FullyReconstructed;
 
         Assert.True(complete);
         Assert.Equal("Value", strings[1].PlainText);
@@ -191,13 +185,12 @@ public sealed partial class IWorkBoundaryTests {
             Record(2, 6218, Message(ReferenceField(1, 3))),
             Record(3, 2001, Message(StringField(3, "Before\uFFFCafter")))
         };
-        var index = new IWorkObjectIndex(records, options);
-        IWorkWireMessage store = IWorkProtobuf.Parse(
-            Message(ReferenceField(17, 1)), options);
-
-        var strings = IWorkTableRichTextReader.Read(index, store,
-            new IWorkProjectionBudget(options), options,
-            options.MaximumTableCatalogEntries, out bool complete);
+        var catalog = CreateRichCatalog(records, options);
+        Assert.Empty(catalog.Materialized);
+        catalog.TryRead(1, out _);
+        catalog.TryRead(2, out _);
+        var strings = catalog.Materialized;
+        bool complete = catalog.FullyReconstructed;
 
         Assert.False(complete);
         Assert.Equal("Beforeafter", strings[1].PlainText);
@@ -219,19 +212,31 @@ public sealed partial class IWorkBoundaryTests {
             Record(2, 6218, Message(ReferenceField(1, 3))),
             Record(3, 2001, Message(StringField(3, "Value")))
         };
-        var index = new IWorkObjectIndex(records, options);
-        IWorkWireMessage store = IWorkProtobuf.Parse(
-            Message(ReferenceField(17, 1)), options);
-
-        IReadOnlyDictionary<uint, IWorkTextContent> strings = IWorkTableRichTextReader.Read(
-            index, store, new IWorkProjectionBudget(options), options,
-            options.MaximumTableCatalogEntries, out bool complete);
+        var catalog = CreateRichCatalog(records, options);
+        Assert.Empty(catalog.Materialized);
+        catalog.TryRead(1, out _);
+        var strings = catalog.Materialized;
+        bool complete = catalog.FullyReconstructed;
 
         Assert.True(complete);
-        Assert.Same(strings[1], strings[2]);
+        Assert.Equal("Value", Assert.Single(strings).Value.PlainText);
 
         static IWorkArchiveRecord Record(ulong id, uint type, byte[] payload) =>
             new(id, type, Array.Empty<uint>(), Array.Empty<ulong>(),
                 Array.Empty<ulong>(), "Index/Tables/Test.iwa", 0, payload);
+    }
+
+    private static IWorkTableRichTextCatalog CreateRichCatalog(IWorkArchiveRecord[] records, IWorkReadOptions options) {
+        byte[] store = Message(ReferenceField(17, 1));
+        using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(
+            ArchiveRecord(100, 1, Message(ReferenceField(1, 101))),
+            ArchiveRecord(101, 2, Message()),
+            ArchiveRecord(104, 6001, Message(BytesField(4, store))),
+            Message(records.Select(record => ArchiveRecord(record.Identifier, record.MessageType,
+                record.Payload, record.ObjectReferences.ToArray())).ToArray())))));
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
+        return IWorkTableRichTextCatalog.Create(source.Index, IWorkProtobuf.Parse(store, source.Options),
+            source.Index.Find(104)!, new IWorkProjectionBudget(source.Options), source.Options,
+            source.Options.MaximumTableCatalogEntries, new IWorkSourceReferenceIssueCollector(source));
     }
 }

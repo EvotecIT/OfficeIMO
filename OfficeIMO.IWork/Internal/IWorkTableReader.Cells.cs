@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork.Internal;
 internal static partial class IWorkTableReader {
     private static IWorkTableCell DecodeCell(byte[] buffer, int offset, int endOffset,
         int row, int column,
-        IReadOnlyDictionary<uint, string> strings, IReadOnlyDictionary<uint, IWorkTextContent> richStrings,
+        IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas,
         IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
         HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
@@ -143,7 +143,7 @@ internal static partial class IWorkTableReader {
                 if (hasRichString) {
                     if (hasFormula) formulaRichStringIdentifiers.Add(richStringIdentifier);
                     else nonFormulaRichStringIdentifiers.Add(richStringIdentifier);
-                    if (richStrings.TryGetValue(richStringIdentifier, out IWorkTextContent? richText)) {
+                    if (richStrings.TryRead(richStringIdentifier, out IWorkTextContent? richText) && richText != null) {
                         string text = richText.PlainText;
                         projectionBudget.AddTextContentUse(richText, includeCharacters: true);
                         return hasFormula

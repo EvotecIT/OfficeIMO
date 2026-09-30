@@ -3,7 +3,7 @@ namespace OfficeIMO.IWork.Internal;
 internal static partial class IWorkTextReader {
     private static IReadOnlyList<AttributeBoundary> ReadObjectTable(IWorkWireMessage storage,
         int field, int textLength, IWorkArchiveRecord owner, IWorkProjectionBudget projectionBudget,
-        IWorkSourceReferenceIssueCollector? references, ref bool complete) {
+        IWorkSourceReferenceIssueCollector references, ref bool complete) {
         if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
         if (storage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
             complete = false;
@@ -53,7 +53,7 @@ internal static partial class IWorkTextReader {
                 continue;
             }
             bool hasObject = entry.HasField(2);
-            if (references != null && hasObject) {
+            if (hasObject) {
                 // Every decoded, valid-offset attribute entry is assessed by this reader,
                 // including declarations at the end of the text. Preserve physical indexes.
                 references.ReadOne(owner, entry, 2,

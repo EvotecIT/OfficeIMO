@@ -74,7 +74,7 @@ public sealed partial class IWorkPagesProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared body, drawable, text-storage, section, header/footer and assessed text-formatting reference occurrences.</summary>
+    /// <summary>Gets unresolved declared body, drawable, text-storage, section, header/footer and assessed table/text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets source sections with their associated header and footer content.</summary>
     public IReadOnlyList<IWorkPagesSection> Sections { get; }
@@ -387,7 +387,7 @@ internal static partial class IWorkPagesReader {
         foreach (IWorkArchiveRecord tableRecord in documentDrawables
                      .Where(record => record.MessageType is 6000 or 6007)) {
             projectionBudget.AddTable();
-            IWorkTable? table = IWorkTableReader.Read(source, tableRecord, projectionBudget, diagnostics,
+            IWorkTable? table = IWorkTableReader.Read(source, tableRecord, projectionBudget, references, diagnostics,
                 ref materializedCellCount, ref supportsEditableReconstruction);
             if (table != null) {
                 tables.Add(table);

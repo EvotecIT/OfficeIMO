@@ -11,7 +11,8 @@ internal static partial class IWorkTableReader {
     private const uint RecognizedCellValueMask = (1u << 21) - 1;
 
     internal static IWorkTable? Read(IWorkSourceDocument source, IWorkArchiveRecord tableRecord,
-        IWorkProjectionBudget projectionBudget, List<IWorkDiagnostic> diagnostics,
+        IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector references,
+        List<IWorkDiagnostic> diagnostics,
         ref int materializedCellCount,
         ref bool supportsEditableReconstruction) {
         IWorkWireMessage recordMessage;
@@ -40,10 +41,9 @@ internal static partial class IWorkTableReader {
         }
         bool modelReferenceComplete = tableInfo.FieldCount(2) == 1
             && !tableInfo.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
-        IWorkArchiveRecord? model = modelReferenceComplete
-            ? source.Index.Dereference(tableInfo, 2)
-            : null;
-        if (model == null || model.MessageType != TableModelArchive) {
+        IWorkArchiveRecord? model = references.ReadOne(tableRecord, tableInfo, 2,
+            tableRecord.MessageType == WordProcessingTableInfoArchive ? "1/2" : "2");
+        if (!modelReferenceComplete || model == null || model.MessageType != TableModelArchive) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_MODEL_UNSUPPORTED",
@@ -116,7 +116,7 @@ internal static partial class IWorkTableReader {
                 model.EntryPath, model.Identifier));
             return null;
         }
-        return ReadTable(source, source.Index, model, modelMessage, geometry, projectionBudget,
+        return ReadTable(source, source.Index, model, modelMessage, geometry, projectionBudget, references,
             diagnostics, accessibilityDescription, ref materializedCellCount,
             ref supportsEditableReconstruction, new IWorkObjectIdentity(tableRecord));
     }
@@ -124,6 +124,7 @@ internal static partial class IWorkTableReader {
     private static IWorkTable ReadTable(IWorkSourceDocument source, IWorkObjectIndex index,
         IWorkArchiveRecord model, IWorkWireMessage message, IWorkGeometry? geometry,
         IWorkProjectionBudget projectionBudget,
+        IWorkSourceReferenceIssueCollector references,
         List<IWorkDiagnostic> diagnostics,
         string? accessibilityDescription,
         ref int materializedCellCount, ref bool supportsEditableReconstruction, IWorkObjectIdentity sourceIdentity) {
@@ -187,10 +188,8 @@ internal static partial class IWorkTableReader {
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool stringStorageComplete);
-        IReadOnlyDictionary<uint, IWorkTextContent> richStrings = IWorkTableRichTextReader.Read(index, store,
-            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
-            out bool richStringStorageComplete, out bool richStringCatalogStructureComplete,
-            out IReadOnlyDictionary<uint, IWorkObjectIdentity> omittedRichStrings);
+        IWorkTableRichTextCatalog richStrings = IWorkTableRichTextCatalog.Create(index, store, model,
+            projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries, references);
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas = ReadFormulas(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
             out bool formulaStorageComplete, out bool formulaCatalogEnvelopeComplete);
@@ -443,22 +442,22 @@ internal static partial class IWorkTableReader {
             }
         }
 
-        foreach (var entry in omittedRichStrings) {
+        foreach (var entry in richStrings.OmittedStorages) {
             if (formulaRichStringIdentifiers.Contains(entry.Key) || nonFormulaRichStringIdentifiers.Contains(entry.Key))
                 omittedTextUnits.Add(entry.Value);
         }
 
-        bool blockingRichText = !richStringCatalogStructureComplete || richStrings.Any(entry =>
+        bool blockingRichText = !richStrings.StructureComplete || richStrings.Materialized.Any(entry =>
             !entry.Value.IsTextComplete
             && nonFormulaRichStringIdentifiers.Contains(entry.Key));
-        if (!richStringStorageComplete && blockingRichText) {
+        if (!richStrings.FullyReconstructed && blockingRichText) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_RICH_TEXT_STORAGE_UNSUPPORTED",
                 "An iWork rich-text table catalog contains malformed or unresolved entries; affected cell text may be incomplete.",
                 model.EntryPath, model.Identifier));
         }
-        if (richStrings.Any(entry => nonFormulaRichStringIdentifiers.Contains(entry.Key)
+        if (richStrings.Materialized.Any(entry => nonFormulaRichStringIdentifiers.Contains(entry.Key)
                 && !entry.Value.IsComplete && entry.Value.IsTextComplete)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

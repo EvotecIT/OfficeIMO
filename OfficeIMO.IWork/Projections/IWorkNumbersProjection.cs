@@ -25,7 +25,7 @@ public sealed partial class IWorkNumbersProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared sheet, drawable and text-storage reference occurrences in assessed content paths.</summary>
+    /// <summary>Gets unresolved declared sheet, drawable, text-storage and assessed table/text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
@@ -192,7 +192,7 @@ internal static class IWorkNumbersReader {
                 }
                 if (drawable.MessageType == TableInfoArchive) {
                     projectionBudget.AddTable();
-                    IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
+                    IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, references, diagnostics,
                         ref materializedCellCount, ref supportsEditableReconstruction);
                     if (table != null) {
                         tables.Add(table);

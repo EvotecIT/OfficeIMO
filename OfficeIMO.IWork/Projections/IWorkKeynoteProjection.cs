@@ -107,7 +107,7 @@ public sealed partial class IWorkKeynoteProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
-    /// <summary>Gets unresolved declared show, slide-tree, slide, drawable, text-storage, presenter-note and assessed text-formatting reference occurrences.</summary>
+    /// <summary>Gets unresolved declared show, slide-tree, slide, drawable, text-storage, presenter-note and assessed table/text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets the source presentation canvas size.</summary>
     public IWorkCanvasSize? SlideSize { get; }

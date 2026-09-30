@@ -96,7 +96,7 @@ internal static partial class IWorkKeynoteReader {
             }
             if (drawable.MessageType == 6000) {
                 projectionBudget.AddTable();
-                IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, diagnostics,
+                IWorkTable? table = IWorkTableReader.Read(source, drawable, projectionBudget, references, diagnostics,
                     ref materializedCellCount, ref supportsEditableReconstruction);
                 if (table != null) {
                     tables.Add(table);

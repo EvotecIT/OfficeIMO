@@ -8,7 +8,7 @@ internal static partial class IWorkTextReader {
     private const uint HyperlinkArchive = 2032;
 
     internal static IWorkTextContent Read(IWorkObjectIndex index, IWorkArchiveRecord storage,
-        IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector? references,
+        IWorkProjectionBudget projectionBudget, IWorkSourceReferenceIssueCollector references,
         bool tolerateStyleDepth = false) {
         IWorkWireMessage message = index.Message(storage);
         bool textComplete = true;
@@ -113,7 +113,7 @@ internal static partial class IWorkTextReader {
         ulong? identifier, IWorkProjectionBudget projectionBudget,
         Dictionary<ulong, Cached<IWorkParagraphStyle>> cache,
         bool tolerateStyleDepth,
-        IWorkSourceReferenceIssueCollector? references,
+        IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
         if (!identifier.HasValue) return new ParagraphStyleData().ToPublic();
         if (cache.TryGetValue(identifier.Value, out Cached<IWorkParagraphStyle> cached)) {
@@ -147,7 +147,7 @@ internal static partial class IWorkTextReader {
         IWorkTextStyle inherited, IWorkProjectionBudget projectionBudget,
         Dictionary<TextStyleCacheKey, Cached<IWorkTextStyle>> cache,
         bool tolerateStyleDepth,
-        IWorkSourceReferenceIssueCollector? references,
+        IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
         if (!identifier.HasValue) return inherited;
         var key = new TextStyleCacheKey(identifier.Value, inherited);
@@ -177,7 +177,7 @@ internal static partial class IWorkTextReader {
 
     private static IReadOnlyList<IWorkWireMessage> ReadStyleChain(IWorkObjectIndex index,
         ulong identifier, int maximumDepth, Func<uint, bool> allowedType,
-        bool tolerateStyleDepth, IWorkSourceReferenceIssueCollector? references, ref bool complete) {
+        bool tolerateStyleDepth, IWorkSourceReferenceIssueCollector references, ref bool complete) {
         var chain = new List<IWorkWireMessage>();
         var seen = new HashSet<ulong>();
         ulong current = identifier;
@@ -214,8 +214,7 @@ internal static partial class IWorkTextReader {
                 break;
             }
             if (super == null) break;
-            IWorkArchiveRecord? parent = references == null ? index.Dereference(super, 3)
-                : references.ReadOne(record, super, 3, "1/3");
+            IWorkArchiveRecord? parent = references.ReadOne(record, super, 3, "1/3");
             if (super.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
                 || super.HasField(3) && parent == null) {
                 complete = false;
@@ -306,7 +305,7 @@ internal static partial class IWorkTextReader {
         IWorkProjectionBudget projectionBudget,
         Dictionary<(ulong Identifier, double? LeftIndentPoints), Cached<(int Level, string? Label)>> cache,
         bool tolerateStyleDepth,
-        IWorkSourceReferenceIssueCollector? references,
+        IWorkSourceReferenceIssueCollector references,
         ref bool complete) {
         if (!identifier.HasValue) return (-1, null);
         var cacheKey = (identifier.Value, paragraphLeftIndentPoints);
