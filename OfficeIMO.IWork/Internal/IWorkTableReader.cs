@@ -170,9 +170,9 @@ internal static partial class IWorkTableReader {
         }
         double? defaultRowHeight = ValidDimension(declaredRowHeight);
         double? defaultColumnWidth = ValidDimension(declaredColumnWidth);
-        IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(message, rows, columns,
+        IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(source, message, rows, columns,
             source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
-            model, diagnostics, ref supportsEditableReconstruction);
+            model, references, diagnostics, ref supportsEditableReconstruction);
         var rowHeights = new Dictionary<int, double>();
         var columnWidths = new Dictionary<int, double>();
         var cells = new List<IWorkTableCell>();

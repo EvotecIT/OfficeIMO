@@ -209,6 +209,10 @@ String, formula and rich-text catalogs reject duplicate keys even when a duplica
 
 An unreadable row or column index or unresolved sizing bucket prevents trusting overrides on that axis, including those in other selected buckets. A repeated readable row-bucket reference retires that bucket's indexes while retaining unrelated overrides. `SourceDeclarationIssues` retains physical header paths and invalid size or visibility values; unresolved bucket references remain in `SourceReferenceIssues`. Use `AllowPartialEditableReconstruction` to retain the other axis and healthy sizes at unambiguous indexes. The destination owner applies its existing default-size and geometry rules.
 
+### iWork partial merged-range recovery
+
+Conflicting iWork merge rectangles are removed from the source projection while valid disjoint merges remain available. With `AllowPartialEditableReconstruction`, the destination can retain those merges and recovered cell values. An unreadable range leaves every merge untrusted; a decoded out-of-bounds rectangle disqualifies intersecting merges without exporting a clipped rectangle. Inspect `SourceDeclarationIssues` for the owning model and physical merge paths. Destination checks for populated covered cells remain in effect.
+
 ### iWork formula assessment counts
 
 `IWorkConversionReport.FormulaCells` includes materialized error cells whose supported version-5 headers declare formulas. Check `ExpressionIsAssessed` before interpreting `ExpressionIsComplete`; an undecoded cell has cache status `IWorkFormulaCacheStatus.Unassessed`. Include `UnassessedExpressionCount` and `UnassessedCacheCount` when summing the expression and cache categories in `FormulaSummary`. The corresponding workflow facts are `sourceUnassessedFormulaExpressionCount` and `sourceUnassessedFormulaCacheCount`. Handle the new enum member in exhaustive cache-status switches.
