@@ -7,7 +7,8 @@ namespace OfficeIMO.Excel.IWork;
 public static partial class ExcelIWorkConverter {
     private static NumbersToExcelResult ProjectNumbers(IWorkSourceDocument source,
         IWorkConversionOptions? options = null) {
-        IWorkConversionMode mode = (options ?? new IWorkConversionOptions()).Clone().Mode;
+        IWorkConversionOptions settings = (options ?? new IWorkConversionOptions()).Clone();
+        IWorkConversionMode mode = settings.Mode;
         IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
             ? source.PreferredRasterPreview
             : null;
@@ -18,10 +19,12 @@ public static partial class ExcelIWorkConverter {
         IWorkNumbersProjection projection = source.ReadNumbers();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindExcelProjectionLimitation(projection);
-        bool editable = mode != IWorkConversionMode.VisualOnly && projection.HasEditableContent
+            : FindExcelProjectionLimitation(projection, settings.NormalizeWorksheetNames);
+        bool hasEditableContent = projection.HasEditableContent
+            || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
+        bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
             && destinationLimitation == null;
-        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = !projection.HasEditableContent
+        IReadOnlyList<IWorkDiagnostic> destinationDiagnostics = !hasEditableContent
                 || destinationLimitation == null
             ? Array.Empty<IWorkDiagnostic>()
             : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -37,6 +40,15 @@ public static partial class ExcelIWorkConverter {
                     "Some formula-cell rich text, paragraph formatting, list markers, run links, highlights, or transparent colors cannot be represented in XLSX; source paragraphs and runs remain available on the iWork projection.")
             }).ToArray();
         }
+        if (editable && settings.AllowPartialEditableReconstruction &&
+            (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
+                diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION",
+                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source diagnostics describe incomplete details.")
+            }).ToArray();
+        }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Numbers source has no supported editable content.");
@@ -47,13 +59,20 @@ public static partial class ExcelIWorkConverter {
             throw new NotSupportedException("The Numbers source has no supported editable content or embedded raster preview.");
         }
 
+        if (!editable) settings.ValidateVisualPreview(preview);
+
+        var worksheetMappings = new List<NumbersWorksheetMapping>();
+        ExcelSheetNameValidationMode nameMode = settings.NormalizeWorksheetNames
+            ? ExcelSheetNameValidationMode.Sanitize : ExcelSheetNameValidationMode.Strict;
         ExcelDocument document = ExcelDocument.Create();
         try {
             if (editable) {
-                foreach (IWorkNumbersSheet sourceSheet in projection.Sheets) {
+                for (int sheetIndex = 0; sheetIndex < projection.Sheets.Count; sheetIndex++) {
+                    IWorkNumbersSheet sourceSheet = projection.Sheets[sheetIndex];
                     if (sourceSheet.TextBoxes.Count > 0 || sourceSheet.Tables.Count == 0) {
-                        ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name,
-                            ExcelSheetNameValidationMode.Strict);
+                        ExcelSheet textSheet = document.AddWorksheet(sourceSheet.Name, nameMode);
+                        worksheetMappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
+                            null, null, sourceSheet.Name, textSheet.Name));
                         for (int index = 0; index < sourceSheet.TextBoxes.Count; index++) {
                             textSheet.CellAt(index + 1, 1).SetValue(sourceSheet.TextBoxes[index]);
                         }
@@ -65,8 +84,9 @@ public static partial class ExcelIWorkConverter {
                                 ? sourceSheet.Name
                                 : sourceSheet.Name + " - "
                                     + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
-                        ExcelSheet sheet = document.AddWorksheet(tableSheetName,
-                            ExcelSheetNameValidationMode.Strict);
+                        ExcelSheet sheet = document.AddWorksheet(tableSheetName, nameMode);
+                        worksheetMappings.Add(new NumbersWorksheetMapping(sheetIndex + 1, sourceSheet.Name,
+                            tableIndex + 1, table.Name, tableSheetName, sheet.Name));
                         foreach (IWorkTableCell cell in table.Cells) {
                             bool isDuration = cell.Kind == IWorkCellKind.Duration
                                 || cell.Kind == IWorkCellKind.Formula
@@ -153,11 +173,18 @@ public static partial class ExcelIWorkConverter {
                     name: "Numbers visual fallback", altText: "Visual fallback from the source Numbers package");
             }
 
+            destinationDiagnostics = destinationDiagnostics.Concat(worksheetMappings
+                .Where(mapping => mapping.WasRenamed)
+                .Select(mapping => new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_NUMBERS_WORKSHEET_RENAMED",
+                    $"Source sheet {mapping.SourceSheetIndex}, table {mapping.SourceTableIndex?.ToString() ?? "text"}: worksheet '{mapping.RequestedName}' was written as '{mapping.DestinationName}'.")))
+                .ToArray();
             IWorkProjectionKind kind = editable
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
             return new NumbersToExcelResult(document, source, projection,
-                projection.CreateConversionReport(kind, preview, destinationDiagnostics));
+                projection.CreateConversionReport(kind, preview, destinationDiagnostics,
+                    settings.AllowPartialEditableReconstruction), worksheetMappings);
         } catch {
             document.Dispose();
             throw;
@@ -232,14 +259,15 @@ public static partial class ExcelIWorkConverter {
             "#NULL!" or "#DIV/0!" or "#VALUE!" or "#REF!" or "#NAME?"
                 or "#NUM!" or "#N/A" or "#GETTING_DATA";
 
-    private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection) {
+    private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection,
+        bool normalizeWorksheetNames) {
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
             if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
                 return $"Numbers sheet '{sheet.Name}' contains more text boxes than the XLSX row limit of 1,048,576.";
             }
             if (sheet.TextBoxes.Count > 0 || sheet.Tables.Count == 0) {
-                if (!TryAddExactSheetName(sheet.Name, destinationSheetNames)) {
+                if (!normalizeWorksheetNames && !TryAddExactSheetName(sheet.Name, destinationSheetNames)) {
                     return $"Numbers sheet '{sheet.Name}' cannot be preserved as an exact XLSX worksheet name.";
                 }
             }
@@ -252,7 +280,7 @@ public static partial class ExcelIWorkConverter {
                     ? sheet.Name
                     : sheet.Name + " - "
                         + (table.Name.Length > 0 ? table.Name : $"Table {tableIndex + 1}");
-                if (!TryAddExactSheetName(tableSheetName, destinationSheetNames)) {
+                if (!normalizeWorksheetNames && !TryAddExactSheetName(tableSheetName, destinationSheetNames)) {
                     return $"Numbers table '{table.Name}' cannot be preserved as an exact unique XLSX worksheet name.";
                 }
                 if (table.RowCount == 0 || table.ColumnCount == 0) {
@@ -261,7 +289,7 @@ public static partial class ExcelIWorkConverter {
                 if (table.RowCount > 1_048_576 || table.ColumnCount > 16_384) {
                     return $"Numbers table '{table.Name}' exceeds the XLSX worksheet dimensions.";
                 }
-                if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
+                if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Numbers table '{table.Name}' contains content in a covered merged cell that the XLSX owner cannot preserve.";
                 }
                 if (table.DefaultRowHeight is double rowHeight

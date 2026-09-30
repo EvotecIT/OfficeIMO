@@ -882,6 +882,10 @@ Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `Of
 
 Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
 
+Source-record accounting now uses `IWorkConversionReport.PreservedRecords`, `PreservedRecordCount`, and `IWorkReadOptions.PreserveSourceRecords` in place of the former `UnsupportedRecords`, `UnsupportedRecordCount`, and `PreserveUnsupportedRecords` names. The list includes consumed and auxiliary records; it does not count omitted content. Replace checks for `IWORK_UNPROJECTED_RECORDS` with `IWORK_RECORD_FIDELITY_UNASSESSED`, whose category is `OfficeConversionLossKind.Unassessed`. Strict no-loss policies still reject unassessed fidelity. Add this category to exhaustive diagnostic displays or policy switches.
+
+Partial editable reconstruction and worksheet-name normalization require explicit options. Applications that cannot accept a first-page or composite visual fallback should set `RequireCompleteVisualCoverage = true`; this setting rejects fallback unless full-document coverage is known.
+
 Applications that only use Word, Excel, or PowerPoint need no iWork package and no code change.
 
 ## OfficeIMO 3.3: reusable OCR packages

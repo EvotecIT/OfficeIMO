@@ -14,5 +14,8 @@ public enum OfficeConversionLossKind {
     Omission,
 
     /// <summary>The requested conversion or export operation, or part of it, failed.</summary>
-    Failure
+    Failure,
+
+    /// <summary>Source fidelity has not been assessed; preservation alone does not establish conversion coverage.</summary>
+    Unassessed
 }

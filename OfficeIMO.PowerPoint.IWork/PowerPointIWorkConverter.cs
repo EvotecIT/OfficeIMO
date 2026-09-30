@@ -8,7 +8,8 @@ namespace OfficeIMO.PowerPoint.IWork;
 public static partial class PowerPointIWorkConverter {
     private static KeynoteToPowerPointResult ProjectKeynote(
         IWorkSourceDocument source, IWorkConversionOptions? options = null) {
-        IWorkConversionMode mode = (options ?? new IWorkConversionOptions()).Clone().Mode;
+        IWorkConversionOptions settings = (options ?? new IWorkConversionOptions()).Clone();
+        IWorkConversionMode mode = settings.Mode;
         IWorkPreviewAsset? preview = mode == IWorkConversionMode.VisualOnly
             ? source.PreferredRasterPreview
             : null;
@@ -19,11 +20,13 @@ public static partial class PowerPointIWorkConverter {
         IWorkKeynoteProjection projection = source.ReadKeynote();
         string? destinationLimitation = mode == IWorkConversionMode.VisualOnly
             ? null
-            : FindPowerPointProjectionLimitation(projection);
-        bool editable = mode != IWorkConversionMode.VisualOnly && projection.HasEditableContent
+            : FindPowerPointProjectionLimitation(projection, settings.AllowPartialEditableReconstruction);
+        bool hasEditableContent = projection.HasEditableContent
+            || settings.AllowPartialEditableReconstruction && projection.HasRecoverableContent;
+        bool editable = mode != IWorkConversionMode.VisualOnly && hasEditableContent
             && destinationLimitation == null;
         IReadOnlyList<IWorkDiagnostic> destinationDiagnostics =
-            (!projection.HasEditableContent || destinationLimitation == null
+            (!hasEditableContent || destinationLimitation == null
                 ? Array.Empty<IWorkDiagnostic>()
                 : new[] { new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_KEYNOTE_POWERPOINT_DESTINATION_UNSUPPORTED", destinationLimitation) })
@@ -31,6 +34,15 @@ public static partial class PowerPointIWorkConverter {
                 ? FindPowerPointProjectionDiagnostics(projection)
                 : Array.Empty<IWorkDiagnostic>())
             .ToArray();
+        if (editable && settings.AllowPartialEditableReconstruction &&
+            (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
+                diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {
+            destinationDiagnostics = destinationDiagnostics.Concat(new[] {
+                new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION",
+                    "Recovered editable content was retained under the explicit partial-reconstruction policy; source diagnostics describe incomplete details.")
+            }).ToArray();
+        }
         if (!editable && mode == IWorkConversionMode.EditableOnly) {
             throw new InvalidDataException(destinationLimitation
                 ?? "The Keynote source has no supported editable slides.");
@@ -40,6 +52,8 @@ public static partial class PowerPointIWorkConverter {
         if (!editable && preview == null) {
             throw new NotSupportedException("The Keynote source has no supported editable slides or embedded raster preview.");
         }
+
+        if (!editable) settings.ValidateVisualPreview(preview);
 
         PowerPointPresentation presentation = PowerPointPresentation.Create();
         try {
@@ -107,7 +121,8 @@ public static partial class PowerPointIWorkConverter {
                 ? IWorkProjectionKind.EditableReconstruction
                 : IWorkProjectionKind.VisualFallback;
             return new KeynoteToPowerPointResult(presentation, source, projection,
-                projection.CreateConversionReport(kind, preview, destinationDiagnostics));
+                projection.CreateConversionReport(kind, preview, destinationDiagnostics,
+                    settings.AllowPartialEditableReconstruction));
         } catch {
             presentation.Dispose();
             throw;
@@ -226,7 +241,8 @@ public static partial class PowerPointIWorkConverter {
         }
     }
 
-    private static string? FindPowerPointProjectionLimitation(IWorkKeynoteProjection projection) {
+    private static string? FindPowerPointProjectionLimitation(IWorkKeynoteProjection projection,
+        bool allowPartialEditableReconstruction) {
         const double MaximumPointMeasurement = int.MaxValue / 12700d;
         const long MaximumDestinationTableCells = 1_000_000;
         long destinationTableCells = 0;
@@ -296,8 +312,8 @@ public static partial class PowerPointIWorkConverter {
                         return $"Keynote slide {slide.Index} contains a list marker that cannot be represented by native PPTX numbering.";
                     }
                     IWorkParagraphStyle style = paragraph.Style;
-                    if (style.PageBreakBefore == true || style.KeepWithNext == true
-                        || style.KeepLinesTogether == true) {
+                    if (!allowPartialEditableReconstruction && (style.PageBreakBefore == true
+                        || style.KeepWithNext == true || style.KeepLinesTogether == true)) {
                         return $"Keynote slide {slide.Index} contains paragraph pagination formatting that the PPTX owner cannot preserve.";
                     }
                     if (!FitsTextCoordinate(style.FirstLineIndentPoints)
@@ -340,7 +356,7 @@ public static partial class PowerPointIWorkConverter {
                     && cell.RichText is { IsComplete: false })) {
                     return $"Keynote table '{table.Name}' contains formula cached text with incomplete formatting that the PPTX owner cannot preserve.";
                 }
-                if (projection.HasEditableContent && table.HasPopulatedCoveredMergeCells()) {
+                if (table.HasPopulatedCoveredMergeCells()) {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
                 }
                 destinationTableCells += tableCells;

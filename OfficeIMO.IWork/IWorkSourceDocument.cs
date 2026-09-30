@@ -127,19 +127,19 @@ public sealed partial class IWorkSourceDocument {
             throw new ArgumentOutOfRangeException(nameof(projectionKind),
                 "The projection kind is not defined.");
         }
-        IWorkArchiveRecord[] allUnsupported = Records.ToArray();
-        IReadOnlyList<IWorkArchiveRecord> unsupported = _options.PreserveUnsupportedRecords
-            ? allUnsupported
+        IWorkArchiveRecord[] allPreserved = Records.ToArray();
+        IReadOnlyList<IWorkArchiveRecord> preserved = _options.PreserveSourceRecords
+            ? allPreserved
             : Array.Empty<IWorkArchiveRecord>();
         return new IWorkConversionReport(
             Kind,
             projectionKind,
             BuildVersions,
-            unsupported,
+            preserved,
             Diagnostics.Concat(projectionDiagnostics).ToArray(),
             preview,
             Records.Count,
-            allUnsupported.Length,
+            allPreserved.Length,
             reconstructedItemCount);
     }
 

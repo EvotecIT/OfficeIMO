@@ -22,7 +22,7 @@ The current level is **extended semantic reconstruction**. Normal document conte
 | Package safety | Configurable package, entry, entry-count, aggregate-uncompressed-size, and path bounds; top-level package paths and directory entries must be regular files rather than links, pipes, or devices; duplicate, absolute, traversal, and empty-segment paths are rejected; directory reads verify the opened regular-file handle remains under the captured physical package root |
 | IWA framing | Raw Snappy chunks used by modern iWork, with declared-size, chunk-size, aggregate-size, copy-offset, truncation, and integer-overflow checks |
 | Object envelope | Bounded ArchiveInfo and MessageInfo protobuf parsing with field-count, depth, record-count, record-size, wire-type, varint, reference, and unique primary-object validation |
-| Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; conversion reports conservatively retain payloads not losslessly represented, including partially consumed records |
+| Preservation | Defensive access to all package entries and all primary or auxiliary IWA payloads; conversion reports retain source payloads for inspection through `PreservedRecords`, including consumed, partially consumed, and auxiliary records; this count does not measure omitted content |
 | Active content | No macros, scripts, external links, embedded executables, or application services are executed |
 | Legacy packages | Pre-IWA `index.xml` and `index.apxl` packages are rejected as unsupported rather than guessed |
 
@@ -40,9 +40,17 @@ Tables in all three formats resolve text cells backed by either plain strings or
 
 Editable reconstruction means the supported content is represented as normal DOCX, XLSX, or PPTX objects and can be edited and saved through its owner. It does not mean the destination is visually identical or that unsupported iWork records are written into the Office package. Keynote point measurements finer than PPTX's integral EMU grid remain editable, are quantized to the nearest EMU, and emit `IWORK_KEYNOTE_PPTX_PRECISION`; the original bounded geometry remains available on the load result.
 
+## Conversion acceptance and fidelity
+
+`AllowPartialEditableReconstruction` defaults to `false`. Enabling it retains recovered editable objects when supported source or destination details are incomplete. Source byte/materialization limits and destination bounds remain enforced. The report exposes `IsPartialEditableReconstruction`; `RequireCompleteEditableReconstruction()` rejects explicitly partial output. Pages can approximate positioned tables as flowing tables and round finite measurements to DOCX units under this policy. Keynote can retain slides while diagnosing paragraph pagination flags that PowerPoint cannot represent.
+
+Numbers `NormalizeWorksheetNames` defaults to `false`. Enabling it uses the Excel owner's collision-safe normalization. `NumbersToExcelResult.WorksheetMappings` preserves source sheet/table ordinals and names beside destination names. Renames are typed approximations and do not add cross-table formula support.
+
+`IWorkDiagnostic.LossKind` separates proven omissions, approximations, failures, and information. Text content separately exposes `HasInvalidSourceText`, `HasUnresolvedInlineObjects`, and `IsFormattingComplete`; unresolved replacement markers are not labelled invalid UTF-8. `PreservedRecordCount` counts source records, while `UnassessedRecordCount` identifies the records without a field-level fidelity assessment. `IWORK_RECORD_FIDELITY_UNASSESSED` has category `Unassessed` and is rejected by `RequireNoLoss()`; it is not evidence that all source content was omitted.
+
 ## Visual fallback
 
-`IWorkConversionOptions.Mode = IWorkConversionMode.Auto` uses editable reconstruction when supported semantics exist and otherwise uses an embedded raster preview. `EditableOnly` rejects sources without supported editable structure. `VisualOnly` always requests the raster preview.
+`IWorkConversionOptions.Mode = IWorkConversionMode.Auto` uses editable reconstruction when supported semantics exist and otherwise uses an embedded raster preview. `EditableOnly` rejects sources without supported editable structure. `VisualOnly` always requests the raster preview. Set `RequireCompleteVisualCoverage = true` to reject a preview that is not known to cover the complete source. The default remains `false` for callers that explicitly accept first-page or composite preview output.
 
 Every adapter report exposes `IWorkProjectionKind.EditableReconstruction` or `IWorkProjectionKind.VisualFallback`. `IWorkPreviewAsset.Coverage` distinguishes a known full-document asset from a first-page or composite preview. Current adapters embed PNG or JPEG previews; structurally validated classic-xref PDF previews remain available on the source model but are not silently rasterized. Xref-stream PDFs are rejected until their filtered cross-reference entries can be decoded and traversed within the same bounded contract.
 

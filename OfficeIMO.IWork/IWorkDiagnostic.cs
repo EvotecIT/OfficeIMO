@@ -23,7 +23,8 @@ public sealed class IWorkDiagnostic {
     public string? EntryPath { get; }
     /// <summary>Gets the IWA object identifier associated with the diagnostic, when available.</summary>
     public ulong? RecordIdentifier { get; }
-    internal global::OfficeIMO.OfficeConversionLossKind LossKind { get; }
+    /// <summary>Gets the fidelity category used by downstream acceptance policies.</summary>
+    public global::OfficeIMO.OfficeConversionLossKind LossKind { get; }
 
     /// <inheritdoc />
     public override string ToString() => $"{Severity} {Code}: {Message}";
@@ -37,9 +38,8 @@ public sealed class IWorkDiagnostic {
             return global::OfficeIMO.OfficeConversionLossKind.Failure;
         }
 
-        // A partially reconstructed formula still retains its typed cached value. Every
-        // other current warning means source content or metadata was not represented.
-        return string.Equals(code, "IWORK_TABLE_FORMULA_PARTIAL", StringComparison.Ordinal)
+        return code is "IWORK_TABLE_FORMULA_PARTIAL" or "IWORK_KEYNOTE_PPTX_PRECISION"
+            or "IWORK_PAGES_DOCX_PRECISION" or "IWORK_NUMBERS_WORKSHEET_RENAMED"
             ? global::OfficeIMO.OfficeConversionLossKind.Approximation
             : global::OfficeIMO.OfficeConversionLossKind.Omission;
     }

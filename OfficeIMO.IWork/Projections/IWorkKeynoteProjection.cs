@@ -103,13 +103,17 @@ public sealed class IWorkKeynoteProjection {
     /// <summary>Gets whether at least one editable slide was recovered and all required slide references were resolved.</summary>
     public bool HasEditableContent => Slides.Count > 0 && _supportsEditableReconstruction;
 
+    /// <summary>Gets whether bounded source content is available for an explicitly partial editable conversion.</summary>
+    public bool HasRecoverableContent => Slides.Count > 0;
+
     /// <summary>Creates a conversion report for an OfficeIMO semantic-owner projection.</summary>
     public IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
         CreateConversionReport(kind, preview, Array.Empty<IWorkDiagnostic>());
 
     internal IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind,
-        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
-        ValidateReportRequest(kind, preview);
+        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics,
+        bool allowPartialEditableReconstruction = false) {
+        ValidateReportRequest(kind, preview, allowPartialEditableReconstruction);
         return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
@@ -118,8 +122,10 @@ public sealed class IWorkKeynoteProjection {
                     + (slide.TitleBox != null ? 1 : 0) + (slide.PresenterNotes.Length > 0 ? 1 : 0)));
     }
 
-    private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {
-        if (kind == IWorkProjectionKind.EditableReconstruction && !HasEditableContent) {
+    private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
+        bool allowPartialEditableReconstruction) {
+        if (kind == IWorkProjectionKind.EditableReconstruction && !HasEditableContent
+            && !(allowPartialEditableReconstruction && HasRecoverableContent)) {
             throw new InvalidOperationException("Editable Keynote content was not recovered.");
         }
         if (kind == IWorkProjectionKind.VisualFallback && preview == null) {
@@ -467,7 +473,7 @@ internal static class IWorkKeynoteReader {
                 text = IWorkTextReader.Read(index, storage, projectionBudget);
                 textCache.Add(storage.Identifier, text);
             }
-            if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+            if (!text.IsComplete) MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, text);
             IWorkWireMessage? drawableMessage = IWorkDrawingReader.DrawableMessage(index, drawable,
                 out bool drawableComplete);
             if (!drawableComplete) {
@@ -585,7 +591,7 @@ internal static class IWorkKeynoteReader {
                 if (!storageMalformed) {
                     notes = IWorkTextReader.Read(index, storage, projectionBudget);
                     if (!notes.IsComplete) {
-                        MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
+                        MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction, notes);
                     }
                 }
             } else {
@@ -684,12 +690,14 @@ internal static class IWorkKeynoteReader {
     }
 
     private static void MarkTextIncomplete(IWorkArchiveRecord storage,
-        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
+        List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction,
+        IWorkTextContent? content = null) {
         supportsEditableReconstruction = false;
-        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_TEXT_STORAGE_UNSUPPORTED")) return;
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_KEYNOTE_TEXT_STORAGE_UNSUPPORTED"
+            && diagnostic.RecordIdentifier == storage.Identifier)) return;
         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
             "IWORK_KEYNOTE_TEXT_STORAGE_UNSUPPORTED",
-            "A Keynote text storage contains an invalid UTF-8 run; editable reconstruction is incomplete.",
+            IWorkTextDiagnostics.Describe(content) + " Complete editable reconstruction is unavailable.",
             storage.EntryPath, storage.Identifier));
     }
 

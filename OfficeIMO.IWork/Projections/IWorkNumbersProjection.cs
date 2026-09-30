@@ -24,13 +24,17 @@ public sealed class IWorkNumbersProjection {
     /// <summary>Gets whether at least one editable sheet was recovered and its required semantic references were resolved.</summary>
     public bool HasEditableContent => Sheets.Count > 0 && _supportsEditableReconstruction;
 
+    /// <summary>Gets whether bounded source content is available for an explicitly partial editable conversion.</summary>
+    public bool HasRecoverableContent => Sheets.Count > 0;
+
     /// <summary>Creates a conversion report for an OfficeIMO semantic-owner projection.</summary>
     public IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind, IWorkPreviewAsset? preview = null) =>
         CreateConversionReport(kind, preview, Array.Empty<IWorkDiagnostic>());
 
     internal IWorkConversionReport CreateConversionReport(IWorkProjectionKind kind,
-        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics) {
-        ValidateReportRequest(kind, preview);
+        IWorkPreviewAsset? preview, IReadOnlyList<IWorkDiagnostic> additionalDiagnostics,
+        bool allowPartialEditableReconstruction = false) {
+        ValidateReportRequest(kind, preview, allowPartialEditableReconstruction);
         return _source.CreateReport(kind, Diagnostics.Concat(additionalDiagnostics).ToArray(), preview,
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
@@ -38,8 +42,10 @@ public sealed class IWorkNumbersProjection {
                     + sheet.Tables.Sum(table => table.Cells.Count)));
     }
 
-    private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview) {
-        if (kind == IWorkProjectionKind.EditableReconstruction && !HasEditableContent) {
+    private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
+        bool allowPartialEditableReconstruction) {
+        if (kind == IWorkProjectionKind.EditableReconstruction && !HasEditableContent
+            && !(allowPartialEditableReconstruction && HasRecoverableContent)) {
             throw new InvalidOperationException("Editable Numbers content was not recovered.");
         }
         if (kind == IWorkProjectionKind.VisualFallback && preview == null) {

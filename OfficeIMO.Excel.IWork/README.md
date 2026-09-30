@@ -21,6 +21,28 @@ result.Value.Save("converted.xlsx");
 
 `IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcelDocument` returns the converted workbook directly; `ToExcelDocumentResult` also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `ExcelIWorkConverter.ConvertNumbersToExcel*` provides equivalent path and stream convenience entry points.
 
+Choose the acceptance policy explicitly when source details cannot be represented:
+
+```csharp
+var options = new IWorkConversionOptions {
+    Mode = IWorkConversionMode.Auto,
+    AllowPartialEditableReconstruction = true,
+    RequireCompleteVisualCoverage = true
+};
+```
+
+This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. Both settings default to `false`. Inspect `Report.IsPartialEditableReconstruction` before accepting the output; `Report.RequireCompleteEditableReconstruction()` rejects explicitly partial reconstruction. `Report.RequireNoLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
+
+Set `NormalizeWorksheetNames = true` to use the Excel owner's rules for invalid, long, or colliding worksheet names. The result's `WorksheetMappings` links each destination name to its one-based source sheet/table position and original name. Each source table still receives its own worksheet; table-local formulas retain their references. Renames produce `IWORK_NUMBERS_WORKSHEET_RENAMED`, an approximation diagnostic. This does not add cross-table formula support.
+
+```csharp
+using NumbersToExcelResult normalized = source.ToExcelDocumentResult(
+    new IWorkConversionOptions { NormalizeWorksheetNames = true });
+foreach (NumbersWorksheetMapping mapping in normalized.WorksheetMappings) {
+    Console.WriteLine($"{mapping.SourceSheetIndex}/{mapping.SourceTableIndex}: {mapping.RequestedName} -> {mapping.DestinationName}");
+}
+```
+
 The adapter directly depends on `OfficeIMO.Core`, `OfficeIMO.IWork`, and `OfficeIMO.Excel`. It does not add iWork support to the default Excel package graph.
 
 See the [iWork support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.iwork-support-matrix.md) for supported structures and conversion limits.

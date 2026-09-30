@@ -3,17 +3,17 @@ namespace OfficeIMO.IWork;
 /// <summary>Loss-aware summary of one iWork-to-OfficeIMO projection.</summary>
 public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionReport {
     internal IWorkConversionReport(IWorkDocumentKind sourceKind, IWorkProjectionKind projectionKind,
-        IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> unsupportedRecords,
+        IReadOnlyList<string> buildVersions, IReadOnlyList<IWorkArchiveRecord> preservedRecords,
         IReadOnlyList<IWorkDiagnostic> diagnostics, IWorkPreviewAsset? visualPreview,
-        int totalRecordCount, int unsupportedRecordCount, int reconstructedItemCount) {
+        int totalRecordCount, int preservedRecordCount, int reconstructedItemCount) {
         SourceKind = sourceKind;
         ProjectionKind = projectionKind;
         BuildVersions = Array.AsReadOnly(buildVersions.ToArray());
-        UnsupportedRecords = Array.AsReadOnly(unsupportedRecords.ToArray());
+        PreservedRecords = Array.AsReadOnly(preservedRecords.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         VisualPreview = visualPreview;
         TotalRecordCount = totalRecordCount;
-        UnsupportedRecordCount = unsupportedRecordCount;
+        PreservedRecordCount = preservedRecordCount;
         ReconstructedItemCount = reconstructedItemCount;
         var fidelityDiagnostics = new List<global::OfficeIMO.OfficeConversionFidelityDiagnostic>();
         foreach (IWorkDiagnostic diagnostic in Diagnostics) {
@@ -33,11 +33,11 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
                     : global::OfficeIMO.OfficeConversionLossKind.Omission,
                 "OfficeIMO.IWork"));
         }
-        if (UnsupportedRecordCount > 0) {
+        if (UnassessedRecordCount > 0) {
             fidelityDiagnostics.Add(new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
-                "IWORK_UNPROJECTED_RECORDS",
-                UnsupportedRecordCount + " source record(s) were not represented by the typed projection.",
-                global::OfficeIMO.OfficeConversionLossKind.Omission,
+                "IWORK_RECORD_FIDELITY_UNASSESSED",
+                UnassessedRecordCount + " source record(s) remain available for preservation, but record-level fidelity has not been assessed. This count is not a count of omitted content.",
+                global::OfficeIMO.OfficeConversionLossKind.Unassessed,
                 "OfficeIMO.IWork"));
         }
         FidelityDiagnostics = fidelityDiagnostics.AsReadOnly();
@@ -49,8 +49,8 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IWorkProjectionKind ProjectionKind { get; }
     /// <summary>Gets producer build-history strings stored by the package.</summary>
     public IReadOnlyList<string> BuildVersions { get; }
-    /// <summary>Gets preserved IWA payload records not losslessly represented by the typed projection, including partially consumed and auxiliary payloads.</summary>
-    public IReadOnlyList<IWorkArchiveRecord> UnsupportedRecords { get; }
+    /// <summary>Gets source IWA payloads retained for inspection, including consumed, partially consumed, and auxiliary records. Presence here does not imply content was omitted.</summary>
+    public IReadOnlyList<IWorkArchiveRecord> PreservedRecords { get; }
     /// <summary>Gets parser and projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
     /// <summary>Gets category-preserving diagnostics for downstream acceptance policies.</summary>
@@ -59,15 +59,38 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public IWorkPreviewAsset? VisualPreview { get; }
     /// <summary>Gets the total number of IWA payload records in the source.</summary>
     public int TotalRecordCount { get; }
-    /// <summary>Gets the number of unprojected IWA payloads even when payload details were excluded by the read options.</summary>
-    public int UnsupportedRecordCount { get; }
+    /// <summary>Gets the number of source IWA payloads covered by preservation accounting, even when report payload details were excluded by the read options.</summary>
+    public int PreservedRecordCount { get; }
+    /// <summary>Gets the source record count without a field-level fidelity assessment. Auxiliary and consumed records are included; this is not an omission count.</summary>
+    public int UnassessedRecordCount => TotalRecordCount;
     /// <summary>Gets the number of semantic paragraphs, cells, slides, or other items reconstructed by the adapter.</summary>
     public int ReconstructedItemCount { get; }
-    /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, or failure.</summary>
+    /// <summary>Gets whether any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
     public bool HasLoss => FidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != global::OfficeIMO.OfficeConversionLossKind.None);
     /// <summary>Gets whether the parser or semantic projection reported an error diagnostic.</summary>
     public bool HasErrors => Diagnostics.Any(diagnostic => diagnostic.Severity == IWorkDiagnosticSeverity.Error);
+    /// <summary>Gets whether the explicit partial-reconstruction policy was needed to retain editable content.</summary>
+    public bool IsPartialEditableReconstruction => ProjectionKind == IWorkProjectionKind.EditableReconstruction
+        && Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION");
+
+    /// <summary>Throws unless the output is an editable reconstruction without explicitly partial content.</summary>
+    public IWorkConversionReport RequireCompleteEditableReconstruction() {
+        RequireEditableReconstruction();
+        if (IsPartialEditableReconstruction) {
+            throw new InvalidOperationException("The iWork source contains explicitly partial editable reconstruction.");
+        }
+        return this;
+    }
+
+    /// <summary>Throws unless a visual fallback is known to cover the complete source.</summary>
+    public IWorkConversionReport RequireCompleteVisualCoverage() {
+        if (ProjectionKind != IWorkProjectionKind.VisualFallback || !HasCompleteVisualCoverage) {
+            throw new InvalidOperationException("The output is not a visual fallback with known complete document coverage.");
+        }
+        return this;
+    }
+
     /// <summary>Gets whether the visual fallback is known to cover the complete source rather than a first-page or composite preview.</summary>
     public bool HasCompleteVisualCoverage => VisualPreview?.Coverage == IWorkVisualCoverage.FullDocument;
 
@@ -88,11 +111,11 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
         return this;
     }
 
-    /// <summary>Throws when any typed fidelity diagnostic reports omission, approximation, or failure.</summary>
+    /// <summary>Throws when any typed fidelity diagnostic reports omission, approximation, failure, or unassessed fidelity.</summary>
     public void RequireNoLoss() {
         if (HasLoss) {
             throw new InvalidOperationException(
-                "The iWork conversion contains a typed fidelity diagnostic reporting omission, approximation, or failure.");
+                "The iWork conversion contains a typed fidelity diagnostic reporting omission, approximation, failure, or unassessed fidelity.");
         }
     }
 }

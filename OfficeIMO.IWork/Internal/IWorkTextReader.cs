@@ -12,7 +12,9 @@ internal static class IWorkTextReader {
         IWorkWireMessage message = index.Message(storage);
         bool textComplete = true;
         string text = ReadText(message, projectionBudget, ref textComplete);
-        bool complete = textComplete;
+        bool hasInvalidSourceText = !textComplete;
+        bool hasUnresolvedInlineObjects = text.IndexOf('\ufffc') >= 0 || text.IndexOf('\ufffb') >= 0;
+        bool complete = true;
         IReadOnlyList<AttributeBoundary> paragraphStyles = ReadObjectTable(message, 5, text.Length,
             projectionBudget, ref complete);
         IReadOnlyList<AttributeBoundary> listStyles = ReadObjectTable(message, 7, text.Length,
@@ -51,7 +53,6 @@ internal static class IWorkTextReader {
                 if (end <= start) continue;
                 string runText = NormalizeInlineText(text.Substring(start, end - start),
                     projectionBudget, ref textComplete);
-                if (!textComplete) complete = false;
                 if (runText.Length == 0) continue;
                 projectionBudget.AddTextItem();
                 ulong? characterStyleId = ObjectAt(characterStyles, start, carryMissing: false);
@@ -69,7 +70,8 @@ internal static class IWorkTextReader {
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
                 listLevel, listLabel, paragraph.BreakKind));
         }
-        return new IWorkTextContent(paragraphs, complete, textComplete);
+        return new IWorkTextContent(paragraphs, complete && textComplete, textComplete,
+            hasInvalidSourceText, hasUnresolvedInlineObjects, isFormattingComplete: complete);
     }
 
     /// <summary>Reads table-cell text without traversing formatting references.</summary>

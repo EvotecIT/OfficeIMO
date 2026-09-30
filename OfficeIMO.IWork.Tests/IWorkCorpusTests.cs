@@ -48,12 +48,12 @@ public sealed class IWorkCorpusTests {
         Assert.Equal("hello pages", pages.Paragraphs[0]);
         Assert.Contains(pages.Paragraphs, paragraph => paragraph.Contains(
             "second paragraph with some words", StringComparison.Ordinal));
-        Assert.True(report.TotalRecordCount >= report.UnsupportedRecords.Count);
-        Assert.NotEmpty(report.UnsupportedRecords);
+        Assert.True(report.TotalRecordCount >= report.PreservedRecords.Count);
+        Assert.NotEmpty(report.PreservedRecords);
         Assert.True(report.HasLoss);
         Assert.Contains(report.FidelityDiagnostics, diagnostic =>
-            diagnostic.Code == "IWORK_UNPROJECTED_RECORDS"
-            && diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            diagnostic.Code == "IWORK_RECORD_FIDELITY_UNASSESSED"
+            && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
 
     [Fact]
@@ -427,12 +427,12 @@ public sealed class IWorkCorpusTests {
     [Fact]
     public void Can_disable_unsupported_record_reporting_without_discarding_the_source_records() {
         IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.pages"),
-            new IWorkReadOptions { PreserveUnsupportedRecords = false });
+            new IWorkReadOptions { PreserveSourceRecords = false });
         IWorkConversionReport report = source.ReadPages().CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
 
         Assert.NotEmpty(source.Records);
-        Assert.Empty(report.UnsupportedRecords);
-        Assert.True(report.UnsupportedRecordCount > 0);
+        Assert.Empty(report.PreservedRecords);
+        Assert.True(report.PreservedRecordCount > 0);
         Assert.True(report.HasLoss);
         IWorkArchiveRecord populated = source.Records.First(record => record.PayloadLength > 0);
         byte original = populated.GetPayload()[0];

@@ -2,8 +2,8 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Bounds and preservation preferences applied while reading an iWork source.</summary>
 public sealed class IWorkReadOptions {
-    /// <summary>Gets or sets whether raw records not losslessly represented by a typed projection remain available on the result.</summary>
-    public bool PreserveUnsupportedRecords { get; set; } = true;
+    /// <summary>Gets or sets whether raw source records are included in the conversion report for inspection.</summary>
+    public bool PreserveSourceRecords { get; set; } = true;
 
     /// <summary>Gets or sets the maximum source package size in bytes.</summary>
     public long MaximumPackageBytes { get; set; } = 512L * 1024 * 1024;

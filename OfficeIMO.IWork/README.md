@@ -1,6 +1,6 @@
 # OfficeIMO.IWork - bounded Apple iWork readers for .NET
 
-`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and unsupported-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
+`OfficeIMO.IWork` reads modern Apple Pages, Numbers, and Keynote packages without running iWork or executing embedded content. It owns ZIP, directory-bundle, nested `Index.zip`, Snappy-framed IWA, protobuf-envelope, package-resource, and source-record preservation. Word, Excel, and PowerPoint remain the owners of editable destination documents.
 
 ## Reference from a source checkout
 
@@ -30,7 +30,7 @@ Console.WriteLine(pages.Paragraphs.Count);
 
 IWorkConversionReport report = pages.CreateConversionReport(
     IWorkProjectionKind.EditableReconstruction);
-foreach (IWorkArchiveRecord record in report.UnsupportedRecords) {
+foreach (IWorkArchiveRecord record in report.PreservedRecords) {
     Console.WriteLine($"{record.EntryPath}: {record.MessageType}");
 }
 ```
@@ -72,15 +72,17 @@ This is extended semantic reconstruction rather than plain-text extraction:
 - `IWorkNumbersSheet.Drawables` retains tables and text shapes in their shared source order. The separate `Tables` and `TextBoxes` lists remain available for type-specific access.
 - Keynote recovers slide size, order and names, positioned rich text with explicit inline breaks and source-proven list labels and levels, shape/run and presenter-note hyperlinks, notes, images, rich-text table cells, positioned and rotated tables, and merges for editable PowerPoint projection.
 
-Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in the preserved source records and are reported as conversion loss rather than silently claimed as editable. Keynote measurements finer than PPTX's integral EMU grid stay editable and emit `IWORK_KEYNOTE_PPTX_PRECISION` when they are quantized to the nearest destination unit.
+Advanced charts, vector effects, animations, comments/change tracking, masks/crops, and other application-only structures remain available in source records. Reachable unsupported structures produce conversion diagnostics; preserved records alone do not establish a field-level fidelity assessment. Keynote measurements finer than PPTX's integral EMU grid stay editable and emit `IWORK_KEYNOTE_PPTX_PRECISION` when they are quantized to the nearest destination unit.
 
 `IWorkReadOptions` bounds decoded text characters, text items and attribute boundaries, cross-record style inheritance, projected sheets/slides/tables/images, repeated encoded destination-image bytes, merged ranges, source-wide table catalogs, materialized cells, and ArchiveInfo references in addition to the package/IWA byte limits.
 
-All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
+All conversion modes use the same bounded semantic source read, so package and projection limits are enforced before the destination representation is chosen. `Auto` prefers editable semantic reconstruction. `EditableOnly` fails when supported editable structure cannot be recovered. `VisualOnly` selects the package's raster preview for the destination and reports `VisualFallback`; it does not erase or bypass the semantic `ReadPages`, `ReadNumbers`, or `ReadKeynote` projection. Set `RequireCompleteVisualCoverage = true` to reject fallback assets without known full-document coverage. `AllowPartialEditableReconstruction = true` retains bounded recoverable objects and exposes `IsPartialEditableReconstruction`; source and destination limits still apply.
+
+A preview may cover only the first page or a producer-generated composite, and that coverage is exposed on `IWorkPreviewAsset`. Embedded PDF inspection accepts bounded classic cross-reference tables and rejects unvalidated cross-reference streams.
 
 ## Preservation and authoring boundary
 
-Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports conservatively retain every payload that is not losslessly represented, including records whose supported text or values were only partially consumed. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
+Every package entry and every decoded IWA payload remains available as defensive bytes on `IWorkSourceDocument`. Import reports expose source payloads through `PreservedRecords` when `PreserveSourceRecords` is enabled. `PreservedRecordCount` counts source payloads regardless of that detail setting. `UnassessedRecordCount` includes consumed and auxiliary records whose field-level fidelity has not been assessed; it is not an omission count. `IWORK_RECORD_FIDELITY_UNASSESSED` uses `OfficeConversionLossKind.Unassessed`, so strict no-loss policies reject it without claiming those records are missing content. The destination DOCX, XLSX, or PPTX contains the supported reconstruction or visual fallback; it is not a lossless iWork package rewrite.
 
 There is deliberately no Pages, Numbers, or Keynote writer. OfficeIMO will not expose iWork save-back until an independently produced corpus demonstrates a stable deterministic round-trip contract across supported producer versions.
 

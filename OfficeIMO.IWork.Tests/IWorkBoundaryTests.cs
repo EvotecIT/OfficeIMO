@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
             new[] { warning },
             visualPreview: null,
             totalRecordCount: 0,
-            unsupportedRecordCount: 0,
+            preservedRecordCount: 0,
             reconstructedItemCount: 1);
 
         Assert.True(report.HasLoss);
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
             new[] { warning },
             visualPreview: null,
             totalRecordCount: 0,
-            unsupportedRecordCount: 0,
+            preservedRecordCount: 0,
             reconstructedItemCount: 1);
 
         Assert.Equal(OfficeConversionLossKind.Omission,
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
             Array.Empty<IWorkDiagnostic>(),
             preview,
             totalRecordCount: 0,
-            unsupportedRecordCount: 0,
+            preservedRecordCount: 0,
             reconstructedItemCount: 0);
 
         OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
@@ -161,7 +161,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_LEGACY_CELL_STORAGE");
-        Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6002);
+        Assert.Contains(report.PreservedRecords, record => record.MessageType == 6002);
     }
 
     [Fact]
@@ -178,7 +178,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_MODEL_UNSUPPORTED");
-        Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6000);
+        Assert.Contains(report.PreservedRecords, record => record.MessageType == 6000);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_TABLE_TILE_UNSUPPORTED");
-        Assert.Contains(report.UnsupportedRecords, record => record.MessageType == 6001);
+        Assert.Contains(report.PreservedRecords, record => record.MessageType == 6001);
     }
 
     [Fact]
@@ -209,7 +209,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Empty(result.Projection.Slides);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_SLIDE_MISSING");
-        Assert.Contains(result.Report.UnsupportedRecords, record => record.MessageType == 4);
+        Assert.Contains(result.Report.PreservedRecords, record => record.MessageType == 4);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.Projection.HasEditableContent);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_NOTES_UNSUPPORTED");
-        Assert.Contains(result.Report.UnsupportedRecords, record => record.Identifier == 4);
+        Assert.Contains(result.Report.PreservedRecords, record => record.Identifier == 4);
     }
 
     [Fact]
@@ -641,8 +641,8 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = projection.CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
 
         Assert.Empty(projection.TextBoxes);
-        Assert.Contains(report.UnsupportedRecords, record => record.Identifier == orphanShapeId);
-        Assert.Contains(report.UnsupportedRecords, record => record.Identifier == orphanStorageId);
+        Assert.Contains(report.PreservedRecords, record => record.Identifier == orphanShapeId);
+        Assert.Contains(report.PreservedRecords, record => record.Identifier == orphanStorageId);
     }
 
     [Fact]
@@ -660,7 +660,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.False(result.Projection.HasEditableContent);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
             diagnostic.Code == "IWORK_NUMBERS_SHEET_TYPE_UNSUPPORTED");
-        Assert.Contains(result.Report.UnsupportedRecords, record => record.Identifier == 2);
+        Assert.Contains(result.Report.PreservedRecords, record => record.Identifier == 2);
     }
 
     [Fact]
@@ -678,15 +678,18 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Fact]
-    public void Every_partially_consumed_iwa_record_remains_in_the_loss_report() {
+    public void Source_record_preservation_is_distinct_from_proven_content_omission() {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Reachable", includePreview: false);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
 
         IWorkConversionReport report = source.ReadPages().CreateConversionReport(IWorkProjectionKind.EditableReconstruction);
 
-        Assert.Equal(report.TotalRecordCount, report.UnsupportedRecordCount);
-        Assert.Equal(source.Records.Count, report.UnsupportedRecords.Count);
-        Assert.True(report.HasLoss);
+        Assert.Equal(report.TotalRecordCount, report.PreservedRecordCount);
+        Assert.Equal(source.Records.Count, report.PreservedRecords.Count);
+        Assert.Equal(source.Records.Count, report.UnassessedRecordCount);
+        Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
+        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
     }
 
     [Fact]

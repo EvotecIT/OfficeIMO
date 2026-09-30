@@ -69,6 +69,37 @@ Completion evidence: a visitor can choose a task, find the supported surface, in
 - [ ] Add an opt-in local authoring preview and diagnostics tool for `PdfDocument.Create` and `Compose` with automatic re-execution, page thumbnails, layout-tree navigation, coordinate measurement, overflow and fallback diagnostics, and exact artifact export. Keep layout and rendering behavior in `OfficeIMO.Pdf` and `OfficeIMO.Drawing`; the tool is an observer and host, not another document engine, and it must not execute untrusted document code.
 - [ ] Evaluate an explicit XFA inspection or conversion product only with licensed specification coverage, hostile-input limits, external fixtures, and a fail-closed migration path to AcroForm or static visual output. Do not execute XFA in the core reader.
 
+## Apple iWork
+
+The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the current Pages, Numbers, and Keynote contracts. Keep one bounded read-only source model and opt-in adapters to the existing Word, Excel, and PowerPoint owners. Native iWork writing remains a separate product decision requiring independent multi-version reopen and round-trip evidence.
+
+### I1: conversion safety and fidelity
+
+- [ ] Preserve source-unit counts and object identities in conversion reports, including recovered versus omitted document, sheet, slide, table, text, and image content. Apply complete visual-coverage acceptance in shared document workflows.
+- [ ] Deepen field-level fidelity assessment beyond conservative unassessed source-record accounting. Expose formula/cache completeness and per-object omitted or approximated features with accurate fidelity categories.
+
+### I2: independent Apple qualification
+
+- [ ] Add independently exported Apple PDF and Office references for multi-page Pages documents, multi-table Numbers workbooks, and multi-slide Keynote decks. Record producer version, source/export hashes, font provenance, licensing, expected content, and reference limitations.
+- [ ] Compare saved-and-reopened editable outputs for content, structure, formulas, geometry, and rendered appearance. Keep parser-boundary tests separate from document-level quality evidence; run the iWork contract on macOS as well as Windows and Linux.
+
+### I3: everyday semantic coverage
+
+- [ ] Resolve Pages inline-object anchors and deepen floating tables, wrapping, section layout, and page-layout documents through the existing Word/Drawing owners.
+- [ ] Deepen Numbers cross-table references, per-cell number formats and styles, individual row/column dimensions, and chart interchange through shared Excel/chart owners.
+- [ ] Deepen Keynote backgrounds, master/layout inheritance, grouped shapes, crops/masks, and presenter-note fidelity through shared PowerPoint/Drawing owners. Report unsupported builds and animations explicitly.
+
+### I4: shared consumer integration
+
+- [ ] Expose opt-in iWork routes through shared workflow registration, CLI, and Studio with one conversion policy, limits, loss reports, review preview, and safe output publication contract. Keep source identity and incomplete-coverage decisions visible.
+- [ ] Treat supported iWork directory bundles as documents through explicit Reader package handling rather than recursive folder ingestion. Preserve bundle path and byte limits, physical-root checks, cancellation, and source hashing.
+
+### I5: runtime and Apple host acceptance
+
+- [ ] Expose cancellation through public source and conversion APIs. Establish elapsed, allocation, retained-memory, and cancellation budgets for large packages and repeated conversions; qualify the applicable trimming/AOT and portable-font contracts.
+- [ ] Complete Apple host and artifact evidence through [Studio desktop acceptance and distribution](#phase-5-desktop-acceptance-and-distribution), including Finder activation, native menus, signed sandbox bookmark recovery, permitted helpers, and exact-artifact Developer ID/notarization/Gatekeeper checks. Reuse PowerForge for packaging and release ownership.
+- [ ] Qualify the document engines selected by the [bounded iPad feasibility slice](#phase-7-ipad-then-iphone) on a physical device before expanding mobile support claims.
+
 ## Desktop Studio
 
 The next product target is a dependable desktop document workspace: a person can open a document, understand its limitations, perform a supported task, review the result, and save or recover it without losing work. The [Studio README](../OfficeIMO.Studio/README.md) owns current capabilities; the [distribution guide](../Build/Studio/README.md) owns existing package contracts. The phases below contain remaining work, including validation gaps where implementation already exists.
