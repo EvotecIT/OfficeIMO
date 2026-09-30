@@ -5,7 +5,6 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 using OfficeIMO.Pdf;
 using OfficeIMO.Studio.Features.Editor;
@@ -64,10 +63,6 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public PdfPageCanvas() {
         Focusable = true;
         Cursor = _textCursor;
-        // Repaint after theme resources update the surrounding border and retained native drawing.
-        ActualThemeVariantChanged += (_, _) => Dispatcher.UIThread.Post(() => {
-            if (!_disposed) InvalidateVisual();
-        }, DispatcherPriority.Render);
     }
 
     public PdfPageScene? Scene {
