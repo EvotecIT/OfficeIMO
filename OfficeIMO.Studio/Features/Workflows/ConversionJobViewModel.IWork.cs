@@ -48,10 +48,11 @@ public sealed partial class ConversionJobViewModel {
                 : string.Empty;
             string formulas = facts.TryGetValue("sourceFormulaCellCount", out string? formulaCount) && formulaCount != "0"
                 ? _localizer.FormatOrDefault("Conversion.IWork.FormulaCounts",
-                    "Source formulas: {0} complete · {1} incomplete. Recovered caches: {2} complete · {3} partial · {4} approximate · {5} missing",
+                    "Source formulas: {0} complete · {1} incomplete · {6} unassessed. Recovered caches: {2} complete · {3} partial · {4} approximate · {5} missing · {7} unassessed",
                     facts.GetValueOrDefault("sourceCompleteFormulaExpressionCount") ?? "?", facts.GetValueOrDefault("sourceIncompleteFormulaExpressionCount") ?? "?",
                     facts.GetValueOrDefault("sourceCompleteFormulaCacheCount") ?? "?", facts.GetValueOrDefault("sourcePartialFormulaCacheCount") ?? "?",
-                    facts.GetValueOrDefault("sourceApproximateFormulaCacheCount") ?? "?", facts.GetValueOrDefault("sourceMissingFormulaCacheCount") ?? "?")
+                    facts.GetValueOrDefault("sourceApproximateFormulaCacheCount") ?? "?", facts.GetValueOrDefault("sourceMissingFormulaCacheCount") ?? "?",
+                    facts.GetValueOrDefault("sourceUnassessedFormulaExpressionCount") ?? "?", facts.GetValueOrDefault("sourceUnassessedFormulaCacheCount") ?? "?")
                 : string.Empty;
             return string.Join(Environment.NewLine, new[] { projection, coverage, partial, sourceUnits, formulas, counts }.Where(text => text.Length > 0));
         }

@@ -9,6 +9,7 @@ using OfficeIMO.Studio.Features.Shell;
 using OfficeIMO.Studio.Features.Workflows;
 using OfficeIMO.Studio.Infrastructure.Preferences;
 using OfficeIMO.IWork;
+using OfficeIMO.Workflows;
 
 namespace OfficeIMO.Studio.Tests;
 
@@ -160,6 +161,55 @@ public sealed class StudioIWorkConversionTests {
                 Assert.Empty(window.ViewModel.Pages);
             } finally { window.Close(); }
             return true;
+        }, CancellationToken.None);
+    }
+
+    [Theory]
+    [InlineData(840, 600)]
+    [InlineData(1280, 800)]
+    public async Task Unassessed_formula_evidence_is_visible_in_the_rendered_summary(int width, int height) {
+        using var session = TestAppBuilder.StartSession();
+        await session.Dispatch(async () => {
+            var services = ((App)Application.Current!).Services;
+            services.Preferences.Update(current => current with { Theme = width > 1000 ? StudioThemePreference.Dark : StudioThemePreference.Light });
+            Directory.CreateDirectory(services.Paths.Root);
+            string source = Path.Combine(services.Paths.Root, "unassessed.numbers");
+            File.Copy(Fixture("simple.numbers"), source);
+            using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
+            var queue = model.ConversionWorkbench;
+            queue.AddDroppedPaths([source]);
+            var job = Assert.Single(queue.Jobs);
+            await queue.RunQueueCommand.ExecuteAsync(null);
+            Assert.Equal(ConversionJobState.Completed, job.State);
+            // Supply the retained workflow-fact boundary for a single undecoded declaration.
+            // Core package tests establish this source state; this test exercises its UI consumer.
+            var evidence = job.ConversionEvidence!;
+            var facts = new Dictionary<string, string>(evidence.Facts) {
+                ["sourceFormulaCellCount"] = "1",
+                ["sourceCompleteFormulaExpressionCount"] = "0",
+                ["sourceIncompleteFormulaExpressionCount"] = "0",
+                ["sourceUnassessedFormulaExpressionCount"] = "1",
+                ["sourceCompleteFormulaCacheCount"] = "0",
+                ["sourcePartialFormulaCacheCount"] = "0",
+                ["sourceApproximateFormulaCacheCount"] = "0",
+                ["sourceMissingFormulaCacheCount"] = "0",
+                ["sourceUnassessedFormulaCacheCount"] = "1"
+            };
+            job.ConversionEvidence = new OfficeWorkflowConversionEvidence(evidence, facts);
+            var view = new ConversionWorkbenchView { DataContext = model };
+            var window = new Window { Width = width, Height = height, Content = view };
+            try {
+                window.Show(); window.UpdateLayout();
+                var panel = view.FindControl<StackPanel>("ConversionEvidencePanel")!;
+                panel.BringIntoView(); window.UpdateLayout();
+                Assert.True(panel.IsEffectivelyVisible);
+                string summary = job.ConversionEvidenceSummary;
+                Assert.Contains("Source formulas: 0 complete · 0 incomplete · 1 unassessed", summary);
+                Assert.Contains("Recovered caches: 0 complete · 0 partial · 0 approximate · 0 missing · 1 unassessed", summary);
+                Assert.Contains(panel.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == summary);
+                Capture(window, "apple-unassessed-formulas-" + width);
+                return true;
+            } finally { window.Close(); }
         }, CancellationToken.None);
     }
 
