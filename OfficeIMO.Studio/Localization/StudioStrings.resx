@@ -2345,4 +2345,6 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.Mode.VisualOnly" xml:space="preserve"><value>Embedded visual preview</value></data>
   <data name="Conversion.IWork.SourceUnitCounts" xml:space="preserve"><value>{0} identified source units · {1} reconstructed · {2} omitted · {3} unassessed</value></data>
   <data name="Conversion.IWork.FormulaCounts" xml:space="preserve"><value>Source formulas: {0} complete · {1} incomplete. Recovered caches: {2} complete · {3} partial · {4} approximate · {5} missing</value></data>
+  <data name="Activation.Unsupported" xml:space="preserve"><value>This item cannot be opened here. Select a PDF or a supported conversion file. Native directory packages require a local startup path.</value></data>
+  <data name="Activation.Busy" xml:space="preserve"><value>Wait for the current operation to finish, then open the file again.</value></data>
 </root>

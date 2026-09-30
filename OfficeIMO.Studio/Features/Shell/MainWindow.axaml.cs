@@ -18,8 +18,6 @@ namespace OfficeIMO.Studio.Features.Shell;
 public sealed partial class MainWindow : Window {
     private static readonly DataFormat<string> OrganizerPageFormat =
         DataFormat.CreateInProcessFormat<string>("officeimo-studio-organizer-page");
-    private string? _initialDocumentPath;
-    private bool _initialDocumentOpened;
     private bool _allowClose;
     private bool _closePromptOpen;
     private PointerPressedEventArgs? _organizerDragPress;
@@ -85,7 +83,7 @@ public sealed partial class MainWindow : Window {
         OrganizerList.AddHandler(DragDrop.DropEvent, OnOrganizerDrop);
         Opened += OnOpened;
         Closing += OnClosing;
-        Closed += (_, _) => { _windowClosed = true; _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose(); };
+        Closed += (_, _) => { _windowClosed = true; _startupCompleted.TrySetResult(); _session.Dispose(); TabHost.Dispose(); _services.Storage.Dispose(); };
     }
 
     public StudioDocumentTabHost TabHost { get; }
@@ -406,48 +404,6 @@ public sealed partial class MainWindow : Window {
                focused?.FindAncestorOfType<NumericUpDown>() is not null;
     }
 
-    internal void OpenInitialDocument(string[]? args) {
-        string? candidate = args?.FirstOrDefault(static argument => !string.IsNullOrWhiteSpace(argument));
-        if (candidate is null) return;
-        try {
-            _initialDocumentPath = System.IO.Path.GetFullPath(candidate);
-        } catch (Exception) when (candidate.Length > 0) {
-            _initialDocumentPath = candidate;
-        }
-    }
-
-    /// <summary>True until startup cleanup, session inspection, and any initial document have finished.</summary>
-    internal bool IsStartingUp { get; private set; } = true;
-
-    private async void OnOpened(object? sender, EventArgs e) {
-        try {
-            await CompleteStartupAsync();
-        } finally {
-            IsStartingUp = false;
-        }
-    }
-
-    private async Task CompleteStartupAsync() {
-        ViewModel.SetViewportSize(PagesList.Bounds.Width, PagesList.Bounds.Height);
-        try {
-            var cleanup = await _services.Recovery.CleanupExpiredAsync();
-            if (cleanup.FailedFiles > 0) _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "CleanupIncomplete");
-        } catch (Exception error) when (error is IOException or UnauthorizedAccessException) {
-            _services.Diagnostics.Write(StudioDiagnosticLevel.Warning, "Recovery", "CleanupFailed", error);
-        }
-        if (_windowClosed) return;
-        await _session.InspectAsync();
-        if (_windowClosed) return;
-        if (_initialDocumentOpened || string.IsNullOrWhiteSpace(_initialDocumentPath)) return;
-        _initialDocumentOpened = true;
-        if (!IsPdf(_initialDocumentPath) && IsConvertible(_initialDocumentPath)) {
-            ViewModel.ConversionWorkbench.AddDroppedPaths([_initialDocumentPath]);
-            ViewModel.ShowConversionWorkbenchCommand.Execute(null);
-            return;
-        }
-        await TabHost.OpenDocumentAsync(_initialDocumentPath);
-    }
-
     private async Task<string?> PickFileSafelyAsync(Func<CancellationToken, Task<string?>> picker, CancellationToken token) {
         try { return await picker(token); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { return null; }
@@ -730,71 +686,5 @@ public sealed partial class MainWindow : Window {
         _organizerDragPress = null;
         _organizerDragPage = null;
         _organizerDragStarted = false;
-    }
-
-    private void OnDragOver(object? sender, DragEventArgs e) {
-        if (e.Handled) return;
-        DropPlan plan = PlanDrop(e);
-        e.DragEffects = plan.IsEmpty ? DragDropEffects.None : DragDropEffects.Copy;
-        e.Handled = true;
-        if (plan.HasFiles) ShowDropOverlay(plan);
-    }
-
-    private void OnDragLeave(object? sender, DragEventArgs e) => DropOverlay.IsVisible = false;
-
-    private async void OnDrop(object? sender, DragEventArgs e) {
-        DropOverlay.IsVisible = false;
-        if (e.Handled) return;
-        e.Handled = true;
-        DropPlan plan = PlanDrop(e);
-        if (plan.IsEmpty) return;
-        try {
-            if (plan.Convert.Count > 0) {
-                IReadOnlyList<string> locations = await _services.Storage.RegisterManyAsync(plan.Convert, CancellationToken.None);
-                if (_windowClosed) return;
-                if (ViewModel.ConversionWorkbench.AddDroppedPaths(locations)) ViewModel.ShowConversionWorkbenchCommand.Execute(null);
-            }
-            foreach (IStorageFile file in plan.Open) {
-                string location = await _services.Storage.RegisterAsync(file, CancellationToken.None);
-                if (_windowClosed) return;
-                await TabHost.OpenDocumentAsync(location);
-            }
-        } catch (Exception error) when (error is not OutOfMemoryException) {
-            if (!_windowClosed) ViewModel.ErrorMessage = error.Message;
-        }
-    }
-
-    private sealed record DropPlan(IReadOnlyList<IStorageFile> Open, IReadOnlyList<IStorageFile> Convert, bool HasFiles) {
-        public bool IsEmpty => Open.Count == 0 && Convert.Count == 0;
-    }
-
-    // PDFs open in tabs; other supported inputs go to the conversion queue. In the conversion
-    // workbench every dropped file joins the queue so PDFs can be converted too.
-    private DropPlan PlanDrop(DragEventArgs e) {
-        IStorageFile[] files = e.DataTransfer.TryGetFiles()?.OfType<IStorageFile>().ToArray() ?? [];
-        if (files.Length == 0) return new([], [], false);
-        if (!ViewModel.CanStartDocumentTransition) return new([], [], true);
-        bool canQueue = ViewModel.ConversionWorkbench.CanEditQueue;
-        if (ViewModel.IsConversionMode) return new([], canQueue ? files : [], true);
-        IStorageFile[] pdfs = files.Where(file => IsPdf(file.Name)).ToArray();
-        IStorageFile[] others = canQueue ? files.Where(file => !IsPdf(file.Name) && IsConvertible(file.Name)).ToArray() : [];
-        return new(pdfs, others, true);
-    }
-
-    private static bool IsPdf(string name) => string.Equals(System.IO.Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase);
-
-    private bool IsConvertible(string name) => ViewModel.ConversionWorkbench.Routes.Any(route =>
-        route.Route.SourceExtensions.Any(extension => string.Equals("." + extension.TrimStart('.'),
-            System.IO.Path.GetExtension(name), StringComparison.OrdinalIgnoreCase)));
-
-    private void ShowDropOverlay(DropPlan plan) {
-        var text = _services.Localizer;
-        (DropOverlayTitle.Text, DropOverlayDetail.Text) = plan switch {
-            { IsEmpty: true } => (text.Get("Drop.Unsupported"), text.Get("Drop.UnsupportedDetail")),
-            { Convert.Count: 0 } => (text.Format("Drop.OpenPdfs", plan.Open.Count), text.Get("Drop.OpenDetail")),
-            { Open.Count: 0 } => (text.Format("Drop.ConvertFiles", plan.Convert.Count), text.Get("Drop.ConvertDetail")),
-            _ => (text.Format("Drop.OpenAndConvert", plan.Open.Count, plan.Convert.Count), text.Get("Drop.MixedDetail"))
-        };
-        DropOverlay.IsVisible = true;
     }
 }
