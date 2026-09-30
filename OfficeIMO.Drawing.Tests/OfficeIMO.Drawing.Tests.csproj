@@ -35,6 +35,7 @@
     <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
+    <None Update="TestAssets\Avif\*.avif" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\Documents\Html\Qualification\StaticPdfGaps\*.avif" Link="TestAssets\Avif\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\OfficeIMO.TestAssets\ManagedTextShapingTestAssets.cs" Link="ManagedTextShapingTestAssets.cs" />

@@ -75,7 +75,7 @@ internal static class OfficeAv1StillSequenceReader {
 
     private static OfficeAv1StillSequence ReadSequence(byte[] bytes, int offset, int length,
         OfficeAvifImageItem item, OfficeRasterDecodeOptions options) {
-        var bits = new Bits(bytes, offset, length);
+        var bits = new OfficeAv1Bits(bytes, offset, length, options.CancellationToken);
         Require(bits.Read(3) == 0 && bits.Flag() && bits.Flag()); // Main, still picture, reduced header.
         var result = new OfficeAv1StillSequence { Level = bits.Read(5) };
         result.WidthBits = bits.Read(4) + 1;
@@ -121,27 +121,4 @@ internal static class OfficeAv1StillSequenceReader {
         if (!condition) throw new FormatException("Invalid or unsupported AV1 still sequence.");
     }
 
-    /// <summary>Most-significant-bit-first header cursor bounded to one OBU, never to the surrounding item.</summary>
-    private sealed class Bits {
-        private readonly byte[] _bytes;
-        private readonly int _start;
-        private readonly int _length;
-        private int _position;
-        internal Bits(byte[] bytes, int start, int length) { _bytes = bytes; _start = start; _length = checked(length * 8); }
-        internal int Read(int count) {
-            Require(count >= 0 && count <= 16 && _position <= _length - count);
-            int value = 0;
-            for (int i = 0; i < count; i++) {
-                value = value << 1 | ((_bytes[_start + (_position >> 3)] >> (7 - (_position & 7))) & 1);
-                _position++;
-            }
-            return value;
-        }
-        internal bool Flag() => Read(1) != 0;
-        internal void TrailingBits() {
-            Require(_length - _position <= 8); // Reduced header uses alignment bits, not an unbounded zero-padding scan.
-            Require(Flag());
-            while (_position < _length) Require(Read(1) == 0);
-        }
-    }
 }
