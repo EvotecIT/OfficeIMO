@@ -146,82 +146,6 @@ public static partial class PowerPointIWorkConverter {
         return ((slideWidth - width) / 2d, (slideHeight - height) / 2d, width, height);
     }
 
-    private static void AddEditableTable(PowerPointSlide slide, IWorkTable source,
-        CancellationToken cancellationToken) {
-        if (source.RowCount == 0 || source.ColumnCount == 0) return;
-        double left = source.Geometry?.LeftPoints ?? 72d;
-        double top = source.Geometry?.TopPoints ?? 72d;
-        double? columnWidth = source.DefaultColumnWidth is > 0
-            ? QuantizePositiveEmuPoints(source.DefaultColumnWidth.Value)
-            : null;
-        double? rowHeight = source.DefaultRowHeight is > 0
-            ? QuantizePositiveEmuPoints(source.DefaultRowHeight.Value)
-            : null;
-        double width = QuantizePositiveEmuPoints(source.Geometry is { WidthPoints: > 0 }
-            ? source.Geometry.WidthPoints
-            : columnWidth.HasValue
-                ? columnWidth.Value * source.ColumnCount
-                : Math.Max(144d, 72d * source.ColumnCount));
-        double height = QuantizePositiveEmuPoints(source.Geometry is { HeightPoints: > 0 }
-            ? source.Geometry.HeightPoints
-            : rowHeight.HasValue
-                ? rowHeight.Value * source.RowCount
-                : Math.Max(36d, 24d * source.RowCount));
-        PowerPointTable table = slide.AddTablePoints(source.RowCount, source.ColumnCount,
-            left, top, width, height);
-        table.AltText = source.AccessibilityDescription;
-        table.Rotation = source.Geometry?.RotationDegrees ?? 0d;
-        table.FirstRow = source.HeaderRowCount > 0;
-        table.FirstColumn = source.HeaderColumnCount > 0;
-        table.LastRow = source.FooterRowCount > 0;
-        foreach (IWorkTableCell sourceCell in source.Cells) {
-            cancellationToken.ThrowIfCancellationRequested();
-            PowerPointTableCell target = table.GetCell(sourceCell.Row - 1, sourceCell.Column - 1);
-            if (sourceCell.RichText is { Paragraphs.Count: > 0 } richText) {
-                IReadOnlyList<PowerPointParagraph> paragraphs = target.SetParagraphs(
-                    richText.Paragraphs.Select(_ => string.Empty));
-                var listState = new IWorkPowerPointListState();
-                for (int index = 0; index < paragraphs.Count; index++) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    IWorkTextParagraph sourceParagraph = richText.Paragraphs[index];
-                    ApplyParagraphStyle(paragraphs[index], sourceParagraph,
-                        listState.StartsAtSourceLabel(sourceParagraph));
-                    WriteParagraphContent(paragraphs[index], sourceParagraph, cancellationToken);
-                }
-                if (sourceCell.Row <= source.HeaderRowCount
-                    || sourceCell.Column <= source.HeaderColumnCount
-                    || sourceCell.Row > source.RowCount - source.FooterRowCount) {
-                    foreach (PowerPointParagraph paragraph in paragraphs) {
-                        foreach (PowerPointTextRun run in paragraph.Runs) run.Bold = true;
-                    }
-                }
-            } else {
-                target.Text = sourceCell.Kind == IWorkCellKind.Formula && sourceCell.Value != null
-                    ? sourceCell.CachedDisplayText
-                    : sourceCell.DisplayText;
-            }
-            if (sourceCell.Row <= source.HeaderRowCount || sourceCell.Column <= source.HeaderColumnCount
-                || sourceCell.Row > source.RowCount - source.FooterRowCount) target.Bold = true;
-        }
-        foreach (IWorkTableMergeRange merge in source.MergedRanges) {
-            cancellationToken.ThrowIfCancellationRequested();
-            table.MergeCells(merge.FirstRow - 1, merge.FirstColumn - 1,
-                merge.LastRow - 1, merge.LastColumn - 1);
-        }
-        if (columnWidth.HasValue && source.Geometry is not { WidthPoints: > 0 }) {
-            for (int column = 0; column < source.ColumnCount; column++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                table.SetColumnWidthPoints(column, columnWidth.Value);
-            }
-        }
-        if (rowHeight.HasValue && source.Geometry is not { HeightPoints: > 0 }) {
-            for (int row = 0; row < source.RowCount; row++) {
-                cancellationToken.ThrowIfCancellationRequested();
-                table.SetRowHeightPoints(row, rowHeight.Value);
-            }
-        }
-    }
-
     private static void AddEditableImage(PowerPointSlide slide, IWorkImageAsset source,
         double canvasWidth, double canvasHeight) {
         if (source.MediaType is not "image/png" and not "image/jpeg") return;
@@ -373,16 +297,18 @@ public static partial class PowerPointIWorkConverter {
                     return $"Keynote table '{table.Name}' contains content in a covered merged cell that the PPTX owner cannot preserve.";
                 }
                 destinationTableCells += tableCells;
-                double fallbackWidth = table.DefaultColumnWidth is > 0
-                    ? table.DefaultColumnWidth.Value * table.ColumnCount
-                    : Math.Max(144d, 72d * table.ColumnCount);
-                double fallbackHeight = table.DefaultRowHeight is > 0
-                    ? table.DefaultRowHeight.Value * table.RowCount
-                    : Math.Max(36d, 24d * table.RowCount);
+                double fallbackWidth = TableAxisExtent(table.ColumnCount, table.ColumnWidths,
+                    table.DefaultColumnWidth, null, Math.Max(144d, 72d * table.ColumnCount));
+                double fallbackHeight = TableAxisExtent(table.RowCount, table.RowHeights,
+                    table.DefaultRowHeight, null, Math.Max(36d, 24d * table.RowCount));
                 double projectedWidth = table.Geometry?.WidthPoints ?? fallbackWidth;
                 double projectedHeight = table.Geometry?.HeightPoints ?? fallbackHeight;
                 if (!FitsPositiveMeasurement(projectedWidth, MaximumPointMeasurement)
-                    || !FitsPositiveMeasurement(projectedHeight, MaximumPointMeasurement)) {
+                    || !FitsPositiveMeasurement(projectedHeight, MaximumPointMeasurement)
+                    || table.ColumnWidths.Count > 0 && !FitsPositiveMeasurement(
+                        AxisSourceTotal(table.ColumnCount, table.ColumnWidths, table.DefaultColumnWidth, projectedWidth), double.MaxValue)
+                    || table.RowHeights.Count > 0 && !FitsPositiveMeasurement(
+                        AxisSourceTotal(table.RowCount, table.RowHeights, table.DefaultRowHeight, projectedHeight), double.MaxValue)) {
                     return $"Keynote table '{table.Name}' has sizing outside the PPTX measurement range.";
                 }
                 if (table.Geometry is { } geometry
@@ -422,20 +348,31 @@ public static partial class PowerPointIWorkConverter {
                     || !IsExactEmu(geometry.HeightPoints))
             || projection.Slides.SelectMany(slide => slide.Tables)
                 .Any(table => TableSizingRequiresEmuRounding(table));
-        if (!requiresEmuRounding) return Array.Empty<IWorkDiagnostic>();
-        return new[] {
+        var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(slide => slide.Tables).Any(table =>
+            AxisSizingIsScaled(table.ColumnCount, table.ColumnWidths, table.DefaultColumnWidth, table.Geometry?.WidthPoints)
+            || AxisSizingIsScaled(table.RowCount, table.RowHeights, table.DefaultRowHeight, table.Geometry?.HeightPoints))) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                "IWORK_KEYNOTE_TABLE_SIZING_SCALED",
+                "Individual Keynote table sizes were scaled proportionally to preserve the drawable extent.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation));
+        }
+        if (requiresEmuRounding) diagnostics.AddRange(new[] {
             new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_PPTX_PRECISION",
                 "Keynote point measurements were quantized to the nearest PPTX EMU; the bounded source geometry remains available on the load result.")
-        };
+        });
+        return diagnostics;
     }
 
     private static bool TableSizingRequiresEmuRounding(IWorkTable table) {
         if (table.RowCount <= 0 || table.ColumnCount <= 0) return false;
-        return table.Geometry is not { WidthPoints: > 0 }
-                && table.DefaultColumnWidth is > 0 && !IsExactEmu(table.DefaultColumnWidth.Value)
-            || table.Geometry is not { HeightPoints: > 0 }
-                && table.DefaultRowHeight is > 0 && !IsExactEmu(table.DefaultRowHeight.Value);
+        return AxisSizingRequiresEmuRounding(table.ColumnCount, table.ColumnWidths,
+                table.DefaultColumnWidth, table.Geometry?.WidthPoints,
+                Math.Max(144d, 72d * table.ColumnCount))
+            || AxisSizingRequiresEmuRounding(table.RowCount, table.RowHeights,
+                table.DefaultRowHeight, table.Geometry?.HeightPoints,
+                Math.Max(36d, 24d * table.RowCount));
     }
 
     private static bool IsExactEmu(double points) {

@@ -21,6 +21,8 @@ result.Value.Save("converted.xlsx");
 
 `IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToExcelDocument` returns the converted workbook directly; `ToExcelDocumentResult` also exposes the typed Numbers projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result. `ExcelIWorkConverter.ConvertNumbersToExcel*` provides equivalent path and stream convenience entry points.
 
+Individual row heights and column widths are carried into XLSX. Heights remain in points; widths use Excel character units. Out-of-range dimensions are rejected before destination creation.
+
 Choose the acceptance policy explicitly when source details cannot be represented:
 
 ```csharp

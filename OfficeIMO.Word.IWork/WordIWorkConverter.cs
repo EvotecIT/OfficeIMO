@@ -289,17 +289,18 @@ public static partial class WordIWorkConverter {
             ? document.AddTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid)
             : document.CreateTable(source.RowCount, source.ColumnCount, WordTableStyle.TableGrid);
         table.Description = source.AccessibilityDescription;
-        if (source.DefaultColumnWidth is > 0) {
-            int width = ToSignedTwips(source.DefaultColumnWidth.Value);
+        if (source.DefaultColumnWidth is > 0 || source.ColumnWidths.Count > 0) {
+            List<int> widths = table.ColumnWidth;
             table.ColumnWidthType = WordTableWidthUnit.Dxa;
-            table.ColumnWidth = Enumerable.Repeat(width, source.ColumnCount).ToList();
-        }
-        if (source.DefaultRowHeight is > 0) {
-            int height = ToSignedTwips(source.DefaultRowHeight.Value);
-            foreach (WordTableRow row in table.Rows) {
+            for (int column = 1; column <= source.ColumnCount; column++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                row.Height = height;
+                if (source.GetColumnWidth(column) is double width) widths[column - 1] = ToSignedTwips(width);
             }
+            table.ColumnWidth = widths;
+        }
+        for (int row = 1; row <= source.RowCount; row++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (source.GetRowHeight(row) is double height) table.Rows[row - 1].Height = ToSignedTwips(height);
         }
         foreach (IWorkTableCell sourceCell in source.Cells) {
             cancellationToken.ThrowIfCancellationRequested();

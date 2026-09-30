@@ -85,7 +85,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 ### I3: everyday semantic coverage
 
 - [ ] Resolve Pages inline-object anchors and deepen floating tables, wrapping, section layout, and page-layout documents through the existing Word/Drawing owners.
-- [ ] Deepen Numbers cross-table references, per-cell number formats and styles, individual row/column dimensions, and chart interchange through shared Excel/chart owners.
+- [ ] Deepen Numbers cross-table references, per-cell number formats and styles, hidden row/column state, automatic row sizing, and chart interchange through shared Excel/chart owners.
 - [ ] Deepen Keynote backgrounds, master/layout inheritance, grouped shapes, crops/masks, and presenter-note fidelity through shared PowerPoint/Drawing owners. Report unsupported builds and animations explicitly.
 
 ### I4: shared consumer integration

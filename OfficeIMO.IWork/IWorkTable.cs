@@ -91,7 +91,9 @@ public sealed class IWorkTable {
         int footerRowCount = 0, double? defaultRowHeight = null, double? defaultColumnWidth = null,
         IReadOnlyList<IWorkTableMergeRange>? mergedRanges = null, IWorkGeometry? geometry = null,
         string? accessibilityDescription = null, IWorkObjectIdentity? sourceIdentity = null,
-        IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null) {
+        IReadOnlyList<IWorkObjectIdentity>? omittedTextUnits = null,
+        IReadOnlyDictionary<int, double>? rowHeights = null,
+        IReadOnlyDictionary<int, double>? columnWidths = null) {
         Name = name;
         RowCount = rowCount;
         ColumnCount = columnCount;
@@ -100,6 +102,8 @@ public sealed class IWorkTable {
         FooterRowCount = footerRowCount;
         DefaultRowHeight = defaultRowHeight;
         DefaultColumnWidth = defaultColumnWidth;
+        RowHeights = CopyDimensions(rowHeights);
+        ColumnWidths = CopyDimensions(columnWidths);
         MergedRanges = Array.AsReadOnly((mergedRanges ?? Array.Empty<IWorkTableMergeRange>()).ToArray());
         Geometry = geometry;
         AccessibilityDescription = accessibilityDescription;
@@ -129,6 +133,23 @@ public sealed class IWorkTable {
     public double? DefaultRowHeight { get; }
     /// <summary>Gets the default column width in source points.</summary>
     public double? DefaultColumnWidth { get; }
+    /// <summary>Gets explicit row heights in points, keyed by one-based row position. Zero-size native entries use the default and are omitted.</summary>
+    public IReadOnlyDictionary<int, double> RowHeights { get; }
+    /// <summary>Gets explicit column widths in points, keyed by one-based column position. Zero-size native entries use the default and are omitted.</summary>
+    public IReadOnlyDictionary<int, double> ColumnWidths { get; }
+
+    /// <summary>Gets the explicit height or default height of a one-based row, when known.</summary>
+    public double? GetRowHeight(int row) {
+        if (row < 1 || row > RowCount) throw new ArgumentOutOfRangeException(nameof(row));
+        return RowHeights.TryGetValue(row, out double height) ? height : DefaultRowHeight;
+    }
+
+    /// <summary>Gets the explicit width or default width of a one-based column, when known.</summary>
+    public double? GetColumnWidth(int column) {
+        if (column < 1 || column > ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
+        return ColumnWidths.TryGetValue(column, out double width) ? width : DefaultColumnWidth;
+    }
+
     /// <summary>Gets merged ranges in source order.</summary>
     public IReadOnlyList<IWorkTableMergeRange> MergedRanges { get; }
     /// <summary>Gets the table drawable geometry when present.</summary>
@@ -148,6 +169,12 @@ public sealed class IWorkTable {
     internal bool HasPopulatedCoveredMergeCells() {
         return Internal.IWorkMergeRangeValidator.HasOverlapsOrCoveredCells(
             MergedRanges, Cells, ColumnCount);
+    }
+
+    private static IReadOnlyDictionary<int, double> CopyDimensions(IReadOnlyDictionary<int, double>? source) {
+        var copy = new Dictionary<int, double>();
+        if (source != null) foreach (var pair in source) copy.Add(pair.Key, pair.Value);
+        return new System.Collections.ObjectModel.ReadOnlyDictionary<int, double>(copy);
     }
 
     private static long Key(int row, int column) => ((long)row << 32) | (uint)column;

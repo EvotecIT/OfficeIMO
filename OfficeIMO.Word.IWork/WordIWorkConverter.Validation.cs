@@ -90,8 +90,10 @@ public static partial class WordIWorkConverter {
                 return $"Pages table '{table.Name}' contains formula cached text with incomplete formatting that the DOCX owner cannot preserve.";
             }
             if (!FitsSignedTwips(table.DefaultRowHeight, allowPartialEditableReconstruction)
-                || !FitsSignedTwips(table.DefaultColumnWidth, allowPartialEditableReconstruction)) {
-                return $"Pages table '{table.Name}' has default sizing outside the DOCX measurement range.";
+                || !FitsSignedTwips(table.DefaultColumnWidth, allowPartialEditableReconstruction)
+                || table.RowHeights.Values.Any(height => !FitsSignedTwips(height, allowPartialEditableReconstruction))
+                || table.ColumnWidths.Values.Any(width => !FitsSignedTwips(width, allowPartialEditableReconstruction))) {
+                return $"Pages table '{table.Name}' has sizing outside the DOCX measurement range.";
             }
             if (!allowPartialEditableReconstruction && table.Geometry is { } geometry
                 && (Math.Abs(geometry.LeftPoints) > 0.000001d
@@ -174,6 +176,8 @@ public static partial class WordIWorkConverter {
         foreach (IWorkTable table in projection.Tables) {
             yield return table.DefaultRowHeight;
             yield return table.DefaultColumnWidth;
+            foreach (double height in table.RowHeights.Values) yield return height;
+            foreach (double width in table.ColumnWidths.Values) yield return width;
         }
         foreach (IWorkTextParagraph paragraph in AllPagesText(projection).SelectMany(content => content.Paragraphs)) {
             IWorkParagraphStyle style = paragraph.Style;

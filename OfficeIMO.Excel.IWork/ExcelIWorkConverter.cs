@@ -184,6 +184,14 @@ public static partial class ExcelIWorkConverter {
                             double width = PointsToExcelColumnWidth(table.DefaultColumnWidth.Value);
                             sheet.SetDefaultColumnWidthExact(width);
                         }
+                        foreach (var row in table.RowHeights) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            sheet.SetRowHeightExact(row.Key, row.Value);
+                        }
+                        foreach (var column in table.ColumnWidths) {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            sheet.SetColumnWidth(column.Key, PointsToExcelColumnWidth(column.Value));
+                        }
                     }
                 }
             } else {
@@ -329,6 +337,13 @@ public static partial class ExcelIWorkConverter {
                         || Math.Round(destinationWidth, 2) <= 0d) {
                         return $"Numbers table '{table.Name}' has a default column width outside the XLSX-supported range.";
                     }
+                }
+                if (table.RowHeights.Values.Any(height => !IsFinite(height) || height <= 0d || height > 409d)
+                    || table.ColumnWidths.Values.Any(width => !IsFinite(width)
+                        || !IsFinite(PointsToExcelColumnWidth(width))
+                        || PointsToExcelColumnWidth(width) > 255d
+                        || Math.Round(PointsToExcelColumnWidth(width), 2) <= 0d)) {
+                    return $"Numbers table '{table.Name}' has individual row or column sizing outside the XLSX-supported range.";
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
                     if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null

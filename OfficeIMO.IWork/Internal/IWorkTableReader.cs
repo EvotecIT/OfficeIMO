@@ -7,7 +7,7 @@ internal static partial class IWorkTableReader {
     private const uint TableModelArchive = 6001;
     private const uint TableTileArchive = 6002;
     private const int TileRowStride = 256;
-    private const int MaximumTileMetadataFields = 6;
+    private const int MaximumTileMetadataFields = 7;
     private const uint RecognizedCellValueMask = (1u << 21) - 1;
 
     internal static IWorkTable? Read(IWorkSourceDocument source, IWorkArchiveRecord tableRecord,
@@ -168,6 +168,8 @@ internal static partial class IWorkTableReader {
         IReadOnlyList<IWorkTableMergeRange> mergedRanges = ReadMergedRanges(message, rows, columns,
             source.Options.MaximumTableMergedRanges, source.Options.MaximumFormulaNodes,
             model, diagnostics, ref supportsEditableReconstruction);
+        var rowHeights = new Dictionary<int, double>();
+        var columnWidths = new Dictionary<int, double>();
         var cells = new List<IWorkTableCell>();
         var omittedTextUnits = new List<IWorkObjectIdentity>();
         var coordinates = new HashSet<long>();
@@ -178,6 +180,9 @@ internal static partial class IWorkTableReader {
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return CreateTable();
         }
+
+        ReadHeaderDimensions(source, store, model, rows, columns, projectionBudget,
+            rowHeights, columnWidths, diagnostics, ref supportsEditableReconstruction);
 
         IReadOnlyDictionary<uint, string> strings = ReadStrings(index, store,
             projectionBudget, source.Options, projectionBudget.RemainingTableCatalogEntries,
@@ -297,8 +302,17 @@ internal static partial class IWorkTableReader {
                     tile.EntryPath, tile.Identifier));
                 continue;
             }
+            IWorkWireMessage tileMessage = index.Message(tile);
+            if (HasUnsupportedTileMetadata(tileMessage, totalTileFieldCount - declaredRowsInTile)) {
+                supportsEditableReconstruction = false;
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+                    "IWORK_TABLE_TILE_FIELDS_UNSUPPORTED",
+                    "An iWork table tile contains duplicate, unknown, or malformed metadata fields; editable reconstruction is incomplete.",
+                    tile.EntryPath, tile.Identifier));
+                continue;
+            }
             IReadOnlyList<IWorkWireMessage> rowsInTile = IWorkObjectIndex.TryGetMessages(
-                index.Message(tile), 5, out bool malformedRows);
+                tileMessage, 5, out bool malformedRows);
             if (malformedRows) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -491,7 +505,7 @@ internal static partial class IWorkTableReader {
 
         IWorkTable CreateTable() => new(name, rows, columns, cells,
             headerRows, headerColumns, footerRows, defaultRowHeight, defaultColumnWidth,
-            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits);
+            mergedRanges, geometry, accessibilityDescription, sourceIdentity, omittedTextUnits, rowHeights, columnWidths);
     }
 
     private static void MarkDuplicateTile(IWorkArchiveRecord model,

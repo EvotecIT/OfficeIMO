@@ -3,6 +3,16 @@ using System.Globalization;
 namespace OfficeIMO.IWork.Internal;
 
 internal static partial class IWorkTableReader {
+    private static bool HasUnsupportedTileMetadata(IWorkWireMessage message, int metadataFieldCount) {
+        int recognized = 0;
+        foreach (int field in new[] { 1, 2, 3, 4, 6, 7, 8 }) {
+            int count = message.FieldCount(field);
+            if (count > 1 || message.HasUnexpectedWireKind(field, IWorkWireKind.Varint)) return true;
+            recognized += count;
+        }
+        return recognized != metadataFieldCount || message.GetUnsigned(7) > 1 || message.GetUnsigned(8) > 1;
+    }
+
     private static bool HasUnsupportedTableScalarEncoding(IWorkWireMessage message) =>
         new[] { 6, 7, 9, 10, 11, 16, 17 }.Any(field => message.FieldCount(field) > 1)
         || message.HasUnexpectedWireKind(6, IWorkWireKind.Varint)
