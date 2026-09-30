@@ -29,6 +29,12 @@ jobs:
           $PSNativeCommandUseErrorActionPreference = $true
           New-Item -ItemType Directory -Path artifacts/pdf-performance -Force | Out-Null
           dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj --configuration Release --framework net8.0 -- --verify-budgets | Tee-Object artifacts/pdf-performance/budgets.txt
+      - name: Verify PDF resource measurements
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework net8.0 -p:PdfPerformanceEvidence=true --filter 'Category=Performance' --logger trx --results-directory artifacts/pdf-performance/tests
       - uses: actions/upload-artifact@v7
         if: always()
         with:
