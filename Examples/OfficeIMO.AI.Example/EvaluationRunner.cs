@@ -36,27 +36,15 @@ internal static class EvaluationRunner {
                     catch (InvalidOperationException) { }
                 }, null, 0, 100);
                 var recorded = new RecordingExecutor(executor);
-                OfficeAiResult? result = null;
-                string? failure = null;
-                EvaluationScore? score = null;
-                bool accepted = false;
-                try {
-                    OfficeAiDocument document = await DocumentInputs.ReadAsync(item.Source, sourcePath, item.Images, request.Pages, request.Limits, operation.Token);
-                    result = await new OfficeAiEngine(recorded).RunAsync(document, request, cancellationToken: operation.Token);
-                    await ArtifactWriter.SaveAsync(directory, document, result, operation.Token);
-                    score = item.Gold.Score(result);
-                    accepted = result.Status != OfficeAiResultStatus.InvalidResponse && score.ContractPassed;
-                } catch (OperationCanceledException) when (!deadline.IsCancellationRequested) { failure = "case-timeout"; }
-                  catch (OperationCanceledException) { throw; }
-                  catch (Exception error) when (error is not OutOfMemoryException) {
-                    failure = error.GetType().Name;
-                }
+                var attempt = await EvaluationCaseRunner.ExecuteAsync(item, request, recorded, sourcePath, directory, operation.Token, deadline.Token);
+                var result = attempt.Result;
+                var failure = attempt.Failure;
+                var score = attempt.Score;
+                bool accepted = attempt.ContractPassed;
                 await sampler.DisposeAsync();
                 await File.WriteAllTextAsync(Path.Combine(directory, "provider-responses.json"), JsonSerializer.Serialize(recorded.Responses), deadline.Token);
                 if (accepted) contractPassed++;
-                if (result is not null) annotations.Add(new(item.Id, repetition,
-                    Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(directory, "report.json"), deadline.Token))).ToLowerInvariant(),
-                    null, null, null, null));
+                if (attempt.ReportSha256 is not null) annotations.Add(new(item.Id, repetition, attempt.ReportSha256, null, null, null, null));
                 rows.Add(new {
                     item.Id, item.Split, repetition, item.Expected, sourceFile = Path.GetFileName(sourcePath), gold = item.Gold, score, contractPassed = accepted, semanticAssessment = "pending-independent-review",
                     status = result?.Status.ToString(), failure,

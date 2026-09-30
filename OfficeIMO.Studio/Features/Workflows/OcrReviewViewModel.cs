@@ -166,8 +166,13 @@ public sealed partial class OcrReviewViewModel : ObservableObject, IDisposable {
         int current = Array.FindIndex(uncertain, item => ReferenceEquals(item.Word, SelectedWord?.Evidence.Word));
         var next = uncertain[(current + 1) % uncertain.Length];
         SelectedPage = Pages.Single(page => page.Number == next.PageNumber);
-        await PreviewTask;
-        if (!_disposed) SelectedWord = Words.Single(word => ReferenceEquals(word.Evidence.Word, next.Word));
+        Task preview = PreviewTask;
+        var selection = SelectedWord;
+        await preview;
+        if (_disposed || !ReferenceEquals(PreviewTask, preview) || SelectedPage?.Number != next.PageNumber
+            || !ReferenceEquals(SelectedWord, selection)) return;
+        var word = Words.FirstOrDefault(item => ReferenceEquals(item.Evidence.Word, next.Word));
+        if (word is not null) SelectedWord = word;
     }
 
     [RelayCommand]

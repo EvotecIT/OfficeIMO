@@ -71,7 +71,20 @@ public sealed class StudioOcrReviewTests {
                 review.SelectedPage = review.Pages[0];
                 await review.PreviewTask;
                 Assert.False(review.Words.Single(word => word.Text == "Excluded after review").IsIncluded);
-                review.SelectedWord = review.Words.Single(word => word.Text == "Selected searchable text");
+                review.SelectedPage = review.Pages[1];
+                await review.PreviewTask;
+                var uncertainNavigation = review.NextUncertainCommand.ExecuteAsync(null);
+                review.SelectedPage = review.Pages[1]; // Supersede the command's page-1 preview before it resumes.
+                await review.PreviewTask;
+                await uncertainNavigation;
+                Assert.Equal(2, review.SelectedPage!.Number);
+                review.SelectedPage = review.Pages[0];
+                var selectionNavigation = review.NextUncertainCommand.ExecuteAsync(null);
+                var selectedByUser = review.Words.Single(word => word.Text == "Selected searchable text");
+                review.SelectedWord = selectedByUser;
+                await review.PreviewTask;
+                await selectionNavigation;
+                Assert.Same(selectedByUser, review.SelectedWord);
                 Assert.Equal("Corrected searchable text", review.SelectedWord!.ReviewedText);
                 window.UpdateLayout();
                 using (var frame = window.CaptureRenderedFrame()) {
