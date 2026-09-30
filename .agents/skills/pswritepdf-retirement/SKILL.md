@@ -9,8 +9,8 @@ Use this skill for PSWritePDF retirement and PSWriteOffice PDF surface work.
 
 ## Golden Path
 
-1. Read the current retirement gap analysis first:
-   `Roadmap/PSWritePDF-RetirementGapAnalysis.md`
+1. Read `Docs/ROADMAP.md`, `OfficeIMO.Pdf/README.md`, and
+   `Docs/officeimo.pdf.current-state.md` for open work and current PDF contracts.
 2. Inventory the OfficeIMO reusable capability before adding PowerShell code.
 3. Put PDF generation, parsing, metadata, conversion, and rendering behavior in OfficeIMO or the shared PDF engine.
 4. Keep PSWriteOffice as a friendly command surface.
