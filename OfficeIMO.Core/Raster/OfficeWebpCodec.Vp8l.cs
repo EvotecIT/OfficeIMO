@@ -141,8 +141,13 @@ public static partial class OfficeWebpCodec {
         cancellationToken.ThrowIfCancellationRequested();
         uint[] cache = cacheSize == 0 ? Array.Empty<uint>() : new uint[cacheSize];
         int position = 0;
+        int nextCancellationCheck = 0;
         while (position < pixelCount) {
-            if ((position & 4095) == 0) cancellationToken.ThrowIfCancellationRequested();
+            // Backreferences advance by several pixels and can skip exact multiples.
+            if (position >= nextCancellationCheck) {
+                cancellationToken.ThrowIfCancellationRequested();
+                nextCancellationCheck = position + 4096;
+            }
             int x = position % width;
             int y = position / width;
             int groupIndex = prefixImage == null ? 0 :
