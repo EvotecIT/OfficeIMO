@@ -1,0 +1,5 @@
+[
+  { "title": "Create and edit Word documents", "url": "/docs/word/", "kind": "guide", "targets": ["OfficeIMO.Word.WordDocument", "OfficeIMO.Word.WordSection"] },
+  { "title": "Paragraphs and formatting", "url": "/docs/word/paragraphs/", "kind": "guide", "targets": ["OfficeIMO.Word.WordParagraph"] },
+  { "title": "Build Word tables", "url": "/docs/word/tables/", "kind": "guide", "targets": ["OfficeIMO.Word.WordTable"] }
+]
