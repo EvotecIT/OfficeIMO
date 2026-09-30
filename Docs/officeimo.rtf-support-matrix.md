@@ -1,6 +1,6 @@
 # OfficeIMO RTF support matrix
 
-Last reviewed: 2026-08-20
+Last reviewed: 2026-09-30
 
 Use this matrix to check whether an RTF workflow is fully modeled, broadly supported with a named fidelity boundary, preserved without semantic editing, or available only for extraction. The [machine-readable capability catalog](officeimo.rtf-capabilities.json) exposes the same classifications to tooling.
 
@@ -48,7 +48,7 @@ The packages target `netstandard2.0`, .NET 8, and .NET 10; Windows builds also t
 | <!-- capability:bounded-ingestion --> Bounded ingestion | Full | `RtfReadOptions.CreateUntrustedProfile()` caps input bytes/chars, depth, tokens, groups, text, binary, images, objects, and semantic blocks. |
 | <!-- capability:cancellation --> Cancellation | Full | String, byte, file, and stream routes support cooperative cancellation through tokenization and semantic binding. |
 | <!-- capability:unknown-diagnostics --> Unknown and preserve-only destinations | Full | Stable diagnostics identify unknown ignorable destinations and classified advanced families while the lossless path retains syntax. |
-| <!-- capability:shared-report --> Shared conversion truth | Full | `RtfConversionReport` is used across adapters. `RequireNoLoss()` rejects flattened, omitted, blocked, or error diagnostics. |
+| <!-- capability:shared-report --> Shared conversion truth | Full | `RtfConversionReport` is used across semantic adapters. `RequireNoLoss()` rejects flattened, omitted, blocked, or error diagnostics. `ToRtfResult()` reports normalization loss, including unbound syntax and stale encapsulated HTML. PDF uses `PdfConversionReport` with `RtfAction` details. |
 | <!-- capability:web-safe-html --> HTML output profiles | Full | `CreateWebSafeProfile()` blocks unsafe URL schemes, private metadata, and inline payloads by default. `CreateRoundTripProfile()` is explicit trusted output. |
 
 The untrusted profile is intentionally conservative. Applications can clone or create `RtfReadOptions` with different limits, but uploaded RTF should not use the compatibility-oriented default without a host boundary.
@@ -59,13 +59,13 @@ The untrusted profile is intentionally conservative. Applications can clone or c
 | --- | --- | --- |
 | <!-- capability:dbcs --> DBCS and font charset switching | Broad | Windows code pages 932, 936, 949, and 950 are decoded through `System.Text.Encoding.CodePages`; Word-style `fcharset` changes are honored. Composite-font parity is not claimed. |
 | <!-- capability:outlook-html --> Outlook HTML encapsulation | Broad | `fromhtml`, `htmltag`, `htmlrtf`, and `mhtmltag` are recognized, modeled, written, and preferred by HTML conversion. Focused grammar tests are backed by a reproducible Outlook 16 in-memory MAPI `RTFBody` fixture with genuine `fromhtml` and `htmltag` controls. |
-| <!-- capability:styles-numbering --> Styles and numbering | Broad | Common paragraph, character, and table styles plus list definitions/overrides map through Word. Theme and latent-style parity remains outside the current contract. |
+| <!-- capability:styles-numbering --> Styles and numbering | Broad | Effective paragraph and character formatting resolves inheritance, explicit resets, and document defaults. Common list definitions, override starts, shared counters, and level restarts drive Word, HTML, Markdown, PDF, and Reader output. Full character effects, effective table styles, picture bullets, unsupported number formats, themes, and latent styles remain gaps. |
 | <!-- capability:nested-tables --> Nested tables | Broad | Native core, HTML, and Word nesting is supported. Markdown, PDF, and Reader flatten nested tables and report that action. |
-| <!-- capability:images --> Images | Broad | PNG, JPEG, and supported DIB data use the shared drawing layer. Markdown has a media callback; PDF accepts a WMF/EMF converter callback. |
+| <!-- capability:images --> Images | Broad | PNG, JPEG, and supported DIB data use the shared drawing layer. Picture scale and crop geometry map through Word, HTML, and PDF, with validation and fallback diagnostics. Markdown has a media callback; PDF accepts a WMF/EMF converter callback. |
 | <!-- capability:notes-markdown --> Markdown notes and media | Broad | Footnotes/endnotes become Markdown references and definitions. Headers/footers remain explicit diagnostic omissions. |
 | <!-- capability:advanced-destinations --> Advanced RTF families | Preserved | Move revisions, protection exceptions, index/TOC entries, custom XML, smart tags, and related destinations are classified and diagnosed. Not every family is semantically editable. |
 | <!-- capability:word-workflows --> Word workflows | Broad | Result-bearing mail merge, cross-run find/replace, field update, append/merge, and comparison route through `OfficeIMO.Word` and return combined conversion/workflow reports. |
-| <!-- capability:pdf-adapter --> PDF bridge | Broad | Export maps semantic layout, tables, images, links, notes, and headers/footers. Import is logical extraction, not lossless PDF reconstruction. |
+| <!-- capability:pdf-adapter --> PDF bridge | Broad | Export maps semantic layout, tables, images, links, notes, section-owned running stories, and equal-width section columns. Page-starting section geometry, page-number continuation/restarts, and parity padding are supported. Unequal columns, column-starting section transitions, and continuous-section page-setting changes produce flattening diagnostics. Import is logical extraction, not lossless PDF reconstruction. |
 | <!-- capability:reader-adapter --> Reader bridge | Extractive | Emits bounded chunks, Markdown-friendly tables, image placeholders, source metadata, and parser/conversion warnings. |
 | <!-- capability:producer-corpus --> Producer corpus | Broad | Interoperability coverage includes real Word 16, reproducible Outlook 16 Save As and MAPI HTML-encapsulation files, a pinned external WordPad/RichEdit artifact, four LibreOffice regressions, external Google Docs, macOS TextEdit/RTFD, Epic EHI, CRM-workflow, and helpdesk-workflow artifacts, and a reproducibly generated GemBox.Document fixture. CRM and helpdesk files are workflow evidence, not vendor-native exports. |
 
@@ -77,7 +77,7 @@ Each producer entry identifies whether its bytes are redistributed, verified ext
 | --- | --- | --- |
 | <!-- capability:semantic-editing --> Semantic editing | Full | Clone; block insert/remove/move; paragraph/table/image insertion; cross-run text replacement; and cross-paragraph bookmark replacement are native `RtfDocument` operations. |
 | <!-- capability:lossless-structural-editing --> Lossless structural editing | Broad | Root syntax fragments/nodes can be inserted, removed, or moved; pictures and destination-group content such as headers/footers can be replaced without normalizing unrelated syntax. |
-| <!-- capability:document-merge --> Semantic document merge | Broad | `AppendDocument` clones and remaps fonts, colors, revision authors, blocks, tables, and notes. Style/list flattening and header/footer omission are reported and fail strict mode. |
+| <!-- capability:document-merge --> Semantic document merge | Broad | `AppendDocument` clones and remaps fonts, colors, revision authors, styles, list definitions/overrides, blocks, tables, and notes. `PreserveSections = true` retains source sections, page defaults, and running stories; the default flattens section boundaries and reports discarded stories. Conflicting document metadata and unsupported resources produce diagnostics. |
 | <!-- capability:fuzz-properties --> Seeded fuzz/property lane | Full | Valid exact round trip, malformed groups, extreme control parameters, Unicode fallback widths, binary lengths/limits, and semantic normalization run on all RTF test targets. |
 | <!-- capability:benchmark-budgets --> Performance and allocation budgets | Full | BenchmarkDotNet covers scale comparison; isolated probes enforce elapsed, allocation, peak-working-set, output-size, and corpus-size ceilings for core plus every adapter. The enforced operations include untrusted parsing, web-safe HTML, and a real producer-scale GemBox fixture in addition to synthetic small, medium, and large documents. |
 | <!-- capability:conversion-docs --> Living documentation | Full | This matrix, the capability manifest, package READMEs, safe/strict recipes, workflow examples, and benchmark commands are checked into the owning repository. |
@@ -94,6 +94,7 @@ Each producer entry identifies whether its bytes are redistributed, verified ext
 | Images | Broad | Resolver or trusted data URI | Export callback | PNG/JPEG/DIB; WMF/EMF callback | Visual placeholder |
 | Notes | Broad | Broad | Markdown footnotes | Appended semantic notes | Extractive |
 | Headers/footers | Broad | Broad | Omitted + diagnostic | Broad text mapping | Extractive |
+| Section layout | Broad | Metadata plus CSS subset | Flattened + diagnostic | Page-starting geometry and equal-width columns; named limits | Extractive |
 | Objects/shapes | Omitted + report where unsupported | Metadata/text subset | Omitted + diagnostic | Text/image subset + report | Text/placeholder subset |
 
 ## Safe and strict recipe
@@ -101,14 +102,15 @@ Each producer entry identifies whether its bytes are redistributed, verified ext
 ```csharp
 RtfReadOptions limits = RtfReadOptions.CreateUntrustedProfile();
 using FileStream input = File.OpenRead("upload.rtf");
-RtfReadResult read = await RtfDocument.LoadAsync(input, limits, cancellationToken: cancellationToken);
+RtfReadResult read = await RtfDocument.LoadResultAsync(input, limits, cancellationToken: cancellationToken);
 
 var htmlOptions = RtfToHtmlOptions.CreateWebSafeProfile();
-string html = read.Document.ToHtml(htmlOptions);
+RtfToHtmlResult converted = read.Document.ToHtmlResult(htmlOptions);
+string html = converted.Value;
 
 var report = new RtfConversionReport();
 report.AddReadDiagnostics(read.Diagnostics, "upload.rtf");
-report.Merge(htmlOptions.ConversionReport);
+report.Merge(converted.RtfReport);
 report.RequireNoLoss();
 ```
 

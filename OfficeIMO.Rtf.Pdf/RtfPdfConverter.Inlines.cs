@@ -24,6 +24,12 @@ internal static partial class RtfPdfConverter {
                     emitted = true;
                     pdf.PageBreak();
                     break;
+                case RtfBreak rtfBreak when rtfBreak.Kind == RtfBreakKind.Column:
+                    FlushParagraph(pdf, pendingRuns, align, style);
+                    emitted = true;
+                    if (state.InColumns) pdf.AddColumnBreak();
+                    else pdf.PageBreak();
+                    break;
                 case RtfBreak:
                     pendingRuns.Add(PdfCore.PdfTextRun.LineBreak());
                     break;

@@ -10,6 +10,8 @@ Supported import coverage includes PDF Info metadata, first-page paper size, log
 
 Page-starting sections inherit document page defaults and apply their own size, margins, orientation, page numbering, and header/footer declarations. First-page stories require `DifferentFirstPageHeaderFooter`; even-page stories require `Settings.FacingPages`. Odd/even selection follows the visible page number, while the first-page variant belongs to each section. Odd/even section breaks and facing-page numbering restarts insert a blank page when needed to align the physical pages. Document page-number starts continue across sections unless a section requests a restart.
 
+Equal-width section columns flow through the shared PDF layout engine, including column gaps, separator lines, and explicit column and page breaks. Continuous sections can switch between single-column and equal-width column flow on the current page. Unequal or right-to-left columns produce `SectionColumnsFlattened`; changes to page geometry, numbering, or running stories inside a continuous section produce `ContinuousSectionPageSettingsFlattened`. Column-starting section breaks use a new page and produce `ColumnSectionBreakFlattened` when multiple columns are involved. The report identifies these limits while retaining the body content.
+
 ## Import PDF with diagnostics
 
 ```csharp

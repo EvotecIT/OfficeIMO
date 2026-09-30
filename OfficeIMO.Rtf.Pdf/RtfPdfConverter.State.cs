@@ -13,6 +13,8 @@ internal static partial class RtfPdfConverter {
 
         public IReadOnlyList<PdfNoteReference> NoteReferences => _noteReferences.AsReadOnly();
 
+        public bool InColumns { get; set; }
+
         public OfficeIMO.Pdf.PdfStandardFont? ResolveFont(int? fontId, bool bold, bool italic) {
             if (!fontId.HasValue || !_fontSlots.TryGetValue(fontId.Value, out OfficeIMO.Pdf.PdfStandardFont font)) {
                 return null;

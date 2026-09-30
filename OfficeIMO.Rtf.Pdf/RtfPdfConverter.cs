@@ -44,26 +44,38 @@ internal static partial class RtfPdfConverter {
             return;
         }
 
+        PdfCore.PdfOptions currentPageOptions = pdf.Options.Clone();
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
             if (index == 0) {
-                RenderBlocks(document, section.Blocks, pdf, options, state);
+                RenderSectionBlocks(document, section, pdf, options, state);
                 continue;
             }
 
             if (!StartsNewPdfPage(section.BreakKind)) {
-                RenderBlocks(document, section.Blocks, pdf, options, state);
+                ReportContinuousSectionSettings(document, section, currentPageOptions, pdfOptions, options);
+                RenderSectionBlocks(document, section, pdf, options, state);
                 continue;
+            }
+
+            if (section.BreakKind == RtfSectionBreakKind.Column &&
+                ((section.ColumnCount ?? section.Columns.Count) > 1 ||
+                 (document.Sections[index - 1].ColumnCount ?? document.Sections[index - 1].Columns.Count) > 1)) {
+                AddConversionWarning(options, "ColumnSectionBreakFlattened", "Section/Break",
+                    "An RTF column-starting section starts a new PDF page because continuation within the preceding column flow is not supported.",
+                    RtfConversionAction.Flattened);
             }
 
             pdf.Section(page => {
                 ApplyPageSetup(document, section, page, pdfOptions);
                 ApplySectionHeaderFooters(document, section, page, options);
-                RenderBlocks(document, section.Blocks, pdf, options, state);
+                currentPageOptions = page.Options.Clone();
+                RenderSectionBlocks(document, section, pdf, options, state);
 
                 while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {
                     index++;
-                    RenderBlocks(document, document.Sections[index].Blocks, pdf, options, state);
+                    ReportContinuousSectionSettings(document, document.Sections[index], currentPageOptions, pdfOptions, options);
+                    RenderSectionBlocks(document, document.Sections[index], pdf, options, state);
                 }
             });
         }
