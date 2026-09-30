@@ -186,6 +186,9 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void Type0_ImageConversionReusesTintOutputBuffers() {
         PdfStream sampled = SampledFunction(
             inputCount: 1,
@@ -198,6 +201,9 @@ public sealed partial class PdfColorFunctionTests {
     }
 
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void Type3_ImageConversionReusesTintOutputBuffers() {
         PdfDictionary stitching = Dictionary(
             ("FunctionType", Number(3)),
@@ -905,29 +911,35 @@ public sealed partial class PdfColorFunctionTests {
             out PdfImageColorSpaceNormalization normalization));
         PdfImageColorConversionBuffer conversionBuffer = normalization.CreateConversionBuffer();
         byte[] sample = { 255 };
+#if PDF_PERFORMANCE_EVIDENCE
         // Cross the tiered-compilation threshold before measuring the steady-state
         // caller-owned buffer path. Runtime/JIT bookkeeping is not pixel conversion allocation.
         for (int index = 0; index < 4096; index++) {
             Assert.True(normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out _));
         }
+#endif
 
         bool converted = true;
         OfficeColor color = OfficeColor.Black;
-#if NET8_0_OR_GREATER
+#if NET8_0_OR_GREATER && PDF_PERFORMANCE_EVIDENCE
         long allocated = PdfAllocationTestSupport.MeasureMinimumThreadAllocation(() => {
             for (int index = 0; index < 4096; index++) {
                 converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
             }
         });
 #else
+#if PDF_PERFORMANCE_EVIDENCE
         for (int index = 0; index < 4096; index++) {
+#else
+        for (int index = 0; index < 2; index++) {
+#endif
             converted &= normalization.TryConvertPixel(sample, 0, null, conversionBuffer, out color);
         }
 #endif
 
         Assert.True(converted);
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), color);
-#if NET8_0_OR_GREATER
+#if NET8_0_OR_GREATER && PDF_PERFORMANCE_EVIDENCE
         Assert.InRange(allocated, 0, 1024);
 #endif
     }

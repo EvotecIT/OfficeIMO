@@ -7,14 +7,26 @@ namespace OfficeIMO.Pdf.Tests;
 public class PdfInvoiceProfileConsistencyTests {
 #if NET6_0_OR_GREATER
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void ProfileValidationDoesNotCopySupportingAttachmentPayloads() {
+#if PDF_PERFORMANCE_EVIDENCE
+        const int attachmentLength = 4 * 1024 * 1024;
+#else
+        const int attachmentLength = 64;
+#endif
         var options = new PdfOptions().UseFacturX(Cii(InvoiceProfile.En16931), textFallbacks: PdfTextFallbackFeatures.None)
-            .AddEmbeddedFile("support.bin", new byte[4 * 1024 * 1024], "application/octet-stream", PdfAssociatedFileRelationship.Supplement);
+            .AddEmbeddedFile("support.bin", new byte[attachmentLength], "application/octet-stream", PdfAssociatedFileRelationship.Supplement);
         options.Validate();
+#if PDF_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         options.Validate();
+#if PDF_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(allocated < 512 * 1024, "Invoice profile validation copied supporting attachment data: " + allocated + " bytes allocated.");
+#endif
         Assert.Equal(2, options.EmbeddedFiles.Count);
     }
 #endif

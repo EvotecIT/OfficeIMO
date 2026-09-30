@@ -460,6 +460,9 @@ public sealed partial class PdfColorFunctionTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void Type4_ReusesItsBoundedOperandStackAcrossPixelScaleEvaluations() {
         PdfStream calculator = CalculatorFunction(1, 3, "{ dup dup }");
         Assert.True(PdfColorSpaceFunctionResolver.TryCreateFunction(
@@ -470,13 +473,20 @@ public sealed partial class PdfColorFunctionTests {
             1024 * 1024,
             out PdfColorFunction function));
         double[] input = { 0.5D };
-        Assert.NotNull(function.Evaluate(input));
+        double[] expected = { 0.5D, 0.5D, 0.5D };
+        double[]? output = function.Evaluate(input);
+        Assert.NotNull(output);
+        Assert.Equal(expected, output);
 
+#if PDF_PERFORMANCE_EVIDENCE
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int index = 0; index < 1000; index++) Assert.NotNull(function.Evaluate(input));
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
         Assert.InRange(allocated, 1L, 200_000L);
+#else
+        Assert.Equal(expected, function.Evaluate(input));
+#endif
     }
 #endif
 
