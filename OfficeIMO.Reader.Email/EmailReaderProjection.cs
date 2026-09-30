@@ -3,17 +3,18 @@ using OfficeIMO.Reader.Html;
 
 namespace OfficeIMO.Reader.Email;
 
-internal static class EmailReaderProjection {
+internal static partial class EmailReaderProjection {
     private static readonly OfficeDocumentReader DefaultHtmlBodyReader = new OfficeDocumentReaderBuilder()
         .AddHtmlHandler(new ReaderHtmlOptions { InputEncoding = Encoding.UTF8 })
         .Build();
     internal static IReadOnlyList<ReaderChunk> ProjectEmailDocumentToChunks(
         EmailDocument document, string logicalPath, IReadOnlyList<EmailDiagnostic> diagnostics,
         string sourceName, ReaderOptions options, EmailDocumentProjectionCursor cursor,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics) {
         var projection = new Projection(sourceName, document.Format);
         projection.Diagnostics.AddRange(diagnostics);
         AddDocument(document, null, logicalPath, projection, options, cursor, depth: 0, cancellationToken);
+        projectedDiagnostics = projection.Diagnostics;
         return projection.Chunks;
     }
 
@@ -168,6 +169,7 @@ internal static class EmailReaderProjection {
                 Location = location
             });
             if (attachment.EmbeddedDocument != null) {
+                projection.EmbeddedAttachmentCount++;
                 AddDocument(attachment.EmbeddedDocument, null, attachmentPath, projection, options, cursor, depth + 1, cancellationToken);
                 continue;
             }
@@ -211,64 +213,6 @@ internal static class EmailReaderProjection {
                 exception.GetType().Name + " while projecting the selected email body; the safe HTML source was retained.",
                 EmailDiagnosticSeverity.Warning, logicalPath));
             return false;
-        }
-    }
-
-    private static void AddAttachmentContent(
-        EmailAttachment attachment,
-        string fileName,
-        string attachmentPath,
-        string subject,
-        ReaderChunk attachmentChunk,
-        Projection projection,
-        ReaderOptions options,
-        EmailDocumentProjectionCursor cursor,
-        CancellationToken cancellationToken) {
-        if ((attachment.Content == null || attachment.Content.Length == 0) && attachment.ContentSource == null) return;
-        string sourceName = ResolveAttachmentSourceName(fileName, attachment.ContentType);
-        try {
-            bool rtfAttachment = string.Equals(TryExtension(sourceName), ".rtf", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(attachment.ContentType, "text/rtf", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(attachment.ContentType, "application/rtf", StringComparison.OrdinalIgnoreCase);
-            bool textAttachment = !rtfAttachment && (IsPlainTextAttachment(sourceName, attachment.ContentType) ||
-                attachment.ContentType?.StartsWith("text/", StringComparison.OrdinalIgnoreCase) == true);
-            EmailAttachmentTextResult? decoded = textAttachment
-                ? EmailAttachmentTextReader.Read(attachment, options.MaxInputBytes ?? 16L * 1024L * 1024L, cancellationToken)
-                : null;
-            if (decoded != null) {
-                projection.Diagnostics.AddRange(decoded.Diagnostics);
-                string[] decodeWarnings = decoded.Diagnostics.Select(item => item.Code + ": " + item.Message).ToArray();
-                if (decodeWarnings.Length > 0)
-                    attachmentChunk.Warnings = (attachmentChunk.Warnings ?? Array.Empty<string>()).Concat(decodeWarnings).ToArray();
-            }
-            using Stream stream = decoded != null
-                ? new MemoryStream(EncodeAttachmentProjection(decoded.Text, sourceName), writable: false)
-                : attachment.OpenContentStream();
-            IReadOnlyList<ReaderChunk> nested;
-            if (ReaderNestedContent.CanRead(sourceName)) {
-                nested = ReaderNestedContent.Read(stream, sourceName, CloneWithoutHashes(options), cancellationToken);
-            } else if (IsPlainTextAttachment(sourceName, attachment.ContentType)) {
-                nested = BuildPlainAttachmentChunks(decoded!.Text, options.MaxChars);
-            } else {
-                return;
-            }
-
-            for (int index = 0; index < nested.Count; index++) {
-                ReaderChunk child = nested[index];
-                int blockIndex = cursor.NextBlockIndex++;
-                child.Id = $"email:attachment-content:{blockIndex.ToString("D6", CultureInfo.InvariantCulture)}:{index.ToString("D4", CultureInfo.InvariantCulture)}";
-                child.Location = CloneNestedLocation(child.Location, attachmentPath,
-                    subject + " > Attachment: " + fileName, blockIndex, child.Location.SourceBlockKind);
-                ClearNestedSource(child);
-                projection.Chunks.Add(child);
-            }
-        } catch (OperationCanceledException) {
-            throw;
-        } catch (Exception exception) {
-            var warnings = new List<string>(attachmentChunk.Warnings ?? Array.Empty<string>()) {
-                $"EMAIL_ATTACHMENT_READER_FAILED: {exception.GetType().Name} while extracting {fileName}."
-            };
-            attachmentChunk.Warnings = warnings;
         }
     }
 
@@ -405,6 +349,12 @@ internal static class EmailReaderProjection {
         yield return Metadata("email-format", "Format", projection.Format.ToString(), "string");
         yield return Metadata("email-message-count", "MessageCount", projection.Documents.Count.ToString(CultureInfo.InvariantCulture), "count");
         yield return Metadata("email-attachment-count", "AttachmentCount", projection.Documents.Sum(static document => document.Attachments.Count).ToString(CultureInfo.InvariantCulture), "count");
+        yield return Metadata("email-attachment-extraction-attempted", "AttachmentExtractionAttempted", projection.AttachmentAttempted.ToString(CultureInfo.InvariantCulture), "count");
+        yield return Metadata("email-attachment-extraction-succeeded", "AttachmentExtractionSucceeded", projection.AttachmentSucceeded.ToString(CultureInfo.InvariantCulture), "count");
+        yield return Metadata("email-attachment-extraction-skipped", "AttachmentExtractionSkipped", projection.AttachmentSkipped.ToString(CultureInfo.InvariantCulture), "count");
+        yield return Metadata("email-attachment-extraction-empty", "AttachmentExtractionEmpty", projection.AttachmentEmpty.ToString(CultureInfo.InvariantCulture), "count");
+        yield return Metadata("email-attachment-extraction-failed", "AttachmentExtractionFailed", projection.AttachmentFailed.ToString(CultureInfo.InvariantCulture), "count");
+        yield return Metadata("email-embedded-attachment-count", "EmbeddedAttachmentCount", projection.EmbeddedAttachmentCount.ToString(CultureInfo.InvariantCulture), "count");
         for (int index = 0; index < projection.Documents.Count; index++) {
             EmailDocument document = projection.Documents[index];
             string prefix = "email-message-" + index.ToString("D6", CultureInfo.InvariantCulture) + "-";
@@ -549,6 +499,12 @@ internal static class EmailReaderProjection {
         internal string? PrimaryHtml { get; set; }
         internal List<ReaderChunk> Chunks { get; } = new List<ReaderChunk>();
         internal List<OfficeDocumentAsset> Assets { get; } = new List<OfficeDocumentAsset>();
+        internal int AttachmentAttempted { get; set; }
+        internal int AttachmentSucceeded { get; set; }
+        internal int AttachmentSkipped { get; set; }
+        internal int AttachmentEmpty { get; set; }
+        internal int AttachmentFailed { get; set; }
+        internal int EmbeddedAttachmentCount { get; set; }
     }
 }
 
