@@ -359,18 +359,26 @@ namespace OfficeIMO.Word.Pdf {
                     GetNativeDocumentDefaults(currentTable.Document),
                     ignoreFallbackTableStyle: pdfOptions.HasExplicitDefaultTableStyle);
 
-                foreach (WordTableRow row in currentTable.Rows) {
-                    foreach (WordTableCell cell in row.Cells) {
-                        foreach (WordParagraph paragraph in cell.Paragraphs) {
-                            RegisterNativeParagraphContentFonts(
-                                paragraph,
-                                tableStyleDefaults.RunStyle,
-                                pdfOptions,
-                                registeredFamilies,
-                                registeredFontSlots,
-                                allowSystemFontEmbedding,
-                                nativeFontMap);
+                TableLayout layout = TableLayoutCache.GetLayout(currentTable);
+                int columnCount = GetNativeTableColumnCount(layout);
+                int headerCount = GetNativeTableVisualHeaderRowCount(currentTable, layout.Rows.Count,
+                    GetNativeTableRepeatedHeaderRowCount(currentTable, layout.Rows.Count));
+                int footerStart = currentTable.ConditionalFormattingLastRow == true && layout.Rows.Count > headerCount
+                    ? layout.Rows.Count - 1 : layout.Rows.Count;
+                for (int rowIndex = 0; rowIndex < layout.Rows.Count; rowIndex++) {
+                    int columnIndex = GetNativeTableRowStartColumn(layout, rowIndex);
+                    foreach (WordTableCell cell in layout.Rows[rowIndex]) {
+                        if (IsNativeHorizontalMergeContinuation(cell)) continue;
+                        int span = GetNativeCellColumnSpan(cell);
+                        if (!IsNativeVerticalMergeContinuation(cell)) {
+                            NativeTableStyleDefaults cellStyle = GetNativeTableCellStyleDefaults(currentTable,
+                                tableStyleDefaults, rowIndex, columnIndex, span, columnCount, headerCount, footerStart);
+                            foreach (WordParagraph paragraph in cell.Paragraphs) {
+                                RegisterNativeParagraphContentFonts(paragraph, cellStyle.RunStyle, pdfOptions,
+                                    registeredFamilies, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
+                            }
                         }
+                        columnIndex += span;
                     }
                 }
             }

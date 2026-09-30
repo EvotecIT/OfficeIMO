@@ -688,6 +688,9 @@ namespace OfficeIMO.Word.Pdf {
             if (!conditionalStyle.CellFill.HasValue &&
                 !conditionalStyle.TextColor.HasValue &&
                 !conditionalStyle.FontSize.HasValue &&
+                !conditionalStyle.ComplexScript.FontSize.HasValue &&
+                !conditionalStyle.ComplexScript.Enabled.HasValue &&
+                string.IsNullOrWhiteSpace(conditionalStyle.FontFamily) &&
                 !conditionalStyle.Bold.HasValue &&
                 !conditionalStyle.Italic.HasValue &&
                 !conditionalStyle.UnderlineStyle.HasValue &&
@@ -723,6 +726,8 @@ namespace OfficeIMO.Word.Pdf {
                 ParagraphFirstLineIndent = conditionalStyle.ParagraphFirstLineIndent ?? tableStyleDefaults.ParagraphFirstLineIndent,
                 RunStyle = runStyle with {
                     FontSize = conditionalStyle.FontSize ?? runStyle.FontSize,
+                    ComplexScript = runStyle.ComplexScript.Merge(conditionalStyle.ComplexScript),
+                    FontFamily = conditionalStyle.FontFamily ?? runStyle.FontFamily,
                     Bold = conditionalStyle.Bold ?? runStyle.Bold,
                     Italic = conditionalStyle.Italic ?? runStyle.Italic,
                     UnderlineStyle = conditionalStyle.UnderlineStyle ?? runStyle.UnderlineStyle,
