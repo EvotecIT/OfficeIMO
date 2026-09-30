@@ -224,12 +224,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     || other.CrossOffset + other.Block!.Height <= pair.Item.CrossOffset + group.ContentEndsAt + 0.0001D))
                 .Select(group => group.Translate(
                     contentX + pair.Item.MainOffset, contentY + pair.Line.CrossOffset + pair.Item.CrossOffset)));
-        IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = style.FlexWrap == "wrap"
+        IReadOnlyList<HtmlInlineBreakProgress> wrapLineProgress = style.FlexWrap == "wrap"
             ? lines.Skip(1)
                 .Where(line => line.Items.Count > 0 && line.Items[0].Element != null)
                 .Select(line => new HtmlInlineBreakProgress(contentY + line.CrossOffset, 0, line.Items[0].Element))
                 .ToList()
             : Array.Empty<HtmlInlineBreakProgress>();
+        IReadOnlyList<HtmlInlineBreakProgress> continuationBreakProgress = wrapLineProgress.Concat(
+            lines.SelectMany(line => line.Items.SelectMany(item => item.Block!.InlineBreakProgress
+                .Where(progress => (progress.IsBlockEntry || progress.IsBlockExit)
+                    && progress.PageStartDiscardableMargin > 0.0001D
+                    && line.Items.All(other => ReferenceEquals(other, item) || !other.HasExplicitCrossSize
+                        || other.CrossOffset + other.Block!.Height <= item.CrossOffset + progress.Offset + 0.0001D))
+                .Select(progress => new HtmlInlineBreakProgress(
+                    contentY + line.CrossOffset + item.CrossOffset + progress.Offset,
+                    progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry,
+                    progress.PageStartDiscardableMargin, progress.IsBlockExit))))).ToList();
         // Prefer keeping a fitting flex row together when little page space
         // remains. This is a layout preference, not authored break-inside:avoid:
         // legal interior breaks may use substantial space on the current page.
@@ -282,7 +292,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     .Concat(positionedRunningStringAssignments),
                 outerHeight),
             inlineBreakProgress: continuationBreakProgress,
-            supportsInlineContinuationReflow: continuationBreakProgress.Count > 0,
+            supportsInlineContinuationReflow: wrapLineProgress.Count > 0,
             avoidBreakRanges: lineKeepRanges.Concat(itemKeepRanges),
             pagedPaintExtent: pagedPaintExtent);
         if (_options.Mode == HtmlRenderMode.Paged) {

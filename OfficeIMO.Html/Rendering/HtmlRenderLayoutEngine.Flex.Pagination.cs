@@ -260,7 +260,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 group.HasImplicitFinalLine,
                 group.Start >= cut - 0.0001D ? group.Start + gap : group.Start,
                 group.End > cut + 0.0001D ? group.End + gap : group.End,
-                group.CheckInteriorBreaks)),
+                group.CheckInteriorBreaks,
+                group.FinalLineMarginBreak)),
             pageName: block.PageName,
             stackingZIndex: block.StackingZIndex,
             stackingSourceOrder: block.StackingSourceOrder,
@@ -274,7 +275,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 assignment.Offset >= cut - 0.0001D ? assignment.Translate(gap) : assignment),
             inlineBreakProgress: block.InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(
                 Shift(progress.Offset), progress.LogicalCharacters, progress.OwnerElement,
-                progress.IsBlockEntry, progress.PageStartDiscardableMargin)),
+                progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit)),
             inlineContinuationStart: block.InlineContinuationStart,
             supportsInlineContinuationReflow: block.SupportsInlineContinuationReflow,
             layoutViewportWidth: block.LayoutViewportWidth,

@@ -117,6 +117,90 @@ public sealed partial class HtmlRenderingTests {
             destination => destination.Name == "target" && destination.Y >= -0.001D);
     }
 
+    [Theory]
+    [InlineData(false, 80, 0)]
+    [InlineData(true, 80, 0)]
+    [InlineData(true, 120, 24)]
+    public void PagedRendererDiscardsOnlyUnpaintedParagraphMarginAtPageStart(bool insideFlex, int asideHeight, int targetY) {
+        string opening = insideFlex ? "<div class='row'><div class='primary'>" : string.Empty;
+        string closing = insideFlex ? "</div><div class='aside'>Aside</div></div>" : string.Empty;
+        string html = "<style>@page{size:300px 100px;margin:0}html,body{margin:0;padding:0}"
+            + "body{font:16px/20px Arial,sans-serif}.row{display:flex;gap:12px}"
+            + ".primary{flex:1 1 auto;min-width:0}.aside{flex:0 0 72px;"
+            + (asideHeight > 100 ? "min-height:" : "height:") + asideHeight + "px;background:#ddd}"
+            + "p{margin:0 0 24px}#target{margin-bottom:0}</style>"
+            + opening + "<p id='lead'>Lead one<br>Lead two<br>Lead three<br>Lead four</p>"
+            + "<p id='target'>Target paragraph</p>" + closing;
+
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true, AutoFitWidePrintRoot = true });
+
+        Assert.Equal(2, rendered.Pages.Count);
+        foreach (string line in new[] { "Lead one", "Lead two", "Lead three", "Lead four" }) {
+            Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == line);
+            Assert.DoesNotContain(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == line);
+        }
+        HtmlRenderText target = Assert.Single(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Target paragraph", StringComparison.Ordinal));
+        Assert.InRange(target.Y, targetY, targetY + 2D);
+        if (insideFlex && asideHeight > 100) {
+            Assert.Contains(EnumerateRenderVisuals(rendered.Pages[1].Scene).OfType<HtmlRenderShape>(),
+                shape => shape.Source == "div.aside" && shape.Y <= 0D && shape.Y + shape.Height >= 24D);
+        }
+    }
+
+    [Fact]
+    public void PagedRendererDoesNotDiscardFixedHeightFlowBesideParagraphMargin() {
+        const string html = "<style>@page{size:300px 100px;margin:0}html,body{margin:0;padding:0}"
+            + "body{font:16px/20px Arial}.row{display:flex}.tall{height:700px;width:150px}"
+            + ".side{display:flow-root;width:150px}.side p{margin:0 0 200px}</style>"
+            + "<div class='row'><div class='tall'>Tall</div><div class='side'><p>Short</p></div></div>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        // Preserve the baseline's authored-height flow; a sibling margin must
+        // not compress this output to six pages by dropping blank box extent.
+        Assert.Equal(8, rendered.Pages.Count);
+        Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Text == "Tall");
+        Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(),
+            text => text.Text == "Short");
+    }
+
+    [Fact]
+    public void PagedRendererPreservesRightPageBreakAfterParagraphMargin() {
+        const string html = "<style>@page{size:300px 100px;margin:0}html,body{margin:0;padding:0}"
+            + "body{font:16px/20px Arial}p{margin:0 0 24px}#lead{break-after:right}</style>"
+            + "<main><p id='lead'>Lead one<br>Lead two<br>Lead three<br>Lead four</p>"
+            + "<p id='target'>Target paragraph</p></main>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.DoesNotContain(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Target paragraph", StringComparison.Ordinal));
+        Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(),
+            text => text.Text.Contains("Target paragraph", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void PagedRendererDoesNotResumeCompletedFlexParagraphAfterPageWidthChange() {
+        const string html = "<style>@page{size:400px 100px;margin:0}@page:first{size:300px 100px}"
+            + "html,body{margin:0;padding:0}body{font:16px/20px Arial}"
+            + ".row{display:flex}.primary{flex:1;min-width:0}p{margin:0 0 24px}#target{margin-bottom:0}</style>"
+            + "<main><div class='row'><div class='primary'>"
+            + "<p>Lead one<br>Lead two<br>Lead three<br>Lead four</p>"
+            + "<p id='target'>Target paragraph</p></div></div></main>";
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html,
+            new HtmlRenderOptions { Mode = HtmlRenderMode.Paged });
+
+        HtmlRenderText[] text = rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
+            .OfType<HtmlRenderText>().ToArray();
+        foreach (string line in new[] { "Lead one", "Lead two", "Lead three", "Lead four", "Target paragraph" }) {
+            Assert.Single(text, item => item.Text == line);
+        }
+    }
+
     [Fact]
     public void PagedFlexLinkKeepsPrintedUrlTogetherThroughHyphen() {
         const string html = "<style>@page{size:794px 140px;margin:0}html,body{margin:0;font:16px Arial}"

@@ -502,6 +502,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 foreach (HtmlRenderForcedBreak forcedBreak in child.ForcedBreaks) {
                     forcedBreaks.Add(forcedBreak.Translate(childStart));
                 }
+                if (child.HasCollapsibleMargins && child.CollapsibleMarginBottom > 0.0001D
+                    && child.Height > child.CollapsibleMarginBottom + 0.0001D && child.OwnerElement != null) {
+                    // A break after the child's last painted line may leave only
+                    // its trailing margin to carry onto the next page.
+                    continuationBreakProgress.Add(new HtmlInlineBreakProgress(
+                        childStart + child.Height - child.CollapsibleMarginBottom,
+                        0,
+                        child.OwnerElement,
+                        pageStartDiscardableMargin: child.CollapsibleMarginBottom,
+                        isBlockExit: true));
+                }
                 if (childIndex > 0 && child.OwnerElement != null) {
                     continuationBreakProgress.Add(new HtmlInlineBreakProgress(
                         childStart,
@@ -550,7 +561,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
                         progress.LogicalCharacters,
                         progress.OwnerElement,
                         progress.IsBlockEntry,
-                        progress.PageStartDiscardableMargin));
+                        progress.PageStartDiscardableMargin,
+                        progress.IsBlockExit));
                 }
 
                 contentBreakOffsets.Add(contentHeight);
@@ -728,10 +740,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 .Concat(positionedRunningStringAssignments)
                 .OrderBy(assignment => assignment.OrderOffset),
             inlineBreakProgress: (inlineLayout?.BreakProgress ?? continuationBreakProgress).Select(progress =>
-                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin)),
+                new HtmlInlineBreakProgress(contentYForBreaks + progress.Offset, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit)),
             inlineContinuationStart: ReferenceEquals(element, continuationTarget) ? continuationLogicalCharacters : 0,
             supportsInlineContinuationReflow: inlineLayout?.SupportsContinuationReflow == true
-                || continuationBreakProgress.Any(progress => progress.OwnerElement != null),
+                || continuationBreakProgress.Any(progress => !progress.IsBlockExit && progress.OwnerElement != null),
             forcedBreaks: forcedBreaks.Select(item => item.Translate(contentYForBreaks)),
             avoidBreakRanges: contentAvoidBreakRanges.Select(range => range.Translate(contentYForBreaks)),
             pagedPaintExtent: pagedPaintExtent);

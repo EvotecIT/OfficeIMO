@@ -371,7 +371,7 @@ internal sealed class HtmlRenderFlowBlock {
             collapsesThrough: CollapsesThrough,
             unclampedHeight: adjustedUnclampedHeight,
             runningStringAssignments: RunningStringAssignments.Select(assignment => assignment.Translate(-adjustment)),
-            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin)),
+            inlineBreakProgress: InlineBreakProgress.Select(progress => new HtmlInlineBreakProgress(progress.Offset - adjustment, progress.LogicalCharacters, progress.OwnerElement, progress.IsBlockEntry, progress.PageStartDiscardableMargin, progress.IsBlockExit)),
             inlineContinuationStart: InlineContinuationStart,
             supportsInlineContinuationReflow: SupportsInlineContinuationReflow,
             forcedBreaks: ForcedBreaks.Select(item => item.Translate(-adjustment)),
@@ -396,7 +396,9 @@ internal sealed class HtmlRenderFlowBlock {
             AvoidBreakInside,
             Source,
             BreakOffsets,
-            lineBreakGroups: LineBreakGroups,
+            lineBreakGroups: LineBreakGroups.Select(group => bottom > 0.0001D
+                && Math.Abs(group.End - (Height - bottom)) <= 0.0001D
+                    ? group.WithFinalLineMarginBreak() : group),
             continuationGroups: ContinuationGroups,
             trailingGroups: TrailingGroups,
             pageName: PageName,
@@ -586,7 +588,7 @@ internal sealed class HtmlRenderTrailingGroup {
 }
 
 internal sealed class HtmlRenderLineBreakGroup {
-    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows, bool hasImplicitFinalLine = false, double start = 0D, double end = 0D, bool checkInteriorBreaks = false) {
+    internal HtmlRenderLineBreakGroup(IEnumerable<double> offsets, int orphans, int widows, bool hasImplicitFinalLine = false, double start = 0D, double end = 0D, bool checkInteriorBreaks = false, bool finalLineMarginBreak = false) {
         Offsets = new SortedSet<double>(offsets).ToList().AsReadOnly();
         Orphans = Math.Max(1, orphans);
         Widows = Math.Max(1, widows);
@@ -594,6 +596,7 @@ internal sealed class HtmlRenderLineBreakGroup {
         Start = start;
         End = end;
         CheckInteriorBreaks = checkInteriorBreaks;
+        FinalLineMarginBreak = finalLineMarginBreak;
     }
 
     internal IReadOnlyList<double> Offsets { get; }
@@ -603,12 +606,17 @@ internal sealed class HtmlRenderLineBreakGroup {
     internal double Start { get; }
     internal double End { get; }
     internal bool CheckInteriorBreaks { get; }
+    // Only this paragraph's own trailing margin can exempt its final line.
+    internal bool FinalLineMarginBreak { get; }
+
+    internal HtmlRenderLineBreakGroup WithFinalLineMarginBreak() =>
+        new HtmlRenderLineBreakGroup(Offsets, Orphans, Widows, HasImplicitFinalLine, Start, End, CheckInteriorBreaks, finalLineMarginBreak: true);
 
     internal HtmlRenderLineBreakGroup WithInteriorBreaks() =>
-        new HtmlRenderLineBreakGroup(Offsets, Orphans, Widows, HasImplicitFinalLine, Start, End, checkInteriorBreaks: true);
+        new HtmlRenderLineBreakGroup(Offsets, Orphans, Widows, HasImplicitFinalLine, Start, End, checkInteriorBreaks: true, finalLineMarginBreak: FinalLineMarginBreak);
 
     internal HtmlRenderLineBreakGroup Translate(double offset) =>
-        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows, HasImplicitFinalLine, Start + offset, End + offset, CheckInteriorBreaks);
+        new HtmlRenderLineBreakGroup(Offsets.Select(value => value + offset), Orphans, Widows, HasImplicitFinalLine, Start + offset, End + offset, CheckInteriorBreaks, FinalLineMarginBreak);
 }
 
 internal sealed class HtmlInlineRun {
@@ -843,11 +851,12 @@ internal readonly struct HtmlFloatExclusion {
 }
 
 internal readonly struct HtmlInlineBreakProgress {
-    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null, bool isBlockEntry = false, double pageStartDiscardableMargin = 0D) {
+    internal HtmlInlineBreakProgress(double offset, int logicalCharacters, IElement? ownerElement = null, bool isBlockEntry = false, double pageStartDiscardableMargin = 0D, bool isBlockExit = false) {
         Offset = offset;
         LogicalCharacters = logicalCharacters;
         OwnerElement = ownerElement;
         IsBlockEntry = isBlockEntry;
+        IsBlockExit = isBlockExit;
         PageStartDiscardableMargin = pageStartDiscardableMargin;
     }
 
@@ -855,5 +864,7 @@ internal readonly struct HtmlInlineBreakProgress {
     internal int LogicalCharacters { get; }
     internal IElement? OwnerElement { get; }
     internal bool IsBlockEntry { get; }
+    // Completed-child margins carry discard metadata, never a resume target.
+    internal bool IsBlockExit { get; }
     internal double PageStartDiscardableMargin { get; }
 }

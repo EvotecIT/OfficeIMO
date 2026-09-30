@@ -2,25 +2,40 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private double SkipUnpaintedLeadingMarginAtPageStart(HtmlRenderFlowBlock block, double start) {
-        double discardableMargin = 0D;
+        double discardableMargin = ResolvePageStartDiscardableMargin(block, start);
+        if (discardableMargin <= 0.0001D) return start;
+
+        double afterMargin = Math.Min(block.Height, start + discardableMargin);
+        if (block.ForcedBreaks.Any(item => item.Offset > start + 0.0001D && item.Offset <= afterMargin + 0.0001D)
+            || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)
+            || SliceBlockVisuals(block, start, afterMargin).Any(ContainsPageStartMarginContent)) {
+            return start;
+        }
+
+        return afterMargin;
+    }
+
+    private static double ResolvePageStartDiscardableMargin(HtmlRenderFlowBlock block, double start) {
+        double discardableMargin = block.HasCollapsibleMargins
+            && block.CollapsibleMarginBottom > 0.0001D
+            && Math.Abs(start - (block.Height - block.CollapsibleMarginBottom)) <= 0.0001D
+                ? block.CollapsibleMarginBottom
+                : 0D;
         foreach (HtmlInlineBreakProgress progress in block.InlineBreakProgress) {
-            if (Math.Abs(progress.Offset - start) > 0.0001D || !progress.IsBlockEntry
+            if (Math.Abs(progress.Offset - start) > 0.0001D || !(progress.IsBlockEntry || progress.IsBlockExit)
                 || progress.PageStartDiscardableMargin <= 0.0001D) continue;
             discardableMargin = progress.PageStartDiscardableMargin;
             break;
         }
-        if (discardableMargin <= 0.0001D) return start;
+        return discardableMargin;
+    }
 
-        double afterMargin = Math.Min(block.Height, start + discardableMargin);
-        if (block.ForcedBreaks.Any(item => item.Offset > start + 0.0001D && item.Offset < afterMargin - 0.0001D)
-            || block.RunningStringAssignments.Any(item => item.Offset >= start - 0.0001D && item.Offset < afterMargin - 0.0001D)) {
-            return start;
-        }
-
-        // The container has moved to a new page because its first child could
-        // not fit. Its leading margin is blank space from the previous page,
-        // not a decoration to carry ahead of the child on the new page.
-        return afterMargin;
+    private static bool ContainsPageStartMarginContent(HtmlRenderVisual visual) {
+        // Print-fitting boxes and empty wrappers measure layout but do not paint.
+        // Retain every other leaf, including navigation and bookmark metadata.
+        if (visual is HtmlRenderLayoutBox) return false;
+        IReadOnlyList<HtmlRenderVisual>? children = GetGroupChildren(visual);
+        return children == null || children.Any(ContainsPageStartMarginContent);
     }
 
     private static double FindFragmentEnd(HtmlRenderFlowBlock block, double start, double available, double? maximumEnd = null, double fullPageHeight = 0D) {
@@ -75,6 +90,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool IsAllowedLineBreak(HtmlRenderFlowBlock block, double start, double candidate, bool checkInteriorBreaks = false) {
         foreach (HtmlRenderLineBreakGroup group in block.LineBreakGroups) {
+            // A final-line cut before a trailing paragraph margin leaves no widows.
+            // Other final-line cuts must retain authored fixed-height flow.
+            if (group.FinalLineMarginBreak && candidate >= group.End - 0.0001D
+                && ResolvePageStartDiscardableMargin(block, candidate) > 0.0001D) continue;
             IReadOnlyList<double> offsets = group.Offsets;
             int candidateIndex = UpperBound(offsets, candidate + 0.0001D) - 1;
             bool exactLineBreak = candidateIndex >= 0 && Math.Abs(offsets[candidateIndex] - candidate) <= 0.0001D;
