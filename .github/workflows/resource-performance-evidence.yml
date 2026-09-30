@@ -16,6 +16,9 @@ jobs:
           - name: shared
             project: OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
             property: SharedPerformanceEvidence
+          - name: drawing
+            project: OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
+            property: DrawingPerformanceEvidence
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
