@@ -43,15 +43,7 @@ public static partial class OfficeWebpCodec {
             var allocationBudget = new Vp8lAllocationBudget();
             if (!allocationBudget.TryReserveBytes(retainedManagedBytes) ||
                 !allocationBudget.TryReserveArray(encodedBytes.Length, sizeof(byte)) ||
-                !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
-                    out List<Vp8lTransform> transforms)) return false;
-            if (!TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,
-                    allocationBudget, cancellationToken, out uint[] packed))
-                return false;
-            if (!TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
-                    allocationBudget, cancellationToken, out uint[] argb))
-                return false;
-            if (argb.Length != pixels || !reader.HasOnlyZeroPadding(cancellationToken)) return false;
+                !TryDecodeVp8lArgb(reader, width, height, allocationBudget, cancellationToken, out uint[] argb)) return false;
 
             if (!allocationBudget.TryReserveArray(pixels, sizeof(uint))) return false;
             cancellationToken.ThrowIfCancellationRequested();
@@ -73,6 +65,20 @@ public static partial class OfficeWebpCodec {
             image = null;
             return false;
         }
+    }
+
+    /// <summary>Decodes a headerless lossless image stream used by VP8L and compressed ALPH chunks.</summary>
+    private static bool TryDecodeVp8lArgb(LsbBitReader reader, int width, int height,
+        Vp8lAllocationBudget allocationBudget, CancellationToken cancellationToken, out uint[] argb) {
+        argb = Array.Empty<uint>();
+        if (!OfficeRasterGuards.TryEnsurePixelCount(width, height, out int pixels) ||
+            !TryReadVp8lTransforms(reader, width, height, allocationBudget, cancellationToken, out int encodedWidth,
+                out List<Vp8lTransform> transforms) ||
+            !TryDecodeVp8lImageData(reader, encodedWidth, height, allowMetaCodes: true, 0,
+                allocationBudget, cancellationToken, out uint[] packed) ||
+            !TryApplyVp8lTransforms(packed, encodedWidth, height, width, transforms,
+                allocationBudget, cancellationToken, out argb)) return false;
+        return argb.Length == pixels && reader.HasOnlyZeroPadding(cancellationToken);
     }
 
     private static bool TryDecodeVp8lImageData(

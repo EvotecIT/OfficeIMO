@@ -1,0 +1,120 @@
+{
+  "producer": {
+    "pillow": "11.3.0",
+    "libwebp": "1.5.0",
+    "command": "Pillow Image.save WEBP quality=82 method=6 exact=True",
+    "seed": 43017
+  },
+  "cases": [
+    {
+      "id": "alpha-gradient",
+      "path": "alpha-gradient.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "664385e663ad6c665f303e9451facb9f5a845aeb08a2cc73f187423a92d279b1",
+      "referenceRgbaSha256": "d211f35837a7075b675995d5cfc62cd264eea5e6511e6497396bf3d3365356f5"
+    },
+    {
+      "id": "alpha-noise",
+      "path": "alpha-noise.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "c31a47e8159b5067df209fa84cc6d8d68c824dd775875ca636ab6347304f96b3",
+      "referenceRgbaSha256": "677c98d0bd362cf02fae5eadf8a8934efe77417dee27a288623c171405e0dad1"
+    },
+    {
+      "id": "opaque-control",
+      "path": "opaque-control.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "24757e239f16efcbd2dee0be1b7104726bd7f18ccd097f43f39e47eb9c47971f",
+      "referenceRgbaSha256": "9a4b5e993fc7e1ae35bbc22742d7340f6f252d0a25ada599ae46c075ba80f420"
+    },
+    {
+      "id": "raw-filter-0",
+      "path": "raw-filter-0.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "13f38661befe34f5970293c95a7e148efb14f212c6d56a7207e2df43b20b1da0",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 0,
+      "filter": 0
+    },
+    {
+      "id": "raw-filter-1",
+      "path": "raw-filter-1.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "b9c065201edf06d8e0a29e111ff750cac306534fbe22d892eb36bc90c278a669",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 0,
+      "filter": 1
+    },
+    {
+      "id": "raw-filter-2",
+      "path": "raw-filter-2.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "488783066b6a51ee82f6de40e1a3e061e2b9e1917cdc138c1cfb94597b3a0575",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 0,
+      "filter": 2
+    },
+    {
+      "id": "raw-filter-3",
+      "path": "raw-filter-3.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "ff931d84482b643f5c2ded08a8a1ca468145217a0a3804f0a0b27aef8733b431",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 0,
+      "filter": 3
+    },
+    {
+      "id": "compressed-filter-0",
+      "path": "compressed-filter-0.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "db167e2b1e442ff5b7e573e8a8a0e85bb4bbe6a70b5679ba39429a2e6c0749a4",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 1,
+      "filter": 0
+    },
+    {
+      "id": "compressed-filter-1",
+      "path": "compressed-filter-1.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "65b7f6b9feac9e06bc67d2ed466429d31fffbee6883b576da9290abb76f30719",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 1,
+      "filter": 1
+    },
+    {
+      "id": "compressed-filter-2",
+      "path": "compressed-filter-2.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "73ad8a0a38b52003bb20b719e8b66a33866a0b32987030c488db6b2f34ef76f3",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 1,
+      "filter": 2
+    },
+    {
+      "id": "compressed-filter-3",
+      "path": "compressed-filter-3.webp",
+      "width": 49,
+      "height": 33,
+      "sha256": "c63ca7e494f057f3da591b89e43f041c43ab48505ac372c55b15f47e83af8796",
+      "referenceRgbaSha256": "aa5bd94819f87afb7d328a6bf51b7ead0ed14ec14bb5fdff2ac12bd82417150d",
+      "compression": 1,
+      "filter": 3
+    }
+  ],
+  "filterProducer": {
+    "pillow": "11.3.0",
+    "libwebp": "1.5.0",
+    "source": "generate-filters.py",
+    "reference": "Complete recontainerized files decoded independently with Pillow/libwebp."
+  }
+}

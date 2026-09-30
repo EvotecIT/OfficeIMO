@@ -16,7 +16,7 @@ public static class OfficeRasterImageDecoder {
     /// <summary>
     /// Human-readable summary of raster formats currently decoded by the managed renderer.
     /// </summary>
-    public const string SupportedFormatDescription = "PNG and APNG frames, JPEG, bounded classic TIFF pages, uncompressed BMP, explicitly selected GIF frames, lossless VP8L WebP, and opaque lossy VP8 WebP image bytes";
+    public const string SupportedFormatDescription = "PNG and APNG frames, JPEG, bounded classic TIFF pages, uncompressed BMP, explicitly selected GIF frames, lossless VP8L WebP, and lossy VP8 WebP image bytes with optional raw or compressed alpha";
 
     /// <summary>
     /// Attempts to decode image bytes into an RGBA raster buffer supported by dependency-free export.
