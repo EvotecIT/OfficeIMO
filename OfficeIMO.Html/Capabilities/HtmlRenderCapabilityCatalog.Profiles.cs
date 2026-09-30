@@ -81,7 +81,7 @@ public static partial class HtmlRenderCapabilityCatalog {
         CssModule(HtmlCapabilitySpecificationIds.CssPosition, "CSS positioned layout", "css-position, css-position-3"),
         CssModule(HtmlCapabilitySpecificationIds.CssTables, "CSS table layout", "css-tables"),
         CssModule(HtmlCapabilitySpecificationIds.CssGeneratedContent, "CSS generated content, lists, and counters", "css-content, css-lists, css-counter-styles, css-gcpm"),
-        CssModule(HtmlCapabilitySpecificationIds.CssPagedMedia, "CSS paged media and fragmentation", "css-page, css-break, css-gcpm"),
+        CssModule(HtmlCapabilitySpecificationIds.CssPagedMedia, "CSS paged media and fragmentation", "css-page, css-break, css-gcpm, css-page-floats"),
         CssModule(HtmlCapabilitySpecificationIds.CssConditional, "Media, conditional, and container queries", "mediaqueries, css-conditional, css-contain"),
         CssModule(HtmlCapabilitySpecificationIds.CssFonts, "CSS fonts", "css-fonts"),
         Specification(HtmlCapabilitySpecificationIds.Unicode17, "Unicode Standard 17.0.0", "https://www.unicode.org/versions/Unicode17.0.0/", "17.0.0", "bidirectional text, line breaking, character properties, and generated Unicode data used by the selected text subset"),
