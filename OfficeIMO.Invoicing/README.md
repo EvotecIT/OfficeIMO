@@ -119,6 +119,36 @@ EXTENDED-CTC-FR remains recognizable for inspection but cannot be selected for
 authoring or validation. Peppol BIS is a cross-border network usage specification,
 not a substitute for a national CIUS contract.
 
+## Read Polish FA(3)
+
+`Fa3InvoiceReader` reads the Polish FA(3), schema 1-0E, variant 3 document.
+It retains national document kinds, creation timestamps, P_15, every P_13/P_14
+VAT bucket, PLN tax declarations and literal line units. The common `Invoice`
+projection contains supported identities, addresses, contacts, dates, ordinary
+priced lines and payment instructions. A NIP remains a fiscal registration; it
+does not establish VAT registration. Address lines remain free text.
+
+```csharp
+var fa3 = Fa3InvoiceReader.Read(File.ReadAllBytes("polish-invoice.xml"));
+Console.WriteLine($"{fa3.Kind}: {fa3.Invoice.Number}, P_15={fa3.DeclaredTotal}");
+foreach (var diagnostic in fa3.UnmappedData.Concat(fa3.CommonMappingDiagnostics))
+    Console.WriteLine($"{diagnostic.Location}: {diagnostic.Message}");
+byte[] original = fa3.GetOriginalBytes();
+```
+
+The common projection does not recalculate national amounts or infer an amount
+due. Corrections retain signed differences and previous-state rows; advance and
+settlement rows are not interpreted as ordinary billed lines. Missing simplified
+invoice quantities and prices remain absent in the national line data. Other
+national annotations, order details, correction references, settlement charges
+and attachments are reported as unmapped rather than discarded.
+
+`GetOriginalBytes()` returns unchanged source bytes even after common-model edits.
+`WriteCommonInvoice` blocks conversion when national semantics or unmapped fields
+would be lost. Reading is separate from FA(3) authoring, fiscal validation and
+KSeF acceptance. Use the offline [FA(3) schema validator](../OfficeIMO.Invoicing.Validation/README.md#validate-polish-fa3)
+to qualify exact source bytes against the official XSD.
+
 ## Read and edit safely
 
 ```csharp

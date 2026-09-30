@@ -23,6 +23,43 @@ dotnet add path/to/Application.csproj package OfficeIMO.Invoicing.Validation --s
 PDF generation is independent of this package. Java and Saxon are required only
 when running the configured business-rule stage.
 
+## Validate Polish FA(3)
+
+`Fa3SchemaValidator` validates exact FA(3) bytes against the official schema
+published on 25 June 2025, version 1-0E. Download these four files into one local
+directory, naming the main schema `FA3.xsd`:
+
+| File | Official source |
+| --- | --- |
+| FA3.xsd | [FA(3) schema](https://crd.gov.pl/wzor/2025/06/25/13775/schemat.xsd) |
+| StrukturyDanych_v10-0E.xsd | [Data structures](https://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/StrukturyDanych_v10-0E.xsd) |
+| ElementarneTypyDanych_v10-0E.xsd | [Elementary data types](https://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/ElementarneTypyDanych_v10-0E.xsd) |
+| KodyKrajow_v10-0E.xsd | [Country codes](https://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/KodyKrajow_v10-0E.xsd) |
+
+```csharp
+var schemas = Fa3SchemaBundle.LoadDirectory("schemas/fa3");
+var fa3Validator = new Fa3SchemaValidator(schemas);
+var result = fa3Validator.Validate(File.ReadAllBytes("polish-invoice.xml"));
+Console.WriteLine($"{result.Status}: {result.InputSha256}");
+foreach (var diagnostic in result.Diagnostics)
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
+```
+
+The bundle verifies each SHA-256 and snapshots the files before validation. The
+main schema digest is
+`B646B6B525F51ADF1BB2545F111FC8CA6E7AA6DD2F98948F1667D3695C06D958`.
+Imports resolve only to these verified local snapshots; document-supplied schema
+locations and DTDs cannot trigger downloads. Input is limited to 16 MiB and depth
+128, with at most 1,000 reported diagnostics. Reports identify the input length,
+input hash and schema hash. No Java or Saxon runtime is required for this lane.
+
+The checked-in corpus contains all 26 independent examples from the
+[official FA(3) sample archive](https://ksef.podatki.gov.pl/media/e5cia0ey/przykladowe-pliki-dla-struktury-logicznej-e-faktury-fa-3.zip),
+including corrections, advances, settlements, simplified invoices and foreign
+currencies. XSD success establishes structure only. It does not certify Polish
+tax treatment, authorize submission or establish KSeF acceptance. This national
+format has its own schema contract rather than an EN 16931 profile declaration.
+
 ## Validate invoice XML
 
 The configured stages are:

@@ -9,5 +9,8 @@
     <Compile Include="../OfficeIMO.Invoicing.Tests/Fixtures/InvoiceFixture.cs" Link="InvoiceFixture.cs" />
     <None Include="../OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/*.xml" Link="Fixtures/KoSIT/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="Fixtures/invoice-corpus.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/FA3/Schemas/*.xsd" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Invoicing.Tests/Fixtures/FA3/*.xml" Link="Fixtures/FA3/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../OfficeIMO.Invoicing.Tests/Fixtures/FA3/manifest.json" Link="Fixtures/FA3/manifest.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

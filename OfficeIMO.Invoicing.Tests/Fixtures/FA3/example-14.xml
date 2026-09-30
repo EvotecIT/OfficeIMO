@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-08-17T00:00:00Z</DataWytworzeniaFa>
+		<SystemInfo>Samplofaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>ABC Developex S.A.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Sadowa 1 m. 3</AdresL1>
+			<AdresL2>00-002 Kraków</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>abc@abc.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>F.H.U. Jan Kowalski</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Polna 1</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>jan@kowalski.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<JST>2</JST>
+		<GV>2</GV>
+	</Podmiot2>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>3333333333</NIP>
+			<Nazwa>F.H.U. Grażyna Kowalska</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Polna 1</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>jan@kowalski.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<Rola>4</Rola>
+		<Udzial>50</Udzial>
+	</Podmiot3>
+	<Podmiot3>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>ABC Developex sp. z o.o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Sadowa 1 lok. 3</AdresL1>
+			<AdresL2>00-002 Kraków</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>abc@abc.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+		<Rola>3</Rola>
+	</Podmiot3>
+	<Fa>
+		<KodWaluty>PLN</KodWaluty>
+		<P_1>2026-08-17</P_1>
+		<P_1M>Warszawa</P_1M>
+		<P_2>FV2026/08/12</P_2>
+		<P_6>2026-09-17</P_6>
+		<P_13_1>4100.16</P_13_1>
+		<P_14_1>943.04</P_14_1>
+		<P_13_2>280177.59</P_13_2>
+		<P_14_2>22414.21</P_14_2>
+		<P_15>307635</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19N>1</P_19N>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>ROZ</RodzajFaktury>
+		<DodatkowyOpis>
+			<Klucz>wysokość pozostałej do zapłaty kwoty</Klucz>
+			<Wartosc>307635 zł</Wartosc>
+		</DodatkowyOpis>
+		<DodatkowyOpis>
+			<Klucz>W terminie 2026-09-15</Klucz>
+			<Wartosc>co najmniej 50% pozostałej kwoty</Wartosc>
+		</DodatkowyOpis>
+			<DodatkowyOpis>
+			<Klucz>W terminie 2026-10-15</Klucz>
+			<Wartosc>pozostała część</Wartosc>
+		</DodatkowyOpis>
+		<FakturaZaliczkowa>			
+			<NrKSeFFaZaliczkowej>9999999999-20230908-8BEF280C8D35-4D</NrKSeFFaZaliczkowej>
+		</FakturaZaliczkowa>
+		<FaWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<UU_ID>aaaa111133339997</UU_ID>
+			<P_7>mieszkanie 50m^2</P_7>
+			<P_8A>szt.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>307500</P_9A>
+			<P_11>307500</P_11>
+			<P_12>8</P_12>
+			<GTU>GTU_10</GTU>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>2</NrWierszaFa>
+			<UU_ID>aaaa111133339998</UU_ID>
+			<P_7>usługi dodatkowe</P_7>
+			<P_8A>szt.</P_8A>
+			<P_8B>1</P_8B>
+			<P_9A>4500</P_9A>
+			<P_11>4500</P_11>
+			<P_12>23</P_12>
+		</FaWiersz>
+		<Platnosc>
+			<TerminPlatnosci>
+				<Termin>2026-09-15</Termin>
+			</TerminPlatnosci>
+			<TerminPlatnosci>
+				<Termin>2026-10-15</Termin>
+			</TerminPlatnosci>
+			<FormaPlatnosci>6</FormaPlatnosci>
+			<RachunekBankowy>
+				<NrRB>73111111111111111111111111</NrRB>
+				<NazwaBanku>Bank Bankowości Bankowej S. A.</NazwaBanku>
+				<OpisRachunku>PLN</OpisRachunku>
+			</RachunekBankowy>
+		</Platnosc>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapiał zakładowy 5 000 000</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<KRS>0000099999</KRS>
+			<REGON>999999999</REGON>
+			<BDO>000099999</BDO>
+		</Rejestry>
+	</Stopka>
+</Faktura>
