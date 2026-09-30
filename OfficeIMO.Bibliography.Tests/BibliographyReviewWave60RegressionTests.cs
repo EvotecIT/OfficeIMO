@@ -6,6 +6,9 @@ namespace OfficeIMO.Bibliography.Tests;
 public sealed class BibliographyReviewWave60RegressionTests {
     [Fact]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void EndNote_retained_element_serialization_rejects_output_above_the_value_limit() {
 #if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
         const int nodes = 250_000;

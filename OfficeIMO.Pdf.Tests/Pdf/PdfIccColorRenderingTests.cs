@@ -822,6 +822,7 @@ public class PdfIccColorRenderingTests {
     [Fact]
 #if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
 #endif
     public void SeparationImageConversionReusesTintOutputBuffers() {
         var function = new PdfDictionary();

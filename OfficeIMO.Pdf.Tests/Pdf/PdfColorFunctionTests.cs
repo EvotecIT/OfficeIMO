@@ -188,6 +188,7 @@ public sealed partial class PdfColorFunctionTests {
     [Fact]
 #if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
 #endif
     public void Type0_ImageConversionReusesTintOutputBuffers() {
         PdfStream sampled = SampledFunction(
@@ -203,6 +204,7 @@ public sealed partial class PdfColorFunctionTests {
     [Fact]
 #if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
 #endif
     public void Type3_ImageConversionReusesTintOutputBuffers() {
         PdfDictionary stitching = Dictionary(

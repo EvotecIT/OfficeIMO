@@ -34,7 +34,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework net8.0 -p:PdfPerformanceEvidence=true --filter 'Category=ResourcePerformanceEvidence' --logger trx --results-directory artifacts/pdf-performance/tests
+          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework net8.0 -p:PdfPerformanceEvidence=true --filter 'Category=Performance' --logger trx --results-directory artifacts/pdf-performance/tests
       - uses: actions/upload-artifact@v7
         if: always()
         with:

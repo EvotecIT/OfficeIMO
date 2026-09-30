@@ -596,6 +596,7 @@ public class OfficeColorSpaceConverterTests {
     [Fact]
 #if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
 #endif
     public void IccMbaProfile_OffersAllocationFreeBufferedOutputAndSoftProofPaths() {
         Assert.True(OfficeIccColorProfile.TryCreate(

@@ -462,6 +462,7 @@ public sealed partial class PdfColorFunctionTests {
     [Fact]
 #if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
 #endif
     public void Type4_ReusesItsBoundedOperandStackAcrossPixelScaleEvaluations() {
         PdfStream calculator = CalculatorFunction(1, 3, "{ dup dup }");

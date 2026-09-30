@@ -50,6 +50,9 @@ public sealed class BibliographyReviewWave27RegressionTests {
 
     [Fact]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void EndNote_offset_mapping_remains_exact_when_lookups_move_backward() {
 #if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
         const int lines = 2_000_000;

@@ -9,6 +9,7 @@ public class PdfInvoiceProfileConsistencyTests {
     [Fact]
 #if PDF_PERFORMANCE_EVIDENCE
     [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
 #endif
     public void ProfileValidationDoesNotCopySupportingAttachmentPayloads() {
 #if PDF_PERFORMANCE_EVIDENCE
