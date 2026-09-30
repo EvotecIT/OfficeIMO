@@ -49,6 +49,7 @@ The package README is the primary usage guide for its public API. These reposito
 - [Electronic invoice model and CII/UBL conversion](../OfficeIMO.Invoicing/README.md)
 - [Typed invoice PDF generation](../OfficeIMO.Invoicing.Pdf/README.md)
 - [Pinned invoice schema and business-rule validation](../OfficeIMO.Invoicing.Validation/README.md)
+- [KSeF authentication, encrypted submission and receipt retrieval](../OfficeIMO.Invoicing.KSeF/README.md)
 - [PDF current state](officeimo.pdf.current-state.md)
 - [PDF conversion support](officeimo.pdf-conversion-support-matrix.md)
 - [PDF reverse-conversion scorecard](pdf-reverse-conversion-scorecard.json) — executable 56-case producer/target matrix plus scanned, mixed, encrypted, and malformed stress evidence.

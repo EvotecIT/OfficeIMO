@@ -86,3 +86,6 @@ OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt -text -diff
 # Official FA(3) XML and imported XSDs are pinned byte-level authority evidence.
 OfficeIMO.Invoicing.Tests/Fixtures/FA3/*.xml -text -diff
 OfficeIMO.Invoicing.Validation.Tests/Fixtures/FA3/Schemas/*.xsd -text -diff
+OfficeIMO.Invoicing.KSeF/Schemas/*.xsd -text -diff
+OfficeIMO.Invoicing.KSeF/Schemas/LICENSE.txt -text -diff
+OfficeIMO.Invoicing.KSeF.Tests/Fixtures/*.xml -text -diff

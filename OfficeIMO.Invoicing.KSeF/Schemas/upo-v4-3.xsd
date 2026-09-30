@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:upo="http://upo.schematy.mf.gov.pl/KSeF/v4-3"
+	targetNamespace="http://upo.schematy.mf.gov.pl/KSeF/v4-3"
+	elementFormDefault="qualified" attributeFormDefault="unqualified"
+	version="1.0" xml:lang="PL">
+	<xsd:element name="Potwierdzenie">
+		<xsd:annotation>
+			<xsd:documentation>Element główny potwierdzenia</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence>
+				<xsd:element name="NazwaPodmiotuPrzyjmujacego" fixed="Ministerstwo Finansów">
+					<xsd:annotation>
+						<xsd:documentation>Nazwa podmiotu przyjmującego dokument elektroniczny</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:token">
+							<xsd:minLength value="1"/>
+							<xsd:maxLength value="240"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element name="NumerReferencyjnySesji" type="upo:TNumerReferencyjny">
+					<xsd:annotation>
+						<xsd:documentation>Wartość numeru referencyjnego sesji</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+
+				<xsd:element name="Uwierzytelnienie">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="IdKontekstu" >
+								<xsd:annotation>
+									<xsd:documentation>Identyfikator kontekstu uwierzytelnienia w systemie KSeF.</xsd:documentation>
+								</xsd:annotation>
+								<xsd:complexType>
+									<xsd:choice>
+										<xsd:element name="Nip" type="upo:TNip">
+											<xsd:annotation>
+												<xsd:documentation>Numer identyfikacyjny NIP</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+
+										<xsd:element name="IdWewnetrzny" type="upo:TIdWewnetrzny">
+											<xsd:annotation>
+												<xsd:documentation>Identyfikator wewnętrzny</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+
+										<xsd:element name="IdZlozonyVatUE" type="upo:TIdZlozonyVatUE">
+											<xsd:annotation>
+												<xsd:documentation>Kontekst złożony: NIP + numer VAT UE</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+
+										<xsd:element name="IdDostawcyUslugPeppol" type="upo:TIdDostawcyUslugPeppol">
+											<xsd:annotation>
+												<xsd:documentation>Identyfikator dostawcy usług Peppol</xsd:documentation>
+											</xsd:annotation>
+										</xsd:element>
+									</xsd:choice>
+								</xsd:complexType>
+							</xsd:element>
+							<xsd:choice>
+								
+								<xsd:element name="NumerReferencyjnyTokenaKSeF" type="upo:TNumerReferencyjny">
+									<xsd:annotation>
+										<xsd:documentation>Identyfikator tokenu uwierzytelniającego w systemie KSeF</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+
+								<xsd:element name="SkrotDokumentuUwierzytelniajacego" type="upo:TSkrotDokumentu">
+									<xsd:annotation>
+										<xsd:documentation>Wartość funkcji skrótu dokumentu uwierzytelniającego w postaci otrzymanej przez system (łącznie z podpisem elektronicznym)</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+							</xsd:choice>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+
+				<xsd:element name="OpisPotwierdzenia" minOccurs="0" maxOccurs="1">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="Strona">
+								<xsd:annotation>
+									<xsd:documentation>Numer strony dokumentu UPO.</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:positiveInteger">
+										<xsd:whiteSpace value="collapse" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="LiczbaStron">
+								<xsd:annotation>
+									<xsd:documentation>Całkowita liczba stron dokumentu UPO.</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:positiveInteger">
+										<xsd:whiteSpace value="collapse" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="ZakresDokumentowOd">
+								<xsd:annotation>
+									<xsd:documentation>Początek zakresu dokumentów na stronie UPO (inclusive).</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:positiveInteger">
+										<xsd:whiteSpace value="collapse" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="ZakresDokumentowDo">
+								<xsd:annotation>
+									<xsd:documentation>Koniec zakresu dokumentów na stronie UPO (exclusive).</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:positiveInteger">
+										<xsd:whiteSpace value="collapse" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="CalkowitaLiczbaDokumentow">
+								<xsd:annotation>
+									<xsd:documentation>Całkowita liczba dokumentów na wszystkich stronach dokumentu UPO.</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:positiveInteger">
+										<xsd:whiteSpace value="collapse" />
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+
+				<xsd:element name="NazwaStrukturyLogicznej">
+					<xsd:annotation>
+						<xsd:documentation>Nazwa pliku XSD struktury logicznej dotycząca przesłanego dokumentu</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:token">
+							<xsd:minLength value="1"/>
+							<xsd:maxLength value="240"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element name="KodFormularza">
+					<xsd:annotation>
+						<xsd:documentation>Kod formularza przedłożonego dokumentu elektronicznego</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:token">
+							<xsd:minLength value="1"/>
+							<xsd:maxLength value="240"/>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:element>
+				<xsd:element name="Dokument" maxOccurs="10000">
+					<xsd:complexType>
+						<xsd:sequence>
+							<xsd:element name="NipSprzedawcy" type="upo:TNip" >
+								<xsd:annotation>
+									<xsd:documentation>Nip sprzedawcy z faktury (Podmiot 1)</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="NumerKSeFDokumentu">
+								<xsd:annotation>
+									<xsd:documentation>Numer identyfikujący fakturę w Krajowym Systemie e-Faktur (KSeF)</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:token">
+										<xsd:pattern value="([1-9](\d[1-9]|[1-9]\d)\d{7})-(20[2-9][0-9]|2[1-9]\d{2}|[3-9]\d{3})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])-([0-9A-F]{6})-?([0-9A-F]{6})-([0-9A-F]{2})"/>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="NumerFaktury">
+								<xsd:annotation>
+									<xsd:documentation>Numer faktury</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:token">
+										<xsd:minLength value="1"/>
+										<xsd:maxLength value="256"/>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="DataWystawieniaFaktury">
+								<xsd:annotation>
+									<xsd:documentation>Data wystawienia faktury</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:date">
+										<xsd:minInclusive value="2006-01-01"/>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="DataPrzeslaniaDokumentu">
+								<xsd:annotation>
+									<xsd:documentation>Data przesłania dokumentu do systemu KSeF</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:dateTime">
+										<xsd:whiteSpace value="collapse"/>
+										<xsd:minInclusive value="2021-10-01T00:00:00Z"/>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="DataNadaniaNumeruKSeF">
+								<xsd:annotation>
+									<xsd:documentation>Czas i data wygenerowania numeru KSeF</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:dateTime">
+										<xsd:whiteSpace value="collapse"/>
+										<xsd:minInclusive value="2021-10-01T00:00:00Z"/>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+							<xsd:element name="SkrotDokumentu" type="upo:TSkrotDokumentu">
+								<xsd:annotation>
+									<xsd:documentation>Wartość funkcji skrótu złożonego dokumentu</xsd:documentation>
+								</xsd:annotation>
+							</xsd:element>
+							<xsd:element name="TrybWysylki">
+								<xsd:annotation>
+									<xsd:documentation>Tryb wysyłki dokumentu do KSeF: Online lub Offline</xsd:documentation>
+								</xsd:annotation>
+								<xsd:simpleType>
+									<xsd:restriction base="xsd:string">
+										<xsd:enumeration value="Online"/>
+										<xsd:enumeration value="Offline"/>
+									</xsd:restriction>
+								</xsd:simpleType>
+							</xsd:element>
+
+						</xsd:sequence>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:sequence>
+			<xsd:attribute name="wersjaSchemy" type="xsd:string" use="optional">
+				<xsd:annotation>
+					<xsd:documentation>Wersja struktury logicznej UPO KSeF 2.0</xsd:documentation>
+				</xsd:annotation>
+			</xsd:attribute>
+		</xsd:complexType>
+		<xsd:unique name="NumerReferencyjnyDokumentuUnique">
+			<xsd:selector xpath="upo:Dokument"/>
+			<xsd:field xpath="upo:NumerKSeFDokumentu"/>
+		</xsd:unique>
+	</xsd:element>
+
+	<xsd:simpleType name="TNip">
+		<xsd:restriction base="xsd:token">
+			<xsd:pattern value="[1-9]((\d[1-9])|([1-9]\d))\d{7}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TIdWewnetrzny">
+		<xsd:restriction base="xsd:token">
+			<xsd:pattern value="[1-9]((\d[1-9])|([1-9]\d))\d{7}-\d{5}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TIdZlozonyVatUE">
+		<xsd:restriction base="xsd:token">
+			<xsd:pattern value="([1-9]((\d[1-9])|([1-9]\d))\d{7}-((AT)(U\d{8})|(BE)([01]{1}\d{9})|(BG)(\d{9,10})|(CY)(\d{8}[A-Z])|(CZ)(\d{8,10})|(DE)(\d{9})|(DK)(\d{8})|(EE)(\d{9})|(EL)(\d{9})|(ES)([A-Z]\d{8}|\d{8}[A-Z]|[A-Z]\d{7}[A-Z])|(FI)(\d{8})|(FR)[A-Z0-9]{2}\d{9}|(HR)(\d{11})|(HU)(\d{8})|(IE)(\d{7}[A-Z]{2}|\d[A-Z0-9+*]\d{5}[A-Z])|(IT)(\d{11})|(LT)(\d{9}|\d{12})|(LU)(\d{8})|(LV)(\d{11})|(MT)(\d{8})|(NL)([A-Z0-9+*]{12})|(PT)(\d{9})|(RO)(\d{2,10})|(SE)(\d{12})|(SI)(\d{8})|(SK)(\d{10})|(XI)((\d{9}|(\d{12}))|(GD|HA)(\d{3}))))"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TIdDostawcyUslugPeppol">
+		<xsd:restriction base="xsd:token">
+			<xsd:pattern value="P[A-Z]{2}[0-9]{6}"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TSkrotDokumentu">
+		<xsd:restriction base="xsd:token">
+			<xsd:minLength value="44"/>
+			<xsd:maxLength value="44"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<xsd:simpleType name="TNumerReferencyjny">
+		<xsd:restriction base="xsd:token">
+			<xsd:pattern value="(20[2-9][0-9]|2[1-9][0-9]{2}|[3-9][0-9]{3})(0[1-9]|1[0-2])(0[1-9]|[1-2][0-9]|3[0-1])-([0-9A-Z]{2})-([0-9A-F]{10})-([0-9A-F]{10})-([0-9A-F]{2})"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+</xsd:schema>
