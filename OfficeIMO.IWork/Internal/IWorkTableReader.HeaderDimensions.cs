@@ -21,18 +21,26 @@ internal static partial class IWorkTableReader {
             complete &= unresolved == 0;
             bool rowIndicesComplete = unresolved == 0;
             var seenRows = new HashSet<int>();
-            var seenBuckets = new HashSet<ulong>();
+            var seenBuckets = new Dictionary<ulong, HashSet<int>>();
             foreach (IWorkArchiveRecord bucket in buckets) {
                 source.CancellationToken.ThrowIfCancellationRequested();
-                if (!seenBuckets.Add(bucket.Identifier)) {
+                if (seenBuckets.TryGetValue(bucket.Identifier, out HashSet<int>? repeatedIndices)) {
                     complete = false;
-                    rowIndicesComplete = false;
                     references.Declarations.Record(model, "4/1/2", rowHeaders.FieldCount(2),
                         IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
+                    // Known repeats retire only their indexes. Clear the cached set after the first
+                    // repeat so further references cannot multiply removal work or restore a size.
+                    foreach (int position in repeatedIndices) {
+                        source.CancellationToken.ThrowIfCancellationRequested();
+                        rowHeights.Remove(position);
+                    }
+                    repeatedIndices.Clear();
                     continue;
                 }
+                var selectedIndices = new HashSet<int>();
+                seenBuckets.Add(bucket.Identifier, selectedIndices);
                 ReadDimensionBucket(source, bucket, rows, budget, seenRows, rowHeights, references,
-                    ref rowIndicesComplete, ref complete);
+                    selectedIndices, ref rowIndicesComplete, ref complete);
             }
             // An unreadable index may conceal a duplicate in any selected bucket on this axis.
             if (!rowIndicesComplete) rowHeights.Clear();
@@ -44,7 +52,7 @@ internal static partial class IWorkTableReader {
             else {
                 bool columnIndicesComplete = true;
                 ReadDimensionBucket(source, bucket, columns, budget, new HashSet<int>(), columnWidths,
-                    references, ref columnIndicesComplete, ref complete);
+                    references, null, ref columnIndicesComplete, ref complete);
                 if (!columnIndicesComplete) columnWidths.Clear();
             }
         }
@@ -60,7 +68,7 @@ internal static partial class IWorkTableReader {
     private static void ReadDimensionBucket(IWorkSourceDocument source, IWorkArchiveRecord bucket,
         int dimensionCount, IWorkProjectionBudget budget, HashSet<int> seen,
         Dictionary<int, double> sizes, IWorkSourceReferenceIssueCollector references,
-        ref bool indicesComplete, ref bool complete) {
+        HashSet<int>? selectedIndices, ref bool indicesComplete, ref bool complete) {
         if (bucket.MessageType != HeaderStorageBucketArchive) {
             complete = indicesComplete = false;
             references.Declarations.Record(bucket, "$", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
@@ -108,6 +116,7 @@ internal static partial class IWorkTableReader {
                 continue;
             }
             int position = (int)index.Value + 1;
+            selectedIndices?.Add(position);
             bool duplicate = !seen.Add(position);
             if (duplicate) {
                 references.Declarations.Record(bucket, path + "/1", 1,

@@ -168,10 +168,10 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream DimensionPackage(IWorkDocumentKind kind, byte[]? firstRowHeader = null,
         bool duplicate = false, bool missingBucket = false, float scale = 1f, bool repeatTable = false,
         byte[]? firstBucketPayload = null, byte[]? secondBucketPayload = null, byte[]? columnBucketPayload = null,
-        bool repeatBucket = false, uint firstBucketType = 6006) {
+        int repeatBucketCount = 0, uint firstBucketType = 6006) {
         byte[] store = Message(
             BytesField(1, Message(VarintField(1, 1), ReferenceField(2, missingBucket ? 99UL : 12UL), ReferenceField(2, 13),
-                repeatBucket ? ReferenceField(2, 12) : Message())),
+                Message(Enumerable.Range(0, repeatBucketCount).Select(_ => ReferenceField(2, 12)).ToArray()))),
             ReferenceField(2, 14), BytesField(3, Message()));
         byte[] model = Message(BytesField(4, store), VarintField(6, 3), VarintField(7, 2),
             StringField(8, "Dimensions"), DoubleField(16, 10), DoubleField(17, 20));

@@ -170,19 +170,24 @@ public sealed partial class IWorkBoundaryTests {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Rejected_dimension_bucket_selection_retains_evidence_without_trusting_sizes(bool duplicate) {
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Rejected_dimension_bucket_selection_retains_evidence_without_trusting_sizes(int repeatCount) {
+        bool duplicate = repeatCount > 0;
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
-            repeatBucket: duplicate, firstBucketType: duplicate ? 6006u : 2001u);
+            repeatBucketCount: repeatCount, firstBucketType: duplicate ? 6006u : 2001u);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
-        Assert.Empty(table.RowHeights);
+        if (duplicate) {
+            Assert.False(table.RowHeights.ContainsKey(1));
+            Assert.Equal(30d, table.GetRowHeight(3));
+        } else Assert.Empty(table.RowHeights);
         Assert.Equal(40.5d, table.GetColumnWidth(1));
         IWorkSourceDeclarationIssue issue = Assert.Single(projection.SourceDeclarationIssues);
         Assert.Equal(duplicate ? 11ul : 12ul, issue.Owner.RecordIdentifier);
         Assert.Equal(duplicate ? "4/1/2" : "$", issue.FieldPath);
-        Assert.Equal(duplicate ? 3 : (int?)null, issue.DeclaredValueCount);
+        Assert.Equal(duplicate ? 2 + repeatCount : (int?)null, issue.DeclaredValueCount);
         Assert.Equal(duplicate ? IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata
             : IWorkSourceDeclarationIssueKind.RejectedMessageSet, issue.Kind);
     }

@@ -207,7 +207,7 @@ String, formula and rich-text catalogs reject duplicate keys even when a duplica
 
 ### iWork ambiguous table sizing
 
-An unreadable row or column index, unresolved sizing bucket, or repeated row-bucket reference prevents trusting overrides on that axis, including those in other selected buckets. `SourceDeclarationIssues` retains physical header paths and invalid size or visibility values; unresolved bucket references remain in `SourceReferenceIssues`. Use `AllowPartialEditableReconstruction` to retain the other axis and healthy sizes at unambiguous indexes. The destination owner applies its existing default-size and geometry rules.
+An unreadable row or column index or unresolved sizing bucket prevents trusting overrides on that axis, including those in other selected buckets. A repeated readable row-bucket reference retires that bucket's indexes while retaining unrelated overrides. `SourceDeclarationIssues` retains physical header paths and invalid size or visibility values; unresolved bucket references remain in `SourceReferenceIssues`. Use `AllowPartialEditableReconstruction` to retain the other axis and healthy sizes at unambiguous indexes. The destination owner applies its existing default-size and geometry rules.
 
 ### iWork formula assessment counts
 
