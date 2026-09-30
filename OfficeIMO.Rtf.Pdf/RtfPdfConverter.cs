@@ -18,18 +18,21 @@ internal static partial class RtfPdfConverter {
             pdfOptions,
             normalized);
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
+        PdfCore.PdfOptions documentDefaults = pdfOptions.Clone();
+        RtfPageSetup firstPageSetup = document.PageSetup;
         if (document.Sections.Count > 0) {
-            ApplyPageSetup(document, document.Sections[0].PageSetup, pdfOptions);
+            firstPageSetup = document.GetPageSetup(document.Sections[0]);
+            ApplyPageSetup(document, firstPageSetup, pdfOptions);
         }
 
-        ApplyHeaderFooters(document, pdfOptions, normalized,
+        ApplyHeaderFooters(document, firstPageSetup, pdfOptions, normalized,
             document.Sections.Count == 0 ? document.HeaderFooters : document.GetEffectiveHeaderFooters(document.Sections[0]));
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
         PdfRenderState state = new PdfRenderState(document, fontSlots);
 
-        RenderDocumentBlocks(document, pdf, normalized, state, pdfOptions);
+        RenderDocumentBlocks(document, pdf, normalized, state, documentDefaults);
 
         RenderNotes(document, pdf, normalized, state);
         return pdf;
@@ -54,7 +57,7 @@ internal static partial class RtfPdfConverter {
             }
 
             pdf.Section(page => {
-                ApplyPageSetup(document, section.PageSetup, page, pdfOptions);
+                ApplyPageSetup(document, section, page, pdfOptions);
                 ApplySectionHeaderFooters(document, section, page, options);
                 RenderBlocks(document, section.Blocks, pdf, options, state);
 

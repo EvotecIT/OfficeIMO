@@ -69,6 +69,7 @@ internal static partial class PdfWriter {
                 AddGeneratedFontUsage(fontUsages, watermarkFont, pageOptions);
             }
 
+            variantPageNumber = pageOptions.GetHeaderFooterVariantPageNumber(variantPageNumber, pageNumberInfos[pageIndex].PageNumber);
             if (pageOptions.HasHeaderTextContentForPage(variantPageNumber)) {
                 if (TryResolvePageTextNamedFont(pageOptions, pageOptions.HeaderFontFamily, pageOptions.HeaderFont, out PdfNamedFontFace headerNamedFont)) {
                     AddGeneratedFontUsage(fontUsages, headerNamedFont, pageOptions);

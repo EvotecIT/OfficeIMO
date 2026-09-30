@@ -7,6 +7,18 @@ public sealed partial class PdfOptions {
 
     internal long PageSizeConfigurationState => _pageSizeConfigurationVersion;
 
+    private PdfPageParity? _pageStartParity;
+    /// <summary>Optional physical-page parity for a composed page or section. A blank page is inserted before a later section when needed; the first section starts without padding.</summary>
+    public PdfPageParity? PageStartParity {
+        get => _pageStartParity;
+        set {
+            if (value.HasValue && value != PdfPageParity.Odd && value != PdfPageParity.Even) {
+                throw new ArgumentOutOfRangeException(nameof(value));
+            }
+            _pageStartParity = value;
+        }
+    }
+
     /// <summary>Page width in points (1 pt = 1/72 in). Default is 612 (Letter 8.5in).</summary>
     public double PageWidth {
         get => _pageWidth;
