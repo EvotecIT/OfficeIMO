@@ -91,7 +91,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I4: shared consumer integration
 
-- [ ] Extend the [shared iWork workflow routes](../OfficeIMO.Workflows.IWork/README.md) to Studio intake/review and directory-bundle conversion. Preserve one conversion policy, limits, typed fidelity evidence, source identity, and publication-time package membership/content verification. Keep incomplete-coverage decisions visible.
+- [ ] Extend the [shared iWork workflow routes](../OfficeIMO.Workflows.IWork/README.md) to directory-bundle conversion. Preserve one conversion policy, limits, typed fidelity evidence, source identity, and publication-time package membership/content verification. Keep incomplete-coverage decisions visible.
 
 ### I5: runtime and Apple host acceptance
 

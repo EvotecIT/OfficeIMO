@@ -26,7 +26,7 @@ public sealed partial class OfficeWorkflowRunner {
         List<OfficeWorkflowDiagnostic> diagnostics, CancellationToken token) {
         using var source = new MemoryStream(input, writable: false);
         using var output = new OfficeWorkflowBoundedMemoryStream(request.Limits.MaximumOutputBytes);
-        OfficeWorkflowConversionEvidence evidence = request.Registration!.Converter(source, output, request.Limits.CloneAndValidate(), token)
+        OfficeWorkflowConversionEvidence evidence = request.Registration!.Converter(source, output, request.Limits.CloneAndValidate(), request.RegisteredConversionSettings, token)
             ?? throw new InvalidOperationException("The registered converter returned no evidence.");
         token.ThrowIfCancellationRequested();
         foreach (OfficeConversionFidelityDiagnostic diagnostic in evidence.FidelityDiagnostics) {

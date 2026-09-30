@@ -169,7 +169,7 @@ public sealed partial class MainWindowViewModel : ObservableObject, IDisposable 
         ConversionWorkbench = new ConversionWorkbenchViewModel(
             pickWorkflowFiles ?? (_ => Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>())),
             _pickOutputFolder,
-            runner: null,
+            runner: _services.ConversionRunner,
             localizer: _localizer,
             publicationGuard: publicationGuard,
             jobHistory: _services.Jobs, storage: _services.Storage, recoveryStore: _services.WorkflowRecovery, confirmProviderWrite: confirmWorkflowProviderWrite ?? _confirmProviderWrite,

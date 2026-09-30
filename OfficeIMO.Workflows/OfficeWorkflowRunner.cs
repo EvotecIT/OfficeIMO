@@ -759,5 +759,6 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         IPdfSignatureCryptographyProvider? OutputSignatureValidator = null,
         OfficeWorkflowConversionOptions? ConversionOptions = null,
         OfficeScanCleanupOptions? ScanCleanup = null,
-        OfficeWorkflowConversionRegistration? Registration = null);
+        OfficeWorkflowConversionRegistration? Registration = null,
+        IOfficeWorkflowConversionSettings? RegisteredConversionSettings = null);
 }

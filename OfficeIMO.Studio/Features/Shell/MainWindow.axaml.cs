@@ -440,6 +440,11 @@ public sealed partial class MainWindow : Window {
         if (_windowClosed) return;
         if (_initialDocumentOpened || string.IsNullOrWhiteSpace(_initialDocumentPath)) return;
         _initialDocumentOpened = true;
+        if (!IsPdf(_initialDocumentPath) && IsConvertible(_initialDocumentPath)) {
+            ViewModel.ConversionWorkbench.AddDroppedPaths([_initialDocumentPath]);
+            ViewModel.ShowConversionWorkbenchCommand.Execute(null);
+            return;
+        }
         await TabHost.OpenDocumentAsync(_initialDocumentPath);
     }
 
@@ -508,6 +513,7 @@ public sealed partial class MainWindow : Window {
                 new FilePickerFileType(_services.Localizer.Get("Picker.SupportedFiles")) {
                     Patterns = [
                         "*.docx", "*.xlsx", "*.pptx", "*.pdf", "*.html", "*.htm",
+                        "*.pages", "*.numbers", "*.key",
                         "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.tif", "*.tiff",
                         "*.webp", "*.ico", "*.pcx", "*.zip"
                     ]
@@ -777,11 +783,9 @@ public sealed partial class MainWindow : Window {
 
     private static bool IsPdf(string name) => string.Equals(System.IO.Path.GetExtension(name), ".pdf", StringComparison.OrdinalIgnoreCase);
 
-    private static readonly HashSet<string> ConvertibleExtensions = OfficeWorkflowCatalog.ExecutableRoutes
-        .SelectMany(route => route.SourceExtensions)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-    private static bool IsConvertible(string name) => ConvertibleExtensions.Contains(System.IO.Path.GetExtension(name));
+    private bool IsConvertible(string name) => ViewModel.ConversionWorkbench.Routes.Any(route =>
+        route.Route.SourceExtensions.Any(extension => string.Equals("." + extension.TrimStart('.'),
+            System.IO.Path.GetExtension(name), StringComparison.OrdinalIgnoreCase)));
 
     private void ShowDropOverlay(DropPlan plan) {
         var text = _services.Localizer;

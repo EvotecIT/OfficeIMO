@@ -218,6 +218,66 @@ public sealed class IWorkWorkflowTests {
     [DllImport("libc", EntryPoint = "mkfifo", SetLastError = true)]
     private static extern int MkFifo(string path, uint mode);
 
+    [Fact]
+    public async Task Request_acceptance_is_snapshotted_before_provider_capture() {
+        using var files = new Files("pages", "docx");
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var proceed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var settings = new IWorkWorkflowSettings {
+            ConversionOptions = new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly, RequireCompleteVisualCoverage = false }
+        };
+        OfficeWorkflowRequest request = files.Request("pages-docx");
+        request.RegisteredConversionSettings = settings;
+        request.InputStream = new OfficeWorkflowStreamInput("source.pages", async token => {
+            entered.TrySetResult();
+            await proceed.Task.WaitAsync(token);
+            return File.OpenRead(files.Input);
+        });
+        Task<OfficeWorkflowResult> run = IWorkWorkflow.CreateRunner().RunAsync(request);
+        await entered.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        settings.ConversionOptions.Mode = IWorkConversionMode.EditableOnly;
+        settings.ConversionOptions.RequireCompleteVisualCoverage = true;
+        settings.ReadOptions.MaximumPackageBytes = 1;
+        proceed.SetResult();
+        OfficeWorkflowResult result = await run;
+        Assert.True(result.Succeeded, result.Summary);
+        Assert.Equal("VisualFallback", result.ConversionEvidence!.Facts["projectionKind"]);
+        Assert.Contains(result.ConversionEvidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+    }
+
+    [Theory]
+    [InlineData("pages-docx")]
+    [InlineData("docx-pdf")]
+    public async Task Wrong_settings_contract_is_rejected_before_opening_input(string route) {
+        using var files = new Files("pages", route == "docx-pdf" ? "pdf" : "docx");
+        bool opened = false;
+        OfficeWorkflowRequest request = files.Request(route);
+        request.InputStream = new OfficeWorkflowStreamInput(route == "docx-pdf" ? "source.docx" : "source.pages", _ => {
+            opened = true;
+            return Task.FromResult<Stream>(File.OpenRead(files.Input));
+        });
+        request.RegisteredConversionSettings = new OtherSettings();
+        OfficeWorkflowResult result = await IWorkWorkflow.CreateRunner().RunAsync(request);
+        Assert.Equal(OfficeWorkflowFailureKind.ValidationFailed, result.FailureKind);
+        Assert.False(opened);
+        Assert.False(File.Exists(files.Output));
+    }
+
+    [Fact]
+    public void Fluent_adapter_settings_are_independent_from_the_caller() {
+        var settings = new IWorkWorkflowSettings();
+        var builder = OfficeWorkflow.Convert("source.pages").Via("pages-docx").To("output.docx").WithRegisteredConversionSettings(settings);
+        settings.ConversionOptions.AllowPartialEditableReconstruction = true;
+        var request = builder.Build();
+        var captured = Assert.IsType<IWorkWorkflowSettings>(request.RegisteredConversionSettings);
+        Assert.False(captured.ConversionOptions.AllowPartialEditableReconstruction);
+        Assert.True(captured.ConversionOptions.RequireCompleteVisualCoverage);
+    }
+
+    private sealed class OtherSettings : IOfficeWorkflowConversionSettings {
+        public IOfficeWorkflowConversionSettings Snapshot() => new OtherSettings();
+    }
+
     private sealed class EmptyReport : IOfficeConversionReport {
         public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => Array.Empty<OfficeConversionFidelityDiagnostic>();
         public bool HasLoss => false;

@@ -19,18 +19,18 @@ public static class IWorkWorkflow {
         IWorkReadOptions reading = (readOptions ?? new IWorkReadOptions { PreserveSourceRecords = false }).Clone();
         IWorkConversionOptions conversion = (conversionOptions ?? new IWorkConversionOptions { RequireCompleteVisualCoverage = true }).Clone();
         return Array.AsReadOnly(new[] {
-            new OfficeWorkflowConversionRegistration("pages-docx", (input, output, limits, token) => {
-                using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(reading, limits), conversion, token);
+            OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
+                using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
             }),
-            new OfficeWorkflowConversionRegistration("numbers-xlsx", (input, output, limits, token) => {
-                using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(reading, limits), conversion, token);
+            OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
+                using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
             }),
-            new OfficeWorkflowConversionRegistration("keynote-pptx", (input, output, limits, token) => {
-                using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(reading, limits), conversion, token);
+            OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
+                using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
             })

@@ -110,8 +110,11 @@ internal sealed partial class StudioStorageAccess : IDisposable {
     }
 
     internal bool UsesProviderPublication(string location) {
+        string key = OfficeStorageIdentity.Normalize(location);
         lock (_sync) return OfficeStorageIdentity.GetLocalPath(location) is null ||
-            (OperatingSystem.IsMacOS() && _references.ContainsKey(OfficeStorageIdentity.Normalize(location)));
+            (OperatingSystem.IsMacOS() && (_files.ContainsKey(key) || _folders.ContainsKey(key) ||
+                _outputFolderReferences.ContainsKey(key) ||
+                (_references.TryGetValue(key, out var reference) && reference.Bookmark is not null)));
     }
 
     internal OfficeIMO.Workflows.OfficeWorkflowStreamInput? CreateWorkflowInput(string location) =>

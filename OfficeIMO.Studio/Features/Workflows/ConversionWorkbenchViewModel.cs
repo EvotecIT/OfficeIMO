@@ -38,7 +38,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         Func<string, CancellationToken, Task>? openOutput = null) {
         _pickFiles = pickFiles;
         _pickOutputFolder = pickOutputFolder;
-        _runner = runner ?? new OfficeWorkflowRunner();
+        _runner = runner ?? OfficeIMO.Workflows.IWork.IWorkWorkflow.CreateRunner();
         _publicationGuard = publicationGuard;
         _jobHistory = jobHistory;
         _storage = storage;
@@ -46,7 +46,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         _confirmProviderWrite = confirmProviderWrite ?? (_ => Task.FromResult(false));
         _openOutput = openOutput;
         _localizer = localizer ?? StudioLocalization.Current;
-        Routes = OfficeWorkflowCatalog.ExecutableRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
+        Routes = _runner.ConversionRoutes.Select(route => new ConversionRouteChoice(route, _localizer)).ToArray();
         Profiles = [
             new(OfficeWorkflowOutputProfile.Faithful, T("Profile.Faithful.Label", "Faithful"), T("Profile.Faithful.Description", "Preserve authored content and visual features where the format owner supports them.")),
             new(OfficeWorkflowOutputProfile.Lightweight, T("Profile.Lightweight.Label", "Lightweight"), T("Profile.Lightweight.Description", "Prefer smaller, simpler output while retaining useful structure.")),
@@ -269,6 +269,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         IsBusy = true;
         ProgressFraction = 0D;
         var conversionOptions = candidates.ToDictionary(job => job.Id, job => job.CreateConversionOptions());
+        var registeredSettings = candidates.ToDictionary(job => job.Id, job => job.CreateRegisteredConversionSettings());
         OfficeWorkflowConflictPolicy conflictPolicy = SelectedConflict.Value;
         foreach (ConversionJobViewModel job in candidates) job.PrepareAttempt();
         var history = new Dictionary<string, StudioJobRecord>(StringComparer.Ordinal);
@@ -287,7 +288,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
                     ?? throw new IOException("Workflow recovery storage is unavailable."));
             }
             var requests = new List<OfficeWorkflowRequest>(candidates.Length);
-            foreach (var candidate in candidates) requests.Add(await CreateRequestAsync(candidate, conversionOptions[candidate.Id], conflictPolicy, folder, directoryOutput, operationCancellation.Token).ConfigureAwait(true));
+            foreach (var candidate in candidates) requests.Add(await CreateRequestAsync(candidate, conversionOptions[candidate.Id], registeredSettings[candidate.Id], conflictPolicy, folder, directoryOutput, operationCancellation.Token).ConfigureAwait(true));
             if (_jobHistory is not null) {
                 foreach (OfficeWorkflowRequest request in requests) {
                     history.Add(request.Id, _jobHistory.Start(T("Job.Title", "Conversion"), request.InputPath,
@@ -364,7 +365,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
         ClearOutputPreview();
     }
 
-    private async Task<OfficeWorkflowRequest> CreateRequestAsync(ConversionJobViewModel job, OfficeWorkflowConversionOptions options, OfficeWorkflowConflictPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryOutputSession? directoryOutput, CancellationToken token) {
+    private async Task<OfficeWorkflowRequest> CreateRequestAsync(ConversionJobViewModel job, OfficeWorkflowConversionOptions options, IOfficeWorkflowConversionSettings? registeredSettings, OfficeWorkflowConflictPolicy conflictPolicy, string folder, StudioStorageAccess.DirectoryOutputSession? directoryOutput, CancellationToken token) {
         if (string.IsNullOrWhiteSpace(folder) && _storage?.UsesProviderPublication(job.InputPath) == true) {
             throw new InvalidOperationException(T("Output.ProviderFolderRequired", "Choose an output folder before converting provider documents."));
         }
@@ -386,6 +387,7 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             ConversionRouteId = job.Route.Route.Id,
             OutputProfile = job.OutputProfile,
             ConversionOptions = options,
+            RegisteredConversionSettings = registeredSettings,
             PublicationGuard = _publicationGuard,
             ConflictPolicy = providerFile is null ? conflictPolicy : OfficeWorkflowConflictPolicy.Replace
         };

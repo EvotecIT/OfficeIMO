@@ -2327,4 +2327,20 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Signing.Certify.FormsAndComments" xml:space="preserve"><value>Form filling, comments and signing</value></data>
   <data name="FillSign.ImageNeedsContent" xml:space="preserve"><value>This PDF only accepts annotations, so a picture signature cannot be placed. Draw or type your signature instead.</value></data>
   <data name="Tools.FlattenAnnotations" xml:space="preserve"><value>Flatten all annotations</value></data>
+  <data name="Conversion.IWork.Representation" xml:space="preserve"><value>Apple document representation</value></data>
+  <data name="Conversion.IWork.AcceptanceHint" xml:space="preserve"><value>Embedded previews can contain only the first page or a composite. Conversion rejects incomplete coverage and partial editable recovery unless you allow them.</value></data>
+  <data name="Conversion.IWork.AllowPartial" xml:space="preserve"><value>Allow partial editable reconstruction</value></data>
+  <data name="Conversion.IWork.AllowIncompletePreview" xml:space="preserve"><value>Allow an incomplete source preview</value></data>
+  <data name="Conversion.IWork.NormalizeNames" xml:space="preserve"><value>Normalize Excel worksheet names</value></data>
+  <data name="Conversion.IWork.SourceEvidence" xml:space="preserve"><value>Source and reconstruction evidence</value></data>
+  <data name="Conversion.IWork.SourceFingerprint" xml:space="preserve"><value>Captured source SHA-256</value></data>
+  <data name="Conversion.IWork.VisualResult" xml:space="preserve"><value>Embedded visual preview</value></data>
+  <data name="Conversion.IWork.EditableResult" xml:space="preserve"><value>Editable reconstruction</value></data>
+  <data name="Conversion.IWork.FullCoverage" xml:space="preserve"><value>Known full-document preview coverage</value></data>
+  <data name="Conversion.IWork.IncompleteCoverage" xml:space="preserve"><value>Preview coverage is incomplete or unknown</value></data>
+  <data name="Conversion.IWork.PartialResult" xml:space="preserve"><value>Partial editable reconstruction was accepted</value></data>
+  <data name="Conversion.IWork.ReconstructionCounts" xml:space="preserve"><value>{0} reconstructed items · {1} records without a field-level fidelity assessment</value></data>
+  <data name="Conversion.Mode.Auto" xml:space="preserve"><value>Editable content with preview fallback</value></data>
+  <data name="Conversion.Mode.EditableOnly" xml:space="preserve"><value>Editable content only</value></data>
+  <data name="Conversion.Mode.VisualOnly" xml:space="preserve"><value>Embedded visual preview</value></data>
 </root>

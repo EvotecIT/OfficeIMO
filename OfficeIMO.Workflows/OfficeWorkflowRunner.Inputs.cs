@@ -92,6 +92,9 @@ public sealed partial class OfficeWorkflowRunner {
         if (request.ConversionOptions is not null && route is null)
             throw new ArgumentException("Conversion settings are valid only for conversion operations.", nameof(request));
         _conversions.TryGetValue(route?.Id ?? string.Empty, out OfficeWorkflowConversionRegistration? registration);
+        if (request.RegisteredConversionSettings is not null && registration is null)
+            throw new ArgumentException("Adapter conversion settings require a registered conversion route.", nameof(request));
+        IOfficeWorkflowConversionSettings? registeredSettings = registration?.SnapshotSettings(request.RegisteredConversionSettings);
         OfficeWorkflowConversionOptions? conversionOptions = request.ConversionOptions?.Snapshot(route!);
         OfficeScanCleanupOptions? scanCleanup = request.ScanCleanup?.Snapshot();
         if ((request.Operation == OfficeWorkflowOperation.ScanCleanup) != (scanCleanup != null))
@@ -156,7 +159,7 @@ public sealed partial class OfficeWorkflowRunner {
             outputOptions,
             request.PublicationGuard,
             inputStream, request.ComparisonStream, request.OutputStream, pages, encryption, request.PdfOwnerPassword ?? request.PdfPassword,
-            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration);
+            request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings);
     }
 
     private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {

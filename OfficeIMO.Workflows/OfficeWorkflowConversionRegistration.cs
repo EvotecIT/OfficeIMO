@@ -10,19 +10,50 @@ public delegate OfficeWorkflowConversionEvidence OfficeWorkflowConverter(
 /// <summary>An opt-in implementation of an existing canonical conversion route.</summary>
 public sealed class OfficeWorkflowConversionRegistration {
     /// <summary>Registers a converter without replacing a built-in route or creating another capability catalog.</summary>
-    public OfficeWorkflowConversionRegistration(string routeId, OfficeWorkflowConverter converter) {
+    public OfficeWorkflowConversionRegistration(string routeId, OfficeWorkflowConverter converter)
+        : this(routeId, Adapt(converter), null) { }
+
+    private OfficeWorkflowConversionRegistration(string routeId,
+        Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> converter,
+        Func<IOfficeWorkflowConversionSettings, bool>? acceptsSettings) {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(routeId)
             ?? throw new ArgumentException("Choose an existing canonical conversion route.", nameof(routeId));
         if (route.CanExecute) throw new ArgumentException("Built-in conversion routes cannot be replaced.", nameof(routeId));
         if (route.TargetExtension.TrimStart('.').ToLowerInvariant() is not ("docx" or "xlsx" or "pptx"))
             throw new NotSupportedException("Opt-in workflow conversion currently supports DOCX, XLSX, and PPTX destinations.");
         RouteId = route.Id;
-        Converter = converter ?? throw new ArgumentNullException(nameof(converter));
+        Converter = converter;
+        _acceptsSettings = acceptsSettings;
     }
 
     /// <summary>Canonical capability identifier.</summary>
     public string RouteId { get; }
-    internal OfficeWorkflowConverter Converter { get; }
+    internal Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> Converter { get; }
+    private readonly Func<IOfficeWorkflowConversionSettings, bool>? _acceptsSettings;
+
+    /// <summary>Registers a canonical route with an explicit adapter-owned settings contract.</summary>
+    public static OfficeWorkflowConversionRegistration Create<TSettings>(string routeId,
+        OfficeWorkflowConfiguredConverter<TSettings> converter) where TSettings : class, IOfficeWorkflowConversionSettings {
+        ArgumentNullException.ThrowIfNull(converter);
+        return new(routeId, (input, output, limits, settings, token) => converter(input, output, limits, (TSettings?)settings, token),
+            settings => settings is TSettings);
+    }
+
+    internal IOfficeWorkflowConversionSettings? SnapshotSettings(IOfficeWorkflowConversionSettings? settings) {
+        if (settings is null) return null;
+        if (_acceptsSettings?.Invoke(settings) != true)
+            throw new ArgumentException("The registered conversion route does not accept these settings.");
+        IOfficeWorkflowConversionSettings snapshot = settings.Snapshot()
+            ?? throw new ArgumentException("The conversion settings returned no snapshot.");
+        if (!_acceptsSettings(snapshot)) throw new ArgumentException("The conversion settings snapshot changed its contract type.");
+        return snapshot;
+    }
+
+    private static Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence>
+        Adapt(OfficeWorkflowConverter converter) {
+        ArgumentNullException.ThrowIfNull(converter);
+        return (input, output, limits, _, token) => converter(input, output, limits, token);
+    }
 }
 
 /// <summary>Immutable conversion evidence retained independently of the destination document lifetime.</summary>

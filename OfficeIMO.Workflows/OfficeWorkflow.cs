@@ -128,6 +128,13 @@ public sealed class OfficeWorkflowBuilder {
         return this;
     }
 
+    /// <summary>Copies adapter-owned conversion settings. The selected registration validates their type before execution.</summary>
+    public OfficeWorkflowBuilder WithRegisteredConversionSettings(IOfficeWorkflowConversionSettings settings) {
+        ArgumentNullException.ThrowIfNull(settings);
+        _request.RegisteredConversionSettings = settings.Snapshot();
+        return this;
+    }
+
     /// <summary>Sets the PDF password used for the comparison input.</summary>
     public OfficeWorkflowBuilder WithComparisonPdfPassword(string? password) {
         _request.ComparisonPdfPassword = password;
@@ -182,6 +189,7 @@ public sealed class OfficeWorkflowBuilder {
             ComparisonPath = _request.ComparisonPath,
             ConversionRouteId = routeId,
             ConversionOptions = _request.ConversionOptions?.Clone(),
+            RegisteredConversionSettings = _request.RegisteredConversionSettings?.Snapshot(),
             OutputPath = _request.OutputPath,
             ConflictPolicy = _request.ConflictPolicy,
             OutputProfile = _request.OutputProfile,

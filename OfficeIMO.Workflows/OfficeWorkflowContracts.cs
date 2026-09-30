@@ -190,6 +190,8 @@ public sealed class OfficeWorkflowRequest {
 
     /// <summary>Optional route-specific settings, independently copied and validated before asynchronous execution.</summary>
     public OfficeWorkflowConversionOptions? ConversionOptions { get; set; }
+    /// <summary>Adapter-owned conversion settings, validated and independently copied by the selected registration before execution.</summary>
+    public IOfficeWorkflowConversionSettings? RegisteredConversionSettings { get; set; }
     /// <summary>Explicit scan preparation and raster-output acknowledgement for ScanCleanup.</summary>
     public OfficeScanCleanupOptions? ScanCleanup { get; set; }
 

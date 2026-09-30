@@ -2,6 +2,7 @@ using System.Globalization;
 using Avalonia.Data.Converters;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Studio.Infrastructure.Localization;
 using OfficeIMO.Word.Pdf;
@@ -12,6 +13,9 @@ namespace OfficeIMO.Studio.Features.Workflows;
 public sealed class ConversionOptionLabelConverter : IValueConverter {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) {
         string label = value switch {
+            IWorkConversionMode.Auto => "Editable content with preview fallback",
+            IWorkConversionMode.EditableOnly => "Editable content only",
+            IWorkConversionMode.VisualOnly => "Embedded visual preview",
             PdfWordImportMode.EditableContent or PdfPowerPointImportMode.EditableContent => "Editable content",
             PdfWordImportMode.VisualPages or PdfPowerPointImportMode.VisualPages => "Visual pages",
             PdfPowerPointImportMode.HybridVisualAndEditableTables => "Visual pages with editable tables",
