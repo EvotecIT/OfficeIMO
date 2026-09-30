@@ -36,7 +36,7 @@ officeimo convert report.docx report.pdf
 officeimo convert workbook.xlsx workbook.pdf
 officeimo convert deck.pptx deck.pdf
 
-# Convert Apple ZIP documents through shared workflows
+# Convert Apple ZIP files or local directory packages through shared workflows
 officeimo convert document.pages document.docx
 officeimo convert budget.numbers budget.xlsx
 officeimo convert presentation.key presentation.pptx
@@ -90,7 +90,7 @@ Markdown and JSON destinations are semantic Reader projections rather than fixed
 
 `officeimo reader read` accepts iWork directory bundles with `.pages`, `.numbers`, or `.key` extensions as individual documents. Folder discovery also keeps each bundle intact. Export files and asset directories must be outside the source bundle; reported size and content hashes describe the bounded captured package. These Reader outputs are semantic extraction, with the same rendering limits as other Reader routes.
 
-Apple-to-OOXML conversion accepts ZIP files and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory bundles can be read through Markdown/JSON extraction; they are not workflow conversion inputs.
+Apple-to-OOXML conversion accepts ZIP files and local directory packages and returns JSON with typed fidelity diagnostics, producer/projection facts, source snapshot SHA-256, coverage, and publication status. Defaults reject partial editable reconstruction and previews without known complete coverage. Use `--iwork-mode auto|editable|visual`, `--allow-partial`, `--allow-incomplete-preview`, and `--normalize-worksheet-names` only when those acceptance choices fit the task. `--max-input-bytes` and `--max-output-bytes` bound conversion. Directory-package checksums describe a private transport ZIP, identified by `snapshotKind = DirectoryPackage`. Root replacement and changes to file membership or content prevent publication. The destination must be outside the source package and separate from its members. Native permission-scoped directory intake remains outside this local-filesystem contract.
 
 All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing output file should be replaced.
 

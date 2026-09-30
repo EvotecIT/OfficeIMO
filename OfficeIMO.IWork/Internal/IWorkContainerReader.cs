@@ -7,15 +7,18 @@ namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkPackageData {
     internal IWorkPackageData(IWorkContainerKind containerKind, IReadOnlyList<IWorkPackageEntry> entries,
-        long containerLengthBytes) {
+        long containerLengthBytes, IReadOnlyList<string>? sourceFilePaths = null) {
         ContainerKind = containerKind;
         Entries = entries;
         ContainerLengthBytes = containerLengthBytes;
+        SourceFilePaths = sourceFilePaths ?? Array.Empty<string>();
     }
 
     internal IWorkContainerKind ContainerKind { get; }
     internal IReadOnlyList<IWorkPackageEntry> Entries { get; }
     internal long ContainerLengthBytes { get; }
+    // Native paths cannot be reconstructed from normalized archive names on POSIX.
+    internal IReadOnlyList<string> SourceFilePaths { get; }
 }
 
 internal static class IWorkContainerReader {
@@ -48,13 +51,17 @@ internal static class IWorkContainerReader {
         return ReadZip(copy, options, cancellationToken);
     }
 
+    internal static IWorkPackageData ReadDirectorySnapshot(string path, IWorkReadOptions options, CancellationToken cancellationToken) =>
+        ReadDirectory(path, options, cancellationToken, expandNestedIndex: false);
+
     private static IWorkPackageData ReadDirectory(string path, IWorkReadOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool expandNestedIndex = true) {
         using var rootHandle = OfficePathIdentity.OpenDirectoryForIdentity(path,
             out string physicalRoot);
         string root = Path.GetFullPath(path).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
             + Path.DirectorySeparatorChar;
         var entries = new Dictionary<string, IWorkPackageEntry>(StringComparer.Ordinal);
+        var sourceFilePaths = new List<string>();
         long total = 0;
         int nodeCount = 0;
         var directories = new Stack<string>();
@@ -102,14 +109,16 @@ internal static class IWorkContainerReader {
                 OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
                 EnforceEntryBounds(bytes.LongLength, ref total, options, relative);
                 AddEntry(entries, relative, bytes);
+                sourceFilePaths.Add(full);
             }
             OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         }
         OfficePathIdentity.EnsurePathMatchesOpenedDirectory(path, rootHandle);
         long containerLengthBytes = total;
-        ExpandNestedIndex(entries, ref total, ref nodeCount, options, cancellationToken);
+        if (expandNestedIndex) ExpandNestedIndex(entries, ref total, ref nodeCount, options, cancellationToken);
         return new IWorkPackageData(IWorkContainerKind.DirectoryBundle,
-            entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray(), containerLengthBytes);
+            entries.Values.OrderBy(entry => entry.Path, StringComparer.Ordinal).ToArray(), containerLengthBytes,
+            sourceFilePaths.ToArray());
     }
 
     private static IWorkPackageData ReadZip(Stream stream, IWorkReadOptions options,

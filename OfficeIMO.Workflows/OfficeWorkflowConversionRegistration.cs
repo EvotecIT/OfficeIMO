@@ -15,7 +15,8 @@ public sealed class OfficeWorkflowConversionRegistration {
 
     private OfficeWorkflowConversionRegistration(string routeId,
         Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> converter,
-        Func<IOfficeWorkflowConversionSettings, bool>? acceptsSettings) {
+        Func<IOfficeWorkflowConversionSettings, bool>? acceptsSettings,
+        Func<string, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, OfficeWorkflowStreamInput>? directoryPackageInput = null) {
         OfficeWorkflowRoute route = OfficeWorkflowCatalog.Find(routeId)
             ?? throw new ArgumentException("Choose an existing canonical conversion route.", nameof(routeId));
         if (route.CanExecute) throw new ArgumentException("Built-in conversion routes cannot be replaced.", nameof(routeId));
@@ -24,19 +25,31 @@ public sealed class OfficeWorkflowConversionRegistration {
         RouteId = route.Id;
         Converter = converter;
         _acceptsSettings = acceptsSettings;
+        DirectoryPackageInput = directoryPackageInput;
     }
 
     /// <summary>Canonical capability identifier.</summary>
     public string RouteId { get; }
     internal Func<Stream, Stream, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, CancellationToken, OfficeWorkflowConversionEvidence> Converter { get; }
     private readonly Func<IOfficeWorkflowConversionSettings, bool>? _acceptsSettings;
+    internal Func<string, OfficeWorkflowLimits, IOfficeWorkflowConversionSettings?, OfficeWorkflowStreamInput>? DirectoryPackageInput { get; }
 
     /// <summary>Registers a canonical route with an explicit adapter-owned settings contract.</summary>
     public static OfficeWorkflowConversionRegistration Create<TSettings>(string routeId,
-        OfficeWorkflowConfiguredConverter<TSettings> converter) where TSettings : class, IOfficeWorkflowConversionSettings {
+        OfficeWorkflowConfiguredConverter<TSettings> converter) where TSettings : class, IOfficeWorkflowConversionSettings =>
+        Create(routeId, converter, null);
+
+    /// <summary>Registers a canonical route with an explicit adapter-owned settings contract.</summary>
+    /// <param name="routeId">Canonical conversion route.</param>
+    /// <param name="converter">Conversion owner.</param>
+    /// <param name="directoryPackageInput">Optional local directory-package owner. It must create a bounded, repeatable snapshot stream, verify membership/content on every reopen, and preserve source identity. Called after request settings are validated.</param>
+    public static OfficeWorkflowConversionRegistration Create<TSettings>(string routeId,
+        OfficeWorkflowConfiguredConverter<TSettings> converter,
+        Func<string, OfficeWorkflowLimits, TSettings?, OfficeWorkflowStreamInput>? directoryPackageInput) where TSettings : class, IOfficeWorkflowConversionSettings {
         ArgumentNullException.ThrowIfNull(converter);
         return new(routeId, (input, output, limits, settings, token) => converter(input, output, limits, (TSettings?)settings, token),
-            settings => settings is TSettings);
+            settings => settings is TSettings, directoryPackageInput is null ? null
+                : (path, limits, settings) => directoryPackageInput(path, limits, (TSettings?)settings));
     }
 
     internal IOfficeWorkflowConversionSettings? SnapshotSettings(IOfficeWorkflowConversionSettings? settings) {

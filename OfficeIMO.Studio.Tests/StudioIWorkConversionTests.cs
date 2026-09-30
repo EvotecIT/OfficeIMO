@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -13,16 +14,20 @@ namespace OfficeIMO.Studio.Tests;
 
 public sealed class StudioIWorkConversionTests {
     [Theory]
-    [InlineData("simple.pages", "pages-docx")]
-    [InlineData("simple.numbers", "numbers-xlsx")]
-    [InlineData("tabledeck.key", "keynote-pptx")]
-    public async Task Studio_default_registry_intakes_and_converts_all_Apple_formats(string fixture, string route) {
+    [InlineData("simple.pages", "pages-docx", false)]
+    [InlineData("simple.pages", "pages-docx", true)]
+    [InlineData("simple.numbers", "numbers-xlsx", false)]
+    [InlineData("simple.numbers", "numbers-xlsx", true)]
+    [InlineData("tabledeck.key", "keynote-pptx", false)]
+    [InlineData("tabledeck.key", "keynote-pptx", true)]
+    public async Task Studio_default_registry_intakes_and_converts_all_Apple_formats(string fixture, string route, bool directory) {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             var services = ((App)Application.Current!).Services;
             Directory.CreateDirectory(services.Paths.Root);
             string source = Path.Combine(services.Paths.Root, fixture);
-            File.Copy(Fixture(fixture), source);
+            if (directory) ZipFile.ExtractToDirectory(Fixture(fixture), source);
+            else File.Copy(Fixture(fixture), source);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
             var queue = model.ConversionWorkbench;
             Assert.True(queue.AddDroppedPaths([source]));
@@ -36,6 +41,7 @@ public sealed class StudioIWorkConversionTests {
             Assert.True(job.HasOutput, job.Summary);
             Assert.True(job.HasConversionEvidence);
             Assert.Equal(64, job.SourceFingerprint.Length);
+            Assert.Contains(job.Diagnostics, item => item.Code == "SourceSnapshot" && item.Details.GetValueOrDefault("snapshotKind") == (directory ? "DirectoryPackage" : "FileBytes"));
             Assert.Contains(job.Diagnostics, diagnostic => diagnostic.Details.GetValueOrDefault("lossKind") == "Unassessed");
             return true;
         }, CancellationToken.None);

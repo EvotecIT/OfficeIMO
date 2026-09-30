@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.IO.Compression;
 using Xunit;
 
 namespace OfficeIMO.Tool.Tests;
@@ -64,6 +65,27 @@ public sealed class IWorkConvertCommandTests {
         Assert.Equal("VisualFallback", evidence.GetProperty("facts").GetProperty("projectionKind").GetString());
         Assert.Contains(evidence.GetProperty("fidelityDiagnostics").EnumerateArray(),
             diagnostic => diagnostic.GetProperty("lossKind").GetString() == "Omission");
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task Directory_bundle_uses_the_same_CLI_route_and_reports_transport_identity(bool trailingSeparator, bool explicitDestination) {
+        using var files = new Files("nim-iwork/simple.numbers");
+        string archive = files.Input + ".zip";
+        File.Move(files.Input, archive);
+        ZipFile.ExtractToDirectory(archive, files.Input);
+        string input = files.Input + (trailingSeparator ? Path.DirectorySeparatorChar : string.Empty);
+        string destination = Path.ChangeExtension(files.Input, ".xlsx");
+        var result = explicitDestination ? await RunAsync("convert", input, destination)
+            : await RunAsync("convert", input);
+        Assert.Equal(0, result.Code);
+        using var json = JsonDocument.Parse(result.Output);
+        Assert.Contains(json.RootElement.GetProperty("diagnostics").EnumerateArray(), item =>
+            item.GetProperty("code").GetString() == "SourceSnapshot" && item.GetProperty("details").GetProperty("snapshotKind").GetString() == "DirectoryPackage");
+        using var output = OfficeIMO.Excel.ExcelDocument.Load(Path.ChangeExtension(files.Input, ".xlsx"));
+        Assert.Single(output.Sheets);
     }
 
     private static async Task<(int Code, string Output, string Error)> RunAsync(params string[] args) {

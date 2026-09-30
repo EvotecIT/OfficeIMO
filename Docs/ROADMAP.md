@@ -91,7 +91,7 @@ The [source-reader support matrix](officeimo.iwork-support-matrix.md) owns the c
 
 ### I4: shared consumer integration
 
-- [ ] Extend the [shared iWork workflow routes](../OfficeIMO.Workflows.IWork/README.md) to directory-bundle conversion. Preserve one conversion policy, limits, typed fidelity evidence, source identity, and publication-time package membership/content verification. Keep incomplete-coverage decisions visible.
+- [ ] Qualify native picker/drop and permission-scoped directory-package intake through the [shared iWork workflow routes](../OfficeIMO.Workflows.IWork/README.md). Preserve source permission scopes, identity and publication-time package membership/content verification. Local directory conversion is covered by the current workflow contract; native sandbox bookmark acceptance follows I5.
 
 ### I5: runtime and Apple host acceptance
 

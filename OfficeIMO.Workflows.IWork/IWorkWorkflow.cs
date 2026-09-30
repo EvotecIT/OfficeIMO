@@ -1,6 +1,7 @@
 using System.Globalization;
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
+using OfficeIMO.IWork.Internal;
 using OfficeIMO.PowerPoint.IWork;
 using OfficeIMO.Word.IWork;
 
@@ -9,7 +10,7 @@ namespace OfficeIMO.Workflows.IWork;
 /// <summary>Opt-in Apple iWork conversion using the bounded source reader and existing Office destination owners.</summary>
 public static class IWorkWorkflow {
     /// <summary>Creates a runner with Pages-to-Word, Numbers-to-Excel, and Keynote-to-PowerPoint routes.</summary>
-    /// <remarks>Defaults reject partial editable reconstruction and visual previews without known full-document coverage. Inputs are ZIP files or provider ZIP streams; directory bundles require a separate package snapshot contract.</remarks>
+    /// <remarks>Defaults reject partial editable reconstruction and visual previews without known full-document coverage. Local ZIP files and directory bundles, and provider ZIP streams, use captured inputs and publication-time source verification.</remarks>
     public static OfficeWorkflowRunner CreateRunner(IWorkReadOptions? readOptions = null,
         IWorkConversionOptions? conversionOptions = null) => new(null, null, conversions: CreateRegistrations(readOptions, conversionOptions));
 
@@ -23,18 +24,28 @@ public static class IWorkWorkflow {
                 using PagesToWordResult result = WordIWorkConverter.ConvertPagesToWordResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
-            }),
+            }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
                 using NumbersToExcelResult result = ExcelIWorkConverter.ConvertNumbersToExcelResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
-            }),
+            }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
                 using KeynoteToPowerPointResult result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(input, Bound(settings?.ReadOptions ?? reading, limits), settings?.ConversionOptions ?? conversion, token);
                 result.Value.SaveAsync(output, token).GetAwaiter().GetResult();
                 return Evidence(result.Report);
-            })
+            }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
         });
+    }
+
+    private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeWorkflowLimits limits) {
+        var snapshot = new IWorkDirectoryPackageSnapshot(path, reading, limits.MaximumInputBytes);
+        return new OfficeWorkflowStreamInput(Path.GetFileName(path), token => Task.Run(() => snapshot.OpenStream(token), token), null, OfficeWorkflowSourceSnapshotKind.DirectoryPackage, new DirectorySourceGuard(snapshot));
+    }
+
+    private sealed class DirectorySourceGuard(IWorkDirectoryPackageSnapshot snapshot) : IOfficeWorkflowPublicationGuard {
+        public ValueTask<bool> CanPublishAsync(string path, bool isDirectory, CancellationToken token) =>
+            ValueTask.FromResult(snapshot.CanPublish(path, isDirectory, token));
     }
 
     private static IWorkReadOptions Bound(IWorkReadOptions options, OfficeWorkflowLimits limits) {

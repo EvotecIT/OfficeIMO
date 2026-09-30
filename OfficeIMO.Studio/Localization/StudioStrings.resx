@@ -2333,7 +2333,7 @@ Recovered defects: {7:N0} · Detected only: {8:N0}</value></data>
   <data name="Conversion.IWork.AllowIncompletePreview" xml:space="preserve"><value>Allow an incomplete source preview</value></data>
   <data name="Conversion.IWork.NormalizeNames" xml:space="preserve"><value>Normalize Excel worksheet names</value></data>
   <data name="Conversion.IWork.SourceEvidence" xml:space="preserve"><value>Source and reconstruction evidence</value></data>
-  <data name="Conversion.IWork.SourceFingerprint" xml:space="preserve"><value>Captured source SHA-256</value></data>
+  <data name="Conversion.IWork.SourceFingerprint" xml:space="preserve"><value>Captured snapshot SHA-256</value></data>
   <data name="Conversion.IWork.VisualResult" xml:space="preserve"><value>Embedded visual preview</value></data>
   <data name="Conversion.IWork.EditableResult" xml:space="preserve"><value>Editable reconstruction</value></data>
   <data name="Conversion.IWork.FullCoverage" xml:space="preserve"><value>Known full-document preview coverage</value></data>

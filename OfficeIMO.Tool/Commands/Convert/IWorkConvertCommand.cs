@@ -44,9 +44,10 @@ internal static class IWorkConvertCommand {
                 }
             }
             if (input is null) throw new ConvertUsageException("Specify an Apple input document.");
+            input = Path.TrimEndingDirectorySeparator(input);
             string route = Path.GetExtension(input).ToLowerInvariant() switch {
                 ".pages" => "pages-docx", ".numbers" => "numbers-xlsx", ".key" => "keynote-pptx",
-                _ => throw new ConvertUsageException("Apple OOXML conversion requires a .pages, .numbers, or .key ZIP file.")
+                _ => throw new ConvertUsageException("Apple OOXML conversion requires a .pages, .numbers, or .key document file or directory bundle.")
             };
             var runner = IWorkWorkflow.CreateRunner(conversionOptions: policy);
             OfficeWorkflowResult result = await runner.RunAsync(new OfficeWorkflowRequest {

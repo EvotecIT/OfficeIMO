@@ -178,7 +178,7 @@ internal sealed class ConvertRoute {
         }
 
         outputPath ??= optionOutputPath;
-        ConvertOutputFormat format = outputPath is null && Path.GetExtension(inputPath).ToLowerInvariant() is ".pages" or ".numbers" or ".key"
+        ConvertOutputFormat format = outputPath is null && Path.GetExtension(Path.TrimEndingDirectorySeparator(inputPath)).ToLowerInvariant() is ".pages" or ".numbers" or ".key"
             ? ConvertOutputFormat.IWork : ParseOutputFormat(outputPath);
         if (format == ConvertOutputFormat.IWork) {
             if (assetsPath is not null || hasPdfOnlyOption) throw new ConvertUsageException("Apple OOXML conversion does not accept assets or XML-part limits.");

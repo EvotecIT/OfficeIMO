@@ -27,7 +27,11 @@ public sealed partial class OfficeWorkflowRunner {
             throw new ArgumentOutOfRangeException(nameof(request), request.OutputProfile, "Choose a supported workflow output profile.");
         }
         if (string.IsNullOrWhiteSpace(request.InputPath)) throw new ArgumentException("Input path cannot be empty.", nameof(request));
-        string inputPath = ValidateInputLocation(request.InputPath, request.InputStream);
+        _conversions.TryGetValue(request.Operation == OfficeWorkflowOperation.Convert ? request.ConversionRouteId ?? string.Empty : string.Empty,
+            out OfficeWorkflowConversionRegistration? registration);
+        bool localDirectoryPackage = request.InputStream is null && registration?.DirectoryPackageInput is not null &&
+            OfficeStorageIdentity.GetLocalPath(request.InputPath) is { } local && Directory.Exists(local);
+        string inputPath = ValidateInputLocation(request.InputPath, request.InputStream, localDirectoryPackage);
         string inputName = request.InputStream?.Name ?? inputPath;
         OfficeWorkflowLimits limits = (request.Limits ?? throw new ArgumentException("Workflow limits cannot be null.", nameof(request))).CloneAndValidate();
         OfficeWorkflowRoute? route = null;
@@ -91,7 +95,7 @@ public sealed partial class OfficeWorkflowRunner {
 
         if (request.ConversionOptions is not null && route is null)
             throw new ArgumentException("Conversion settings are valid only for conversion operations.", nameof(request));
-        _conversions.TryGetValue(route?.Id ?? string.Empty, out OfficeWorkflowConversionRegistration? registration);
+
         if (request.RegisteredConversionSettings is not null && registration is null)
             throw new ArgumentException("Adapter conversion settings require a registered conversion route.", nameof(request));
         IOfficeWorkflowConversionSettings? registeredSettings = registration?.SnapshotSettings(request.RegisteredConversionSettings);
@@ -136,7 +140,14 @@ public sealed partial class OfficeWorkflowRunner {
         string? outputPassword = securityOutput ? encryption?.OwnerPassword ?? encryption?.UserPassword : request.PdfPassword;
         var outputOptions = CreatePdfLoadOptions(outputPassword, limits.MaximumOutputBytes);
         if (encryption?.AesCryptographyProvider is not null) outputOptions = OfficeIMO.Pdf.PdfLoadOptions.WithAesCryptographyProvider(outputOptions, encryption.AesCryptographyProvider);
-        OfficeWorkflowStreamInput? inputStream = request.InputStream;
+        if (localDirectoryPackage && OfficeStorageIdentity.GetLocalPath(outputPath ?? string.Empty) is { } localOutput &&
+            OfficePathIdentity.IsSameOrDescendant(localOutput, inputPath))
+            throw new ArgumentException("A conversion output cannot be placed inside its source directory package.", nameof(request));
+        OfficeWorkflowStreamInput? inputStream = localDirectoryPackage
+            ? registration!.DirectoryPackageInput!(inputPath, limits.CloneAndValidate(), registeredSettings)
+            : request.InputStream;
+        if (localDirectoryPackage && (inputStream is null || inputStream.SnapshotKind != OfficeWorkflowSourceSnapshotKind.DirectoryPackage || inputStream.SourcePublicationGuard is null))
+            throw new ArgumentException("A directory-package owner must provide a directory snapshot input and package output-separation guard.");
         if ((request.Operation is OfficeWorkflowOperation.ExtractPages or OfficeWorkflowOperation.ScanCleanup || securityOutput || signing || registration is not null) && inputStream is null) {
             inputStream = new OfficeWorkflowStreamInput(Path.GetFileName(inputPath), token => {
                 token.ThrowIfCancellationRequested();
@@ -162,12 +173,12 @@ public sealed partial class OfficeWorkflowRunner {
             request.OutputSigner, signatureOptions, request.OutputSignatureValidator, conversionOptions, scanCleanup, registration, registeredSettings);
     }
 
-    private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream) {
+    private static string ValidateInputLocation(string location, OfficeWorkflowStreamInput? stream, bool directoryPackage = false) {
         if (stream is not null) return OfficeStorageIdentity.Normalize(location);
         string path = OfficeStorageIdentity.GetLocalPath(location)
             ?? throw new ArgumentException("A provider input requires a stream access contract.", nameof(location));
-        if (!File.Exists(path)) throw new FileNotFoundException("The workflow input file does not exist.", path);
-        return path;
+        if (!(directoryPackage ? Directory.Exists(path) : File.Exists(path))) throw new FileNotFoundException("The workflow input file does not exist.", path);
+        return directoryPackage ? Path.TrimEndingDirectorySeparator(path) : path;
     }
 
     private static string ValidateLocalOutput(string location) => OfficeStorageIdentity.GetLocalPath(location)
@@ -253,6 +264,7 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics.Add(new OfficeWorkflowDiagnostic("SourceSnapshot", "Conversion used one bounded source snapshot. Source identity checks are required before publication.",
                     stage: "validate", details: new Dictionary<string, string>(StringComparer.Ordinal) {
                         ["sourceName"] = item.Source.Name,
+                        ["snapshotKind"] = item.Source.SnapshotKind.ToString(),
                         ["sha256"] = item.Snapshot.Fingerprint,
                         ["bytes"] = item.Snapshot.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
                     }));
