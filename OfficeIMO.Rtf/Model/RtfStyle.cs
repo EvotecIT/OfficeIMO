@@ -14,7 +14,7 @@ public sealed partial class RtfStyle {
     }
 
     /// <summary>RTF style id.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Human-readable style name.</summary>
     public string Name { get; set; }

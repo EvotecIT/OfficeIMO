@@ -139,7 +139,7 @@ public class RtfEditingWorkflowTests {
     }
 
     [Fact]
-    public void Semantic_Document_Append_Remaps_Resources_And_Reports_Flattened_Bindings() {
+    public void Semantic_Document_Append_Remaps_Resources_And_Preserves_Style_And_List_Bindings() {
         RtfDocument destination = RtfDocument.Create();
         destination.AddColor(255, 0, 0);
         destination.AddParagraph("Destination");
@@ -162,14 +162,13 @@ public class RtfEditingWorkflowTests {
 
         Assert.Equal(1, result.AppendedBlockCount);
         Assert.Equal("Imported", imported.ToPlainText());
-        Assert.Null(imported.StyleId);
-        Assert.Null(imported.ListId);
+        Assert.NotNull(imported.StyleId);
+        Assert.NotNull(imported.ListId);
         Assert.Null(imported.ListDefinitionId);
         Assert.Equal(2, importedRun.ForegroundColorIndex);
         Assert.Equal("Consolas", destination.Fonts.Single(font => font.Id == importedRun.FontId).Name);
         Assert.Null(importedRun.StyleId);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeStylesFlattened");
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeListsFlattened");
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeStylesFlattened" || diagnostic.Code == "RtfMergeListsFlattened");
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RtfMergeHeaderFootersOmitted");
         Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
         Assert.Equal(1, sourceRun.ForegroundColorIndex);

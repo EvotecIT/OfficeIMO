@@ -13,7 +13,7 @@ public sealed partial class RtfFileReference {
     }
 
     /// <summary>RTF file identifier from <c>\fid</c>.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Referenced path text.</summary>
     public string Path { get; set; }

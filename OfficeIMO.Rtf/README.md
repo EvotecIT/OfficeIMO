@@ -99,7 +99,7 @@ RtfDocumentMergeResult merge = document.AppendDocument(otherDocument);
 merge.Report.RequireNoLoss();
 ```
 
-`AppendDocument` remaps fonts, colors, revision authors, blocks, tables, and notes. It reports style/list flattening and source header/footer omission rather than hiding those tradeoffs.
+`AppendDocument` imports fonts, colors, paragraph and character styles, list definitions and overrides, revision authors, blocks, tables, and notes. Imported resource IDs are remapped, and style inheritance and numbering remain attached to the imported content. File references, XML namespaces, document variables, custom properties, and document information are retained. Conflicting document metadata keeps the destination value and produces an omission diagnostic. Appending into the destination's layout reports source section layout and header/footer omission.
 
 ## Lossless structural editing
 

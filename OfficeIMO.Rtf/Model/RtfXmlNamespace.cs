@@ -14,7 +14,7 @@ public sealed partial class RtfXmlNamespace {
     }
 
     /// <summary>Namespace id represented by <c>\xmlnsN</c>.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Namespace URI text.</summary>
     public string Uri { get; set; }

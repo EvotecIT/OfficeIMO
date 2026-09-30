@@ -12,7 +12,7 @@ public sealed partial class RtfListDefinition {
     }
 
     /// <summary>List definition id referenced by list overrides.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Optional template id.</summary>
     public int? TemplateId { get; set; }

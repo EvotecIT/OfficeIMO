@@ -13,10 +13,10 @@ public sealed partial class RtfListOverride {
     }
 
     /// <summary>Paragraph list override id used by <c>\ls</c>.</summary>
-    public int Id { get; }
+    public int Id { get; internal set; }
 
     /// <summary>Referenced list definition id.</summary>
-    public int ListId { get; }
+    public int ListId { get; internal set; }
 
     /// <summary>Number of level overrides, when present.</summary>
     public int? OverrideCount { get; set; }
