@@ -29,6 +29,17 @@ Applications that intentionally rewrite such messages must select
 For an unchanged archival copy, read with `preserveRawSource: true` and write with `usePreservedRawSource: true`.
 Regenerated output drops original payload length and digest headers instead of carrying stale values forward.
 
+## Email decoded content budgets
+
+`EmailReaderOptions.MaxDecodedPropertyBytes` includes MIME body alternatives and semantic calendar/contact
+parts as well as MSG/TNEF properties. The reader checks decoded MIME byte counts before materializing
+their payloads and shares the allowance across alternatives and embedded messages. Applications that
+set this option only for MSG should review their MIME body limits when upgrading.
+
+Store selective reads honor narrower `EmailStoreItemReadOptions.MaxDecodedPropertyBytes` for mailbox
+directories, Mbox and eager EMLX/OLM items. EMLX combines message and metadata-trailer bytes; OLM counts
+UTF-8 scalar text and attribute values per item. ZIP/XML input and attachment budgets remain separate.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

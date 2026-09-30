@@ -241,6 +241,7 @@ internal static partial class MimeParser {
             }
         }
 
+        if (isBody || semanticBodyPart) state.Budget.CountDecodedPropertyBytes(decodedLength);
         byte[] decoded = MimeTextCodec.DecodeTransfer(data, offset, count, decodedLength,
             transferEncoding, state.Diagnostics, location);
 

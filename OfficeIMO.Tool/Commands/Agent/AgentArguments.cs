@@ -7,6 +7,7 @@ internal enum AgentCommandKind {
     Help,
     Inspect,
     Search,
+    SearchEmail,
     Fetch,
     Convert,
     Capabilities
@@ -35,6 +36,12 @@ internal sealed class AgentArguments {
     internal string? Extension { get; private set; }
     internal string Operation { get; private set; } = "read";
     internal bool Overwrite { get; private set; }
+    internal string Fields { get; private set; } = "All";
+    internal string? Checkpoint { get; private set; }
+    internal int MaxItemsScanned { get; private set; } = 10_000;
+    internal int MaxDecodedBytes { get; private set; } = 16 * 1024 * 1024;
+    internal int MaxSearchableCharacters { get; private set; } = 2_000_000;
+    private bool _hasEmailContentOptions;
 
     internal static AgentArguments Parse(string[] args) {
         ArgumentNullException.ThrowIfNull(args);
@@ -46,6 +53,7 @@ internal sealed class AgentArguments {
             Command = args[0].ToLowerInvariant() switch {
                 "inspect" => AgentCommandKind.Inspect,
                 "search" => AgentCommandKind.Search,
+                "search-email" => AgentCommandKind.SearchEmail,
                 "fetch" => AgentCommandKind.Fetch,
                 "convert" => AgentCommandKind.Convert,
                 "capabilities" => AgentCommandKind.Capabilities,
@@ -67,6 +75,21 @@ internal sealed class AgentArguments {
                     break;
                 case "--query":
                     parsed.Query = Next(args, ref index, token);
+                    break;
+                case "--fields":
+                    parsed.Fields = Next(args, ref index, token); parsed._hasEmailContentOptions = true;
+                    break;
+                case "--checkpoint":
+                    parsed.Checkpoint = Next(args, ref index, token); parsed._hasEmailContentOptions = true;
+                    break;
+                case "--max-items-scanned":
+                    parsed.MaxItemsScanned = ParseInt(Next(args, ref index, token), token); parsed._hasEmailContentOptions = true;
+                    break;
+                case "--max-decoded-bytes":
+                    parsed.MaxDecodedBytes = ParseInt(Next(args, ref index, token), token); parsed._hasEmailContentOptions = true;
+                    break;
+                case "--max-searchable-characters":
+                    parsed.MaxSearchableCharacters = ParseInt(Next(args, ref index, token), token); parsed._hasEmailContentOptions = true;
                     break;
                 case "--subject":
                     parsed.Subject = Next(args, ref index, token);
@@ -136,12 +159,17 @@ internal sealed class AgentArguments {
     }
 
     private void Validate() {
+        if (_hasEmailContentOptions && Command != AgentCommandKind.SearchEmail)
+            throw new AgentUsageException("Content-search options require the search-email command.");
+        if (Command == AgentCommandKind.SearchEmail && (string.IsNullOrWhiteSpace(Query) || Cursor != 0))
+            throw new AgentUsageException("Search-email requires --query and uses --checkpoint instead of an integer cursor.");
         switch (Command) {
             case AgentCommandKind.Inspect:
                 RequirePath();
                 RejectSearchOrFetchOptions();
                 break;
             case AgentCommandKind.Search:
+            case AgentCommandKind.SearchEmail:
                 RequirePath();
                 if (OutputPath != null || SourceId != null || Id != null || Extension != null ||
                     Operation != "read" || Overwrite || ConversionCursor != 0 ||

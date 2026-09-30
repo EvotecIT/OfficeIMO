@@ -45,6 +45,7 @@ internal static class AgentJson {
     GenerationMode = JsonSourceGenerationMode.Metadata)]
 [JsonSerializable(typeof(AgentInspectResult))]
 [JsonSerializable(typeof(AgentSearchResult))]
+[JsonSerializable(typeof(AgentEmailSearchResult))]
 [JsonSerializable(typeof(AgentFetchResult))]
 [JsonSerializable(typeof(AgentCapabilitiesResult))]
 [JsonSerializable(typeof(AgentOperationCapabilitySummary))]

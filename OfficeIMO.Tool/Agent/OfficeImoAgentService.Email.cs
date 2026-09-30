@@ -83,9 +83,10 @@ internal sealed partial class OfficeImoAgentService {
             before: before,
             hasAttachments: hasAttachments,
             isRead: isRead,
-            maxItemsScanned: int.MaxValue,
+            maxItemsScanned: 10_000,
             maxResults: requested);
-        EmailStoreSearchResult[] page = session.Search(emailQuery, cancellationToken)
+        EmailStoreSearchReport report = session.SearchWithReport(emailQuery, cancellationToken);
+        EmailStoreSearchResult[] page = report.Results
             .Skip(cursor)
             .Take(take + 1)
             .ToArray();
@@ -106,7 +107,9 @@ internal sealed partial class OfficeImoAgentService {
             Query = AgentJson.Limit(query ?? subject, 256),
             Returned = hits.Count,
             NextCursor = hasMore ? cursor + hits.Count : null,
-            Truncated = hasMore,
+            Truncated = hasMore || report.StoppedAtItemLimit,
+            ItemsScanned = report.ItemsScanned,
+            ScanLimitReached = report.StoppedAtItemLimit,
             Results = hits
         };
     }
@@ -168,9 +171,10 @@ internal sealed partial class OfficeImoAgentService {
         };
     }
 
-    private static EmailStoreReaderOptions CreateEmailStoreOptions() =>
+    private static EmailStoreReaderOptions CreateEmailStoreOptions(long maxDecodedPropertyBytes = 128L * 1024 * 1024) =>
         new(
             retainAttachmentContent: false,
+            maxDecodedPropertyBytesPerItem: maxDecodedPropertyBytes,
             maxItemCount: 1_000_000,
             maxTotalAttachmentBytes: 64L * 1024 * 1024);
 

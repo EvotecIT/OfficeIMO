@@ -60,6 +60,9 @@ internal sealed class MaterializedEmailStoreSessionBackend : IEmailStoreSessionB
         if (!_items.TryGetValue(reference.Id, out EmailStoreItem? item) || item.FolderId != reference.FolderId) {
             throw new KeyNotFoundException("The item reference does not belong to this email-store session.");
         }
+        if (options.MaxDecodedPropertyBytes.HasValue && item.DecodedPropertyBytes > options.MaxDecodedPropertyBytes.Value)
+            throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
+                item.DecodedPropertyBytes.Value, options.MaxDecodedPropertyBytes.Value);
         return item;
     }
 

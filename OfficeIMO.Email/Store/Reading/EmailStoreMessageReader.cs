@@ -4,9 +4,9 @@ namespace OfficeIMO.Email.Store;
 
 internal static class EmailStoreMessageReader {
     internal static EmailReadResult Read(byte[] bytes, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken, bool? includeAttachmentContent = null) {
+        CancellationToken cancellationToken, bool? includeAttachmentContent = null, long? maxDecodedPropertyBytes = null) {
         try {
-            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent))
+            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent, maxDecodedPropertyBytes))
                 .Read(bytes, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
@@ -14,9 +14,9 @@ internal static class EmailStoreMessageReader {
     }
 
     internal static EmailReadResult Read(Stream stream, EmailStoreReaderOptions options,
-        CancellationToken cancellationToken, bool? includeAttachmentContent = null) {
+        CancellationToken cancellationToken, bool? includeAttachmentContent = null, long? maxDecodedPropertyBytes = null) {
         try {
-            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent))
+            return new EmailDocumentReader(CreateOptions(options, includeAttachmentContent, maxDecodedPropertyBytes))
                 .Read(stream, cancellationToken);
         } catch (EmailLimitExceededException exception) {
             throw ConvertLimit(exception);
@@ -33,7 +33,7 @@ internal static class EmailStoreMessageReader {
             maxNestedMessageDepth: options.MaxNestedMessageDepth,
             includeAttachmentContent: includeAttachmentContent ?? options.RetainAttachmentContent,
             maxMapiPropertyCount: options.MaxPropertiesPerItem,
-            maxDecodedPropertyBytes: maxDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem,
+            maxDecodedPropertyBytes: Math.Min(maxDecodedPropertyBytes ?? options.MaxDecodedPropertyBytesPerItem, options.MaxDecodedPropertyBytesPerItem),
             maxAttachmentCount: options.MaxAttachmentsPerItem);
 
     private static EmailStoreLimitExceededException ConvertLimit(EmailLimitExceededException exception) {

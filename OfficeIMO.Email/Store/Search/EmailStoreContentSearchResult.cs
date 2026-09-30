@@ -4,11 +4,12 @@ namespace OfficeIMO.Email.Store;
 public sealed class EmailStoreContentSearchResult {
     internal EmailStoreContentSearchResult(EmailStoreItemReference reference,
         EmailStoreItemSummary summary, EmailStoreContentSearchFields matchedFields,
-        string? snippet) {
+        string? snippet, EmailStoreContentSearchCheckpoint resumeAfter) {
         Reference = reference;
         Summary = summary;
         MatchedFields = matchedFields;
         Snippet = snippet;
+        ResumeAfter = resumeAfter;
     }
 
     /// <summary>Stable reference for an explicit selective or full item read.</summary>
@@ -19,4 +20,6 @@ public sealed class EmailStoreContentSearchResult {
     public EmailStoreContentSearchFields MatchedFields { get; }
     /// <summary>Bounded text around the earliest match, when text was available.</summary>
     public string? Snippet { get; }
+    /// <summary>Source- and query-bound position immediately after this match, for consumers returning only a prefix of a batch.</summary>
+    public EmailStoreContentSearchCheckpoint ResumeAfter { get; }
 }

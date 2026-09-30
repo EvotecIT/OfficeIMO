@@ -5,6 +5,37 @@ namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class EmailStoreContentSearchTests {
     [Fact]
+    public void IndividualMatchCheckpointResumesWithoutLosingTheRestOfTheBatch() {
+        string root = CreateCorpus();
+        try {
+            using var session = EmailStoreSession.Open(root);
+            var first = session.SearchContent(new EmailStoreContentQuery(new[] { "common needle" }, maxResults: 10));
+            Assert.True(first.Results.Count > 1);
+            var resume = EmailStoreContentSearchCheckpoint.Parse(first.Results[0].ResumeAfter.Value);
+            var remaining = session.SearchContent(new EmailStoreContentQuery(new[] { "common needle" }, maxResults: 10, resumeFrom: resume));
+            Assert.Equal(first.Results.Skip(1).Select(match => match.Reference.Id), remaining.Results.Select(match => match.Reference.Id));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Fact]
+    public void MetadataSearchReportDistinguishesScanAndResultBoundsFromExhaustion() {
+        string root = CreateCorpus();
+        try {
+            using var session = EmailStoreSession.Open(root);
+            var scan = session.SearchWithReport(new EmailStoreQuery(subjectContains: "Fourth", maxItemsScanned: 1));
+            Assert.Empty(scan.Results);
+            Assert.Equal(1, scan.ItemsScanned);
+            Assert.True(scan.StoppedAtItemLimit);
+            Assert.False(scan.IsComplete);
+            var result = session.SearchWithReport(new EmailStoreQuery(maxResults: 1));
+            Assert.Single(result.Results);
+            Assert.True(result.StoppedAtResultLimit);
+            var complete = session.SearchWithReport(new EmailStoreQuery(maxItemsScanned: 4));
+            Assert.True(complete.IsComplete);
+            Assert.Equal(session.Search(new EmailStoreQuery()).Select(hit => hit.Reference.Id), complete.Results.Select(hit => hit.Reference.Id));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+    [Fact]
     public void SearchesSemanticHtmlAndReportsMatchedFieldAndSnippet() {
         string root = CreateCorpus();
         try {

@@ -77,7 +77,7 @@ public sealed class EmailReaderOptions {
     public int MaxCompoundDirectoryEntries { get; }
     /// <summary>Maximum aggregate MAPI properties across an artifact and embedded messages.</summary>
     public int MaxMapiPropertyCount { get; }
-    /// <summary>Maximum aggregate bytes represented by decoded MSG property streams.</summary>
+    /// <summary>Maximum aggregate decoded MSG/TNEF property bytes and MIME body/semantic-part bytes, checked before materialization.</summary>
     public long MaxDecodedPropertyBytes { get; }
     /// <summary>Maximum number of TNEF attributes.</summary>
     public int MaxTnefAttributeCount { get; }

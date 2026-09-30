@@ -94,6 +94,11 @@ Email reads expose an aggregate `ProcessingBudget` snapshot. MIME, MSG, embedded
 
 Store table, content-search, and OAB search checkpoints are versioned persistence values bound to a complete-source SHA-256 and exact query signature. Persist the checkpoint's `Value`, parse it after restart, and expect resume to fail closed if the source bytes or query changed. Creating a durable checkpoint intentionally reads the complete selected source to establish that identity.
 
+`EmailStoreSession.SearchWithReport` adds scan/result completion evidence to lightweight metadata
+search. `SearchContent` supplies semantic field matches, snippets and durable batch continuation.
+Each content match also exposes `ResumeAfter`, a checkpoint immediately after that item; consumers
+returning only a prefix of a batch can resume there without losing the remaining matches.
+
 For repeated queries over one store file, use `EmailStoreSession.OpenSnapshot(path)` or its stream overload.
 The session makes a bounded private copy and hashes it while copying, then reuses the complete-source SHA-256
 for queries and checkpoints. Caller-side changes after opening cannot change the snapshot's results.

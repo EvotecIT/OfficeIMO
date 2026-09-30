@@ -145,9 +145,10 @@ internal sealed partial class OlmStoreReader {
 
             string id = string.Concat("olm:item:", NormalizeSlashes(entry.FullName), "#", index.ToString(CultureInfo.InvariantCulture));
             string location = string.Concat(entry.FullName, "#", index.ToString(CultureInfo.InvariantCulture));
+            long decodedPropertyBytes = CountItemPropertyBytes(item);
             EmailDocument document = ProjectItem(item, kind, id, folder.Id, location);
             folder.MutableItems.Add(new EmailStoreItem(
-                id, folder.Id, document, format: EmailStoreFormat.Olm));
+                id, folder.Id, document, format: EmailStoreFormat.Olm) { DecodedPropertyBytes = decodedPropertyBytes });
             index++;
         }
     }
@@ -164,6 +165,19 @@ internal sealed partial class OlmStoreReader {
         using (XmlReader reader = XmlReader.Create(stream, settings)) {
             return XDocument.Load(reader, LoadOptions.None);
         }
+    }
+
+    private long CountItemPropertyBytes(XElement item) {
+        long bytes = 0;
+        foreach (string value in item.DescendantNodes().OfType<XText>().Select(node => node.Value)
+            .Concat(item.DescendantsAndSelf().Attributes().Select(attribute => attribute.Value))) {
+            _cancellationToken.ThrowIfCancellationRequested();
+            bytes = checked(bytes + Encoding.UTF8.GetByteCount(value));
+            if (bytes > _options.MaxDecodedPropertyBytesPerItem)
+                throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem),
+                    bytes, _options.MaxDecodedPropertyBytesPerItem);
+        }
+        return bytes;
     }
 
     private Stream OpenDecodedEntry(ZipArchiveEntry entry, long maximumBytes,

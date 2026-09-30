@@ -62,7 +62,8 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
         try {
             var mailboxOptions = CreateMailboxOptions(
                 EmailStoreMessageReader.CreateOptions(_options,
-                    includeAttachmentContent: options.Includes(EmailStoreItemReadParts.AttachmentContent)),
+                    includeAttachmentContent: options.Includes(EmailStoreItemReadParts.AttachmentContent),
+                    maxDecodedPropertyBytes: options.MaxDecodedPropertyBytes),
                 maximumMessages: 1);
             using (var input = new ReadOnlySegmentStream(_stream, item.Offset, item.Length)) {
                 entry = new EmailMailboxReader(mailboxOptions).ReadEntries(input, cancellationToken).Single();
@@ -184,6 +185,8 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
                         ? nameof(EmailStoreReaderOptions.MaxAttachmentBytes)
                         : exception.LimitName == nameof(EmailReaderOptions.MaxTotalAttachmentBytes)
                             ? nameof(EmailStoreReaderOptions.MaxTotalAttachmentBytes)
+                            : exception.LimitName == nameof(EmailReaderOptions.MaxDecodedPropertyBytes)
+                                ? nameof(EmailStoreReaderOptions.MaxDecodedPropertyBytesPerItem)
                             : exception.LimitName;
         return new EmailStoreLimitExceededException(name, exception.ActualValue, exception.MaximumValue);
     }
