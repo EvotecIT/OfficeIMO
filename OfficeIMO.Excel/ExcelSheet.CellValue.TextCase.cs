@@ -17,7 +17,10 @@ namespace OfficeIMO.Excel {
             }
 
             bool transformedRichText = false;
-            WriteLockConditional(() => transformedRichText = TransformRichTextCaseCore(row, column, textCase, culture));
+            WriteLockConditional(() => {
+                EnsureDynamicArrayCellWritable(row, column);
+                transformedRichText = TransformRichTextCaseCore(row, column, textCase, culture);
+            });
             if (transformedRichText) {
                 return true;
             }

@@ -1959,8 +1959,8 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_Load_Projects1904DateValidationBoundsAsOpenXmlDateSerials() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4Date1904DataValidationWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
-            string expectedStartDate = new DateTime(1904, 1, 2).ToOADate().ToString("G15", CultureInfo.InvariantCulture);
-            string expectedEndDate = new DateTime(1904, 1, 3).ToOADate().ToString("G15", CultureInfo.InvariantCulture);
+            const string expectedStartDate = "1";
+            const string expectedEndDate = "2";
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
                 ReportUnsupportedContent = true
@@ -1983,6 +1983,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(DataValidationValues.Date, openXmlDate.Type!.Value);
             Assert.Equal(expectedStartDate, openXmlDate.GetFirstChild<Formula1>()!.Text);
             Assert.Equal(expectedEndDate, openXmlDate.GetFirstChild<Formula2>()!.Text);
+            Assert.Equal(ExcelDateSystem.NineteenFour, document.DateSystem);
         }
 
         [Fact]

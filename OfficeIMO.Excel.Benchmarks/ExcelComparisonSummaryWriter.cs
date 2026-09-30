@@ -79,7 +79,7 @@ internal static class ExcelComparisonSummaryWriter {
                     ?? CalculateStandardError(GetDoubleArray(scenario, "SamplesMilliseconds")),
                 MeanAllocatedBytes = GetNullableDouble(scenario, "AverageAllocatedBytes"),
                 MedianAllocatedBytes = GetNullableDouble(scenario, "MedianAllocatedBytes"),
-                ArtifactPath = artifact.Path
+                ArtifactPath = ExcelBenchmarkArtifactPath.ForPublishedEvidence(artifact.Path)
             };
 
             if (scenario.TryGetProperty("Package", out JsonElement package)

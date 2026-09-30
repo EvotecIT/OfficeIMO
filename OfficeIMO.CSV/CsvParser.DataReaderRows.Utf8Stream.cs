@@ -98,14 +98,16 @@ internal static partial class CsvParser
                     return false;
                 }
 
-                int position = length >= 3 &&
+                Encoding encoding = options.Encoding ?? new UTF8Encoding(false);
+                bool hasUtf8Preamble = length >= 3 &&
                     buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF
-                    ? 3
-                    : 0;
+                    && (options.DetectEncodingFromByteOrderMarks
+                        || encoding.GetPreamble().AsSpan().SequenceEqual(buffer.AsSpan(0, 3)));
+                int position = hasUtf8Preamble ? 3 : 0;
                 rows = new CsvUtf8StreamDataReaderRowSource(
                     stream,
                     options,
-                    options.Encoding ?? Encoding.UTF8,
+                    encoding,
                     buffer,
                     length,
                     position);
@@ -482,11 +484,14 @@ internal static partial class CsvParser
                 return false;
             }
 
+            bool isAscii = Ascii.IsValid(_buffer.AsSpan(recordStart, recordEnd - recordStart));
+            if (!isAscii && _encoding.DecoderFallback is DecoderExceptionFallback)
+                _encoding.GetCharCount(_buffer, recordStart, recordEnd - recordStart);
             _visitor.VisitFieldRange(fieldIndex, fieldStart, recordEnd - fieldStart);
             _visitor.Complete(
                 fieldIndex + 1,
                 _options.ColumnCountMismatchPolicy,
-                Ascii.IsValid(_buffer.AsSpan(recordStart, recordEnd - recordStart)));
+                isAscii);
             _emittedRecordCount++;
             ReportProgress(_options, _emittedRecordCount, recordLineNumber);
             _currentPhysicalLineNumber = recordLineNumber;
@@ -508,9 +513,14 @@ internal static partial class CsvParser
             var prefixedStream = new PrefixReadStream(prefix, _stream);
             try
             {
+                // This is a record boundary, not the start of the input. A literal U+FEFF
+                // here belongs to the field; preserve decoder policy without stripping it.
+                var fallbackEncoding = (Encoding)new UTF8Encoding(false).Clone();
+                fallbackEncoding.DecoderFallback = _encoding.DecoderFallback;
+                fallbackEncoding.EncoderFallback = _encoding.EncoderFallback;
                 var reader = new StreamReader(
                     prefixedStream,
-                    _encoding,
+                    fallbackEncoding,
                     detectEncodingFromByteOrderMarks: false,
                     bufferSize: FallbackTextBufferSize,
                     leaveOpen: false);

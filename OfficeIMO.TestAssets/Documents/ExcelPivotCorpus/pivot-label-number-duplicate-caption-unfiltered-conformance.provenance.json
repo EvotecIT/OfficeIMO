@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T09:35:56.1362885Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1",
+  "file": "pivot-label-number-duplicate-caption-unfiltered-conformance.xlsx",
+  "sha256": "c3975841c3aa517a914413041073a376db8698db4ebc987fa15593dd37c5614b",
+  "sourceRange": "Source!A1:B4",
+  "numberFormat": "0.0",
+  "filterType": null,
+  "criterion": null,
+  "outputRange": "A4:B8",
+  "grandTotal": 60.0
+}

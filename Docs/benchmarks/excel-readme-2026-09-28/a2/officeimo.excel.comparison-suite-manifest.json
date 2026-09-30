@@ -1,0 +1,50 @@
+{
+  "GeneratedAtUtc": "2026-09-28T17:05:31.1862899Z",
+  "Framework": ".NET 8.0.31",
+  "OperatingSystem": "Microsoft Windows 10.0.26200",
+  "MachineName": "EVOMAGIC",
+  "ProcessorAffinity": "0xFFFF",
+  "ProcessPriority": "Normal",
+  "RowCounts": [
+    25000
+  ],
+  "WarmupIterations": 20,
+  "MeasuredIterations": 9,
+  "IncludeLegacyEpPlus": false,
+  "IncludePackageProfile": false,
+  "IncludeDenseHelloWorld": false,
+  "ScenarioFilters": [
+    "realworld-report-all-in-one",
+    "write-datareader-table",
+    "read-objects-stream",
+    "write-datareader-compact-package"
+  ],
+  "PackageScenarioFilters": [
+    "realworld-report-all-in-one",
+    "write-datareader-table",
+    "write-datareader-compact-package"
+  ],
+  "DenseHelloWorldScenarios": [],
+  "Artifacts": [
+    {
+      "Kind": "speed-comparison",
+      "RowCount": 25000,
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/a2/officeimo.excel.comparison-speed-25000.json"
+    },
+    {
+      "Kind": "summary-markdown",
+      "RowCount": 0,
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/a2/officeimo.excel.comparison-summary.md"
+    },
+    {
+      "Kind": "summary-csv",
+      "RowCount": 0,
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/a2/officeimo.excel.comparison-summary.csv"
+    },
+    {
+      "Kind": "summary-json",
+      "RowCount": 0,
+      "Path": "Docs/benchmarks/excel-readme-2026-09-28/a2/officeimo.excel.comparison-summary.json"
+    }
+  ]
+}

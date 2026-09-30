@@ -1,0 +1,43 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T01:33:50.4991496Z",
+  "regeneration": "Build/Verification/New-ExcelPivotGroupedOracle.ps1",
+  "file": "numeric-group-refresh-conformance.xlsx",
+  "sha256": "c28b46d393f739c72f4fda472c7c30a207d6398b7b3308cd7fbcc3f0ba9bfbc5",
+  "sourceRange": "Source!A1:B9",
+  "outputRange": "A4:B9",
+  "grouping": "Quantity:0-30 by 10",
+  "changedSource": "A2=-2 to 15; A3=4 to 31",
+  "lookups": [
+    {
+      "name": "Grand",
+      "value": "923"
+    },
+    {
+      "name": "Below",
+      "value": "#REF!"
+    },
+    {
+      "name": "First",
+      "value": "70"
+    },
+    {
+      "name": "Second",
+      "value": "301"
+    },
+    {
+      "name": "Third",
+      "value": "510"
+    },
+    {
+      "name": "Above",
+      "value": "42"
+    },
+    {
+      "name": "Raw",
+      "value": "#REF!"
+    }
+  ]
+}

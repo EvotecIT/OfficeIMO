@@ -1,0 +1,33 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-29T01:13:33.8697754Z",
+  "regeneration": "Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1",
+  "file": "pivot-value-three-level-mixed-row-top1-column-bottom1-conformance.xlsx",
+  "sha256": "db8fb3f404b406d53d3c3a23eadf625d6a3791c7e1a1ea92572f1c7886d09345",
+  "sourceRange": "Source!A1:D13",
+  "filteredField": "Multiple",
+  "axis": "Mixed",
+  "filterType": null,
+  "threshold": null,
+  "threshold2": null,
+  "filters": [
+    {
+      "field": "Product",
+      "type": 1,
+      "threshold": 1.0,
+      "threshold2": null
+    },
+    {
+      "field": "Channel",
+      "type": 2,
+      "threshold": 1.0,
+      "threshold2": null
+    }
+  ],
+  "outputRange": "A4:D10",
+  "grandTotal": 35.0
+}

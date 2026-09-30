@@ -1,0 +1,16 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T20:04:39.3230703Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1",
+  "file": "pivot-label-number-range-general-less-conformance.xlsx",
+  "sha256": "2b8fab782d601983ffe7543e2ec26d0a930f400902dd07f45ca6122907241a7e",
+  "sourceRange": "Source!A1:B5",
+  "numberFormat": "General",
+  "filterType": 25,
+  "criterion": "2",
+  "criterion2": null,
+  "outputRange": "A4:B7",
+  "grandTotal": 40.0
+}

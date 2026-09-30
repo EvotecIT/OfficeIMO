@@ -168,7 +168,9 @@ namespace OfficeIMO.Excel {
         public bool UseCachedFormulaResult { get; set; } = true;
 
         /// <summary>
-        /// Interpret numeric cells with a date-like number format as DateTime (OADate).
+        /// Interpret numeric cells with a date-like number format as DateTime.
+        /// Calendar formats use the workbook date system; time-only and elapsed formats
+        /// use OLE Automation dates as a carrier for the unshifted time serial.
         /// </summary>
         public bool TreatDatesUsingNumberFormat { get; set; } = true;
 

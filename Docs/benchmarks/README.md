@@ -61,6 +61,14 @@ with worst observed margins of 1.36× elapsed on Windows and 1.38× allocation o
 Linux. Three Windows lanes allocate less than ShapeCrawler; large create/save
 uses 0.62× its elapsed time and 0.25× its managed allocation.
 
+## Excel comparison snapshot
+
+The [28 September 2026 focused Excel comparison](officeimo.excel-readme-2026-09-28.md)
+records four validated 25,000-row operations with rotated Windows processor
+domains, all measured samples, and the provenance for the README and website
+snapshot. It refreshes those four highlights; the broader comparison matrix
+and portable performance budgets remain open roadmap work.
+
 ## CSV output size
 
 The validated SQL-shaped DataReader writer now records UTF-8 output size and
@@ -75,6 +83,24 @@ The Windows evidence is recorded in
 OfficeIMO output is 0.991-0.993x Sylvan's UTF-8 size across mixed, quoted, and
 multiline shapes at 25,000 and 100,000 rows. Sequential and parallel OfficeIMO
 outputs are byte-identical.
+
+The [2026-09-28 wide CSV snapshot](officeimo.csv-wide-2026-09-28.md) refreshes
+the pre-dispatch local read/write highlights with a fixed processor domain and
+validated 25,000-row output. The subsequent [quote-free field-span dispatch
+measurement](officeimo.csv-wide-read-dispatch-2026-09-28.md) records the
+source-level read improvement on both processor groups. DataReader writing and
+portable regression budgets remain open work.
+
+The [wide high-cardinality async reader measurement](officeimo.csv-wide-async-read-2026-09-28.md)
+compares the public snapshot and incremental readers on distinct-string,
+32-field files. It records first-row latency and complete traversal on both
+Windows processor domains without treating a small throughput difference as
+a portable win.
+
+The [XLSX long-text measurement](officeimo.xlsx-long-text-2026-09-28.md)
+records the escaped-text writer change, identical package-part hashes, and
+rotated before/after samples on both Windows processor domains. Long-plain
+export and portable memory budgets remain open.
 
 ## Word Open XML SDK evidence
 

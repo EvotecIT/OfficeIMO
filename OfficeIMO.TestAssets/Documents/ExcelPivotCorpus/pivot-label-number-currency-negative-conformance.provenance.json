@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T12:05:13.3260150Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1",
+  "file": "pivot-label-number-currency-negative-conformance.xlsx",
+  "sha256": "b54166b639284c1f9787cabfd9df1bccd4631f78fe5136341fdaf0db0ee40563",
+  "sourceRange": "Source!A1:B3",
+  "numberFormat": "$#,##0.00",
+  "filterType": 15,
+  "criterion": "-$1,000.00",
+  "outputRange": "A4:B6",
+  "grandTotal": 10.0
+}

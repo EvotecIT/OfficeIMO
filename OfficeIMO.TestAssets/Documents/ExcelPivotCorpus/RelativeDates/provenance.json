@@ -1,0 +1,769 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerCulture": "pl-PL",
+  "referenceDate": "2026-09-28",
+  "sourceDates": [
+    "2025-01-01T00:00:00.0000000",
+    "2025-12-31T00:00:00.0000000",
+    "2026-01-01T00:00:00.0000000",
+    "2026-04-01T00:00:00.0000000",
+    "2026-06-30T00:00:00.0000000",
+    "2026-07-01T00:00:00.0000000",
+    "2026-08-01T00:00:00.0000000",
+    "2026-08-31T00:00:00.0000000",
+    "2026-09-01T00:00:00.0000000",
+    "2026-09-19T00:00:00.0000000+02:00",
+    "2026-09-20T00:00:00.0000000+02:00",
+    "2026-09-26T00:00:00.0000000+02:00",
+    "2026-09-27T00:00:00.0000000+02:00",
+    "2026-09-28T00:00:00.0000000+02:00",
+    "2026-09-28T08:00:00.0000000+02:00",
+    "2026-09-29T00:00:00.0000000+02:00",
+    "2026-09-30T00:00:00.0000000",
+    "2026-10-01T00:00:00.0000000",
+    "2026-10-03T00:00:00.0000000+02:00",
+    "2026-10-04T00:00:00.0000000+02:00",
+    "2026-12-31T00:00:00.0000000",
+    "2027-01-01T00:00:00.0000000"
+  ],
+  "generatedUtc": "2026-09-28T13:38:29.3746832Z",
+  "regeneration": "Build/Verification/New-ExcelPivotRelativeDateOracle.ps1",
+  "cases": [
+    {
+      "name": "yesterday",
+      "filterType": 39,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B6",
+      "grandTotal": 13.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "13"
+        }
+      ],
+      "file": "yesterday.xlsx",
+      "sha256": "491aba515a94d9e22f50c7f9930ecaec39546437fdddb70f48b2268d925ccc34"
+    },
+    {
+      "name": "today",
+      "filterType": 38,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 29.0,
+      "siblingRange": "A4:B28",
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "29"
+        }
+      ],
+      "file": "today.xlsx",
+      "sha256": "efef105a1e40507d94cafcd0e59cdf4e6f168039a43c30aec315fb1f8d646a77"
+    },
+    {
+      "name": "tomorrow",
+      "filterType": 37,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B6",
+      "grandTotal": 16.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "29.09.2026",
+          "metric": "16"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "16"
+        }
+      ],
+      "file": "tomorrow.xlsx",
+      "sha256": "4bbce47e31b4bc58eb490e543043209190ac480305fa3fd55888e971ff2e71d6"
+    },
+    {
+      "name": "last-week",
+      "filterType": 42,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 23.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "20.09.2026",
+          "metric": "11"
+        },
+        {
+          "label": "26.09.2026",
+          "metric": "12"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "23"
+        }
+      ],
+      "file": "last-week.xlsx",
+      "sha256": "d11f0f6817ea0d3ac44591c35e7ccc5fe36b7e70e7c24bd3e6366e705c877584"
+    },
+    {
+      "name": "this-week",
+      "filterType": 41,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B12",
+      "grandTotal": 112.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "29.09.2026",
+          "metric": "16"
+        },
+        {
+          "label": "30.09.2026",
+          "metric": "17"
+        },
+        {
+          "label": "1.10.2026",
+          "metric": "18"
+        },
+        {
+          "label": "3.10.2026",
+          "metric": "19"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "112"
+        }
+      ],
+      "file": "this-week.xlsx",
+      "sha256": "f3d5637ab756e764b1063669bb2cf4e871d6e9dcfce493d1b0f0725cb21f71aa"
+    },
+    {
+      "name": "next-week",
+      "filterType": 40,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B6",
+      "grandTotal": 20.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "4.10.2026",
+          "metric": "20"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "20"
+        }
+      ],
+      "file": "next-week.xlsx",
+      "sha256": "4f27beaa6db14eec91edbac9b65175bbdb0964245f3ba552a525dda826d136a3"
+    },
+    {
+      "name": "last-month",
+      "filterType": 45,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 15.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.08.2026",
+          "metric": "7"
+        },
+        {
+          "label": "31.08.2026",
+          "metric": "8"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "15"
+        }
+      ],
+      "file": "last-month.xlsx",
+      "sha256": "f7cc4b7f60387b7b1fde554915fc331e53d212f90564e112a3ee30238ceb1d15"
+    },
+    {
+      "name": "this-month",
+      "filterType": 44,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B14",
+      "grandTotal": 117.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.09.2026",
+          "metric": "9"
+        },
+        {
+          "label": "19.09.2026",
+          "metric": "10"
+        },
+        {
+          "label": "20.09.2026",
+          "metric": "11"
+        },
+        {
+          "label": "26.09.2026",
+          "metric": "12"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "29.09.2026",
+          "metric": "16"
+        },
+        {
+          "label": "30.09.2026",
+          "metric": "17"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "117"
+        }
+      ],
+      "file": "this-month.xlsx",
+      "sha256": "c61d7f10c875256d084d208cb5ee23c503eba97bdccda746a2034f7ec008666d"
+    },
+    {
+      "name": "next-month",
+      "filterType": 43,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B8",
+      "grandTotal": 57.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.10.2026",
+          "metric": "18"
+        },
+        {
+          "label": "3.10.2026",
+          "metric": "19"
+        },
+        {
+          "label": "4.10.2026",
+          "metric": "20"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "57"
+        }
+      ],
+      "file": "next-month.xlsx",
+      "sha256": "ebe575fe62e22579f2f4a0278c939e92b527b20912cefa8549a92de5a5b4a40d"
+    },
+    {
+      "name": "last-quarter",
+      "filterType": 48,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 9.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.04.2026",
+          "metric": "4"
+        },
+        {
+          "label": "30.06.2026",
+          "metric": "5"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "9"
+        }
+      ],
+      "file": "last-quarter.xlsx",
+      "sha256": "d7083c5173ac8768cca6b56fa6010506ff13aac18ee81467fd49769546815a88"
+    },
+    {
+      "name": "this-quarter",
+      "filterType": 47,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B17",
+      "grandTotal": 138.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.07.2026",
+          "metric": "6"
+        },
+        {
+          "label": "1.08.2026",
+          "metric": "7"
+        },
+        {
+          "label": "31.08.2026",
+          "metric": "8"
+        },
+        {
+          "label": "1.09.2026",
+          "metric": "9"
+        },
+        {
+          "label": "19.09.2026",
+          "metric": "10"
+        },
+        {
+          "label": "20.09.2026",
+          "metric": "11"
+        },
+        {
+          "label": "26.09.2026",
+          "metric": "12"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "29.09.2026",
+          "metric": "16"
+        },
+        {
+          "label": "30.09.2026",
+          "metric": "17"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "138"
+        }
+      ],
+      "file": "this-quarter.xlsx",
+      "sha256": "75b5534114785841d72545e95f2c64239e8265e5da28951f2351963878f50950"
+    },
+    {
+      "name": "next-quarter",
+      "filterType": 46,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B9",
+      "grandTotal": 78.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.10.2026",
+          "metric": "18"
+        },
+        {
+          "label": "3.10.2026",
+          "metric": "19"
+        },
+        {
+          "label": "4.10.2026",
+          "metric": "20"
+        },
+        {
+          "label": "31.12.2026",
+          "metric": "21"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "78"
+        }
+      ],
+      "file": "next-quarter.xlsx",
+      "sha256": "ee97733ef842c98e2e22a714f67392f0a1f2de8c75751bb01ca51e3cc2f9151c"
+    },
+    {
+      "name": "last-year",
+      "filterType": 51,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B7",
+      "grandTotal": 3.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.01.2025",
+          "metric": "1"
+        },
+        {
+          "label": "31.12.2025",
+          "metric": "2"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "3"
+        }
+      ],
+      "file": "last-year.xlsx",
+      "sha256": "0882f4e5b36157c77f3c5b6e20d81af47b24a72cd01dde30033cff28626f704d"
+    },
+    {
+      "name": "this-year",
+      "filterType": 50,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B24",
+      "grandTotal": 228.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.01.2026",
+          "metric": "3"
+        },
+        {
+          "label": "1.04.2026",
+          "metric": "4"
+        },
+        {
+          "label": "30.06.2026",
+          "metric": "5"
+        },
+        {
+          "label": "1.07.2026",
+          "metric": "6"
+        },
+        {
+          "label": "1.08.2026",
+          "metric": "7"
+        },
+        {
+          "label": "31.08.2026",
+          "metric": "8"
+        },
+        {
+          "label": "1.09.2026",
+          "metric": "9"
+        },
+        {
+          "label": "19.09.2026",
+          "metric": "10"
+        },
+        {
+          "label": "20.09.2026",
+          "metric": "11"
+        },
+        {
+          "label": "26.09.2026",
+          "metric": "12"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "29.09.2026",
+          "metric": "16"
+        },
+        {
+          "label": "30.09.2026",
+          "metric": "17"
+        },
+        {
+          "label": "1.10.2026",
+          "metric": "18"
+        },
+        {
+          "label": "3.10.2026",
+          "metric": "19"
+        },
+        {
+          "label": "4.10.2026",
+          "metric": "20"
+        },
+        {
+          "label": "31.12.2026",
+          "metric": "21"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "228"
+        }
+      ],
+      "file": "this-year.xlsx",
+      "sha256": "abfeea3ec2c7f7ded60e6759d821677d1571698165c8881afd2178d6ccea6d53"
+    },
+    {
+      "name": "next-year",
+      "filterType": 49,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B6",
+      "grandTotal": 22.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.01.2027",
+          "metric": "22"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "22"
+        }
+      ],
+      "file": "next-year.xlsx",
+      "sha256": "9af0c80a0a54079ee20b87148788a6dcf503764da56f8f471d906a81b89ab610"
+    },
+    {
+      "name": "year-to-date",
+      "filterType": 52,
+      "date1904": false,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B18",
+      "grandTotal": 117.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.01.2026",
+          "metric": "3"
+        },
+        {
+          "label": "1.04.2026",
+          "metric": "4"
+        },
+        {
+          "label": "30.06.2026",
+          "metric": "5"
+        },
+        {
+          "label": "1.07.2026",
+          "metric": "6"
+        },
+        {
+          "label": "1.08.2026",
+          "metric": "7"
+        },
+        {
+          "label": "31.08.2026",
+          "metric": "8"
+        },
+        {
+          "label": "1.09.2026",
+          "metric": "9"
+        },
+        {
+          "label": "19.09.2026",
+          "metric": "10"
+        },
+        {
+          "label": "20.09.2026",
+          "metric": "11"
+        },
+        {
+          "label": "26.09.2026",
+          "metric": "12"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "117"
+        }
+      ],
+      "file": "year-to-date.xlsx",
+      "sha256": "b816c19ad5d2e6ac03d40ddce2b555b40df8c27112b45d3af315d91342c3bf2d"
+    },
+    {
+      "name": "this-month-1904",
+      "filterType": 44,
+      "date1904": true,
+      "sourceRange": "Source!A1:B24",
+      "sourceDateStyle": "Excel automatic DateTime",
+      "outputRange": "A4:B14",
+      "grandTotal": 117.0,
+      "siblingRange": null,
+      "rows": [
+        {
+          "label": "OrderDate",
+          "metric": "Metric"
+        },
+        {
+          "label": "1.09.2026",
+          "metric": "9"
+        },
+        {
+          "label": "19.09.2026",
+          "metric": "10"
+        },
+        {
+          "label": "20.09.2026",
+          "metric": "11"
+        },
+        {
+          "label": "26.09.2026",
+          "metric": "12"
+        },
+        {
+          "label": "27.09.2026",
+          "metric": "13"
+        },
+        {
+          "label": "28.09.2026",
+          "metric": "14"
+        },
+        {
+          "label": "28.09.2026 08:00",
+          "metric": "15"
+        },
+        {
+          "label": "29.09.2026",
+          "metric": "16"
+        },
+        {
+          "label": "30.09.2026",
+          "metric": "17"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "117"
+        }
+      ],
+      "file": "this-month-1904.xlsx",
+      "sha256": "33f19fe39950bffd62a3519611e8712e570f6a9d89a291466f80beab80b76d6a"
+    }
+  ]
+}

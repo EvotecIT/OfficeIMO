@@ -1,0 +1,22 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T08:03:14.2018521Z",
+  "regeneration": "Build/Verification/New-ExcelPivotErrorRankingOracle.ps1",
+  "file": "pivot-value-error-top-percent-conformance.xlsx",
+  "sha256": "65a2fc284b1523267a4de6cf56aeeddec6ba1a431ed5cc67b71b4ee2f2f11836",
+  "sourceRange": "Source!A1:B7",
+  "errorCells": "Source!B3",
+  "errorFormula": "=NA()",
+  "filterType": 3,
+  "value1": 40.0,
+  "aggregateFunction": -4157,
+  "outputRange": "A4:B7",
+  "grandTotal": 90.0,
+  "grandError": null,
+  "displayedItems": [
+    "Echo",
+    "Foxtrot"
+  ]
+}

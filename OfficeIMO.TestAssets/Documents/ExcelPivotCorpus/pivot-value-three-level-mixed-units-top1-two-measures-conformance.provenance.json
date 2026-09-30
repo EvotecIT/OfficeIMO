@@ -1,0 +1,35 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-29T01:50:11.6175952Z",
+  "regeneration": "Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1",
+  "file": "pivot-value-three-level-mixed-units-top1-two-measures-conformance.xlsx",
+  "sha256": "0a10f71ede4bf8856e1d86afc9eebcc8fabcb29d4079c69af19a3f2044bb0fc7",
+  "sourceRange": "Source!A1:E13",
+  "measureNames": [
+    "Metric",
+    "UnitsMetric"
+  ],
+  "selectedMeasure": "UnitsMetric",
+  "unitsGrandTotal": 60.0,
+  "errorCells": null,
+  "errorFormula": null,
+  "filteredField": "Product",
+  "axis": "Mixed",
+  "filterType": 1,
+  "threshold": 1.0,
+  "threshold2": null,
+  "filters": [
+    {
+      "field": "Product",
+      "type": 1,
+      "threshold": 1.0,
+      "threshold2": null
+    }
+  ],
+  "outputRange": "A4:J11",
+  "grandTotal": 110.0
+}

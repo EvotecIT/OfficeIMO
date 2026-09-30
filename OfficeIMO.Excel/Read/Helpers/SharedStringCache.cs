@@ -7,7 +7,7 @@ using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
-    internal sealed class SharedStringCache {
+    internal sealed partial class SharedStringCache {
         internal const int Utf8CacheSlotCount = 256;
         internal const int MaximumCachedUtf8ItemBytes = 4 * 1024;
         private static readonly XmlReaderSettings SharedStringXmlReaderSettings = CreateSharedStringXmlReaderSettings();
@@ -73,6 +73,10 @@ namespace OfficeIMO.Excel {
             _cancellationToken.ThrowIfCancellationRequested();
             if (_openPartStream != null) {
                 using Stream stream = _openPartStream();
+                if (stream is OpenXmlPooledPartStream pooled
+                    && TryLoadSimpleAsciiItems(pooled, out List<string> simpleItems)) {
+                    return simpleItems;
+                }
                 if (TryLoadItemsXmlFast(stream, out List<string> nativeItems)) {
                     return nativeItems;
                 }

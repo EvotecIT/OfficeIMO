@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T14:14:19.4427502Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1",
+  "file": "pivot-label-number-parenthesized-negative-conformance.xlsx",
+  "sha256": "638e9426769e29efb4f6a3084e307f8e8d2c356f265fb3ad04049f2d2324c53f",
+  "sourceRange": "Source!A1:B3",
+  "numberFormat": "#,##0.00;(#,##0.00)",
+  "filterType": 15,
+  "criterion": "(1,234.50)",
+  "outputRange": "A4:B6",
+  "grandTotal": 10.0
+}
