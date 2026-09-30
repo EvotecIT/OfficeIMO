@@ -153,13 +153,21 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 paragraphAlignment = paragraphProperties?.GetFirstChild<W.Justification>()?.Val?.Value ?? paragraphAlignment;
+            }
 
-                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstRow, firstRowStyle, nativeDefaults);
-                lastRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastRow, lastRowStyle, nativeDefaults);
-                firstColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstColumn, firstColumnStyle, nativeDefaults);
-                lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastColumn, lastColumnStyle, nativeDefaults);
-                band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Horizontal, band1HorizontalStyle, nativeDefaults);
-                band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Vertical, band1VerticalStyle, nativeDefaults);
+            // Resolve relative conditional spacing after the complete table style chain,
+            // so a derived whole-table font also governs inherited conditional spacing.
+            var conditionalDefaults = nativeDefaults with {
+                FontSize = fontSize ?? nativeDefaults.FontSize,
+                FontFamily = fontFamily ?? nativeDefaults.FontFamily
+            };
+            foreach (W.Style style in styleChain) {
+                firstRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstRow, firstRowStyle, conditionalDefaults);
+                lastRowStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastRow, lastRowStyle, conditionalDefaults);
+                firstColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.FirstColumn, firstColumnStyle, conditionalDefaults);
+                lastColumnStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.LastColumn, lastColumnStyle, conditionalDefaults);
+                band1HorizontalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Horizontal, band1HorizontalStyle, conditionalDefaults);
+                band1VerticalStyle = GetNativeTableConditionalStyleDefaults(style, W.TableStyleOverrideValues.Band1Vertical, band1VerticalStyle, conditionalDefaults);
             }
 
             PdfCore.PdfCellPadding? cellPadding = marginTop.HasValue || marginBottom.HasValue || marginLeft.HasValue || marginRight.HasValue
@@ -262,8 +270,8 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (spacing != null) {
-                    double naturalLineHeight = ResolveNativeWordSingleLineHeight(fontFamily);
-                    paragraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, fontFamily);
+                    double naturalLineHeight = ResolveNativeWordSingleLineHeight(fontFamily, nativeDefaults.FontFamily);
+                    paragraphLineHeight = GetNativeTableStyleParagraphLineHeight(spacing, fontFamily, nativeDefaults.FontFamily);
                     paragraphLineSpacingPoints = GetNativeTableStyleParagraphLineSpacingPoints(spacing);
                     paragraphLineSpacingRule = paragraphLineHeight.HasValue || paragraphLineSpacingPoints.HasValue
                         ? spacing.LineRule?.Value
