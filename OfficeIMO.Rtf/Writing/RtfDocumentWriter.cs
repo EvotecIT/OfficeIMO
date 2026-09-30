@@ -14,7 +14,12 @@ internal static partial class RtfDocumentWriter {
         WriteDocumentCharacterSet(builder, document.Settings);
         builder.Append(@"\deff");
         builder.Append((document.Settings.DefaultFontId ?? 0).ToString(CultureInfo.InvariantCulture));
-        WritePageSetup(builder, document.PageSetup, isSection: false);
+        RtfPageSetup rootPageSetup = document.PageSetup;
+        if (document.PageSetup.Landscape && document.Sections.Any(section => section.PageSetup.DirectLandscape == false)) {
+            rootPageSetup = new RtfCloneContext().Clone(document.PageSetup)!;
+            rootPageSetup.DirectLandscape = null;
+        }
+        WritePageSetup(builder, rootPageSetup, isSection: false);
         WriteNoteSettings(builder, document.NoteSettings);
         WriteDocumentSettings(builder, document.Settings);
         WriteHtmlEncapsulation(builder, document, options, unicodeSkipCount);
@@ -42,7 +47,7 @@ internal static partial class RtfDocumentWriter {
 
         if (document.Sections.Count > 0) {
             foreach (RtfSection section in document.Sections) {
-                WriteSection(builder, section, context);
+                WriteSection(builder, section, context, document.GetPageSetup(section));
             }
         } else {
             foreach (IRtfBlock block in document.Blocks) {
@@ -79,8 +84,8 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\ansicpg", settings.AnsiCodePage);
     }
 
-    private static void WriteSection(StringBuilder builder, RtfSection section, RtfWriteContext context) {
-        WriteSectionStart(builder, section);
+    private static void WriteSection(StringBuilder builder, RtfSection section, RtfWriteContext context, RtfPageSetup pageSetup) {
+        WriteSectionStart(builder, section, pageSetup);
         WriteHeaderFooters(builder, section.HeaderFooters, context);
         foreach (IRtfBlock block in section.Blocks) {
             WriteBlock(builder, block, context);

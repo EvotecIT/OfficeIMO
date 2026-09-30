@@ -180,17 +180,17 @@ public static partial class WordRtfConverterExtensions {
 
     private static Style CreateWordStyle(RtfStyle source, RtfDocument document) {
         var style = new Style { Type = ToWordStyleKind(source.Kind), StyleId = GetWordStyleId(source.Id, source.Kind) };
-        style.Append(new StyleName { Val = source.Name });
-        if (source.BasedOnStyleId.HasValue) style.Append(new BasedOn { Val = GetWordStyleId(source.BasedOnStyleId.Value, source.Kind) });
-        if (source.NextStyleId.HasValue) style.Append(new NextParagraphStyle { Val = GetWordStyleId(source.NextStyleId.Value, RtfStyleKind.Paragraph) });
-        if (source.LinkedStyleId.HasValue) style.Append(new LinkedStyle { Val = GetWordStyleId(source.LinkedStyleId.Value, source.Kind == RtfStyleKind.Paragraph ? RtfStyleKind.Character : RtfStyleKind.Paragraph) });
-        if (source.AutoUpdate) style.Append(new AutoRedefine());
-        if (source.Hidden) style.Append(new StyleHidden());
-        if (source.Locked) style.Append(new Locked());
-        if (source.SemiHidden) style.Append(new SemiHidden());
-        if (source.UnhideWhenUsed) style.Append(new UnhideWhenUsed());
-        if (source.QuickFormat) style.Append(new PrimaryStyle());
-        if (source.Priority.HasValue) style.Append(new UIPriority { Val = source.Priority.Value });
+        style.AddChild(new StyleName { Val = source.Name }, true);
+        if (source.BasedOnStyleId.HasValue) style.AddChild(new BasedOn { Val = GetWordStyleId(source.BasedOnStyleId.Value, source.Kind) }, true);
+        if (source.NextStyleId.HasValue) style.AddChild(new NextParagraphStyle { Val = GetWordStyleId(source.NextStyleId.Value, RtfStyleKind.Paragraph) }, true);
+        if (source.LinkedStyleId.HasValue) style.AddChild(new LinkedStyle { Val = GetWordStyleId(source.LinkedStyleId.Value, source.Kind == RtfStyleKind.Paragraph ? RtfStyleKind.Character : RtfStyleKind.Paragraph) }, true);
+        if (source.AutoUpdate) style.AddChild(new AutoRedefine(), true);
+        if (source.Hidden) style.AddChild(new StyleHidden(), true);
+        if (source.Locked) style.AddChild(new Locked(), true);
+        if (source.SemiHidden) style.AddChild(new SemiHidden(), true);
+        if (source.UnhideWhenUsed) style.AddChild(new UnhideWhenUsed(), true);
+        if (source.QuickFormat) style.AddChild(new PrimaryStyle(), true);
+        if (source.Priority.HasValue) style.AddChild(new UIPriority { Val = source.Priority.Value }, true);
 
         var run = new StyleRunProperties();
         if (source.Bold.HasValue) run.Bold = new Bold { Val = source.Bold.Value };
@@ -204,9 +204,9 @@ public static partial class WordRtfConverterExtensions {
         }
         if (source.HighlightColorIndex.HasValue) {
             string? fill = GetColorHex(document, source.HighlightColorIndex.Value);
-            if (fill != null || source.HighlightColorIndex == 0) run.Append(new Shading { Val = ShadingPatternValues.Clear, Fill = fill ?? "auto" });
+            if (fill != null || source.HighlightColorIndex == 0) run.AddChild(new Shading { Val = ShadingPatternValues.Clear, Fill = fill ?? "auto" }, true);
         }
-        if (run.HasChildren) style.Append(run);
+        if (run.HasChildren) style.AddChild(run, true);
 
         var paragraph = new StyleParagraphProperties();
         if (source.ListId.HasValue) paragraph.NumberingProperties = new NumberingProperties(
@@ -226,7 +226,7 @@ public static partial class WordRtfConverterExtensions {
         if (source.KeepWithNext.HasValue) paragraph.KeepNext = new KeepNext { Val = source.KeepWithNext.Value };
         if (source.KeepLinesTogether.HasValue) paragraph.KeepLines = new KeepLines { Val = source.KeepLinesTogether.Value };
         if (source.OutlineLevel.HasValue) paragraph.OutlineLevel = new OutlineLevel { Val = source.OutlineLevel.Value };
-        if (paragraph.HasChildren) style.Append(paragraph);
+        if (paragraph.HasChildren) style.AddChild(paragraph, true);
         return style;
     }
 

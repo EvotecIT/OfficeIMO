@@ -30,7 +30,7 @@ namespace OfficeIMO.Word {
                     columns = new Columns();
                     _sectionProperties.Append(columns);
                 }
-                columns.Space = value?.ToString();
+                columns.Space = value.HasValue ? new DocumentFormat.OpenXml.StringValue(value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)) : null;
             }
         }
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word {
                     columns = new Columns();
                     _sectionProperties.Append(columns);
                 }
-                if (value != null) columns.ColumnCount = (Int16Value)value.Value;
+                columns.ColumnCount = value.HasValue ? (Int16Value)value.Value : null;
             }
         }
 

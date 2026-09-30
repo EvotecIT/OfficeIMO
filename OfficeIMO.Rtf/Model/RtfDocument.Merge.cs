@@ -6,7 +6,10 @@ public sealed partial class RtfDocument {
     /// Appends an independent semantic clone of another document, remapping fonts, colors, styles, lists, and revision authors.
     /// Section layout and headers are omitted when content is appended into the destination's layout.
     /// </summary>
-    public RtfDocumentMergeResult AppendDocument(RtfDocument source) {
+    public RtfDocumentMergeResult AppendDocument(RtfDocument source) => AppendDocument(source, new RtfDocumentMergeOptions());
+
+    /// <summary>Appends an independent copy with imported resources and optional source section preservation.</summary>
+    public RtfDocumentMergeResult AppendDocument(RtfDocument source, RtfDocumentMergeOptions? options) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         RtfDocument imported = source.Clone();
         var report = new RtfConversionReport();
@@ -29,15 +32,16 @@ public sealed partial class RtfDocument {
         }
 
         int appended = imported.Blocks.Count;
-        foreach (IRtfBlock block in imported.Blocks.ToArray()) InsertBlock(_blocks.Count, block);
+        if (options?.PreserveSections == true) AppendMergedSections(imported, fontMap, colorMap, revisionAuthorMap, remappedNotes, bindings);
+        else foreach (IRtfBlock block in imported.Blocks.ToArray()) InsertBlock(_blocks.Count, block);
 
-        if (imported.HeaderFooters.Count > 0) {
+        if (options?.PreserveSections != true && imported.HeaderFooters.Count > 0) {
             report.Add(RtfConversionSeverity.Warning, "RtfMergeHeaderFootersOmitted",
                 "Source headers and footers were not appended because they belong to section-level document layout.",
                 RtfConversionAction.Omitted, feature: "HeaderFooter", count: imported.HeaderFooters.Count);
         }
         int omittedSectionLayouts = imported.Sections.Count(section => section.HasAnyLayoutValue);
-        if (omittedSectionLayouts > 0) {
+        if (options?.PreserveSections != true && omittedSectionLayouts > 0) {
             report.Add(RtfConversionSeverity.Warning, "RtfMergeSectionLayoutOmitted",
                 "Source section layout, page setup, and column settings were not appended because document append flattens content into the destination layout.",
                 RtfConversionAction.Omitted, feature: "SectionLayout", count: omittedSectionLayouts);

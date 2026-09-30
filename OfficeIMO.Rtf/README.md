@@ -101,6 +101,16 @@ merge.Report.RequireNoLoss();
 
 `AppendDocument` imports fonts, colors, paragraph and character styles, list definitions and overrides, revision authors, blocks, tables, and notes. Imported resource IDs are remapped, and style inheritance and numbering remain attached to the imported content. File references, XML namespaces, document variables, custom properties, and document information are retained. Conflicting document metadata keeps the destination value and produces an omission diagnostic. Appending into the destination's layout reports source section layout and header/footer omission.
 
+To retain the source's page setup, columns, and header/footer stories, use section-preserving append:
+
+```csharp
+RtfDocumentMergeResult merge = document.AppendDocument(otherDocument,
+    new RtfDocumentMergeOptions { PreserveSections = true });
+merge.Report.RequireNoLoss();
+```
+
+An appended document starts with its own header/footer stories and page defaults. `GetEffectivePageSetup(section)` resolves document defaults beneath a section's explicit settings. `ToRtfResult()` reports when mixed page orientation requires materializing a document-wide landscape default as section settings.
+
 ## Lossless structural editing
 
 `RtfLosslessEditor` changes selected syntax nodes while retaining every untouched node:

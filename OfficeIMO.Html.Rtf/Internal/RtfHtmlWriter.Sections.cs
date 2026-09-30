@@ -141,9 +141,9 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".pageNumberX", pageSetup.PageNumberPositionXTwips);
         AddNullableInt(values, prefix + ".pageNumberY", pageSetup.PageNumberPositionYTwips);
         AddEnum(values, prefix + ".pageNumberFormat", pageSetup.PageNumberFormat);
-        AddBool(values, prefix + ".landscape", pageSetup.Landscape);
-        AddBool(values, prefix + ".differentFirstPage", pageSetup.DifferentFirstPageHeaderFooter);
-        AddBool(values, prefix + ".rtlGutter", pageSetup.RtlGutter);
+        AddNullableBool(values, prefix + ".landscape", pageSetup.DirectLandscape);
+        AddNullableBool(values, prefix + ".differentFirstPage", pageSetup.DirectDifferentFirstPageHeaderFooter);
+        AddNullableBool(values, prefix + ".rtlGutter", pageSetup.DirectRtlGutter);
         AddPageBorders(values, prefix + ".borders", pageSetup.PageBorders);
     }
 

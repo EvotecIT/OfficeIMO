@@ -41,7 +41,7 @@ public class RtfHtmlParagraphFormatTests {
             .SetBorder(RtfParagraphBorderSide.Left, RtfParagraphBorderStyle.Double, width: 40, colorIndex: red)
             .SetBorder(RtfParagraphBorderSide.Bottom, RtfParagraphBorderStyle.Dotted);
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p style=\"border-top:1pt solid #0C2238;border-left:2pt double #FF0000;border-bottom:dotted;\">Boxed</p>", html);
 
@@ -152,7 +152,7 @@ public class RtfHtmlParagraphFormatTests {
         paragraph.AddColumnBreak();
         paragraph.AddText("Column");
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p>Before<br data-officeimo-rtf-break=\"page\" style=\"page-break-before:always;break-before:page;\">After<br data-officeimo-rtf-break=\"soft-line\">SoftLine<br data-officeimo-rtf-break=\"soft-page\">SoftPage<br data-officeimo-rtf-break=\"column\" style=\"break-before:column;\">Column</p>", html);
 

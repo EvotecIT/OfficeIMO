@@ -11,6 +11,11 @@ public sealed partial class RtfDocument {
         RtfWriteOptions resolved = options ?? new RtfWriteOptions();
         var report = new RtfConversionReport();
         foreach (RtfConversionDiagnostic diagnostic in _sourceNormalizationDiagnostics) report.Add(diagnostic);
+        if (PageSetup.Landscape && Sections.Any(section => section.PageSetup.DirectLandscape == false)) {
+            report.Add(RtfConversionSeverity.Warning, "RtfNormalizationOrientationDefaultsMaterialized",
+                "Mixed portrait and landscape output stores orientation on each section because native RTF requires a portrait document default. Effective orientation is preserved; the document-wide landscape default is materialized.",
+                RtfConversionAction.Flattened, sourcePath: "Document/PageSetup", feature: "LandscapeInheritance");
+        }
         if (HtmlEncapsulation != null && (!resolved.IncludeHtmlEncapsulation || !IsHtmlEncapsulationCurrent)) {
             report.Add(RtfConversionSeverity.Warning, "RtfNormalizationHtmlOmitted", "Original encapsulated HTML is omitted from semantic output because it is disabled or no longer corresponds to the edited document.", RtfConversionAction.Omitted, feature: "htmltag");
         }

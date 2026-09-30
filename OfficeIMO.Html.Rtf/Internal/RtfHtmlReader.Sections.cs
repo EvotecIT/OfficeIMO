@@ -118,9 +118,9 @@ internal static partial class RtfHtmlReader {
             pageSetup.PageNumberPositionXTwips = ReadInt(values, prefix + ".pageNumberX");
             pageSetup.PageNumberPositionYTwips = ReadInt(values, prefix + ".pageNumberY");
             pageSetup.PageNumberFormat = ReadEnum<RtfPageNumberFormat>(values, prefix + ".pageNumberFormat");
-            pageSetup.Landscape = ReadBool(values, prefix + ".landscape") == true;
-            pageSetup.DifferentFirstPageHeaderFooter = ReadBool(values, prefix + ".differentFirstPage") == true;
-            pageSetup.RtlGutter = ReadBool(values, prefix + ".rtlGutter") == true;
+            pageSetup.DirectLandscape = ReadBool(values, prefix + ".landscape");
+            pageSetup.DirectDifferentFirstPageHeaderFooter = ReadBool(values, prefix + ".differentFirstPage");
+            pageSetup.DirectRtlGutter = ReadBool(values, prefix + ".rtlGutter");
             ApplyPageBorders(pageSetup.PageBorders, values, prefix + ".borders");
         }
 

@@ -9,6 +9,12 @@ This guide contains version-to-version changes that require application code, pa
 
 OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup. Upgrade every OfficeIMO package in an application to the same `3.4.x` version and perform a clean restore after changing versions.
 
+## RTF HTML round-trip output
+
+`RtfToHtmlOptions.CreateRoundTripProfile()` emits a complete HTML document so font and color tables, styles, numbering, and document-level settings survive an editable round trip. Consumers that require HTML fragments should set `FragmentOnly = true` explicitly. Fragment output retains inline metadata but omits metadata stored in the document head.
+
+`AppendDocument` retains imported style and list bindings. Applications that also need source page setup and header/footer stories can use `RtfDocumentMergeOptions.PreserveSections`. Page setup exposes nullable `DirectLandscape`, `DirectDifferentFirstPageHeaderFooter`, and `DirectRtlGutter` values: use `null` to inherit the document setting and `false` to select an explicit reset.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds
