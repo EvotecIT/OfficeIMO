@@ -4,15 +4,25 @@ namespace OfficeIMO.Html;
 
 internal sealed partial class HtmlRenderLayoutEngine {
     private IReadOnlyList<HtmlRenderVisual> SliceBlockVisuals(HtmlRenderFlowBlock block, double start, double end) {
-        return SliceVisuals(block.Visuals, start, end);
+        return SliceVisuals(block.Visuals, start, end, includeEndAnchor: end >= block.PagedPaintExtent - 0.0001D);
     }
 
-    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end) {
+    private IReadOnlyList<HtmlRenderVisual> SliceVisuals(IEnumerable<HtmlRenderVisual> sourceVisuals, double start, double end, bool includeEndAnchor = false) {
         var fragment = new List<HtmlRenderVisual>();
         foreach (HtmlRenderVisual visual in sourceVisuals) {
             int firstFragment = fragment.Count;
             try {
                 double visualTop = visual.LayoutY;
+                if (visual is HtmlRenderLogicalTextGroup { IsFlowAnchor: true }) {
+                    // Interior points belong to the following fragment; the
+                    // terminal point belongs to the final fragment exactly once.
+                    if (visualTop >= start - 0.0001D
+                        && (visualTop < end - 0.0001D || includeEndAnchor && visualTop <= end + 0.0001D)) {
+                        fragment.Add(visual.Translate(0D, -start, fragment.Count));
+                    }
+                    continue;
+                }
+                bool containsFlowAnchor = _pageFloatEntries.Count > 0 && ContainsFlowAnchor(visual);
                 double visualBottom = visual.LayoutY + visual.LayoutHeight;
                 // Paint-neutral wrappers can retain the CSS box height while
                 // their visible children continue across printed pages.
@@ -27,16 +37,16 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
                 double intersectionTop = Math.Max(start, visualTop);
                 double intersectionBottom = Math.Min(end, visualBottom);
-                if (intersectionBottom <= intersectionTop + 0.0001D) continue;
+                if (intersectionBottom <= intersectionTop + 0.0001D && !containsFlowAnchor) continue;
 
                 bool fullyContained = visualTop >= start - 0.0001D && visualBottom <= end + 0.0001D;
-                if (fullyContained) {
+                if (fullyContained && !containsFlowAnchor) {
                     fragment.Add(visual.Translate(0D, -start, fragment.Count));
                     continue;
                 }
 
                 if (visual is HtmlRenderClipGroup clipGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(clipGroup.Visuals, start, end, includeEndAnchor);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderClipGroup(
                             clipGroup.ClipX,
@@ -55,7 +65,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderSemanticGroup semanticGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(semanticGroup.Visuals, start, end);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(semanticGroup.Visuals, start, end, includeEndAnchor);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderSemanticGroup(
                             semanticGroup.Role,
@@ -76,7 +86,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderLayoutRegion layoutRegion) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(layoutRegion.Visuals, start, end, includeEndAnchor);
                     fragment.Add(new HtmlRenderLayoutRegion(
                         layoutRegion.SourceKey,
                         layoutRegion.RegionKind,
@@ -115,7 +125,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
 
                 if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(logicalTextGroup.Visuals, start, end, includeEndAnchor);
                     if (children.Count > 0) {
                         fragment.Add(new HtmlRenderLogicalTextGroup(
                             ResolveLogicalText(children, logicalTextGroup.Text),
@@ -136,7 +146,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     bool translated = TryGetVerticalPaintTranslation(effectGroup.Transform, out double verticalTranslation);
                     double childStart = translated ? start - verticalTranslation : start;
                     double childEnd = translated ? end - verticalTranslation : end;
-                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, childStart, childEnd);
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(effectGroup.Visuals, childStart, childEnd, includeEndAnchor);
                     if (children.Count > 0) {
                         if (translated && Math.Abs(verticalTranslation) > 0.0001D) {
                             // Child fragments are rebased to their pre-transform window;
@@ -172,6 +182,23 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
+                if (visual is HtmlRenderPathClipGroup pathClip && containsFlowAnchor) {
+                    // Atomic paint clipping keeps the complete child tree on
+                    // each page. Source points must instead belong only to
+                    // their fragment; retain the same path and outer paint clip.
+                    IReadOnlyList<HtmlRenderVisual> children = SliceVisuals(pathClip.Visuals, start, end, includeEndAnchor);
+                    if (children.Count > 0) {
+                        var slicedPath = new HtmlRenderPathClipGroup(pathClip.ClipX, pathClip.ClipY - start,
+                            pathClip.ClipPath, children, 0, pathClip.Source, pathClip.LayoutY - start);
+                        double clipY = intersectionTop - start;
+                        fragment.Add(new HtmlRenderClipGroup(pathClip.X, clipY, pathClip.Width,
+                            Math.Max(0.01D, intersectionBottom - intersectionTop),
+                            clipHorizontal: false, clipVertical: true, new[] { slicedPath },
+                            fragment.Count, pathClip.Source, clipY));
+                    }
+                    continue;
+                }
+
                 if (visual is HtmlRenderImage
                     || visual is HtmlRenderDrawing
                     || visual is HtmlRenderImagePattern
@@ -193,6 +220,14 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         return fragment;
+    }
+
+    private bool ContainsFlowAnchor(HtmlRenderVisual visual) {
+        foreach (HtmlRenderVisual child in EnumeratePageFloatVisuals(new[] { visual })) {
+            ChargeLayoutOperation("page-float fragment anchors");
+            if (child is HtmlRenderLogicalTextGroup { IsFlowAnchor: true }) return true;
+        }
+        return false;
     }
 
     private static HtmlRenderClipGroup CreateVerticallyClippedVisualFragment(

@@ -559,7 +559,8 @@ internal static partial class HtmlPdfRenderedConverter {
             // the first source layer can paint or knows other layers' font failures.
             logicalPaint = pagePaint!.GetLogicalPaint(group.LogicalScope!);
             HtmlRenderLogicalText.TryResolveSourceText(logicalPaint.Where(visual =>
-                ContainsPdfRenderableVisual(visual, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)), out replacementText);
+                ContainsPdfRenderableVisual(visual, webFonts, surfaceWidth, surfaceHeight, activeClip, cancellationToken)), out replacementText,
+                preserveBlockSeparators: group.LogicalScope!.PreserveBlockSeparators);
         }
         if (replacementText.Length == 0) {
             canvas.Artifact(nested => nested.AddItems(content.Items));

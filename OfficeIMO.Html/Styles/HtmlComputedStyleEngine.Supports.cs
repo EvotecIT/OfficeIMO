@@ -152,7 +152,10 @@ public static partial class HtmlComputedStyleEngine {
 
         string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
         if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
-            return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end");
+            return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end", "top", "bottom", "block-start", "block-end", "snap");
+        }
+        if (string.Equals(propertyName, "float-reference", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "inline", "page");
         }
         if (string.Equals(propertyName, "clear", StringComparison.OrdinalIgnoreCase)) {
             return IsKnownKeyword(normalized, "none", "left", "right", "both", "inline-start", "inline-end");
@@ -416,6 +419,8 @@ public static partial class HtmlComputedStyleEngine {
                 || string.Equals(owned.Definition.Name, "visibility", StringComparison.OrdinalIgnoreCase))) return false;
         string normalized = rawNormalized;
         switch (propertyName.ToLowerInvariant()) {
+            case "float-reference":
+                return IsKnownKeyword(normalized, "inline", "column", "region", "page");
             case "scale":
                 return HtmlCssTransformParser.IsSupportedIndividualScaleSyntax(normalized);
             case "font":

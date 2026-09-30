@@ -98,7 +98,7 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
                 continue;
             }
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
-                if (!ContainsArtifactVisual(logicalTextGroup.Visuals)) {
+                if (logicalTextGroup.LogicalScope?.PreserveBlockSeparators == true || !ContainsArtifactVisual(logicalTextGroup.Visuals)) {
                     if (logicalTextGroup.Text.Length > 0) yield return logicalTextGroup.Text;
                 } else {
                     string visibleText = string.Concat(EnumerateLogicalText(logicalTextGroup.Visuals));
@@ -144,6 +144,10 @@ public sealed class HtmlRenderDocument : global::OfficeIMO.IOfficeConversionRepo
             return text.LogicalTextOrder;
         }
         if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+            if (logicalTextGroup.IsFlowAnchor) {
+                containsText = false;
+                return null;
+            }
             int? logicalOrder = null;
             foreach (HtmlRenderVisual child in logicalTextGroup.Visuals) {
                 int? childOrder = ResolveLogicalTextOrder(child, out _);

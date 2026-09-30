@@ -142,7 +142,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             null,
             source,
             ownerElement: element,
-            isBookmarkMarker: true));
+            isFlowMarker: true));
     }
 
     private static string FootnoteCallDestination(int number) =>
@@ -219,7 +219,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool firstOnPage = !reservations.ContainsKey(pageNumber);
                 double separator = firstOnPage ? FootnoteSeparatorGap : 2D;
                 double minimumBody = Math.Min(geometry.ContentHeight * 0.5D, Math.Max(12D, _options.DefaultFontSize * 1.5D));
-                double capacity = Math.Max(0D, geometry.ContentHeight - minimumBody - reserved - separator);
+                double pageFloats = _pageFloatPlan.ReservedHeight(pageNumber, "top")
+                    + _pageFloatPlan.ReservedHeight(pageNumber, "bottom");
+                double capacity = Math.Max(0D, geometry.ContentHeight - pageFloats - minimumBody - reserved - separator);
                 if (capacity <= 0.01D) {
                     pageNumber++;
                     continue;
@@ -305,10 +307,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
         : 0D;
 
     private double ResolvePageBodyContentHeight(int pageNumber, HtmlCssPageGeometry geometry) =>
-        Math.Max(1D, geometry.ContentHeight - ResolveFootnoteReservation(pageNumber));
+        Math.Max(1D, geometry.ContentHeight - ResolveFootnoteReservation(pageNumber)
+            - _pageFloatPlan.ReservedHeight(pageNumber, "top") - _pageFloatPlan.ReservedHeight(pageNumber, "bottom"));
 
     private double ResolvePageBodyBottom(int pageNumber, HtmlCssPageGeometry geometry) =>
-        geometry.Height - geometry.Margins.Bottom - ResolveFootnoteReservation(pageNumber);
+        geometry.Height - geometry.Margins.Bottom - ResolveFootnoteReservation(pageNumber)
+            - _pageFloatPlan.ReservedHeight(pageNumber, "bottom");
 
     private void AddFootnoteVisuals(ICollection<HtmlRenderVisual> target, int pageNumber, HtmlCssPageGeometry geometry) {
         IReadOnlyList<HtmlFootnoteChunk> chunks = _footnotePlan.GetChunks(pageNumber);

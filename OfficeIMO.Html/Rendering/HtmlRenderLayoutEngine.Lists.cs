@@ -217,7 +217,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
             logicalText.Source,
             logicalText.LayoutY,
             logicalText.LayoutHeight,
-            logicalText.LogicalScope);
+            logicalText.LogicalScope,
+            logicalText.IsFlowAnchor);
     }
 
     private static (double X, double Y, double Width, double Height) ResolveSemanticBounds(

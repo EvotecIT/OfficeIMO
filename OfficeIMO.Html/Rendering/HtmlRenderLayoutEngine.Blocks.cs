@@ -156,7 +156,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
-                if (childStyle.FloatSide != "none") {
+                if (childStyle.FloatSide != "none" || TryGetPageFloatSide(element, childStyle, out _)) {
                     inlineNodes.Add(node);
                     continue;
                 }
@@ -871,7 +871,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 inline.Height - inline.NormalFlowHeight);
         }
         nodes.Clear();
-        if (inline.Height <= 0D || inline.Visuals.Count == 0) return 0D;
+        if (inline.Visuals.Count == 0) return 0D;
         // A floated sibling does not consume normal-flow height before the
         // following block. A block formatting context still contains its float.
         bool containsFloat = EstablishesFloatContainingBlock(style);

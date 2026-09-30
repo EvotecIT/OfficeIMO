@@ -265,7 +265,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (!HtmlRenderStyleResolver.IsBlockElement(element, style)) {
             AddInlineNamedDestinationRun(element, style, inheritedPaintOffsetX, inheritedPaintOffsetY, runs);
         }
-        ReportUnsupportedFloatValues(element, style);
+        bool isPageFloat = TryGetPageFloatSide(element, style, out _);
+        if (!isPageFloat) ReportUnsupportedFloatValues(element, style);
         ReportUnsupportedOverflowValues(element, style);
         ReportUnsupportedMultiColumnValues(element, style);
         RegisterInlineSemanticControls(element, style);
@@ -296,6 +297,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 element.ParentElement,
                 element));
             return;
+        }
+        if (isPageFloat) {
+            AssignLogicalTextOrders(runs);
+            if (TryAddPageFloatRun(element, inheritedStyle, depth, style, link, runs)) return;
         }
         if (style.FloatSide != "none") {
             AssignLogicalTextOrders(runs);
@@ -491,7 +496,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 paintOffsetX,
                 paintOffsetY,
                 element,
-                isBookmarkMarker: true);
+                isFlowMarker: true);
             markerRun.AssignSemanticNode(style.SemanticRole, nodeId, bookmarkAnchorText);
             if (semanticRuns.Count == 0) AssignInlineSemanticGroup(markerRun, style, nodeId);
             destination.Add(markerRun);
@@ -879,7 +884,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
         for (int index = runIndex + 1; index < runs.Count; index++) {
             HtmlInlineRun candidate = runs[index];
-            if ((candidate.AtomicBlock != null && !candidate.IsBookmarkMarker) || candidate.FloatingBlock != null) return true;
+            if ((candidate.AtomicBlock != null && !candidate.IsFlowMarker) || candidate.FloatingBlock != null) return true;
             if (!string.IsNullOrWhiteSpace(candidate.Text)) return true;
         }
         return false;
@@ -1609,13 +1614,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
             Width += segment.Width;
             if (segment.Run.RunningStringElement == null
                 && segment.Run.RunningElementAssignment == null
-                && !segment.Run.IsBookmarkMarker) _flowContentCount++;
+                && !segment.Run.IsFlowMarker) _flowContentCount++;
         }
 
         internal void RemoveAt(int index) {
             if (Segments[index].Run.RunningStringElement == null
                 && Segments[index].Run.RunningElementAssignment == null
-                && !Segments[index].Run.IsBookmarkMarker) _flowContentCount--;
+                && !Segments[index].Run.IsFlowMarker) _flowContentCount--;
             Width -= Segments[index].Width;
             Segments.RemoveAt(index);
         }

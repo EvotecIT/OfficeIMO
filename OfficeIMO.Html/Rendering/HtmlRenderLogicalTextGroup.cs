@@ -17,9 +17,11 @@ public sealed class HtmlRenderLogicalTextGroup : HtmlRenderVisual {
         string? source,
         double? layoutY = null,
         double? layoutHeight = null,
-        HtmlRenderLogicalTextScope? logicalScope = null)
+        HtmlRenderLogicalTextScope? logicalScope = null,
+        bool isFlowAnchor = false)
         : base(HtmlRenderVisualKind.LogicalTextGroup, x, y, width, height, paintOrder, null, source, layoutY, layoutHeight) {
         LogicalScope = logicalScope;
+        IsFlowAnchor = isFlowAnchor;
         Text = text ?? throw new ArgumentNullException(nameof(text));
         _visuals = new List<HtmlRenderVisual>(visuals ?? throw new ArgumentNullException(nameof(visuals)))
             .OrderBy(item => item.PaintOrder)
@@ -35,16 +37,22 @@ public sealed class HtmlRenderLogicalTextGroup : HtmlRenderVisual {
 
     internal HtmlRenderLogicalTextScope? LogicalScope { get; }
 
+    /// <summary>A paint-neutral source point whose ownership must survive page slicing.</summary>
+    internal bool IsFlowAnchor { get; }
+
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, LayoutY + offsetY, LayoutHeight, LogicalScope);
+        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.Translate(offsetX, offsetY, index)), paintOrder, Source, LayoutY + offsetY, LayoutHeight, LogicalScope, IsFlowAnchor);
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
-        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, LayoutY, LayoutHeight, LogicalScope);
+        new HtmlRenderLogicalTextGroup(Text, X + offsetX, Y + offsetY, Width, Height, _visuals.Select((visual, index) => visual.TranslatePaint(offsetX, offsetY, index)), paintOrder, Source, LayoutY, LayoutHeight, LogicalScope, IsFlowAnchor);
 
     internal HtmlRenderVisual ProjectPaint(IEnumerable<HtmlRenderVisual> visuals, double offsetX, double offsetY, int paintOrder, bool ownsLogicalText) =>
         new HtmlRenderLogicalTextGroup(ownsLogicalText ? Text : string.Empty,
-            X + offsetX, Y + offsetY, Width, Height, visuals, paintOrder, Source, LayoutY, LayoutHeight, LogicalScope);
+            X + offsetX, Y + offsetY, Width, Height, visuals, paintOrder, Source, LayoutY, LayoutHeight, LogicalScope, IsFlowAnchor);
 }
 
 /// <summary>Shared identity of discontiguous paint fragments for one logical text scope.</summary>
-internal sealed class HtmlRenderLogicalTextScope { }
+internal sealed class HtmlRenderLogicalTextScope {
+    internal HtmlRenderLogicalTextScope(bool preserveBlockSeparators = false) => PreserveBlockSeparators = preserveBlockSeparators;
+    internal bool PreserveBlockSeparators { get; }
+}

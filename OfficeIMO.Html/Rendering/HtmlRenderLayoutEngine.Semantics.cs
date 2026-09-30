@@ -91,7 +91,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 paintOffsetX,
                 paintOffsetY,
                 element,
-                isBookmarkMarker: true));
+                isFlowMarker: true));
         }
     }
 

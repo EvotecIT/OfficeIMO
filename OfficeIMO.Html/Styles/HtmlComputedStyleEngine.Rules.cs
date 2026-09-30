@@ -226,7 +226,7 @@ public static partial class HtmlComputedStyleEngine {
                 declarations[propertyName] = candidate;
             }
         }
-        if (ownedDeclarations == null && ownedRule != null) RetainAuthoredFlexDeclarations(ownedRule, declarations);
+        if (ownedDeclarations == null && ownedRule != null) RetainAuthoredProviderFallbackDeclarations(ownedRule, declarations);
 
         // AngleSharp can retain a var()-backed shorthand while enumerating only empty
         // expanded longhands. Query supported properties directly so the cascade keeps
@@ -1080,13 +1080,13 @@ public static partial class HtmlComputedStyleEngine {
         return false;
     }
 
-    private static void RetainAuthoredFlexDeclarations(
+    private static void RetainAuthoredProviderFallbackDeclarations(
         OfficeIMO.Html.Css.HtmlCssQualifiedRule ownedRule,
         IDictionary<string, StyleDeclaration> declarations) {
         for (int index = 0; index < ownedRule.Declarations.Count; index++) {
             OfficeIMO.Html.Css.HtmlCssDeclaration declaration = ownedRule.Declarations[index];
             string propertyName = declaration.Name.Trim().ToLowerInvariant();
-            if (propertyName is not ("flex" or "flex-grow" or "flex-shrink" or "flex-basis")) continue;
+            if (propertyName is not ("flex" or "flex-grow" or "flex-shrink" or "flex-basis" or "float" or "float-reference")) continue;
             string value = RestoreProtectedDeclarationValue(StripCssCommentsOutsideStrings(
                 OfficeIMO.Html.Css.HtmlCssPropertyParser.Parse(declaration, UnboundedPropertyTokenization).AuthoredValue).Trim());
             if (!IsSupportedDeclarationValue(propertyName, value)) continue;

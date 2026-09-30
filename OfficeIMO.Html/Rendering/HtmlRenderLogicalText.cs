@@ -10,14 +10,32 @@ internal static class HtmlRenderLogicalText {
         return fragments.Any(fragment => fragment.Text.Length > 0);
     }
 
-    internal static bool TryResolveSourceText(IEnumerable<HtmlRenderVisual> visuals, out string logicalText) {
+    internal static bool TryResolveSourceText(IEnumerable<HtmlRenderVisual> visuals, out string logicalText, bool preserveBlockSeparators = false) {
         var fragments = new List<LogicalTextFragment>();
         CollectLogicalTextFragments(visuals, fragments);
         logicalText = string.Empty;
         if (fragments.Count == 0 || fragments.Any(fragment => !fragment.Order.HasValue)) return false;
-        logicalText = string.Concat(fragments.OrderBy(fragment => fragment.Order!.Value)
-            .ThenBy(fragment => fragment.PaintSequence).Select(fragment => fragment.Text));
+        var text = new System.Text.StringBuilder();
+        object? previousBlock = null;
+        foreach (LogicalTextFragment fragment in fragments.OrderBy(fragment => fragment.Order!.Value).ThenBy(fragment => fragment.PaintSequence)) {
+            if (preserveBlockSeparators && text.Length > 0 && !Equals(previousBlock, fragment.BlockIdentity)
+                && (previousBlock != null || fragment.BlockIdentity != null)) text.Append('\n');
+            text.Append(fragment.Text);
+            previousBlock = fragment.BlockIdentity;
+        }
+        logicalText = text.ToString();
         return logicalText.Length > 0;
+    }
+
+    internal static bool TryResolveSourceOrderRange(HtmlRenderVisual visual, out int first, out int last) {
+        var fragments = new List<LogicalTextFragment>();
+        CollectLogicalTextFragments(new[] { visual }, fragments);
+        fragments.RemoveAll(fragment => fragment.Text.Length == 0);
+        first = last = 0;
+        if (fragments.Count == 0 || fragments.Any(fragment => !fragment.Order.HasValue)) return false;
+        first = fragments.Min(fragment => fragment.Order!.Value);
+        last = fragments.Max(fragment => fragment.Order!.Value);
+        return true;
     }
 
     internal static bool TryResolveReorderedText(IEnumerable<HtmlRenderVisual> visuals, out string logicalText) {
@@ -35,25 +53,28 @@ internal static class HtmlRenderLogicalText {
         return logicalText.Length > 0;
     }
 
-    private static void CollectLogicalTextFragments(IEnumerable<HtmlRenderVisual> visuals, ICollection<LogicalTextFragment> fragments) {
+    private static void CollectLogicalTextFragments(IEnumerable<HtmlRenderVisual> visuals, ICollection<LogicalTextFragment> fragments, object? blockIdentity = null) {
         foreach (HtmlRenderVisual visual in visuals.OrderBy(item => item.PaintOrder)) {
             if (visual is HtmlRenderSemanticGroup { Role: HtmlRenderSemanticGroupRole.Artifact }) continue;
             if (visual is HtmlRenderLogicalTextGroup logicalTextGroup) {
+                if (logicalTextGroup.IsFlowAnchor) continue;
                 if (ContainsArtifactVisual(logicalTextGroup.Visuals)) {
-                    CollectLogicalTextFragments(logicalTextGroup.Visuals, fragments);
+                    CollectLogicalTextFragments(logicalTextGroup.Visuals, fragments, blockIdentity);
                     continue;
                 }
                 int? order = ResolveLogicalTextOrder(logicalTextGroup.Visuals);
-                fragments.Add(new LogicalTextFragment(logicalTextGroup.Text, order, fragments.Count));
+                fragments.Add(new LogicalTextFragment(logicalTextGroup.Text, order, fragments.Count, blockIdentity));
                 continue;
             }
             if (visual is HtmlRenderText text) {
-                fragments.Add(new LogicalTextFragment(text.Text, text.LogicalTextOrder, fragments.Count));
+                fragments.Add(new LogicalTextFragment(text.Text, text.LogicalTextOrder, fragments.Count, blockIdentity));
                 continue;
             }
 
             IEnumerable<HtmlRenderVisual>? children = LogicalTextChildVisuals(visual);
-            if (children != null) CollectLogicalTextFragments(children, fragments);
+            if (children != null) CollectLogicalTextFragments(children, fragments,
+                visual is HtmlRenderSemanticGroup semantic && HtmlRenderSemanticGroup.IsTextContentRole(semantic.Role)
+                    ? (object?)semantic.StructureElementKey ?? semantic : blockIdentity);
         }
     }
 
@@ -95,14 +116,16 @@ internal static class HtmlRenderLogicalText {
                         : visual is HtmlRenderFormField formField ? formField.Visuals : null;
 
     private readonly struct LogicalTextFragment {
-        internal LogicalTextFragment(string text, int? order, int paintSequence) {
+        internal LogicalTextFragment(string text, int? order, int paintSequence, object? blockIdentity) {
             Text = text;
             Order = order;
             PaintSequence = paintSequence;
+            BlockIdentity = blockIdentity;
         }
 
         internal string Text { get; }
         internal int? Order { get; }
         internal int PaintSequence { get; }
+        internal object? BlockIdentity { get; }
     }
 }

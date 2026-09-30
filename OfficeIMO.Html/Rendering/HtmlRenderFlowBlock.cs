@@ -681,7 +681,7 @@ internal sealed class HtmlInlineRun {
         IElement? ownerElement = null,
         bool isReplacedImage = false,
         double? atomicBaseline = null,
-        bool isBookmarkMarker = false) {
+        bool isFlowMarker = false) {
         AtomicBlock = atomicBlock;
         Text = string.Empty;
         LogicalText = string.Empty;
@@ -693,7 +693,7 @@ internal sealed class HtmlInlineRun {
         OwnerElement = ownerElement;
         IsReplacedImage = isReplacedImage;
         AtomicBaseline = atomicBaseline;
-        IsBookmarkMarker = isBookmarkMarker;
+        IsFlowMarker = isFlowMarker;
         SemanticRole = style.SemanticRole;
     }
 
@@ -733,7 +733,7 @@ internal sealed class HtmlInlineRun {
     internal IReadOnlyList<HtmlCssRunningStringAssignment> RunningElementAssignments { get; } = Array.Empty<HtmlCssRunningStringAssignment>();
     internal bool IsReplacedImage { get; }
     internal double? AtomicBaseline { get; }
-    internal bool IsBookmarkMarker { get; }
+    internal bool IsFlowMarker { get; }
     internal string SemanticRole { get; private set; }
     internal int? SemanticNodeId { get; private set; }
     internal int? SemanticFragmentOrder { get; private set; }

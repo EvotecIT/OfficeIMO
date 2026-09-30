@@ -181,6 +181,7 @@ public static partial class HtmlComputedStyleEngine {
         "flex-wrap",
         "filter",
         "float",
+        "float-reference",
         "gap",
         "grid-area",
         "grid-auto-columns",

@@ -236,12 +236,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private HtmlRenderFlowBlock InsertFlexItemBreakGap(HtmlRenderFlowBlock block, double cut, double gap,
         bool absorbInStretchTail) {
         IReadOnlyList<HtmlRenderVisual> before = SliceVisuals(block.Visuals, 0D, cut);
-        IReadOnlyList<HtmlRenderVisual> after = SliceVisuals(block.Visuals, cut, block.Height);
+        IReadOnlyList<HtmlRenderVisual> after = SliceVisuals(block.Visuals, cut, block.Height, includeEndAnchor: true);
         List<HtmlRenderVisual> visuals = before
             .Concat(after.Select((visual, index) => visual.Translate(0D, cut + gap, before.Count + index)))
             .ToList();
         double height = absorbInStretchTail ? block.Height : block.Height + gap;
-        if (absorbInStretchTail) visuals = SliceVisuals(visuals, 0D, height).ToList();
+        if (absorbInStretchTail) visuals = SliceVisuals(visuals, 0D, height, includeEndAnchor: true).ToList();
         double Shift(double offset) => offset >= cut - 0.0001D ? offset + gap : offset;
 
         return new HtmlRenderFlowBlock(
