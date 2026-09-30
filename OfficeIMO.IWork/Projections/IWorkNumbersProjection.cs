@@ -138,6 +138,7 @@ internal static class IWorkNumbersReader {
                 continue;
             }
             if (sheetRecord.MessageType != SheetArchive) {
+                omittedUnits.Add(new IWorkObjectIdentity(sheetRecord));
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_SHEET_TYPE_UNSUPPORTED",

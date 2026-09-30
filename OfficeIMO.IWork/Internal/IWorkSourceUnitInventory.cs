@@ -8,8 +8,10 @@ internal static class IWorkSourceUnitInventory {
         var result = new List<IWorkSourceUnit>();
         foreach (IWorkArchiveRecord record in source.Records) {
             source.CancellationToken.ThrowIfCancellationRequested();
-            if (!record.IsPrimary || !recoveredIds.Contains(record.Identifier) && !omittedIds.Contains(record.Identifier)
-                || Classify(source.Kind, record.MessageType) is not { } kind) continue;
+            if (!record.IsPrimary || !recoveredIds.Contains(record.Identifier) && !omittedIds.Contains(record.Identifier)) continue;
+            IWorkSourceUnitKind? selectedKind = Classify(source.Kind, record.MessageType);
+            if (selectedKind == null && omittedIds.Contains(record.Identifier)) selectedKind = IWorkSourceUnitKind.UnsupportedObject;
+            if (selectedKind is not { } kind) continue;
             IWorkSourceUnitDisposition disposition = IWorkSourceUnitDisposition.Unassessed;
             if (projectionKind == IWorkProjectionKind.EditableReconstruction) {
                 if (recoveredIds.Contains(record.Identifier)) disposition = IWorkSourceUnitDisposition.Reconstructed;

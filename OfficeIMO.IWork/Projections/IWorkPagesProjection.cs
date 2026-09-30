@@ -349,12 +349,13 @@ internal static class IWorkPagesReader {
             textBoxes.Add(textBox);
             projectedTextBoxes.Add(shape.Identifier, textBox);
         }
-        IWorkArchiveRecord? unsupportedDrawable = documentDrawables.FirstOrDefault(record =>
-            record.MessageType is not TextStorageArchive and not ShapeInfoArchive
-                and not 3005 and not 6000 and not 6007);
-        if (unsupportedDrawable != null) {
+        foreach (IWorkArchiveRecord unsupportedDrawable in documentDrawables.Where(record =>
+                     record.MessageType is not TextStorageArchive and not ShapeInfoArchive
+                         and not 3005 and not 6000 and not 6007)) {
+            omittedUnits.Add(new IWorkObjectIdentity(unsupportedDrawable));
             supportsEditableReconstruction = false;
-            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
+            if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED"))
+                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
                 $"Pages drawable type {unsupportedDrawable.MessageType} is preserved but cannot be reconstructed; editable reconstruction is incomplete.",
                 unsupportedDrawable.EntryPath, unsupportedDrawable.Identifier));

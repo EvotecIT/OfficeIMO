@@ -19,7 +19,7 @@ public sealed class IWorkObjectIdentity {
     public int PayloadIndex { get; }
 }
 
-/// <summary>The recognized primary-record units counted independently of paragraphs or cells.</summary>
+/// <summary>The selected primary-record units counted independently of paragraphs or cells.</summary>
 public enum IWorkSourceUnitKind {
     /// <summary>A document root.</summary>
     Document,
@@ -32,7 +32,9 @@ public enum IWorkSourceUnitKind {
     /// <summary>A text storage, counted once even when used by multiple drawables.</summary>
     Text,
     /// <summary>An image drawable, counted independently of a shared resource.</summary>
-    Image
+    Image,
+    /// <summary>A selected object whose native type has no supported semantic reconstruction.</summary>
+    UnsupportedObject
 }
 
 /// <summary>The known destination outcome of one recognized source unit.</summary>
@@ -45,7 +47,7 @@ public enum IWorkSourceUnitDisposition {
     Unassessed
 }
 
-/// <summary>Identity and destination accounting for one recognized primary source record.</summary>
+/// <summary>Identity and destination accounting for one selected primary source record.</summary>
 public sealed class IWorkSourceUnit {
     internal IWorkSourceUnit(IWorkSourceUnitKind kind, IWorkObjectIdentity identity, IWorkSourceUnitDisposition disposition) {
         Kind = kind;
@@ -60,7 +62,7 @@ public sealed class IWorkSourceUnit {
     public IWorkSourceUnitDisposition Disposition { get; }
 }
 
-/// <summary>Counts identified units selected by the semantic projection; inactive records, unknown types, and unresolved references are not included.</summary>
+/// <summary>Counts identified units selected by the semantic projection, including explicitly omitted unsupported objects. Inactive records and unresolved references are not included.</summary>
 public sealed class IWorkSourceUnitCount {
     internal IWorkSourceUnitCount(IWorkSourceUnitKind kind, IEnumerable<IWorkSourceUnit> units) {
         Kind = kind;

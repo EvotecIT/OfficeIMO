@@ -72,7 +72,7 @@ public sealed class IWorkConversionReport : global::OfficeIMO.IOfficeConversionR
     public int UnassessedRecordCount => TotalRecordCount;
     /// <summary>Gets the number of semantic paragraphs, cells, slides, or other items reconstructed by the adapter.</summary>
     public int ReconstructedItemCount { get; }
-    /// <summary>Gets identified primary document, sheet, slide, table-info, text-storage, and image records selected by the semantic projection, with known destination outcomes. Inactive records, unknown types, and unresolved references are excluded; this is not a complete content inventory.</summary>
+    /// <summary>Gets identified primary document, sheet, slide, table-info, text-storage, image, and explicitly omitted unsupported records selected by the semantic projection, with known destination outcomes. Inactive records and unresolved references are excluded; this is not a complete content inventory.</summary>
     public IReadOnlyList<IWorkSourceUnit> SourceUnits { get; }
     /// <summary>Gets per-kind counts of identified selected source units. Reconstructed units can still contain omitted, approximated, or unassessed fields; visual fallback does not establish individual unit coverage.</summary>
     public IReadOnlyList<IWorkSourceUnitCount> SourceUnitCounts { get; }
