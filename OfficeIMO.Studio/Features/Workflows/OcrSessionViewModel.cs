@@ -164,7 +164,7 @@ public sealed partial class OcrSessionViewModel : ObservableObject, IDisposable 
                     InputPath = item.InputPath, InputStream = _storage?.CreateWorkflowInput(item.InputPath),
                     OutputPath = output, OutputStream = destination?.Output, ConflictPolicy = policy,
                     PublicationGuard = _guard, Ocr = new() { Language = languages.ToTesseractExpression() },
-                    ReviewAsync = (evidence, token) => ReviewPdfAsync(item, evidence, operation, token)
+                    ReviewCorrectionsAsync = (evidence, token) => ReviewPdfAsync(item, evidence, operation, token)
                 }));
                 else requests.Add(new(item.Id, new ImageOcrWorkflowRequest {
                     InputPath = item.InputPath, InputStream = _storage?.CreateWorkflowInput(item.InputPath),

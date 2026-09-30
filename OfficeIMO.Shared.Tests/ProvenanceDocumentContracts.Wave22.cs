@@ -21,14 +21,48 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Contains("  \"", output, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void HtmlCommentPreflightRecognizesParseErrorEndBangTerminator() {
-        string elements = string.Concat(Enumerable.Repeat("<div></div>", 16));
-        string html = "<html><head><!--x--!>" + elements + "</head><body></body></html>";
-
+    [Theory]
+    [MemberData(nameof(HtmlPreflightRejectsEntryExpansionAcrossLexicalStateTransitionsCases))]
+    public void HtmlPreflightRejectsEntryExpansionAcrossLexicalStateTransitions(string caseName, string html, int maximumEntries) {
+        _ = caseName;
         Assert.Throws<InvalidDataException>(() => HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 8 }));
+            html, new OfficeProvenanceOptions { MaxContainerEntries = maximumEntries }));
+    }
+
+    public static IEnumerable<object[]> HtmlPreflightRejectsEntryExpansionAcrossLexicalStateTransitionsCases() {
+        {
+            string elements = string.Concat(Enumerable.Repeat("<div></div>", 16));
+            string html = "<html><head><!--x--!>" + elements + "</head><body></body></html>";
+            yield return new object[] { "HtmlCommentPreflightRecognizesParseErrorEndBangTerminator", html, 8 };
+        }
+        {
+            string manifest = Convert.ToBase64String(CreateManifestStore());
+            string html = "<html><head><script type=\"application/c2pa\">" + manifest +
+                "</script></head><body><?x \"><div></div>" + string.Concat(Enumerable.Repeat("<span></span>", 32)) + "</body></html>";
+            yield return new object[] { "HtmlBogusCommentsEndAtTheFirstGreaterThanSign", html, 16 };
+        }
+        {
+            string html = "<html><body><svg><foreignObject><![CDATA[x>" +
+                string.Concat(Enumerable.Repeat("<span></span>", 32)) +
+                "</foreignObject></svg></body></html>";
+            yield return new object[] { "HtmlPreflightTreatsForeignObjectChildrenAsHtml", html, 16 };
+        }
+        {
+            string html = "<html><body><svg><p><![CDATA[hidden>" + string.Concat(Enumerable.Repeat("<div></div>", 32));
+            yield return new object[] { "HtmlForeignContentBreakoutTagsRestoreHtmlTokenizationDuringPreflight", html, 12 };
+        }
+        {
+            string html = "<html><body><div data-value=unquoted\">" +
+                string.Concat(Enumerable.Repeat("<span></span>", 16)) +
+                "</div></body></html>";
+            yield return new object[] { "HtmlPreflightTreatsQuotesInsideUnquotedValuesAsLiteral", html, 8 };
+        }
+        {
+            string html = "<html><body><svg><foreignObject x=a/><![CDATA[x>" +
+                string.Concat(Enumerable.Repeat("<div></div>", 64)) +
+                "]]></foreignObject></svg></body></html>";
+            yield return new object[] { "HtmlPreflightDoesNotTreatSlashInUnquotedAttributeAsSelfClosing", html, 16 };
+        }
     }
 
     [Fact]

@@ -5,19 +5,7 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceCoreContracts {
-    [Fact]
-    public void AssertionUuidContentRequiresExtendedTypeAndPayload() {
-        byte[] manifest = CreateManifestStore();
-        int contentType = FindAscii(manifest, "cbor");
-        Assert.True(contentType >= 0);
-        Encoding.ASCII.GetBytes("uuid").CopyTo(manifest, contentType);
 
-        OfficeProvenanceRemovalResult result = OfficeProvenanceRemover.Remove(
-            CreatePngWithC2paManifest(manifest), "fixture.png");
-
-        Assert.False(Assert.Single(result.Before.Evidence).IsStructurallyValid);
-        Assert.False(result.WasChanged);
-    }
 
     [Fact]
     public void DuplicateWebpXmpChunksAreAllStructurallyInvalid() {

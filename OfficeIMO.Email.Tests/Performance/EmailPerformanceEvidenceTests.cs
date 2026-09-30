@@ -7,6 +7,7 @@ using Xunit.Abstractions;
 
 namespace OfficeIMO.Email.Tests;
 
+[Trait("Category", "Performance")]
 public sealed class EmailPerformanceEvidenceTests {
     private readonly ITestOutputHelper _output;
 
@@ -74,7 +75,7 @@ public sealed class EmailPerformanceEvidenceTests {
     }
 
     [Fact]
-    public void MegabyteMsgRead_UsesOneBoundedCompoundOpenWithinAllocationAndTimeEnvelopes() {
+    public void MegabyteMsgRead_StaysInsideAllocationAndTimeEnvelopes() {
         var document = new EmailDocument {
             Format = EmailFileFormat.OutlookMsg,
             Subject = "large-msg"

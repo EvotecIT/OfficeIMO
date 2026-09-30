@@ -60,9 +60,11 @@ public class PdfOcrExecutionTests {
             Task.FromException<OcrResult>(new InvalidOperationException("Provider unavailable")),
             new OcrEngineCapabilities { SupportsConcurrentRequests = true, SupportedMediaTypes = new[] { "image/png" } });
         var document = PdfDocument.Create().Paragraph(p => p.Text("One")).PageBreak().Paragraph(p => p.Text("Two"));
-        var failure = await Assert.ThrowsAsync<InvalidOperationException>(() => document.ReadWithOcrAsync(engine,
+        var failure = await Assert.ThrowsAsync<OcrEngineExecutionException>(() => document.ReadWithOcrAsync(engine,
             new PdfOcrMergeOptions { Dpi = 36, MaxConcurrentPages = 2 }));
-        Assert.Contains("Provider unavailable", failure.Message);
+        Assert.Equal(OcrEngineFailureKind.ProviderFailure, failure.Kind);
+        Assert.DoesNotContain("Provider unavailable", failure.Message);
+        Assert.Null(failure.InnerException);
     }
 
     [Fact]

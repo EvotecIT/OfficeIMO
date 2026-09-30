@@ -354,12 +354,10 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Fact]
-    public void HtmlSanitizesUsedCssCustomPropertyImage() {
-        byte[] image = CreatePngWithManifest(CreateManifestStore());
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
-        string html = $"<html><head><style>:root{{--hero:url('{dataUri}')}}.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
-
+    [Theory]
+    [MemberData(nameof(HtmlSanitizesResolvedCssCustomPropertyImagesCases))]
+    public void HtmlSanitizesResolvedCssCustomPropertyImages(string caseName, string dataUri, string html) {
+        _ = caseName;
         OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
 
         Assert.Single(result.Before.Evidence);
@@ -367,31 +365,33 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void HtmlSanitizesCssCustomPropertyUsedAcrossStyleBlocks() {
-        byte[] image = CreatePngWithManifest(CreateManifestStore());
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
-        string html = $"<html><head><style>:root{{--hero:url('{dataUri}')}}</style><style>.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Single(result.Before.Evidence);
-        Assert.Empty(result.After.Evidence);
-        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
+    public static IEnumerable<object[]> HtmlSanitizesResolvedCssCustomPropertyImagesCases() {
+        {
+            byte[] image = CreatePngWithManifest(CreateManifestStore());
+            string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+            string html = $"<html><head><style>:root{{--hero:url('{dataUri}')}}.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+            yield return new object[] { "HtmlSanitizesUsedCssCustomPropertyImage", dataUri, html };
+        }
+        {
+            byte[] image = CreatePngWithManifest(CreateManifestStore());
+            string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+            string html = $"<html><head><style>:root{{--hero:url('{dataUri}')}}</style><style>.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+            yield return new object[] { "HtmlSanitizesCssCustomPropertyUsedAcrossStyleBlocks", dataUri, html };
+        }
+        {
+            byte[] image = CreatePngWithManifest(CreateManifestStore());
+            string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+            string html = $"<html><head><style>:root{{--source:url('{dataUri}')}}</style><style>:root{{--hero:var(--source)}}</style><style>.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+            yield return new object[] { "HtmlSanitizesTransitiveCssCustomPropertyImageAcrossStyleBlocks", dataUri, html };
+        }
+        {
+            byte[] image = CreatePngWithManifest(CreateManifestStore());
+            string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
+            string html = $"<html><head><style>:root{{--hero:image-set(\"{dataUri}\" 1x)}}.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
+            yield return new object[] { "HtmlSanitizesImageSetStoredInAUsedCssCustomProperty", dataUri, html };
+        }
     }
 
-    [Fact]
-    public void HtmlSanitizesTransitiveCssCustomPropertyImageAcrossStyleBlocks() {
-        byte[] image = CreatePngWithManifest(CreateManifestStore());
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(image);
-        string html = $"<html><head><style>:root{{--source:url('{dataUri}')}}</style><style>:root{{--hero:var(--source)}}</style><style>.x{{background-image:var(--hero)}}</style></head><body class=\"x\"></body></html>";
-
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.Single(result.Before.Evidence);
-        Assert.Empty(result.After.Evidence);
-        Assert.DoesNotContain(dataUri, Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
-    }
 
     [Fact]
     public void HtmlSanitizesImageInsideIframeSrcdoc() {
@@ -443,16 +443,29 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Throws<InvalidDataException>(() => HtmlProvenance.Remove(html, removalOptions));
     }
 
-    [Fact]
-    public void HtmlDomPreflightIgnoresTagLikeRawTextAndComments() {
-        const string html = "<html><head><script>const sample = '<div><span><img>';</script>" +
-            "<style>/* <section><aside><main> */</style></head><body><!-- <article><header><footer> --></body></html>";
-        var inspectionOptions = new OfficeProvenanceOptions { MaxContainerEntries = 5 };
+    [Theory]
+    [MemberData(nameof(HtmlPreflightAcceptsBoundedMarkupInInspectionAndRemovalCases))]
+    public void HtmlPreflightAcceptsBoundedMarkupInInspectionAndRemoval(string caseName, string html, int maximumEntries) {
+        _ = caseName;
+        var inspectionOptions = new OfficeProvenanceOptions { MaxContainerEntries = maximumEntries };
         var removalOptions = new OfficeProvenanceRemovalOptions();
-        removalOptions.Limits.MaxContainerEntries = 5;
+        removalOptions.Limits.MaxContainerEntries = maximumEntries;
 
         Assert.Empty(HtmlProvenance.Inspect(html, inspectionOptions).Evidence);
         Assert.False(HtmlProvenance.Remove(html, removalOptions).WasChanged);
+    }
+
+    public static IEnumerable<object[]> HtmlPreflightAcceptsBoundedMarkupInInspectionAndRemovalCases() {
+        {
+            const string html = "<html><head><script>const sample = '<div><span><img>';</script>" +
+                "<style>/* <section><aside><main> */</style></head><body><!-- <article><header><footer> --></body></html>";
+            yield return new object[] { "HtmlDomPreflightIgnoresTagLikeRawTextAndComments", html, 5 };
+        }
+        {
+            string html = "<html><body>" + string.Concat(Enumerable.Repeat("<div>", 80)) +
+                "content" + string.Concat(Enumerable.Repeat("</div>", 80)) + "</body></html>";
+            yield return new object[] { "HtmlPreflightAcceptsBalancedOrdinaryNestingWithinEntryLimit", html, 100 };
+        }
     }
 
     [Fact]

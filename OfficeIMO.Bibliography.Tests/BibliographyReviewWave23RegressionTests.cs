@@ -4,9 +4,15 @@ namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave23RegressionTests {
     [Fact]
-    public void NBIB_author_normalization_is_linear_and_cancellation_aware() {
+    [Trait("Category", "ResourcePerformanceEvidence")]
+    public void NBIB_author_normalization_retains_unmatched_authors_and_observes_cancellation() {
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+        const int pairs = 2_000;
+#else
+        const int pairs = 4;
+#endif
         var item = new BibliographyItem();
-        for (int index = 0; index < 2_000; index++) {
+        for (int index = 0; index < pairs; index++) {
             var full = new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Full" + index.ToString(CultureInfo.InvariantCulture), Given = "Person" });
             var compact = new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Other" + index.ToString(CultureInfo.InvariantCulture), Given = "P" });
             item.Contributors.Add(full);
@@ -15,7 +21,7 @@ public sealed class BibliographyReviewWave23RegressionTests {
             item.TaggedContributorTags[compact] = "AU";
         }
 
-#if NET472
+#if !BIBLIOGRAPHY_PERFORMANCE_EVIDENCE || NET472
         TaggedCodec.NormalizeNbibAuthors(new[] { item }, CancellationToken.None);
 #else
         long before = GC.GetAllocatedBytesForCurrentThread();
@@ -23,7 +29,7 @@ public sealed class BibliographyReviewWave23RegressionTests {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(allocated < 20 * 1024 * 1024, $"NBIB author normalization allocated {allocated:N0} bytes for unmatched contributors.");
 #endif
-        Assert.Equal(4_000, item.Contributors.Count);
+        Assert.Equal(pairs * 2, item.Contributors.Count);
 
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

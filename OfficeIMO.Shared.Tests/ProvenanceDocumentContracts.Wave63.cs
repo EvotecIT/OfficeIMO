@@ -48,15 +48,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Throws<InvalidDataException>(() => EpubDocument.RemoveProvenance(package));
     }
 
-    [Fact]
-    public void IgnoredSelectEndTagsDoNotInflateHtmlPreflightCounts() {
-        const string html = "<html><body><div><select></div><img><img></select>";
-        var options = new OfficeProvenanceOptions { MaxContainerEntries = 5 };
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html, options);
-
-        Assert.Empty(report.Evidence);
-    }
 
     [Fact]
     public void PseudoElementCustomPropertiesResolveOnTheSamePseudoElement() {

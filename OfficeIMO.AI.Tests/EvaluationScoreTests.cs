@@ -16,22 +16,22 @@ public sealed class EvaluationScoreTests {
     [InlineData("The Fridayish schedule", "Friday", false)]
     [InlineData("Shipment on 2031-11-19.", "2031-11-19", true)]
     public void FactMarkersMatchCompleteValues(string text, string marker, bool expected) {
-        var result = Result(new[] { "A", "17" }) with { Claims = new[] { new OfficeAiClaim(text, Array.Empty<OfficeAiCitation>()) } };
-        Assert.Equal(expected, new EvaluationGold(FactMarkers: new[] { marker }).Score(result).Passed);
+        var result = Result(new[] { "A", "17" }) with { Claims = new[] { new OfficeAiClaim(text, new[] { new OfficeAiCitation("e1", 1, null, false) }) } };
+        Assert.Equal(expected, new EvaluationGold(FactMarkers: new[] { marker }).Score(result).ContractPassed);
     }
 
     [Fact]
     public void TableScoringPenalizesReorderedAndAdditionalCells() {
         var gold = new EvaluationGold(Table: new(new[] { "Code", "Count" }, new[] { (IReadOnlyList<string>)new[] { "A", "17" } }));
         OfficeAiResult correct = Result(new[] { "A", "17" });
-        Assert.True(gold.Score(correct).Passed);
+        Assert.True(gold.Score(correct).ContractPassed);
         Assert.True(gold.Score(correct).SemanticReviewRequired);
         EvaluationScore swapped = gold.Score(Result(new[] { "17", "A" }));
-        Assert.False(swapped.Passed);
+        Assert.False(swapped.ContractPassed);
         Assert.Equal(0.5, swapped.TableCellRecall);
         Assert.Equal(0.5, swapped.TableCellPrecision);
         EvaluationScore duplicate = gold.Score(correct with { Tables = new[] { correct.Tables[0], correct.Tables[0] } });
-        Assert.False(duplicate.Passed);
+        Assert.False(duplicate.ContractPassed);
         Assert.Equal(1, duplicate.TableCellRecall);
         Assert.Equal(0.5, duplicate.TableCellPrecision);
     }
@@ -40,9 +40,9 @@ public sealed class EvaluationScoreTests {
     public void ScalarExtractionStillRequiresSemanticReviewAfterExactValueMatch() {
         var gold = new EvaluationGold(Fields: new[] { new EvaluationFieldGold("count", OfficeAiFieldStatus.Present, "17") });
         var result = Result(new[] { "A", "17" }) with { Tables = Array.Empty<OfficeAiTable>(), Fields = new[] {
-            new OfficeAiField("count", OfficeAiFieldType.Integer, OfficeAiFieldStatus.Present, "17", "17", Array.Empty<OfficeAiCitation>())
+            new OfficeAiField("count", OfficeAiFieldType.Integer, OfficeAiFieldStatus.Present, "17", "17", new[] { new OfficeAiCitation("e1", 1, null, false) })
         } };
-        Assert.True(gold.Score(result).Passed);
+        Assert.True(gold.Score(result).ContractPassed);
         Assert.True(gold.Score(result).SemanticReviewRequired);
     }
 
@@ -50,7 +50,7 @@ public sealed class EvaluationScoreTests {
     public void FactMarkersAreExplicitlySeparateFromSemanticReview() {
         var gold = new EvaluationGold(FactMarkers: new[] { "17" });
         var result = Result(new[] { "A", "17" }) with { Claims = new[] {
-            new OfficeAiClaim("This sentence mentions 17 but does not prove its meaning.", Array.Empty<OfficeAiCitation>())
+            new OfficeAiClaim("This sentence mentions 17 but does not prove its meaning.", new[] { new OfficeAiCitation("e1", 1, null, false) })
         } };
         EvaluationScore score = gold.Score(result);
         Assert.Equal(1, score.FactMarkerRecall);
@@ -60,6 +60,6 @@ public sealed class EvaluationScoreTests {
     private static OfficeAiResult Result(string[] cells) => new() {
         RequestId = "test", SourceHash = "test", SnapshotHash = "test", Status = OfficeAiResultStatus.Completed,
         Profile = new() { Id = "test", Provider = "test", Model = "test", IsLocal = true },
-        Tables = new[] { new OfficeAiTable(new ReaderTable { Columns = new[] { "Code", "Count" }, Rows = new[] { cells } }, Array.Empty<OfficeAiCitation>()) }
+        Tables = new[] { new OfficeAiTable(new ReaderTable { Columns = new[] { "Code", "Count" }, Rows = new[] { cells } }, new[] { new OfficeAiCitation("e1", 1, null, false) }) }
     };
 }

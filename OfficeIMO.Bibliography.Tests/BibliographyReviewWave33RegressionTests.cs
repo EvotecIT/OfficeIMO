@@ -2,10 +2,11 @@ namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave33RegressionTests {
     [Theory]
-    [InlineData("é")]
-    [InlineData("😀")]
-    public void CSL_limit_diagnostics_use_zero_based_UTF16_offsets(string prefix) {
-        string source = "[{\"id\":\"" + prefix + "\",\"x\":\"long\"}]";
+    [InlineData("é", false)]
+    [InlineData("😀", false)]
+    [InlineData("é", true)]
+    public void CSL_limit_diagnostics_use_zero_based_UTF16_offsets(string prefix, bool leadingBom) {
+        string source = (leadingBom ? "\uFEFF" : "") + "[{\"id\":\"" + prefix + "\",\"x\":\"long\"}]";
         var options = new BibliographyReadOptions { MaximumValueLength = 3 };
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
@@ -14,16 +15,6 @@ public sealed class BibliographyReviewWave33RegressionTests {
         Assert.Equal(source.IndexOf("\"long\"", StringComparison.Ordinal), diagnostic.Offset);
     }
 
-    [Fact]
-    public void CSL_limit_diagnostics_include_a_leading_BOM_in_UTF16_offsets() {
-        string source = "\uFEFF[{\"id\":\"é\",\"x\":\"long\"}]";
-        var options = new BibliographyReadOptions { MaximumValueLength = 3 };
-
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, options);
-
-        BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, candidate => candidate.Code == "BIBLIM001");
-        Assert.Equal(source.IndexOf("\"long\"", StringComparison.Ordinal), diagnostic.Offset);
-    }
 
     [Fact]
     public void CSL_large_token_parsing_observes_cancellation() {
@@ -46,15 +37,21 @@ public sealed class BibliographyReviewWave33RegressionTests {
         Assert.Equal(new string('a', fillerLength) + "é", read.Document.Items[0].Title);
     }
 
-    [Fact]
-    public void Synchronous_stream_save_observes_cancellation_between_bounded_writes() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Stream_save_observes_cancellation_between_bounded_writes(bool asynchronous) {
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelAfterFirstWriteStream(cancellation);
         var document = new BibliographyDocument(BibliographyFormat.CslJson);
         document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = new string('x', 256 * 1024) });
+        var options = new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical };
 
-        Assert.Throws<OperationCanceledException>(() =>
-            document.Save(stream, new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical }, cancellation.Token));
+        if (asynchronous) {
+            await Assert.ThrowsAsync<OperationCanceledException>(() => document.SaveAsync(stream, options, cancellation.Token));
+        } else {
+            Assert.Throws<OperationCanceledException>(() => document.Save(stream, options, cancellation.Token));
+        }
 
         Assert.Equal(1, stream.WriteCount);
         Assert.InRange(stream.MaximumWriteSize, 1, 81920);
@@ -127,6 +124,11 @@ public sealed class BibliographyReviewWave33RegressionTests {
             MaximumWriteSize = Math.Max(MaximumWriteSize, count);
             base.Write(buffer, offset, count);
             if (WriteCount == 1) _cancellation.Cancel();
+        }
+
+        public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken) {
+            Write(buffer, offset, count);
+            return Task.CompletedTask;
         }
     }
 }

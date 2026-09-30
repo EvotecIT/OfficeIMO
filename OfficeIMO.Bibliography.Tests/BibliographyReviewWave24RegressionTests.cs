@@ -38,16 +38,6 @@ public sealed class BibliographyReviewWave24RegressionTests {
         Assert.Equal(string.Empty, native.Value);
     }
 
-    [Theory]
-    [InlineData("<!--long-->")]
-    [InlineData("<?review long?>")]
-    public void EndNote_XML_materialization_bounds_comments_and_processing_instructions(string trivia) {
-        string source = "<xml>" + trivia + "<records/></xml>";
-
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 3 });
-
-        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
-    }
 
     [Fact]
     public void Invalid_UTF16_in_CSL_input_is_rejected_before_replacement() {

@@ -314,23 +314,16 @@ public sealed class ProvenanceAssessmentContracts {
     [InlineData("<html><div>body</div><link rel=\"c2pa-manifest\" href=\"claim.c2pa\">")]
     [InlineData("<html>body<link rel=\"c2pa-manifest\" href=\"claim.c2pa\">")]
     [InlineData("<html><head><div>body</div><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head>")]
-    public void CoreHtmlInspectionIgnoresManifestLinksAfterAnImplicitBodyStart(string html) {
-        OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
-            Encoding.UTF8.GetBytes(html),
-            "page.html");
-
-        Assert.Empty(report.Evidence);
-    }
-
-    [Theory]
     [InlineData("<html><body><head><link rel=\"c2pa-manifest\" href=\"claim.c2pa\"></head></body></html>")]
-    public void CoreHtmlInspectionDoesNotReopenACompletedHead(string html) {
+    public void CoreHtmlInspectionIgnoresHeadManifestAssociationsAfterBodyStart(string html) {
         OfficeProvenanceReport report = OfficeProvenanceInspector.Inspect(
             Encoding.UTF8.GetBytes(html),
             "page.html");
 
         Assert.Empty(report.Evidence);
+
     }
+
 
     [Fact]
     public void CoreHtmlInspectionExcludesTemplateContentsFromHeadAssociations() {

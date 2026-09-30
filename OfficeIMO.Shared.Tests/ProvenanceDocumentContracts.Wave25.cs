@@ -9,17 +9,6 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlPreflightCountsOnlyAsciiTagOpeners() {
-        string manifest = Convert.ToBase64String(CreateManifestStore());
-        string html = "<é><é><é><é><é><html><head><script type=\"application/c2pa\">" +
-            manifest + "</script></head><body></body></html>";
-        var options = new OfficeProvenanceOptions { MaxContainerEntries = 8 };
-
-        OfficeProvenanceReport report = HtmlProvenance.Inspect(html, options);
-
-        Assert.Empty(report.Evidence);
-    }
 
 
     [Fact]

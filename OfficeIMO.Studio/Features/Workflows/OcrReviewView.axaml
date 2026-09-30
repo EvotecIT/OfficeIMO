@@ -17,10 +17,11 @@
     </Grid>
     <TextBlock Grid.Row="1" Text="{Binding PageDetails}" TextWrapping="Wrap" Classes="muted" />
     <Grid Grid.Row="2" ColumnDefinitions="340,*" ColumnSpacing="16">
-      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="8">
+      <Grid RowDefinitions="Auto,*,Auto,Auto" RowSpacing="8">
         <WrapPanel>
           <Button Classes="tool" Content="{loc:Loc Ocr.Review.IncludePage}" Command="{Binding IncludeEligiblePageCommand}" Margin="0,0,8,0" />
           <Button Classes="tool" Content="{loc:Loc Ocr.Review.ExcludePage}" Command="{Binding ExcludePageCommand}" />
+          <Button Classes="tool" Content="{loc:Loc Ocr.Review.NextUncertain}" Command="{Binding NextUncertainCommand}" />
         </WrapPanel>
         <ListBox Grid.Row="1" ItemsSource="{Binding Words}" SelectedItem="{Binding SelectedWord}"
                  AutomationProperties.Name="{loc:Loc Ocr.Review.Words}">
@@ -39,7 +40,14 @@
             </DataTemplate>
           </ListBox.ItemTemplate>
         </ListBox>
-        <TextBlock Grid.Row="2" Text="{Binding SelectedWord.Geometry}" TextWrapping="Wrap" Classes="muted" />
+        <StackPanel Grid.Row="2" Spacing="4" IsVisible="{Binding HasSelectedWord}">
+          <TextBlock Text="{loc:Loc Ocr.Review.CorrectText}" />
+          <TextBox Text="{Binding SelectedWord.ReviewedText, Mode=TwoWay}" IsEnabled="{Binding SelectedWord.IsEligible}"
+                   AutomationProperties.Name="{loc:Loc Ocr.Review.CorrectText}" />
+          <TextBlock Text="{loc:Loc Ocr.Review.OriginalText}" Classes="muted" />
+          <TextBlock Text="{Binding SelectedWord.Text}" TextWrapping="Wrap" Classes="muted" />
+        </StackPanel>
+        <TextBlock Grid.Row="3" Text="{Binding SelectedWord.Geometry}" TextWrapping="Wrap" Classes="muted" />
       </Grid>
       <Border Grid.Column="1" Background="{DynamicResource StudioPanelMutedBrush}" BorderBrush="{DynamicResource StudioBorderBrush}" BorderThickness="1" Padding="8">
         <Grid RowDefinitions="Auto,*">
@@ -67,6 +75,7 @@
       </Border>
     </Grid>
     <StackPanel Grid.Row="3" Spacing="8">
+      <TextBlock Text="{Binding CorrectionError}" TextWrapping="Wrap" Foreground="{DynamicResource StudioErrorBrush}" />
       <Expander Header="{loc:Loc Ocr.Review.Diagnostics}">
         <ScrollViewer MaxHeight="120"><TextBlock Text="{Binding Diagnostics}" TextWrapping="Wrap" /></ScrollViewer>
       </Expander>

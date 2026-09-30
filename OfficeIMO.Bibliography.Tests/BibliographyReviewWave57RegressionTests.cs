@@ -69,11 +69,16 @@ public sealed class BibliographyReviewWave57RegressionTests {
             BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options, token));
     }
 
-    [Fact]
-    public void EndNote_offset_mapping_keeps_BOM_in_multiline_UTF16_offsets() {
-        const string source = "\uFEFF<xml>\n  <record/>\n</xml>";
-        var offsets = new EndNoteSourceOffsetMap(source, 1, CancellationToken.None);
-        using var text = new EndNoteCancellableTextReader(source, CancellationToken.None, 1);
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EndNote_offset_mapping_keeps_BOM_in_multiline_UTF16_offsets(bool hasBom) {
+        string source = (hasBom ? "\uFEFF" : string.Empty) + "<xml>\n  <record/>\n</xml>";
+        int sourceOffset = hasBom ? 1 : 0;
+        var offsets = new EndNoteSourceOffsetMap(source, sourceOffset, CancellationToken.None);
+        using TextReader text = hasBom
+            ? new EndNoteCancellableTextReader(source, CancellationToken.None, sourceOffset)
+            : new StringReader(source);
         using XmlReader reader = XmlReader.Create(text);
         while (reader.Read() && !(reader.NodeType == XmlNodeType.Element && reader.LocalName == "record")) { }
 

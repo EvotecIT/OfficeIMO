@@ -131,6 +131,12 @@ public sealed class OcrResult {
     /// <summary>Provider model, engine, or trained-data identifier, when available.</summary>
     public string? Model { get; set; }
 
+    /// <summary>Number of provider spans omitted by the runner's retention limit.</summary>
+    public int OmittedSpanCount { get; internal set; }
+
+    /// <summary>Number of provider diagnostics omitted by the runner's retention limit.</summary>
+    public int OmittedDiagnosticCount { get; internal set; }
+
     /// <summary>Optional line, word, and character spans in provider reading order.</summary>
     public IReadOnlyList<OcrTextSpan> Spans { get; set; } = Array.Empty<OcrTextSpan>();
 
@@ -218,6 +224,8 @@ public sealed class OcrDiagnostic {
     public string? Source { get; set; }
     /// <summary>Whether recognition may continue after the condition.</summary>
     public bool IsRecoverable { get; set; } = true;
+    /// <summary>Number of attributes omitted by the runner's retention limit.</summary>
+    public int OmittedAttributeCount { get; internal set; }
     /// <summary>Bounded scalar diagnostic attributes.</summary>
     public IReadOnlyDictionary<string, string> Attributes { get; set; } =
         new Dictionary<string, string>(StringComparer.Ordinal);

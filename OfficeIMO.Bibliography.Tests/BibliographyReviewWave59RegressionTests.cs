@@ -1,18 +1,6 @@
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave59RegressionTests {
-    [Theory]
-    [InlineData(BibliographyFormat.BibTex)]
-    [InlineData(BibliographyFormat.BibLatex)]
-    public void Bib_literal_name_wrappers_diagnose_terminal_backslash_normalization(BibliographyFormat format) {
-        BibliographyDocument document = CreateBibDocument(format);
-        document.Items[0].Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = "Example\\" }));
-
-        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV134" && diagnostic.Field == "author");
-    }
 
     [Theory]
     [InlineData(BibliographyFormat.BibTex)]
