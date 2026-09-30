@@ -15,12 +15,16 @@ public static partial class OfficeSvgDrawingReader {
         private readonly double _pixelScaleX;
         private readonly double _pixelScaleY;
         private readonly double _viewportPixels;
+        private readonly double _maximumViewportDimension;
+        private readonly double _maximumViewportPixels;
+        private readonly bool _requiresExplicitSymbolViewport;
         private readonly bool _assumeNonScalingStroke;
         private double _remainingWork;
         private double _remainingTextIntermediateWork = MaximumTextIntermediatePixels * MaximumViewportRepaints;
         private int _conservativePlacementDepth;
 
         internal SvgRasterWorkBudget(
+            double maximumViewportDimension,
             double maximumViewportPixels,
             double viewX,
             double viewY,
@@ -30,8 +34,12 @@ public static partial class OfficeSvgDrawingReader {
             double viewportHeight,
             double pixelScaleX,
             double pixelScaleY,
-            bool assumeNonScalingStroke) {
+            bool assumeNonScalingStroke,
+            bool requiresExplicitSymbolViewport) {
             _viewLeft = viewX;
+            _maximumViewportDimension = maximumViewportDimension;
+            _maximumViewportPixels = maximumViewportPixels;
+            _requiresExplicitSymbolViewport = requiresExplicitSymbolViewport;
             _viewTop = viewY;
             _viewRight = viewX + viewWidth;
             _viewBottom = viewY + viewHeight;
@@ -40,6 +48,20 @@ public static partial class OfficeSvgDrawingReader {
             _viewportPixels = Math.Min(maximumViewportPixels, viewportWidth * viewportHeight);
             _assumeNonScalingStroke = assumeNonScalingStroke;
             _remainingWork = _viewportPixels * MaximumViewportRepaints;
+        }
+
+        internal bool IsSupportedUnscaledSymbolViewport(XElement use, XElement symbol) {
+            // The conservative raster walk has no per-reference user viewport.
+            // Root defaults are safe only when no nested viewport can change them.
+            // Native import resolves those defaults itself; caller fallback needs
+            // explicit dimensions until that walk carries the full viewport context.
+            if (_requiresExplicitSymbolViewport &&
+                (string.IsNullOrWhiteSpace(ReadRasterProjectedAttribute(use, "width") ?? ReadRasterProjectedAttribute(symbol, "width"))
+                 || string.IsNullOrWhiteSpace(ReadRasterProjectedAttribute(use, "height") ?? ReadRasterProjectedAttribute(symbol, "height")))) return false;
+            return TryReadRasterUseOrTargetLength(use, symbol, "width", _viewRight - _viewLeft, out double width)
+                && TryReadRasterUseOrTargetLength(use, symbol, "height", _viewBottom - _viewTop, out double height)
+                && width > 0D && height > 0D
+                && IsSupportedSvgViewport(width, height, _maximumViewportDimension, _maximumViewportPixels);
         }
 
         internal bool TryChargeRenderedElement(
