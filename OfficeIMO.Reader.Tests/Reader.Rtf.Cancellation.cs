@@ -9,20 +9,34 @@ namespace OfficeIMO.Tests;
 [Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderRtfCancellationTests {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void Registered_Rtf_Reader_Stops_When_Cancellation_Arrives_During_Input_Read(bool richDocument) {
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public void Registered_Rtf_Reader_Stops_When_Cancellation_Arrives_During_Input_Read(bool richDocument, bool computeHashes) {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddRtfHandler().Build();
         byte[] input = Encoding.ASCII.GetBytes(@"{\rtf1\ansi " + new string('A', 32_000) + @"\par}");
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelOnReadStream(input, cancellation);
-        var options = new ReaderOptions { ComputeHashes = false };
+        var options = new ReaderOptions { ComputeHashes = computeHashes };
 
         Assert.ThrowsAny<OperationCanceledException>(() => {
             if (richDocument) reader.ReadDocument(stream, "cancel.rtf", options, cancellation.Token);
             else reader.Read(stream, "cancel.rtf", options, cancellation.Token).ToArray();
         });
         Assert.True(stream.BytesRead < input.Length);
+        Assert.True(stream.CanRead);
+        if (computeHashes) Assert.Equal(0, stream.Position);
+    }
+
+    [Fact]
+    public void Shared_Stream_Hashing_Hashes_Remaining_Bytes_And_Leaves_Stream_Open() {
+        byte[] bytes = Encoding.UTF8.GetBytes("prefix-payload");
+        using var stream = new MemoryStream(bytes);
+        stream.Position = 7;
+        string result = OfficeDocumentAssetHash.ComputeSha256Hex(stream);
+        Assert.Equal(OfficeDocumentAssetHash.ComputeSha256Hex(Encoding.UTF8.GetBytes("payload")), result);
+        Assert.Equal(bytes.Length, stream.Position);
         Assert.True(stream.CanRead);
     }
 

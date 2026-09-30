@@ -22,7 +22,7 @@ internal static partial class RtfReaderAdapter {
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
         ReaderInputLimits.EnforceFileSize(rtfPath, effectiveReaderOptions.MaxInputBytes);
-        var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes);
+        var source = BuildSourceMetadataFromPath(rtfPath, effectiveReaderOptions.ComputeHashes, cancellationToken);
 
         RtfReadResult readResult = RtfDocument.LoadResult(rtfPath, ReaderRtfOptions.CloneReadOptions(effectiveRtfOptions.RtfReadOptions), encoding, cancellationToken);
         IReadOnlyList<ReaderChunk> chunks = ReadRtfResultCore(readResult, source, effectiveReaderOptions, effectiveRtfOptions, cancellationToken).ToArray();
@@ -52,7 +52,7 @@ internal static partial class RtfReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(rtfStream, effectiveReaderOptions.MaxInputBytes, cancellationToken, out bool ownsParseStream);
         try {
             long parseStartPosition = parseStream.CanSeek ? parseStream.Position : 0L;
-            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition);
+            UpdateSourceMetadataFromSeekableStream(source, parseStream, effectiveReaderOptions.ComputeHashes, parseStartPosition, cancellationToken);
             if (parseStream.CanSeek) {
                 parseStream.Position = parseStartPosition;
             }
