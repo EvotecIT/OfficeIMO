@@ -8,7 +8,8 @@ namespace OfficeIMO.Drawing;
 /// Above widths and left heights replace the specification's two-dimensional MiSizes grid.</remarks>
 internal sealed partial class OfficeAv1PartitionContext {
     private readonly OfficeAv1Tile _tile;
-    private readonly int _miRows, _miCols, _superblockPixels;
+    private readonly OfficeAv1TileGeometry _geometry;
+    private readonly int _miRows, _miCols;
     private readonly byte[] _aboveWidths, _leftHeights;
     private readonly int[][][] _cdfs = CreateCdfs();
     private readonly int[] _edgeCdf = new int[3];
@@ -17,18 +18,8 @@ internal sealed partial class OfficeAv1PartitionContext {
     internal OfficeAv1PartitionContext(OfficeAv1StillFrame frame, OfficeAv1Tile tile, int superblockPixels,
         CancellationToken cancellation = default) {
         cancellation.ThrowIfCancellationRequested();
-        if (frame == null) throw new ArgumentNullException(nameof(frame));
-        if (superblockPixels != 64 && superblockPixels != 128) throw new FormatException("Invalid AV1 superblock size.");
-        int units = superblockPixels / 4;
-        if (frame.MiRows < 2 || frame.MiCols < 2 || frame.MiRows > 16384 || frame.MiCols > 16384 ||
-            (frame.MiRows & 1) != 0 || (frame.MiCols & 1) != 0 ||
-            tile.MiRowStart < 0 || tile.MiColStart < 0 || tile.MiRowEnd > frame.MiRows || tile.MiColEnd > frame.MiCols ||
-            tile.MiRowEnd <= tile.MiRowStart || tile.MiColEnd <= tile.MiColStart ||
-            tile.MiRowStart % units != 0 || tile.MiColStart % units != 0 ||
-            (tile.MiRowEnd != frame.MiRows && tile.MiRowEnd % units != 0) ||
-            (tile.MiColEnd != frame.MiCols && tile.MiColEnd % units != 0))
-            throw new FormatException("Invalid AV1 partition tile geometry.");
-        _tile = tile; _miRows = frame.MiRows; _miCols = frame.MiCols; _superblockPixels = superblockPixels;
+        _geometry = new OfficeAv1TileGeometry(frame,tile,superblockPixels);
+        _tile = tile; _miRows = frame.MiRows; _miCols = frame.MiCols;
         _cancellation = cancellation;
         _aboveWidths = new byte[tile.MiColEnd - tile.MiColStart];
         _leftHeights = new byte[tile.MiRowEnd - tile.MiRowStart];
@@ -76,17 +67,9 @@ internal sealed partial class OfficeAv1PartitionContext {
         for (int r = block.MiRow; r < endRow; r++) _leftHeights[r - _tile.MiRowStart] = (byte)height;
     }
 
-    private void ValidateBlock(int row, int col, int width, int height) {
-        if (!IsBlockDimension(width) || !IsBlockDimension(height) || width > _superblockPixels || height > _superblockPixels ||
-            Math.Max(width, height) > Math.Min(width, height) * (Math.Max(width, height) == 128 ? 2 : 4) ||
-            row < _tile.MiRowStart || row >= _tile.MiRowEnd || col < _tile.MiColStart || col >= _tile.MiColEnd ||
-            row % (height / 4) != 0 || col % (width / 4) != 0 ||
-            (row + height / 4 > _tile.MiRowEnd && _tile.MiRowEnd != _miRows) ||
-            (col + width / 4 > _tile.MiColEnd && _tile.MiColEnd != _miCols))
-            throw new FormatException("Invalid AV1 partition block geometry.");
-    }
+    private void ValidateBlock(int row, int col, int width, int height) =>
+        _geometry.Validate(new OfficeAv1BlockRegion(row,col,width,height));
 
-    private static bool IsBlockDimension(int pixels) => pixels >= 4 && pixels <= 128 && (pixels & (pixels - 1)) == 0;
     private static int SizeIndex(int pixels) { int index = 0; while (pixels > 8) { pixels >>= 1; index++; } return index; }
     private static int Probability(int[] cdf, int symbol) => cdf[symbol] - cdf[symbol - 1];
 }

@@ -8,7 +8,8 @@ namespace OfficeIMO.Drawing;
 /// CompleteBlock after all remaining leaf syntax succeeds. No neighbor state is published by Read.</remarks>
 internal sealed partial class OfficeAv1BlockPreludeReader {
     private readonly OfficeAv1Tile _tile;
-    private readonly int _miRows, _miCols, _superblockUnits, _columns;
+    private readonly OfficeAv1TileGeometry _geometry;
+    private readonly int _superblockUnits, _columns;
     private readonly bool _segmentation, _preSkip, _cdef, _deltaQ, _deltaLf, _multiLf;
     private readonly int _lastSegment, _cdefBits, _qResolution, _lfResolution, _filterCount;
     private readonly byte _skipSegments, _losslessSegments;
@@ -36,20 +37,13 @@ internal sealed partial class OfficeAv1BlockPreludeReader {
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         _superblockUnits = sequence.Use128Superblock ? 32 : 16;
-        // Mi dimensions are 2*ceil(pixel dimension/8). Reject even the smallest possible image if over budget.
-        if (frame.MiRows < 2 || frame.MiCols < 2 || frame.MiRows > 16384 || frame.MiCols > 16384 ||
-            (frame.MiRows & 1) != 0 || (frame.MiCols & 1) != 0 ||
-            (long)(frame.MiRows * 4 - 7) * (frame.MiCols * 4 - 7) > options.MaximumDecodedPixels ||
-            tile.MiRowStart < 0 || tile.MiColStart < 0 || tile.MiRowEnd > frame.MiRows || tile.MiColEnd > frame.MiCols ||
-            tile.MiRowEnd <= tile.MiRowStart || tile.MiColEnd <= tile.MiColStart ||
-            tile.MiRowStart % _superblockUnits != 0 || tile.MiColStart % _superblockUnits != 0 ||
-            (tile.MiRowEnd != frame.MiRows && tile.MiRowEnd % _superblockUnits != 0) ||
-            (tile.MiColEnd != frame.MiCols && tile.MiColEnd % _superblockUnits != 0) ||
-            frame.BaseQIndex < 0 || frame.BaseQIndex > 255 || frame.LastActiveSegmentId < 0 || frame.LastActiveSegmentId > 7 ||
+        _geometry = new OfficeAv1TileGeometry(frame,tile,_superblockUnits*4);
+        _geometry.EnsurePixelBudget(options.MaximumDecodedPixels);
+        if (frame.BaseQIndex < 0 || frame.BaseQIndex > 255 || frame.LastActiveSegmentId < 0 || frame.LastActiveSegmentId > 7 ||
             frame.CdefBits < 0 || frame.CdefBits > 3 || frame.DeltaQResolution < 0 || frame.DeltaQResolution > 3 ||
             frame.DeltaLoopFilterResolution < 0 || frame.DeltaLoopFilterResolution > 3)
             throw new FormatException("Invalid AV1 block prelude geometry or parameters.");
-        _tile = tile; _miRows = frame.MiRows; _miCols = frame.MiCols;
+        _tile = tile;
         _columns = tile.MiColEnd - tile.MiColStart; _cancellation = options.CancellationToken;
         _segmentation = frame.SegmentationEnabled; _preSkip = frame.SegmentIdPreSkip;
         _lastSegment = frame.LastActiveSegmentId; _q = frame.BaseQIndex;
@@ -133,17 +127,11 @@ internal sealed partial class OfficeAv1BlockPreludeReader {
         if (_failed) throw new FormatException("The AV1 leaf context has failed.");
     }
     private void ValidateBlock(OfficeAv1BlockRegion b) {
-        int w = b.Width / 4, h = b.Height / 4;
-        if (_superblockRow < 0 || !Dimension(b.Width) || !Dimension(b.Height) || w > _superblockUnits || h > _superblockUnits ||
-            Math.Max(w, h) > Math.Min(w, h) * (Math.Max(w, h) == 32 ? 2 : 4) ||
-            b.MiRow < _superblockRow || b.MiCol < _superblockCol || b.MiRow >= _tile.MiRowEnd || b.MiCol >= _tile.MiColEnd ||
-            b.MiRow % h != 0 || b.MiCol % w != 0 || b.MiRow + h > _superblockRow + _superblockUnits ||
-            b.MiCol + w > _superblockCol + _superblockUnits ||
-            (b.MiRow + h > _tile.MiRowEnd && _tile.MiRowEnd != _miRows) ||
-            (b.MiCol + w > _tile.MiColEnd && _tile.MiColEnd != _miCols))
-            throw new FormatException("Invalid AV1 leaf geometry.");
+        _geometry.Validate(b);
+        if (_superblockRow < 0 || b.MiRow < _superblockRow || b.MiCol < _superblockCol ||
+            b.MiRow+b.Height/4 > _superblockRow+_superblockUnits || b.MiCol+b.Width/4 > _superblockCol+_superblockUnits)
+            throw new FormatException("Invalid AV1 leaf superblock geometry.");
     }
-    private static bool Dimension(int n) => n >= 4 && n <= 128 && (n & (n - 1)) == 0;
     private static int[] DeltaCdf() => new[] {28160,32120,32677,32768,0};
     private static int Clip(int value, int minimum, int maximum) => Math.Max(minimum, Math.Min(maximum, value));
 }

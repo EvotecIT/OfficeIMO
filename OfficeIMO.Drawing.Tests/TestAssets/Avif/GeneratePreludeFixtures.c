@@ -107,7 +107,8 @@ static void make_case(FILE *out,int sb,int scenario,int updates,int *first) {
     assert(enc.q==dec.q && memcmp(enc.lf,dec.lf,sizeof(enc.lf))==0 && memcmp(enc.skips,dec.skips,sizeof(enc.skips))==0 && memcmp(enc.segments,dec.segments,sizeof(enc.segments))==0);
     od_ec_enc_clear(&enc.enc);
 }
-static void prefix(char **argv) {
+/* Shared frozen first-leaf setup; payload remains alive until the caller frees it. */
+static int first_leaf(char **argv, codec *state, unsigned char **payload, int *skip_out, int *ci_out, int *q_out) {
     FILE *in=fopen(argv[1],"rb"); assert(in); int offset=atoi(argv[2]),size=atoi(argv[3]); assert(offset>=0&&size>0);
     unsigned char *bytes=malloc((size_t)size); assert(bytes);
     assert(fseek(in,offset,SEEK_SET)==0 && fread(bytes,1,(size_t)size,in)==(size_t)size); fclose(in);
@@ -136,6 +137,11 @@ static void prefix(char **argv) {
         if(abs && od_ec_decode_bool_q15(&c.dec,16384)) abs=-abs;
         q=clamp(q+abs,1,255);
     }
+    *state=c; *payload=bytes; *skip_out=skip; *ci_out=ci; *q_out=q; return pixels;
+}
+static void prefix(char **argv) {
+    codec c; unsigned char *bytes; int skip,ci,q;
+    int pixels=first_leaf(argv,&c,&bytes,&skip,&ci,&q);
     FILE *out=fopen(argv[9],"wb");assert(out);
     fprintf(out,"{\"pixels\":%d,\"skip\":%d,\"segment\":0,\"cdefIndex\":%d,\"q\":%d}\n",pixels,skip,ci,q);
     fclose(out);free(bytes);
