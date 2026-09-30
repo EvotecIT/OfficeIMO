@@ -78,8 +78,51 @@ public sealed class DrawingWebpAlphaTests {
         Assert.False(OfficeRasterContainerInspector.TryInspect(bytes, out _));
         Assert.False(OfficeRasterImageDecoder.TryDecode(bytes, out _));
         var codec = new CountingCodec();
+        Assert.False(OfficeRasterImageDecoder.TryDecode(bytes,
+            new OfficeRasterDecodeOptions { ImageCodec = codec }, out _, out _));
+        Assert.Equal(0, codec.Calls);
         var drawing = new OfficeDrawing(49, 33).AddImage(bytes, "image/webp",
             new OfficeImageProjection(new OfficeImagePlacement(0, 0, 49, 33)));
+        OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
+        Assert.Equal(0, codec.Calls);
+        var nearest = new OfficeDrawing(49, 33).AddImageWithInterpolation(bytes, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 49, 33)), interpolate: false);
+        bool nearestRejected = false;
+        try {
+            OfficeDrawingSvgExporter.ToSvg(nearest, 1D, OfficeSvgSizeUnit.Pixel, imageCodec: codec);
+        } catch (InvalidOperationException) {
+            nearestRejected = true;
+        }
+        // Mislabeled source metadata must not bypass the detected container's policy.
+        bool dataUriRejected = !OfficeSvgImageRenderer.TryCreateDataUri("image/bmp", bytes, null, codec, out _);
+        Assert.True(nearestRejected && dataUriRejected && codec.Calls == 0,
+            $"Nearest rejected: {nearestRejected}; data URI rejected: {dataUriRejected}; caller calls: {codec.Calls}");
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void UnidentifiedMalformedWebpDoesNotReachExportCodecs(bool reservedAlphaHeader) {
+        byte[] bytes = ReadFixture("alpha-gradient.webp");
+        if (reservedAlphaHeader) {
+            for (int cursor = 12; cursor < bytes.Length;) {
+                int length = BitConverter.ToInt32(bytes, cursor + 4);
+                if (System.Text.Encoding.ASCII.GetString(bytes, cursor, 4) == "ALPH") {
+                    bytes[cursor + 8] |= 0x80;
+                    break;
+                }
+                cursor += 8 + length + (length & 1);
+            }
+        } else {
+            Array.Resize(ref bytes, bytes.Length - 1);
+        }
+        Assert.False(OfficeImageReader.TryIdentifyByContent(bytes, null, out _));
+        var codec = new CountingCodec();
+        var drawing = new OfficeDrawing(49, 33).AddImageWithInterpolation(bytes, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 49, 33)), interpolate: false);
+        Assert.Throws<InvalidOperationException>(() => OfficeDrawingSvgExporter.ToSvg(
+            drawing, 1D, OfficeSvgSizeUnit.Pixel, imageCodec: codec));
+        Assert.False(OfficeSvgImageRenderer.TryCreateDataUri("image/bmp", bytes, null, codec, out _));
         OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
         Assert.Equal(0, codec.Calls);
     }

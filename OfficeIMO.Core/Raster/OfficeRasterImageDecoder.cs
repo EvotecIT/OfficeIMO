@@ -178,7 +178,11 @@ public static partial class OfficeRasterImageDecoder {
             _ => false
         };
         success = success && IsDecodedImageWithinLimit(image, effective.MaximumDecodedPixels);
-        if (!success) success = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
+        // Static WebP belongs to the managed decoder. A failed VP8/ALPH stream
+        // must not become valid merely because a caller codec was supplied.
+        // Animated WebP has its explicit inspected caller-codec path above.
+        if (!success && format != OfficeImageFormat.Webp)
+            success = TryDecodeWithOptionalCodec(bytes, effective, container, out image);
         if (!success) image = null;
         info = new OfficeRasterDecodeInfo(format, frameCount, effective.FrameIndex, success,
             success ? null : "Raster bytes are not supported by the managed decoder subset or exceed configured limits.", container);

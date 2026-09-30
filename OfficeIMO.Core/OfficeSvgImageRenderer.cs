@@ -431,21 +431,7 @@ public static partial class OfficeSvgImageRenderer {
             return true;
         }
 
-        if (OfficeRasterImageDecoder.TryDecode(
-                bytes,
-                new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
-                out OfficeRasterImage? raster,
-                out _) && raster != null) {
-            cancellationToken.ThrowIfCancellationRequested();
-            dataUri = CreateBoundedDataUri(
-                "image/png",
-                OfficePngWriter.Encode(raster, cancellationToken),
-                maximumCharacters,
-                cancellationToken);
-            return true;
-        }
-
-        if (imageCodec != null && imageCodec.TryDecode((byte[])bytes.Clone(), declaredContentType, out raster) && raster != null) {
+        if (TryDecodeRasterForSvg(bytes, declaredContentType, imageCodec, cancellationToken, out OfficeRasterImage? raster) && raster != null) {
             cancellationToken.ThrowIfCancellationRequested();
             dataUri = CreateBoundedDataUri(
                 "image/png",

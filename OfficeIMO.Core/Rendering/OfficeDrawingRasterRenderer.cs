@@ -416,7 +416,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 requireManagedFrame: false, validateMetadata: true) &&
             !OfficeImageReader.HasCompleteJpegPayload(bytes, cancellationToken,
                 requireManagedFrame: true, validateMetadata: true);
-        if (identifiedManagedRaster && !callerDecodedJpeg) {
+        if (identifiedManagedRaster && !callerDecodedJpeg ||
+            OfficeImageReader.HasWebpSignature(bytes) || !callerCodecInputWithinLimit) {
             diagnosticSink?.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 OfficeImageExportDiagnosticCodes.SourceImageDecodeOmitted,

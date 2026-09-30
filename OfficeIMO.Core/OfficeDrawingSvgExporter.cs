@@ -426,18 +426,9 @@ public static partial class OfficeDrawingSvgExporter {
                     out dataUri)) {
                 return;
             }
-        } else if (!OfficeRasterImageDecoder.TryDecode(
-                       bytes,
-                       new OfficeRasterDecodeOptions { CancellationToken = cancellationToken },
-                       out nearestNeighborRaster,
-                       out _) || nearestNeighborRaster == null) {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (imageCodec == null ||
-                !imageCodec.TryDecode((byte[])bytes.Clone(), drawingImage.ContentType, out nearestNeighborRaster) ||
-                nearestNeighborRaster == null) {
-                throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
-            }
-            cancellationToken.ThrowIfCancellationRequested();
+        } else if (!OfficeSvgImageRenderer.TryDecodeRasterForSvg(
+                       bytes, drawingImage.ContentType, imageCodec, cancellationToken, out nearestNeighborRaster)) {
+            throw new InvalidOperationException("SVG export cannot preserve nearest-neighbor sampling for an undecodable image.");
         }
 
         if (drawingImage.Opacity < 1D) {

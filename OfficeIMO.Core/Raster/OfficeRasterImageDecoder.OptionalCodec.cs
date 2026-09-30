@@ -1,6 +1,11 @@
 namespace OfficeIMO.Drawing;
 
 public static partial class OfficeRasterImageDecoder {
+    /// <summary>Preserves rejection and encoded limits when a surface supports custom image formats.</summary>
+    internal static bool CanUseUninspectedCallerCodec(byte[] bytes, OfficeRasterDecodeOptions options, OfficeRasterDecodeInfo info) =>
+        bytes.Length <= options.MaximumEncodedBytes && info.Container == null &&
+        info.Format != OfficeImageFormat.Webp && !OfficeImageReader.HasWebpSignature(bytes);
+
     private static bool TryDecodeWithOptionalCodec(
         byte[] bytes,
         OfficeRasterDecodeOptions options,
