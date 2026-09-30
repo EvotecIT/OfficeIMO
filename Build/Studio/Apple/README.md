@@ -6,7 +6,9 @@ OfficeIMO Studio keeps direct macOS distribution and the Mac App Store as separa
 
 The active `powerforge.dotnetpublish.json` lane produces architecture-specific, multi-file self-contained `.app` bundles and `ditto` ZIP archives. PowerForge signs the native libraries in place instead of relying on single-file extraction. `Direct.entitlements` grants only the JIT permission required by the current non-NativeAOT .NET runtime.
 
-Local proof uses explicit ad-hoc signing. A public artifact requires all of the following on a trusted macOS builder:
+Local proof uses explicit ad-hoc signing. PowerForge omits hardened runtime for these bundles because their nested libraries do not share an Apple Team ID. The configured hardened-runtime option takes effect with a distribution signing identity; an ad-hoc launch does not qualify that contract.
+
+A public artifact requires all of the following on a trusted macOS builder:
 
 1. A `Developer ID Application` identity replaces the ad-hoc identity.
 2. Secure timestamps remain enabled.

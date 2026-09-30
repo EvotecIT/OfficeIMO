@@ -63,6 +63,8 @@ public sealed partial class PdfPageCanvas : Control, IDisposable {
     public PdfPageCanvas() {
         Focusable = true;
         Cursor = _textCursor;
+        // Native theme changes can repaint the page border without repainting its retained drawing.
+        ActualThemeVariantChanged += (_, _) => InvalidateVisual();
     }
 
     public PdfPageScene? Scene {
