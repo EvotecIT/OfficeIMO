@@ -203,12 +203,12 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 ProviderOptions = options.ProviderOptions
             };
             try {
-                // Unique attribute keys consume at least one character each, except for one empty key.
+                // Each retained diagnostic can have one empty key; other unique keys consume characters.
                 OcrResult result = await engineExecution.RecognizeAsync(
                     request,
                     options.CandidateTimeout,
                     new OcrResultCaptureLimits(options.MaxSpansPerCandidate, options.MaxProviderDiagnosticsPerCandidate,
-                        (int)Math.Min(options.MaxProviderDiagnosticAttributesPerCandidate, (long)options.MaxProviderDiagnosticAttributeCharactersPerCandidate + 1)),
+                        (int)Math.Min(options.MaxProviderDiagnosticAttributesPerCandidate, (long)options.MaxProviderDiagnosticAttributeCharactersPerCandidate + options.MaxProviderDiagnosticsPerCandidate)),
                     cancellationToken).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
             } catch (OcrEngineTimeoutException exception) {

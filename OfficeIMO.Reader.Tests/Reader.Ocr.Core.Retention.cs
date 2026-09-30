@@ -177,16 +177,20 @@ public sealed partial class ReaderOcrCoreTests {
     }
 
     [Fact]
-    public async Task AttributeCharacterBudgetRetainsAnExactFitAfterAnEmptyKey() {
+    public async Task AttributeCharacterBudgetRetainsExactFitsAcrossDiagnosticDictionaries() {
         var engine = new DelegateOcrEngine("attribute-exact-fit", (_, _) => Task.FromResult(new OcrResult {
             Text = "recognized", Diagnostics = new[] { new OcrDiagnostic {
-                Attributes = new Dictionary<string, string> { [""] = "", ["a"] = "" }
-            } }
+                Attributes = new Dictionary<string, string> { [""] = "" }
+            }, new OcrDiagnostic { Attributes = new Dictionary<string, string> { [""] = "" } },
+                new OcrDiagnostic { Attributes = new Dictionary<string, string> { ["a"] = "" } } }
         }));
         var execution = await CreateDocument(1).ApplyOcrAsync(engine, new OfficeDocumentOcrExecutionOptions {
-            MaxProviderDiagnosticAttributesPerCandidate = 2, MaxProviderDiagnosticAttributeCharactersPerCandidate = 1
+            MaxProviderDiagnosticsPerCandidate = 3, MaxProviderDiagnosticAttributesPerCandidate = 3,
+            MaxProviderDiagnosticAttributeCharactersPerCandidate = 1
         });
-        Assert.Equal(2, Assert.Single(execution.Recognitions).Result.Diagnostics[0].Attributes.Count);
+        OcrResult result = Assert.Single(execution.Recognitions).Result;
+        Assert.Equal(3, result.Diagnostics.Sum(item => item.Attributes.Count));
+        Assert.Equal("", result.Diagnostics[2].Attributes["a"]);
         Assert.DoesNotContain(execution.Diagnostics, item => item.Code == "ocr-provider-diagnostic-attribute-limit");
         Assert.DoesNotContain(execution.Diagnostics, item => item.Code == "ocr-provider-diagnostic-attribute-text-limit");
     }
