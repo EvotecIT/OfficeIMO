@@ -48,6 +48,8 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".basedOn", style.BasedOnStyleId);
         AddNullableInt(values, prefix + ".next", style.NextStyleId);
         AddNullableInt(values, prefix + ".linked", style.LinkedStyleId);
+        AddNullableInt(values, prefix + ".listId", style.ListId);
+        AddNullableInt(values, prefix + ".listLevel", style.ListLevel);
         AddKeyCode(values, prefix + ".key", style.KeyCode);
         AddBool(values, prefix + ".additive", style.Additive);
         AddBool(values, prefix + ".autoUpdate", style.AutoUpdate);

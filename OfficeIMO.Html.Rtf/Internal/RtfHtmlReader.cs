@@ -154,10 +154,10 @@ internal static partial class RtfHtmlReader {
                 case "span":
                     break;
                 case "ul":
-                    _lists.Push(CreateListState(RtfListKind.Bullet));
+                    _lists.Push(CreateListState(RtfListKind.Bullet, token));
                     break;
                 case "ol":
-                    _lists.Push(CreateListState(RtfListKind.Decimal));
+                    _lists.Push(CreateListState(RtfListKind.Decimal, token));
                     break;
                 case "thead":
                     _tableHead++;

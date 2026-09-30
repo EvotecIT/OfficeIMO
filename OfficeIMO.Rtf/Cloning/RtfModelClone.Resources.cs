@@ -97,6 +97,7 @@ public sealed partial class RtfListLevelOverride : IRtfCloneable {
     object IRtfCloneable.CloneModel(RtfCloneContext context) {
         var clone = (RtfListLevelOverride)MemberwiseClone();
         context.Register(this, clone);
+        clone.Formatting = context.Clone(Formatting);
         return clone;
     }
 }

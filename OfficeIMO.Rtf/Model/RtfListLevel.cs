@@ -53,10 +53,10 @@ public sealed partial class RtfListLevel {
     /// <summary>Whether picture bullets should keep their original size.</summary>
     public bool PictureNoSize { get; set; }
 
-    /// <summary>Marker text from <c>\leveltext</c>.</summary>
+    /// <summary>Marker template from <c>\leveltext</c>, with %1 through %9 denoting the corresponding level number.</summary>
     public string? Text { get; set; }
 
-    /// <summary>Marker number placeholders from <c>\levelnumbers</c>.</summary>
+    /// <summary>One-based placeholder offsets from <c>\levelnumbers</c>. Null lets normalized output derive the offsets from <see cref="Text"/>.</summary>
     public string? Numbers { get; set; }
 
     /// <summary>Left indentation in twips.</summary>

@@ -126,6 +126,12 @@ internal static partial class RtfSemanticReader {
                         case "slink":
                             linked = control.Parameter;
                             break;
+                        case "ls":
+                            tabState.ListId = control.Parameter;
+                            break;
+                        case "ilvl":
+                            tabState.ListLevel = control.Parameter;
+                            break;
                         case "additive":
                             additive = true;
                             break;
@@ -370,6 +376,8 @@ internal static partial class RtfSemanticReader {
                 BasedOnStyleId = basedOn,
                 NextStyleId = next,
                 LinkedStyleId = linked,
+                ListId = tabState.ListId,
+                ListLevel = tabState.ListLevel,
                 KeyCode = keyCode,
                 Additive = additive,
                 AutoUpdate = autoUpdate,

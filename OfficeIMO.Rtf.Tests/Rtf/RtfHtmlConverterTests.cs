@@ -53,7 +53,7 @@ public partial class RtfHtmlConverterTests {
             NewLine = "\n"
         });
 
-        Assert.Equal("<ul><li>Allergy</li>\n<li>Medication</li></ul>", html);
+        Assert.Equal("<ul><li>Allergy</li><li>Medication</li></ul>", html);
     }
 
     [Fact]

@@ -27,6 +27,8 @@ internal static partial class RtfDocumentWriter {
         AppendOptionalTwips(builder, @"\sbasedon", style.BasedOnStyleId);
         AppendOptionalTwips(builder, @"\snext", style.NextStyleId);
         AppendOptionalTwips(builder, @"\slink", style.LinkedStyleId);
+        AppendOptionalTwips(builder, @"\ls", style.ListId);
+        AppendOptionalTwips(builder, @"\ilvl", style.ListLevel);
         AppendStyleFlag(builder, @"\additive", style.Additive);
         AppendStyleFlag(builder, @"\sautoupd", style.AutoUpdate);
         AppendStyleFlag(builder, @"\shidden", style.Hidden);

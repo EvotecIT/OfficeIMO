@@ -4,40 +4,24 @@ namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
-        private static Dictionary<int, RtfListDefinition> CreateListDefinitionLookup(IReadOnlyList<RtfListDefinition> definitions) {
-            return definitions.GroupBy(definition => definition.Id).ToDictionary(group => group.Key, group => group.First());
-        }
-
-        private static Dictionary<int, RtfListOverride> CreateListOverrideLookup(IReadOnlyList<RtfListOverride> overrides) {
-            return overrides.GroupBy(listOverride => listOverride.Id).ToDictionary(group => group.Key, group => group.First());
-        }
-
         private void ApplyListOverride(CharacterState state) {
             state.ListDefinitionId = null;
-            if (!state.ListId.HasValue || !_listOverridesById.TryGetValue(state.ListId.Value, out RtfListOverride? listOverride)) {
-                return;
-            }
-
-            state.ListDefinitionId = listOverride.ListId;
             ApplyListLevel(state);
         }
 
         private void ApplyListLevel(CharacterState state) {
-            if (!state.ListDefinitionId.HasValue ||
-                !_listDefinitionsById.TryGetValue(state.ListDefinitionId.Value, out RtfListDefinition? definition)) {
-                return;
-            }
-
-            int levelIndex = state.ListLevel ?? 0;
-            RtfListLevel? level = definition.Levels.FirstOrDefault(item => item.LevelIndex == levelIndex) ??
-                                  definition.Levels.ElementAtOrDefault(levelIndex);
-            if (level == null) {
-                return;
-            }
-
-            state.ListKind = level.Kind;
-            state.LeftIndentTwips ??= level.LeftIndentTwips;
-            state.FirstLineIndentTwips ??= level.FirstLineIndentTwips;
+            RtfListFormatting? formatting = _document.ResolveListFormatting(new RtfParagraph {
+                StyleId = state.ParagraphStyleId,
+                ListId = state.ListId,
+                ListLevel = state.ListLevel,
+                ListDefinitionId = state.ListDefinitionId,
+                ListKind = state.ListKind
+            });
+            if (formatting == null) { state.ListKind = RtfListKind.None; return; }
+            state.ListDefinitionId = formatting.DefinitionId;
+            state.ListKind = formatting.Level.Kind;
+            state.LeftIndentTwips ??= formatting.Level.LeftIndentTwips;
+            state.FirstLineIndentTwips ??= formatting.Level.FirstLineIndentTwips;
         }
 
         private static IReadOnlyList<RtfListDefinition> ReadListDefinitions(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
@@ -160,9 +144,9 @@ internal static partial class RtfSemanticReader {
                     }
                 } else if (node is RtfGroup group) {
                     if (group.Destination == "leveltext") {
-                        levelText = CleanListText(CollectPlainText(group, ansiCodePage, unicodeSkipCount));
+                        levelText = RtfListTextCodec.DecodeText(CollectPlainText(group, ansiCodePage, unicodeSkipCount));
                     } else if (group.Destination == "levelnumbers") {
-                        levelNumbers = CleanListText(CollectPlainText(group, ansiCodePage, unicodeSkipCount));
+                        levelNumbers = RtfListTextCodec.DecodeNumbers(CollectPlainText(group, ansiCodePage, unicodeSkipCount));
                     }
                 }
             }
@@ -214,8 +198,9 @@ internal static partial class RtfSemanticReader {
             }
         }
 
-        private static IReadOnlyList<RtfListOverride> ReadListOverrides(RtfGroup root) {
+        private static IReadOnlyList<RtfListOverride> ReadListOverrides(RtfGroup root, int ansiCodePage, int unicodeSkipCount) {
             RtfGroup? overrideTable = root.Children.OfType<RtfGroup>().FirstOrDefault(group => group.Destination == "listoverridetable");
+            unicodeSkipCount = GetUnicodeSkipCountBefore(root, overrideTable);
             if (overrideTable == null) return Array.Empty<RtfListOverride>();
 
             var overrides = new List<RtfListOverride>();
@@ -238,7 +223,7 @@ internal static partial class RtfSemanticReader {
                                 break;
                         }
                     } else if (node is RtfGroup group && group.Destination == "lfolevel") {
-                        RtfListLevelOverride? levelOverride = ReadListLevelOverride(group);
+                        RtfListLevelOverride? levelOverride = ReadListLevelOverride(group, levelOverrides.Count, ansiCodePage, unicodeSkipCount);
                         if (levelOverride != null) {
                             levelOverrides.Add(levelOverride);
                         }
@@ -261,9 +246,13 @@ internal static partial class RtfSemanticReader {
             return overrides;
         }
 
-        private static RtfListLevelOverride? ReadListLevelOverride(RtfGroup group) {
+        private static RtfListLevelOverride ReadListLevelOverride(RtfGroup group, int levelIndex, int ansiCodePage, int unicodeSkipCount) {
             var levelOverride = new RtfListLevelOverride();
             foreach (RtfNode node in group.Children) {
+                if (node is RtfGroup levelGroup && levelGroup.Destination == "listlevel") {
+                    levelOverride.Formatting = ReadListLevel(levelGroup, levelIndex, ansiCodePage, unicodeSkipCount);
+                    continue;
+                }
                 if (!(node is RtfControlWord control)) {
                     continue;
                 }
@@ -281,7 +270,7 @@ internal static partial class RtfSemanticReader {
                 }
             }
 
-            return levelOverride.HasAnyValue ? levelOverride : null;
+            return levelOverride;
         }
 
         private static RtfListKind GetListKind(int? numberFormat, string? levelText) {

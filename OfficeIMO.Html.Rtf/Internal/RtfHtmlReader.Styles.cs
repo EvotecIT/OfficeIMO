@@ -65,6 +65,8 @@ internal static partial class RtfHtmlReader {
             style.BasedOnStyleId = ReadInt(values, prefix + ".basedOn");
             style.NextStyleId = ReadInt(values, prefix + ".next");
             style.LinkedStyleId = ReadInt(values, prefix + ".linked");
+            style.ListId = ReadInt(values, prefix + ".listId");
+            style.ListLevel = ReadInt(values, prefix + ".listLevel");
             style.KeyCode = ReadKeyCode(values, prefix + ".key");
             style.Additive = ReadBool(values, prefix + ".additive") == true;
             style.AutoUpdate = ReadBool(values, prefix + ".autoUpdate") == true;

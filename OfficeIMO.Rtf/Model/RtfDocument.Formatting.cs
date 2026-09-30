@@ -6,13 +6,15 @@ public sealed partial class RtfDocument {
     public RtfParagraph ResolveParagraphFormatting(RtfParagraph paragraph) {
         if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
         var result = new RtfCloneContext().Clone(paragraph)!;
-        return ApplyParagraphInheritance(result);
+        return ApplyParagraphListFormatting(ApplyParagraphInheritance(result));
     }
 
-    internal RtfParagraph GetParagraphFormatting(RtfParagraph paragraph) => ApplyParagraphInheritance(paragraph.CopyFormattingView());
+    internal RtfParagraph GetParagraphFormatting(RtfParagraph paragraph) => ApplyParagraphListFormatting(ApplyParagraphInheritance(paragraph.CopyFormattingView()));
 
     private RtfParagraph ApplyParagraphInheritance(RtfParagraph result) {
         foreach (RtfStyle style in GetFormattingStyleChain(result.StyleId ?? 0, RtfStyleKind.Paragraph).Reverse()) {
+            result.ListId ??= style.ListId;
+            result.ListLevel ??= style.ListLevel;
             result.DirectAlignment ??= style.ParagraphAlignment;
             result.DirectPageBreakBefore ??= style.PageBreakBefore;
             result.DirectKeepWithNext ??= style.KeepWithNext;
@@ -47,6 +49,24 @@ public sealed partial class RtfDocument {
             if (!result.LegacyNumbering.HasAnyValue) result.LegacyNumbering.CopyFrom(style.LegacyNumbering);
         }
         return result;
+    }
+
+    private RtfParagraph ApplyParagraphListFormatting(RtfParagraph paragraph) {
+        if (paragraph.ListId == 0) {
+            paragraph.ListKind = RtfListKind.None;
+            paragraph.ListDefinitionId = null;
+            return paragraph;
+        }
+        RtfListFormatting? list = ResolveListFormattingCore(paragraph);
+        if (list != null) {
+            paragraph.ListKind = list.Level.Kind;
+            paragraph.ListId = list.InstanceId;
+            paragraph.ListDefinitionId = list.DefinitionId;
+            paragraph.ListLevel = list.LevelIndex;
+            paragraph.LeftIndentTwips ??= list.Level.LeftIndentTwips;
+            paragraph.FirstLineIndentTwips ??= list.Level.FirstLineIndentTwips;
+        }
+        return paragraph;
     }
 
     /// <summary>Returns an independent run copy with paragraph and character styles applied beneath direct formatting.</summary>

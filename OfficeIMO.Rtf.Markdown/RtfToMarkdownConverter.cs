@@ -24,6 +24,7 @@ internal static class RtfToMarkdownConverter {
                 IRtfBlock block = document.Blocks[i];
                 switch (block) {
                     case RtfParagraph paragraph:
+                        paragraph = listStartLookup.GetParagraph(paragraph);
                         if (paragraph.ListKind != RtfListKind.None) {
                             i = ConvertListRun(document, listStartLookup, context, blocks, i, ref imageIndex);
                         } else if (TryConvertCodeBlockRun(document, blocks, i, out int codeBlockEndIndex)) {
@@ -59,7 +60,7 @@ internal static class RtfToMarkdownConverter {
     }
 
     private static int ConvertListRun(RtfDocument document, ListStartLookup listStartLookup, RtfToMarkdownConversionContext context, ICollection<IMarkdownBlock> blocks, int startIndex, ref int imageIndex) {
-        var first = (RtfParagraph)document.Blocks[startIndex];
+        RtfParagraph first = listStartLookup.GetParagraph((RtfParagraph)document.Blocks[startIndex]);
         int? firstListId = first.ListId;
         int? firstListDefinitionId = first.ListDefinitionId;
         var paragraphs = new List<RtfParagraph>();
@@ -69,6 +70,7 @@ internal static class RtfToMarkdownConverter {
             if (!(document.Blocks[i] is RtfParagraph paragraph)) {
                 break;
             }
+            paragraph = listStartLookup.GetParagraph(paragraph);
 
             if (paragraph.ListKind == RtfListKind.None) {
                 if (paragraphs.Count == 0 || !IsListContinuationParagraph(paragraph)) {
@@ -112,6 +114,14 @@ internal static class RtfToMarkdownConverter {
 
             int level = Math.Max(0, paragraph.ListLevel ?? 0);
             RtfListKind kind = NormalizeListKind(paragraph.ListKind);
+            if (listStartLookup.Markers.TryGetValue(paragraph, out RtfListMarker? marker)) {
+                RtfListLevel formatting = marker.Formatting.Level;
+                string standard = formatting.Kind == RtfListKind.Bullet ? "\u2022" : "%" + (marker.Formatting.LevelIndex + 1).ToString(CultureInfo.InvariantCulture) + ".";
+                if ((formatting.NumberFormatN ?? formatting.NumberFormat ?? 0) != (formatting.Kind == RtfListKind.Bullet ? 23 : 0) ||
+                    (formatting.Text != null && formatting.Text != standard) || formatting.PictureIndex.HasValue) {
+                    context.Report("RTFMD017", RtfMarkdownDiagnosticSeverity.Warning, "List marker formatting was represented by a standard Markdown list marker.", "Paragraph/List", RtfConversionAction.Flattened);
+                }
+            }
             InlineSequence inlines = ConvertParagraphInlines(paragraph, context, ref imageIndex);
             ListItem item = CreateListItem(inlines);
 
@@ -255,14 +265,14 @@ internal static class RtfToMarkdownConverter {
             list,
             paragraph.ListId,
             paragraph.ListDefinitionId,
-            kind == RtfListKind.Decimal ? ResolveListStart(listStartLookup, paragraph) : 1);
+            kind == RtfListKind.Decimal ? listStartLookup.Document.ResolveListFormatting(paragraph)?.Level.StartAt ?? 1 : 1);
 
     private static bool MatchesListFrame(ListStartLookup listStartLookup, ListFrame frame, RtfParagraph paragraph, int level, RtfListKind kind) =>
         frame.Level == level &&
         frame.Kind == kind &&
         frame.ListId == paragraph.ListId &&
         frame.ListDefinitionId == paragraph.ListDefinitionId &&
-        (kind != RtfListKind.Decimal || frame.Start == ResolveListStart(listStartLookup, paragraph));
+        (kind != RtfListKind.Decimal || frame.Start == (listStartLookup.Document.ResolveListFormatting(paragraph)?.Level.StartAt ?? 1));
 
     private static IMarkdownListBlock CreateMarkdownListBlock(ListStartLookup listStartLookup, RtfParagraph paragraph) {
         RtfListKind kind = NormalizeListKind(paragraph.ListKind);
@@ -283,42 +293,25 @@ internal static class RtfToMarkdownConverter {
         return kind == RtfListKind.Decimal ? RtfListKind.Decimal : RtfListKind.Bullet;
     }
 
-    private static int ResolveListStart(ListStartLookup listStartLookup, RtfParagraph paragraph) {
-        int levelIndex = Math.Max(0, paragraph.ListLevel ?? 0);
-        if (paragraph.ListId.HasValue) {
-            listStartLookup.Overrides.TryGetValue(paragraph.ListId.Value, out RtfListOverride? listOverride);
-            RtfListLevelOverride? levelOverride = listOverride?.LevelOverrides.ElementAtOrDefault(levelIndex);
-            if (levelOverride?.OverrideStartAt == true && levelOverride.StartAt.HasValue) {
-                return Math.Max(1, levelOverride.StartAt.Value);
-            }
-        }
-
-        if (paragraph.ListDefinitionId.HasValue) {
-            listStartLookup.Definitions.TryGetValue(paragraph.ListDefinitionId.Value, out RtfListDefinition? definition);
-            RtfListLevel? level = definition?.Levels.FirstOrDefault(item => item.LevelIndex == levelIndex);
-            if (level?.StartAt.HasValue == true) {
-                return Math.Max(1, level.StartAt.Value);
-            }
-        }
-
-        return Math.Max(1, paragraph.LegacyNumbering.StartAt ?? 1);
-    }
+    private static int ResolveListStart(ListStartLookup listStartLookup, RtfParagraph paragraph) =>
+        checked((int)(listStartLookup.Markers.TryGetValue(paragraph, out RtfListMarker? marker)
+            ? marker.Value : listStartLookup.Document.ResolveListFormatting(paragraph)?.Level.StartAt ?? 1));
 
     private sealed class ListStartLookup {
-        internal Dictionary<int, RtfListOverride> Overrides { get; } = new();
-        internal Dictionary<int, RtfListDefinition> Definitions { get; } = new();
+        internal RtfDocument Document { get; }
+        internal Dictionary<RtfParagraph, RtfListMarker> Markers { get; } = new();
+        private readonly Dictionary<RtfParagraph, RtfParagraph> _paragraphs = new();
+
+        internal RtfParagraph GetParagraph(RtfParagraph paragraph) => _paragraphs.TryGetValue(paragraph, out RtfParagraph? effective) ? effective : paragraph;
 
         internal ListStartLookup(RtfDocument document) {
-            foreach (RtfListOverride item in document.ListOverrides) {
-                if (!Overrides.ContainsKey(item.Id)) {
-                    Overrides.Add(item.Id, item);
-                }
-            }
-
-            foreach (RtfListDefinition item in document.ListDefinitions) {
-                if (!Definitions.ContainsKey(item.Id)) {
-                    Definitions.Add(item.Id, item);
-                }
+            Document = document;
+            var numbering = new RtfListNumbering(document);
+            foreach (RtfParagraph paragraph in document.Blocks.OfType<RtfParagraph>()) {
+                RtfParagraph effective = document.GetParagraphFormatting(paragraph);
+                _paragraphs[paragraph] = effective;
+                RtfListMarker? marker = numbering.Next(effective);
+                if (marker != null) { Markers[paragraph] = marker; Markers[effective] = marker; }
             }
         }
     }

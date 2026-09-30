@@ -38,8 +38,6 @@ internal static partial class RtfSemanticReader {
         private CharacterState? _finalParagraphState;
         private bool _hasStandalonePictureParagraph;
         private int? _currentSectionColumnNumber;
-        private Dictionary<int, RtfListOverride> _listOverridesById = null!;
-        private Dictionary<int, RtfListDefinition> _listDefinitionsById = null!;
         private Dictionary<int, RtfFont> _fontsById = null!;
         private readonly List<NestedTableContext> _nestedTableContexts = new List<NestedTableContext>();
         private readonly HashSet<int> _nestedTableBoundaryLevels = new HashSet<int>();
@@ -70,7 +68,7 @@ internal static partial class RtfSemanticReader {
             _document.ReplaceColors(ReadColorTable(root));
             _document.ReplaceStyles(ReadStylesheet(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceListDefinitions(ReadListDefinitions(root, ansiCodePage, unicodeSkipCount));
-            _document.ReplaceListOverrides(ReadListOverrides(root));
+            _document.ReplaceListOverrides(ReadListOverrides(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceRevisionAuthors(ReadRevisionAuthors(root, ansiCodePage, unicodeSkipCount));
             _document.RevisionRootSaveId = ReadRevisionRootSaveId(root);
             _document.ReplaceRevisionSaveIds(ReadRevisionSaveIds(root));
@@ -80,8 +78,6 @@ internal static partial class RtfSemanticReader {
                 _diagnostics.Add(new RtfDiagnostic(RtfDiagnosticSeverity.Warning, "RTF106", "File-table references were blocked by the configured read policy.", root.Position));
             }
             _document.ReplaceXmlNamespaces(ReadXmlNamespaces(root, ansiCodePage, unicodeSkipCount));
-            _listDefinitionsById = CreateListDefinitionLookup(_document.ListDefinitions);
-            _listOverridesById = CreateListOverrideLookup(_document.ListOverrides);
             ReadPageSetup(root, _document.PageSetup);
             ReadNoteSettings(root, _document.NoteSettings);
             ReadDocumentSettings(root, _document.Settings);

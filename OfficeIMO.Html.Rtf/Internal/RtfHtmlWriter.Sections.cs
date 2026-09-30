@@ -4,6 +4,7 @@ namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
     private static void AppendSections(StringBuilder builder, RtfDocument document, RtfToHtmlOptions options, string newline) {
+        var numbering = new RtfListNumbering(document);
         for (int index = 0; index < document.Sections.Count; index++) {
             RtfSection section = document.Sections[index];
             if (index > 0) {
@@ -19,7 +20,7 @@ internal static partial class RtfHtmlWriter {
             builder.Append('>');
             if (section.Blocks.Count > 0) {
                 builder.Append(newline);
-                AppendBlocks(builder, section.Blocks, options, document, newline);
+                AppendBlocks(builder, section.Blocks, options, document, newline, numbering);
                 builder.Append(newline);
             }
 

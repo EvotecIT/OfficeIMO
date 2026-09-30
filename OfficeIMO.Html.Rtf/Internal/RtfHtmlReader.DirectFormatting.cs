@@ -6,6 +6,8 @@ internal static partial class RtfHtmlReader {
             var values = RtfHtmlMetadataCodec.Decode(GetAttribute(token, "data-officeimo-rtf-direct-paragraph"));
             if (!values.TryGetValue("version", out string? version) || version != "1") return;
             RtfParagraph source = EnsureParagraph();
+            source.ListId = ReadInt(values, "ListId");
+            source.ListLevel = ReadInt(values, "ListLevel");
             source.DirectAlignment = ReadEnum<RtfTextAlignment>(values, "DirectAlignment");
             source.DirectPageBreakBefore = ReadBool(values, "DirectPageBreakBefore");
             source.DirectKeepWithNext = ReadBool(values, "DirectKeepWithNext");

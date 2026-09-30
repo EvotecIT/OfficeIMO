@@ -32,9 +32,12 @@ internal static partial class RtfDocumentWriter {
             builder.Append(@"{\listoverride\listid");
             builder.Append(listOverride.ListId.ToString(CultureInfo.InvariantCulture));
             builder.Append(@"\listoverridecount");
-            builder.Append((listOverride.OverrideCount ?? listOverride.LevelOverrides.Count).ToString(CultureInfo.InvariantCulture));
-            foreach (RtfListLevelOverride levelOverride in listOverride.LevelOverrides) {
-                WriteListLevelOverride(builder, levelOverride);
+            var levels = listOverride.LevelOverrides.Select((item, index) => new { Item = item, Index = item.LevelIndex ?? index }).ToArray();
+            if (levels.Any(item => item.Index < 0 || item.Index > 8)) throw new InvalidDataException("List override levels must be between 0 and 8.");
+            int count = levels.Length == 0 ? 0 : levels.Max(item => item.Index) == 0 ? 1 : 9;
+            builder.Append(count.ToString(CultureInfo.InvariantCulture));
+            for (int index = 0; index < count; index++) {
+                WriteListLevelOverride(builder, levels.LastOrDefault(item => item.Index == index)?.Item ?? new RtfListLevelOverride(), unicodeSkipCount);
             }
 
             builder.Append(@"\ls");
@@ -45,13 +48,18 @@ internal static partial class RtfDocumentWriter {
         builder.Append('}');
     }
 
-    private static void WriteListLevelOverride(StringBuilder builder, RtfListLevelOverride levelOverride) {
-        if (!levelOverride.HasAnyValue) return;
-
+    private static void WriteListLevelOverride(StringBuilder builder, RtfListLevelOverride levelOverride, int unicodeSkipCount) {
         builder.Append(@"{\lfolevel");
         AppendOptionalBinary(builder, @"\listoverrideformat", levelOverride.OverrideFormat);
         AppendOptionalBinary(builder, @"\listoverridestartat", levelOverride.OverrideStartAt);
-        AppendOptionalTwips(builder, @"\levelstartat", levelOverride.StartAt);
+        if (levelOverride.OverrideFormat == true && levelOverride.Formatting != null) {
+            RtfListLevel formatting = new RtfCloneContext().Clone(levelOverride.Formatting)!;
+            if (levelOverride.OverrideStartAt == true && levelOverride.StartAt.HasValue) formatting.StartAt = levelOverride.StartAt;
+            WriteListLevel(builder, formatting, unicodeSkipCount);
+        } else {
+            AppendOptionalTwips(builder, @"\levelstartat", levelOverride.StartAt);
+            if (levelOverride.Formatting != null) WriteListLevel(builder, levelOverride.Formatting, unicodeSkipCount);
+        }
         builder.Append('}');
     }
 
@@ -81,23 +89,27 @@ internal static partial class RtfDocumentWriter {
             builder.Append(@"\levelpicturenosize");
         }
 
-        string levelText = level.Text ?? (level.Kind == RtfListKind.Bullet ? "\u2022" : "%1.");
+        string levelText = RtfListTextCodec.EncodeText(level.Text ?? (level.Kind == RtfListKind.Bullet ? "\u2022" : "%" + (level.LevelIndex + 1).ToString(CultureInfo.InvariantCulture) + "."), out string numberOffsets);
         builder.Append(@"{\leveltext");
-        WriteListText(builder, levelText, unicodeSkipCount);
+        WriteListText(builder, levelText, unicodeSkipCount, includeLength: true);
         builder.Append(";}");
         builder.Append(@"{\levelnumbers");
-        WriteListText(builder, level.Numbers ?? (level.Kind == RtfListKind.Bullet ? string.Empty : "\u0001"), unicodeSkipCount);
+        WriteListText(builder, level.Numbers ?? numberOffsets, unicodeSkipCount, includeLength: false);
         builder.Append(";}");
         AppendOptionalTwips(builder, @"\fi", level.FirstLineIndentTwips);
         AppendOptionalTwips(builder, @"\li", level.LeftIndentTwips);
         builder.Append('}');
     }
 
-    private static void WriteListText(StringBuilder builder, string text, int unicodeSkipCount) {
-        int count = text.Length;
-        builder.Append(@"\'");
-        builder.Append(Math.Min(count, 255).ToString("x2", CultureInfo.InvariantCulture));
-        builder.Append(EscapeText(text, unicodeSkipCount));
+    private static void WriteListText(StringBuilder builder, string text, int unicodeSkipCount, bool includeLength) {
+        if (includeLength) {
+            if (text.Length > 255) throw new InvalidDataException("List marker templates cannot exceed 255 characters.");
+            builder.Append(@"\'").Append(text.Length.ToString("x2", CultureInfo.InvariantCulture));
+        }
+        foreach (char character in text) {
+            if (character < 32) builder.Append(@"\'").Append(((int)character).ToString("x2", CultureInfo.InvariantCulture));
+            else builder.Append(EscapeText(character.ToString(), unicodeSkipCount));
+        }
     }
 
     internal static EffectiveListTables BuildEffectiveListTables(RtfDocument document) {
@@ -168,7 +180,8 @@ internal static partial class RtfDocumentWriter {
                 LevelIndex = levelOverride.LevelIndex,
                 OverrideFormat = levelOverride.OverrideFormat,
                 OverrideStartAt = levelOverride.OverrideStartAt,
-                StartAt = levelOverride.StartAt
+                StartAt = levelOverride.StartAt,
+                Formatting = new RtfCloneContext().Clone(levelOverride.Formatting)
             });
         }
 
@@ -189,7 +202,7 @@ internal static partial class RtfDocumentWriter {
         level.LeftIndentTwips = paragraph.LeftIndentTwips ?? 720 * (levelIndex + 1);
         level.FirstLineIndentTwips = paragraph.FirstLineIndentTwips ?? -360;
         level.Text = paragraph.ListKind == RtfListKind.Bullet ? "\u2022" : "%" + (levelIndex + 1).ToString(CultureInfo.InvariantCulture) + ".";
-        level.Numbers = paragraph.ListKind == RtfListKind.Bullet ? string.Empty : "\u0001";
+        level.Numbers = null;
     }
 
     private static int ToRtfListLevelAlignmentValue(RtfListLevelAlignment? alignment) {

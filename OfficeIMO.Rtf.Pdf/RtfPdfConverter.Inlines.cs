@@ -12,7 +12,7 @@ internal static partial class RtfPdfConverter {
         PdfCore.PdfParagraphStyle? style = RtfPdfMapping.ToPdfParagraphStyle(document, paragraph);
         List<PdfCore.PdfTextRun> pendingRuns = new List<PdfCore.PdfTextRun>();
         bool emitted = false;
-        AppendListMarker(paragraph, pendingRuns, state);
+        AppendListMarker(paragraph, pendingRuns, state, options);
 
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
@@ -76,7 +76,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void AppendParagraphRuns(RtfDocument document, RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, RtfToPdfOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
-        AppendListMarker(paragraph, runs, state);
+        AppendListMarker(paragraph, runs, state, options);
         foreach (IRtfInline inline in paragraph.Inlines) {
             switch (inline) {
                 case RtfRun run:
@@ -219,76 +219,13 @@ internal static partial class RtfPdfConverter {
         AppendPlainText(text, runs);
     }
 
-    private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state) {
-        string? marker = GetListMarker(paragraph, state);
-        if (marker != null && marker.Length > 0) {
-            runs.Add(PdfCore.PdfTextRun.Normal(marker));
+    private static void AppendListMarker(RtfParagraph paragraph, List<PdfCore.PdfTextRun> runs, PdfRenderState state, RtfToPdfOptions options) {
+        RtfListMarker? marker = state.NextListMarker(paragraph);
+        if (marker == null) return;
+        if (!marker.IsNumberFormatSupported) AddConversionWarning(options, "ListNumberFormatFlattened", "Paragraph/List", "The requested numbering format was represented by decimal marker text.", RtfConversionAction.Flattened);
+        if (marker.Formatting.Level.PictureIndex.HasValue) AddConversionWarning(options, "ListPictureFlattened", "Paragraph/List", "The picture bullet was represented by its text marker.", RtfConversionAction.Flattened);
+        if (marker.Text.Length > 0) {
+            runs.Add(PdfCore.PdfTextRun.Normal(marker.Text + marker.Separator));
         }
-    }
-
-    private static string? GetListMarker(RtfParagraph paragraph, PdfRenderState state) {
-        if (paragraph.ListKind == RtfListKind.None) {
-            return null;
-        }
-
-        if (paragraph.ListText != null) {
-            string markerText = NormalizeListMarkerText(paragraph.ListText.ToPlainText());
-            if (paragraph.ListKind == RtfListKind.Decimal) {
-                state.AdvanceDecimalList(paragraph, markerText);
-            }
-
-            return EnsureMarkerSeparator(markerText);
-        }
-
-        if (paragraph.ListKind == RtfListKind.Bullet) {
-            return "\u2022 ";
-        }
-
-        return state.NextDecimalMarker(paragraph).ToString(System.Globalization.CultureInfo.InvariantCulture) + ". ";
-    }
-
-    private static string NormalizeListMarkerText(string text) {
-        if (string.IsNullOrWhiteSpace(text)) {
-            return string.Empty;
-        }
-
-        return text
-            .Replace("\r\n", " ")
-            .Replace('\r', ' ')
-            .Replace('\n', ' ')
-            .Replace('\f', ' ')
-            .Replace('\v', ' ')
-            .Replace('\t', ' ')
-            .Trim();
-    }
-
-    private static string EnsureMarkerSeparator(string marker) {
-        if (marker.Length == 0 || char.IsWhiteSpace(marker[marker.Length - 1])) {
-            return marker;
-        }
-
-        return marker + " ";
-    }
-
-    private static bool TryReadLeadingIntegerMarker(string marker, out int value) {
-        value = 0;
-        int index = 0;
-        while (index < marker.Length && char.IsWhiteSpace(marker[index])) {
-            index++;
-        }
-
-        int start = index;
-        while (index < marker.Length && char.IsDigit(marker[index])) {
-            int digit = marker[index] - '0';
-            if (value > (int.MaxValue - digit) / 10) {
-                value = 0;
-                return false;
-            }
-
-            value = (value * 10) + digit;
-            index++;
-        }
-
-        return index > start;
     }
 }

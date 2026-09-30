@@ -31,6 +31,12 @@ public sealed partial class RtfStyle {
     /// <summary>Optional linked style id.</summary>
     public int? LinkedStyleId { get; set; }
 
+    /// <summary>Optional list-instance reference inherited by paragraphs using this style.</summary>
+    public int? ListId { get; set; }
+
+    /// <summary>Optional zero-based list level inherited by paragraphs using this style.</summary>
+    public int? ListLevel { get; set; }
+
     /// <summary>Optional shortcut key metadata from the stylesheet <c>{\*\keycode ...}</c> group.</summary>
     public RtfStyleKeyCode? KeyCode { get; set; }
 

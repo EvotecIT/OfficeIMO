@@ -16,6 +16,9 @@ public sealed partial class RtfListLevelOverride {
     /// <summary>Overridden starting number from <c>\levelstartat</c>, when present.</summary>
     public int? StartAt { get; set; }
 
+    /// <summary>Replacement level formatting when <see cref="OverrideFormat"/> is true.</summary>
+    public RtfListLevel? Formatting { get; set; }
+
     /// <summary>Returns whether this override contains any semantic value.</summary>
-    public bool HasAnyValue => OverrideFormat.HasValue || OverrideStartAt.HasValue || StartAt.HasValue;
+    public bool HasAnyValue => OverrideFormat.HasValue || OverrideStartAt.HasValue || StartAt.HasValue || Formatting != null;
 }

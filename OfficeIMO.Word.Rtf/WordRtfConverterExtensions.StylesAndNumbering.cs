@@ -64,6 +64,8 @@ public static partial class WordRtfConverterExtensions {
         StyleParagraphProperties? paragraph = source.StyleParagraphProperties;
         if (paragraph == null) return;
         destination.ParagraphAlignment = ToRtfTextAlignment(paragraph.Justification?.Val?.Value);
+        destination.ListId = paragraph.NumberingProperties?.NumberingId?.Val?.Value;
+        destination.ListLevel = paragraph.NumberingProperties?.NumberingLevelReference?.Val?.Value;
         destination.LeftIndentTwips = ParseInt(paragraph.Indentation?.Left?.Value);
         destination.RightIndentTwips = ParseInt(paragraph.Indentation?.Right?.Value);
         destination.FirstLineIndentTwips = ParseInt(paragraph.Indentation?.FirstLine?.Value) ?? Negate(ParseInt(paragraph.Indentation?.Hanging?.Value));
@@ -94,15 +96,7 @@ public static partial class WordRtfConverterExtensions {
                 while (definition.Levels.Count < levelIndex) {
                     definition.AddLevel();
                 }
-                RtfListLevel level = definition.AddLevel(format == NumberFormatValues.Bullet ? RtfListKind.Bullet : RtfListKind.Decimal);
-                level.NumberFormat = ToRtfNumberFormat(format);
-                level.StartAt = wordLevel.StartNumberingValue?.Val?.Value;
-                level.Text = wordLevel.LevelText?.Val?.Value;
-                level.LeftIndentTwips = ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.Left?.Value);
-                level.FirstLineIndentTwips = ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.FirstLine?.Value)
-                    ?? Negate(ParseInt(wordLevel.PreviousParagraphProperties?.Indentation?.Hanging?.Value));
-                level.Alignment = ToRtfListAlignment(wordLevel.LevelJustification?.Val?.Value);
-                level.FollowCharacter = ToRtfFollowCharacter(wordLevel.LevelSuffix?.Val?.Value);
+                definition.AddParsedLevel(ReadWordListLevel(wordLevel, levelIndex));
             }
         }
 
@@ -119,9 +113,48 @@ public static partial class WordRtfConverterExtensions {
                 levelOverride.LevelIndex = effectiveLevelIndex;
                 levelOverride.StartAt = wordOverride.StartOverrideNumberingValue?.Val?.Value;
                 levelOverride.OverrideStartAt = levelOverride.StartAt.HasValue;
+                if (wordOverride.Level != null) {
+                    levelOverride.OverrideFormat = true;
+                    levelOverride.Formatting = ReadWordListLevel(wordOverride.Level, effectiveLevelIndex);
+                }
                 overrideIndex++;
             }
         }
+    }
+
+    private static RtfListLevel ReadWordListLevel(Level source, int index) {
+        NumberFormatValues? format = source.NumberingFormat?.Val?.Value;
+        return new RtfListLevel(index, format == NumberFormatValues.Bullet ? RtfListKind.Bullet : RtfListKind.Decimal) {
+            NumberFormat = ToRtfNumberFormat(format),
+            StartAt = source.StartNumberingValue?.Val?.Value,
+            Text = source.LevelText?.Val?.Value,
+            LeftIndentTwips = ParseInt(source.PreviousParagraphProperties?.Indentation?.Left?.Value),
+            FirstLineIndentTwips = ParseInt(source.PreviousParagraphProperties?.Indentation?.FirstLine?.Value)
+                ?? Negate(ParseInt(source.PreviousParagraphProperties?.Indentation?.Hanging?.Value)),
+            Alignment = ToRtfListAlignment(source.LevelJustification?.Val?.Value),
+            FollowCharacter = ToRtfFollowCharacter(source.LevelSuffix?.Val?.Value),
+            NoRestart = source.LevelRestart?.Val?.Value == 0 ? true : (bool?)null,
+            LegalNumbering = ReadToggle(source.IsLegalNumberingStyle)
+        };
+    }
+
+    private static Level CreateWordListLevel(RtfListLevel source) {
+        var level = new Level { LevelIndex = source.LevelIndex };
+        level.Append(new StartNumberingValue { Val = source.StartAt ?? 1 });
+        level.Append(new NumberingFormat { Val = ToWordNumberFormat(source) });
+        if (source.NoRestart == true) level.Append(new LevelRestart { Val = 0 });
+        if (source.LegalNumbering.HasValue) level.Append(new IsLegalNumberingStyle { Val = source.LegalNumbering.Value });
+        if (source.FollowCharacter.HasValue) level.Append(new LevelSuffix { Val = ToWordFollowCharacter(source.FollowCharacter.Value) });
+        level.Append(new LevelText { Val = source.Text ?? DefaultLevelText(source) });
+        if (source.Alignment.HasValue) level.Append(new LevelJustification { Val = ToWordListAlignment(source.Alignment.Value) });
+        if (source.LeftIndentTwips.HasValue || source.FirstLineIndentTwips.HasValue) {
+            level.Append(new PreviousParagraphProperties(new Indentation {
+                Left = FormatInt(source.LeftIndentTwips),
+                Hanging = source.FirstLineIndentTwips < 0 ? FormatInt(-source.FirstLineIndentTwips) : null,
+                FirstLine = source.FirstLineIndentTwips >= 0 ? FormatInt(source.FirstLineIndentTwips) : null
+            }));
+        }
+        return level;
     }
 
     private static void ApplyRtfStylesAndNumbering(RtfDocument source, WordDocument destination) {
@@ -176,6 +209,8 @@ public static partial class WordRtfConverterExtensions {
         if (run.HasChildren) style.Append(run);
 
         var paragraph = new StyleParagraphProperties();
+        if (source.ListId.HasValue) paragraph.NumberingProperties = new NumberingProperties(
+            new NumberingLevelReference { Val = source.ListLevel ?? 0 }, new NumberingId { Val = source.ListId.Value });
         if (source.ParagraphAlignment.HasValue) paragraph.Justification = new Justification { Val = ToWordTextAlignment(source.ParagraphAlignment.Value) };
         if (source.LeftIndentTwips.HasValue || source.RightIndentTwips.HasValue || source.FirstLineIndentTwips.HasValue) {
             paragraph.Indentation = new Indentation {
@@ -206,20 +241,7 @@ public static partial class WordRtfConverterExtensions {
                 ? new[] { new RtfListLevel(0, RtfListKind.Decimal) }
                 : definition.Levels;
             foreach (RtfListLevel sourceLevel in levels) {
-                var level = new Level { LevelIndex = sourceLevel.LevelIndex };
-                level.Append(new StartNumberingValue { Val = sourceLevel.StartAt ?? 1 });
-                level.Append(new NumberingFormat { Val = ToWordNumberFormat(sourceLevel) });
-                level.Append(new LevelText { Val = string.IsNullOrEmpty(sourceLevel.Text) ? DefaultLevelText(sourceLevel) : sourceLevel.Text });
-                if (sourceLevel.Alignment.HasValue) level.Append(new LevelJustification { Val = ToWordListAlignment(sourceLevel.Alignment.Value) });
-                if (sourceLevel.FollowCharacter.HasValue) level.Append(new LevelSuffix { Val = ToWordFollowCharacter(sourceLevel.FollowCharacter.Value) });
-                if (sourceLevel.LeftIndentTwips.HasValue || sourceLevel.FirstLineIndentTwips.HasValue) {
-                    level.Append(new PreviousParagraphProperties(new Indentation {
-                        Left = FormatInt(sourceLevel.LeftIndentTwips),
-                        Hanging = sourceLevel.FirstLineIndentTwips < 0 ? FormatInt(-sourceLevel.FirstLineIndentTwips) : null,
-                        FirstLine = sourceLevel.FirstLineIndentTwips >= 0 ? FormatInt(sourceLevel.FirstLineIndentTwips) : null
-                    }));
-                }
-
+                Level level = CreateWordListLevel(sourceLevel);
                 abstractNum.Append(level);
             }
 
@@ -234,6 +256,10 @@ public static partial class WordRtfConverterExtensions {
                 var levelOverride = new LevelOverride { LevelIndex = sourceOverride.LevelIndex ?? levelIndex };
                 if (sourceOverride.OverrideStartAt == true && sourceOverride.StartAt.HasValue) {
                     levelOverride.Append(new StartOverrideNumberingValue { Val = sourceOverride.StartAt.Value });
+                }
+                if (sourceOverride.OverrideFormat == true && sourceOverride.Formatting != null) {
+                    RtfListLevel formatting = source.ResolveListFormatting(new RtfParagraph { ListId = item.Id, ListLevel = sourceOverride.LevelIndex ?? levelIndex })!.Level;
+                    levelOverride.Append(CreateWordListLevel(formatting));
                 }
                 instance.Append(levelOverride);
             }
