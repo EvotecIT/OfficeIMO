@@ -1,8 +1,5 @@
 using System;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Xml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 #if DEBUG
@@ -45,31 +42,6 @@ namespace OfficeIMO.Excel {
             } catch (Exception ex) {
                 throw new InvalidOperationException($"Worksheet '{sheetName}' failed structural validation: {ex.Message}", ex);
             }
-        }
-
-        internal static TimeSpan MeasureTargetedValidation(WorksheetPart worksheetPart, int iterations, string sheetName) {
-            if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
-
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < iterations; i++) {
-                EnsureInvariants(worksheetPart, sheetName);
-            }
-            sw.Stop();
-            return sw.Elapsed;
-        }
-
-        internal static TimeSpan MeasureLegacyOuterXml(WorksheetPart worksheetPart, int iterations) {
-            if (iterations <= 0) throw new ArgumentOutOfRangeException(nameof(iterations));
-
-            var sw = Stopwatch.StartNew();
-            for (int i = 0; i < iterations; i++) {
-                var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
-                using var sr = new StringReader(worksheet.OuterXml);
-                using var reader = XmlReader.Create(sr, new XmlReaderSettings { IgnoreWhitespace = true });
-                while (reader.Read()) { }
-            }
-            sw.Stop();
-            return sw.Elapsed;
         }
 
         private static void EnsureInvariants(WorksheetPart worksheetPart, string sheetName) {
