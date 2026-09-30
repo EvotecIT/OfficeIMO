@@ -49,6 +49,11 @@ $nativeTools = @(
 )
 $managedOnly = @(
     [ordered]@{
+        name = 'OfficeIMO.Invoicing.KSeF'
+        classification = 'managed-cross-platform'
+        evidence = 'KSeF transport, cryptography and receipt contracts are qualified through managed .NET 8 and 10 tests; no dedicated NativeAOT qualification host is claimed.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Project'
         classification = 'managed-cross-platform'
         evidence = 'Project has managed cross-platform coverage and bounded Linux NativeAOT lifecycle smoke evidence; the complete library is not rooted in the coordinated NativeAOT qualification hosts.'
