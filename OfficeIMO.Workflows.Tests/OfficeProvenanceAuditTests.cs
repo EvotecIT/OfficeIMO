@@ -54,7 +54,7 @@ public sealed class OfficeProvenanceAuditTests : IDisposable {
     }
     private sealed class ThrowingVerifier(CancellationTokenSource cancellation, bool cancel) : IOfficeProvenanceVerifier {
         public string Name => "test";
-        public OfficeProvenanceVerificationResult Verify(string path, OfficeProvenanceVerificationOptions options) {
+        public OfficeProvenanceVerificationResult Verify(string path, OfficeProvenanceVerificationOptions? options = null) {
             if (cancel) { cancellation.Cancel(); cancellation.Token.ThrowIfCancellationRequested(); }
             throw new InvalidOperationException("Verifier failure");
         }

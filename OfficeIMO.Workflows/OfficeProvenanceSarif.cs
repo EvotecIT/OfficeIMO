@@ -22,7 +22,8 @@ public static class OfficeProvenanceSarif {
                     ["providerSignalsStatus"] = report.Checks.ProviderSignals.ToString()
                 } };
             if (report.InputSha256 == null) artifact.Remove("hashes");
-            artifacts.Add(artifact);
+            // Select the JsonNode overload; Add<T> requires runtime serialization under NativeAOT.
+            artifacts.Add((JsonNode)artifact);
             if (!report.Succeeded) Add("officeimo.execution", "error", report.Summary, null, null);
             foreach (OfficeProvenanceEvidence evidence in (report.Assessment?.Structural ?? report.Inspection)?.Evidence ?? Array.Empty<OfficeProvenanceEvidence>())
                 Add("officeimo.carrier." + evidence.Carrier, "note", evidence.Carrier + " at " + evidence.Location + "; structural evidence only.", null, null);
@@ -35,7 +36,7 @@ public static class OfficeProvenanceSarif {
             void Add(string rule, string level, string message, int? offset, int? length) {
                 var location = new JsonObject { ["artifactLocation"] = new JsonObject { ["uri"] = uri, ["index"] = artifactIndex } };
                 if (offset.HasValue) location["region"] = new JsonObject { ["charOffset"] = offset.Value, ["charLength"] = length!.Value };
-                results.Add(new JsonObject { ["ruleId"] = rule, ["level"] = level,
+                results.Add((JsonNode)new JsonObject { ["ruleId"] = rule, ["level"] = level,
                     ["message"] = new JsonObject { ["text"] = message },
                     ["locations"] = new JsonArray(new JsonObject { ["physicalLocation"] = location }) });
             }
