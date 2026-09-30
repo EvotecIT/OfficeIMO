@@ -17,7 +17,8 @@ internal static partial class RtfSemanticReader {
         public RtfUnderlineStyle? DirectUnderlineStyle { get; set; }
         public bool Strike { get; set; }
         public bool DoubleStrike { get; set; }
-        public bool Hidden { get; set; }
+        public bool Hidden { get => DirectHidden ?? false; set => DirectHidden = value; }
+        public bool? DirectHidden { get; set; }
         public bool Outline { get; set; }
         public bool Shadow { get; set; }
         public bool Emboss { get; set; }
@@ -122,7 +123,7 @@ internal static partial class RtfSemanticReader {
                 DirectUnderlineStyle = DirectUnderlineStyle,
                 Strike = Strike,
                 DoubleStrike = DoubleStrike,
-                Hidden = Hidden,
+                DirectHidden = DirectHidden,
                 Outline = Outline,
                 Shadow = Shadow,
                 Emboss = Emboss,

@@ -82,6 +82,7 @@ internal static partial class RtfHtmlReader {
             style.RevisionSaveId = ReadInt(values, prefix + ".revisionSaveId");
             style.Bold = ReadBool(values, prefix + ".bold");
             style.Italic = ReadBool(values, prefix + ".italic");
+            style.TextHidden = ReadBool(values, prefix + ".textHidden");
             style.UnderlineStyle = ReadEnum<RtfUnderlineStyle>(values, prefix + ".underlineStyle");
             style.FontSize = ReadDouble(values, prefix + ".fontSize");
             style.FontId = ReadInt(values, prefix + ".fontId");

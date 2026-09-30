@@ -101,7 +101,7 @@ public class RtfEffectiveFormattingRegressionTests {
     [Fact]
     public void Normalized_Save_Retains_Inheritance_For_Subsequent_Style_Edits() {
         RtfDocument original = RtfDocument.Read(Input).Document;
-        RtfDocument document = RtfDocument.Read(original.ToRtf()).Document;
+        RtfDocument document = RtfDocument.Read(original.ToRtf(new RtfWriteOptions { MaterializeStyleFormatting = false })).Document;
         Assert.Null(document.Paragraphs[0].DirectAlignment);
         RtfRun inherited = document.Paragraphs[0].Runs.Single(run => run.Text == "Inherited ");
         Assert.Null(inherited.DirectBold);

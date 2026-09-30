@@ -39,10 +39,11 @@ internal static partial class RtfHtmlWriter {
     }
 
     private static void AppendRunDirectFormatting(StringBuilder builder, RtfRun source) {
-        var values = new Dictionary<string, string> { ["version"] = "1" };
+        var values = new Dictionary<string, string> { ["version"] = "2" };
         AddBool(values, "plain", source.UseDefaultCharacterFormatting);
         AddNullableBool(values, "DirectBold", source.DirectBold);
         AddNullableBool(values, "DirectItalic", source.DirectItalic);
+        AddNullableBool(values, "DirectHidden", source.DirectHidden);
         AddEnum(values, "DirectUnderlineStyle", source.DirectUnderlineStyle);
         AddNullableDouble(values, "FontSize", source.FontSize);
         AddNullableInt(values, "FontId", source.FontId);

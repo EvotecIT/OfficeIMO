@@ -224,7 +224,7 @@ public sealed partial class RtfDocument {
         RtfRun effective = document.GetRunFormatting(paragraph, run);
         OfficeContentConcealmentKind? kind = null;
         string? evidence = null;
-        if (run.Hidden) {
+        if (effective.Hidden) {
             kind = OfficeContentConcealmentKind.HiddenByProperty;
             evidence = "The effective RTF character state enables the native hidden-text control (\\v).";
         } else if (run.RevisionKind == RtfRevisionKind.Deleted) {
@@ -236,7 +236,7 @@ public sealed partial class RtfDocument {
         } else if (run.CharacterScalePercent.HasValue && run.CharacterScalePercent.Value <= 1) {
             kind = OfficeContentConcealmentKind.ZeroDimension;
             evidence = "The RTF run uses a character scale of " + run.CharacterScalePercent.Value.ToString(CultureInfo.InvariantCulture) + " percent.";
-        } else if (TryGetRtfContrast(document, effective.ForegroundColorIndex, run.HighlightColorIndex ?? run.CharacterBackgroundColorIndex ?? paragraphBackground, out double ratio, out string colors) &&
+        } else if (TryGetRtfContrast(document, effective.ForegroundColorIndex, effective.HighlightColorIndex ?? run.CharacterBackgroundColorIndex ?? paragraphBackground, out double ratio, out string colors) &&
                    ratio < builder.Options.MinimumVisibleContrastRatio) {
             kind = OfficeContentConcealmentKind.LowContrastText;
             evidence = colors + " has contrast ratio " + ratio.ToString("0.###", CultureInfo.InvariantCulture) + ".";

@@ -85,6 +85,7 @@ public sealed partial class RtfDocument {
         foreach (RtfStyle style in styles) {
             result.DirectBold ??= style.Bold;
             result.DirectItalic ??= style.Italic;
+            result.DirectHidden ??= style.TextHidden;
             result.DirectUnderlineStyle ??= style.UnderlineStyle;
             result.FontSize ??= style.FontSize;
             result.FontId ??= style.FontId;

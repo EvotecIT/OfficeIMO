@@ -635,7 +635,7 @@ public static partial class WordRtfConverterExtensions {
         destination.UnderlineStyle = source.UnderlineStyle;
         destination.Strike = source.Strike;
         destination.DoubleStrike = source.DoubleStrike;
-        destination.Hidden = source.Hidden;
+        destination.DirectHidden = source.DirectHidden;
         destination.Outline = source.Outline;
         destination.Shadow = source.Shadow;
         destination.Emboss = source.Emboss;
@@ -1015,13 +1015,13 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void SetHiddenWordRun(WordParagraph wordRun) {
+    private static void SetHiddenWordRun(WordParagraph wordRun, bool hidden) {
         if (wordRun._run == null) {
             return;
         }
 
         wordRun._run.RunProperties ??= new RunProperties();
-        wordRun._run.RunProperties.Vanish = new Vanish();
+        wordRun._run.RunProperties.Vanish = new Vanish { Val = hidden };
     }
 
     private static void AppendField(WordParagraph wordParagraph, RtfField field, RtfDocument? rtfDocument) {

@@ -45,6 +45,7 @@ public static partial class WordRtfConverterExtensions {
         if (run != null) {
             destination.Bold = ReadToggle(run.Bold);
             destination.Italic = ReadToggle(run.Italic);
+            destination.TextHidden = ReadToggle(run.Vanish);
             if (run.Underline?.Val?.Value is UnderlineValues underline) destination.UnderlineStyle = ToRtfUnderlineStyle(underline);
             if (double.TryParse(run.FontSize?.Val?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double halfPoints)) destination.FontSize = halfPoints / 2d;
             string? font = run.RunFonts?.Ascii?.Value ?? run.RunFonts?.HighAnsi?.Value ?? run.RunFonts?.EastAsia?.Value;
@@ -195,6 +196,7 @@ public static partial class WordRtfConverterExtensions {
         var run = new StyleRunProperties();
         if (source.Bold.HasValue) run.Bold = new Bold { Val = source.Bold.Value };
         if (source.Italic.HasValue) run.Italic = new Italic { Val = source.Italic.Value };
+        if (source.TextHidden.HasValue) run.Vanish = new Vanish { Val = source.TextHidden.Value };
         if (source.UnderlineStyle.HasValue) run.Underline = new Underline { Val = ToWordUnderlineStyle(source.UnderlineStyle.Value) };
         if (source.FontSize.HasValue) run.FontSize = new FontSize { Val = (source.FontSize.Value * 2d).ToString("0.##", CultureInfo.InvariantCulture) };
         if (source.FontId.HasValue && TryGetFontName(document, source.FontId.Value, out string? fontName)) run.RunFonts = new RunFonts { Ascii = fontName, HighAnsi = fontName, EastAsia = fontName, ComplexScript = fontName };

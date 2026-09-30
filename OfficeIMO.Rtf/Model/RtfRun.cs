@@ -45,7 +45,10 @@ public sealed partial class RtfRun : IRtfInline {
     public bool DoubleStrike { get; set; }
 
     /// <summary>Whether the run is hidden text.</summary>
-    public bool Hidden { get; set; }
+    public bool Hidden { get => DirectHidden ?? false; set => DirectHidden = value; }
+
+    /// <summary>Authored hidden-text override. Null inherits; false makes text visible beneath a hidden-text style.</summary>
+    public bool? DirectHidden { get; set; }
 
     /// <summary>Whether the run text is outlined.</summary>
     public bool Outline { get; set; }

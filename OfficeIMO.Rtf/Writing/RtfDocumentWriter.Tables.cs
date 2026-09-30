@@ -354,12 +354,13 @@ internal static partial class RtfDocumentWriter {
 
         for (int i = 0; i < cell.Paragraphs.Count; i++) {
             RtfParagraph paragraph = cell.Paragraphs[i];
-            WriteListText(builder, paragraph.ListText, context);
-            WriteParagraphStart(builder, paragraph, inTable: true, context);
+            RtfWriteContext paragraphContext = context.ForParagraph(paragraph);
+            WriteListText(builder, paragraph.ListText, paragraphContext);
+            WriteParagraphStart(builder, paragraph, inTable: true, paragraphContext);
             var state = new RunWriteState(context.DefaultLanguageId);
             state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
             foreach (IRtfInline inline in paragraph.Inlines) {
-                WriteInline(builder, inline, state, context);
+                WriteInline(builder, inline, state, paragraphContext);
             }
 
             ResetRunState(builder, state);
@@ -372,11 +373,12 @@ internal static partial class RtfDocumentWriter {
         foreach (IRtfBlock block in cell.Blocks) {
             if (block is RtfParagraph paragraph) {
                 if (wroteNestedTable && paragraph.Inlines.Count == 0) continue;
-                WriteListText(builder, paragraph.ListText, context);
-                WriteParagraphStart(builder, paragraph, inTable: true, context);
+                RtfWriteContext paragraphContext = context.ForParagraph(paragraph);
+                WriteListText(builder, paragraph.ListText, paragraphContext);
+                WriteParagraphStart(builder, paragraph, inTable: true, paragraphContext);
                 var state = new RunWriteState(context.DefaultLanguageId);
                 state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
-                foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, context);
+                foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, paragraphContext);
                 ResetRunState(builder, state);
                 builder.Append(@"\par");
             } else if (block is RtfTable nested) {
@@ -396,14 +398,15 @@ internal static partial class RtfDocumentWriter {
                 for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
                     IRtfBlock block = cell.Blocks[blockIndex];
                     if (block is RtfParagraph paragraph) {
-                        WriteListText(builder, paragraph.ListText, context);
-                        WriteParagraphStart(builder, paragraph, inTable: true, context);
+                        RtfWriteContext paragraphContext = context.ForParagraph(paragraph);
+                        WriteListText(builder, paragraph.ListText, paragraphContext);
+                        WriteParagraphStart(builder, paragraph, inTable: true, paragraphContext);
                         builder.Append(@"\itap");
                         builder.Append(level.ToString(CultureInfo.InvariantCulture));
                         builder.Append(' ');
                         var state = new RunWriteState(context.DefaultLanguageId);
                         state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
-                        foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, context);
+                        foreach (IRtfInline inline in paragraph.Inlines) WriteInline(builder, inline, state, paragraphContext);
                         ResetRunState(builder, state);
                         if (blockIndex < cell.Blocks.Count - 1) builder.Append(@"\par");
                     } else if (block is RtfTable nested) {

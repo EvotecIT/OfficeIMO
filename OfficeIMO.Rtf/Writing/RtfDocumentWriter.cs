@@ -1,13 +1,15 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    public static string Write(RtfDocument document, RtfWriteOptions options) {
+    public static string Write(RtfDocument document, RtfWriteOptions options, RtfConversionReport? report = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new RtfWriteOptions();
         RtfTableTraversalGuard.ValidateDocument(document);
         int unicodeSkipCount = GetUnicodeSkipCount(document.Settings);
         var context = new RtfWriteContext(document.Settings.DefaultLanguageId, unicodeSkipCount,
-            document.Styles.Any(style => style.Id == 0 && style.Kind == RtfStyleKind.Paragraph) ? 0 : (int?)null);
+            document.Styles.Any(style => style.Id == 0 && style.Kind == RtfStyleKind.Paragraph) ? 0 : (int?)null,
+            formattingDocument: options.MaterializeStyleFormatting ? document : null);
+        context.TrackMaterialization(report);
 
         var builder = new StringBuilder();
         builder.Append(@"{\rtf1");
@@ -56,6 +58,7 @@ internal static partial class RtfDocumentWriter {
         }
 
         builder.Append('}');
+        context.ReportMaterialization(report);
         return builder.ToString();
     }
 
@@ -262,6 +265,7 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteParagraph(StringBuilder builder, RtfParagraph paragraph, RtfWriteContext context) {
+        context = context.ForParagraph(paragraph);
         WriteListText(builder, paragraph.ListText, context);
         WriteParagraphStart(builder, paragraph, inTable: false, context);
 
@@ -277,6 +281,7 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteParagraphStart(StringBuilder builder, RtfParagraph paragraph, bool inTable, RtfWriteContext context) {
+        paragraph = context.ResolveParagraph(paragraph);
         int? styleId = paragraph.StyleId ?? context.DefaultParagraphStyleId;
         builder.Append(@"\pard");
         if (inTable) {
@@ -478,12 +483,16 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteRun(StringBuilder builder, RtfRun run, RunWriteState state, RtfWriteContext context) {
+        WriteFormattedRun(builder, context.ResolveRun(run), state, context);
+    }
+
+    private static void WriteFormattedRun(StringBuilder builder, RtfRun run, RunWriteState state, RtfWriteContext context) {
         if (!state.InStyleScope && (context.PreserveStyleInheritance || state.PreserveStyleInheritance || run.StyleId.HasValue || run.UseDefaultCharacterFormatting)) {
             builder.Append(@"{\uc");
             builder.Append(context.UnicodeSkipCount.ToString(CultureInfo.InvariantCulture));
             builder.Append(' ');
             var scoped = new RunWriteState(context.DefaultLanguageId) { PreserveStyleInheritance = true, InStyleScope = true };
-            WriteRun(builder, run, scoped, context);
+            WriteFormattedRun(builder, run, scoped, context);
             builder.Append('}');
             return;
         }

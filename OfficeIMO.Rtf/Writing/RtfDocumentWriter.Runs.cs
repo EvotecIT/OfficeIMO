@@ -32,7 +32,8 @@ internal static partial class RtfDocumentWriter {
         }
         Toggle(builder, @"\strike", run.Strike, ref state.Strike);
         Toggle(builder, @"\striked", run.DoubleStrike, ref state.DoubleStrike);
-        Toggle(builder, @"\v", run.Hidden, ref state.Hidden);
+        if (state.PreserveStyleInheritance) AppendOptionalBinary(builder, @"\v", run.DirectHidden);
+        else Toggle(builder, @"\v", run.Hidden, ref state.Hidden);
         Toggle(builder, @"\outl", run.Outline, ref state.Outline);
         Toggle(builder, @"\shad", run.Shadow, ref state.Shadow);
         Toggle(builder, @"\embo", run.Emboss, ref state.Emboss);

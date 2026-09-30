@@ -19,7 +19,7 @@ public sealed partial class RtfDocument {
         if (HtmlEncapsulation != null && (!resolved.IncludeHtmlEncapsulation || !IsHtmlEncapsulationCurrent)) {
             report.Add(RtfConversionSeverity.Warning, "RtfNormalizationHtmlOmitted", "Original encapsulated HTML is omitted from semantic output because it is disabled or no longer corresponds to the edited document.", RtfConversionAction.Omitted, feature: "htmltag");
         }
-        return new RtfConversionResult<string>(ToRtf(resolved), report);
+        return new RtfConversionResult<string>(Writing.RtfDocumentWriter.Write(this, resolved, report), report);
     }
 
     internal void RecordUnboundDestination(string? destination, int position) {

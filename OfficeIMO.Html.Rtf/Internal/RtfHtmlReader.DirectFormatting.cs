@@ -40,10 +40,12 @@ internal static partial class RtfHtmlReader {
 
         private void RestoreRunDirectFormatting(RtfRun source) {
             Dictionary<string, string>? values = _styles.FirstOrDefault(scope => scope.DirectFormatting != null)?.DirectFormatting;
-            if (values == null || !values.TryGetValue("version", out string? version) || version != "1") return;
+            if (values == null || !values.TryGetValue("version", out string? version) || (version != "1" && version != "2")) return;
             source.UseDefaultCharacterFormatting = ReadBool(values, "plain") == true;
             source.DirectBold = ReadBool(values, "DirectBold");
             source.DirectItalic = ReadBool(values, "DirectItalic");
+            // Version 1 predates nullable hidden formatting; retain its CSS-derived visibility.
+            if (version == "2") source.DirectHidden = ReadBool(values, "DirectHidden");
             source.DirectUnderlineStyle = ReadEnum<RtfUnderlineStyle>(values, "DirectUnderlineStyle");
             source.FontSize = ReadDouble(values, "FontSize");
             source.FontId = ReadInt(values, "FontId");

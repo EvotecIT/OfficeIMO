@@ -41,6 +41,7 @@ internal static partial class RtfSemanticReader {
             int? revisionSaveId = null;
             bool? bold = null;
             bool? italic = null;
+            bool? textHidden = null;
             RtfUnderlineStyle? underlineStyle = null;
             double? fontSize = null;
             int? fontId = null;
@@ -173,6 +174,9 @@ internal static partial class RtfSemanticReader {
                             break;
                         case "i":
                             italic = !control.HasParameter || control.Parameter != 0;
+                            break;
+                        case "v":
+                            textHidden = !control.HasParameter || control.Parameter != 0;
                             break;
                         case "fs":
                             if (control.Parameter.HasValue) {
@@ -393,6 +397,7 @@ internal static partial class RtfSemanticReader {
                 RevisionSaveId = revisionSaveId,
                 Bold = bold,
                 Italic = italic,
+                TextHidden = textHidden,
                 UnderlineStyle = underlineStyle,
                 FontSize = fontSize,
                 FontId = fontId,

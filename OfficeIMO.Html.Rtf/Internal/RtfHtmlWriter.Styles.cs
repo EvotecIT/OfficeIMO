@@ -65,6 +65,7 @@ internal static partial class RtfHtmlWriter {
         AddNullableInt(values, prefix + ".revisionSaveId", style.RevisionSaveId);
         AddNullableBool(values, prefix + ".bold", style.Bold);
         AddNullableBool(values, prefix + ".italic", style.Italic);
+        AddNullableBool(values, prefix + ".textHidden", style.TextHidden);
         AddEnum(values, prefix + ".underlineStyle", style.UnderlineStyle);
         AddNullableDouble(values, prefix + ".fontSize", style.FontSize);
         AddNullableInt(values, prefix + ".fontId", style.FontId);

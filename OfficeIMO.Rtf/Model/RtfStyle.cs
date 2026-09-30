@@ -82,6 +82,9 @@ public sealed partial class RtfStyle {
     /// <summary>Optional direct italic setting carried by the stylesheet entry.</summary>
     public bool? Italic { get; set; }
 
+    /// <summary>Optional hidden-text formatting represented by <c>\v</c>. This is separate from style-list visibility.</summary>
+    public bool? TextHidden { get; set; }
+
     /// <summary>Optional direct underline setting carried by the stylesheet entry.</summary>
     public RtfUnderlineStyle? UnderlineStyle { get; set; }
 

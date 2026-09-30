@@ -22,7 +22,7 @@ public static partial class WordRtfConverterExtensions {
 
         run.Strike = wordRun.Strike;
         run.DoubleStrike = wordRun.DoubleStrike;
-        run.Hidden = IsHiddenWordRun(wordRun);
+        run.DirectHidden = ReadToggle(wordRun.ScopedRunProperties?.Vanish);
         run.Outline = wordRun.Outline;
         run.Shadow = wordRun.Shadow;
         run.Emboss = wordRun.Emboss;
@@ -80,8 +80,8 @@ public static partial class WordRtfConverterExtensions {
         wordRun.Outline = run.Outline;
         wordRun.Shadow = run.Shadow;
         wordRun.Emboss = run.Emboss;
-        if (run.Hidden) {
-            SetHiddenWordRun(wordRun);
+        if (run.DirectHidden.HasValue) {
+            SetHiddenWordRun(wordRun, run.Hidden);
         }
 
         if (run.Imprint) {
@@ -226,10 +226,6 @@ public static partial class WordRtfConverterExtensions {
             default:
                 return UnderlineValues.Single;
         }
-    }
-
-    private static bool IsHiddenWordRun(WordParagraph wordRun) {
-        return wordRun._run?.RunProperties?.Vanish != null;
     }
 
     private static bool IsImprintWordRun(WordParagraph wordRun) {

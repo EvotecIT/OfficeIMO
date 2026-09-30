@@ -325,7 +325,7 @@ internal static partial class RtfSemanticReader {
                 DirectUnderlineStyle = state.DirectUnderlineStyle,
                 Strike = state.Strike,
                 DoubleStrike = state.DoubleStrike,
-                Hidden = state.Hidden,
+                DirectHidden = state.DirectHidden,
                 Outline = state.Outline,
                 Shadow = state.Shadow,
                 Emboss = state.Emboss,

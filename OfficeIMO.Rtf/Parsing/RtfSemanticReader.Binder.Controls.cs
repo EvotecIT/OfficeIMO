@@ -360,6 +360,7 @@ internal static partial class RtfSemanticReader {
                         state.UseDefaultCharacterFormatting = false;
                         state.DirectBold = null;
                         state.DirectItalic = null;
+                        state.DirectHidden = null;
                         state.DirectUnderlineStyle = null;
                     }
                     return;
