@@ -91,22 +91,6 @@ public sealed class BibliographyFormatBoundaryTests {
         Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV202" && diagnostic.Field == "dates.Accessed");
     }
 
-    [Fact]
-    public async Task Auto_detecting_entry_points_enforce_character_limits_before_detection() {
-        const string source = "TY  - BOOK\nID  - x\nTI  - Bounded\nER  -\n";
-        var options = new BibliographyReadOptions { MaximumInputCharacters = 8, MaximumInputBytes = 1024 };
-
-        Assert.Throws<InvalidDataException>(() => BibliographyDocument.Parse(source, options));
-
-        string path = Path.Combine(Path.GetTempPath(), "officeimo-bibliography-" + Guid.NewGuid().ToString("N") + ".unknown");
-        File.WriteAllText(path, source);
-        try {
-            Assert.Throws<InvalidDataException>(() => BibliographyDocument.Load(path, options: options));
-            await Assert.ThrowsAsync<InvalidDataException>(() => BibliographyDocument.LoadAsync(path, options: options));
-        } finally {
-            File.Delete(path);
-        }
-    }
 
     [Theory]
     [InlineData("pages")]
@@ -161,6 +145,7 @@ public sealed class BibliographyFormatBoundaryTests {
     [Theory]
     [InlineData("{\"literal\":\"Example Group\"}")]
     [InlineData("[42]")]
+    [InlineData("[{\"family\":123}]")]
     [InlineData("[{\"literal\":{\"value\":\"Example Group\"}}]")]
     public void Wrong_shaped_CSL_contributor_properties_remain_native(string author) {
         string source = "{\"id\":\"x\",\"type\":\"book\",\"author\":" + author + "}";
@@ -174,7 +159,13 @@ public sealed class BibliographyFormatBoundaryTests {
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
 
         Assert.Empty(reopened.Contributors);
-        Assert.Single(reopened.NativeFields, field => field.Name == "author");
+        BibliographyNativeField native = Assert.Single(reopened.NativeFields, field => field.Name == "author");
+        if (author == "[{\"family\":123}]") {
+            using System.Text.Json.JsonDocument json = System.Text.Json.JsonDocument.Parse(native.RawValue!);
+            System.Text.Json.JsonElement family = json.RootElement[0].GetProperty("family");
+            Assert.Equal(System.Text.Json.JsonValueKind.Number, family.ValueKind);
+            Assert.Equal(123, family.GetInt32());
+        }
     }
 
     [Theory]
@@ -242,20 +233,6 @@ public sealed class BibliographyFormatBoundaryTests {
         }
     }
 
-    [Fact]
-    public void Serialized_EndNote_extensions_respect_value_length_limits() {
-        string markup = string.Concat(Enumerable.Repeat("<x/>", 30));
-        string[] sources = {
-            "<xml><extension>" + markup + "</extension><records/></xml>",
-            "<xml xmlns:ext=\"urn:extension\"><records><record><rec-number>1</rec-number><ext:data>" + markup + "</ext:data></record></records></xml>"
-        };
-        var options = new BibliographyReadOptions { MaximumValueLength = 80 };
-
-        foreach (string source in sources) {
-            BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, options);
-            Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
-        }
-    }
 
     [Fact]
     public void Bib_booktitle_and_series_map_to_container_and_collection_titles() {

@@ -39,12 +39,13 @@ public sealed class BibliographyCodecContractTests {
         BibliographyDocument document = BibliographyDocument.Load(Fixture(fileName), format).Document;
         Assert.Single(document.Items);
         document.Items[0].Title = "Edited citation title";
-        var options = new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, LineEnding = "\n" };
+        var options = new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, LineEnding = "\n", RequireNoLoss = true };
 
         BibliographyWriteResult first = document.Write(options);
         BibliographyWriteResult second = document.Write(options);
         BibliographyReadResult reopened = BibliographyDocument.Parse(first.Content, format);
 
+        Assert.False(first.Report.HasLoss);
         Assert.False(first.UsedOriginalSource);
         Assert.Equal(first.Bytes, second.Bytes);
         Assert.False(reopened.HasErrors);
@@ -52,17 +53,6 @@ public sealed class BibliographyCodecContractTests {
         Assert.Contains("retained", first.Content, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Theory]
-    [MemberData(nameof(Fixtures))]
-    public void Same_format_canonical_write_can_require_no_loss(string fileName, BibliographyFormat format) {
-        BibliographyDocument document = BibliographyDocument.Load(Fixture(fileName), format).Document;
-        document.Items[0].Title = "Strict same-format edit";
-
-        BibliographyWriteResult result = document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-
-        Assert.False(result.Report.HasLoss);
-        Assert.Equal("Strict same-format edit", BibliographyDocument.Parse(result.Content, format).Document.Items[0].Title);
-    }
 
     [Theory]
     [InlineData(BibliographyFormat.BibTex)]
@@ -138,26 +128,39 @@ public sealed class BibliographyCodecContractTests {
 
         string output = document.Write(new BibliographyWriteOptions { Format = BibliographyFormat.CslJson, Mode = BibliographyWriterMode.Canonical }).Content;
 
-        Assert.Contains("\"x-data\"", output);
-        Assert.Contains("\"a\"", output);
-        Assert.Contains("true", output);
-        Assert.Contains("\"ORCID\"", output);
-        Assert.Contains("\"circa\"", output);
+        using System.Text.Json.JsonDocument json = System.Text.Json.JsonDocument.Parse(output);
+        System.Text.Json.JsonElement root = json.RootElement[0];
+        System.Text.Json.JsonElement data = root.GetProperty("x-data");
+        Assert.Equal(System.Text.Json.JsonValueKind.Object, data.ValueKind);
+        System.Text.Json.JsonElement values = data.GetProperty("a");
+        Assert.Equal(System.Text.Json.JsonValueKind.Array, values.ValueKind);
+        Assert.Equal(2, values.GetArrayLength());
+        Assert.Equal(1, values[0].GetInt32());
+        Assert.True(values[1].GetBoolean());
+        Assert.Equal("id", root.GetProperty("author")[0].GetProperty("ORCID").GetString());
+        Assert.True(root.GetProperty("issued").GetProperty("circa").GetBoolean());
     }
 
     [Theory]
     [InlineData("@custom{x,title={Custom}}", BibliographyFormat.BibLatex, "custom")]
     [InlineData("[{\"id\":\"x\",\"type\":\"custom-type\",\"title\":\"Custom\"}]", BibliographyFormat.CslJson, "custom-type")]
     [InlineData("TY  - CUST\nID  - x\nTI  - Custom\nER  -\n", BibliographyFormat.Ris, "CUST")]
-    public void Safe_custom_types_survive_strict_same_format_writes(string source, BibliographyFormat format, string expectedType) {
-        BibliographyDocument document = BibliographyDocument.Parse(source, format).Document;
-        document.Items[0].Title = "Changed";
+    [InlineData(null, BibliographyFormat.Ris, "CUSTOM")]
+    public void Safe_custom_types_survive_strict_same_format_writes(string? source, BibliographyFormat format, string expectedType) {
+        BibliographyDocument document;
+        if (source is null) {
+            document = new BibliographyDocument(format);
+            document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Unknown, NativeType = expectedType, Title = "Type" });
+        } else {
+            document = BibliographyDocument.Parse(source, format).Document;
+            document.Items[0].Title = "Changed";
+        }
 
         BibliographyWriteResult result = document.Write(new BibliographyWriteOptions { Format = format, Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         BibliographyItem reopened = BibliographyDocument.Parse(result.Content, format).Document.Items[0];
 
         Assert.Equal(BibliographyItemType.Unknown, reopened.Type);
-        Assert.Equal(expectedType, reopened.NativeType, ignoreCase: true);
+        Assert.Equal(expectedType, reopened.NativeType);
     }
 
     [Fact]

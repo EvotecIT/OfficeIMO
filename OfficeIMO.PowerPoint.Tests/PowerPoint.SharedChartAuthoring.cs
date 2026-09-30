@@ -17,6 +17,24 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Tests {
     public class PowerPointSharedChartAuthoring {
+        [Theory]
+        [InlineData(OfficeChartKind.Line)]
+        [InlineData(OfficeChartKind.Scatter)]
+        public void UpdatingDataKeepsNativeMarkerShapeWhenNotSpecified(OfficeChartKind kind) {
+            using var presentation = PowerPointPresentation.Create(new MemoryStream());
+            double[]? xValues = kind == OfficeChartKind.Scatter ? new[] { 1d } : null;
+            var chart = presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Values", new[] { 2d }, xValues) }));
+            chart.SetSeriesMarker(0, OfficeChartMarkerShape.Diamond, size: 9);
+
+            chart.UpdateData(new OfficeChartData(new[] { "A" }, new[] {
+                new OfficeChartSeries("Values", new[] { 3d }, xValues) }));
+
+            var series = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!.Descendants()
+                .OfType<DocumentFormat.OpenXml.OpenXmlCompositeElement>().Single(item => item.LocalName == "ser");
+            Assert.Equal(C.MarkerStyleValues.Diamond, series.GetFirstChild<C.Marker>()!.Symbol!.Val!.Value);
+        }
+
         [Fact]
         public void SharedChartContract_AuthorsEveryKindAsValidNativeChart() {
             string output = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pptx");
@@ -34,7 +52,7 @@ namespace OfficeIMO.Tests {
                                 AlternativeText = kind + " performance chart"
                             });
                         Assert.Contains("Data summary:", chart.AltText);
-                        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
+                        Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot), kind.ToString());
                         Assert.Equal(kind, snapshot.ChartKind);
                         Assert.Equal(data.Categories, snapshot.Data.Categories);
                         if (kind == OfficeChartKind.ColumnClustered) {
@@ -595,7 +613,10 @@ namespace OfficeIMO.Tests {
                     markerSize: 7, strokeWidth: 1.8),
                 new OfficeChartSeries("Target", new[] { 35D, 50D, 65D, 80D }, null,
                     OfficeColor.Parse("#4CAF50"), null, showMarkers: true,
-                    markerSize: 7, strokeWidth: 1.8, strokeDashStyle: OfficeStrokeDashStyle.Dash)
+                    markerSize: 7, strokeWidth: 1.8, strokeDashStyle:
+                        kind == OfficeChartKind.Line || kind == OfficeChartKind.LineStacked || kind == OfficeChartKind.LineStacked100 ||
+                        kind == OfficeChartKind.Area || kind == OfficeChartKind.AreaStacked || kind == OfficeChartKind.AreaStacked100 ||
+                        kind == OfficeChartKind.Radar ? OfficeStrokeDashStyle.Dash : null)
             });
         }
 

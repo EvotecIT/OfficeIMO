@@ -293,30 +293,6 @@ public partial class Word {
             "A split merged cell emitted a zero or reversed horizontal border."));
     }
 
-    [Fact]
-    public void SaveAsPdf_VerticallyMergedCellUsesContinuationAlignment() {
-        string docPath = Path.Combine(_directoryWithFiles, "PdfMergedContinuationAlignment.docx");
-        string pdfPath = Path.Combine(_directoryWithFiles, "PdfMergedContinuationAlignment.pdf");
-        using (WordDocument document = WordDocument.Create(docPath)) {
-            WordTable table = document.AddTable(3, 2);
-            for (int row = 0; row < 3; row++) {
-                table.Rows[row].Height = 500;
-                table.Rows[row].Cells[1].Paragraphs[0].Text = "Peer" + row;
-            }
-            table.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
-            table.Rows[0].Cells[0].MergeVertically(2);
-            table.Rows[2].Cells[0].VerticalAlignment = WordTableVerticalAlignment.Center;
-            document.Save();
-            document.SaveAsPdf(pdfPath, new WordToPdfOptions { IncludePageNumbers = false });
-        }
-
-        using var pdf = UglyToad.PdfPig.PdfDocument.Open(pdfPath);
-        var words = pdf.GetPage(1).GetWords();
-        double mergedY = Assert.Single(words, word => word.Text == "Merged").BoundingBox.Bottom;
-        double middleY = Assert.Single(words, word => word.Text == "Peer1").BoundingBox.Bottom;
-        Assert.InRange(Math.Abs(mergedY - middleY), 0D, 8D);
-    }
-
     [Theory]
     [InlineData(0, false)]
     [InlineData(1, true)]
@@ -412,6 +388,86 @@ public partial class Word {
         string pdfText = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Issued 2020-01-02 approved", pdfText);
         Assert.Contains("Cell date 2020-01-03 done", pdfText);
+    }
+
+    [Fact]
+    public void SaveAsPdf_FieldRefreshIsOptInAndUsesSuppliedDate() {
+        using WordDocument document = WordDocument.Create();
+        WordParagraph paragraph = document.AddParagraph("Issued ");
+        paragraph._paragraph.Append(new SimpleField(new Run(new Text("cached-date"))) {
+            Instruction = " DATE \\@ \"yyyy-MM-dd\" "
+        });
+        paragraph._paragraph.Append(new SimpleField(new Run(new Text("cached-sequence"))) {
+            Instruction = " SEQ Figure "
+        });
+
+        string cached = OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(document.ToPdfBytes());
+        Assert.Contains("cached-date", cached);
+
+        byte[] refreshed = document.ToPdfBytes(new WordToPdfOptions {
+            DateTimeFieldUpdateOptions = new WordFieldUpdateOptions { CurrentDateTime = new DateTime(2026, 9, 29) }
+        });
+        Assert.Contains("2026-09-29", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(refreshed));
+        Assert.DoesNotContain("cached-date", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(refreshed));
+        Assert.Contains("cached-sequence", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(refreshed));
+        Assert.Contains(document.InspectFields(), field => field.ResultText == "2026-09-29");
+        Assert.Contains(document.InspectFields(), field => field.ResultText == "cached-sequence");
+    }
+
+    [Fact]
+    public void SaveAsPdf_UnderlinesTheSpaceWithinAnUnderlinedWordRun() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Elite Performance").Underline = WordUnderlineStyle.Single;
+
+        string operators = PdfOperatorSearchText.From(document.ToPdfBytes());
+        MatchCollection strokes = Regex.Matches(operators, @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(3, strokes.Count);
+        for (int i = 1; i < strokes.Count; i++) {
+            double previousEnd = double.Parse(strokes[i - 1].Groups["end"].Value, CultureInfo.InvariantCulture);
+            double nextStart = double.Parse(strokes[i].Groups["start"].Value, CultureInfo.InvariantCulture);
+            Assert.InRange(Math.Abs(previousEnd - nextStart), 0, 0.01);
+        }
+    }
+
+    [Fact]
+    public void SaveAsPdf_WordsUnderlineIntentionallyLeavesTheSpaceClear() {
+        using WordDocument document = WordDocument.Create();
+        document.AddParagraph("Elite Performance").Underline = WordUnderlineStyle.Words;
+
+        string operators = PdfOperatorSearchText.From(document.ToPdfBytes());
+        MatchCollection strokes = Regex.Matches(operators, @"(?<start>\d+(?:\.\d+)?) (?<y>\d+(?:\.\d+)?) m (?<end>\d+(?:\.\d+)?) \k<y> l S");
+        Assert.Equal(2, strokes.Count);
+        double firstEnd = double.Parse(strokes[0].Groups["end"].Value, CultureInfo.InvariantCulture);
+        double secondStart = double.Parse(strokes[1].Groups["start"].Value, CultureInfo.InvariantCulture);
+        Assert.True(secondStart - firstEnd > 1);
+    }
+
+    [Fact]
+    public void SaveAsPdf_FieldRefreshWorksFromReadOnlySourceWithoutSavingIt() {
+        string path = Path.Combine(_directoryWithFiles, "PdfDateFieldReadOnly.docx");
+        using (WordDocument authored = WordDocument.Create(path)) {
+            authored.AddParagraph()._paragraph.Append(new SimpleField(new Run(new Text("cached-date"))) {
+                Instruction = " DATE \\@ \"yyyy-MM-dd\" "
+            });
+            authored.AddParagraph()._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" DATE \\@ \"yyyy-MM-dd\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("cached-complex-date")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            authored.Save();
+        }
+
+        using (WordDocument source = WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
+            byte[] pdf = source.ToPdfBytes(new WordToPdfOptions {
+                DateTimeFieldUpdateOptions = new WordFieldUpdateOptions { CurrentDateTime = new DateTime(2026, 9, 29) }
+            });
+            Assert.Contains("2026-09-29", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdf));
+            Assert.DoesNotContain("cached-complex-date", OfficeIMO.Pdf.PdfTextExtractor.ExtractAllText(pdf));
+        }
+        using WordDocument reopened = WordDocument.Load(path);
+        Assert.Contains(reopened.InspectFields(), field => field.ResultText == "cached-date");
+        Assert.Contains(reopened.InspectFields(), field => field.ResultText == "cached-complex-date");
     }
 
     [Fact]

@@ -496,7 +496,7 @@ The request preserves aspect ratio, avoids upscaling, keeps the original when re
 
 `MetadataPolicy` can preserve, strip, or selectively copy EXIF, XMP, ICC, orientation, comments, and resolution categories. A JPEG-to-JPEG rewrite preserves selected EXIF, standard single-packet XMP, and ICC bytes, applies embedded orientation to pixels, and neutralizes the copied orientation value. Adobe extended XMP is not copied during re-encoding; when selected XMP includes extension segments, the result reports XMP in `Lost`. The result reports `PolicyApplied`, `Preserved`, `Normalized`, `Stripped`, and `Lost`; unsupported or undecodable input returns the original bytes with `PolicyApplied = false`, and a required strip or selective-copy rewrite is never replaced by the metadata-bearing original merely because it is smaller. Metadata that has no safe output carrier is reported as loss rather than silently claimed as preserved; OfficeIMO does not currently perform ICC color conversion. Animated and multi-page input is rejected so optimization never silently drops frames or pages.
 
-`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic 8-bit grayscale/palette/RGB/RGBA/device-CMYK TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and opaque lossy VP8 WebP paths enforce encoded-payload and decoded-pixel guards. TIFF accepts chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and horizontal prediction; arbitrary page selection and bounded multi-page writing use the same page contract. JPEG-in-TIFF, floating-point TIFF, BigTIFF, lossy WebP with a separate alpha plane or animated WebP pixel decoding, and uncommon encoders remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
+`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic 8-bit grayscale/palette/RGB/RGBA/device-CMYK TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and lossy VP8 WebP paths (including raw or lossless-compressed separate alpha planes) enforce encoded-payload and decoded-pixel guards. TIFF accepts chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and horizontal prediction; arbitrary page selection and bounded multi-page writing use the same page contract. JPEG-in-TIFF, floating-point TIFF, BigTIFF, animated WebP pixel decoding, and uncommon encoders remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
 
 Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
 
@@ -630,6 +630,95 @@ foreach (var issue in rendered.QualityReport.Issues) {
     Console.WriteLine(issue.Message);
 }
 ```
+
+Set a legend frame fill and outline through the shared chart style:
+
+```csharp
+var framedStyle = new OfficeChartStyle(
+    showBackground: true,
+    legendBackgroundColor: OfficeColor.Parse("#FFFFFF"),
+    legendBorderColor: OfficeColor.Parse("#375A7F"),
+    legendBorderWidth: 1);
+var framedSnapshot = new OfficeChartSnapshot("RevenueChart", "Revenue by quarter",
+    OfficeChartKind.ColumnClustered, snapshot.Data, 420, 260, style: framedStyle);
+OfficeDrawing framedChart = OfficeChartDrawingRenderer.Render(framedSnapshot);
+```
+
+The background and border are optional; the border width is a positive value in points.
+These settings style the chart legend frame in shared static renders.
+
+Use `layout.WithSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 1,
+majorUnit: 0.2, numberFormat: "0%").WithTitle("Completion rate"))` for an independent secondary value-axis scale and title.
+Updating the scale without `WithTitle` preserves an existing native title; `WithTitle(null)` removes it explicitly.
+Use optional `majorTickMark` and `minorTickMark` settings to select independent tick appearance.
+The returned layout preserves the primary axis settings and leaves the original layout unchanged.
+Bounds must be finite and ordered; tick units must be positive.
+Explicit numeric bounds clip line, area, and scatter series paint to the plot; points outside the range
+do not gain false edge markers or labels. Data labels for visible points can extend beyond the plot.
+
+### Style individual chart points
+
+Use `OfficeChartSeries.WithPointStyles` to attach appearances aligned with the series values.
+The returned series preserves its data and other settings. A null entry inherits the point
+colour; an explicit no-fill style leaves an outlined slice visible without changing its value.
+
+```csharp
+var status = new OfficeChartSeries("Status", new[] { 8d, 2d, 1d })
+    .WithPointStyles(new OfficeChartPointStyle?[] {
+        new(fillColor: OfficeColor.Parse("#168A56")),
+        new(noFill: true, outlineColor: OfficeColor.Black, outlineWidth: 2,
+            outlineJoin: OfficeStrokeLineJoin.Round),
+        new(hatch: OfficeChartHatchPattern.WideForwardDiagonal,
+            hatchColor: OfficeColor.Parse("#7300A3"), outlineColor: OfficeColor.Black)
+    });
+```
+
+Hatches support horizontal, vertical, forward diagonal, backward diagonal, cross,
+diagonal cross, and wide forward diagonal strokes. Their default background is white;
+set `fillColor` to choose another background. Outline widths use points; joins can be
+round, bevel, or miter. `showOutline: false` hides the outline explicitly.
+The renderer clips hatches to slice, bar, and marker geometry and styles category legend
+swatches with the same appearance. Per-point area styling is not applied by static rendering;
+`RenderWithQuality` reports `UnsupportedAppearance` and retains the opaque series fill.
+An area series with no native outline renders without a connecting line.
+
+### Pie and doughnut geometry
+
+Pass an `OfficeChartRadialLayout` as the final argument to the style/layout snapshot
+constructor to set the first slice boundary and doughnut hole. Rotation is clockwise
+from the top, from 0 through 360 degrees; hole size is an inner-to-outer diameter
+percentage from 10 through 90, with a default of 50.
+
+```csharp
+var series = new OfficeChartSeries("Status", new[] { 7d, 3d })
+    .WithPointExplosions(new[] { 25, 0 });
+var data = new OfficeChartData(new[] { "Complete", "Pending" }, new[] { series });
+var radial = new OfficeChartRadialLayout(firstSliceAngleDegrees: 90, doughnutHolePercent: 70);
+var snapshot = new OfficeChartSnapshot("Status", null, OfficeChartKind.Doughnut,
+    data, 400, 300, null, new OfficeChartLayout(showLegend: false), radial);
+OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(snapshot);
+```
+
+Multiple doughnut series form contiguous rings, starting with the first series at the
+inside. `WithPointExplosions` offsets selected pie or doughnut slices by a percentage
+of their radius while preserving their native editable point records in Word,
+PowerPoint, and Excel. Supply one value per point, from 0 through 400; an explicit
+zero resets an earlier offset. The renderer keeps exploded slices within the chart
+frame and moves their value-label anchors with them. For outside labels, set
+`showDataLabels: true`, select the label contents, and use
+`dataLabelPosition: OfficeChartDataLabelPosition.OutsideEnd` in `OfficeChartLayout`.
+The renderer reserves side gutters, separates labels on each side and connects
+them to visible slices. Call `layout.WithDataLabelLeaderLines(false)` to omit the lines.
+For multi-series doughnuts, leaders work when `DataLabelSeriesIndexes` selects only the
+outer ring. Disable leaders if labeled inner rings would send lines through outer rings.
+Imported Word, PowerPoint and Excel charts retain that native line setting in
+their static chart snapshots. A frame too narrow or short to fit every outside
+label reports an unsupported layout instead of overlapping or dropping labels.
+For imported pie and doughnut charts, the first six `varyColors` points use
+the document theme colors from a direct, untransformed modern chart color
+style, or theme accents for an unstyled/classic style 2 chart. Native point
+fills take precedence. Transformed color styles and longer sequences still
+need producer-specific proof.
 
 ### Load first-party font programs for renderers
 

@@ -23,6 +23,11 @@ public sealed class PdfSearchableOcrReviewTests {
         Assert.Throws<ArgumentException>(() => review.ExtractText(new[] { review.Ocr.Pages[0].WordEvidence[2].Word }));
         Assert.Throws<ArgumentException>(() => review.ExtractText(new PdfRecognizedWord[] { null! }));
         Assert.ThrowsAny<OperationCanceledException>(() => review.ExtractText(words, new CancellationToken(true)));
+        var corrections = new Dictionary<PdfRecognizedWord, string> { [words[0]] = "Corrected", [words[1]] = "Text" };
+        Assert.Equal("Corrected Text", review.ExtractText(corrections));
+        Assert.Equal("First", words[0].Text);
+        Assert.Throws<ArgumentException>(() => review.ExtractText(new Dictionary<PdfRecognizedWord, string> { [other.Ocr.Pages[0].Words[0]] = "Foreign" }));
+        Assert.Throws<ArgumentException>(() => review.ExtractText(new Dictionary<PdfRecognizedWord, string> { [words[0]] = " " }));
         Assert.Equal(bytes, source.ToBytes());
     }
 
@@ -127,6 +132,9 @@ public sealed class PdfSearchableOcrReviewTests {
         Assert.Throws<ArgumentException>(() => review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> { [word] = " " }));
         Assert.Throws<PdfReadLimitException>(() => review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> {
             [word] = new string('x', 11), [review.Ocr.Pages[0].Words[1]] = new string('y', 11)
+        }));
+        Assert.Throws<PdfReadLimitException>(() => review.ExtractText(new Dictionary<PdfRecognizedWord, string> {
+            [word] = new string('x', 10), [review.Ocr.Pages[0].Words[1]] = new string('y', 10)
         }));
         PdfSearchableOcrResult unchangedText = review.ApplyCorrections(new Dictionary<PdfRecognizedWord, string> { [word] = word.Text });
         Assert.Equal(0, unchangedText.CorrectedWordCount);

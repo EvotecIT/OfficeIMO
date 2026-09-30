@@ -53,6 +53,10 @@ public class OfficeMarkupPowerPointChartParityTests {
             PowerPointChart chart = Assert.Single(presentation.Slides.SelectMany(slide => slide.Charts));
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
             Assert.Equal(expectedKind, snapshot.ChartKind);
+            if (expectedKind is OfficeChartKind.Pie or OfficeChartKind.Doughnut) {
+                Assert.Equal(9D, snapshot.Layout.DataLabelFontSize);
+                Assert.Equal(OfficeColor.Parse("#172033"), snapshot.Style.DataLabelTextColor);
+            }
         } finally {
             if (File.Exists(outputPath)) File.Delete(outputPath);
         }

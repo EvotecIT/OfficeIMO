@@ -588,6 +588,8 @@ public sealed partial class OfficeChartLayout {
     /// <summary>Preferred data label position when labels are rendered.</summary>
     public OfficeChartDataLabelPosition DataLabelPosition { get; }
 
+    /// <summary>Whether radial outside data labels connect to their slices with leader lines.</summary>
+
     /// <summary>Optional numeric format for data-label values.</summary>
     public string? DataLabelNumberFormat { get; }
 

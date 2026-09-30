@@ -319,6 +319,13 @@ Use `OfficeChartData` when the same categories and series should drive PowerPoin
 or image workflows. A series can choose its own chart kind and primary or secondary value axis without a
 PowerPoint-only chart model.
 
+`OfficeChartSeries.PointColors` assigns solid colours by point index. Native chart snapshots preserve
+these overrides, including sparse and theme-based fills, so saved and reopened pie, doughnut, and column
+charts retain their colours in managed image and PDF exports. A null entry inherits the chart's normal
+colour selection. The [image export capability matrix](../Docs/officeimo.image-export-capability-matrix.md#powerpoint)
+tracks the exact chart appearance boundary.
+PDF export uses the native chart style unless `PowerPointToPdfOptions.ChartStyle` supplies an override.
+
 ```csharp
 using OfficeIMO.Drawing;
 
@@ -344,9 +351,49 @@ PowerPointChart chart = slide.AddChartCm(
 chart.SaveDataSummary("quarterly-chart.txt");
 ```
 
+Use `chart.SetSecondaryValueAxis(new OfficeChartValueAxisLayout(minimum: 0, maximum: 40,
+majorUnit: 10, numberFormat: "0").WithTitle("Margin"))` to give the secondary value axis an independent linear
+scale. Native data updates preserve these settings, and snapshots carry its bounds, tick units,
+tick appearance, number format, and title separately from the primary axis. Use the optional
+`majorTickMark` and `minorTickMark` settings for independent inside, outside, or crossing ticks.
+Static snapshots reject secondary logarithmic or reversed scales, display units, and explicit
+numeric crossing values. Native data updates preserve these settings.
+
 The shared authoring overload covers clustered, stacked, and 100% stacked column/bar; line variants; area
 variants; scatter; radar; pie; and doughnut. `TryGetOfficeSnapshot()` returns the same dependency-free contract
 used by PNG/SVG, HTML, and PDF paths.
+
+Category and scatter readback retains supported marker shape, size and outline,
+connecting-line visibility, and stroke width and dash. Group marker settings and
+scatter styles apply when a series does not override them. Static projections
+reject unqualified dashes, curved lines, distinct marker and line colours, and
+unfilled marker treatments. Native data editing remains available. Cached chart
+projections are bounded to 100,000 positions across all native layers.
+Point overrides retain their separate 100,000-record limit, including stale and
+duplicate records. Native series retain their plotting order, including combination
+layers. Gradients, custom or compound outlines, and per-point marker overrides reject
+static projection. Supported filled-series outlines are inherited by points, with
+explicit point outlines taking precedence. Picture markers reject static projection. Radar series inherit
+visible markers only from the native marker style unless the series supplies a marker.
+
+Category discovery checks all populated series before generating fallback labels.
+The longest available category cache supplies labels, and shorter series retain
+their positions with zero padding. Mixed snapshots require matching category
+caches and share one budget for native and normalized positions across the plot.
+Marker-only plots use the marker fill; a marker fill cannot replace an unresolved
+connecting-line colour in a static export.
+
+Data updates retain cached formula-linked chart and axis titles and custom
+labels as native rich text, and custom error bars as numeric literals when
+replacing the embedded worksheet. Uncached bindings and unqualified workbook-linked
+extensions reject the update before changing chart data or workbook bytes.
+Externally linked or unresolved workbook references reject shared and legacy
+updates. Compatible repeated layers retain separate native formatting when
+they share an axis pair; repeated layers of the same family and axis group
+with different axis pairs reject shared replacement.
+Legacy category-only updates require a single native chart layer; use shared
+`OfficeChartData` for supported combinations. For shared scatter and bubble
+authoring, each series' `RenderKind` must match the chart kind or be omitted.
 
 ```csharp
 var mix = new OfficeChartData(
@@ -358,6 +405,29 @@ slide.AddChartCm(OfficeChartKind.Doughnut, mix,
     .SetTitle("Revenue mix")
     .SetLegend(OfficeChartLegendPosition.Right);
 ```
+
+### Individual chart point styles
+
+Attach `OfficeChartSeries.WithPointStyles` when authoring shared chart data, or call
+`chart.SetDataPointStyle(seriesIndex, pointIndex, style)` to edit an existing native chart.
+Styles support solid fill, explicit no-fill, outlines, and seven hatch patterns from
+`OfficeIMO.Drawing.OfficeChartHatchPattern`. A null style clears the point's fill and outline
+overrides. Values remain unchanged and the chart remains editable in PowerPoint.
+
+Supported point appearances survive save/reopen, shared data updates, snapshots, image and
+PDF export, and PowerPoint semantic HTML round trips. Static pie and doughnut legends use
+the same colours and styles as the slices. Per-point area styling is retained in native
+files but static export reports an approximation and uses the series fill.
+See the [shared point-style example](../OfficeIMO.Core/README.md#style-individual-chart-points)
+for an outlined unknown-status slice and a hatched slice.
+
+### Pie and doughnut geometry
+
+Use `chart.SetRadialLayout(new OfficeChartRadialLayout(90, 70))` on an existing native
+two-dimensional pie or doughnut chart. The first argument rotates the first slice boundary
+clockwise from the top (0–360 degrees); the second sets the doughnut hole percentage (10–90).
+`chart.RadialLayout` reads the native settings. Save/reopen, data updates, snapshots,
+managed image/PDF exports, and semantic HTML round trips preserve them.
 
 ### Table and chart together
 

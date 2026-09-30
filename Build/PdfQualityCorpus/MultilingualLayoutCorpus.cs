@@ -13,28 +13,46 @@ internal static partial class MultilingualLayoutCorpus {
     internal static async Task<int> RunAsync(string[] args) {
         if (args.Length is < 3 or > 4)
             throw new ArgumentException("Usage: layout <MultilingualLayout fixtures> <output> [native]");
+        if (args.Length == 4 && args[3] != "native")
+            throw new ArgumentException("The optional layout mode must be 'native'.");
         string root = Path.GetFullPath(args[1]), output = Path.GetFullPath(args[2]);
         Directory.CreateDirectory(output);
         using var deadline = new CancellationTokenSource(TimeSpan.FromMinutes(15));
         using JsonDocument manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(root, "manifest.json"), deadline.Token));
         var results = new List<object>();
         var recognition = new List<object>();
+        var qualifications = new List<bool>();
+        string? providerVersion = null;
+        var providerModels = new Dictionary<string, string>(StringComparer.Ordinal);
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (JsonElement fixture in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
             string id = fixture.GetProperty("id").GetString()!;
+            if (string.IsNullOrWhiteSpace(id) || id.Length > 80 ||
+                id.Any(static character => !char.IsAsciiLetterOrDigit(character) && character != '-') || !ids.Add(id))
+                throw new InvalidDataException("Layout case ids must be unique names containing letters, digits, and hyphens.");
+            LayoutAcceptance? acceptance = LayoutAcceptance.Read(fixture);
             string[] expected = fixture.GetProperty("readingOrder").EnumerateArray().Select(item => item.GetString()!).ToArray();
             string[][] expectedTable = fixture.GetProperty("table").EnumerateArray()
                 .Select(row => row.EnumerateArray().Select(item => item.GetString()!).ToArray()).ToArray();
             string caption = fixture.GetProperty("caption").GetString()!;
             byte[] native = await ReadVerifiedAsync(root, fixture, "native.pdf", deadline.Token);
             PdfDocumentReadResult nativeRead = PdfDocument.Load(native).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
-            await RecordAsync(id, "native", nativeRead, expected, expectedTable, caption, output, results, deadline.Token);
+            await RecordAsync(id, "native", nativeRead, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
             if (args.Length == 4 && args[3] == "native") continue;
 
             byte[] scan = await ReadVerifiedAsync(root, fixture, "scan.pdf", deadline.Token);
-            var engine = new TesseractOcrEngine(new TesseractOcrEngineOptions {
+            var engine = TesseractOcrEngine.CreateDefault(new TesseractOcrEngineOptions {
                 Dpi = 300, Language = fixture.GetProperty("languages").GetString()!, PageSegmentationMode = 3,
                 Timeout = TimeSpan.FromSeconds(45), TemporaryDirectory = Path.Combine(output, "temporary")
             });
+            providerVersion ??= await engine.GetVersionAsync(deadline.Token);
+            if (engine.TessdataDirectory is not null) {
+                foreach (string language in engine.DefaultLanguage!.Split('+')) {
+                    string modelPath = Path.Combine(engine.TessdataDirectory, language + ".traineddata");
+                    if (File.Exists(modelPath)) providerModels[language] =
+                        Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(modelPath, deadline.Token)));
+                }
+            }
             int turn = fixture.GetProperty("clockwiseDegrees").GetInt32() / 90;
             PdfSearchableOcrResult searchable = await PdfDocument.Load(scan).MakeSearchableAsync(engine,
                 new PdfOcrMergeOptions {
@@ -46,7 +64,7 @@ internal static partial class MultilingualLayoutCorpus {
                     // while the scan-quality corpus measures the provider's orientation detector.
                     ScanProcessing = new OfficeScanProcessingOptions { ClockwiseQuarterTurns = (4 - turn) % 4, Deskew = false }
                 }, deadline.Token);
-            await RecordAsync(id, "ocr", searchable.Ocr.Document, expected, expectedTable, caption, output, results, deadline.Token);
+            await RecordAsync(id, "ocr", searchable.Ocr.Document, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
             string providerText = string.Join(" ", searchable.Ocr.Pages.SelectMany(static page => page.Words)
                 .Select(static word => word.Text));
             await File.WriteAllTextAsync(Path.Combine(output, id + "-provider.txt"), providerText, deadline.Token);
@@ -56,18 +74,26 @@ internal static partial class MultilingualLayoutCorpus {
             byte[] bytes = searchable.Document.ToBytes();
             await File.WriteAllBytesAsync(Path.Combine(output, id + "-searchable.pdf"), bytes, deadline.Token);
             PdfDocumentReadResult roundTrip = PdfDocument.Load(bytes).Read(new PdfReadOptions { Profile = PdfReadProfile.Structured });
-            await RecordAsync(id, "readback", roundTrip, expected, expectedTable, caption, output, results, deadline.Token);
+            await RecordAsync(id, "readback", roundTrip, expected, expectedTable, caption, acceptance, output, results, qualifications, deadline.Token);
         }
+        if (ids.Count == 0) throw new InvalidDataException("A layout corpus must contain at least one case.");
         await File.WriteAllTextAsync(Path.Combine(output, "layout-quality.json"), JsonSerializer.Serialize(new {
+            Schema = "officeimo.pdf.layout-quality.v2",
             Runtime = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+            OperatingSystem = System.Runtime.InteropServices.RuntimeInformation.OSDescription,
+            ProductAssemblySha256 = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(typeof(PdfDocument).Assembly.Location, deadline.Token))),
+            ProviderVersion = providerVersion,
+            ConfiguredTrainedDataSha256 = providerModels,
             SourceManifestSha256 = Convert.ToHexString(SHA256.HashData(await File.ReadAllBytesAsync(Path.Combine(root, "manifest.json"), deadline.Token))),
             Metric = "NFC and collapsed whitespace. Exact labelled segments, correctly ordered segment pairs, code-point CER/token WER, table rows and caption classification are separate observations. Exact table rows require one detected table, the expected row count, and matching cells at the same row and column positions.",
-            Limit = "Controlled Pango/Cairo fixtures, not a population accuracy estimate. OCR uses the labelled rotation and installed language models; recognition errors remain visible.",
+            Limit = "Controlled independent-producer fixtures, not a population accuracy estimate. OCR uses the labelled rotation and installed language models; recognition errors remain visible. Cases without predeclared acceptance limits are measurements, not qualification passes.",
+            Qualification = new { DeclaredModes = qualifications.Count, PassedModes = qualifications.Count(static value => value),
+                FailedModes = qualifications.Count(static value => !value) },
             RecognitionMetric = "Case-sensitive NFC token multiset precision and recall, ignoring order. This separates recognized-token evidence from canonical line/column ordering; it is not a character accuracy score.",
             ProviderRecognition = recognition,
             Cases = results
         }, new JsonSerializerOptions { WriteIndented = true }), deadline.Token);
-        return 0;
+        return qualifications.All(static value => value) ? 0 : 1;
     }
 
     private static object MeasureRecognitionTokens(string expected, string actual) {
@@ -96,7 +122,8 @@ internal static partial class MultilingualLayoutCorpus {
     }
 
     private static async Task RecordAsync(string id, string mode, PdfDocumentReadResult document, string[] expected,
-        string[][] expectedTable, string caption, string output, List<object> results, CancellationToken token) {
+        string[][] expectedTable, string caption, LayoutAcceptance? acceptance, string output, List<object> results,
+        List<bool> qualifications, CancellationToken token) {
         string actual = Normalize(document.Text);
         int[] positions = expected.Select(segment => actual.IndexOf(Normalize(segment), StringComparison.Ordinal)).ToArray();
         int present = positions.Count(position => position >= 0), correctPairs = 0;
@@ -107,12 +134,18 @@ internal static partial class MultilingualLayoutCorpus {
             .Select(table => table.Rows.Select(row => row.ToArray()).ToArray()).ToArray();
         string[] captions = document.Pages.SelectMany(page => page.Captions).Select(item => item.Text).ToArray();
         ScanTextAccuracy accuracy = ScanTextAccuracy.Measure(string.Join(" ", expected), actual);
+        int expectedPairs = expected.Length * (expected.Length - 1) / 2;
+        int exactRows = CountExactTableRows(expectedTable, tables);
+        bool? qualified = acceptance?.IsSatisfied(accuracy, present, expected.Length, correctPairs, expectedPairs,
+            exactRows, expectedTable.Length, tables.Length);
+        if (qualified.HasValue) qualifications.Add(qualified.Value);
         await File.WriteAllTextAsync(Path.Combine(output, id + "-" + mode + ".txt"), document.Text, token);
         results.Add(new {
             Id = id, Mode = mode, Accuracy = accuracy, ExactSegments = present, ExpectedSegments = expected.Length,
+            DeclaredAcceptance = acceptance, Qualified = qualified,
             CorrectReadingOrderPairs = correctPairs, ExpectedReadingOrderPairs = expected.Length * (expected.Length - 1) / 2,
             ExactCaption = captions.Any(value => Normalize(value) == Normalize(caption)), Captions = captions,
-            ExactTableRows = CountExactTableRows(expectedTable, tables),
+            ExactTableRows = exactRows,
             ExpectedTableRows = expectedTable.Length, Tables = tables,
             Lines = document.Pages.SelectMany(page => page.Analysis.Lines).Select(line => new {
                 line.Text, line.XStart, line.XEnd, line.BaselineY, line.RotationDegrees, line.SourceKind

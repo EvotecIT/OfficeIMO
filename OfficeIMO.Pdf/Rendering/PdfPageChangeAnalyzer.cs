@@ -21,14 +21,24 @@ public static class PdfPageChangeAnalyzer {
         cancellationToken.ThrowIfCancellationRequested();
         PdfReadDocument expected = PdfReadDocument.Open(expectedPdf, expectedReadOptions, cancellationToken);
         PdfReadDocument actual = PdfReadDocument.Open(actualPdf, actualReadOptions, cancellationToken);
+        return Analyze(expected, actual, effective, cancellationToken);
+    }
+
+    internal static PdfPageChangeReport Analyze(PdfReadDocument expected, PdfReadDocument actual, PdfPageChangeOptions effective, CancellationToken cancellationToken) =>
+        Analyze(expected, actual, effective, Array.Empty<PdfPixelRegion>(), cancellationToken);
+
+    internal static PdfPageChangeReport Analyze(PdfReadDocument expected, PdfReadDocument actual, PdfPageChangeOptions effective,
+        IReadOnlyList<PdfPixelRegion> ignoredRegions, CancellationToken cancellationToken) {
         if (expected.Pages.Count > effective.MaxPagesPerDocument || actual.Pages.Count > effective.MaxPagesPerDocument) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPages, effective.MaxPagesPerDocument,
                 Math.Max(expected.Pages.Count, actual.Pages.Count));
         }
 
         long totalPixels = 0;
-        string[] expectedFingerprints = FingerprintPages(expected, effective, ref totalPixels, "expected", cancellationToken);
-        string[] actualFingerprints = FingerprintPages(actual, effective, ref totalPixels, "actual", cancellationToken);
+        string[] expectedFingerprints = FingerprintPages(expected, effective, ignoredRegions, ref totalPixels, "expected", cancellationToken,
+            out string[] expectedExactFingerprints);
+        string[] actualFingerprints = FingerprintPages(actual, effective, ignoredRegions, ref totalPixels, "actual", cancellationToken,
+            out string[] actualExactFingerprints);
         var expectedToActual = new int[expectedFingerprints.Length];
         var actualUsed = new bool[actualFingerprints.Length];
         HashSet<int> orderedExactExpectedPages = FindOrderedExactMatches(
@@ -58,7 +68,8 @@ public static class PdfPageChangeAnalyzer {
             if (actualPage == 0) continue;
             changes[index] = new PdfPageChange(
                 orderedExactExpectedPages.Contains(index + 1) ? PdfPageChangeKind.Unchanged : PdfPageChangeKind.Moved,
-                index + 1, actualPage);
+                index + 1, actualPage, ignoredRegions.Count > 0 &&
+                !string.Equals(expectedExactFingerprints[index], actualExactFingerprints[actualPage - 1], StringComparison.Ordinal));
         }
 
         // Pair residual pages inside ordered exact anchors. These pairs require full visual review;
@@ -92,9 +103,11 @@ public static class PdfPageChangeAnalyzer {
         return new PdfPageChangeReport(output, expected.Pages.Count, actual.Pages.Count, effective.RenderScale);
     }
 
-    private static string[] FingerprintPages(PdfReadDocument document, PdfPageChangeOptions options, ref long totalPixels,
-        string side, CancellationToken cancellationToken) {
+    private static string[] FingerprintPages(PdfReadDocument document, PdfPageChangeOptions options,
+        IReadOnlyList<PdfPixelRegion> ignoredRegions, ref long totalPixels, string side, CancellationToken cancellationToken,
+        out string[] exactFingerprints) {
         var fingerprints = new string[document.Pages.Count];
+        exactFingerprints = new string[document.Pages.Count];
         for (int index = 0; index < fingerprints.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(document, index + 1, cancellationToken);
@@ -104,6 +117,7 @@ public static class PdfPageChangeAnalyzer {
             if (pixels > options.MaxPixelsPerPage) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPixels, options.MaxPixelsPerPage, pixels);
             totalPixels = checked(totalPixels + pixels);
             if (totalPixels > options.MaxTotalPixels) throw PdfReadLimitException.Create(PdfReadLimitKind.RenderPixels, options.MaxTotalPixels, totalPixels);
+            PdfVisualComparisonOptions.EnsureIgnoredRegionWork(ignoredRegions.Count, totalPixels);
             OfficeRasterImage image = OfficeDrawingRasterRenderer.Render(drawing, new OfficeDrawingRasterRenderOptions {
                 Scale = options.RenderScale,
                 Background = options.Background,
@@ -111,21 +125,37 @@ public static class PdfPageChangeAnalyzer {
                 CancellationToken = cancellationToken
             });
             byte[] rgba = image.GetPixels();
-#if NET6_0_OR_GREATER
-            byte[] hash = SHA256.HashData(rgba);
-#else
-            byte[] hash;
-            using (SHA256 sha = SHA256.Create()) hash = sha.ComputeHash(rgba);
-#endif
-            string fingerprint = image.Width + "x" + image.Height + ":" + Convert.ToBase64String(hash);
+            if (ignoredRegions.Count > 0) exactFingerprints[index] = Fingerprint(image.Width, image.Height, rgba);
+            foreach (PdfPixelRegion region in ignoredRegions) {
+                int left = Math.Min(region.X, image.Width);
+                int top = Math.Min(region.Y, image.Height);
+                int right = (int)Math.Min((long)image.Width, (long)region.X + region.Width);
+                int bottom = (int)Math.Min((long)image.Height, (long)region.Y + region.Height);
+                for (int y = top; y < bottom; y++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    Array.Clear(rgba, checked((y * image.Width + left) * 4), checked((right - left) * 4));
+                }
+            }
+            string fingerprint = Fingerprint(image.Width, image.Height, rgba);
             // Basic unembedded fonts are rendered through the same fallback on both sides.
             // Other approximated or skipped paint can hide source differences.
             bool incomplete = PdfRenderCapabilities.HasIncompleteVisualProjection(
                 document.Pages[index].GetRenderCapabilityDiagnostics(cancellationToken));
             fingerprints[index] = !incomplete
                 ? fingerprint : side + ":incomplete:" + fingerprint;
+            if (ignoredRegions.Count == 0) exactFingerprints[index] = fingerprint;
         }
         return fingerprints;
+    }
+
+    private static string Fingerprint(int width, int height, byte[] rgba) {
+#if NET6_0_OR_GREATER
+        byte[] hash = SHA256.HashData(rgba);
+#else
+        byte[] hash;
+        using (SHA256 sha = SHA256.Create()) hash = sha.ComputeHash(rgba);
+#endif
+        return width + "x" + height + ":" + Convert.ToBase64String(hash);
     }
 
     private static HashSet<int> FindOrderedExactMatches(string[] expected, string[] actual,

@@ -86,7 +86,7 @@ public sealed class PdfTextRun {
         Guard.TextBaseline(baseline, nameof(baseline));
         Guard.TabLeaderStyle(tabLeader, nameof(tabLeader));
         Guard.TabAlignment(tabAlignment, nameof(tabAlignment));
-        if (underlineStyle < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || underlineStyle > OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {
+        if (underlineStyle < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || underlineStyle > OfficeIMO.Drawing.OfficeTextDecorationStyle.Words) {
             throw new System.ArgumentOutOfRangeException(nameof(underlineStyle));
         }
         if (strikeStyle < OfficeIMO.Drawing.OfficeTextDecorationStyle.None || strikeStyle > OfficeIMO.Drawing.OfficeTextDecorationStyle.Wavy) {

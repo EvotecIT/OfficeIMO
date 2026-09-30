@@ -107,8 +107,8 @@ namespace OfficeIMO.Word {
         public WordChart? Chart {
             get {
                 if (_run is not null) {
-                    foreach (WordDrawing drawing in VisibleSourceRunChildren().OfType<WordDrawing>()) {
-                        if (drawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any()) {
+                    foreach (WordDrawing drawing in EnumerateEffectiveRunContent().OfType<WordDrawing>()) {
+                        if (DrawingOwnsChart(drawing)) {
                             return new WordChart(_document, this, drawing);
                         }
                     }
@@ -116,6 +116,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
         }
+
+        internal static bool DrawingOwnsChart(WordDrawing drawing) =>
+            drawing.Descendants<DocumentFormat.OpenXml.Drawing.Charts.ChartReference>().Any(reference =>
+                ReferenceEquals(reference.Ancestors<WordDrawing>().FirstOrDefault(), drawing));
 
         /// <summary>
         /// Gets the SmartArt diagram contained in this paragraph, if present.

@@ -78,6 +78,11 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <returns></returns>
         private RunProperties VerifyRunProperties() {
+            if (_stdRun != null) {
+                SdtContentRun content = _stdRun.SdtContentRun ??= new SdtContentRun();
+                Run run = content.Descendants<Run>().FirstOrDefault() ?? content.AppendChild(new Run());
+                return run.GetFirstChild<RunProperties>() ?? run.PrependChild(new RunProperties());
+            }
             VerifyRun();
             if (_run == null) {
                 throw new InvalidOperationException("Run is not initialized.");

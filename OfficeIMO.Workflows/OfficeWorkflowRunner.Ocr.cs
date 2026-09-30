@@ -28,6 +28,9 @@ public sealed partial class OfficeWorkflowRunner {
             var limits = request.Limits.CloneAndValidate();
             var options = request.Ocr.Clone();
             var reviewCallback = request.ReviewAsync;
+            var correctionCallback = request.ReviewCorrectionsAsync;
+            if (reviewCallback is not null && correctionCallback is not null)
+                throw new ArgumentException("Choose one OCR review callback.");
             var password = request.PdfPassword;
             var inputStream = request.InputStream;
             var outputStream = request.OutputStream;
@@ -51,12 +54,32 @@ public sealed partial class OfficeWorkflowRunner {
             PdfDocument source = await PdfDocument.LoadAsync(snapshot, loadOptions, cancellationToken).ConfigureAwait(false);
             options.SourceName ??= inputStream!.Name;
             PdfSearchableOcrReview review = await source.PrepareSearchableOcrAsync(engine, options, cancellationToken).ConfigureAwait(false);
+            foreach (var page in review.Ocr.Pages) {
+                foreach (var diagnostic in page.ProviderDiagnostics) {
+                    diagnostics.Add(new OfficeWorkflowDiagnostic(string.IsNullOrWhiteSpace(diagnostic.Code) ? "OcrProviderDiagnostic" : diagnostic.Code,
+                        string.IsNullOrWhiteSpace(diagnostic.Message) ? "The OCR provider reported a recognition condition." : diagnostic.Message,
+                        diagnostic.Severity == OcrDiagnosticSeverity.Info ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
+                        "recognize", new Dictionary<string, string> {
+                            ["page"] = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                            ["providerSeverity"] = diagnostic.Severity.ToString(), ["recoverable"] = diagnostic.IsRecoverable.ToString()
+                        }));
+                }
+                var providerMessages = page.ProviderDiagnostics.Select(item => string.IsNullOrWhiteSpace(item.Code) ? item.Message : item.Code + ": " + item.Message).ToHashSet();
+                foreach (string message in page.Diagnostics.Where(item => !string.IsNullOrWhiteSpace(item) && !providerMessages.Contains(item)))
+                    diagnostics.Add(new OfficeWorkflowDiagnostic("OcrPageDiagnostic", message, OfficeWorkflowDiagnosticSeverity.Warning, "recognize",
+                        new Dictionary<string, string> { ["page"] = page.PageNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) }));
+            }
+            if (review.Ocr.AcceptedWordCount == 0 && string.IsNullOrWhiteSpace(review.Ocr.NativeDocument.Text))
+                throw new InvalidOperationException("OCR returned no eligible searchable words and the source has no native text.");
+            IReadOnlyDictionary<PdfRecognizedWord, string>? corrections = correctionCallback is null ? null
+                : await correctionCallback(review, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false)
+                    ?? throw new InvalidOperationException("OCR review did not return corrected words.");
             IReadOnlyList<PdfRecognizedWord>? selected = reviewCallback is null ? null
                 : await reviewCallback(review, cancellationToken).WaitAsync(cancellationToken).ConfigureAwait(false)
                     ?? throw new InvalidOperationException("OCR review did not return a word selection.");
             cancellationToken.ThrowIfCancellationRequested();
-            PdfSearchableOcrResult recognized = reviewCallback is null ? review.ApplyAll(cancellationToken)
-                : review.Apply(selected!, cancellationToken);
+            PdfSearchableOcrResult recognized = correctionCallback is not null ? review.ApplyCorrections(corrections!, cancellationToken)
+                : reviewCallback is null ? review.ApplyAll(cancellationToken) : review.Apply(selected!, cancellationToken);
             words = recognized.AddedWordCount;
             pages = recognized.ModifiedPages;
             providerName = recognized.Ocr.Pages.Select(page => page.Provider).FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
@@ -82,11 +105,11 @@ public sealed partial class OfficeWorkflowRunner {
                     providerDirectory = null;
                 }, diagnostics, cancellationToken).ConfigureAwait(false);
                 return new PdfSearchableWorkflowResult(outcome.Status, outcome.Status == OfficeWorkflowStatus.Completed ? outcome.PublishedLocation : null,
-                    outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery);
+                    outcome.Status == OfficeWorkflowStatus.Completed ? PdfOcrPublicationSummary(words, diagnostics) : outcome.Summary, words, pages, providerName, diagnostics, outcome.Recovery);
             }
             string published = await PublishAsync(stagingPath, output, policy, guard, cancellationToken).ConfigureAwait(false);
             stagingPath = null;
-            return new PdfSearchableWorkflowResult(OfficeWorkflowStatus.Completed, published, "Searchable PDF created.", words, pages, providerName, diagnostics);
+            return new PdfSearchableWorkflowResult(OfficeWorkflowStatus.Completed, published, PdfOcrPublicationSummary(words, diagnostics), words, pages, providerName, diagnostics);
         } catch (OperationCanceledException error) when (cancellationToken.IsCancellationRequested) {
             ReportInputStagingCleanupFailure(error, diagnostics);
             inputs.Cleanup(diagnostics);
@@ -103,4 +126,7 @@ public sealed partial class OfficeWorkflowRunner {
         }
     }
 
+    private static string PdfOcrPublicationSummary(int words, IReadOnlyList<OfficeWorkflowDiagnostic> diagnostics) =>
+        words == 0 ? "PDF saved; no OCR text was added." : diagnostics.Any(item => item.Severity == OfficeWorkflowDiagnosticSeverity.Warning)
+            ? "Searchable PDF created with recognition warnings; review the diagnostics." : "Searchable PDF created.";
 }

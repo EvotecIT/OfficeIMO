@@ -6,6 +6,11 @@ public sealed class PdfDocumentProof {
 
     internal PdfDocumentProof(PdfDocument document) => _document = document;
 
+    /// <summary>Inspects production-readiness evidence and proposes reviewable page-box metadata fixups.</summary>
+    public PdfProductionPreflightReport PreflightProduction(PdfProductionPreflightOptions? options = null,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        PdfProductionPreflightInspector.Inspect(_document, options, cancellationToken);
+
     /// <summary>Aligns pages with another PDF and reports insertion, deletion, reorder, and visual-change candidates.</summary>
     public PdfPageChangeReport AnalyzePageChanges(PdfDocument actualDocument, PdfPageChangeOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         Guard.NotNull(actualDocument, nameof(actualDocument));
@@ -21,6 +26,11 @@ public sealed class PdfDocumentProof {
             actualDocument.GetBytesForOperation(cancellationToken), actualPageNumber, options,
             _document.ReadOptions, actualDocument.ReadOptions, cancellationToken);
     }
+
+    /// <summary>Aligns pages and classifies supported text, image, scan, and visual differences for review.</summary>
+    public PdfReviewComparisonReport CompareReview(PdfDocument actualDocument, PdfReviewComparisonOptions? options = null,
+        System.Threading.CancellationToken cancellationToken = default) =>
+        PdfReviewComparer.Compare(_document, actualDocument, options, cancellationToken);
 
     /// <summary>Compares this document with PDF bytes through the managed renderer.</summary>
     public PdfVisualComparisonReport CompareVisual(byte[] actualPdf, PdfPageSelection? selection = null, PdfVisualComparisonOptions? options = null, PdfLoadOptions? actualReadOptions = null) =>

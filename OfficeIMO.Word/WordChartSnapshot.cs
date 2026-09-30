@@ -45,12 +45,16 @@ namespace OfficeIMO.Word {
     /// Series values extracted from cached Word chart data.
     /// </summary>
     public sealed class WordChartSeries {
-        internal WordChartSeries(string name, IReadOnlyList<double> values, IReadOnlyList<double>? xValues = null, OfficeIMO.Drawing.OfficeColor? color = null, IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? pointColors = null) {
-            Name = name ?? string.Empty;
-            Values = new ReadOnlyCollection<double>(new List<double>(values ?? Array.Empty<double>()));
-            XValues = xValues == null ? null : new ReadOnlyCollection<double>(new List<double>(xValues));
-            Color = color;
-            PointColors = pointColors == null ? null : new ReadOnlyCollection<OfficeIMO.Drawing.OfficeColor?>(new List<OfficeIMO.Drawing.OfficeColor?>(pointColors));
+        private readonly OfficeIMO.Drawing.OfficeChartSeries _sharedSeries;
+
+        internal WordChartSeries(OfficeIMO.Drawing.OfficeChartSeries series) {
+            _sharedSeries = series;
+            Name = series.Name;
+            Values = series.Values;
+            XValues = series.XValues;
+            Color = series.Color;
+            PointColors = series.PointColors;
+            PointStyles = series.PointStyles;
         }
 
         /// <summary>Series display name.</summary>
@@ -67,6 +71,12 @@ namespace OfficeIMO.Word {
 
         /// <summary>Optional explicit point colors extracted from Word chart data point shape properties.</summary>
         public IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? PointColors { get; }
+
+        /// <summary>Point fill, hatch, and outline overrides read from native chart properties.</summary>
+        public IReadOnlyList<OfficeIMO.Drawing.OfficeChartPointStyle?>? PointStyles { get; }
+
+        /// <summary>Returns the shared series, retaining native line, marker and point appearance.</summary>
+        public OfficeIMO.Drawing.OfficeChartSeries ToOfficeSeries() => _sharedSeries;
     }
 
     /// <summary>
@@ -89,13 +99,15 @@ namespace OfficeIMO.Word {
     /// Dependency-free Word chart snapshot suitable for export and visual fallback renderers.
     /// </summary>
     public sealed class WordChartSnapshot {
-        internal WordChartSnapshot(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints) {
+        internal WordChartSnapshot(string name, string? title, WordChartSnapshotKind chartKind, WordChartData data, double widthPoints, double heightPoints,
+            OfficeIMO.Drawing.OfficeChartRadialLayout? radialLayout = null) {
             Name = name ?? string.Empty;
             Title = title;
             ChartKind = chartKind;
             Data = data ?? throw new ArgumentNullException(nameof(data));
             WidthPoints = widthPoints;
             HeightPoints = heightPoints;
+            RadialLayout = radialLayout ?? OfficeIMO.Drawing.OfficeChartRadialLayout.Default;
         }
 
         /// <summary>Chart drawing name when available.</summary>
@@ -115,5 +127,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>Chart frame height in points.</summary>
         public double HeightPoints { get; }
+
+        /// <summary>Native pie rotation and doughnut hole geometry.</summary>
+        public OfficeIMO.Drawing.OfficeChartRadialLayout RadialLayout { get; }
     }
 }

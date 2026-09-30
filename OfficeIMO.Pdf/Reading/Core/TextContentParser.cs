@@ -1237,6 +1237,7 @@ internal static partial class TextContentParser {
                     fontWeight: fontWeightForResource?.Invoke(font),
                     fontDescriptorFlags: fontDescriptorFlagsForResource?.Invoke(font),
                     embeddedLineBreakCounts: GetEmbeddedLineBreakCounts(rawText, normalizedText.Length));
+                if (actualTextState is not null) span.SetSourceActualText(rawText);
                 if (usesVisibleFill && !fillColorResolved || usesVisibleStroke &&
                     (!strokeColorResolved || !IsSolidTextDash(strokeDashIdentity))) {
                     span.MarkUnresolvedPaint();

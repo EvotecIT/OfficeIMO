@@ -45,9 +45,9 @@ public sealed partial class PdfReadDocument {
                 profileStream = ResolveObject(profileObject) as PdfStream;
             }
 
-            Func<PdfOutputIntentProfileMetadata?>? metadataFactory = profileStream == null
+            Func<System.Threading.CancellationToken, PdfOutputIntentProfileMetadata?>? metadataFactory = profileStream == null
                 ? null
-                : () => ReadOutputIntentProfileMetadata(profileStream);
+                : token => ReadOutputIntentProfileMetadata(profileStream, token);
             result.Add(new PdfOutputIntentInfo(
                 objectNumber,
                 type,
@@ -67,11 +67,15 @@ public sealed partial class PdfReadDocument {
         return result.Count == 0 ? Array.Empty<PdfOutputIntentInfo>() : result.AsReadOnly();
     }
 
-    private PdfOutputIntentProfileMetadata ReadOutputIntentProfileMetadata(PdfStream profileStream) {
+    private PdfOutputIntentProfileMetadata ReadOutputIntentProfileMetadata(PdfStream profileStream,
+        System.Threading.CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
         byte[] profileBytes = _decodedStreamBudget.DecodeRequired(
             profileStream,
             _objects,
-            _options.Limits.MaxDecodedStreamBytes);
+            _options.Limits.MaxDecodedStreamBytes,
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _outputIntentMetadataRetentionBudget.Charge(
             profileStream,
             PdfIccProfileCacheRepresentation.DecodedBytes,
@@ -80,6 +84,7 @@ public sealed partial class PdfReadDocument {
             OfficeIccColorProfile.TryCreate(profileBytes, out OfficeIccColorProfile? profile) &&
             profile != null &&
             profile.HasOutputTransform;
+        cancellationToken.ThrowIfCancellationRequested();
         return new PdfOutputIntentProfileMetadata(
             profileBytes.Length,
             TryReadIccDeclaredSize(profileBytes),

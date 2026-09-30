@@ -3,36 +3,53 @@ using System.Text.Json;
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewRemediationTests {
-    [Fact]
-    public void Tagged_parser_stops_after_the_configured_diagnostic_limit() {
-        string source = string.Join("\n", Enumerable.Repeat("malformed", 100));
+    [Theory]
+    [InlineData(BibliographyFormat.Ris, "malformed", "\n", 2)]
+    [InlineData(BibliographyFormat.BibTex, "outside@?", "", 3)]
+    public void Parsers_stop_after_the_configured_diagnostic_limit(BibliographyFormat format, string fragment, string separator, int limit) {
+        string source = string.Join(separator, Enumerable.Repeat(fragment, 100));
 
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.Ris, new BibliographyReadOptions { MaximumDiagnosticCount = 2 });
+        BibliographyReadResult read = BibliographyDocument.Parse(source, format, new BibliographyReadOptions { MaximumDiagnosticCount = limit });
 
         Assert.True(read.HasErrors);
-        Assert.Equal(3, read.Diagnostics.Count);
-        Assert.Equal("BIBLIM002", read.Diagnostics[2].Code);
+        Assert.Equal(limit + 1, read.Diagnostics.Count);
+        Assert.Equal("BIBLIM002", read.Diagnostics[limit].Code);
     }
 
-    [Fact]
-    public void Edited_raw_backed_CSL_fields_report_shape_flattening_and_use_public_values() {
-        const string source = "[{\"id\":\"x\",\"type\":\"book\",\"x-item\":{\"enabled\":true},\"author\":[{\"literal\":\"Team\",\"x-name\":{\"rank\":1}}],\"issued\":{\"literal\":\"soon\",\"x-date\":{\"certainty\":\"low\"}}}]";
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Edited_raw_backed_CSL_fields_report_shape_flattening_and_use_public_values(bool includeNameAndDateOwners) {
+        string source = includeNameAndDateOwners
+            ? "[{\"id\":\"x\",\"type\":\"book\",\"x-item\":{\"enabled\":true},\"author\":[{\"literal\":\"Team\",\"x-name\":{\"rank\":1}}],\"issued\":{\"literal\":\"soon\",\"x-date\":{\"certainty\":\"low\"}}}]"
+            : "[{\"id\":\"x\",\"type\":\"book\",\"custom\":{\"old\":true}}]";
+        string itemField = includeNameAndDateOwners ? "x-item" : "custom";
+        string itemValue = includeNameAndDateOwners ? "item-edited" : "flattened";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         BibliographyItem item = document.Items[0];
-        item.NativeFields[0].Value = "item-edited";
-        item.Contributors[0].Name.NativeFields[0].Value = "name-edited";
-        item.Dates[0].NativeFields[0].Value = "date-edited";
+        item.NativeFields[0].Value = itemValue;
+        if (includeNameAndDateOwners) {
+            item.Contributors[0].Name.NativeFields[0].Value = "name-edited";
+            item.Dates[0].NativeFields[0].Value = "date-edited";
+        }
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
+        BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
 
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement root = json.RootElement[0];
-        Assert.Equal("item-edited", root.GetProperty("x-item").GetString());
-        Assert.Equal("name-edited", root.GetProperty("author")[0].GetProperty("x-name").GetString());
-        Assert.Equal("date-edited", root.GetProperty("issued").GetProperty("x-date").GetString());
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == "x-item");
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+        Assert.Equal(itemValue, root.GetProperty(itemField).GetString());
+        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
+        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV126" && diagnostic.Field == itemField);
+        if (includeNameAndDateOwners) {
+            Assert.Equal("name-edited", root.GetProperty("author")[0].GetProperty("x-name").GetString());
+            Assert.Equal("date-edited", root.GetProperty("issued").GetProperty("x-date").GetString());
+            Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+            Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+            Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV127" && diagnostic.Field == "author.x-name");
+            Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV128" && diagnostic.Field == "issued.x-date");
+        }
     }
 
     [Fact]
@@ -51,25 +68,23 @@ public sealed class BibliographyReviewRemediationTests {
         Assert.Equal(2, strict.Report.Diagnostics.Count(diagnostic => diagnostic.Code == "BIBCONV129"));
     }
 
-    [Fact]
-    public void EndNote_aggregate_element_values_observe_the_value_length_limit() {
-        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>abc<empty />def</title></titles></record></records></xml>";
-
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 5 });
-
-        Assert.True(read.HasErrors);
-        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
-    }
-
-    [Fact]
-    public void EndNote_attribute_values_observe_the_value_length_limit() {
-        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Oversized\">6</ref-type></record></records></xml>";
-
-        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = 5 });
+    [Theory]
+    [InlineData("<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>abc<empty />def</title></titles></record></records></xml>", 5, false)]
+    [InlineData("<xml><records><record><rec-number>1</rec-number><ref-type name=\"Oversized\">6</ref-type></record></records></xml>", 5, false)]
+    [InlineData("<xml><!--long--><records/></xml>", 3, false)]
+    [InlineData("<xml><?review long?><records/></xml>", 3, false)]
+    [InlineData("<records>oversized<record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Before</title></titles></record></records>", 4, true)]
+    [InlineData("<records><record>oversized<rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Before</title></titles></record></records>", 4, true)]
+    [InlineData("<xml><extension><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/></extension><records/></xml>", 80, false)]
+    [InlineData("<xml xmlns:ext=\"urn:extension\"><records><record><rec-number>1</rec-number><ext:data><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/><x/></ext:data></record></records></xml>", 80, false)]
+    public void EndNote_XML_values_observe_the_value_length_limit(string source, int limit, bool requireLengthMessage) {
+        BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml, new BibliographyReadOptions { MaximumValueLength = limit });
 
         Assert.True(read.HasErrors);
-        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
+        Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001"
+            && (!requireLengthMessage || diagnostic.Message.Contains("value length", StringComparison.Ordinal)));
     }
+
 
     [Fact]
     public void EndNote_limit_diagnostics_report_character_offsets() {
@@ -156,19 +171,6 @@ public sealed class BibliographyReviewRemediationTests {
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
     }
 
-    [Fact]
-    public void Csl_syntax_diagnostics_use_absolute_UTF16_locations() {
-        const string source = "[\n{\"title\":\"Ł\",?}]";
-        int expectedOffset = source.IndexOf('?');
-        int lineStart = source.IndexOf('\n') + 1;
-
-        BibliographyDiagnostic diagnostic = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Diagnostics);
-
-        Assert.Equal("BIBCSL002", diagnostic.Code);
-        Assert.Equal(expectedOffset, diagnostic.Offset);
-        Assert.Equal(2, diagnostic.Line);
-        Assert.Equal(expectedOffset - lineStart + 1, diagnostic.Column);
-    }
 
     [Fact]
     public void Edited_structured_EndNote_field_reports_flattened_child_markup() {

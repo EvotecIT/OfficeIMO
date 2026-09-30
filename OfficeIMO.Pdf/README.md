@@ -938,23 +938,35 @@ create an unsigned source derivative first. The result reports
 Layered PDFs are rejected because their visibility settings cannot yet be
 preserved on imposed sheets.
 
-For review after page insertion or reordering, align pages before comparing
-the ones that need closer inspection:
+For review after page insertion or reordering, align pages and inspect the
+changed pairs with retained rendered proof and page-linked classifications:
 
 ```csharp
 PdfDocument revised = PdfDocument.Load("packet-revised.pdf");
-PdfPageChangeReport changes = source.Proof.AnalyzePageChanges(revised);
-foreach (PdfPageChange change in changes.Changes) {
-    if (change.Kind != PdfPageChangeKind.ModifiedCandidate) continue;
-    PdfVisualPageComparison detail = source.Proof.CompareVisualPages(
-        change.ExpectedPageNumber!.Value, revised, change.ActualPageNumber!.Value);
-    Console.WriteLine($"Page {change.ExpectedPageNumber}: {detail.DifferentPixels} changed pixels");
+PdfReviewComparisonReport review = source.Proof.CompareReview(revised);
+foreach (PdfReviewPageComparison page in review.Pages) {
+    Console.WriteLine($"Page {page.ExpectedPageNumber} -> {page.ActualPageNumber}");
+    if (page.Visual is not null)
+        Console.WriteLine($"  {page.Visual.DifferentPixels} changed pixels");
+    foreach (PdfReviewChange change in page.Changes)
+        Console.WriteLine($"  {change.Kind}: {change.ExpectedText} -> {change.ActualText}");
 }
 ```
 
-Alignment uses exact rendered pixels at the chosen scale. A changed-page pair
-is a review candidate; the report does not claim to identify semantic text or
-image edits.
+`review.PageAlignment` reports inserted, deleted, moved, and changed page
+candidates. Changed rendered pairs retain expected, actual, and highlighted
+difference PNGs. Native text is also checked on visually identical pages, so
+searchable-layer changes remain visible in the report. Native text and image
+placements can be classified as added, removed,
+changed, or moved; scan-dominated pages and unsupported differences remain
+explicitly uncertain. `PdfReviewComparisonOptions` bounds page pairs, content,
+pixels, and output bytes and accepts visual ignore regions. Classification is
+review evidence, not a claim about authoring intent or OCR accuracy. An ignored
+pixel region suppresses a semantic text block or image only when it fully
+contains that element; a mask over part of a line leaves its text change for
+review. When setting a custom render scale or background, use the same values
+for `PageAlignment` and `Visual` so exact-page alignment remains valid review
+evidence.
 
 ### Merge, reorder, delete, duplicate, move, and rotate
 
@@ -1665,6 +1677,43 @@ For reproducible builds, replace the generated timestamps and UUIDs with an expl
 
 Internal readiness is not a certification. Pass the exact artifact to a qualified PDF/X preflight tool and bind its result with `PdfExternalValidationResult.PassedForArtifact`; `PdfComplianceProofReport.CanClaimConformance` remains false when that exact external evidence is absent or mismatched.
 
+For an imported PDF, inspect print concerns before submitting it to a press:
+
+```csharp
+PdfDocument incoming = PdfDocument.Load("incoming.pdf");
+PdfProductionPreflightReport report = incoming.Proof.PreflightProduction(
+    new PdfProductionPreflightOptions { Profile = PdfProductionPreflightProfile.PdfX4Candidate });
+foreach (PdfProductionFinding finding in report.Findings)
+    Console.WriteLine($"Page {finding.PageNumber?.ToString() ?? "document"}: {finding.Kind} - {finding.Message}");
+
+foreach (PdfProductionFixupProposal proposal in report.FixupProposals)
+    Console.WriteLine($"[{proposal.Index}] Page {proposal.PageNumber} {proposal.Box}: " +
+        $"{proposal.Bounds.Left}, {proposal.Bounds.Bottom}, {proposal.Bounds.Right}, {proposal.Bounds.Top} — {proposal.Reason}");
+
+// Enter only indices whose finished size and bleed coordinates you verified.
+Console.Write("Approved proposal indices (comma-separated, blank to skip): ");
+string? response = Console.ReadLine();
+int[] approved = string.IsNullOrWhiteSpace(response)
+    ? Array.Empty<int>()
+    : response.Split(',').Select(value => int.Parse(value.Trim())).ToArray();
+if (approved.Length > 0) {
+    PdfProductionFixupResult result = report.ApplySelected(approved);
+    result.Document.Save("boxes-reviewed.pdf");
+    Console.WriteLine($"Remaining findings: {result.After.Findings.Count}");
+}
+```
+
+The general-print and PDF/X candidate profiles inspect output intents, page
+boxes, reachable font programs, color and transparency, and placed-image
+resolution. Findings link to pages and image bounds when the evidence permits.
+Printable annotations and reachable tiling patterns currently produce
+indeterminate color or image-resolution findings where their painted content
+cannot be measured by preflight.
+Page-box fixups change metadata only; they never extend artwork or supply an
+ICC profile. Each accepted fixup is applied to the inspected PDF snapshot and
+the result is reopened for a new engine inspection. A qualified external
+validator is still required for a PDF/X conformance claim.
+
 ### Choose converter-friendly text fallbacks
 
 ```csharp
@@ -1911,13 +1960,14 @@ the complete 21-operation mutation portfolio, managed rendering, and declared
 compliance claim gating against hash-pinned Open Preservation Foundation and
 veraPDF fixtures. The real-world corpus lane applies the same deep PDF stages to
 a deterministic sample of a checksum-pinned public GovDocs archive in isolated
-processes. The performance gate
+processes. The opt-in PDF Performance Evidence workflow
 uses a deterministic 60-page mixed corpus and checks cold and cached analysis,
 SVG rendering, PNG rendering, output integrity, absolute allocation and heap
 budgets, generous elapsed-time ceilings, and cached allocation savings. Relative
 cached speedup is opt-in through `--verify-timing-budgets` for controlled
-benchmark hosts; ordinary CI records it without treating shared-runner timing as
-a release comparison.
+benchmark hosts. Ordinary correctness CI runs the PDF tests without these
+host-dependent performance budgets. The budget runner stays outside the normal
+solution and can also be run directly with the commands above.
 
 Pixel baselines are strict when the installed Poppler major/minor version
 matches the recorded renderer. A different renderer version still runs semantic

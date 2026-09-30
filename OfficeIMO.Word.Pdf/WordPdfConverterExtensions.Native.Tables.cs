@@ -108,7 +108,7 @@ namespace OfficeIMO.Word.Pdf {
                         cellAlignments[(rowIndex, logicalColumnIndex)] = cellAlignment;
                     }
 
-                    PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = ResolveNativeTableCellVerticalAlignment(cell, cellStyleDefaults, layout, rowIndex, logicalColumnIndex, rowSpan);
+                    PdfCore.PdfCellVerticalAlign? cellVerticalAlignment = ResolveNativeTableCellVerticalAlignment(cell, cellStyleDefaults);
                     if (cellVerticalAlignment.HasValue) {
                         cellVerticalAlignments[(rowIndex, logicalColumnIndex)] = cellVerticalAlignment.Value;
                     }
@@ -735,32 +735,8 @@ namespace OfficeIMO.Word.Pdf {
             };
         }
 
-        private static PdfCore.PdfCellVerticalAlign? ResolveNativeTableCellVerticalAlignment(WordTableCell cell, NativeTableStyleDefaults cellStyleDefaults, TableLayout layout, int rowIndex, int columnIndex, int rowSpan) {
+        private static PdfCore.PdfCellVerticalAlign? ResolveNativeTableCellVerticalAlignment(WordTableCell cell, NativeTableStyleDefaults cellStyleDefaults) {
             PdfCore.PdfCellVerticalAlign? directAlignment = MapNativeNullableCellVerticalAlign(cell.VerticalAlignment);
-            if (directAlignment.HasValue) {
-                return directAlignment.Value;
-            }
-
-            // A vertically merged Word cell may declare its alignment on a continuation
-            // cell. The PDF model only retains the first cell, so carry the last declared
-            // continuation alignment onto that cell.
-            for (int continuationRow = rowIndex + 1; continuationRow < rowIndex + rowSpan && continuationRow < layout.Rows.Count; continuationRow++) {
-                int continuationColumn = GetNativeTableRowStartColumn(layout, continuationRow);
-                foreach (WordTableCell continuation in layout.Rows[continuationRow]) {
-                    if (IsNativeHorizontalMergeContinuation(continuation)) {
-                        continue;
-                    }
-                    int continuationSpan = GetNativeCellColumnSpan(continuation);
-                    if (continuationColumn <= columnIndex && columnIndex < continuationColumn + continuationSpan &&
-                        IsNativeVerticalMergeContinuation(continuation)) {
-                        PdfCore.PdfCellVerticalAlign? continuedAlignment = MapNativeNullableCellVerticalAlign(continuation.VerticalAlignment);
-                        if (continuedAlignment.HasValue) {
-                            directAlignment = continuedAlignment.Value;
-                        }
-                    }
-                    continuationColumn += continuationSpan;
-                }
-            }
             if (directAlignment.HasValue) {
                 return directAlignment.Value;
             }

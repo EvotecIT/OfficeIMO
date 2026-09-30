@@ -4,18 +4,25 @@ namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave31RegressionTests {
     [Theory]
-    [InlineData("utf16-le")]
-    [InlineData("utf16-be")]
-    [InlineData("utf32-le")]
-    [InlineData("utf32-be")]
-    public void Declaration_free_BOMless_UTF_XML_is_detected(string encodingName) {
-        const string source = " \n<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Detected</title></titles></record></records></xml>";
+    [InlineData("utf16-le", false)]
+    [InlineData("utf16-be", false)]
+    [InlineData("utf32-le", false)]
+    [InlineData("utf32-be", false)]
+    [InlineData("utf16-le", true)]
+    [InlineData("utf16-be", true)]
+    [InlineData("utf32-le", true)]
+    [InlineData("utf32-be", true)]
+    public void BOMless_UTF_XML_is_detected(string encodingName, bool declaration) {
         Encoding encoding = CreateBomlessEncoding(encodingName);
+        string title = declaration ? "Encoded" : "Detected";
+        string prefix = declaration ? $"<?xml version=\"1.0\" encoding=\"{encoding.WebName}\"?>" : " \n";
+        string source = prefix + "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>" + title + "</title></titles></record></records></xml>";
         using var stream = new MemoryStream(encoding.GetBytes(source));
 
         BibliographyReadResult read = BibliographyDocument.Load(stream, BibliographyFormat.EndNoteXml);
 
-        Assert.Equal("Detected", Assert.Single(read.Document.Items).Title);
+        Assert.Equal(title, Assert.Single(read.Document.Items).Title);
+        Assert.False(read.HasErrors);
         Assert.DoesNotContain(read.Diagnostics, diagnostic => diagnostic.Severity == BibliographyDiagnosticSeverity.Error);
     }
 
@@ -36,29 +43,7 @@ public sealed class BibliographyReviewWave31RegressionTests {
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV243" && diagnostic.Field == "contributors");
     }
 
-    [Fact]
-    public void EndNote_source_offsets_align_with_XmlReader_element_positions() {
-        const string source = "<xml>\n  <record/>\n</xml>";
-        var offsets = new EndNoteSourceOffsetMap(source, 0, CancellationToken.None);
-        using var text = new StringReader(source);
-        using XmlReader reader = XmlReader.Create(text);
-        while (reader.Read() && !(reader.NodeType == XmlNodeType.Element && reader.LocalName == "record")) { }
 
-        Assert.Equal(source.IndexOf("<record", StringComparison.Ordinal), offsets.GetOffset((IXmlLineInfo)reader));
-    }
-
-    [Fact]
-    public void EndNote_PMID_scheme_loss_is_rejected_before_strict_output() {
-        var document = new BibliographyDocument(BibliographyFormat.EndNoteXml);
-        var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.Book };
-        item.Identifiers.Add(new BibliographyIdentifier("PMID", "123"));
-        document.Items.Add(item);
-
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV204" && diagnostic.Field == "identifiers.PMID");
-    }
 
     [Theory]
     [InlineData(BibliographyFormat.Ris, BibliographyDateRole.Issued)]

@@ -1,5 +1,6 @@
 using System;
 using OfficeIMO.Drawing;
+using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
@@ -11,31 +12,10 @@ namespace OfficeIMO.PowerPoint {
             long left = 0L, long top = 0L, long width = 5486400L, long height = 3200400L,
             PowerPointChartAccessibilityOptions? accessibility = null) {
             if (data == null) throw new ArgumentNullException(nameof(data));
-            PowerPointUtils.ValidateSharedChartData(data, chartKind);
-
-            PowerPointChart chart;
-            if (chartKind == OfficeChartKind.Scatter) {
-                PowerPointScatterChartData scatterData = PowerPointUtils.ToPowerPointScatterChartData(data);
-                byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(scatterData);
-                chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) => {
-                    PowerPointUtils.PopulateChart(chartPart, embeddedRelId, scatterData, PowerPointChartKind.Scatter);
-                    PowerPointUtils.ApplySharedChartSeriesStyle(
-                        chartPart, data, chartKind,
-                        materializeMissingBubbleColors: false);
-                }, left, top, width, height);
-            } else if (chartKind == OfficeChartKind.Bubble) {
-                byte[] workbookBytes = PowerPointUtils.BuildBubbleChartWorkbook(data);
-                chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) =>
-                    PowerPointUtils.PopulateSharedChart(chartPart, embeddedRelId, data, chartKind),
-                    left, top, width, height);
-            } else {
-                PowerPointChartData chartData = PowerPointUtils.ToPowerPointChartData(data);
-                byte[] workbookBytes = PowerPointUtils.BuildChartWorkbook(chartData);
-                chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) =>
-                    PowerPointUtils.PopulateSharedChart(chartPart, embeddedRelId, data, chartKind),
-                    left, top, width, height);
-            }
-
+            byte[] workbookBytes = OfficeOpenXmlChartWriter.BuildWorkbook(data, chartKind);
+            PowerPointChart chart = AddChartInternal(workbookBytes, (chartPart, embeddedRelId) =>
+                OfficeOpenXmlChartWriter.PopulateSharedChart(chartPart, embeddedRelId, data, chartKind),
+                left, top, width, height);
             ApplyChartAccessibility(chart, data, chartKind, accessibility);
             return chart;
         }

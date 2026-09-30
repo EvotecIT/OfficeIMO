@@ -1222,7 +1222,8 @@ namespace OfficeIMO.Tests {
                 new C.Index { Val = 0U },
                 new C.ChartShapeProperties(
                     new DocumentFormat.OpenXml.Drawing.NoFill())));
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot noFillSnapshot));
+            Assert.True(noFillSnapshot.Data.Series[0].PointStyles![0]!.NoFill);
 
             C.ChartShapeProperties pointProperties =
                 point.GetFirstChild<C.ChartShapeProperties>()!;
@@ -1236,7 +1237,8 @@ namespace OfficeIMO.Tests {
                     new DocumentFormat.OpenXml.Drawing.RgbColorModelHex {
                         Val = "445566"
                     })));
-            Assert.False(chart.TryGetOfficeSnapshot(out _));
+            Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot outlineSnapshot));
+            Assert.Equal(OfficeColor.Parse("#445566"), outlineSnapshot.Data.Series[0].PointStyles![0]!.OutlineColor);
         }
 
         [Fact]

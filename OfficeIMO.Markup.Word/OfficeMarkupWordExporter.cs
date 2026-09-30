@@ -294,7 +294,10 @@ internal sealed class OfficeMarkupWordExporter {
                 var firstSeries = data.Series.FirstOrDefault();
                 if (firstSeries != null) {
                     for (var index = 0; index < data.Categories.Count && index < firstSeries.Values.Count; index++) {
-                        wordChart.AddPie(data.Categories[index], firstSeries.Values[index]);
+                        if (Normalize(chart.ChartType) == "pie")
+                            wordChart.AddPie(data.Categories[index], firstSeries.Values[index]);
+                        else
+                            wordChart.AddDoughnut(data.Categories[index], firstSeries.Values[index]);
                     }
                 }
 

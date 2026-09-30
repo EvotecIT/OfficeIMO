@@ -7,7 +7,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests.Pdf;
 
-public class PdfUnderstandingPipelineTests {
+public partial class PdfUnderstandingPipelineTests {
     [Fact]
     public void TextSimilarity_PreservesSupplementaryUnicodeLettersAndDigits() {
         Assert.Equal("\U00010428", PdfTextSimilarity.NormalizeSignature("\U00010400"));

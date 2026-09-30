@@ -8,6 +8,7 @@ namespace OfficeIMO.Drawing;
 /// Reusable chart style metadata shared by OfficeIMO chart renderers and format exporters.
 /// </summary>
 public sealed class OfficeChartStyle {
+    private IReadOnlyList<OfficeColor> _palette = Array.Empty<OfficeColor>();
     private static readonly OfficeColor[] DefaultPaletteValues = new[] {
         OfficeColor.FromRgb(31, 78, 121),
         OfficeColor.FromRgb(47, 111, 62),
@@ -18,6 +19,77 @@ public sealed class OfficeChartStyle {
     };
 
     private static readonly OfficeChartStyle DefaultStyle = new OfficeChartStyle();
+
+    /// <summary>Preserves the original compiled constructor signature.</summary>
+    public OfficeChartStyle(
+        IEnumerable<OfficeColor>? palette,
+        string? fontFamily,
+        OfficeColor? backgroundColor,
+        OfficeColor? borderColor,
+        OfficeColor? axisColor,
+        OfficeColor? gridLineColor,
+        OfficeColor? textColor,
+        OfficeColor? mutedTextColor,
+        OfficeColor? axisTitleColor,
+        OfficeColor? titleColor,
+        string? titleFontFamily,
+        double? titleFontSize,
+        OfficeFontStyle? titleFontStyle,
+        OfficeColor? plotAreaBackgroundColor,
+        OfficeColor? plotAreaBorderColor,
+        double? chartBorderWidth,
+        double? plotAreaBorderWidth,
+        OfficeStrokeDashStyle? chartBorderDashStyle,
+        OfficeStrokeDashStyle? plotAreaBorderDashStyle,
+        bool showGridLines,
+        double? axisLineWidth,
+        double? gridLineWidth,
+        OfficeStrokeDashStyle? axisLineDashStyle,
+        OfficeStrokeDashStyle? gridLineDashStyle,
+        OfficeColor? legendTextColor,
+        OfficeColor? dataLabelTextColor,
+        OfficeColor? categoryAxisColor,
+        OfficeColor? valueAxisColor,
+        double? categoryAxisLineWidth,
+        double? valueAxisLineWidth,
+        OfficeStrokeDashStyle? categoryAxisLineDashStyle,
+        OfficeStrokeDashStyle? valueAxisLineDashStyle,
+        OfficeColor? categoryGridLineColor,
+        OfficeColor? valueGridLineColor,
+        double? categoryGridLineWidth,
+        double? valueGridLineWidth,
+        OfficeStrokeDashStyle? categoryGridLineDashStyle,
+        OfficeStrokeDashStyle? valueGridLineDashStyle,
+        bool? showCategoryGridLines,
+        bool? showValueGridLines,
+        OfficeColor? categoryMinorGridLineColor,
+        OfficeColor? valueMinorGridLineColor,
+        double? categoryMinorGridLineWidth,
+        double? valueMinorGridLineWidth,
+        OfficeStrokeDashStyle? categoryMinorGridLineDashStyle,
+        OfficeStrokeDashStyle? valueMinorGridLineDashStyle,
+        bool? showCategoryMinorGridLines,
+        bool? showValueMinorGridLines,
+        OfficeColor? dataLabelFillColor,
+        OfficeColor? dataLabelBorderColor,
+        double? dataLabelBorderWidth,
+        OfficeStrokeDashStyle? dataLabelBorderDashStyle,
+        bool showBorder)
+        : this(palette, fontFamily, backgroundColor, borderColor,
+            axisColor, gridLineColor, textColor, mutedTextColor,
+            axisTitleColor, titleColor, titleFontFamily, titleFontSize,
+            titleFontStyle, plotAreaBackgroundColor, plotAreaBorderColor, chartBorderWidth,
+            plotAreaBorderWidth, chartBorderDashStyle, plotAreaBorderDashStyle, showGridLines,
+            axisLineWidth, gridLineWidth, axisLineDashStyle, gridLineDashStyle,
+            legendTextColor, dataLabelTextColor, categoryAxisColor, valueAxisColor,
+            categoryAxisLineWidth, valueAxisLineWidth, categoryAxisLineDashStyle, valueAxisLineDashStyle,
+            categoryGridLineColor, valueGridLineColor, categoryGridLineWidth, valueGridLineWidth,
+            categoryGridLineDashStyle, valueGridLineDashStyle, showCategoryGridLines, showValueGridLines,
+            categoryMinorGridLineColor, valueMinorGridLineColor, categoryMinorGridLineWidth, valueMinorGridLineWidth,
+            categoryMinorGridLineDashStyle, valueMinorGridLineDashStyle, showCategoryMinorGridLines, showValueMinorGridLines,
+            dataLabelFillColor, dataLabelBorderColor, dataLabelBorderWidth, dataLabelBorderDashStyle,
+            showBorder, null, null, null) {
+    }
 
     /// <summary>
     /// Creates chart style metadata.
@@ -75,6 +147,9 @@ public sealed class OfficeChartStyle {
     /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
     /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
     /// <param name="showBorder">Whether the chart border should be rendered.</param>
+    /// <param name="legendBackgroundColor">Optional legend frame fill.</param>
+    /// <param name="legendBorderColor">Optional legend frame border colour.</param>
+    /// <param name="legendBorderWidth">Optional positive legend frame border width.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -128,7 +203,10 @@ public sealed class OfficeChartStyle {
         OfficeColor? dataLabelBorderColor = null,
         double? dataLabelBorderWidth = null,
         OfficeStrokeDashStyle? dataLabelBorderDashStyle = null,
-        bool showBorder = true)
+        bool showBorder = true,
+        OfficeColor? legendBackgroundColor = null,
+        OfficeColor? legendBorderColor = null,
+        double? legendBorderWidth = null)
         : this(
             showBackground: true,
             palette: palette,
@@ -183,7 +261,83 @@ public sealed class OfficeChartStyle {
             dataLabelBorderColor: dataLabelBorderColor,
             dataLabelBorderWidth: dataLabelBorderWidth,
             dataLabelBorderDashStyle: dataLabelBorderDashStyle,
-            showBorder: showBorder) {
+            showBorder: showBorder,
+            legendBackgroundColor: legendBackgroundColor,
+            legendBorderColor: legendBorderColor,
+            legendBorderWidth: legendBorderWidth) {
+    }
+
+    /// <summary>Preserves the original compiled constructor signature.</summary>
+    public OfficeChartStyle(
+        bool showBackground,
+        IEnumerable<OfficeColor>? palette,
+        string? fontFamily,
+        OfficeColor? backgroundColor,
+        OfficeColor? borderColor,
+        OfficeColor? axisColor,
+        OfficeColor? gridLineColor,
+        OfficeColor? textColor,
+        OfficeColor? mutedTextColor,
+        OfficeColor? axisTitleColor,
+        OfficeColor? titleColor,
+        string? titleFontFamily,
+        double? titleFontSize,
+        OfficeFontStyle? titleFontStyle,
+        OfficeColor? plotAreaBackgroundColor,
+        OfficeColor? plotAreaBorderColor,
+        double? chartBorderWidth,
+        double? plotAreaBorderWidth,
+        OfficeStrokeDashStyle? chartBorderDashStyle,
+        OfficeStrokeDashStyle? plotAreaBorderDashStyle,
+        bool showGridLines,
+        double? axisLineWidth,
+        double? gridLineWidth,
+        OfficeStrokeDashStyle? axisLineDashStyle,
+        OfficeStrokeDashStyle? gridLineDashStyle,
+        OfficeColor? legendTextColor,
+        OfficeColor? dataLabelTextColor,
+        OfficeColor? categoryAxisColor,
+        OfficeColor? valueAxisColor,
+        double? categoryAxisLineWidth,
+        double? valueAxisLineWidth,
+        OfficeStrokeDashStyle? categoryAxisLineDashStyle,
+        OfficeStrokeDashStyle? valueAxisLineDashStyle,
+        OfficeColor? categoryGridLineColor,
+        OfficeColor? valueGridLineColor,
+        double? categoryGridLineWidth,
+        double? valueGridLineWidth,
+        OfficeStrokeDashStyle? categoryGridLineDashStyle,
+        OfficeStrokeDashStyle? valueGridLineDashStyle,
+        bool? showCategoryGridLines,
+        bool? showValueGridLines,
+        OfficeColor? categoryMinorGridLineColor,
+        OfficeColor? valueMinorGridLineColor,
+        double? categoryMinorGridLineWidth,
+        double? valueMinorGridLineWidth,
+        OfficeStrokeDashStyle? categoryMinorGridLineDashStyle,
+        OfficeStrokeDashStyle? valueMinorGridLineDashStyle,
+        bool? showCategoryMinorGridLines,
+        bool? showValueMinorGridLines,
+        OfficeColor? dataLabelFillColor,
+        OfficeColor? dataLabelBorderColor,
+        double? dataLabelBorderWidth,
+        OfficeStrokeDashStyle? dataLabelBorderDashStyle,
+        bool showBorder)
+        : this(showBackground, palette, fontFamily, backgroundColor,
+            borderColor, axisColor, gridLineColor, textColor,
+            mutedTextColor, axisTitleColor, titleColor, titleFontFamily,
+            titleFontSize, titleFontStyle, plotAreaBackgroundColor, plotAreaBorderColor,
+            chartBorderWidth, plotAreaBorderWidth, chartBorderDashStyle, plotAreaBorderDashStyle,
+            showGridLines, axisLineWidth, gridLineWidth, axisLineDashStyle,
+            gridLineDashStyle, legendTextColor, dataLabelTextColor, categoryAxisColor,
+            valueAxisColor, categoryAxisLineWidth, valueAxisLineWidth, categoryAxisLineDashStyle,
+            valueAxisLineDashStyle, categoryGridLineColor, valueGridLineColor, categoryGridLineWidth,
+            valueGridLineWidth, categoryGridLineDashStyle, valueGridLineDashStyle, showCategoryGridLines,
+            showValueGridLines, categoryMinorGridLineColor, valueMinorGridLineColor, categoryMinorGridLineWidth,
+            valueMinorGridLineWidth, categoryMinorGridLineDashStyle, valueMinorGridLineDashStyle, showCategoryMinorGridLines,
+            showValueMinorGridLines, dataLabelFillColor, dataLabelBorderColor, dataLabelBorderWidth,
+            dataLabelBorderDashStyle, showBorder, null, null,
+            null) {
     }
 
     /// <summary>
@@ -243,6 +397,9 @@ public sealed class OfficeChartStyle {
     /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
     /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
     /// <param name="showBorder">Whether the chart border should be rendered.</param>
+    /// <param name="legendBackgroundColor">Optional legend frame fill.</param>
+    /// <param name="legendBorderColor">Optional legend frame border colour.</param>
+    /// <param name="legendBorderWidth">Optional positive legend frame border width.</param>
     public OfficeChartStyle(
         bool showBackground,
         IEnumerable<OfficeColor>? palette = null,
@@ -297,7 +454,10 @@ public sealed class OfficeChartStyle {
         OfficeColor? dataLabelBorderColor = null,
         double? dataLabelBorderWidth = null,
         OfficeStrokeDashStyle? dataLabelBorderDashStyle = null,
-        bool showBorder = true) {
+        bool showBorder = true,
+        OfficeColor? legendBackgroundColor = null,
+        OfficeColor? legendBorderColor = null,
+        double? legendBorderWidth = null) {
         if (chartBorderWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(chartBorderWidth), "Chart border width must be greater than zero.");
         }
@@ -334,13 +494,16 @@ public sealed class OfficeChartStyle {
         if (dataLabelBorderWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(dataLabelBorderWidth), "Data label border width must be greater than zero.");
         }
+        if (legendBorderWidth is <= 0D || legendBorderWidth is double width && (double.IsNaN(width) || double.IsInfinity(width))) {
+            throw new ArgumentOutOfRangeException(nameof(legendBorderWidth), "Legend border width must be finite and greater than zero.");
+        }
 
         var colors = palette == null ? new List<OfficeColor>() : new List<OfficeColor>(palette);
         if (colors.Count == 0) {
             colors.AddRange(DefaultPaletteValues);
         }
 
-        Palette = new ReadOnlyCollection<OfficeColor>(colors);
+        _palette = new ReadOnlyCollection<OfficeColor>(colors);
         FontFamily = string.IsNullOrWhiteSpace(fontFamily) ? "Aptos" : fontFamily!;
         BackgroundColor = backgroundColor ?? OfficeColor.FromRgb(250, 252, 255);
         BorderColor = borderColor ?? OfficeColor.FromRgb(183, 194, 207);
@@ -389,6 +552,9 @@ public sealed class OfficeChartStyle {
         ShowBackground = showBackground;
         ShowBorder = showBorder;
         LegendTextColor = legendTextColor;
+        LegendBackgroundColor = legendBackgroundColor;
+        LegendBorderColor = legendBorderColor;
+        LegendBorderWidth = legendBorderWidth;
         DataLabelTextColor = dataLabelTextColor;
         DataLabelFillColor = dataLabelFillColor;
         DataLabelBorderColor = dataLabelBorderColor;
@@ -400,7 +566,24 @@ public sealed class OfficeChartStyle {
     public static OfficeChartStyle Default => DefaultStyle;
 
     /// <summary>Series and slice palette.</summary>
-    public IReadOnlyList<OfficeColor> Palette { get; }
+    public IReadOnlyList<OfficeColor> Palette => _palette;
+
+    /// <summary>Returns a style with a replacement series and slice palette.</summary>
+    public OfficeChartStyle WithPalette(IEnumerable<OfficeColor> palette) {
+        if (palette == null) throw new ArgumentNullException(nameof(palette));
+        var colors = new List<OfficeColor>(palette);
+        if (colors.Count == 0) throw new ArgumentException("Palette cannot be empty.", nameof(palette));
+        var copy = (OfficeChartStyle)MemberwiseClone();
+        copy._palette = new ReadOnlyCollection<OfficeColor>(colors);
+        return copy;
+    }
+
+    /// <summary>Returns a style with the projected data-label text color.</summary>
+    public OfficeChartStyle WithDataLabelTextColor(OfficeColor color) {
+        var copy = (OfficeChartStyle)MemberwiseClone();
+        copy.DataLabelTextColor = color;
+        return copy;
+    }
 
     /// <summary>Chart text font family.</summary>
     public string FontFamily { get; }
@@ -441,8 +624,17 @@ public sealed class OfficeChartStyle {
     /// <summary>Optional legend text color.</summary>
     public OfficeColor? LegendTextColor { get; }
 
+    /// <summary>Optional legend frame fill.</summary>
+    public OfficeColor? LegendBackgroundColor { get; }
+
+    /// <summary>Optional legend frame border colour.</summary>
+    public OfficeColor? LegendBorderColor { get; }
+
+    /// <summary>Optional legend frame border width.</summary>
+    public double? LegendBorderWidth { get; }
+
     /// <summary>Optional data label text color.</summary>
-    public OfficeColor? DataLabelTextColor { get; }
+    public OfficeColor? DataLabelTextColor { get; private set; }
 
     /// <summary>Optional data label box fill color.</summary>
     public OfficeColor? DataLabelFillColor { get; }
