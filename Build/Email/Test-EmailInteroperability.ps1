@@ -66,7 +66,7 @@ $lanes = [ordered] @{
 }
 $externalMethods = @($lanes.GetEnumerator() | Where-Object Key -ne 'Managed' |
     ForEach-Object { $_.Value })
-$managedFilter = ($externalMethods | ForEach-Object { 'FullyQualifiedName!=' + $_ }) -join '&'
+$managedFilter = 'Category!=Performance&' + (($externalMethods | ForEach-Object { 'FullyQualifiedName!=' + $_ }) -join '&')
 $started = [DateTime]::UtcNow
 $head = & git -C $repoRoot rev-parse HEAD
 if ($LASTEXITCODE -ne 0) { throw 'Cannot record the source commit.' }

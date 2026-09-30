@@ -18,7 +18,7 @@ when Windows and Linux validate the same mounted source checkout.
 
 | Lane | Evidence | Existing opt-in prerequisite |
 | --- | --- | --- |
-| Managed | Ordinary email artifact, store, address-book, Reader and HTML regression tests, including generated independent-producer fixtures | None |
+| Managed | Ordinary email artifact, store, address-book, Reader and HTML regression tests, including generated independent-producer fixtures; excludes `Category=Performance` | None |
 | MsgReader | MSGReader sample corpus with per-artifact semantic comparison | `OFFICEIMO_EMAIL_CORPUS_ROOT` or `EVOTEC_GITHUB_ROOT` containing `MSGReader` |
 | MimeKit | MIME, TNEF and mbox sample corpus, adversarial scenarios and duplicate-header order | The same corpus root containing `MimeKit` |
 | LibPff | Generated Unicode PST inspection and semantic export through libpff | `OFFICEIMO_EMAIL_STORE_PFFINFO` and the corresponding export tool, or Windows `OFFICEIMO_EMAIL_STORE_LIBPFF_WSL` |
@@ -31,6 +31,7 @@ The runner does not download corpora or enable Outlook automation. Select extern
 lanes only after their prerequisites are configured. Outlook tests may launch the
 installed application and use its configured profile. Corpus provenance and licenses
 are described in [the producer catalog](../../OfficeIMO.Email.Tests/Corpora/producer-corpora.json).
+Host-dependent measurements have a separate [email performance evidence lane](../../OfficeIMO.Email.Tests/README.md).
 
 Each requested lane must produce a TRX result with at least one test, no skips or
 failures, and every named test executed. A missing prerequisite, zero-test selection,
