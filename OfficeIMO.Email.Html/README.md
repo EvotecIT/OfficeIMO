@@ -67,3 +67,23 @@ reply.Document.Save("reply.eml");
 ```
 
 The core composer owns recipients, own-address exclusions and threading. Authored text is HTML-encoded, and original markup passes through the shared untrusted policy. Automatic meta-refresh navigation is removed by the mail safety projection. Quoted resource references, images, media, form controls, styles and inline attachments are omitted; resource diagnostics describe the quotation policy. An oversized rich quotation becomes bounded text instead of partially clipped markup. `EmailHtmlCompositionOptions.Composition` controls quotation and threading, `MaxSourceChars` bounds the original body, and `MaxProjectionChars` separately bounds generated HTML. Missing bodies are not quoted. The result is an independent draft; saving it does not send mail.
+
+For a plain-text share artifact, `EmailHtmlShareCopy` applies indexing before the core field-selection policy:
+
+```csharp
+EmailHtmlShareCopyResult share = EmailHtmlShareCopy.Create(message,
+    new EmailShareCopyOptions { ReplacementSubject = "Shared discussion" },
+    new EmailIndexTextOptions { ExcludeQuotes = true, ExcludeSignatures = true });
+share.Copy.Document.Save("share.eml");
+```
+
+The result records the selected body representation, truncation, diagnostic codes and explicitly removed
+concealment findings without returning original text or finding previews. An explicit `ReplacementBodyText`
+bypasses body projection. Recognized quote/signature exclusions are heuristics and do not establish authorship.
+Indexing does not remove every form of CSS-concealed text.
+
+Inspect the original HTML with `OfficeIMO.Html.HtmlContentSafety.Inspect`, review its findings, and pass
+an `OfficeIMO.ContentSafety.OfficeContentCleanupSelection` containing the chosen finding IDs as
+`cleanupSelection` to remove those exact findings before projection. This uses the shared content-safety
+owner and leaves the original body unchanged. Review retained text and selected attachment payloads before
+sharing; this operation does not promise complete anonymization or retain original integrity assurance.

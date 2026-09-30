@@ -1,5 +1,3 @@
-using System.Net.Mail;
-
 namespace OfficeIMO.Email;
 
 /// <summary>Creates new reply and forward drafts over the format-neutral email model.</summary>
@@ -80,15 +78,7 @@ public static class EmailComposer {
 
     private static EmailAddress CopyAddress(EmailAddress address, string smtp) => new EmailAddress(smtp, address.DisplayName) { AddressType = "SMTP" };
 
-    private static string? Smtp(EmailAddress? address) {
-        if (string.IsNullOrWhiteSpace(address?.Address) || address!.Address!.Any(char.IsControl) ||
-            (!string.IsNullOrWhiteSpace(address.AddressType) && !string.Equals(address.AddressType, "SMTP", StringComparison.OrdinalIgnoreCase))) return null;
-        try {
-            string value = address.Address!;
-            var parsed = new MailAddress(value);
-            return parsed.Address.Contains("@") && string.Equals(parsed.Address, value.Trim(), StringComparison.OrdinalIgnoreCase) ? parsed.Address : null;
-        } catch (FormatException) { return null; }
-    }
+    private static string? Smtp(EmailAddress? address) => EmailSmtpAddress.Normalize(address);
 
     private static void ApplyThreading(EmailDocument original, EmailDocument draft, int maximum, List<EmailDiagnostic> diagnostics) {
         string? parent = MessageId(original.MessageId ?? original.Headers.FirstOrDefault(item => item.Name.Equals("Message-ID", StringComparison.OrdinalIgnoreCase))?.Value);

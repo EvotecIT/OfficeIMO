@@ -47,6 +47,36 @@ These builders quote the plain-text alternative, with a 256 KiB character limit 
 HTML-only messages return a missing-plain-body diagnostic. Inspect the result before handing a draft to a
 transport such as Mailozaurr.
 
+## Create a field-selected share copy
+
+Create an independent EML model with a reviewed plain-text body:
+
+```csharp
+EmailShareCopyResult share = EmailShareCopy.Create(message, new EmailShareCopyOptions {
+    ReplacementSubject = "Shared discussion",
+    ReplacementBodyText = "Text reviewed for sharing"
+});
+share.Document.Save("share.eml");
+```
+
+The default copies the original plain-text body and omits the original envelope, Bcc, threading,
+extra headers, attachments, HTML/RTF, raw source, MAPI/TNEF metadata and protected wrappers.
+`RetainedFields` selects subject, author, To/Cc or date. `AddressReplacements` replaces selected
+addresses or omits them with a null replacement; display names require `KeepDisplayNames`.
+`RetainedHeaderNames` selects extra headers, while envelope (including `Resent-*`), MIME and integrity headers remain
+owned by the new artifact. `Changes` records copied, replaced and omitted field paths without
+original values. Diagnostics explain removed integrity evidence and unavailable plain bodies.
+
+Select ordinary attachment indexes explicitly through `AttachmentIndexes`. Selected payload bytes
+are copied independently and remain unchanged; generic filenames are used unless explicitly retained
+or replaced through `AttachmentNames`. Linked paths are never opened, and embedded messages require
+separate field-selected copies. Defaults allow 100 selected attachments, 64 MiB per payload, 256 MiB
+total, and 2 Mi characters per retained text field. The source document is unchanged.
+
+Review retained body text, selected extra headers and opaque attachment content before sharing.
+Field selection does not anonymize their contents or preserve the original signature assurance.
+The optional HTML bridge supplies bounded text projection and selected concealed-content cleanup.
+
 `OfficeIMO.Email` provides a first-party engine for persisted email and Outlook artifacts without a third-party message, compound-file, MIME, RTF, or platform-UI runtime.
 
 ```powershell
