@@ -43,11 +43,10 @@ This matrix tracks dependency-free image export across OfficeIMO document packag
 
 ## Advanced Source Codec Boundaries
 
-Opaque lossy VP8 WebP is decoded by the shared managed raster path. The formats below still need a caller-supplied `ImageCodec` for pixel decoding or composition.
+Still lossy VP8 WebP with optional raw or lossless-compressed alpha and ordinary lossless VP8L WebP are decoded by the shared managed raster path. The formats below still need a caller-supplied `ImageCodec` for pixel decoding or composition. WebP output uses the separate lossless encoder contract.
 
 | Format | Current boundary |
 | --- | --- |
-| Alpha-bearing lossy WebP (ALPH + VP8) | Opaque VP8 and ordinary lossless VP8L decode in Core. A separate ALPH plane needs `ImageCodec` for pixels; bounded frame inventory remains available. WebP output remains a separate lossless encoder contract. |
 | Animated WebP | No managed frame-composition or timing contract; callers can supply a codec. Static output does not select an animation frame implicitly. |
 | JPEG-in-TIFF | Classic TIFF strips and tiles support the documented non-JPEG compressions; JPEG-compressed TIFF needs `ImageCodec`. |
 | BigTIFF | Managed TIFF parsing accepts classic 32-bit offsets only; BigTIFF needs `ImageCodec`. |
