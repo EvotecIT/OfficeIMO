@@ -21,6 +21,9 @@ public sealed class BibliographyReviewWave41RegressionTests {
 
     [Fact]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void Date_component_scanning_retains_excess_fragments_as_a_literal() {
 #if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
         const int fragments = 100_000;

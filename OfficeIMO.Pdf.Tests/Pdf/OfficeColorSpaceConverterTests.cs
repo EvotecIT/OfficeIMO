@@ -594,6 +594,10 @@ public class OfficeColorSpaceConverterTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if PDF_PERFORMANCE_EVIDENCE
+    [Trait("Category", "ResourcePerformanceEvidence")]
+    [Trait("Category", "Performance")]
+#endif
     public void IccMbaProfile_OffersAllocationFreeBufferedOutputAndSoftProofPaths() {
         Assert.True(OfficeIccColorProfile.TryCreate(
             IccMabTestProfiles.CreateCmykLab8Bidirectional(),
@@ -605,23 +609,34 @@ public class OfficeColorSpaceConverterTests {
         Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination));
         Assert.True(profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _));
 
+#if PDF_PERFORMANCE_EVIDENCE
         // Cross the tiered-compilation threshold before measuring the steady-state
         // caller-owned buffer paths. Runtime/JIT bookkeeping is not conversion allocation.
         for (int index = 0; index < 4096; index++) {
             Assert.True(profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination));
             Assert.True(profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _));
         }
+#endif
 
         bool succeeded = true;
+#if PDF_PERFORMANCE_EVIDENCE
         long allocated = PdfAllocationTestSupport.MeasureMinimumThreadAllocation(() => {
             for (int index = 0; index < 1000; index++) {
                 succeeded &= profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination);
                 succeeded &= profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _);
             }
         });
+#else
+        for (int index = 0; index < 2; index++) {
+            succeeded &= profile.TryConvertToDevice(source, OfficeIccRenderingIntent.Saturation, destination);
+            succeeded &= profile.TrySoftProof(source, OfficeIccRenderingIntent.Saturation, out _);
+        }
+#endif
 
         Assert.True(succeeded);
+#if PDF_PERFORMANCE_EVIDENCE
         Assert.Equal(0L, allocated);
+#endif
     }
 #endif
 

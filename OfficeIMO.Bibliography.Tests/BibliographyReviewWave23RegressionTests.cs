@@ -5,6 +5,9 @@ namespace OfficeIMO.Bibliography.Tests;
 public sealed class BibliographyReviewWave23RegressionTests {
     [Fact]
     [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
     public void NBIB_author_normalization_retains_unmatched_authors_and_observes_cancellation() {
 #if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
         const int pairs = 2_000;
