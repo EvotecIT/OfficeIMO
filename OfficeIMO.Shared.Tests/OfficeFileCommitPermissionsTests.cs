@@ -3,10 +3,35 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using Xunit;
+using Microsoft.Win32.SafeHandles;
 
 namespace OfficeIMO.Shared.Tests {
     public sealed class OfficeFileCommitPermissionsTests {
 #if NET6_0_OR_GREATER
+        [Theory]
+        [InlineData(256U)] // 0400
+        [InlineData(384U)] // 0600
+        public void NativeUnixCreationUsesTheRequestedModeBeforeAnyPermissionRepair(uint mode) {
+            if (OperatingSystem.IsWindows()) return;
+            if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux()) return;
+            string root = Path.Combine(Path.GetTempPath(), "officeimo-create-mode-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(root);
+            string path = Path.Combine(root, "private.bin");
+            try {
+                int flags = 2 | (OperatingSystem.IsMacOS() ? 0x0200 | 0x0800 : 0x0040 | 0x0080);
+                int descriptor = OfficeUnixFile.OpenWithMode(path, flags, mode);
+                Assert.True(descriptor >= 0);
+                using var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
+                using var stream = new FileStream(handle, FileAccess.ReadWrite);
+                Assert.Equal((UnixFileMode)mode, File.GetUnixFileMode(path));
+                stream.WriteByte(42);
+                stream.Flush();
+                Assert.Equal(new byte[] { 42 }, File.ReadAllBytes(path));
+            } finally {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+
         [Theory]
         [InlineData(false)]
         [InlineData(true)]

@@ -40,7 +40,7 @@ internal sealed class OfficeWorkflowPublicationDirectory : IDisposable {
             stream.Flush(flushToDisk: true);
             return;
         }
-        int descriptor = UnixOpenAt(UnixFd, name, UnixWriteOnly | UnixCreate | UnixExclusive |
+        int descriptor = OfficeIMO.Core.Internal.OfficeUnixFile.OpenAtWithMode(UnixFd, name, UnixWriteOnly | UnixCreate | UnixExclusive |
             UnixNoFollow | UnixCloseOnExec, 384); // 0600
         if (descriptor < 0) throw UnixError("create", name);
         using var handle = new SafeFileHandle(new IntPtr(descriptor), ownsHandle: true);
