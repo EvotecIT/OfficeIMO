@@ -38,7 +38,7 @@ internal static class IWorkTableRichTextReader {
             catalogStructureComplete = false;
             return strings;
         }
-        if (!IWorkNumbersReader.TryGetCatalogEntryCount(list, maximumEntries, options,
+        if (!IWorkTableReader.TryGetCatalogEntryCount(list, maximumEntries, options,
                 "rich-text", out int entryCount)) {
             fullyReconstructed = false;
             catalogStructureComplete = false;
