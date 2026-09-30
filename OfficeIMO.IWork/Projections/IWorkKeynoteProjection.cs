@@ -608,6 +608,8 @@ internal static class IWorkKeynoteReader {
         IEnumerable<IWorkTextContent> slideText =
             (title == null ? Array.Empty<IWorkTextContent>() : new[] { title.Content })
             .Concat(textBoxes.Select(textBox => textBox.Content))
+            .Concat(tables.SelectMany(table => table.Cells)
+                .Where(cell => cell.RichText != null).Select(cell => cell.RichText!))
             .Append(notes);
         if (slideText.SelectMany(content => content.Paragraphs).Any(paragraph =>
                 paragraph.Style.PageBreakBefore == true

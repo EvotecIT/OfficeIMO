@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Text_only_owners_reject_formula_caches_with_incomplete_styles(
         IWorkDocumentKind kind) {
-        using MemoryStream package = CreateFormulaTableWithIncompleteRichCacheStyle(kind);
+        using MemoryStream package = CreateFormulaTableWithRichCacheStyle(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
             using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
@@ -32,8 +32,8 @@ public sealed partial class IWorkBoundaryTests {
         }
     }
 
-    private static MemoryStream CreateFormulaTableWithIncompleteRichCacheStyle(
-        IWorkDocumentKind kind) {
+    private static MemoryStream CreateFormulaTableWithRichCacheStyle(
+        IWorkDocumentKind kind, int? paginationStyleField = null) {
         var cell = new byte[20];
         cell[0] = 5;
         cell[1] = 9;
@@ -72,8 +72,11 @@ public sealed partial class IWorkBoundaryTests {
                 Message(VarintField(1, 1), ReferenceField(9, 15)))), new ulong[] { 15 }),
             ArchiveRecord(15, 6218, Message(ReferenceField(1, 16)), new ulong[] { 16 }),
             ArchiveRecord(16, 2001, Message(StringField(3, "Styled"),
-                BytesField(5, Message(BytesField(1,
-                    Message(VarintField(1, 0), ReferenceField(2, 99))))))));
+                BytesField(5, Message(BytesField(1, Message(VarintField(1, 0),
+                    ReferenceField(2, paginationStyleField.HasValue ? 17UL : 99UL))))))),
+            paginationStyleField.HasValue
+                ? ArchiveRecord(17, 2022, Message(BytesField(12, Message(VarintField(paginationStyleField.Value, 1)))))
+                : Array.Empty<byte>());
         return CreatePackage(
             (kind == IWorkDocumentKind.Pages ? "Index/Document.iwa" : "Index/Slide.iwa",
                 FrameIwa(records)),

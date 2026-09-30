@@ -154,7 +154,7 @@ namespace OfficeIMO.Excel {
             cleaned = _multipleUnderscoresRegex.Replace(cleaned, "_");
             cleaned = cleaned.Trim('_');
             if (cleaned.Length == 0) cleaned = GenerateDefaultSheetName(existing);
-            if (cleaned.Length > 31) cleaned = cleaned.Substring(0, 31);
+            if (cleaned.Length > 31) cleaned = ExcelSheetNameText.Truncate(cleaned, 31);
 
             // Ensure uniqueness by appending (2), (3), ...
             string candidate = cleaned;
@@ -162,7 +162,7 @@ namespace OfficeIMO.Excel {
             while (existing.Contains(candidate)) {
                 string suffix = " (" + n.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
                 int maxBase = 31 - suffix.Length;
-                string basePart = cleaned.Length > maxBase ? cleaned.Substring(0, maxBase) : cleaned;
+                string basePart = cleaned.Length > maxBase ? ExcelSheetNameText.Truncate(cleaned, maxBase) : cleaned;
                 candidate = basePart + suffix;
                 n++;
             }

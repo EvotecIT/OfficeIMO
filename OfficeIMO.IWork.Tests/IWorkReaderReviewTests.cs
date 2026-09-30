@@ -255,7 +255,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Pages)]
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Reader_reports_formula_cache_styles_it_cannot_project(IWorkDocumentKind kind) {
-        using MemoryStream package = CreateFormulaTableWithIncompleteRichCacheStyle(kind);
+        using MemoryStream package = CreateFormulaTableWithRichCacheStyle(kind);
 
         OfficeDocumentReadResult result = IWorkReaderAdapter.ReadDocument(package,
             kind == IWorkDocumentKind.Pages ? "sample.pages" : "sample.key",

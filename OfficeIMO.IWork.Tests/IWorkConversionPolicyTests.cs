@@ -173,6 +173,53 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(result.IsVisualFallback);
     }
 
+    [Theory]
+    [InlineData(9)]
+    [InlineData(10)]
+    [InlineData(14)]
+    public void Keynote_table_cell_pagination_is_reported_as_partial(int styleField) {
+        using MemoryStream package = CreateFormulaTableWithRichCacheStyle(IWorkDocumentKind.Keynote,
+            paginationStyleField: styleField);
+        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
+            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+
+        Assert.False(result.IsVisualFallback);
+        Assert.True(result.Report.IsPartialEditableReconstruction);
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED");
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using PowerPointPresentation reopened = PowerPointPresentation.Load(saved);
+        Assert.Contains("Styled", reopened.Slides[0].Tables.First().GetCell(0, 0).Text);
+    }
+
+    [Theory]
+    [InlineData(22)]
+    [InlineData(18)]
+    public void Numbers_name_normalization_and_collision_suffix_preserve_valid_unicode(int prefixLength) {
+        string name = new string('A', prefixLength) + "😀" + "tail";
+        using MemoryStream package = CreateNumbersPackage(new[] {
+            new TableSpec(name, 1, 1, 1d), new TableSpec(name, 1, 1, 2d)
+        });
+        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
+            conversionOptions: new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var saved = new MemoryStream();
+        result.Value.Save(saved);
+        saved.Position = 0;
+        using global::OfficeIMO.Excel.ExcelDocument reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
+
+        Assert.Equal(2, reopened.Sheets.Count);
+        Assert.NotEqual(reopened.Sheets[0].Name, reopened.Sheets[1].Name);
+        Assert.All(reopened.Sheets, sheet => {
+            System.Xml.XmlConvert.VerifyXmlChars(sheet.Name);
+            Assert.InRange(sheet.Name.Length, 1, 31);
+        });
+        Assert.Equal(1d, reopened.Sheets[0].CellAt(1, 1).GetValue<double>());
+        Assert.Equal(2d, reopened.Sheets[1].CellAt(1, 1).GetValue<double>());
+    }
+
     private static string CorpusFixture(string path) => Path.Combine(AppContext.BaseDirectory,
         "Documents", "IWorkCorpus", path.Replace('/', Path.DirectorySeparatorChar));
 }
