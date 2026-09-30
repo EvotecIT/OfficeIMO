@@ -36,6 +36,14 @@ public sealed class IWorkWorkflowTests {
         Assert.Equal(referenceIssues, int.Parse(evidence.Facts["sourceMissingReferenceTargetCount"])
             + int.Parse(evidence.Facts["sourceMalformedReferenceCount"])
             + int.Parse(evidence.Facts["sourceRejectedReferenceSetCount"]));
+        IWorkSourceDocument coreSource = IWorkSourceDocument.Open(files.Input);
+        int declarationIssues = coreSource.Kind switch {
+            IWorkDocumentKind.Pages => coreSource.ReadPages().SourceDeclarationIssues.Count,
+            IWorkDocumentKind.Numbers => coreSource.ReadNumbers().SourceDeclarationIssues.Count,
+            _ => coreSource.ReadKeynote().SourceDeclarationIssues.Count
+        };
+        Assert.Equal(declarationIssues, int.Parse(evidence.Facts["sourceDeclarationIssueCount"],
+            System.Globalization.CultureInfo.InvariantCulture));
         Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
         Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);

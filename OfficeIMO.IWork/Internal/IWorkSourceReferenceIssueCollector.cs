@@ -9,6 +9,7 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
     private int _inspectedReferenceCount;
 
     internal IReadOnlyList<IWorkSourceReferenceIssue> Issues => _issues;
+    internal IWorkSourceDeclarationIssueCollector Declarations { get; } = new(source);
 
     internal IWorkArchiveRecord? ReadOne(IWorkArchiveRecord owner, IWorkWireMessage message,
         int field, string? path = null) {

@@ -24,9 +24,10 @@ internal static partial class IWorkPagesReader {
             try {
                 zOrderReferenceCount = IWorkProtobuf.CountFields(
                     zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount);
-                if (!TryReadMessage(index, zOrder, out zOrderMessage)) complete = false;
+                if (!TryReadMessage(index, zOrder, references, out zOrderMessage)) complete = false;
             } catch (InvalidDataException exception)
                 when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                references.Declarations.Record(zOrder, "$", null);
                 complete = false;
             }
             if (zOrderMessage != null) {
@@ -51,17 +52,23 @@ internal static partial class IWorkPagesReader {
                 pageGroupCount = IWorkProtobuf.CountFields(floating.Payload, 1,
                     projectionBudget.MaximumProtobufFieldCount, out int totalFieldCount);
                 if (totalFieldCount != pageGroupCount
-                    || !TryReadMessage(index, floating, out IWorkWireMessage floatingMessage)) {
+                    || !TryReadMessage(index, floating, references, out IWorkWireMessage floatingMessage)) {
                     complete = false;
+                    references.Declarations.Record(floating, "$", null, IWorkSourceDeclarationIssueKind.RejectedMessageSet);
                     pageGroups = Array.Empty<IWorkWireMessage>();
                 } else {
                     pageGroups = IWorkObjectIndex.TryGetMessages(floatingMessage, 1,
                         out bool malformedPageGroups);
-                    if (malformedPageGroups) complete = false;
+                    if (malformedPageGroups) {
+                        complete = false;
+                        references.Declarations.Record(floating, "1", floatingMessage.FieldCount(1),
+                            IWorkSourceDeclarationIssueKind.RejectedMessageSet);
+                    }
                 }
             } catch (InvalidDataException exception)
                 when (!IWorkProtobuf.IsFieldLimitException(exception)) {
                 complete = false;
+                references.Declarations.Record(floating, "$", null);
                 pageGroups = Array.Empty<IWorkWireMessage>();
             }
             projectionBudget.AddDrawableReferences(pageGroupCount);
@@ -72,7 +79,12 @@ internal static partial class IWorkPagesReader {
                     var fieldOccurrences = new HashSet<ulong>();
                     IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
                         pageGroup, field, out bool malformedEntries);
-                    if (malformedEntries) complete = false;
+                    if (malformedEntries) {
+                        complete = false;
+                        references.Declarations.Record(floating,
+                            FormattableString.Invariant($"1[{pageGroupIndex + 1}]/{field}"),
+                            pageGroup.FieldCount(field), IWorkSourceDeclarationIssueKind.RejectedMessageSet);
+                    }
                     int entryIndex = 0;
                     foreach (IWorkWireMessage entry in entries) {
                         entryIndex++;

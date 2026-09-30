@@ -46,11 +46,13 @@ public sealed partial class IWorkPagesProjection {
         IWorkPageLayout? pageLayout,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
         IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
-        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null) {
+        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null,
+        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null) {
         _source = source;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
+        SourceDeclarationIssues = Array.AsReadOnly((declarationIssues ?? Array.Empty<IWorkSourceDeclarationIssue>()).ToArray());
         Body = body;
         Sections = Array.AsReadOnly(sections.ToArray());
         HeaderContents = Array.AsReadOnly(Sections.SelectMany(section => section.HeaderContents).ToArray());
@@ -76,6 +78,8 @@ public sealed partial class IWorkPagesProjection {
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
     /// <summary>Gets unresolved declared body, drawable, text-storage, section, header/footer and assessed table/text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
+    /// <summary>Gets unreadable or rejected declarations in selected content paths, without inferring nested references or omitted objects.</summary>
+    public IReadOnlyList<IWorkSourceDeclarationIssue> SourceDeclarationIssues { get; }
     /// <summary>Gets source sections with their associated header and footer content.</summary>
     public IReadOnlyList<IWorkPagesSection> Sections { get; }
     /// <summary>Gets rich header storages flattened in section order.</summary>
@@ -127,7 +131,7 @@ public sealed partial class IWorkPagesProjection {
                     + TextBoxObjects.Count + Images.Count
                     + Tables.Count(table => table.RowCount > 0 && table.ColumnCount > 0)
                     + Tables.Where(table => table.RowCount > 0 && table.ColumnCount > 0).Sum(table => table.Cells.Count),
-            ReconstructedUnits(reconstructedSectionCount), OmittedUnits(reconstructedSectionCount), Tables, SourceReferenceIssues);
+            ReconstructedUnits(reconstructedSectionCount), OmittedUnits(reconstructedSectionCount), Tables, SourceReferenceIssues, SourceDeclarationIssues);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
@@ -195,14 +199,16 @@ internal static partial class IWorkPagesReader {
         IWorkWireMessage documentMessage;
         try {
             documentMessage = index.Message(document);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(document, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_DOCUMENT_MALFORMED",
                 "The Pages document root is malformed; editable reconstruction is unavailable.",
                 document.EntryPath, document.Identifier));
             return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images,
                 tables, drawables, null, diagnostics,
-                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document));
+                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document),
+                declarationIssues: references.Declarations.Issues);
         }
         IWorkPageLayout? pageLayout = ReadPageLayout(documentMessage, out bool pageLayoutComplete);
         if (!pageLayoutComplete) {
@@ -220,7 +226,7 @@ internal static partial class IWorkPagesReader {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_BODY_MISSING",
                 "The Pages document root does not reference exactly one supported body text storage.", document.EntryPath, document.Identifier));
         } else {
-            if (!TryReadMessage(index, body, out _)) {
+            if (!TryReadMessage(index, body, references, out _)) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_PAGES_BODY_MALFORMED",
@@ -250,7 +256,7 @@ internal static partial class IWorkPagesReader {
         var textCache = new Dictionary<ulong, IWorkTextContent>();
         foreach (IWorkArchiveRecord shape in documentDrawables
                      .Where(record => record.MessageType == ShapeInfoArchive)) {
-            if (!TryReadMessage(index, shape, out IWorkWireMessage shapeMessage)) {
+            if (!TryReadMessage(index, shape, references, out IWorkWireMessage shapeMessage)) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_PAGES_DRAWABLE_UNSUPPORTED",
@@ -295,7 +301,7 @@ internal static partial class IWorkPagesReader {
                 text = cached;
                 projectionBudget.AddTextContentUse(text, includeCharacters: true);
             } else {
-                if (!TryReadMessage(index, storage, out _)) {
+                if (!TryReadMessage(index, storage, references, out _)) {
                     MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                     continue;
@@ -417,7 +423,7 @@ internal static partial class IWorkPagesReader {
         }
         return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables,
             drawables, pageLayout, diagnostics,
-            supportsEditableReconstruction, new IWorkObjectIdentity(document), omittedUnits, references.Issues);
+            supportsEditableReconstruction, new IWorkObjectIdentity(document), omittedUnits, references.Issues, references.Declarations.Issues);
     }
 
     private static IWorkPageLayout? ReadPageLayout(IWorkWireMessage document, out bool complete) {
@@ -465,7 +471,7 @@ internal static partial class IWorkPagesReader {
                 ? -1
                 : bodyMessage.CountNestedFields(sectionTableBytes, 1,
                     out totalSectionTableFields);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             declaredSectionCount = -1;
             totalSectionTableFields = -1;
         }
@@ -478,22 +484,28 @@ internal static partial class IWorkPagesReader {
                 "IWORK_PAGES_SECTION_UNSUPPORTED",
                 "The Pages section table is malformed; editable reconstruction is incomplete.",
                 body.EntryPath, body.Identifier));
+            references.Declarations.Record(body, "17", bodyMessage.FieldCount(17),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             return;
         }
         IWorkWireMessage sectionTable;
         try {
             sectionTable = bodyMessage.ParseNestedMessage(sectionTableBytes!);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_SECTION_UNSUPPORTED",
                 "The Pages section table is malformed; editable reconstruction is incomplete.",
                 body.EntryPath, body.Identifier));
+            references.Declarations.Record(body, "17", bodyMessage.FieldCount(17),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             return;
         }
         IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
             sectionTable, 1, out bool malformedEntries);
         if (malformedEntries) {
+            references.Declarations.Record(body, "17/1", sectionTable.FieldCount(1),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_SECTION_UNSUPPORTED",
@@ -525,7 +537,7 @@ internal static partial class IWorkPagesReader {
                 continue;
             }
             IWorkArchiveRecord section = referencedSections[0];
-            if (!TryReadMessage(index, section, out IWorkWireMessage sectionMessage)) {
+            if (!TryReadMessage(index, section, references, out IWorkWireMessage sectionMessage)) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_PAGES_SECTION_UNSUPPORTED",
@@ -568,7 +580,7 @@ internal static partial class IWorkPagesReader {
                     }
                     continue;
                 }
-                if (!TryReadMessage(index, archive, out IWorkWireMessage archiveMessage)) {
+                if (!TryReadMessage(index, archive, references, out IWorkWireMessage archiveMessage)) {
                     supportsEditableReconstruction = false;
                     diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                         "IWORK_PAGES_HEADER_FOOTER_UNSUPPORTED",
@@ -626,7 +638,7 @@ internal static partial class IWorkPagesReader {
             }
             bool reused = textCache.TryGetValue(storage.Identifier, out IWorkTextContent? text);
             if (!reused) {
-                if (!TryReadMessage(index, storage, out _)) {
+                if (!TryReadMessage(index, storage, references, out _)) {
                     MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
                     continue;
@@ -674,11 +686,12 @@ internal static partial class IWorkPagesReader {
     }
 
     private static bool TryReadMessage(IWorkObjectIndex index, IWorkArchiveRecord record,
-        out IWorkWireMessage message) {
+        IWorkSourceReferenceIssueCollector references, out IWorkWireMessage message) {
         try {
             message = index.Message(record);
             return true;
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(record, "$", null);
             message = null!;
             return false;
         }

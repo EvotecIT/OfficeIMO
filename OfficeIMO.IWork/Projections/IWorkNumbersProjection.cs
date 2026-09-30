@@ -10,11 +10,13 @@ public sealed partial class IWorkNumbersProjection {
     internal IWorkNumbersProjection(IWorkSourceDocument source, IReadOnlyList<IWorkNumbersSheet> sheets,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
         IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
-        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null) {
+        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null,
+        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null) {
         _source = source;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
+        SourceDeclarationIssues = Array.AsReadOnly((declarationIssues ?? Array.Empty<IWorkSourceDeclarationIssue>()).ToArray());
         Sheets = Array.AsReadOnly(sheets.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
@@ -27,6 +29,8 @@ public sealed partial class IWorkNumbersProjection {
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
     /// <summary>Gets unresolved declared sheet, drawable, text-storage and assessed table/text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
+    /// <summary>Gets unreadable or rejected declarations in selected content paths, without inferring nested references or omitted objects.</summary>
+    public IReadOnlyList<IWorkSourceDeclarationIssue> SourceDeclarationIssues { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
     /// <summary>Gets whether at least one editable sheet was recovered and its required semantic references were resolved.</summary>
@@ -47,7 +51,7 @@ public sealed partial class IWorkNumbersProjection {
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
-                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits(), Sheets.SelectMany(sheet => sheet.Tables), SourceReferenceIssues);
+                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits(), Sheets.SelectMany(sheet => sheet.Tables), SourceReferenceIssues, SourceDeclarationIssues);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
@@ -106,13 +110,15 @@ internal static class IWorkNumbersReader {
             declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
                 source.Options.MaximumProtobufFieldCount);
             documentMessage = index.Message(document);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(document, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_DOCUMENT_MALFORMED",
                 "The Numbers document root is malformed; editable reconstruction is unavailable.",
                 document.EntryPath, document.Identifier));
             return new IWorkNumbersProjection(source, sheets, diagnostics,
-                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document));
+                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document),
+                declarationIssues: references.Declarations.Issues);
         }
         if (declaredSheetCount > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
@@ -157,6 +163,7 @@ internal static class IWorkNumbersReader {
                     sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount);
             } catch (InvalidDataException exception)
                 when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                references.Declarations.Record(sheetRecord, "$", null);
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_NUMBERS_SHEET_MALFORMED",
@@ -204,7 +211,8 @@ internal static class IWorkNumbersReader {
                     IWorkWireMessage? storageOwner = null;
                     try {
                         storageOwner = index.Message(drawable);
-                    } catch (InvalidDataException) {
+                    } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                        references.Declarations.Record(drawable, "$", null);
                         drawableComplete = false;
                     }
                     bool geometryComplete = true;
@@ -229,7 +237,8 @@ internal static class IWorkNumbersReader {
                         try {
                             text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
                                 out textComplete);
-                        } catch (InvalidDataException) {
+                        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                            references.Declarations.Record(storage, "$", null);
                             text = string.Empty;
                             textComplete = false;
                         }
@@ -296,7 +305,7 @@ internal static class IWorkNumbersReader {
             }
         }
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction,
-            new IWorkObjectIdentity(document), omittedUnits, references.Issues);
+            new IWorkObjectIdentity(document), omittedUnits, references.Issues, references.Declarations.Issues);
     }
 
     private static void MarkTextMetadataUnsupported(IWorkArchiveRecord record,

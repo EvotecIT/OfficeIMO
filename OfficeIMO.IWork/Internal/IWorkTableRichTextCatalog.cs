@@ -114,7 +114,7 @@ internal sealed class IWorkTableRichTextCatalog {
         return true;
     }
 
-    private static bool TryReadRecord(IWorkObjectIndex index, IWorkArchiveRecord record,
+    private bool TryReadRecord(IWorkObjectIndex index, IWorkArchiveRecord record,
         IWorkReadOptions options, Dictionary<ulong, IWorkWireMessage?> cache,
         out IWorkWireMessage? message) {
         if (cache.TryGetValue(record.Identifier, out message)) return message != null;
@@ -127,6 +127,7 @@ internal sealed class IWorkTableRichTextCatalog {
             return true;
         } catch (InvalidDataException exception)
             when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            _references.Declarations.Record(record, "$", null);
             cache.Add(record.Identifier, null);
             return false;
         }

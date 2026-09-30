@@ -209,7 +209,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static MemoryStream TableDependencyPackage(IWorkDocumentKind kind, byte[] storeFields,
         bool includeTile = true, byte[]? additionalRecords = null, ulong rows = 1,
-        bool formulaCell = false, bool repeatModel = false) {
+        bool formulaCell = false, bool repeatModel = false, byte[]? modelPayload = null) {
         byte[] cell = new byte[formulaCell ? 24 : 20]; cell[0] = 5; cell[1] = 2;
         WriteUInt32(cell, 8, (1u << 1) | (formulaCell ? 1u << 9 : 0u));
         Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, cell, 12, 8);
@@ -230,7 +230,7 @@ public sealed partial class IWorkBoundaryTests {
         return CreatePackage(("Index/Document.iwa", FrameIwa(Message(roots,
             ArchiveRecord(10, 6000, Message(BytesField(1, GeometryDrawable(72, 72, 120, 40)), ReferenceField(2, 11))),
             repeatModel ? ArchiveRecord(20, 6000, Message(ReferenceField(2, 11))) : Message(),
-            ArchiveRecord(11, 6001, Message(BytesField(4, store), VarintField(6, rows), VarintField(7, 1))),
+            ArchiveRecord(11, 6001, modelPayload ?? Message(BytesField(4, store), VarintField(6, rows), VarintField(7, 1))),
             ArchiveRecord(12, 6002, Message(BytesField(5, Message(VarintField(1, 0),
                 BytesField(6, cell), BytesField(7, new byte[] { 0, 0 }))))),
             additionalRecords ?? Message()))), ("preview.png", ValidPreviewPng()));

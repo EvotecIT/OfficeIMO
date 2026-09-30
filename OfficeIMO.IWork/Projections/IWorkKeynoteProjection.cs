@@ -91,11 +91,13 @@ public sealed partial class IWorkKeynoteProjection {
         IWorkCanvasSize? slideSize,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
         IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
-        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null) {
+        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null,
+        IReadOnlyList<IWorkSourceDeclarationIssue>? declarationIssues = null) {
         _source = source;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
         SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
+        SourceDeclarationIssues = Array.AsReadOnly((declarationIssues ?? Array.Empty<IWorkSourceDeclarationIssue>()).ToArray());
         Slides = Array.AsReadOnly(slides.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         SlideSize = slideSize;
@@ -109,6 +111,8 @@ public sealed partial class IWorkKeynoteProjection {
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
     /// <summary>Gets unresolved declared show, slide-tree, slide, drawable, text-storage, presenter-note and assessed table/text-formatting reference occurrences.</summary>
     public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
+    /// <summary>Gets unreadable or rejected declarations in selected content paths, without inferring nested references or omitted objects.</summary>
+    public IReadOnlyList<IWorkSourceDeclarationIssue> SourceDeclarationIssues { get; }
     /// <summary>Gets the source presentation canvas size.</summary>
     public IWorkCanvasSize? SlideSize { get; }
     /// <summary>Gets projection diagnostics.</summary>
@@ -134,7 +138,7 @@ public sealed partial class IWorkKeynoteProjection {
                     + slide.Tables.Count(table => table.RowCount > 0 && table.ColumnCount > 0)
                     + slide.Tables.Where(table => table.RowCount > 0 && table.ColumnCount > 0).Sum(table => table.Cells.Count)
                     + (slide.TitleBox != null ? 1 : 0) + (slide.PresenterNotes.Length > 0 ? 1 : 0)),
-            ReconstructedUnits(), OmittedUnits(), Slides.SelectMany(slide => slide.Tables), SourceReferenceIssues);
+            ReconstructedUnits(), OmittedUnits(), Slides.SelectMany(slide => slide.Tables), SourceReferenceIssues, SourceDeclarationIssues);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
@@ -188,13 +192,15 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage documentMessage;
         try {
             documentMessage = index.Message(document);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(document, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_DOCUMENT_MALFORMED",
                 "The Keynote document root is malformed; editable reconstruction is unavailable.",
                 document.EntryPath, document.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics,
-                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document));
+                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document),
+                declarationIssues: references.Declarations.Issues);
         }
         bool showReferenceComplete = documentMessage.FieldCount(2) == 1
             && !documentMessage.HasUnexpectedWireKind(2, IWorkWireKind.Bytes);
@@ -202,18 +208,19 @@ internal static partial class IWorkKeynoteReader {
         if (!showReferenceComplete || show == null || show.MessageType != ShowArchive) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SHOW_MISSING",
                 "The Keynote document root does not reference exactly one supported show object.", document.EntryPath, document.Identifier));
-            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues);
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues, declarationIssues: references.Declarations.Issues);
         }
         IWorkWireMessage showMessage;
         try {
             showMessage = index.Message(show);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(show, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_SHOW_MALFORMED",
                 "The Keynote show object is malformed; editable reconstruction is unavailable.",
                 show.EntryPath, show.Identifier));
             return new IWorkKeynoteProjection(source, slides, null, diagnostics,
-                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues);
+                supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues, declarationIssues: references.Declarations.Issues);
         }
         byte[]? slideTreeBytes = showMessage.FieldCount(3) == 1
             ? showMessage.GetBytes(3)
@@ -227,13 +234,15 @@ internal static partial class IWorkKeynoteReader {
                     : IWorkProtobuf.CountFields(slideTreeBytes, 2,
                         source.Options.MaximumProtobufFieldCount,
                         out slideTreeFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             slideReferenceCount = -1;
         }
         if (slideReferenceCount < 0 || slideTreeFieldCount != slideReferenceCount) {
+            if (showMessage.HasField(3)) references.Declarations.Record(show, "3", showMessage.FieldCount(3),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
-            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues);
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues, declarationIssues: references.Declarations.Issues);
         }
         if (slideReferenceCount > source.Options.MaximumProjectedSlides) {
             throw new InvalidDataException($"Keynote slide count exceeds the configured projection limit of {source.Options.MaximumProjectedSlides}.");
@@ -241,10 +250,11 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage slideTree;
         try {
             slideTree = showMessage.ParseNestedMessage(slideTreeBytes!);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(show, "3", showMessage.FieldCount(3));
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
-            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues);
+            return new IWorkKeynoteProjection(source, slides, null, diagnostics, supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document), referenceIssues: references.Issues, declarationIssues: references.Declarations.Issues);
         }
 
         bool supportsEditableReconstruction = true;
@@ -290,7 +300,8 @@ internal static partial class IWorkKeynoteReader {
             IWorkWireMessage nodeMessage;
             try {
                 nodeMessage = index.Message(node);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                references.Declarations.Record(node, "$", null);
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_KEYNOTE_SLIDE_NODE_UNSUPPORTED",
@@ -334,7 +345,7 @@ internal static partial class IWorkKeynoteReader {
             else omittedUnits.Add(new IWorkObjectIdentity(slide));
         }
         return new IWorkKeynoteProjection(source, slides, slideSize, diagnostics, supportsEditableReconstruction,
-            new IWorkObjectIdentity(document), omittedUnits, references.Issues);
+            new IWorkObjectIdentity(document), omittedUnits, references.Issues, references.Declarations.Issues);
     }
 
     private static void MarkDrawableIncomplete(IWorkArchiveRecord drawable,

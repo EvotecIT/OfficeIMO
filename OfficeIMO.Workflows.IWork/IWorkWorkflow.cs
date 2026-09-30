@@ -67,6 +67,7 @@ public static class IWorkWorkflow {
             ["omittedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.OmittedCount).ToString(CultureInfo.InvariantCulture),
             ["unassessedSourceUnitCount"] = report.SourceUnitCounts.Sum(count => count.UnassessedCount).ToString(CultureInfo.InvariantCulture),
             ["sourceReferenceIssueCount"] = report.SourceReferenceIssues.Count.ToString(CultureInfo.InvariantCulture),
+            ["sourceDeclarationIssueCount"] = report.SourceDeclarationIssues.Count.ToString(CultureInfo.InvariantCulture),
             ["sourceMissingReferenceTargetCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.MissingTarget).ToString(CultureInfo.InvariantCulture),
             ["sourceMalformedReferenceCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.MalformedReference).ToString(CultureInfo.InvariantCulture),
             ["sourceRejectedReferenceSetCount"] = report.SourceReferenceIssues.Count(issue => issue.Kind == IWorkSourceReferenceIssueKind.RejectedReferenceSet).ToString(CultureInfo.InvariantCulture),

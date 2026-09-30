@@ -65,7 +65,7 @@ internal static partial class IWorkTextReader {
                 }
                 string? hyperlink = ResolveHyperlink(index,
                     ObjectAt(hyperlinks, start, carryMissing: false), projectionBudget,
-                    hyperlinkCache, ref complete);
+                    hyperlinkCache, references, ref complete);
                 runs.Add(new IWorkTextRun(runText, characterStyle, hyperlink));
             }
             paragraphs.Add(new IWorkTextParagraph(runs, paragraphStyle, listStyleId,
@@ -202,7 +202,8 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage message;
             try {
                 message = index.Message(record);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                references.Declarations.Record(record, "$", null);
                 complete = false;
                 break;
             }
@@ -210,6 +211,7 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage? super = IWorkObjectIndex.TryGetMessage(message, 1, out bool malformedSuper);
             if (malformedSuper || message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
                 || message.HasField(1) && super == null) {
+                references.Declarations.Record(record, "1", message.FieldCount(1));
                 complete = false;
                 break;
             }
@@ -386,7 +388,7 @@ internal static partial class IWorkTextReader {
 
     private static string? ResolveHyperlink(IWorkObjectIndex index, ulong? identifier,
         IWorkProjectionBudget projectionBudget, Dictionary<ulong, Cached<string?>> cache,
-        ref bool complete) {
+        IWorkSourceReferenceIssueCollector references, ref bool complete) {
         if (!identifier.HasValue) return null;
         if (cache.TryGetValue(identifier.Value, out Cached<string?> cached)) {
             if (!cached.IsComplete) complete = false;
@@ -402,7 +404,8 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage? message = null;
             try {
                 message = index.Message(record);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                references.Declarations.Record(record, "$", null);
                 resolvedCompletely = false;
             }
             if (message == null || message.FieldCount(2) != 1

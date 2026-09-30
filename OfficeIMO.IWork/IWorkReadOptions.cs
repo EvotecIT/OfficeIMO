@@ -44,6 +44,9 @@ public sealed class IWorkReadOptions {
     /// <summary>Gets or sets the maximum declared reference occurrences inspected in distinct source fields for unresolved-reference evidence across one semantic projection, including readable siblings in a field with failures.</summary>
     public int MaximumSourceReferenceIssues { get; set; } = 100_000;
 
+    /// <summary>Gets or sets the maximum distinct selected source paths retained as unreadable or rejected declaration evidence across one semantic projection.</summary>
+    public int MaximumSourceDeclarationIssues { get; set; } = 100_000;
+
     /// <summary>Gets or sets the maximum number of fields decoded from one protobuf message.</summary>
     public int MaximumProtobufFieldCount { get; set; } = 1_000_000;
 
@@ -124,6 +127,7 @@ public sealed class IWorkReadOptions {
         ValidatePositive(MaximumRecordCount, nameof(MaximumRecordCount));
         ValidatePositive(MaximumArchiveReferenceCount, nameof(MaximumArchiveReferenceCount));
         ValidatePositive(MaximumSourceReferenceIssues, nameof(MaximumSourceReferenceIssues));
+        ValidatePositive(MaximumSourceDeclarationIssues, nameof(MaximumSourceDeclarationIssues));
         ValidatePositive(MaximumProtobufFieldCount, nameof(MaximumProtobufFieldCount));
         ValidatePositive(MaximumProtobufDepth, nameof(MaximumProtobufDepth));
         ValidatePositive(MaximumTableRows, nameof(MaximumTableRows));

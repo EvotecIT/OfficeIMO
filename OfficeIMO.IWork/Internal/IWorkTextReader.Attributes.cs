@@ -5,8 +5,10 @@ internal static partial class IWorkTextReader {
         int field, int textLength, IWorkArchiveRecord owner, IWorkProjectionBudget projectionBudget,
         IWorkSourceReferenceIssueCollector references, ref bool complete) {
         if (!storage.HasField(field)) return Array.Empty<AttributeBoundary>();
+        string tablePath = field.ToString(System.Globalization.CultureInfo.InvariantCulture);
         if (storage.HasUnexpectedWireKind(field, IWorkWireKind.Bytes)) {
             complete = false;
+            references.Declarations.Record(owner, tablePath, storage.FieldCount(field));
             return Array.Empty<AttributeBoundary>();
         }
         byte[] tableBytes = storage.GetBytes(field)!;
@@ -15,20 +17,24 @@ internal static partial class IWorkTextReader {
         try {
             boundaryCount = storage.CountNestedFields(tableBytes, 1,
                 out totalTableFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             complete = false;
+            references.Declarations.Record(owner, tablePath, storage.FieldCount(field));
             return Array.Empty<AttributeBoundary>();
         }
         projectionBudget.AddTextBoundaries(boundaryCount);
         if (storage.FieldCount(field) != 1 || totalTableFieldCount != boundaryCount) {
             complete = false;
+            references.Declarations.Record(owner, tablePath, storage.FieldCount(field),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             return Array.Empty<AttributeBoundary>();
         }
         IWorkWireMessage table;
         try {
             table = storage.ParseNestedMessage(tableBytes);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             complete = false;
+            references.Declarations.Record(owner, tablePath, storage.FieldCount(field));
             return Array.Empty<AttributeBoundary>();
         }
         var result = new List<AttributeBoundary>();
@@ -36,12 +42,16 @@ internal static partial class IWorkTextReader {
         int entryIndex = 0;
         foreach (IWorkWireValue value in table.EnumerateValues(1)) {
             entryIndex++;
-            if (value.Kind != IWorkWireKind.Bytes || value.Bytes == null) continue;
+            if (value.Kind != IWorkWireKind.Bytes || value.Bytes == null) {
+                references.Declarations.Record(owner, EntryPath(entryIndex), 1);
+                continue;
+            }
             IWorkWireMessage entry;
             try {
                 entry = table.ParseNestedMessage(value.Bytes);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
                 complete = false;
+                references.Declarations.Record(owner, EntryPath(entryIndex), 1);
                 continue;
             }
             ulong? rawIndex = entry.GetUnsigned(1);
@@ -50,6 +60,8 @@ internal static partial class IWorkTextReader {
                 || !rawIndex.HasValue || rawIndex.Value > int.MaxValue
                 || rawIndex.Value > (ulong)textLength) {
                 complete = false;
+                references.Declarations.Record(owner, EntryPath(entryIndex), 1,
+                    IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
                 continue;
             }
             bool hasObject = entry.HasField(2);
@@ -72,11 +84,15 @@ internal static partial class IWorkTextReader {
                 continue;
             }
             result.Add(new AttributeBoundary((int)rawIndex.Value,
-                reference?.GetUnsigned(1), hasObject));
+                reference?.GetUnsigned(1), hasObject, entryIndex));
         }
         AttributeBoundary[] ordered = result.OrderBy(boundary => boundary.Index).ToArray();
         for (int index = 1; index < ordered.Length; index++) {
-            if (ordered[index - 1].Index == ordered[index].Index) complete = false;
+            if (ordered[index - 1].Index == ordered[index].Index) {
+                complete = false;
+                references.Declarations.Record(owner, EntryPath(ordered[index].Position), 1,
+                    IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
+            }
         }
         ulong? carried = null;
         foreach (AttributeBoundary boundary in ordered) {
@@ -84,6 +100,9 @@ internal static partial class IWorkTextReader {
             boundary.CarriedIdentifier = carried;
         }
         return ordered;
+
+        string EntryPath(int position) => tablePath + "/1["
+            + position.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
     }
 
     private static ulong? ObjectAt(IReadOnlyList<AttributeBoundary> boundaries, int offset,
@@ -116,11 +135,13 @@ internal static partial class IWorkTextReader {
     }
 
     private sealed class AttributeBoundary {
-        internal AttributeBoundary(int index, ulong? identifier, bool hasObject) {
+        internal AttributeBoundary(int index, ulong? identifier, bool hasObject, int position) {
             Index = index;
             Identifier = identifier;
             HasObject = hasObject;
+            Position = position;
         }
+        internal int Position { get; }
         internal int Index { get; }
         internal ulong? Identifier { get; }
         internal bool HasObject { get; }

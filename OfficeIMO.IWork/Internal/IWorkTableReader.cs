@@ -18,7 +18,8 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage recordMessage;
         try {
             recordMessage = source.Index.Message(tableRecord);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(tableRecord, "$", null);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_INFO_UNSUPPORTED",
@@ -32,6 +33,8 @@ internal static partial class IWorkTableReader {
             _ => null
         };
         if (tableInfo == null) {
+            if (tableRecord.MessageType == WordProcessingTableInfoArchive && recordMessage.HasField(1))
+                references.Declarations.Record(tableRecord, "1", recordMessage.FieldCount(1));
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_INFO_UNSUPPORTED",
@@ -108,7 +111,8 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage modelMessage;
         try {
             modelMessage = source.Index.Message(model);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            references.Declarations.Record(model, "$", null);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_MODEL_UNSUPPORTED",
@@ -178,6 +182,7 @@ internal static partial class IWorkTableReader {
         var nonFormulaRichStringIdentifiers = new HashSet<uint>();
         IWorkWireMessage? store = IWorkObjectIndex.TryGetMessage(message, 4);
         if (store == null) {
+            if (message.HasField(4)) references.Declarations.Record(model, "4", message.FieldCount(4));
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return CreateTable();
         }
@@ -216,7 +221,7 @@ internal static partial class IWorkTableReader {
                     ? -1
                     : IWorkProtobuf.CountFields(tileStorageBytes, 1,
                         source.Options.MaximumProtobufFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             declaredTileCount = -1;
         }
         int maximumTileCount = checked((rows + TileRowStride - 1) / TileRowStride);
@@ -233,16 +238,19 @@ internal static partial class IWorkTableReader {
             tileStorage = declaredTileCount < 0
                 ? null
                 : store.ParseNestedMessage(tileStorageBytes!);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
             tileStorage = null;
         }
         if (tileStorage == null) {
+            if (store.HasField(3)) references.Declarations.Record(model, "4/3", store.FieldCount(3));
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return CreateTable();
         }
         IReadOnlyList<IWorkWireMessage> tileEntries = IWorkObjectIndex.TryGetMessages(
             tileStorage, 1, out bool malformedTileEntries);
         if (malformedTileEntries) {
+            references.Declarations.Record(model, "4/3/1", tileStorage.FieldCount(1),
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             MarkTableStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return CreateTable();
         }

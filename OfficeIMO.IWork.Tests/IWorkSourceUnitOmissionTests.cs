@@ -127,6 +127,10 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         AssertDroppedUnit(report, 15, false);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == 18);
+        IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
+        Assert.Equal(15ul, issue.Owner.RecordIdentifier);
+        Assert.Equal("$", issue.FieldPath);
+        Assert.Null(issue.DeclaredValueCount);
     }
 
     [Theory]

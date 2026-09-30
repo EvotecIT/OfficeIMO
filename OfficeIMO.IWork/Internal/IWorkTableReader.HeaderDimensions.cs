@@ -10,6 +10,7 @@ internal static partial class IWorkTableReader {
         List<IWorkDiagnostic> diagnostics, ref bool supportsEditableReconstruction) {
         bool complete = true;
         IWorkWireMessage? rowHeaders = IWorkObjectIndex.TryGetMessage(store, 1, out bool malformedRows);
+        if (malformedRows) references.Declarations.Record(model, "4/1", store.FieldCount(1));
         complete &= !malformedRows;
         if (rowHeaders != null) {
             budget.AddTableDimensionEntries(rowHeaders.FieldCount(2));
