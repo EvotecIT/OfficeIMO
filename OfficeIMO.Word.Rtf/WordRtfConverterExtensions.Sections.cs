@@ -24,6 +24,7 @@ public static partial class WordRtfConverterExtensions {
             WordSection wordSection = document.Sections[index];
             RtfSection section = rtf.AddSection(ToRtfSectionBreakKind(document, index));
             CopyPageSetup(wordSection, section, rtf);
+            CopySectionHeaderFooters(wordSection, section, rtf, revisionAuthorIndexes);
             CopyWordElements(wordSection.Elements, section, rtf, revisionAuthorIndexes);
         }
     }
@@ -104,6 +105,7 @@ public static partial class WordRtfConverterExtensions {
         for (int index = 0; index < rtfDocument.Sections.Count; index++) {
             ApplyPageSetup(rtfDocument.Sections[index], wordSections[index], rtfDocument);
         }
+        ApplySectionHeaderFooters(rtfDocument, document, wordSections);
     }
 
     private static void ApplyPageSetup(RtfSection source, WordSection destination, RtfDocument rtfDocument) {
@@ -147,7 +149,7 @@ public static partial class WordRtfConverterExtensions {
             destination.Margins.FooterDistance = ToUInt32Value(source.PageSetup.FooterDistanceTwips.Value);
         }
 
-        destination.DifferentFirstPage = source.PageSetup.DifferentFirstPageHeaderFooter;
+        ApplyFirstPageHeaderFooterSelection(destination, source.PageSetup.DifferentFirstPageHeaderFooter);
         destination.RtlGutter = source.PageSetup.RtlGutter;
         ApplyPageNumbering(source.PageSetup, destination);
         ApplyPageBorders(source.PageSetup.PageBorders, destination, rtfDocument);

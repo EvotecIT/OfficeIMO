@@ -256,6 +256,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Adds a header or footer destination.</summary>
     public RtfHeaderFooter AddHeaderFooter(RtfHeaderFooterKind kind) {
+        if (_sections.Count > 0) return _sections[_sections.Count - 1].AddHeaderFooter(kind);
         var headerFooter = new RtfHeaderFooter(kind);
         _headerFooters.Add(headerFooter);
         return headerFooter;

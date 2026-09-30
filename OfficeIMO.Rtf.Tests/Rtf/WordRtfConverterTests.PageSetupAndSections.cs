@@ -155,7 +155,10 @@ public partial class WordRtfConverterTests {
         Assert.Equal(1440, word.Settings.DefaultTabStop);
         Assert.Equal(125, word.Settings.ZoomPercentage);
         Assert.Equal(WordDocumentProtectionType.ReadOnly, word.Settings.ProtectionType);
-        Assert.True(word.DifferentOddAndEvenPages);
+        // The selection flag survives without inventing an empty even-page story.
+        Assert.False(word.DifferentOddAndEvenPages);
+        Assert.Null(word.Sections[0].Header.Even);
+        Assert.Null(word.Sections[0].Footer.Even);
         Assert.True(word.Settings.MirrorMargins);
         Assert.Equal(1440, roundTrip.Settings.DefaultTabWidthTwips);
         Assert.Equal(125, roundTrip.Settings.ViewScale);

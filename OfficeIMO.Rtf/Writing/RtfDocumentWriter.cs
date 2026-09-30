@@ -79,6 +79,7 @@ internal static partial class RtfDocumentWriter {
 
     private static void WriteSection(StringBuilder builder, RtfSection section, int? defaultLanguageId, int unicodeSkipCount) {
         WriteSectionStart(builder, section);
+        WriteHeaderFooters(builder, section.HeaderFooters, defaultLanguageId, unicodeSkipCount);
         foreach (IRtfBlock block in section.Blocks) {
             WriteBlock(builder, block, defaultLanguageId, unicodeSkipCount);
         }
@@ -149,11 +150,16 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static void WriteHeaderFooters(StringBuilder builder, RtfDocument document, int unicodeSkipCount) {
-        foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
+        var owned = new HashSet<RtfHeaderFooter>(document.Sections.SelectMany(section => section.HeaderFooters));
+        WriteHeaderFooters(builder, document.HeaderFooters.Where(item => !owned.Contains(item)), document.Settings.DefaultLanguageId, unicodeSkipCount);
+    }
+
+    private static void WriteHeaderFooters(StringBuilder builder, IEnumerable<RtfHeaderFooter> headerFooters, int? defaultLanguageId, int unicodeSkipCount) {
+        foreach (RtfHeaderFooter headerFooter in headerFooters) {
             builder.Append(@"{\");
             builder.Append(GetHeaderFooterControlWord(headerFooter.Kind));
             foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                WriteParagraph(builder, paragraph, document.Settings.DefaultLanguageId, unicodeSkipCount);
+                WriteParagraph(builder, paragraph, defaultLanguageId, unicodeSkipCount);
             }
 
             builder.Append('}');

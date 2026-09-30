@@ -28,6 +28,7 @@ internal static partial class RtfHtmlReader {
         }
 
         context.TrimEmptyTrailingParagraph();
+        context.CompleteHeaderFooterOwnership();
     }
 
     private static void ValidateNode(INode node, HtmlDomLimitTracker limits, int depth) {

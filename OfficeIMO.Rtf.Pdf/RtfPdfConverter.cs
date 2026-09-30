@@ -22,7 +22,8 @@ internal static partial class RtfPdfConverter {
             ApplyPageSetup(document, document.Sections[0].PageSetup, pdfOptions);
         }
 
-        ApplyHeaderFooters(document, pdfOptions, normalized);
+        ApplyHeaderFooters(document, pdfOptions, normalized,
+            document.Sections.Count == 0 ? document.HeaderFooters : document.GetEffectiveHeaderFooters(document.Sections[0]));
 
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         ApplyMetadata(document, pdf, normalized);
@@ -54,6 +55,7 @@ internal static partial class RtfPdfConverter {
 
             pdf.Section(page => {
                 ApplyPageSetup(document, section.PageSetup, page, pdfOptions);
+                ApplySectionHeaderFooters(document, section, page, options);
                 RenderBlocks(document, section.Blocks, pdf, options, state);
 
                 while (index + 1 < document.Sections.Count && !StartsNewPdfPage(document.Sections[index + 1].BreakKind)) {

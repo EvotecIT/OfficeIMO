@@ -23,10 +23,10 @@ public static partial class WordRtfConverterExtensions {
         CopyDocumentSettings(document, rtf);
         CopyWordStylesAndNumbering(document, rtf);
         var revisionAuthorIndexes = new Dictionary<string, int>(StringComparer.Ordinal);
-        CopyHeaderFooters(document, rtf, revisionAuthorIndexes);
         if (ShouldExportSections(document)) {
             CopySections(document, rtf, revisionAuthorIndexes);
         } else {
+            CopyHeaderFooters(document, rtf, revisionAuthorIndexes);
             CopyPageSetup(document, rtf);
             CopyWordElements(document.Elements, rtf, revisionAuthorIndexes);
         }
@@ -45,10 +45,10 @@ public static partial class WordRtfConverterExtensions {
         ApplyDefaultLanguage(rtfDocument, document);
         ApplyDocumentSettings(rtfDocument, document);
         ApplyRtfStylesAndNumbering(rtfDocument, document);
-        ApplyHeaderFooters(rtfDocument, document);
         if (rtfDocument.Sections.Count > 0) {
             ApplySections(rtfDocument, document);
         } else {
+            ApplyHeaderFooters(rtfDocument, document);
             ApplyPageSetup(rtfDocument, document);
             foreach (IRtfBlock block in rtfDocument.Blocks) {
                 if (block is RtfParagraph paragraph) {
@@ -74,7 +74,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyHeaderFooter(WordHeaderFooter? source, RtfDocument rtf, Func<RtfHeaderFooterKind, RtfHeaderFooter> addDestination, RtfHeaderFooterKind kind, Dictionary<string, int> revisionAuthorIndexes) {
-        if (source == null || source.Paragraphs.Count == 0) {
+        if (source == null) {
             return;
         }
 

@@ -152,6 +152,7 @@ public sealed partial class RtfSection : IRtfCloneable {
         context.Register(this, clone);
         clone._blocks = context.CloneList(_blocks);
         clone._columns = context.CloneList(_columns);
+        clone._headerFooters = context.CloneList(_headerFooters);
         clone._document = context.Clone(_document)!;
         clone.PageSetup = context.Clone(PageSetup)!;
         clone.NoteSettings = context.Clone(NoteSettings)!;
