@@ -48,6 +48,8 @@ File.WriteAllText("native-output.rtf", nativeOutput.Value);
 
 This mode writes the effective formatting supported by the semantic model across body paragraphs, tables, headers, notes, and field results. It leaves the source model unchanged. When it materializes inherited or default values, the result reports `RtfNormalizationFormattingInheritanceMaterialized`: reopening the output treats those values as direct formatting, and `RequireNoLoss()` rejects that loss of editing information. Set `MaterializeStyleFormatting = false` to retain editable inheritance in semantic output; native readers may then display inherited formatting differently. Full character effects and effective table-style formatting remain outside this mode's coverage.
 
+`AddFootnote`, `AddEndnote`, and `AddNoteReference` attach notes to their reference runs. Native writing declares support for both note kinds and writes endnotes as `\footnote\ftnalt`. Note paragraph breaks separate authored paragraphs without adding an empty trailing list item. Modern list bindings use the list tables, and Unicode list markers retain their native character counts.
+
 Byte, stream, and file reads retain the exact original bytes. `HasOriginalBytes`, `ToBytesLossless()`, and `TryGetLosslessBytes(...)` make that contract observable. Character-only input can be written as lossless bytes only when every source character has an exact single-byte representation; the API reports or throws instead of silently transcoding it.
 
 RTF field instructions are tokenized by `RtfFieldCodeSyntax`, including quoted arguments, switches, escapes, and unterminated-token state. Hyperlink projection uses this syntax rather than regular-expression extraction.

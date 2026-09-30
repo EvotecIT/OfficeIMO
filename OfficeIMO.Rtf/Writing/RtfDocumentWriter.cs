@@ -16,6 +16,8 @@ internal static partial class RtfDocumentWriter {
         WriteDocumentCharacterSet(builder, document.Settings);
         builder.Append(@"\deff");
         builder.Append((document.Settings.DefaultFontId ?? 0).ToString(CultureInfo.InvariantCulture));
+        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
+        if (referencedNotes.Concat(document.Notes).Any(note => note.Kind != RtfNoteKind.Annotation)) builder.Append(@"\fet2");
         RtfPageSetup rootPageSetup = document.PageSetup;
         if (document.PageSetup.Landscape && document.Sections.Any(section => section.PageSetup.DirectLandscape == false)) {
             rootPageSetup = new RtfCloneContext().Clone(document.PageSetup)!;
@@ -43,7 +45,6 @@ internal static partial class RtfDocumentWriter {
         WriteUserProperties(builder, document, unicodeSkipCount);
         WriteDocumentVariables(builder, document, unicodeSkipCount);
         WriteHeaderFooters(builder, document, context);
-        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(document);
         WriteDetachedNotes(builder, document, referencedNotes, context);
         builder.AppendLine();
 
@@ -264,20 +265,23 @@ internal static partial class RtfDocumentWriter {
         builder.Append('}');
     }
 
-    private static void WriteParagraph(StringBuilder builder, RtfParagraph paragraph, RtfWriteContext context) {
+    private static void WriteParagraph(StringBuilder builder, RtfParagraph paragraph, RtfWriteContext context, bool terminateParagraph = true, IRtfInline? prefix = null) {
         context = context.ForParagraph(paragraph);
         WriteListText(builder, paragraph.ListText, context);
         WriteParagraphStart(builder, paragraph, inTable: false, context);
 
         var state = new RunWriteState(context.DefaultLanguageId);
         state.PreserveStyleInheritance = paragraph.StyleId.HasValue || context.DefaultParagraphStyleId.HasValue;
+        if (prefix != null) WriteInline(builder, prefix, state, context);
         foreach (IRtfInline inline in paragraph.Inlines) {
             WriteInline(builder, inline, state, context);
         }
 
         ResetRunState(builder, state);
-        builder.Append(@"\par");
-        builder.AppendLine();
+        if (terminateParagraph) {
+            builder.Append(@"\par");
+            builder.AppendLine();
+        }
     }
 
     private static void WriteParagraphStart(StringBuilder builder, RtfParagraph paragraph, bool inTable, RtfWriteContext context) {
@@ -327,7 +331,6 @@ internal static partial class RtfDocumentWriter {
 
         WriteLegacyNumbering(builder, paragraph.LegacyNumbering, context.UnicodeSkipCount);
         if (paragraph.ListId.HasValue) {
-            builder.Append(paragraph.ListKind == RtfListKind.Bullet ? @"\pn\pnlvlblt" : @"\pn\pnlvlbody");
             builder.Append(@"\ls");
             builder.Append(paragraph.ListId.Value.ToString(CultureInfo.InvariantCulture));
             builder.Append(@"\ilvl");

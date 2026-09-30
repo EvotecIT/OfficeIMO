@@ -91,16 +91,23 @@ internal static partial class RtfDocumentWriter {
         builder.Append(@"{\");
         builder.Append(note.Kind switch {
             RtfNoteKind.Annotation => "annotation",
-            RtfNoteKind.Endnote => "endnote",
             _ => "footnote"
         });
+        if (note.Kind == RtfNoteKind.Endnote) builder.Append(@"\ftnalt");
         if (note.Kind == RtfNoteKind.Annotation) {
             WriteAnnotationMetadata(builder, note, context.UnicodeSkipCount);
             builder.Append(@"\chatn");
         }
 
-        foreach (RtfParagraph paragraph in note.Paragraphs) {
-            WriteParagraph(builder, paragraph, context);
+        for (int index = 0; index < note.Paragraphs.Count; index++) {
+            RtfParagraph paragraph = note.Paragraphs[index];
+            // Native readers reserve the first note character for its reference marker.
+            // Preserve an existing marker when reopening generated RTF instead of duplicating it.
+            bool needsReference = index == 0 && note.Kind != RtfNoteKind.Annotation &&
+                !(paragraph.Inlines.FirstOrDefault() is RtfGeneratedText generated && generated.Kind == RtfGeneratedTextKind.NoteReference);
+            WriteParagraph(builder, note.Paragraphs[index], context,
+                terminateParagraph: note.Kind == RtfNoteKind.Annotation || index < note.Paragraphs.Count - 1,
+                prefix: needsReference ? new RtfGeneratedText(RtfGeneratedTextKind.NoteReference) : null);
         }
 
         builder.Append('}');

@@ -108,7 +108,7 @@ internal static partial class RtfDocumentWriter {
         }
         foreach (char character in text) {
             if (character < 32) builder.Append(@"\'").Append(((int)character).ToString("x2", CultureInfo.InvariantCulture));
-            else builder.Append(EscapeText(character.ToString(), unicodeSkipCount));
+            else builder.Append(RtfTextEncoding.EncodeText(character.ToString(), unicodeSkipCount, useNamedCharacters: false));
         }
     }
 

@@ -5,12 +5,16 @@ internal static class RtfTextEncoding {
         return EncodeText(text, unicodeFallbackCharacterCount: 1);
     }
 
-    public static string EncodeText(string text, int unicodeFallbackCharacterCount) {
+    public static string EncodeText(string text, int unicodeFallbackCharacterCount, bool useNamedCharacters = true) {
         if (unicodeFallbackCharacterCount < 0) throw new ArgumentOutOfRangeException(nameof(unicodeFallbackCharacterCount), "Unicode fallback character count cannot be negative.");
         if (string.IsNullOrEmpty(text)) return string.Empty;
 
         var builder = new StringBuilder(text.Length);
         foreach (char ch in text) {
+            if (!useNamedCharacters && ch > 0x7F) {
+                AppendUnicodeCharacter(builder, ch, unicodeFallbackCharacterCount);
+                continue;
+            }
             switch (ch) {
                 case '\\':
                     builder.Append(@"\\");
@@ -90,20 +94,7 @@ internal static class RtfTextEncoding {
                     if (ch <= 0x7F) {
                         builder.Append(ch);
                     } else {
-                        int value = ch;
-                        if (value > short.MaxValue) {
-                            value -= 65536;
-                        }
-
-                        builder.Append(@"\u");
-                        builder.Append(value.ToString(CultureInfo.InvariantCulture));
-                        if (unicodeFallbackCharacterCount == 0) {
-                            builder.Append(' ');
-                        } else {
-                            for (int i = 0; i < unicodeFallbackCharacterCount; i++) {
-                                builder.Append('?');
-                            }
-                        }
+                        AppendUnicodeCharacter(builder, ch, unicodeFallbackCharacterCount);
                     }
                     break;
             }
@@ -116,5 +107,13 @@ internal static class RtfTextEncoding {
         builder.Append('\\');
         builder.Append(controlWord);
         builder.Append(' ');
+    }
+
+    private static void AppendUnicodeCharacter(StringBuilder builder, char character, int fallbackCount) {
+        int value = character > short.MaxValue ? character - 65536 : character;
+        builder.Append(@"\u");
+        builder.Append(value.ToString(CultureInfo.InvariantCulture));
+        if (fallbackCount == 0) builder.Append(' ');
+        else for (int index = 0; index < fallbackCount; index++) builder.Append('?');
     }
 }

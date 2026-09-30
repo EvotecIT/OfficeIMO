@@ -5,6 +5,7 @@ namespace OfficeIMO.Rtf;
 internal static partial class RtfSemanticReader {
     private sealed partial class Binder {
         private void ReadNote(RtfGroup group, RtfNoteKind kind, CharacterState state, int depth) {
+            if (kind == RtfNoteKind.Footnote && group.Children.OfType<RtfControlWord>().Any(control => control.Name == "ftnalt")) kind = RtfNoteKind.Endnote;
             RtfParagraph savedParagraph = _currentParagraph;
             RtfTable? savedTable = _currentTable;
             RtfTableRow? savedRow = _currentRow;
@@ -26,9 +27,16 @@ internal static partial class RtfSemanticReader {
                 ReadAnnotationMetadata(group, note, childState.AnsiCodePage, childState.UnicodeSkipCount);
             }
 
+            int? paragraphsAtLastStart = null;
             foreach (RtfNode node in group.Children) {
                 switch (node) {
                     case RtfControlWord control when control.Name == group.Destination:
+                        break;
+                    case RtfControlWord control when control.Name == "ftnalt":
+                        break;
+                    case RtfControlWord control when control.Name == "pard":
+                        paragraphsAtLastStart = note.Paragraphs.Count;
+                        ApplyControlWord(control, childState);
                         break;
                     case RtfControlWord control when kind == RtfNoteKind.Annotation && control.Name == "chatn":
                         break;
@@ -49,7 +57,7 @@ internal static partial class RtfSemanticReader {
                 }
             }
 
-            FlushParagraphIfNeeded(force: false, childState);
+            FlushParagraphIfNeeded(force: paragraphsAtLastStart == note.Paragraphs.Count, childState);
             _document.AddParsedNote(note);
 
             _currentParagraph = savedParagraph;
