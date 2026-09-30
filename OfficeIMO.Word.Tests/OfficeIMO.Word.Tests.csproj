@@ -12,6 +12,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(WordPerformanceEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);WORD_PERFORMANCE_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.18.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />

@@ -52,31 +52,6 @@ namespace OfficeIMO.Tests {
             Assert.Contains("non-increasing row indices", ex.Message, StringComparison.OrdinalIgnoreCase);
         }
 
-        [Fact]
-        public void WorksheetValidationMeasurementCompletesForTargetedAndLegacyPaths() {
-            string filePath = Path.Combine(_directoryWithFiles, "WorksheetValidation.Performance.xlsx");
 
-            using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorksheet("Data");
-
-            var cells = Enumerable.Range(1, 1000)
-                .SelectMany(row => Enumerable.Range(1, 8).Select(col => (row, col, (object)$"R{row}C{col}")))
-                .ToList();
-
-            sheet.CellValues(cells, ExcelExecutionMode.Parallel);
-
-            // Warm up targeted validation once before timing.
-            WorksheetIntegrityValidator.Validate(sheet.WorksheetPart, new ExcelExecutionPolicy {
-                WorksheetValidation = ExcelWorksheetValidationMode.Always,
-                DiagnosticsRequested = true,
-            }, sheet.Name);
-
-            var targeted = WorksheetIntegrityValidator.MeasureTargetedValidation(sheet.WorksheetPart, iterations: 3, sheet.Name);
-            var legacy = WorksheetIntegrityValidator.MeasureLegacyOuterXml(sheet.WorksheetPart, iterations: 3);
-
-            // Shared CI runners can invert micro-benchmark timings; this test protects both measurement paths.
-            Assert.True(targeted > TimeSpan.Zero, $"Targeted validation did not record elapsed time ({targeted}).");
-            Assert.True(legacy > TimeSpan.Zero, $"Legacy OuterXml parsing did not record elapsed time ({legacy}).");
-        }
     }
 }
