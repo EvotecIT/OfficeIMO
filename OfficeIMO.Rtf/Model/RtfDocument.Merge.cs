@@ -12,6 +12,10 @@ public sealed partial class RtfDocument {
     public RtfDocumentMergeResult AppendDocument(RtfDocument source, RtfDocumentMergeOptions? options) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         RtfDocument imported = source.Clone();
+        bool hasDestinationContent = HasMergeSectionContent(this) || Notes.Count > 0;
+        bool hasImportedContent = imported.Blocks.Count > 0 || imported.Notes.Count > 0 ||
+            options?.PreserveSections == true && HasMergeSectionContent(imported);
+        bool hadCurrentDestinationHtml = IsHtmlEncapsulationCurrent;
         var report = new RtfConversionReport();
         foreach (RtfConversionDiagnostic diagnostic in imported._sourceNormalizationDiagnostics) report.Add(diagnostic);
         _sourceNormalizationDiagnostics.AddRange(imported._sourceNormalizationDiagnostics);
@@ -19,7 +23,8 @@ public sealed partial class RtfDocument {
         Dictionary<int, int> colorMap = ImportColors(imported);
         Dictionary<int, int> revisionAuthorMap = ImportRevisionAuthors(imported);
         MergeResourceMap bindings = ImportBindings(imported, fontMap, colorMap);
-        ImportMergeMetadata(imported, report);
+        ImportMergeSettings(imported, report, hasDestinationContent);
+        ImportMergeMetadata(imported, report, invalidateStatistics: hasDestinationContent && hasImportedContent);
         var remappedNotes = new HashSet<RtfNote>();
 
         foreach (IRtfBlock block in imported.Blocks) {
@@ -45,6 +50,22 @@ public sealed partial class RtfDocument {
             report.Add(RtfConversionSeverity.Warning, "RtfMergeSectionLayoutOmitted",
                 "Source section layout, page setup, and column settings were not appended because document append flattens content into the destination layout.",
                 RtfConversionAction.Omitted, feature: "SectionLayout", count: omittedSectionLayouts);
+        }
+
+        if (options?.PreserveSections != true && imported.PageSetup.HasAnyValue && hasImportedContent) {
+            report.Add(RtfConversionSeverity.Warning, "RtfMergeDocumentPageSetupOmitted",
+                "Source document page setup is omitted because appended content uses the destination's layout. Use PreserveSections to retain source page setup.",
+                RtfConversionAction.Omitted, sourcePath: "Document/PageSetup", feature: "DocumentPageSetup");
+        }
+        if (imported.HtmlEncapsulation != null) {
+            report.Add(RtfConversionSeverity.Warning, "RtfMergeHtmlEncapsulationOmitted",
+                "The source's alternate encapsulated HTML is omitted because independent HTML payloads cannot describe the combined semantic document.",
+                RtfConversionAction.Omitted, sourcePath: "Document/HtmlEncapsulation", feature: "htmltag");
+        }
+        if (hadCurrentDestinationHtml && !IsHtmlEncapsulationCurrent) {
+            report.Add(RtfConversionSeverity.Warning, "RtfMergeHtmlEncapsulationOmitted",
+                "The destination's alternate encapsulated HTML no longer describes the appended document and is omitted by normalized writing.",
+                RtfConversionAction.Omitted, sourcePath: "Document/HtmlEncapsulation", feature: "htmltag");
         }
 
         return new RtfDocumentMergeResult(this, appended, report);

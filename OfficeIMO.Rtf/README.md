@@ -110,7 +110,9 @@ RtfDocumentMergeResult merge = document.AppendDocument(otherDocument);
 merge.Report.RequireNoLoss();
 ```
 
-`AppendDocument` imports fonts, colors, paragraph and character styles, list definitions and overrides, revision authors, blocks, tables, and notes. Imported resource IDs are remapped, and style inheritance and numbering remain attached to the imported content. File references, XML namespaces, document variables, custom properties, and document information are retained. Conflicting document metadata keeps the destination value and produces an omission diagnostic. Appending into the destination's layout reports source section layout and header/footer omission.
+`AppendDocument` imports fonts, colors, paragraph and character styles, list definitions and overrides, revision authors, blocks, tables, and notes. List resources are discovered through notes, fields, object fallbacks, and text boxes as well as body and table content. Imported resource IDs are remapped, and style inheritance and numbering remain attached to the imported content. File references, XML namespaces, document variables, custom properties, and document information are retained. Conflicting document metadata keeps the destination value and produces an omission diagnostic. Appending into the destination's layout reports source document/section layout and header/footer omission.
+
+An empty destination adopts source document-wide settings where it has no explicit value. When content is combined, destination settings remain in effect and differences are reported as `RtfMergeDocumentSettingsFlattened`, including tab width, facing pages, and editing protection. `PreserveSections` cannot retain separate document-wide settings. Page, word, and character counts are cleared when they no longer describe combined content, with `RtfMergeStatisticsInvalidated`. Alternate source HTML is omitted and reported because it does not describe the merged semantic document.
 
 To retain the source's page setup, columns, and header/footer stories, use section-preserving append:
 

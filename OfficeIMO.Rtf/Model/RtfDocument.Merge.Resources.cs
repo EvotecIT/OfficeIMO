@@ -15,19 +15,20 @@ public sealed partial class RtfDocument {
 
     private MergeResourceMap ImportBindings(RtfDocument source, Dictionary<int, int> fonts, Dictionary<int, int> colors) {
         Writing.RtfDocumentWriter.EffectiveListTables lists = Writing.RtfDocumentWriter.BuildEffectiveListTables(source);
+        Writing.RtfDocumentWriter.EffectiveListTables destinationLists = Writing.RtfDocumentWriter.BuildEffectiveListTables(this);
         source.ReplaceListDefinitions(lists.Definitions);
         source.ReplaceListOverrides(lists.Overrides);
         var map = new MergeResourceMap {
             DefaultFont = MapIndex(source.Settings.DefaultFontId ?? 0, fonts),
             DefaultLanguage = source.Settings.DefaultLanguageId
         };
-        int definitionId = _listDefinitions.Count == 0 ? 1 : checked(_listDefinitions.Max(item => item.Id) + 1);
+        int definitionId = destinationLists.Definitions.Count == 0 ? 1 : checked(destinationLists.Definitions.Max(item => item.Id) + 1);
         foreach (RtfListDefinition definition in source.ListDefinitions) {
             map.ListDefinitions.Add(definition.Id, definitionId);
             definition.Id = definitionId++;
             _listDefinitions.Add(definition);
         }
-        int instanceId = _listOverrides.Count == 0 ? 1 : checked(_listOverrides.Max(item => item.Id) + 1);
+        int instanceId = destinationLists.Overrides.Count == 0 ? 1 : checked(destinationLists.Overrides.Max(item => item.Id) + 1);
         foreach (RtfListOverride instance in source.ListOverrides) {
             map.ListInstances.Add(instance.Id, instanceId);
             instance.Id = instanceId++;

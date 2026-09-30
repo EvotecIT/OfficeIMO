@@ -228,31 +228,56 @@ internal static partial class RtfDocumentWriter {
     }
 
     private static IEnumerable<RtfParagraph> EnumerateParagraphs(RtfDocument document) {
-        foreach (RtfParagraph paragraph in EnumerateParagraphs(document.Blocks)) {
-            yield return paragraph;
-        }
-
-        foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
-            foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {
-                yield return paragraph;
+        var pending = new Stack<object>();
+        var visited = new HashSet<object>();
+        PushListContent(pending, document.Notes);
+        PushListContent(pending, document.HeaderFooters);
+        PushListContent(pending, document.Blocks);
+        while (pending.Count > 0) {
+            object current = pending.Pop();
+            if (!visited.Add(current)) continue;
+            switch (current) {
+                case RtfParagraph paragraph:
+                    yield return paragraph;
+                    PushListContent(pending, paragraph.Inlines);
+                    if (paragraph.ListText != null) pending.Push(paragraph.ListText);
+                    break;
+                case RtfTable table:
+                    PushListContent(pending, table.Rows);
+                    break;
+                case RtfTableRow row:
+                    PushListContent(pending, row.Cells);
+                    break;
+                case RtfTableCell cell:
+                    PushListContent(pending, cell.Blocks);
+                    break;
+                case RtfHeaderFooter headerFooter:
+                    PushListContent(pending, headerFooter.Paragraphs);
+                    break;
+                case RtfNote note:
+                    PushListContent(pending, note.Paragraphs);
+                    break;
+                case RtfRun run when run.Note != null:
+                    pending.Push(run.Note);
+                    break;
+                case RtfGeneratedText generated when generated.Note != null:
+                    pending.Push(generated.Note);
+                    break;
+                case RtfField field:
+                    pending.Push(field.Result);
+                    break;
+                case RtfObject rtfObject:
+                    pending.Push(rtfObject.Result);
+                    break;
+                case RtfShape shape:
+                    PushListContent(pending, shape.TextBoxParagraphs);
+                    break;
             }
         }
     }
 
-    private static IEnumerable<RtfParagraph> EnumerateParagraphs(IEnumerable<IRtfBlock> blocks) {
-        foreach (IRtfBlock block in blocks) {
-            if (block is RtfParagraph paragraph) {
-                yield return paragraph;
-            } else if (block is RtfTable table) {
-                foreach (RtfTableRow row in table.Rows) {
-                    foreach (RtfTableCell cell in row.Cells) {
-                        foreach (RtfParagraph cellParagraph in EnumerateParagraphs(cell.Blocks)) {
-                            yield return cellParagraph;
-                        }
-                    }
-                }
-            }
-        }
+    private static void PushListContent<T>(Stack<object> pending, IReadOnlyList<T> content) where T : class {
+        for (int index = content.Count - 1; index >= 0; index--) pending.Push(content[index]);
     }
 
     internal sealed class EffectiveListTables {

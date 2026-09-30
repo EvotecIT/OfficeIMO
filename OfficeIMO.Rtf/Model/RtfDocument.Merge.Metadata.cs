@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf;
 
 public sealed partial class RtfDocument {
-    private void ImportMergeMetadata(RtfDocument source, RtfConversionReport report) {
+    private void ImportMergeMetadata(RtfDocument source, RtfConversionReport report, bool invalidateStatistics) {
         int fileId = _fileReferences.Count == 0 ? 0 : checked(_fileReferences.Max(item => item.Id) + 1);
         foreach (RtfFileReference file in source.FileReferences) {
             file.Id = fileId++;
@@ -42,10 +42,22 @@ public sealed partial class RtfDocument {
         Info.Printed = MergeMetadataValue(Info.Printed, info.Printed, "Info/Printed", report);
         Info.BackedUp = MergeMetadataValue(Info.BackedUp, info.BackedUp, "Info/BackedUp", report);
         Info.EditingMinutes = MergeMetadataValue(Info.EditingMinutes, info.EditingMinutes, "Info/EditingMinutes", report);
-        Info.NumberOfPages = MergeMetadataValue(Info.NumberOfPages, info.NumberOfPages, "Info/NumberOfPages", report);
-        Info.NumberOfWords = MergeMetadataValue(Info.NumberOfWords, info.NumberOfWords, "Info/NumberOfWords", report);
-        Info.NumberOfCharacters = MergeMetadataValue(Info.NumberOfCharacters, info.NumberOfCharacters, "Info/NumberOfCharacters", report);
-        Info.NumberOfCharactersWithSpaces = MergeMetadataValue(Info.NumberOfCharactersWithSpaces, info.NumberOfCharactersWithSpaces, "Info/NumberOfCharactersWithSpaces", report);
+        if (invalidateStatistics) {
+            bool hadCounts = Info.NumberOfPages.HasValue || Info.NumberOfWords.HasValue || Info.NumberOfCharacters.HasValue || Info.NumberOfCharactersWithSpaces.HasValue ||
+                info.NumberOfPages.HasValue || info.NumberOfWords.HasValue || info.NumberOfCharacters.HasValue || info.NumberOfCharactersWithSpaces.HasValue;
+            Info.NumberOfPages = null;
+            Info.NumberOfWords = null;
+            Info.NumberOfCharacters = null;
+            Info.NumberOfCharactersWithSpaces = null;
+            if (hadCounts) report.Add(RtfConversionSeverity.Warning, "RtfMergeStatisticsInvalidated",
+                "Source and destination page, word, and character counts are omitted because they do not describe the combined content. Recalculate them in the consuming application.",
+                RtfConversionAction.Omitted, sourcePath: "Info", feature: "DocumentStatistics");
+        } else {
+            Info.NumberOfPages = MergeMetadataValue(Info.NumberOfPages, info.NumberOfPages, "Info/NumberOfPages", report);
+            Info.NumberOfWords = MergeMetadataValue(Info.NumberOfWords, info.NumberOfWords, "Info/NumberOfWords", report);
+            Info.NumberOfCharacters = MergeMetadataValue(Info.NumberOfCharacters, info.NumberOfCharacters, "Info/NumberOfCharacters", report);
+            Info.NumberOfCharactersWithSpaces = MergeMetadataValue(Info.NumberOfCharactersWithSpaces, info.NumberOfCharactersWithSpaces, "Info/NumberOfCharactersWithSpaces", report);
+        }
         Info.InternalVersion = MergeMetadataValue(Info.InternalVersion, info.InternalVersion, "Info/InternalVersion", report);
     }
 

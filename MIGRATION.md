@@ -17,6 +17,8 @@ Semantic RTF writing defaults to `RtfWriteOptions.MaterializeStyleFormatting = t
 
 `AppendDocument` retains imported style and list bindings. Applications that also need source page setup and header/footer stories can use `RtfDocumentMergeOptions.PreserveSections`. Page setup exposes nullable `DirectLandscape`, `DirectDifferentFirstPageHeaderFooter`, and `DirectRtlGutter` values: use `null` to inherit the document setting and `false` to select an explicit reset.
 
+RTF append reports differences in document-wide settings even with `PreserveSections`, and reports discarded root page setup and alternate HTML. Empty destinations adopt unset source settings. When content is combined, aggregate page, word, and character counts are cleared and reported; recalculate them in the consuming application. Strict callers must inspect these merge diagnostics before accepting the result.
+
 ## Reader document schema version 8
 
 `OfficeDocumentReadResult` now emits schema version 8. This version adds

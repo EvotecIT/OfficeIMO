@@ -245,7 +245,7 @@ Milestone numbers are identifiers, not a strict dependency-removal queue. H1-H4 
 - [ ] Extend RTF PDF section layout to unequal and right-to-left columns, column-starting sections, and continuous changes to page geometry, numbering, and running stories. Qualify default page geometry and pagination against independent Word output.
 - [ ] Add typed RTF semantics for themes and latent styles, index/TOC entries, revision moves, protected ranges, custom XML, smart tags, and data stores. Keep exact lossless syntax preservation and report any adapter degradation.
 - [ ] Add decoded lossless RTF text-range editing across escaped ANSI, Unicode fallback, and run boundaries. Preserve source identity and unrelated syntax, and reject ambiguous or stale ranges.
-- [ ] Complete RTF append handling for document settings, hyperlink-base conflicts, aggregate metadata, and resources referenced only by notes, fields, shapes, or styles. Extend independent producer evidence with editable semantic round trips and cross-platform performance qualification.
+- [ ] Preserve relative hyperlink meaning when appending documents with conflicting hyperlink bases, and qualify resources bound only through styles. Extend independent RTF producer evidence with editable semantic round trips and cross-platform performance qualification.
 
 ## Electronic invoices
 

@@ -1,9 +1,12 @@
 namespace OfficeIMO.Rtf;
 
 public sealed partial class RtfDocument {
+    private static bool HasMergeSectionContent(RtfDocument document) => document.Blocks.Count > 0 ||
+        document.Sections.Count > 0 || document.HeaderFooters.Count > 0 || document.PageSetup.HasAnyValue;
+
     private void AppendMergedSections(RtfDocument source, Dictionary<int, int> fonts, Dictionary<int, int> colors,
         Dictionary<int, int> revisionAuthors, ISet<RtfNote> remappedNotes, MergeResourceMap bindings) {
-        if (source.Blocks.Count == 0 && source.Sections.Count == 0 && source.HeaderFooters.Count == 0 && !source.PageSetup.HasAnyValue) return;
+        if (!HasMergeSectionContent(source)) return;
         if (_sections.Count == 0 && _blocks.Count > 0) {
             var initial = new RtfSection(this);
             foreach (IRtfBlock block in _blocks) initial.AddParsedBlock(block);
