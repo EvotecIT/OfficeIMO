@@ -1,5 +1,8 @@
 # OfficeIMO.Email
 
+For contributor validation, use the [email interoperability qualification runner](../Build/Email/README.md)
+to select managed and external-producer lanes with explicit passed, failed and disabled outcomes.
+
 ## Attachment extraction and draft composition
 
 Extract decoded attachments into a directory controlled by the application:
