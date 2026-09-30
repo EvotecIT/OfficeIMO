@@ -28,6 +28,12 @@ jobs:
           - name: opendocument-converters
             project: OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
             property: OpenDocumentConvertersPerformanceEvidence
+          - name: word
+            project: OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
+            property: WordPerformanceEvidence
+          - name: excel
+            project: OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+            property: ExcelPerformanceEvidence
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
