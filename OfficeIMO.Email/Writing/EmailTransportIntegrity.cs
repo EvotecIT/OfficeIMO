@@ -27,7 +27,8 @@ internal static class EmailTransportIntegrity {
             throw new InvalidOperationException("Regeneration invalidates transport signatures. Preserve the unchanged source or explicitly choose removal or preservation of invalidated signature markup.");
     }
 
-    internal static void Analyze(EmailDocument root, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
+    internal static void Analyze(EmailDocument root, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics,
+        bool writesMime = false) {
         var pending = new Stack<(EmailDocument Document, string Path, int Depth)>();
         var visited = new HashSet<EmailDocument>();
         pending.Push((root, "headers", 0));
@@ -46,14 +47,23 @@ internal static class EmailTransportIntegrity {
                     blocked ? EmailDiagnosticSeverity.Error : EmailDiagnosticSeverity.Warning, item.Path,
                     lossKind: OfficeConversionLossKind.Omission));
             }
-            if (item.Document.Headers.Any(header => IsPayloadDependent(header.Name)))
-                diagnostics.Add(new EmailDiagnostic("EMAIL_PAYLOAD_METADATA_REMOVED",
-                    "Retained length and digest headers are omitted because they describe the original serialized payload.",
-                    EmailDiagnosticSeverity.Warning, item.Path, lossKind: OfficeConversionLossKind.Omission));
+            ReportPayloadHeaders(item.Document.Headers, item.Path);
+            ReportPayloadHeaders(item.Document.Body.HtmlMimeHeaders, item.Path + "/html");
             for (int index = 0; index < item.Document.Attachments.Count; index++) {
-                EmailDocument? child = item.Document.Attachments[index].EmbeddedDocument;
+                EmailAttachment attachment = item.Document.Attachments[index];
+                ReportPayloadHeaders(attachment.MimeHeaders, item.Path + "/attachment/" + index);
+                // MIME cleanup can keep an embedded message's exact payload while rewriting its parent.
+                if (writesMime && attachment.EmbeddedDocument != null && MimeWriter.CanPreservePartHeaders(attachment)) continue;
+                EmailDocument? child = attachment.EmbeddedDocument;
                 if (child != null) pending.Push((child, item.Path + "/attachment/" + index, item.Depth + 1));
             }
+        }
+
+        void ReportPayloadHeaders(IEnumerable<EmailHeader> headers, string location) {
+            if (headers.Any(header => IsPayloadDependent(header.Name)))
+                diagnostics.Add(new EmailDiagnostic("EMAIL_PAYLOAD_METADATA_REMOVED",
+                    "Retained length and digest headers are omitted because they describe the original serialized payload.",
+                    EmailDiagnosticSeverity.Warning, location, lossKind: OfficeConversionLossKind.Omission));
         }
     }
 }

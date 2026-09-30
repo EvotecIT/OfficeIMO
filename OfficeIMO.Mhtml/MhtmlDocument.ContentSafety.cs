@@ -188,5 +188,6 @@ public sealed partial class MhtmlDocument {
             maxMapiPropertyCount: source.MaxMapiPropertyCount,
             maxDecodedPropertyBytes: Math.Min(source.MaxDecodedPropertyBytes, safety.MaxExpandedPackageBytes),
             maxTnefAttributeCount: source.MaxTnefAttributeCount,
-            maxAttachmentCount: Math.Min(source.MaxAttachmentCount, safety.MaxPackageEntries));
+            maxAttachmentCount: Math.Min(source.MaxAttachmentCount, safety.MaxPackageEntries),
+            includeEmbeddedMessages: source.IncludeEmbeddedMessages);
 }

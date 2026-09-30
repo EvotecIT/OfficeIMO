@@ -196,7 +196,8 @@ public static class EmailStoreItemReader {
                     path,
                     readerOptions,
                     cursor,
-                    cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics);
+                    cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics,
+                    includeEmbeddedMessageContent: EmailStoreReaderAdapter.IncludesEmbeddedContent(adapterOptions));
             return new ReaderEmailStoreItemResult(
                 reference, summary, logicalPath, chunks, projectedDiagnostics,
                 itemIndex == 0 ? openingDiagnostics : null);

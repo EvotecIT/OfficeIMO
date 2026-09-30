@@ -3,6 +3,47 @@ using System.Security.Cryptography;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailAttachmentExtractionTests {
+    [Fact]
+    public void EmbeddedExportsShareTheOperationWideAttachmentVisitBudget() {
+        InDirectory(root => {
+            var sources = new List<CountingSource>();
+            var document = new EmailDocument();
+            for (int message = 0; message < 8; message++) {
+                var child = new EmailDocument();
+                for (int index = 0; index < 2; index++) {
+                    var source = new CountingSource(bytes: 0);
+                    sources.Add(source);
+                    child.Attachments.Add(new EmailAttachment { ContentSource = source });
+                }
+                document.Attachments.Add(new EmailAttachment { EmbeddedDocument = child });
+            }
+            var result = EmailAttachmentExtractor.Extract(document, root, new EmailAttachmentExtractionOptions(maxAttachments: 7));
+            Assert.True(result.Truncated);
+            Assert.True(result.Entries.Count <= 7);
+            Assert.Equal(4, sources.Sum(source => source.OpenCount));
+            Assert.All(sources.Skip(4), source => Assert.Equal(0, source.OpenCount));
+            Assert.Equal(2, Directory.GetFiles(root).Length);
+        });
+    }
+
+    [Fact]
+    public void EmbeddedSerializationCannotResetTheDepthBudget() {
+        InDirectory(root => {
+            var source = new CountingSource(bytes: 0);
+            var deep = new EmailDocument();
+            deep.Attachments.Add(new EmailAttachment { ContentSource = source });
+            var nested = new EmailDocument();
+            nested.Attachments.Add(new EmailAttachment { EmbeddedDocument = deep });
+            var document = new EmailDocument();
+            document.Attachments.Add(new EmailAttachment { EmbeddedDocument = nested });
+            var result = EmailAttachmentExtractor.Extract(document, root, new EmailAttachmentExtractionOptions(maxDepth: 1));
+            Assert.True(result.Truncated);
+            Assert.Null(Assert.Single(result.Entries).OutputPath);
+            Assert.Equal(0, source.OpenCount);
+            Assert.Empty(Directory.GetFiles(root));
+        });
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]

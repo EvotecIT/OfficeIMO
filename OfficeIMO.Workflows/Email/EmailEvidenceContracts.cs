@@ -43,7 +43,7 @@ public sealed class EmailEvidenceResult {
     private readonly long _maximumBytes;
     internal EmailEvidenceResult(string html, string markdown, byte[]? pdf, EmailEvidenceManifest manifest, long maximumBytes) {
         Html = html; Markdown = markdown; _pdf = pdf; Manifest = manifest; _maximumBytes = maximumBytes;
-        _manifest = JsonSerializer.SerializeToUtf8Bytes(manifest, new JsonSerializerOptions { WriteIndented = true });
+        _manifest = JsonSerializer.SerializeToUtf8Bytes(manifest, EmailEvidenceJsonContext.Default.EmailEvidenceManifest);
         long bytes = Encoding.UTF8.GetByteCount(html) + (long)Encoding.UTF8.GetByteCount(markdown) + _manifest.LongLength + (pdf?.LongLength ?? 0);
         if (bytes > maximumBytes) throw new InvalidDataException("The email evidence output exceeds MaxOutputBytes.");
     }

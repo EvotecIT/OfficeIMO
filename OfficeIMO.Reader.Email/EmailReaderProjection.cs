@@ -10,8 +10,9 @@ internal static partial class EmailReaderProjection {
     internal static IReadOnlyList<ReaderChunk> ProjectEmailDocumentToChunks(
         EmailDocument document, string logicalPath, IReadOnlyList<EmailDiagnostic> diagnostics,
         string sourceName, ReaderOptions options, EmailDocumentProjectionCursor cursor,
-        CancellationToken cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics) {
-        var projection = new Projection(sourceName, document.Format);
+        CancellationToken cancellationToken, out IReadOnlyList<EmailDiagnostic> projectedDiagnostics,
+        bool includeEmbeddedMessageContent = true) {
+        var projection = new Projection(sourceName, document.Format) { IncludeEmbeddedMessageContent = includeEmbeddedMessageContent };
         projection.Diagnostics.AddRange(diagnostics);
         AddDocument(document, null, logicalPath, projection, options, cursor, depth: 0, cancellationToken);
         projectedDiagnostics = projection.Diagnostics;
@@ -21,15 +22,15 @@ internal static partial class EmailReaderProjection {
     internal static IReadOnlyList<ReaderChunk> ProjectEmailDocumentsToChunks(
         IReadOnlyList<EmailDocument> documents, IReadOnlyList<string?> logicalPaths,
         IReadOnlyList<EmailDiagnostic> diagnostics, EmailFileFormat format, string sourceName,
-        ReaderOptions options, CancellationToken cancellationToken) =>
-        CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken).Chunks;
+        ReaderOptions options, CancellationToken cancellationToken, bool includeEmbeddedMessageContent = true) =>
+        CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken, includeEmbeddedMessageContent).Chunks;
 
     internal static OfficeDocumentReadResult ProjectEmailDocumentsToPathResult(
         IReadOnlyList<EmailDocument> documents, IReadOnlyList<string?> logicalPaths,
         IReadOnlyList<EmailDiagnostic> diagnostics, EmailFileFormat format, string sourceName,
         string path, ReaderOptions options, CancellationToken cancellationToken,
-        bool? computeSourceHash = null) {
-        Projection projection = CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken);
+        bool? computeSourceHash = null, bool includeEmbeddedMessageContent = true) {
+        Projection projection = CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken, includeEmbeddedMessageContent);
         var source = new OfficeDocumentSource {
             Path = path,
             SourceId = "src:" + Hash(NormalizeSourceKey(path)),
@@ -45,8 +46,8 @@ internal static partial class EmailReaderProjection {
         IReadOnlyList<EmailDocument> documents, IReadOnlyList<string?> logicalPaths,
         IReadOnlyList<EmailDiagnostic> diagnostics, EmailFileFormat format, string sourceName,
         Stream stream, ReaderOptions options, CancellationToken cancellationToken,
-        bool? computeSourceHash = null) {
-        Projection projection = CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken);
+        bool? computeSourceHash = null, bool includeEmbeddedMessageContent = true) {
+        Projection projection = CreateProjection(documents, null, logicalPaths, diagnostics, format, sourceName, options, cancellationToken, includeEmbeddedMessageContent);
         var source = new OfficeDocumentSource {
             Path = sourceName,
             SourceId = "src:" + Hash(sourceName),
@@ -59,11 +60,11 @@ internal static partial class EmailReaderProjection {
 
     internal static OfficeDocumentReadResult ProjectMailboxToPathResult(
         EmailMailboxReadResult mailbox, string path, ReaderOptions options, CancellationToken cancellationToken,
-        bool? computeSourceHash = null) {
+        bool? computeSourceHash = null, bool includeEmbeddedMessageContent = true) {
         EmailDocument[] documents = mailbox.Mailbox.Messages.Select(static entry => entry.Document).ToArray();
         EmailMailboxEntry[] entries = mailbox.Mailbox.Messages.ToArray();
         string?[] paths = Enumerable.Range(1, documents.Length).Select(index => (string?)string.Concat(path, "!/message-", index.ToString("D6", CultureInfo.InvariantCulture), ".eml")).ToArray();
-        Projection projection = CreateProjection(documents, entries, paths, mailbox.Diagnostics, EmailFileFormat.Mbox, path, options, cancellationToken);
+        Projection projection = CreateProjection(documents, entries, paths, mailbox.Diagnostics, EmailFileFormat.Mbox, path, options, cancellationToken, includeEmbeddedMessageContent);
         var source = new OfficeDocumentSource { Path = path, SourceId = "src:" + Hash(NormalizeSourceKey(path)), SourceHash = (computeSourceHash ?? options.ComputeHashes) ? TryHashFile(path) : null, LengthBytes = TryLength(path), LastWriteUtc = TryLastWrite(path) };
         EnrichChunks(projection.Chunks, source, options.ComputeHashes);
         return CreateResult(projection, path, source);
@@ -71,11 +72,11 @@ internal static partial class EmailReaderProjection {
 
     internal static OfficeDocumentReadResult ProjectMailboxToStreamResult(
         EmailMailboxReadResult mailbox, string sourceName, Stream stream, ReaderOptions options, CancellationToken cancellationToken,
-        bool? computeSourceHash = null) {
+        bool? computeSourceHash = null, bool includeEmbeddedMessageContent = true) {
         EmailDocument[] documents = mailbox.Mailbox.Messages.Select(static entry => entry.Document).ToArray();
         EmailMailboxEntry[] entries = mailbox.Mailbox.Messages.ToArray();
         string?[] paths = Enumerable.Range(1, documents.Length).Select(index => (string?)string.Concat(sourceName, "!/message-", index.ToString("D6", CultureInfo.InvariantCulture), ".eml")).ToArray();
-        Projection projection = CreateProjection(documents, entries, paths, mailbox.Diagnostics, EmailFileFormat.Mbox, sourceName, options, cancellationToken);
+        Projection projection = CreateProjection(documents, entries, paths, mailbox.Diagnostics, EmailFileFormat.Mbox, sourceName, options, cancellationToken, includeEmbeddedMessageContent);
         var source = new OfficeDocumentSource { Path = sourceName, SourceId = "src:" + Hash(sourceName), SourceHash = (computeSourceHash ?? options.ComputeHashes) ? TryHashStream(stream) : null, LengthBytes = TryLength(stream) };
         EnrichChunks(projection.Chunks, source, options.ComputeHashes);
         return CreateResult(projection, sourceName, source);
@@ -85,9 +86,9 @@ internal static partial class EmailReaderProjection {
         IReadOnlyList<EmailDocument> documents, IReadOnlyList<EmailMailboxEntry>? mailboxEntries,
         IReadOnlyList<string?> logicalPaths, IReadOnlyList<EmailDiagnostic> diagnostics,
         EmailFileFormat format, string sourceName, ReaderOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, bool includeEmbeddedMessageContent = true) {
         if (documents.Count != logicalPaths.Count) throw new ArgumentException("A logical path is required for every email document.", nameof(logicalPaths));
-        var projection = new Projection(sourceName, format);
+        var projection = new Projection(sourceName, format) { IncludeEmbeddedMessageContent = includeEmbeddedMessageContent };
         projection.Documents.AddRange(documents);
         projection.Diagnostics.AddRange(diagnostics);
         var cursor = new EmailDocumentProjectionCursor();
@@ -168,6 +169,12 @@ internal static partial class EmailReaderProjection {
                 SourceObjectId = attachmentPath,
                 Location = location
             });
+            if (!projection.IncludeEmbeddedMessageContent && (attachment.EmbeddedDocument != null || IsMailAttachment(attachment, name))) {
+                projection.AttachmentSkipped++;
+                AttachmentOutcome(projection, attachmentChunk, attachmentPath, "EMAIL_ATTACHMENT_READER_EMBEDDED_CONTENT_OMITTED",
+                    "Embedded mail content was excluded by the parent-only policy.", includeChunkWarning: false);
+                continue;
+            }
             if (attachment.EmbeddedDocument != null) {
                 projection.EmbeddedAttachmentCount++;
                 AddDocument(attachment.EmbeddedDocument, null, attachmentPath, projection, options, cursor, depth + 1, cancellationToken);
@@ -490,6 +497,7 @@ internal static partial class EmailReaderProjection {
     private static string ToHex(byte[] bytes) { var builder = new StringBuilder(bytes.Length * 2); foreach (byte value in bytes) builder.Append(value.ToString("x2", CultureInfo.InvariantCulture)); return builder.ToString(); }
 
     private sealed class Projection {
+        internal bool IncludeEmbeddedMessageContent { get; set; } = true;
         internal Projection(string sourceName, EmailFileFormat format) { SourceName = sourceName; Format = format; }
         internal string SourceName { get; }
         internal EmailFileFormat Format { get; }

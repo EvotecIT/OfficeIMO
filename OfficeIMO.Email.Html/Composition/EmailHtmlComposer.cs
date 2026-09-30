@@ -8,7 +8,7 @@ public sealed class EmailHtmlCompositionOptions {
     public EmailCompositionOptions Composition { get; set; } = new EmailCompositionOptions();
     /// <summary>Maximum original body characters accepted before HTML/RTF projection.</summary>
     public int MaxSourceChars { get; set; } = 2 * 1024 * 1024;
-    /// <summary>Separate maximum for generated HTML after text encoding or RTF conversion.</summary>
+    /// <summary>Maximum final HTML characters, including authored text, quotation, encoding and document markup.</summary>
     public int MaxProjectionChars { get; set; } = 16 * 1024 * 1024;
 }
 
@@ -47,7 +47,7 @@ public static class EmailHtmlComposer {
         var composition = mode == 0 ? EmailComposer.Reply(original, from, text, corePolicy)
             : mode == 1 ? EmailComposer.ReplyAll(original, from, text, corePolicy) : EmailComposer.Forward(original, from, text, corePolicy);
         var diagnostics = new List<EmailDiagnostic>(composition.Diagnostics);
-        string html = TextHtml(text);
+        string html = TextHtml(text, effective.MaxProjectionChars);
         if (policy.QuoteOriginal && policy.MaxQuoteChars > 0) {
             // Prefer the rich source for both alternatives so they quote the same representation.
             var index = EmailIndexText.Create(original, new EmailIndexTextOptions {
@@ -56,7 +56,7 @@ public static class EmailHtmlComposer {
             diagnostics.AddRange(index.Diagnostics);
             if (index.SourceKind == EmailBodySourceKind.None) return Finish();
             if (index.Truncated || index.SourceKind == EmailBodySourceKind.PlainText) {
-                AddQuote(TextHtml(index.FullText));
+                AddQuote(TextHtml(index.FullText, effective.MaxProjectionChars));
                 if (index.Truncated) diagnostics.Add(new EmailDiagnostic("EMAIL_COMPOSITION_TEXT_QUOTE_FALLBACK", "The rich quotation exceeded its bound; bounded text was quoted instead."));
                 return Finish();
             }
@@ -84,12 +84,13 @@ public static class EmailHtmlComposer {
             string quote = body?.InnerHtml ?? string.Empty;
             // Never clip markup mid-tag. A large rich quote becomes a scalar-safe text quotation.
             if (index.Truncated || quote.Length > policy.MaxQuoteChars) {
-                quote = TextHtml(index.FullText);
+                quote = TextHtml(index.FullText, effective.MaxProjectionChars);
                 diagnostics.Add(new EmailDiagnostic("EMAIL_COMPOSITION_TEXT_QUOTE_FALLBACK", "The rich quotation exceeded its bound; bounded text was quoted instead."));
             }
             AddQuote(quote);
 
             void AddQuote(string quotation) {
+                EnsureProjectionLength((long)html.Length + quotation.Length + "<blockquote></blockquote>".Length, effective.MaxProjectionChars);
                 html += "<blockquote>" + quotation + "</blockquote>";
                 composition.Document.Body.Text += "\r\n\r\n" + string.Join("\r\n", index.FullText.TrimEnd('\n').Split('\n').Select(line => "> " + line));
             }
@@ -97,10 +98,32 @@ public static class EmailHtmlComposer {
         return Finish();
 
         EmailHtmlCompositionResult Finish() {
-            composition.Document.Body.Html = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>" + html + "</body></html>";
+            const string prefix = "<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head><body>";
+            const string suffix = "</body></html>";
+            EnsureProjectionLength((long)prefix.Length + html.Length + suffix.Length, effective.MaxProjectionChars);
+            composition.Document.Body.Html = prefix + html + suffix;
             composition.Document.Body.HtmlCharset = "utf-8";
             return new EmailHtmlCompositionResult(composition.Document, diagnostics.AsReadOnly());
         }
     }
-    private static string TextHtml(string text) => "<div>" + OfficeHtmlText.Escape(text).Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", "<br>") + "</div>";
+    private static string TextHtml(string text, int maximum) {
+        if (text == null) throw new ArgumentNullException(nameof(text));
+        EnsureProjectionLength(text.Length, maximum);
+        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        var output = new System.Text.StringBuilder("<div>");
+        for (int offset = 0; offset < normalized.Length;) {
+            int count = Math.Min(4096, normalized.Length - offset);
+            if (offset + count < normalized.Length && char.IsHighSurrogate(normalized[offset + count - 1])) count--;
+            string encoded = OfficeHtmlText.Escape(normalized.Substring(offset, count)).Replace("\n", "<br>");
+            EnsureProjectionLength((long)output.Length + encoded.Length + "</div>".Length, maximum);
+            output.Append(encoded);
+            offset += count;
+        }
+        EnsureProjectionLength((long)output.Length + "</div>".Length, maximum);
+        return output.Append("</div>").ToString();
+    }
+
+    private static void EnsureProjectionLength(long length, int maximum) {
+        if (length > maximum) throw new InvalidDataException("The composed HTML exceeds MaxProjectionChars.");
+    }
 }

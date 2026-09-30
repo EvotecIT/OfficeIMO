@@ -171,7 +171,7 @@ internal sealed partial class OfficeImoAgentService {
         };
     }
 
-    private static EmailStoreReaderOptions CreateEmailStoreOptions(long maxDecodedPropertyBytes = 128L * 1024 * 1024) =>
+    internal static EmailStoreReaderOptions CreateEmailStoreOptions(long maxDecodedPropertyBytes = 128L * 1024 * 1024) =>
         new(
             retainAttachmentContent: false,
             maxDecodedPropertyBytesPerItem: maxDecodedPropertyBytes,

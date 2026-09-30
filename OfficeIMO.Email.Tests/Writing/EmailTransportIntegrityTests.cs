@@ -2,6 +2,26 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailTransportIntegrityTests {
     [Theory]
+    [InlineData("Content-MD5")]
+    [InlineData("Digest")]
+    [InlineData("Content-Digest")]
+    [InlineData("Repr-Digest")]
+    [InlineData("Content-Length")]
+    public void RegeneratedHtmlAndAttachmentPayloadHeadersHaveSeparateLossEvidence(string header) {
+        string mime = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=parts\r\n\r\n" +
+            "--parts\r\nContent-Type: text/html\r\n" + header + ": original\r\n\r\n<p>body</p>\r\n" +
+            "--parts\r\nContent-Type: application/octet-stream\r\nContent-Disposition: attachment; filename=file.bin\r\n" +
+            header + ": original\r\n\r\nbytes\r\n--parts--\r\n";
+        using var parsed = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(mime));
+        var writer = new EmailDocumentWriter();
+        byte[] output = writer.ToBytes(parsed.Document, EmailFileFormat.Eml, out var result);
+        Assert.False(result.HasErrors);
+        Assert.DoesNotContain(header + ": original", Encoding.ASCII.GetString(output));
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PAYLOAD_METADATA_REMOVED" && diagnostic.Location == "headers/html");
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_PAYLOAD_METADATA_REMOVED" && diagnostic.Location == "headers/attachment/0");
+    }
+
+    [Theory]
     [InlineData("DKIM-Signature")]
     [InlineData("DomainKey-Signature")]
     [InlineData("ARC-Message-Signature")]

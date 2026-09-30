@@ -11,7 +11,7 @@ internal static class EmailConversionAnalyzer {
             document.Format == targetFormat && document.RawSource != null &&
             document.RawSourceModelFingerprint != null &&
             EmailDocumentStateFingerprint.Matches(document, document.RawSourceModelFingerprint);
-        if (!reusesSource) EmailTransportIntegrity.Analyze(document, options, diagnostics);
+        if (!reusesSource) EmailTransportIntegrity.Analyze(document, options, diagnostics, targetFormat == EmailFileFormat.Eml);
 
         if (document.Protection.IsProtected && !CanPassThroughProtectedSource(document, targetFormat)) {
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,

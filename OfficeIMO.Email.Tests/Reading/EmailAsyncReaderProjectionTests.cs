@@ -6,6 +6,59 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailAsyncReaderProjectionTests {
     [Theory]
+    [InlineData(false, "eml")]
+    [InlineData(true, "eml")]
+    [InlineData(false, "msg")]
+    [InlineData(true, "msg")]
+    [InlineData(false, "mbox")]
+    [InlineData(true, "mbox")]
+    public async Task ParentOnlyPolicySurvivesReaderConfigurationAndEffectiveOptionCopies(bool asynchronous, string kind) {
+        var child = new EmailDocument { Subject = "nested scope marker" };
+        child.Body.Text = "nested scope marker";
+        var parent = new EmailDocument { Subject = "Parent" };
+        parent.Body.Text = "parent scope marker";
+        parent.Attachments.Add(new EmailAttachment { EmbeddedDocument = child });
+        byte[] bytes = parent.ToBytes(kind == "msg" ? EmailFileFormat.OutlookMsg : EmailFileFormat.Eml);
+        if (kind == "mbox") bytes = Encoding.ASCII.GetBytes("From sender@example.test Wed Sep 30 12:00:00 2026\r\n").Concat(bytes).ToArray();
+        var reader = new OfficeDocumentReaderBuilder().AddEmailHandler(new ReaderEmailOptions {
+            MessageOptions = new EmailReaderOptions(includeEmbeddedMessages: kind == "mbox"),
+            MailboxOptions = new EmailMailboxReaderOptions(new EmailReaderOptions(includeEmbeddedMessages: false))
+        }).Build();
+        using var source = new MemoryStream(bytes);
+        var result = asynchronous ? await reader.ReadDocumentAsync(source, "parent." + kind)
+            : reader.ReadDocument(source, "parent." + kind);
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("parent scope marker"));
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.Contains("nested scope marker"));
+        Assert.DoesNotContain(result.Assets, asset => asset.Kind == "embedded-message");
+    }
+
+    [Fact]
+    public void ParentOnlyStoreItemsDoNotReparseOpaqueMessageAttachments() {
+        string root = Path.Combine(Path.GetTempPath(), "officeimo-parent-scope-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            var child = new EmailDocument();
+            child.Body.Text = "nested scope marker";
+            var parent = new EmailDocument();
+            parent.Body.Text = "parent scope marker";
+            parent.Attachments.Add(new EmailAttachment { EmbeddedDocument = child });
+            File.WriteAllBytes(Path.Combine(root, "parent.eml"), parent.ToBytes());
+            var policy = new ReaderEmailStoreOptions { ItemReadOptions = new OfficeIMO.Email.Store.EmailStoreItemReadOptions(
+                OfficeIMO.Email.Store.EmailStoreItemReadParts.All & ~OfficeIMO.Email.Store.EmailStoreItemReadParts.EmbeddedItems) };
+            var reader = new OfficeDocumentReaderBuilder().AddEmailHandler().AddEmailStoreHandler(policy).Build();
+            var item = Assert.Single(EmailStoreItemReader.Read(reader, root, emailStoreOptions: policy));
+            Assert.Contains(item.Chunks, chunk => chunk.Text.Contains("parent scope marker"));
+            Assert.DoesNotContain(item.Chunks, chunk => chunk.Text.Contains("nested scope marker"));
+            byte[] payload = parent.ToBytes();
+            string emlx = Path.Combine(root, "parent.emlx");
+            File.WriteAllBytes(emlx, Encoding.ASCII.GetBytes(payload.Length + "\n").Concat(payload).ToArray());
+            var aggregate = reader.ReadDocument(emlx);
+            Assert.Contains(aggregate.Chunks, chunk => chunk.Text.Contains("parent scope marker"));
+            Assert.DoesNotContain(aggregate.Chunks, chunk => chunk.Text.Contains("nested scope marker"));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Theory]
     [InlineData("message.eml", "Subject: Native async\r\nContent-Type: text/plain\r\n\r\nhello", true)]
     [InlineData("message.eml", "Subject: Native async\r\nContent-Type: text/plain\r\n\r\nhello", false)]
     [InlineData("mail.mbox", "From a@example.test Wed Sep 30 12:00:00 2026\nSubject: Native async\n\nhello\n", true)]

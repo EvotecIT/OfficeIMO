@@ -199,6 +199,12 @@ delivered match if the output budget shortens a page, so later matches remain av
 query changes invalidate it. Keep the selected fields, metadata filters and per-item decode/text
 bounds unchanged when resuming. Fetch uses the returned opaque hit IDs.
 
+Source IDs from semantic email search bind the complete store content, including when `fetch`
+resolves them in another process through `--path`. If a single opaque hit ID cannot fit the output
+budget, the page returns no hits, `isComplete: false`, and the input checkpoint without advancing.
+Retry that position with a larger output budget or use the store API; do not treat a null checkpoint
+as completion when `isComplete` is false.
+
 Inspect, search, fetch, and capabilities accept a bounded `--max-output-characters` value. Search and fetch return continuation cursors when more results or content are available. Convert writes its full representation to the requested output file and returns only a small artifact summary.
 
 Use `OFFICEIMO_MCP_ALLOWED_ROOTS` to set a platform path-separator-delimited list of directories available to agent and MCP operations. The STDIO MCP server defaults to its launch working directory when the variable is unset. Explicit roots replace this default; include the launch directory when it should remain available.

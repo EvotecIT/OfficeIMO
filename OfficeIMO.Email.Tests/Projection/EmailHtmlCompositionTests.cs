@@ -1,6 +1,25 @@
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailHtmlCompositionTests {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AuthoredEncodingAndCompleteDocumentRespectTheProjectionBound(int mode) {
+        var source = new EmailDocument();
+        source.Body.Text = "quoted body";
+        var options = new EmailHtmlCompositionOptions { MaxProjectionChars = 512 };
+        var from = new EmailAddress("me@example.test");
+        EmailHtmlCompositionResult Compose(string text) => mode == 0 ? EmailHtmlComposer.Reply(source, from, text, options)
+            : mode == 1 ? EmailHtmlComposer.ReplyAll(source, from, text, options) : EmailHtmlComposer.Forward(source, from, text, options);
+        Assert.Throws<InvalidDataException>(() => Compose(new string('&', 120)));
+        string bounded = Compose("hello").Document.Body.Html!;
+        Assert.True(bounded.Length <= options.MaxProjectionChars);
+        options.MaxProjectionChars = bounded.Length - 1;
+        Assert.Throws<InvalidDataException>(() => Compose("hello"));
+        Assert.Null(source.Body.Html);
+    }
+
     [Fact]
     public void OutlookConditionalCommentsCannotCarryResourcesIntoAnIndependentDraft() {
         var source = new EmailDocument();

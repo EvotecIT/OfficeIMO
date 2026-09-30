@@ -10,6 +10,73 @@ namespace OfficeIMO.Tool.Tests;
 
 public sealed class AgentEmailContentSearchTests {
     [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(true, true)]
+    public async Task FetchRejectsSameLengthTimestampPreservingChangesAfterSemanticSearch(bool freshService, bool mailboxFile) {
+        string root = CreateMailbox(1);
+        try {
+            var service = new OfficeImoAgentService(new AgentPathPolicy(new[] { root }));
+            string path = Path.Combine(root, "000.eml");
+            string input = root;
+            if (mailboxFile) {
+                input = path = Path.Combine(root, "messages.mbox");
+                File.WriteAllText(path, "From sender@example.test Wed Sep 30 12:00:00 2026\nSubject: Search\n\nbody needle\n");
+            }
+            var page = await service.SearchEmailContentAsync(input, "body needle");
+            var hit = Assert.Single(page.Results);
+            var consumer = freshService ? new OfficeImoAgentService(new AgentPathPolicy(new[] { root })) : service;
+            var unchanged = await consumer.FetchAsync(page.SourceId, hit.Id, sourcePath: freshService ? input : null);
+            Assert.Contains("body needle", unchanged.Content);
+            DateTime timestamp = File.GetLastWriteTimeUtc(path);
+            long length = new FileInfo(path).Length;
+            string original = File.ReadAllText(path);
+            File.WriteAllText(path, original.Replace("body needle", "body altered".Substring(0, 11)));
+            File.SetLastWriteTimeUtc(path, timestamp);
+            Assert.Equal(original.Length, File.ReadAllText(path).Length);
+            Assert.Equal(length, new FileInfo(path).Length);
+            await Assert.ThrowsAsync<AgentUsageException>(() => consumer.FetchAsync(page.SourceId, hit.Id, sourcePath: freshService ? input : null));
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task OversizedOlmMatchReturnsABoundedUndeliveredOutcome(bool continuation) {
+        string root = CreateMailbox(0);
+        try {
+            string input = Path.Combine(root, "long-path.olm");
+            using (var archive = new ZipArchive(File.Create(input), ZipArchiveMode.Create)) {
+                if (continuation) {
+                    using var first = new StreamWriter(archive.CreateEntry("Local/a/com.microsoft.__Messages/Inbox/Messages.xml").Open());
+                    first.Write("<emails><email><OPFMessageCopySubject>needle</OPFMessageCopySubject><OPFMessageCopyBody>first needle</OPFMessageCopyBody></email></emails>");
+                }
+                using var writer = new StreamWriter(archive.CreateEntry("Local/" + new string('z', 50_000) + "/com.microsoft.__Messages/Inbox/Messages.xml").Open());
+                writer.Write("<emails><email><OPFMessageCopySubject>needle</OPFMessageCopySubject><OPFMessageCopyBody>body needle</OPFMessageCopyBody></email></emails>");
+            }
+            var service = new OfficeImoAgentService(new AgentPathPolicy(new[] { root }));
+            string? checkpoint = null;
+            if (continuation) {
+                var first = await service.SearchEmailContentAsync(input, "needle", take: 1, maxOutputCharacters: 2000);
+                Assert.Single(first.Results);
+                checkpoint = Assert.IsType<string>(first.NextCheckpoint);
+            }
+            var page = await service.SearchEmailContentAsync(input, "needle", checkpoint: checkpoint, maxOutputCharacters: 512);
+            Assert.Empty(page.Results);
+            Assert.False(page.IsComplete);
+            Assert.True(page.Truncated);
+            Assert.Equal(checkpoint, page.NextCheckpoint);
+            Assert.True(page.DiagnosticCount > 0);
+            Assert.True(AgentJson.Serialize(page).Length <= 512);
+            var retry = await service.SearchEmailContentAsync(input, "needle", checkpoint: page.NextCheckpoint, maxOutputCharacters: 64_000);
+            Assert.Empty(retry.Results);
+            Assert.False(retry.IsComplete);
+            Assert.Equal(checkpoint, retry.NextCheckpoint);
+        } finally { Directory.Delete(root, recursive: true); }
+    }
+
+    [Theory]
     [InlineData("directory-eml")]
     [InlineData("maildir-msg")]
     [InlineData("mbox")]

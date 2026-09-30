@@ -382,8 +382,7 @@ internal static partial class MimeWriter {
             }
         }
         string? fileName = attachment.FileName;
-        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0
-            && (!embeddedMessage || hasContent);
+        bool preservePartHeaders = CanPreservePartHeaders(attachment);
         if (preservePartHeaders) {
             WritePreservedPartHeaders(output, attachment.MimeHeaders, omitPayloadDependentHeaders: true);
         } else {
@@ -704,8 +703,7 @@ internal static partial class MimeWriter {
              string.IsNullOrWhiteSpace(retainedBoundary))) {
             contentType = "application/octet-stream";
         }
-        bool preservePartHeaders = attachment.PreserveMimeHeadersOnWrite && attachment.MimeHeaders.Count > 0
-            && (!embeddedMessage || hasContent);
+        bool preservePartHeaders = CanPreservePartHeaders(attachment);
 
         if (preservePartHeaders && !ShouldScanTransferEncodedPayload(attachment.MimeTransferEncoding)) return;
         if (attachment.EmbeddedDocument != null && preservePartHeaders) {

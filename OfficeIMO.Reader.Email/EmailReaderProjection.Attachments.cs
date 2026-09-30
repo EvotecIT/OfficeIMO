@@ -3,6 +3,15 @@ using OfficeIMO.Email;
 namespace OfficeIMO.Reader.Email;
 
 internal static partial class EmailReaderProjection {
+    private static bool IsMailAttachment(EmailAttachment attachment, string name) =>
+        attachment.ContentType?.Equals("message/rfc822", StringComparison.OrdinalIgnoreCase) == true ||
+        attachment.ContentType?.Equals("message/global", StringComparison.OrdinalIgnoreCase) == true ||
+        attachment.ContentType?.Equals("application/vnd.ms-outlook", StringComparison.OrdinalIgnoreCase) == true ||
+        attachment.ContentType?.Equals("application/ms-tnef", StringComparison.OrdinalIgnoreCase) == true ||
+        attachment.ContentType?.Equals("application/mbox", StringComparison.OrdinalIgnoreCase) == true ||
+        TryExtension(name)?.ToLowerInvariant() is ".eml" or ".msg" or ".oft" or ".tnef" or ".emlx" or
+            ".mbox" or ".mbx" or ".pst" or ".ost" or ".olm";
+
     private static void AddAttachmentContent(
         EmailAttachment attachment, string fileName, string attachmentPath, string subject,
         ReaderChunk attachmentChunk, Projection projection, ReaderOptions options,

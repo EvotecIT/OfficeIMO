@@ -31,6 +31,7 @@ public static class EmailAttachmentExtractor {
         var diagnostics = new List<EmailDiagnostic>();
         var ancestors = new HashSet<EmailDocument>();
         long consumed = 0;
+        int visitedAttachments = 0;
         bool truncated = false;
         await Visit(document, string.Empty, 0).ConfigureAwait(false);
         return new EmailAttachmentExtractionResult(entries.AsReadOnly(), consumed, truncated, diagnostics.AsReadOnly());
@@ -44,12 +45,13 @@ public static class EmailAttachmentExtractor {
             try {
                 for (int index = 0; index < current.Attachments.Count; index++) {
                     cancellationToken.ThrowIfCancellationRequested();
-                    if (entries.Count >= effective.MaxAttachments || consumed >= effective.MaxTotalBytes) {
+                    if (visitedAttachments >= effective.MaxAttachments || consumed >= effective.MaxTotalBytes) {
                         truncated = true;
                         diagnostics.Add(new EmailDiagnostic("EMAIL_EXTRACTION_BUDGET", "Attachment count or total byte budget stopped traversal.", location: prefix));
                         return;
                     }
                     EmailAttachment attachment = current.Attachments[index];
+                    visitedAttachments++;
                     string sourcePath = prefix + index.ToString(CultureInfo.InvariantCulture);
                     var itemDiagnostics = new List<EmailDiagnostic>();
                     string? outputPath = null;
@@ -71,20 +73,31 @@ public static class EmailAttachmentExtractor {
                             await OfficeFileCommit.WriteAsync(path, async (output, token) => {
                                 using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                                 if (attachment.EmbeddedDocument != null) {
+                                    int remainingDepth = effective.MaxDepth - depth - 1;
+                                    if (remainingDepth < 0 && attachment.EmbeddedDocument.Attachments.Count > 0)
+                                        throw new EmailLimitExceededException(nameof(effective.MaxDepth), depth + 1, effective.MaxDepth);
+                                    remainingDepth = Math.Max(0, remainingDepth);
+                                    int stagingLimit = effective.MaxAttachments - visitedAttachments;
+                                    ReserveEmbeddedVisits(attachment.EmbeddedDocument, depth + 1, effective.MaxDepth, () => {
+                                        cancellationToken.ThrowIfCancellationRequested();
+                                        if (visitedAttachments >= effective.MaxAttachments)
+                                            throw new EmailLimitExceededException(nameof(effective.MaxAttachments), visitedAttachments + 1, effective.MaxAttachments);
+                                        visitedAttachments++;
+                                    });
                                     var preflightWriter = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true,
-                                        maxNestedMessageDepth: effective.MaxDepth, maxOutputBytes: maximum));
+                                        maxNestedMessageDepth: remainingDepth, maxOutputBytes: maximum));
                                     EmailConversionReport conversion = preflightWriter.AnalyzeConversion(attachment.EmbeddedDocument);
                                     if (!conversion.CanWrite) {
                                         itemDiagnostics.AddRange(conversion.Diagnostics);
                                         throw new InvalidDataException("Embedded message serialization was blocked; see its diagnostics.");
                                     }
                                     using var staging = await EmailAttachmentStaging.CreateAsync(attachment.EmbeddedDocument, maximum,
-                                        cancellationToken, count => consumed += count, effective.MaxDepth, effective.MaxAttachments).ConfigureAwait(false);
+                                        cancellationToken, count => consumed += count, remainingDepth, stagingLimit).ConfigureAwait(false);
                                     using var scope = staging.EnterScope();
                                     long outputMaximum = Math.Min(effective.MaxAttachmentBytes, effective.MaxTotalBytes - consumed);
                                     if (outputMaximum <= 0) throw new EmailLimitExceededException(nameof(effective.MaxTotalBytes), consumed + 1, effective.MaxTotalBytes);
                                     var writer = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true,
-                                        maxNestedMessageDepth: effective.MaxDepth, maxOutputBytes: outputMaximum));
+                                        maxNestedMessageDepth: remainingDepth, maxOutputBytes: outputMaximum));
                                     using var observed = new EmailExtractionWriteStream(output, cancellationToken, count => {
                                         consumed += count; written += count;
                                     }, hash);
@@ -116,6 +129,7 @@ public static class EmailAttachmentExtractor {
                         }
                     } catch (Exception exception) when (exception is IOException || exception is InvalidDataException || exception is UnauthorizedAccessException || exception is InvalidOperationException) {
                         cancellationToken.ThrowIfCancellationRequested();
+                        if (exception is EmailLimitExceededException) truncated = true;
                         itemDiagnostics.Add(exception is EmailLimitExceededException limit
                             ? EmailDiagnostic.FromLimit(limit, "Attachment extraction", sourcePath)
                             : new EmailDiagnostic("EMAIL_EXTRACTION_FAILED", exception.Message, EmailDiagnosticSeverity.Error, sourcePath));
@@ -130,6 +144,22 @@ public static class EmailAttachmentExtractor {
                     }
                 }
             } finally { ancestors.Remove(current); }
+        }
+    }
+
+    private static void ReserveEmbeddedVisits(EmailDocument document, int depth, int maxDepth, Action visit) {
+        var active = new HashSet<EmailDocument>();
+        Reserve(document, depth);
+        void Reserve(EmailDocument current, int currentDepth) {
+            if (!active.Add(current)) throw new InvalidDataException("An embedded-message cycle cannot be exported.");
+            try {
+                foreach (EmailAttachment attachment in current.Attachments) {
+                    if (currentDepth > maxDepth)
+                        throw new EmailLimitExceededException("MaxDepth", currentDepth, maxDepth);
+                    visit();
+                    if (attachment.EmbeddedDocument != null) Reserve(attachment.EmbeddedDocument, currentDepth + 1);
+                }
+            } finally { active.Remove(current); }
         }
     }
 }

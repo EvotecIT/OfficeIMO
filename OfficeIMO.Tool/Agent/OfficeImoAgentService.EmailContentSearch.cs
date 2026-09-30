@@ -24,9 +24,10 @@ internal sealed partial class OfficeImoAgentService {
         if (checkpoint != null && !EmailStoreContentSearchCheckpoint.TryParse(checkpoint, out resume))
             throw new AgentUsageException("The email search checkpoint is invalid.");
         string inputPath = _pathPolicy.ResolveInput(path);
-        var source = _registry.Register(inputPath, cancellationToken);
+        var storeOptions = CreateEmailStoreOptions(maxDecodedBytes);
+        var source = _registry.RegisterEmailStore(inputPath, storeOptions, cancellationToken);
         if (!IsEmailStoreSource(source)) throw new AgentUsageException("Email content search requires a mailbox file or directory.");
-        using var session = EmailStoreSession.Open(source.Path, CreateEmailStoreOptions(maxDecodedBytes), cancellationToken);
+        using var session = EmailStoreSession.Open(source.Path, storeOptions, cancellationToken);
         EmailStoreContentSearchReport report;
         try {
             report = session.SearchContent(new EmailStoreContentQuery(new[] { query }, selectedFields,
@@ -65,6 +66,12 @@ internal sealed partial class OfficeImoAgentService {
             else if (hits.Count > 1) {
                 hits.RemoveAt(hits.Count - 1); result.Returned = hits.Count; result.IsComplete = false;
                 result.NextCheckpoint = report.Results[hits.Count - 1].ResumeAfter.Value;
+            } else if (hits.Count == 1) {
+                // Keep the input position: this match was scanned but never delivered.
+                hits.Clear(); result.Returned = 0; result.IsComplete = false; result.NextCheckpoint = checkpoint;
+                result.DiagnosticCount++;
+                diagnostics.Add(new AgentDiagnosticSummary { Code = "EMAIL_SEARCH_OUTPUT_BUDGET", Severity = "Warning",
+                    Message = "A match cannot fit the output budget. Retry this position with a larger budget or use the store API." });
             } else break;
         }
         EnsureWithinBudget(result, maxOutputCharacters);

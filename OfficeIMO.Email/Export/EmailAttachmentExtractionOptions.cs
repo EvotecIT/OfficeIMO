@@ -14,7 +14,7 @@ public sealed class EmailAttachmentExtractionOptions {
         MaxDepth = maxDepth; RecurseEmbeddedMessages = recurseEmbeddedMessages;
         IncludeInline = includeInline; IncludeHidden = includeHidden;
     }
-    /// <summary>Maximum number of attachment entries visited, including skipped entries.</summary>
+    /// <summary>Maximum operation-wide attachment visits, including skipped entries and embedded-message serialization.</summary>
     public int MaxAttachments { get; }
     /// <summary>Maximum decoded or serialized bytes for one exported attachment.</summary>
     public long MaxAttachmentBytes { get; }

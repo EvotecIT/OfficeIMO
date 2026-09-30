@@ -8,6 +8,7 @@ namespace OfficeIMO.Tool.Agent;
 
 internal sealed class AgentSourceRegistry {
     private const string EmailDataPrefix = "officeimo-email-data:";
+    private const string EmailStorePrefix = "officeimo-email-store:";
     private static readonly byte[] FingerprintSeparator = new byte[] { 0 };
     private readonly ConcurrentDictionary<string, AgentSourceRegistration> _sources =
         new(StringComparer.Ordinal);
@@ -28,6 +29,14 @@ internal sealed class AgentSourceRegistry {
         return registration;
     }
 
+    internal AgentSourceRegistration RegisterEmailStore(string path, EmailStoreReaderOptions storeOptions,
+        CancellationToken cancellationToken = default) {
+        var options = new EmailDataOpenOptions(store: storeOptions, expectedKind: EmailDataArtifactKind.Store);
+        AgentSourceRegistration registration = Create(path, cancellationToken, options, emailContentSearch: true);
+        _sources[registration.SourceId] = registration;
+        return registration;
+    }
+
     internal AgentSourceRegistration Resolve(
         string sourceId,
         CancellationToken cancellationToken = default) {
@@ -36,7 +45,7 @@ internal sealed class AgentSourceRegistry {
             throw new AgentUsageException(
                 "Unknown source id. Inspect or search the source again before fetching content.");
         }
-        AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions);
+        AgentSourceRegistration current = Create(registered.Path, cancellationToken, registered.EmailDataOptions, registered.EmailContentSearch);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             _sources.TryRemove(sourceId, out _);
             throw new AgentUsageException(
@@ -49,10 +58,12 @@ internal sealed class AgentSourceRegistry {
         string sourceId,
         string path,
         CancellationToken cancellationToken = default) {
+        bool contentSearch = sourceId.StartsWith(EmailStorePrefix, StringComparison.Ordinal);
         EmailDataOpenOptions? dataOptions = _sources.TryGetValue(sourceId, out var registered)
-            ? registered.EmailDataOptions : sourceId.StartsWith(EmailDataPrefix, StringComparison.Ordinal)
-                ? new EmailDataInspectionOptions().OpenOptions : null;
-        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions);
+            ? registered.EmailDataOptions : contentSearch
+                ? new EmailDataOpenOptions(store: OfficeImoAgentService.CreateEmailStoreOptions(), expectedKind: EmailDataArtifactKind.Store)
+                : sourceId.StartsWith(EmailDataPrefix, StringComparison.Ordinal) ? new EmailDataInspectionOptions().OpenOptions : null;
+        AgentSourceRegistration current = Create(path, cancellationToken, dataOptions, contentSearch);
         if (!string.Equals(current.SourceId, sourceId, StringComparison.Ordinal)) {
             throw new AgentUsageException(
                 "The supplied path does not match the source id, or the source changed. Search it again.");
@@ -63,7 +74,7 @@ internal sealed class AgentSourceRegistry {
 
     private static AgentSourceRegistration Create(
         string path,
-        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null) {
+        CancellationToken cancellationToken, EmailDataOpenOptions? dataOptions = null, bool emailContentSearch = false) {
         string fullPath = OfficeImoToolPathSafety.ResolveExistingLinks(path);
         bool isDirectory = Directory.Exists(fullPath);
         long? length = isDirectory ? null : new FileInfo(fullPath).Length;
@@ -77,11 +88,11 @@ internal sealed class AgentSourceRegistry {
             lastWriteUtc,
             cancellationToken, dataOptions);
         return new AgentSourceRegistration(
-            (dataOptions == null ? "officeimo:" : EmailDataPrefix) + hash.Substring(0, 24),
+            (emailContentSearch ? EmailStorePrefix : dataOptions == null ? "officeimo:" : EmailDataPrefix) + hash.Substring(0, 24),
             fullPath,
             isDirectory,
             length,
-            lastWriteUtc, dataOptions);
+            lastWriteUtc, dataOptions, emailContentSearch);
     }
 
     private static string CreateHash(
@@ -133,4 +144,5 @@ internal sealed record AgentSourceRegistration(
     bool IsDirectory,
     long? LengthBytes,
     DateTime LastWriteUtc,
-    EmailDataOpenOptions? EmailDataOptions = null);
+    EmailDataOpenOptions? EmailDataOptions = null,
+    bool EmailContentSearch = false);

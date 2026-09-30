@@ -29,12 +29,14 @@ internal static partial class EmailArtifactReaderAdapter {
         }
         if (IsMailbox(extension)) {
             EmailMailboxReadResult mailbox = new EmailMailboxReader(EffectiveMailboxOptions(options, readerOptions)).Read(path, cancellationToken);
-            return EmailReaderProjection.ProjectMailboxToPathResult(mailbox, path, readerOptions, cancellationToken, computeSourceHash: false);
+            return EmailReaderProjection.ProjectMailboxToPathResult(mailbox, path, readerOptions, cancellationToken, computeSourceHash: false,
+                includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages);
         }
         using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(path, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToPathResult(
             new[] { result.Document }, new string?[] { path }, result.Diagnostics, result.Document.Format,
-            path, path, readerOptions, cancellationToken, computeSourceHash: false);
+            path, path, readerOptions, cancellationToken, computeSourceHash: false,
+            includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages);
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName, ReaderOptions readerOptions, ReaderEmailOptions options, CancellationToken cancellationToken) {
@@ -45,12 +47,14 @@ internal static partial class EmailArtifactReaderAdapter {
         }
         if (IsMailbox(extension)) {
             EmailMailboxReadResult mailbox = new EmailMailboxReader(EffectiveMailboxOptions(options, readerOptions)).Read(stream, cancellationToken);
-            return EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false);
+            return EmailReaderProjection.ProjectMailboxToStreamResult(mailbox, logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,
+                includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages);
         }
         using EmailReadResult result = new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions)).Read(stream, logicalName, cancellationToken);
         return EmailReaderProjection.ProjectEmailDocumentsToStreamResult(
             new[] { result.Document }, new string?[] { logicalName }, result.Diagnostics, result.Document.Format,
-            logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false);
+            logicalName, stream, readerOptions, cancellationToken, computeSourceHash: false,
+            includeEmbeddedMessageContent: options.MessageOptions!.IncludeEmbeddedMessages);
     }
 
     internal static OfficeDocumentReadResult ReadCalendarDocument(string path, ReaderOptions readerOptions, ReaderEmailOptions options, CancellationToken cancellationToken) {
@@ -104,16 +108,19 @@ internal static partial class EmailArtifactReaderAdapter {
         }
     }
 
-    private static EmailReaderOptions EffectiveMessageOptions(ReaderEmailOptions options, ReaderOptions readerOptions) {
-        EmailReaderOptions source = options.MessageOptions ?? EmailReaderOptions.Default;
+    private static EmailReaderOptions EffectiveMessageOptions(ReaderEmailOptions options, ReaderOptions readerOptions) =>
+        EffectiveMessageOptions(options.MessageOptions ?? EmailReaderOptions.Default, options.IncludeAttachmentContent, readerOptions);
+
+    private static EmailReaderOptions EffectiveMessageOptions(EmailReaderOptions source, bool includeAttachmentContent, ReaderOptions readerOptions) {
         long max = readerOptions.MaxInputBytes.HasValue ? Math.Min(source.MaxInputBytes, readerOptions.MaxInputBytes.Value) : source.MaxInputBytes;
-        return CloneMessage(source, options.IncludeAttachmentContent, max);
+        return CloneMessage(source, includeAttachmentContent, max);
     }
 
     private static EmailMailboxReaderOptions EffectiveMailboxOptions(ReaderEmailOptions options, ReaderOptions readerOptions) {
         EmailMailboxReaderOptions source = options.MailboxOptions ?? EmailMailboxReaderOptions.Default;
         long max = readerOptions.MaxInputBytes.HasValue ? Math.Min(source.MaxMailboxBytes, readerOptions.MaxInputBytes.Value) : source.MaxMailboxBytes;
-        return new EmailMailboxReaderOptions(max, EffectiveMessageOptions(options, readerOptions), source.Variant, source.MaxMessageCount);
+        return new EmailMailboxReaderOptions(max,
+            EffectiveMessageOptions(source.MessageOptions, options.IncludeAttachmentContent, readerOptions), source.Variant, source.MaxMessageCount);
     }
 
     private static ContentLineReaderOptions EffectiveContentLineOptions(ReaderEmailOptions options, ReaderOptions readerOptions) {
@@ -126,7 +133,8 @@ internal static partial class EmailArtifactReaderAdapter {
         maxInputBytes ?? source.MaxInputBytes, source.MaxHeaderBytes, source.MaxHeaderCount, source.MaxPartCount,
         source.MaxMimeDepth, source.MaxAttachmentBytes, source.MaxTotalAttachmentBytes, source.MaxNestedMessageDepth,
         includeAttachmentContent, source.PreserveRawSource, source.MaxCompoundDirectoryEntries, source.MaxMapiPropertyCount,
-        source.MaxDecodedPropertyBytes, source.MaxTnefAttributeCount);
+        source.MaxDecodedPropertyBytes, source.MaxTnefAttributeCount, source.MaxAttachmentCount,
+        source.IncludeEmbeddedMessages);
 
     private static ContentLineReaderOptions CloneContentLines(ContentLineReaderOptions source) => new ContentLineReaderOptions(
         source.MaxInputBytes, source.MaxUnfoldedLineBytes, source.MaxComponents, source.MaxProperties,
