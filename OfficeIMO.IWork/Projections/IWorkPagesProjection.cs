@@ -45,10 +45,12 @@ public sealed partial class IWorkPagesProjection {
         IReadOnlyList<IWorkTable> tables, IReadOnlyList<IWorkPagesDrawable> drawables,
         IWorkPageLayout? pageLayout,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
-        IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null) {
+        IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
+        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null) {
         _source = source;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
+        SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
         Body = body;
         Sections = Array.AsReadOnly(sections.ToArray());
         HeaderContents = Array.AsReadOnly(Sections.SelectMany(section => section.HeaderContents).ToArray());
@@ -72,6 +74,8 @@ public sealed partial class IWorkPagesProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
+    /// <summary>Gets unresolved declared body/drawable graph reference occurrences in assessed content paths.</summary>
+    public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets source sections with their associated header and footer content.</summary>
     public IReadOnlyList<IWorkPagesSection> Sections { get; }
     /// <summary>Gets rich header storages flattened in section order.</summary>
@@ -123,7 +127,7 @@ public sealed partial class IWorkPagesProjection {
                     + TextBoxObjects.Count + Images.Count
                     + Tables.Count(table => table.RowCount > 0 && table.ColumnCount > 0)
                     + Tables.Where(table => table.RowCount > 0 && table.ColumnCount > 0).Sum(table => table.Cells.Count),
-            ReconstructedUnits(reconstructedSectionCount), OmittedUnits(reconstructedSectionCount), Tables);
+            ReconstructedUnits(reconstructedSectionCount), OmittedUnits(reconstructedSectionCount), Tables, SourceReferenceIssues);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
@@ -149,7 +153,7 @@ public sealed partial class IWorkSourceDocument {
     }
 }
 
-internal static class IWorkPagesReader {
+internal static partial class IWorkPagesReader {
     private const uint DocumentArchive = 10000;
     private const uint SectionArchive = 10011;
     private const uint HeadersFootersArchive = 10143;
@@ -172,6 +176,7 @@ internal static class IWorkPagesReader {
         var projectedImages = new Dictionary<ulong, IWorkImageAsset>();
         var projectedTables = new Dictionary<ulong, IWorkTable>();
         var omittedUnits = new List<IWorkObjectIdentity>();
+        var references = new IWorkSourceReferenceIssueCollector(source);
         var projectionBudget = new IWorkProjectionBudget(source.Options);
         IWorkObjectIndex index = source.Index;
         IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
@@ -209,9 +214,7 @@ internal static class IWorkPagesReader {
         }
         bool bodyReferenceComplete = documentMessage.FieldCount(4) == 1
             && !documentMessage.HasUnexpectedWireKind(4, IWorkWireKind.Bytes);
-        IWorkArchiveRecord? body = bodyReferenceComplete
-            ? index.Dereference(documentMessage, 4)
-            : null;
+        IWorkArchiveRecord? body = references.ReadOne(document, documentMessage, 4);
         if (!bodyReferenceComplete || body == null || body.MessageType != TextStorageArchive) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_PAGES_BODY_MISSING",
@@ -235,7 +238,7 @@ internal static class IWorkPagesReader {
         }
 
         IReadOnlyList<IWorkArchiveRecord> documentDrawables = CollectDocumentDrawables(index, document,
-            documentMessage, projectionBudget, out IReadOnlyDictionary<ulong, int> drawablePageIndexes,
+            documentMessage, projectionBudget, references, out IReadOnlyDictionary<ulong, int> drawablePageIndexes,
             out bool drawableGraphComplete);
         if (!drawableGraphComplete) {
             supportsEditableReconstruction = false;
@@ -414,101 +417,7 @@ internal static class IWorkPagesReader {
         }
         return new IWorkPagesProjection(source, bodyContent, sections, textBoxes, images, tables,
             drawables, pageLayout, diagnostics,
-            supportsEditableReconstruction, new IWorkObjectIdentity(document), omittedUnits);
-    }
-
-    private static IReadOnlyList<IWorkArchiveRecord> CollectDocumentDrawables(IWorkObjectIndex index,
-        IWorkArchiveRecord document, IWorkWireMessage documentMessage,
-        IWorkProjectionBudget projectionBudget,
-        out IReadOnlyDictionary<ulong, int> pageIndexes, out bool complete) {
-        complete = true;
-        var identifiers = new HashSet<ulong>();
-        var ordered = new List<IWorkArchiveRecord>();
-        var pages = new Dictionary<ulong, int>();
-        void Add(IWorkArchiveRecord record) {
-            if (identifiers.Add(record.Identifier)) ordered.Add(record);
-        }
-
-        IWorkArchiveRecord? zOrder = index.Dereference(documentMessage, 20);
-        if (documentMessage.HasUnexpectedWireKind(20, IWorkWireKind.Bytes)
-            || documentMessage.HasField(20) && zOrder == null) complete = false;
-        if (zOrder != null) {
-            int zOrderReferenceCount = 0;
-            IWorkWireMessage? zOrderMessage = null;
-            try {
-                zOrderReferenceCount = IWorkProtobuf.CountFields(
-                    zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount);
-                if (!TryReadMessage(index, zOrder, out zOrderMessage)) complete = false;
-            } catch (InvalidDataException exception)
-                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
-                complete = false;
-            }
-            if (zOrderMessage != null) {
-                projectionBudget.AddDrawableReferences(zOrderReferenceCount);
-                int unresolvedZOrderCount;
-                var zOrderOccurrences = new HashSet<ulong>();
-                foreach (IWorkArchiveRecord record in index.DereferenceAll(
-                             zOrderMessage, 1, out unresolvedZOrderCount)) {
-                    if (!zOrderOccurrences.Add(record.Identifier)) complete = false;
-                    Add(record);
-                }
-                if (unresolvedZOrderCount > 0) complete = false;
-            }
-        }
-        IWorkArchiveRecord? floating = index.Dereference(documentMessage, 3);
-        if (documentMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
-            || documentMessage.HasField(3) && floating == null) complete = false;
-        if (floating != null) {
-            IReadOnlyList<IWorkWireMessage> pageGroups;
-            int pageGroupCount = 0;
-            try {
-                pageGroupCount = IWorkProtobuf.CountFields(floating.Payload, 1,
-                    projectionBudget.MaximumProtobufFieldCount, out int totalFieldCount);
-                if (totalFieldCount != pageGroupCount
-                    || !TryReadMessage(index, floating, out IWorkWireMessage floatingMessage)) {
-                    complete = false;
-                    pageGroups = Array.Empty<IWorkWireMessage>();
-                } else {
-                    pageGroups = IWorkObjectIndex.TryGetMessages(floatingMessage, 1,
-                        out bool malformedPageGroups);
-                    if (malformedPageGroups) complete = false;
-                }
-            } catch (InvalidDataException exception)
-                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
-                complete = false;
-                pageGroups = Array.Empty<IWorkWireMessage>();
-            }
-            projectionBudget.AddDrawableReferences(pageGroupCount);
-            for (int pageGroupIndex = 0; pageGroupIndex < pageGroups.Count; pageGroupIndex++) {
-                IWorkWireMessage pageGroup = pageGroups[pageGroupIndex];
-                foreach (int field in new[] { 2, 3, 4 }) {
-                    projectionBudget.AddDrawableReferences(pageGroup.FieldCount(field));
-                    var fieldOccurrences = new HashSet<ulong>();
-                    IReadOnlyList<IWorkWireMessage> entries = IWorkObjectIndex.TryGetMessages(
-                        pageGroup, field, out bool malformedEntries);
-                    if (malformedEntries) complete = false;
-                    foreach (IWorkWireMessage entry in entries) {
-                        IWorkArchiveRecord? record = index.Dereference(entry, 1);
-                        if (entry.FieldCount(1) != 1
-                            || entry.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)
-                            || record == null) complete = false;
-                        else if (record != null) {
-                            if (!fieldOccurrences.Add(record.Identifier)) complete = false;
-                            if (pages.TryGetValue(record.Identifier, out int existingPageIndex)
-                                && existingPageIndex != pageGroupIndex + 1) complete = false;
-                            else pages[record.Identifier] = pageGroupIndex + 1;
-                            Add(record);
-                        }
-                    }
-                }
-            }
-        }
-        var reachable = new HashSet<ulong>(index.ReachableFrom(document).Select(record => record.Identifier));
-        foreach (IWorkArchiveRecord record in index.PrimaryRecords.Where(record =>
-                     reachable.Contains(record.Identifier)
-                     && record.MessageType is ShapeInfoArchive or 3005 or 6000 or 6007)) Add(record);
-        pageIndexes = pages;
-        return Array.AsReadOnly(ordered.ToArray());
+            supportsEditableReconstruction, new IWorkObjectIdentity(document), omittedUnits, references.Issues);
     }
 
     private static IWorkPageLayout? ReadPageLayout(IWorkWireMessage document, out bool complete) {

@@ -109,6 +109,8 @@ internal sealed class IWorkWireMessage {
 
     internal int FieldCount(int field) => Values(field).Count;
 
+    internal IEnumerable<IWorkWireValue> EnumerateValues(int field) => Values(field);
+
     internal bool HasUnexpectedWireKind(int field, params IWorkWireKind[] expectedKinds) {
         IReadOnlyList<IWorkWireValue> values = Values(field);
         return values.Any(value => !expectedKinds.Contains(value.Kind));

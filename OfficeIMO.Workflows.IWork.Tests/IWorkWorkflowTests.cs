@@ -32,6 +32,10 @@ public sealed class IWorkWorkflowTests {
         Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaExpressionCount"]) + int.Parse(evidence.Facts["sourceIncompleteFormulaExpressionCount"]));
         Assert.Equal(formulas, int.Parse(evidence.Facts["sourceCompleteFormulaCacheCount"]) + int.Parse(evidence.Facts["sourcePartialFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceApproximateFormulaCacheCount"]) + int.Parse(evidence.Facts["sourceMissingFormulaCacheCount"]));
         Assert.Equal(unitCount, reconstructed + omitted + unassessed);
+        int referenceIssues = int.Parse(evidence.Facts["sourceReferenceIssueCount"]);
+        Assert.Equal(referenceIssues, int.Parse(evidence.Facts["sourceMissingReferenceTargetCount"])
+            + int.Parse(evidence.Facts["sourceMalformedReferenceCount"])
+            + int.Parse(evidence.Facts["sourceRejectedReferenceSetCount"]));
         Assert.Contains(evidence.FidelityDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
         Assert.Throws<InvalidOperationException>(evidence.RequireNoLoss);
         Assert.Equal(new FileInfo(files.Input).Length, result.InputBytes);

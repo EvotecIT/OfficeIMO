@@ -9,10 +9,12 @@ public sealed partial class IWorkNumbersProjection {
 
     internal IWorkNumbersProjection(IWorkSourceDocument source, IReadOnlyList<IWorkNumbersSheet> sheets,
         IReadOnlyList<IWorkDiagnostic> diagnostics, bool supportsEditableReconstruction,
-        IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null) {
+        IWorkObjectIdentity? sourceIdentity = null, IReadOnlyList<IWorkObjectIdentity>? omittedUnits = null,
+        IReadOnlyList<IWorkSourceReferenceIssue>? referenceIssues = null) {
         _source = source;
         SourceIdentity = sourceIdentity;
         OmittedSourceUnits = Array.AsReadOnly((omittedUnits ?? Array.Empty<IWorkObjectIdentity>()).ToArray());
+        SourceReferenceIssues = Array.AsReadOnly((referenceIssues ?? Array.Empty<IWorkSourceReferenceIssue>()).ToArray());
         Sheets = Array.AsReadOnly(sheets.ToArray());
         Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
         _supportsEditableReconstruction = supportsEditableReconstruction;
@@ -23,6 +25,8 @@ public sealed partial class IWorkNumbersProjection {
     /// <summary>Gets the native document-root identity when exactly one root was identified.</summary>
     public IWorkObjectIdentity? SourceIdentity { get; }
     private IReadOnlyList<IWorkObjectIdentity> OmittedSourceUnits { get; }
+    /// <summary>Gets unresolved declared sheet/drawable reference occurrences in assessed content paths.</summary>
+    public IReadOnlyList<IWorkSourceReferenceIssue> SourceReferenceIssues { get; }
     /// <summary>Gets projection diagnostics.</summary>
     public IReadOnlyList<IWorkDiagnostic> Diagnostics { get; }
     /// <summary>Gets whether at least one editable sheet was recovered and its required semantic references were resolved.</summary>
@@ -43,7 +47,7 @@ public sealed partial class IWorkNumbersProjection {
             kind == IWorkProjectionKind.VisualFallback
                 ? 0
                 : Sheets.Count + Sheets.Sum(sheet => sheet.TextBoxes.Count + sheet.Tables.Count
-                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits(), Sheets.SelectMany(sheet => sheet.Tables));
+                    + sheet.Tables.Sum(table => table.Cells.Count)), ReconstructedUnits(), OmittedUnits(), Sheets.SelectMany(sheet => sheet.Tables), SourceReferenceIssues);
     }
 
     private void ValidateReportRequest(IWorkProjectionKind kind, IWorkPreviewAsset? preview,
@@ -81,6 +85,7 @@ internal static class IWorkNumbersReader {
         var diagnostics = new List<IWorkDiagnostic>();
         var sheets = new List<IWorkNumbersSheet>();
         var omittedUnits = new List<IWorkObjectIdentity>();
+        var references = new IWorkSourceReferenceIssueCollector(source);
         IWorkObjectIndex index = source.Index;
         IWorkArchiveRecord? document = index.UniqueOfType(DocumentArchive, out bool duplicateDocument);
         if (document == null) {
@@ -112,8 +117,8 @@ internal static class IWorkNumbersReader {
         if (declaredSheetCount > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
         }
-        IReadOnlyList<IWorkArchiveRecord> sheetRecords = index.DereferenceAll(
-            documentMessage, 1, out int unresolvedSheetCount);
+        IReadOnlyList<IWorkArchiveRecord> sheetRecords = references.ReadAll(
+            document, documentMessage, 1, out int unresolvedSheetCount);
         if (sheetRecords.Count > source.Options.MaximumProjectedSheets) {
             throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
         }
@@ -165,8 +170,8 @@ internal static class IWorkNumbersReader {
             var tables = new List<IWorkTable>();
             var textBoxes = new List<string>();
             var orderedDrawables = new List<IWorkNumbersDrawable>();
-            IReadOnlyList<IWorkArchiveRecord> drawables = index.DereferenceAll(
-                sheetMessage, 2, out int unresolvedDrawableCount);
+            IReadOnlyList<IWorkArchiveRecord> drawables = references.ReadAll(
+                sheetRecord, sheetMessage, 2, out int unresolvedDrawableCount);
             if (unresolvedDrawableCount > 0) {
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -291,7 +296,7 @@ internal static class IWorkNumbersReader {
             }
         }
         return new IWorkNumbersProjection(source, sheets, diagnostics, supportsEditableReconstruction,
-            new IWorkObjectIdentity(document), omittedUnits);
+            new IWorkObjectIdentity(document), omittedUnits, references.Issues);
     }
 
     private static void MarkTextMetadataUnsupported(IWorkArchiveRecord record,

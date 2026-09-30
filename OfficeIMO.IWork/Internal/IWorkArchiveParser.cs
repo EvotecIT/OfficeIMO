@@ -80,12 +80,16 @@ internal sealed class IWorkObjectIndex {
     }
 
     internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
-        out int unresolvedReferenceCount) {
+        out int unresolvedReferenceCount) => DereferenceAll(message, field, out unresolvedReferenceCount, out _);
+
+    internal IReadOnlyList<IWorkArchiveRecord> DereferenceAll(IWorkWireMessage message, int field,
+        out int unresolvedReferenceCount, out bool rejectedReferenceSet) {
         var result = new List<IWorkArchiveRecord>();
         unresolvedReferenceCount = 0;
         IReadOnlyList<IWorkWireMessage> references = TryGetMessages(message, field, out bool malformed);
+        rejectedReferenceSet = malformed;
         if (malformed) {
-            unresolvedReferenceCount = 1;
+            unresolvedReferenceCount = message.FieldCount(field);
             return result;
         }
         foreach (IWorkWireMessage reference in references) {

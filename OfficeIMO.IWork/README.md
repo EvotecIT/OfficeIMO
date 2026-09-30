@@ -36,6 +36,9 @@ foreach (IWorkArchiveRecord record in report.PreservedRecords) {
 foreach (IWorkSourceUnitCount count in report.SourceUnitCounts) {
     Console.WriteLine($"{count.Kind}: {count.ReconstructedCount} reconstructed, {count.OmittedCount} omitted, {count.UnassessedCount} unassessed");
 }
+foreach (IWorkSourceReferenceIssue issue in report.SourceReferenceIssues) {
+    Console.WriteLine($"{issue.Owner.RecordIdentifier}/{issue.FieldPath}[{issue.ReferenceIndex}]: {issue.Kind}, target {issue.TargetIdentifier}");
+}
 ```
 
 Shared tables expose explicit `RowHeights` and `ColumnWidths` as read-only maps keyed by one-based positions, measured in points. `GetRowHeight(row)` and `GetColumnWidth(column)` return an explicit size or the table default. Native zero-size entries use the default. `MaximumTableDimensionEntries` bounds dimension headers and bucket references across the source. Unsupported sizing records remain in source evidence and emit a diagnostic.
@@ -102,6 +105,8 @@ A preview may cover only the first page or a producer-generated composite, and t
 ## Preservation and authoring boundary
 
 Projected documents, sheets, slides, tables, images, and text expose `SourceIdentity` with the native IWA identifier, message type, entry path, and payload position. Adapter reports retain these identities in `SourceUnits` and summarize them by kind in `SourceUnitCounts`, even when source payload preservation is disabled. The inventory counts identified units selected by the semantic projection: text storages are counted once, auxiliary table models and tiles are excluded, and inactive template records are excluded. Explicitly dropped selected units are reported as omitted. Selected unsupported drawables and Numbers sheet references with unsupported native types retain their identities under `UnsupportedObject` when no recognized kind applies. A preview leaves individual unit coverage unassessed. Unresolved references and content paths that the projection has not assessed remain outside this inventory. A reconstructed unit can still contain omitted, approximated, or unassessed fields.
+
+`SourceReferenceIssues` separately records failed declared reference occurrences in assessed content paths: Pages body, stacking-order and decoded floating-canvas references; Numbers sheets and sheet drawables; and Keynote show, slide-tree nodes, slides and slide drawables. Each issue retains the owning record, protobuf field path, one-based occurrence and readable target identifier. Missing targets, malformed references and readable siblings in a rejected set are distinct. Repeated references remain separate; they do not identify distinct omitted objects, and preview output does not resolve them. Unparseable graph containers and deeper text, style and table dependencies remain outside this assessment. `MaximumSourceReferenceIssues` defaults to 100,000 and bounds the cumulative occurrences inspected in fields with failures, including readable siblings, before evidence is materialized. Adapter reports classify this evidence as `Unassessed` through `IWORK_SOURCE_REFERENCES_UNRESOLVED`.
 
 `FormulaCells` identifies projected formula cells by table identity and one-based coordinates. It assesses expression completeness separately from recovered cache status: complete, partial, missing, or approximate when only a generic error marker is available. `FormulaSummary` provides aggregate counts. These are source assessments, including during visual fallback; they do not prove that the destination retains formulas, that caches are current, or that undecoded cells have been inventoried.
 
