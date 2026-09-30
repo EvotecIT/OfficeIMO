@@ -19,6 +19,15 @@ jobs:
           - name: drawing
             project: OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
             property: DrawingPerformanceEvidence
+          - name: reader
+            project: OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
+            property: ReaderPerformanceEvidence
+          - name: markdown
+            project: OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
+            property: MarkdownPerformanceEvidence
+          - name: opendocument-converters
+            project: OfficeIMO.OpenDocument.Converters.Tests/OfficeIMO.OpenDocument.Converters.Tests.csproj
+            property: OpenDocumentConvertersPerformanceEvidence
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
