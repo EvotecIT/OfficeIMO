@@ -1,0 +1,181 @@
+[
+  {
+    "id": "w9-heading",
+    "file": "OcrQuality/fw9.pdf",
+    "documentClass": "form",
+    "language": "eng",
+    "page": 1,
+    "region": [
+      0.26,
+      0.042,
+      0.51,
+      0.041
+    ],
+    "expected": "Request for Taxpayer Identification Number and Certification",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "w9-spanish-heading",
+    "file": "OcrQuality/fw9sp.pdf",
+    "documentClass": "multilingual-form",
+    "language": "spa",
+    "page": 1,
+    "region": [
+      0.26,
+      0.042,
+      0.51,
+      0.041
+    ],
+    "expected": "Solicitud y Certificación del Número de Identificación del Contribuyente",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "w8-heading",
+    "file": "OcrQuality/fw8ben.pdf",
+    "documentClass": "form",
+    "language": "eng",
+    "page": 1,
+    "region": [
+      0.235,
+      0.016,
+      0.535,
+      0.059
+    ],
+    "expected": "Certificate of Foreign Status of Beneficial Owner for United States Tax Withholding and Reporting (Individuals)",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "voucher-heading",
+    "file": "OcrQuality/sf1034.pdf",
+    "documentClass": "voucher",
+    "language": "eng",
+    "page": 1,
+    "region": [
+      0.25,
+      0.06,
+      0.49,
+      0.039
+    ],
+    "expected": "PUBLIC VOUCHER FOR PURCHASES AND SERVICES OTHER THAN PERSONAL",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "voucher-unit-price",
+    "file": "OcrQuality/sf1034.pdf",
+    "documentClass": "table-region",
+    "language": "eng",
+    "page": 1,
+    "region": [
+      0.63,
+      0.348,
+      0.128,
+      0.03
+    ],
+    "expected": "UNIT PRICE COST PER",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "voucher-payment-options",
+    "file": "OcrQuality/sf1034.pdf",
+    "documentClass": "checkbox-labels",
+    "language": "eng",
+    "page": 1,
+    "region": [
+      0.083,
+      0.558,
+      0.1,
+      0.089
+    ],
+    "expected": "PAYMENT: PROVISIONAL COMPLETE PARTIAL FINAL PROGRESS ADVANCE",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "w9-certification",
+    "file": "OcrQuality/fw9.pdf",
+    "documentClass": "form",
+    "language": "eng",
+    "page": 1,
+    "region": [
+      0.052,
+      0.559,
+      0.39,
+      0.032
+    ],
+    "expected": "Part II Certification Under penalties of perjury, I certify that:",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "magazine-four-columns",
+    "file": "OcrQuality/8071.tif",
+    "documentClass": "multi-column-scan",
+    "language": "eng",
+    "page": 1,
+    "region": null,
+    "expected": "  SHE MOPED. She sighed. She\n  wandered around the house\n  with the look of an injured\npuppy, sometimes bursting into\ntears. When her worried parents\nquestioned her, she would answer,\n\"It's nothing.\" How could she ex-\nplain she was desperately in love for\nthe first time, and the object of her\nadoration didn't even know she\nexisted? Finally her father sat\ndown, took her hand and tenderly\nquestioned her until he learned the\n\n\ncause of her sadness. Gently, sim-\nply, he talked with her of life and\nlove. He comforted her. She was six\nyears old.\n  \"I've never forgotten that mo-\nment,\" says Kathleen Kilpatrick, a\nspecial assistant in the office of the\nU.S. Secretary of the Interior.\n\"How often I've thought back and\nwondered that he didn't just laugh\nat me. Instead, he treated me with\ndignity and concern for how deeply\nI felt.\"\n  Robert Kilpatrick, now retired\nboard chairman of CIGNA Corp.,\nnever took a course in parenting.\nHe was simply showing love for\nhis daughter, giving her his time\nand trying to see the world\nthrough her eyes. It would be hard\nto come up with a better formula\nfor fatherhood.\n  \"Fathers bring a unique pres-\nence, a special strength to raising\n\n\nchildren,\" says Ray Guarendi, a\nclinical psychologist whose book\nBack to the Family examines the\n long-term experience of 100\n~~ successful American families.\n\n\nGuarendi's book shows that tradi-\ntional values, rooted in the bedrock\nof mutual trust, truth and uncondi-\ntional love, are still the keys to\nsuccessful child-rearing. And in\nthis setting, fathers bring special\ngifts to parenting.\n  Sometimes fatherly instincts\ncome easily; sometimes they have to\nbe cultivated. But their payoff in\nlasting, positive effects on growing\nchildren is enormous. Here, culled\nfrom real-life experience, is what\nkids need most from a dad:\n  Someone who shows his love for\nthem. Kenneth Meade, pastor of the\nChurch of Christ at Manor Woods,\nin Rockville, Md., says one of the\nmost frequently expressed desires\nin his family counseling comes\nfrom children saying, \"I wish Dad\nwould tell me or show he really\nloves me.\" Time after time, clergy-\nmen, counselors and psychologists\nencounter variations of this theme-~\nchildren, often grown men, longing\nfor more expressed affection from\ntheir fathers. \"I never doubted my\nfather's love,\" writes author Walt\nHarrington, \"but even today I can't\nrecall a time he hugged or kissed\nme or said he loved me.\"\n  Such overt expressions give\nneeded assurance and encourage-\nment. Motivational expert Zig Zig-\nlar had this confirmed in reverse\n\n\none day when he was trying to\nassemble a tricycle he had just\nbought for his then-four-year-old\nson, Tom. Ziglar became more ex-\nasperated by the minute because\nthe proverbial bolt A was not fit-\nting into nut B. He was about to\ngive up when Tom, who was look-\ning on, suddenly blurted, \"I sure do\nlove you, Dad!\" Needless to say,\nZiglar finished putting together\nthat tricycle.\n  Guarendi found that \"in strong\nfamilies, fathers who had problems\nexpressing affection made special\nefforts to show it.\" Some who\ncouldn't say it wrote it in a letter,\ncard or note on the back of one of\ntheir children's drawings. One fa-\nther, adept at composing music,\nwrites songs to his kids to tell them\nhe loves them.\n  Fathers might also consider a\ntechnique used by a mother in\nUtah. Knowing her children were\nuncomfortable with public displays\nof affection, she worked out a secret\ncode, known only to her kids.\nWhen one of them was about to\nparticipate in a sport or other school\nactivity, she would squeeze the\nchild's shoulder, meaning \"I love\nyou.\"\n  An important \"surrogate\" way\nfor a father to convey affection to a\nchild is through the affection he\n\n\nListen to the voices\nof real experience\n\n\nWhat Kids Need Most in a Dad\n\nBY RALPH KINNEY BENNETT\n\n\nPHOTO: ~ PAUL BARTON/THE STOCK MARKET\n\n\n93\n\n\n ",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "magazine-travel",
+    "file": "OcrQuality/8087.tif",
+    "documentClass": "multi-column-scan",
+    "language": "eng",
+    "page": 1,
+    "region": null,
+    "expected": "d a t e l i n e\n\n\n\"This is Greater Serbia,\" yet they didn't take the city.\nOn returning to the region in March I visited the\nDubrovnik I had heard but never seen.\n  As I drove along the Dalmatian coast past gnarled\nolive trees and black-robed peasant women tending their\ngardens, the city suddenly appeared in all its solidness,\nfortress walls squatting at the foot of steep cliffs, the\nAdriatic Sea sparkling below. Dubrovnik has weath-\nered time and war for so long\n\n\nthat historians remain igno-\nrant of its origins. They be-\nlieve it may have grown out of\nthe Greco-Roman city of Epi-\ndaurus, first mentioned in 47\nB.C., and legends place a set-\ntlement here a thousand years\nearlier.\n  Today the city's quiet con-\nfidence has been shaken by\nthe reality of modern war-\nfare. \"Even Napoleon, whose\narmy blew off the nose of\nthe Sphinx, did not touch\nDubrovnik,\" said Milo, a big,\nmustachioed Croatian and an\nunemployed tour guide. \"The\nSaracens, Ottomans, Austri-\nans . . . none of them harmed\nour city. But the Serbs, our\nneighbors, tried to destroy us,\nand we won't forget.\" He was\ndrunkenly attacking the Serbs\nwhen I entered the Troubador\nCaf~~, housed in a crowded bar\nin a 14th-century stone build-\ning just off Placa, Dubrovnik's\nmain boulevard.\n\n\n  You hear a lot about revenge in Croa-\ntia-~people want to get even, and they\nwant their land back. (The Serbs now con-\ntrol a third of Croatia, a slender shard of a\nstate with Dubrovnik near its southern\ntip.) This doesn't augur well for peace or\nfor the return of tourists, which Dubrovnik\n\n\nneeds. Tourism accounted for 80 percent of the city's\nprewar economy.\n  Vinko Milutinovitch turned his battered face from\nthe wheel of his beat-up Volvo taxi and said, \"There\nwere one hundred and twenty taxis in Dubrovnik. Now\nthere are only seven, and business is still lousy. You're\nthe first tourist I've driven in two years.\" Like 70 percent\nof Dubrovnik's inhabitants, he depends on Red Cross\nfood parcels to survive. Once a month, any person in\n\n\nneed receives flour, sugar, margarine, oil, cans of beef,\nmackerel oil and, sometimes, clothing.\n  One question I asked every official I met was, \"If you\nwere an American, would you bring your family here\non vacation?\" Most answered, \"No, not yet.\" It's just a\nmatter of time though. The city is rebuilding rapidly,\nrepairing red-tiled roofs, clearing debris. As of last\nMarch, only one hotel was open, the classic Argentina,\n\n\nbut several thousand beds\nhave become available in\nother hotels and private\nhomes. A few travel compa-\nnies are returning: Austin,\nTexas-~based Sterling Cruises\nand Tours scheduled several\nDalmatian coast trips with\nstops in Dubrovnik for the fall.\n  During a walk I saw trucks\ndelivering 250,000 roof tiles\nfrom France; Caritas, the\nCatholic charity, transporting\ncement to fix a church; a Bel-\ngian company unloading Se-\ncurit unbreakable glass. As a\nway of shaking a fist at the\nSerbs, the city historian Pro-\nfessor Ivo Dabeli~~ was putting\nthe last touches on a tempo-\nrary exhibition of shells, rock-\nets, grenades and bombs\nhurled at Dubrovnik by Serb\ngunners and warplanes. It took\nhim 10 days to turn the fa-\nmous Nautika restaurant into\na war museum. On the terrace,\nwith its splendid view over the\n\n\ncity's western walls and the Adriatic, he'd\nplaced a collection of phosphorous shells\nand cluster bombs (\"two hundred and\nforty-seven bomblets inside\").\n  Are there still risks? One official said\nseveral grenades are hurled into the\nDubrovnik region every few days. So far\nthey've exploded harmlessly in fields, but\n\n\nthose responsible for security take seriously a threat by\nGeneral Ratko Mladi~~, commander of all Serb forces\nin Bosnia, who said he'd \"make sure Dubrovnik has a\nnice tourist season.\" His nearest army base is only 15\nmiles away in Trebinje, capital of the self-styled South\nHerzegovina Serb Republic. Serb fighters there are re-\ninforced by Russian mercenaries, according to Croa-\ntian officers, as well as the notorious White Eagles,\nfanatic Serb gunmen accused of raping, torturing and\n\n\nTHE TERRA-COTTA\nROOFS OF\nDUBROVNIK,\nDAMAGED DURING\nTHE SHELLING,\nARE MOSTLY\nRESTORED NOW.\n\n\n54 ~ T R A V E L & L E I S U R E  S E P T E M B E R  1 9 9 3\n",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "phototest",
+    "file": "ScanQuality/phototest.png",
+    "documentClass": "scan",
+    "language": "eng",
+    "page": 1,
+    "region": null,
+    "expected": "This is a lot of 12 point text to test the\nocr code and see if it works on all types\nof file format.\n\nThe quick brown dog jumped over the\nlazy fox. The quick brown dog jumped\nover the lazy fox. The quick brown dog\njumped over the lazy fox. The quick\nbrown dog jumped over the lazy fox.\n",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  },
+  {
+    "id": "phototest-shadow",
+    "file": "ScanQuality/phototest-shadow-skew.png",
+    "documentClass": "degraded-scan",
+    "language": "eng",
+    "page": 1,
+    "region": null,
+    "expected": "This is a lot of 12 point text to test the\nocr code and see if it works on all types\nof file format.\n\nThe quick brown dog jumped over the\nlazy fox. The quick brown dog jumped\nover the lazy fox. The quick brown dog\njumped over the lazy fox. The quick\nbrown dog jumped over the lazy fox.\n",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": true
+  },
+  {
+    "id": "eurotext",
+    "file": "ScanQuality/eurotext.png",
+    "documentClass": "multilingual-scan",
+    "language": "eng+deu+fra",
+    "page": 1,
+    "region": null,
+    "expected": "The (quick) [brown] {fox} jumps!\nOver the $43,456.78 <lazy> #90 dog\n& duck/goose, as 12.5% of E-mail\nfrom aspammer@website.com is spam.\nDer „schnelle” braune Fuchs springt\nüber den faulen Hund. Le renard brun\n«rapide» saute par-dessus le chien\nparesseux. La volpe marrone rapida\nsalta sopra il cane pigro. El zorro\nmarrón rápido salta sobre el perro\nperezoso. A raposa marrom rápida\nsalta sobre o cão preguiçoso.\n",
+    "maximumCer": 0.02,
+    "maximumWer": 0.05,
+    "cleanup": false
+  }
+]

@@ -60,6 +60,34 @@ The host or format integration owns input validation, returned-output limits, re
 An engine should still honor cancellation and accurately advertise whether the same instance accepts concurrent calls. Applications invoking `IOcrEngine.RecognizeAsync` directly opt out of the shared runner policy.
 Engine identifiers are stable, non-empty provenance values and are limited to 256 untrimmed characters.
 
+## Retry weak recognition evidence
+
+`AdaptiveOcrEngine` wraps one through four caller-configured engines. It runs the first variant, then tries later variants only when the selected evidence fails the configured checks. All variants receive isolated copies of the same raster and coordinate frame. Segmentation and language can vary; image cleanup and coordinate transforms remain with the scanning or format owner.
+
+```csharp
+var adaptive = new AdaptiveOcrEngine(
+    "document-ocr",
+    new[] {
+        new OcrRecognitionAttempt("baseline", baselineEngine),
+        new OcrRecognitionAttempt("alternate", alternateEngine)
+    },
+    new OcrReviewPolicy(minimumWordConfidence: 0.8,
+        maximumUncertainWordFraction: 0.1),
+    timeout: TimeSpan.FromSeconds(45));
+
+AdaptiveOcrResult recognition = await adaptive.RecognizeWithReviewAsync(request);
+Console.WriteLine(recognition.Result.Text);
+Console.WriteLine($"Review recommended: {recognition.ReviewRecommended}");
+```
+
+`baselineEngine`, `alternateEngine`, and `request` are your configured providers and raster request. See the [Tesseract example](../OfficeIMO.Ocr.Tesseract/README.md#bounded-segmentation-retries) for a concrete setup. Pass `adaptive` anywhere an `IOcrEngine` is accepted, including Reader and PDF OCR. Its normal result carries a content-free `adaptive-ocr-review-recommended` warning or `adaptive-ocr-thresholds-met` information diagnostic. `RecognizeWithReviewAsync` additionally returns attempt outcomes and selected word-level evidence.
+
+The default checks require at least one word span, confidence of at least 0.8 for at least 90% of words, and no warning/error diagnostics or omitted spans. Unknown or invalid confidence counts as uncertain. A retry can replace the baseline only if it retains at least 90% of the baseline word count, has usable evidence, and improves uncertainty or repairs missing evidence. This count check cannot prove that the same facts survived. Overall confidence never ranks results. Text disagreement, after Unicode and whitespace normalization, and failed or timed-out retries recommend review even when the selected confidence checks pass.
+
+Limits default to one minute across attempts, 25 MiB of input, 100,000 retained spans, and one million characters including span text per attempt. Caller cancellation propagates; a failed retry retains the baseline. Orientation detection delegates to the baseline with the same input bound and copying rules. Engines remain caller-owned, and shared runner gates retain their normal lifetime rules.
+
+These thresholds are starting settings, not calibrated correctness probabilities or human approval. The [native quality corpus](../OfficeIMO.TestAssets/OcrQuality/README.md) measures confidence false passes against independent gold text. In particular, high-confidence output can still omit text or misorder columns.
+
 ## Discover optional providers
 
 Hosts that offer selectable OCR can register provider factories in an explicit `OcrEngineCatalog`. The catalog performs no ambient assembly scanning and the core package still carries no provider runtime:

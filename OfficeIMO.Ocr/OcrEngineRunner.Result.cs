@@ -31,7 +31,7 @@ public static partial class OcrEngineRunner {
             if (index < limits.MaxDiagnostics) retainedDiagnostics.Add(CaptureDiagnostic(diagnostic, ref remainingAttributes, checkDeadline));
         }
         captured.Diagnostics = retainedDiagnostics.ToArray();
-        captured.OmittedDiagnosticCount = diagnosticCount - retainedDiagnostics.Count;
+        captured.OmittedDiagnosticCount = AddOmittedCount(result.OmittedDiagnosticCount, diagnosticCount - retainedDiagnostics.Count);
         IReadOnlyList<OcrTextSpan> spans = result.Spans ?? Array.Empty<OcrTextSpan>();
         int spanCount = spans.Count;
         int spanLimit = Math.Min(spanCount, limits.MaxSpans);
@@ -42,7 +42,7 @@ public static partial class OcrEngineRunner {
             checkDeadline();
         }
         captured.Spans = retainedSpans.ToArray();
-        captured.OmittedSpanCount = spanCount - spanLimit;
+        captured.OmittedSpanCount = AddOmittedCount(result.OmittedSpanCount, spanCount - spanLimit);
         checkDeadline();
         return captured;
     }
@@ -78,9 +78,13 @@ public static partial class OcrEngineRunner {
         return new OcrDiagnostic {
             Severity = diagnostic.Severity, Code = diagnostic.Code, Message = diagnostic.Message,
             Source = diagnostic.Source, IsRecoverable = diagnostic.IsRecoverable,
-            Attributes = attributes, OmittedAttributeCount = sourceCount - attributes.Count
+            Attributes = attributes, OmittedAttributeCount = AddOmittedCount(diagnostic.OmittedAttributeCount, sourceCount - attributes.Count)
         };
     }
+
+    // Results can already be owned snapshots from a nested runner. Preserve their lost-evidence counts.
+    private static int AddOmittedCount(int previous, int current) =>
+        (int)Math.Min(int.MaxValue, (long)Math.Max(0, previous) + current);
 
     private sealed class CaptureDeadlineException : Exception {
         internal CaptureDeadlineException(string engineId, TimeSpan timeout) { EngineId = engineId; Timeout = timeout; }

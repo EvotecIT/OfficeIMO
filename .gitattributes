@@ -93,3 +93,9 @@ Website/data/pdf_corpus_report.json -text -diff
 OfficeIMO.Invoicing.Validation/Compiler/*.xsl -text -diff
 OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/*.xml -text -diff
 OfficeIMO.Invoicing.Tests/Fixtures/KoSIT/LICENSE.txt -text -diff
+
+# Hash-bound OCR inputs and independently reviewed labels must retain their original bytes.
+OfficeIMO.TestAssets/OcrQuality/*.pdf -text -diff
+OfficeIMO.TestAssets/OcrQuality/*.tif -text -diff
+OfficeIMO.TestAssets/OcrQuality/*.txt -text -whitespace
+OfficeIMO.TestAssets/OcrQuality/*.json -text
