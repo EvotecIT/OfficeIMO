@@ -710,6 +710,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
 #if NET8_0_OR_GREATER
     [Fact]
 #if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void IncompleteExtendedXmpIsNotReportedAsEvidence() {
@@ -739,6 +740,7 @@ public sealed partial class ProvenanceReviewRegressionContracts {
 
     [Fact]
 #if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void IncompleteApp11SequenceIsReportedAsStructurallyInvalid() {

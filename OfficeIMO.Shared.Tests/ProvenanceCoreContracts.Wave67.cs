@@ -7,6 +7,7 @@ namespace OfficeIMO.Shared.Tests;
 public sealed partial class ProvenanceCoreContracts {
     [Fact]
 #if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void InlineTextBeginDelimitersAreIgnoredOnOneLongLine() {

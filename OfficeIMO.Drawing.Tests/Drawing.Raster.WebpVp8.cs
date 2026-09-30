@@ -154,6 +154,7 @@ public sealed class DrawingWebpVp8Tests {
 #if NET8_0_OR_GREATER
     [Fact]
 #if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void LargeVp8DecodeKeepsAllocationsNearItsRetainedImageBudget() {

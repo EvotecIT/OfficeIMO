@@ -280,6 +280,7 @@ public partial class DrawingTests {
 
     [Fact]
 #if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void PngMetadataInspectionDoesNotRetainLargeExifPayloads() {

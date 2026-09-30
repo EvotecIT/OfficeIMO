@@ -908,6 +908,7 @@ public partial class DrawingTests {
 
     [Fact]
 #if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void BoundedForwardOnlyReaderTransfersAnExactCapacityBufferWithoutAFullPayloadCopy() {
@@ -1115,6 +1116,7 @@ public partial class DrawingTests {
 #if NET8_0_OR_GREATER
     [Fact]
 #if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void ApngValidationCopiesEachSecondaryFramePayloadAtMostOnce() {
@@ -1259,6 +1261,7 @@ public partial class DrawingTests {
 #if NET8_0_OR_GREATER
     [Fact]
 #if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
     [Trait("Category", "ResourcePerformanceEvidence")]
 #endif
     public void SelectedApngDecodeDoesNotCopyUnselectedFramePayloads() {
