@@ -5,7 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
-    <BlazorEnableCompression>false</BlazorEnableCompression>
+    <CompressionEnabled>false</CompressionEnabled>
     <!-- HarfBuzz WebAssembly ships as a native archive and must be linked into dotnet.native.wasm. -->
     <WasmBuildNative>true</WasmBuildNative>
   </PropertyGroup>
