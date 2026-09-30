@@ -226,6 +226,8 @@ internal static partial class IWorkTableReader {
         }
         int maximumTileCount = checked((rows + TileRowStride - 1) / TileRowStride);
         if (declaredTileCount > maximumTileCount) {
+            references.Declarations.Record(model, "4/3/1", declaredTileCount,
+                IWorkSourceDeclarationIssueKind.RejectedMessageSet);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_TABLE_TILE_COUNT_UNSUPPORTED",
@@ -262,7 +264,8 @@ internal static partial class IWorkTableReader {
             ulong? declaredTileId = tileEntry.GetUnsigned(1);
             if (tileEntry.FieldCount(1) != 1
                 || tileEntry.HasUnexpectedWireKind(1, IWorkWireKind.Varint)
-                || !declaredTileId.HasValue || declaredTileId.Value > int.MaxValue) {
+                || !declaredTileId.HasValue || declaredTileId.Value >= (ulong)maximumTileCount) {
+                RecordInvalidTileEntry(model, tileEntryPosition, references);
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                     "IWORK_TABLE_TILE_INDEX_UNSUPPORTED",
@@ -272,6 +275,7 @@ internal static partial class IWorkTableReader {
             }
             ulong rawTileId = declaredTileId.Value;
             if (!tileIndexes.Add(rawTileId)) {
+                RecordInvalidTileEntry(model, tileEntryPosition, references);
                 MarkDuplicateTile(model, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
@@ -286,6 +290,7 @@ internal static partial class IWorkTableReader {
                 continue;
             }
             if (!tileIdentifiers.Add(tile.Identifier)) {
+                RecordInvalidTileEntry(model, tileEntryPosition, references);
                 MarkDuplicateTile(model, diagnostics, ref supportsEditableReconstruction);
                 continue;
             }
@@ -294,44 +299,14 @@ internal static partial class IWorkTableReader {
             int maximumRowsInTile = remainingRows <= 0
                 ? 0
                 : (int)Math.Min(TileRowStride, remainingRows);
-            int declaredRowsInTile = IWorkProtobuf.CountFields(tile.Payload, 5,
-                source.Options.MaximumProtobufFieldCount, out int totalTileFieldCount);
-            if (totalTileFieldCount - declaredRowsInTile > MaximumTileMetadataFields) {
-                supportsEditableReconstruction = false;
-                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_TABLE_TILE_FIELDS_UNSUPPORTED",
-                    "An iWork table tile contains more metadata fields than the supported tile envelope; editable reconstruction is incomplete.",
-                    tile.EntryPath, tile.Identifier));
-                continue;
-            }
-            if (declaredRowsInTile > maximumRowsInTile) {
-                supportsEditableReconstruction = false;
-                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_TABLE_TILE_ROW_COUNT_UNSUPPORTED",
-                    "An iWork table tile declares more row messages than can fit in its logical table range; editable reconstruction is incomplete.",
-                    tile.EntryPath, tile.Identifier));
-                continue;
-            }
-            IWorkWireMessage tileMessage = index.Message(tile);
-            if (HasUnsupportedTileMetadata(tileMessage, totalTileFieldCount - declaredRowsInTile)) {
-                supportsEditableReconstruction = false;
-                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_TABLE_TILE_FIELDS_UNSUPPORTED",
-                    "An iWork table tile contains duplicate, unknown, or malformed metadata fields; editable reconstruction is incomplete.",
-                    tile.EntryPath, tile.Identifier));
-                continue;
-            }
-            IReadOnlyList<IWorkWireMessage> rowsInTile = IWorkObjectIndex.TryGetMessages(
-                tileMessage, 5, out bool malformedRows);
-            if (malformedRows) {
-                supportsEditableReconstruction = false;
-                diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
-                    "IWORK_TABLE_TILE_ROWS_UNSUPPORTED",
-                    "An iWork table tile contains malformed row metadata; editable reconstruction is incomplete.",
-                    tile.EntryPath, tile.Identifier));
-            }
+            IWorkWireMessage? tileMessage = ReadTileMessage(source, tile, maximumRowsInTile,
+                references, diagnostics, ref supportsEditableReconstruction);
+            if (tileMessage == null) continue;
+            IReadOnlyList<(IWorkWireMessage Message, int Position)> rowsInTile = ReadTileRows(source,
+                tile, tileMessage, references, diagnostics, ref supportsEditableReconstruction);
             var rowIndexes = new HashSet<ulong>();
-            foreach (IWorkWireMessage rowInfo in rowsInTile) {
+            foreach ((IWorkWireMessage rowInfo, int rowPosition) in rowsInTile) {
+                source.CancellationToken.ThrowIfCancellationRequested();
                 byte[]? currentBuffer = rowInfo.GetBytes(6);
                 byte[]? currentOffsets = rowInfo.GetBytes(7);
                 if (rowInfo.FieldCount(1) != 1
@@ -349,12 +324,15 @@ internal static partial class IWorkTableReader {
                     || rowInfo.GetUnsigned(8) > 1
                     || (currentBuffer == null) != (currentOffsets == null)
                     || currentOffsets != null && currentOffsets.Length % 2 != 0) {
+                    RecordInvalidTileRow(tile, rowPosition, references);
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
                     continue;
                 }
                 bool hasPreBncStorage = (rowInfo.GetBytes(3)?.Length ?? 0) > 0
                     || (rowInfo.GetBytes(4)?.Length ?? 0) > 0;
                 if ((currentBuffer == null || currentOffsets == null) && hasPreBncStorage) {
+                    references.Declarations.Record(tile, TileRowPath(rowPosition), 1,
+                        IWorkSourceDeclarationIssueKind.RejectedMessageSet);
                     supportsEditableReconstruction = false;
                     if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_LEGACY_CELL_STORAGE")) {
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -367,6 +345,7 @@ internal static partial class IWorkTableReader {
                 ulong? declaredRow = rowInfo.GetUnsigned(1);
                 if (!declaredRow.HasValue || declaredRow.Value >= TileRowStride
                     || !rowIndexes.Add(declaredRow.Value)) {
+                    RecordInvalidTileRow(tile, rowPosition, references);
                     supportsEditableReconstruction = false;
                     if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_TILE_ROW_UNSUPPORTED")) {
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -379,6 +358,7 @@ internal static partial class IWorkTableReader {
                 ulong rawRow = declaredRow.Value;
                 long zeroBasedRow = checked((long)rawTileId * TileRowStride + (long)rawRow);
                 if (zeroBasedRow < 0 || zeroBasedRow >= rows) {
+                    RecordInvalidTileRow(tile, rowPosition, references);
                     supportsEditableReconstruction = false;
                     if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_TABLE_TILE_ROW_UNSUPPORTED")) {
                         diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -405,6 +385,7 @@ internal static partial class IWorkTableReader {
                     }
                 }
                 if (hasExcessiveTrailingOffsets || hasPopulatedTrailingOffset) {
+                    RecordInvalidTileRow(tile, rowPosition, references);
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
                 }
                 int[] populatedOffsets = Enumerable.Range(0, availableColumns)
@@ -413,6 +394,7 @@ internal static partial class IWorkTableReader {
                     .Select(encodedOffset => hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset)
                     .ToArray();
                 if (populatedOffsets.Length != populatedOffsets.Distinct().Count()) {
+                    RecordInvalidTileRow(tile, rowPosition, references);
                     MarkCellStorageUnsupported(tile, diagnostics, ref supportsEditableReconstruction);
                     continue;
                 }
