@@ -1489,6 +1489,7 @@
       "out": "./_site/api/word",
       "title": "OfficeIMO.Word API Reference",
       "baseUrl": "/api/word",
+      "docsHome": "/docs/word/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1519,6 +1520,7 @@
       "out": "./_site/api/excel",
       "title": "OfficeIMO.Excel API Reference",
       "baseUrl": "/api/excel",
+      "docsHome": "/docs/excel/",
       "format": "both",
       "legacyAliasMode": "omit",
       "suppressWarnings": [
@@ -1552,6 +1554,7 @@
       "out": "./_site/api/markdown",
       "title": "OfficeIMO.Markdown API Reference",
       "baseUrl": "/api/markdown",
+      "docsHome": "/docs/markdown/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1582,6 +1585,7 @@
       "out": "./_site/api/powerpoint",
       "title": "OfficeIMO.PowerPoint API Reference",
       "baseUrl": "/api/powerpoint",
+      "docsHome": "/docs/powerpoint/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1612,6 +1616,7 @@
       "out": "./_site/api/csv",
       "title": "OfficeIMO.CSV API Reference",
       "baseUrl": "/api/csv",
+      "docsHome": "/docs/csv/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1640,6 +1645,7 @@
       "out": "./_site/api/visio",
       "title": "OfficeIMO.Visio API Reference",
       "baseUrl": "/api/visio",
+      "docsHome": "/docs/visio/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1668,6 +1674,7 @@
       "out": "./_site/api/pdf",
       "title": "OfficeIMO.Pdf API Reference",
       "baseUrl": "/api/pdf",
+      "docsHome": "/docs/pdf/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1698,6 +1705,7 @@
       "out": "./_site/api/html",
       "title": "OfficeIMO.Html API Reference",
       "baseUrl": "/api/html",
+      "docsHome": "/docs/html/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1842,6 +1850,7 @@
       "out": "./_site/api/email",
       "title": "OfficeIMO.Email API Reference",
       "baseUrl": "/api/email",
+      "docsHome": "/docs/email/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1870,6 +1879,7 @@
       "out": "./_site/api/onenote",
       "title": "OfficeIMO.OneNote API Reference",
       "baseUrl": "/api/onenote",
+      "docsHome": "/docs/onenote/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1898,6 +1908,7 @@
       "out": "./_site/api/open-document",
       "title": "OfficeIMO.OpenDocument API Reference",
       "baseUrl": "/api/open-document",
+      "docsHome": "/docs/open-document/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -1926,6 +1937,7 @@
       "out": "./_site/api/google-workspace",
       "title": "OfficeIMO.GoogleWorkspace API Reference",
       "baseUrl": "/api/google-workspace",
+      "docsHome": "/docs/google-workspace/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -2041,6 +2053,7 @@
       "out": "./_site/api/reader",
       "title": "OfficeIMO.Reader.Core API Reference",
       "baseUrl": "/api/reader",
+      "docsHome": "/docs/reader/",
       "format": "both",
       "legacyAliasMode": "omit",
       "template": "docs",
@@ -2353,6 +2366,7 @@
           "out": "./_site/api/adf",
           "title": "OfficeIMO.Adf API Reference",
           "baseUrl": "/api/adf",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Adf"
         },
@@ -2363,6 +2377,7 @@
           "out": "./_site/api/ai",
           "title": "OfficeIMO.AI API Reference",
           "baseUrl": "/api/ai",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.AI"
         },
@@ -2373,6 +2388,7 @@
           "out": "./_site/api/ai-intelligence-x",
           "title": "OfficeIMO.AI.IntelligenceX API Reference",
           "baseUrl": "/api/ai-intelligence-x",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.AI.IntelligenceX"
         },
@@ -2383,6 +2399,7 @@
           "out": "./_site/api/ascii-doc",
           "title": "OfficeIMO.AsciiDoc API Reference",
           "baseUrl": "/api/ascii-doc",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.AsciiDoc"
         },
@@ -2393,6 +2410,7 @@
           "out": "./_site/api/ascii-doc-markdown",
           "title": "OfficeIMO.AsciiDoc.Markdown API Reference",
           "baseUrl": "/api/ascii-doc-markdown",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.AsciiDoc.Markdown"
         },
@@ -2403,6 +2421,7 @@
           "out": "./_site/api/ascii-doc-pdf",
           "title": "OfficeIMO.AsciiDoc.Pdf API Reference",
           "baseUrl": "/api/ascii-doc-pdf",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.AsciiDoc.Pdf"
         },
@@ -2413,6 +2432,7 @@
           "out": "./_site/api/bibliography",
           "title": "OfficeIMO.Bibliography API Reference",
           "baseUrl": "/api/bibliography",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Bibliography"
         },
@@ -2423,6 +2443,7 @@
           "out": "./_site/api/chart-forge-x",
           "title": "OfficeIMO.ChartForgeX API Reference",
           "baseUrl": "/api/chart-forge-x",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.ChartForgeX"
         },
@@ -2433,6 +2454,7 @@
           "out": "./_site/api/confluence",
           "title": "OfficeIMO.Confluence API Reference",
           "baseUrl": "/api/confluence",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Confluence"
         },
@@ -2443,6 +2465,7 @@
           "out": "./_site/api/core",
           "title": "OfficeIMO.Core API Reference",
           "baseUrl": "/api/core",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Core"
         },
@@ -2453,6 +2476,7 @@
           "out": "./_site/api/data-arrow",
           "title": "OfficeIMO.Data.Arrow API Reference",
           "baseUrl": "/api/data-arrow",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Data.Arrow"
         },
@@ -2463,6 +2487,7 @@
           "out": "./_site/api/data-generators",
           "title": "OfficeIMO.Data.Generators API Reference",
           "baseUrl": "/api/data-generators",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Data.Generators"
         },
@@ -2473,6 +2498,7 @@
           "out": "./_site/api/doc-book",
           "title": "OfficeIMO.DocBook API Reference",
           "baseUrl": "/api/doc-book",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.DocBook"
         },
@@ -2483,6 +2509,7 @@
           "out": "./_site/api/drawing-code-glyph-x",
           "title": "OfficeIMO.Drawing.CodeGlyphX API Reference",
           "baseUrl": "/api/drawing-code-glyph-x",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Drawing.CodeGlyphX"
         },
@@ -2493,6 +2520,7 @@
           "out": "./_site/api/drawing-harf-buzz",
           "title": "OfficeIMO.Drawing.HarfBuzz API Reference",
           "baseUrl": "/api/drawing-harf-buzz",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Drawing.HarfBuzz"
         },
@@ -2503,6 +2531,7 @@
           "out": "./_site/api/email-html",
           "title": "OfficeIMO.Email.Html API Reference",
           "baseUrl": "/api/email-html",
+          "docsHome": "/docs/email/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Email.Html"
         },
@@ -2513,6 +2542,7 @@
           "out": "./_site/api/epub",
           "title": "OfficeIMO.Epub API Reference",
           "baseUrl": "/api/epub",
+          "docsHome": "/docs/epub/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Epub"
         },
@@ -2523,6 +2553,7 @@
           "out": "./_site/api/epub-image",
           "title": "OfficeIMO.Epub.Image API Reference",
           "baseUrl": "/api/epub-image",
+          "docsHome": "/docs/epub/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Epub.Image"
         },
@@ -2533,6 +2564,7 @@
           "out": "./_site/api/excel-iwork",
           "title": "OfficeIMO.Excel.IWork API Reference",
           "baseUrl": "/api/excel-iwork",
+          "docsHome": "/docs/iwork/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Excel.IWork"
         },
@@ -2543,6 +2575,7 @@
           "out": "./_site/api/excel-csv",
           "title": "OfficeIMO.Excel.Csv API Reference",
           "baseUrl": "/api/excel-csv",
+          "docsHome": "/docs/excel/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Excel.Csv"
         },
@@ -2553,6 +2586,7 @@
           "out": "./_site/api/excel-open-document",
           "title": "OfficeIMO.Excel.OpenDocument API Reference",
           "baseUrl": "/api/excel-open-document",
+          "docsHome": "/docs/excel/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Excel.OpenDocument"
         },
@@ -2563,6 +2597,7 @@
           "out": "./_site/api/excel-google-sheets",
           "title": "OfficeIMO.Excel.GoogleSheets API Reference",
           "baseUrl": "/api/excel-google-sheets",
+          "docsHome": "/docs/excel/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Excel.GoogleSheets"
         },
@@ -2573,6 +2608,7 @@
           "out": "./_site/api/excel-html",
           "title": "OfficeIMO.Excel.Html API Reference",
           "baseUrl": "/api/excel-html",
+          "docsHome": "/docs/excel/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Excel.Html"
         },
@@ -2583,6 +2619,7 @@
           "out": "./_site/api/excel-pdf",
           "title": "OfficeIMO.Excel.Pdf API Reference",
           "baseUrl": "/api/excel-pdf",
+          "docsHome": "/docs/excel/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Excel.Pdf"
         },
@@ -2593,6 +2630,7 @@
           "out": "./_site/api/html-core",
           "title": "OfficeIMO.Html.Core API Reference",
           "baseUrl": "/api/html-core",
+          "docsHome": "/docs/html/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Html.Core"
         },
@@ -2603,6 +2641,7 @@
           "out": "./_site/api/html-angle-sharp",
           "title": "OfficeIMO.Html.AngleSharp API Reference",
           "baseUrl": "/api/html-angle-sharp",
+          "docsHome": "/docs/html/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Html.AngleSharp"
         },
@@ -2613,6 +2652,7 @@
           "out": "./_site/api/html-pdf",
           "title": "OfficeIMO.Html.Pdf API Reference",
           "baseUrl": "/api/html-pdf",
+          "docsHome": "/docs/html/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Html.Pdf"
         },
@@ -2623,6 +2663,7 @@
           "out": "./_site/api/html-pdf-browser",
           "title": "OfficeIMO.Html.Pdf.Browser API Reference",
           "baseUrl": "/api/html-pdf-browser",
+          "docsHome": "/docs/html/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Html.Pdf.Browser"
         },
@@ -2633,6 +2674,7 @@
           "out": "./_site/api/iwork",
           "title": "OfficeIMO.IWork API Reference",
           "baseUrl": "/api/iwork",
+          "docsHome": "/docs/iwork/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.IWork"
         },
@@ -2643,6 +2685,7 @@
           "out": "./_site/api/invoicing",
           "title": "OfficeIMO.Invoicing API Reference",
           "baseUrl": "/api/invoicing",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Invoicing"
         },
@@ -2653,6 +2696,7 @@
           "out": "./_site/api/invoicing-validation",
           "title": "OfficeIMO.Invoicing.Validation API Reference",
           "baseUrl": "/api/invoicing-validation",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Invoicing.Validation"
         },
@@ -2663,6 +2707,7 @@
           "out": "./_site/api/invoicing-pdf",
           "title": "OfficeIMO.Invoicing.Pdf API Reference",
           "baseUrl": "/api/invoicing-pdf",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Invoicing.Pdf"
         },
@@ -2673,6 +2718,7 @@
           "out": "./_site/api/latex",
           "title": "OfficeIMO.Latex API Reference",
           "baseUrl": "/api/latex",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Latex"
         },
@@ -2683,6 +2729,7 @@
           "out": "./_site/api/latex-markdown",
           "title": "OfficeIMO.Latex.Markdown API Reference",
           "baseUrl": "/api/latex-markdown",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Latex.Markdown"
         },
@@ -2693,6 +2740,7 @@
           "out": "./_site/api/latex-pdf",
           "title": "OfficeIMO.Latex.Pdf API Reference",
           "baseUrl": "/api/latex-pdf",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Latex.Pdf"
         },
@@ -2703,6 +2751,7 @@
           "out": "./_site/api/markdown-html",
           "title": "OfficeIMO.Markdown.Html API Reference",
           "baseUrl": "/api/markdown-html",
+          "docsHome": "/docs/markdown/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Markdown.Html"
         },
@@ -2713,6 +2762,7 @@
           "out": "./_site/api/markdown-pdf",
           "title": "OfficeIMO.Markdown.Pdf API Reference",
           "baseUrl": "/api/markdown-pdf",
+          "docsHome": "/docs/markdown/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Markdown.Pdf"
         },
@@ -2723,6 +2773,7 @@
           "out": "./_site/api/rtf-markdown",
           "title": "OfficeIMO.Rtf.Markdown API Reference",
           "baseUrl": "/api/rtf-markdown",
+          "docsHome": "/docs/rtf/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Rtf.Markdown"
         },
@@ -2733,6 +2784,7 @@
           "out": "./_site/api/markdown-renderer",
           "title": "OfficeIMO.MarkdownRenderer API Reference",
           "baseUrl": "/api/markdown-renderer",
+          "docsHome": "/docs/markdown/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.MarkdownRenderer"
         },
@@ -2743,6 +2795,7 @@
           "out": "./_site/api/markdown-renderer-intelligence-x",
           "title": "OfficeIMO.MarkdownRenderer.IntelligenceX API Reference",
           "baseUrl": "/api/markdown-renderer-intelligence-x",
+          "docsHome": "/docs/markdown/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.MarkdownRenderer.IntelligenceX"
         },
@@ -2753,6 +2806,7 @@
           "out": "./_site/api/markdown-renderer-wpf",
           "title": "OfficeIMO.MarkdownRenderer.Wpf API Reference",
           "baseUrl": "/api/markdown-renderer-wpf",
+          "docsHome": "/docs/markdown/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.MarkdownRenderer.Wpf"
         },
@@ -2763,6 +2817,7 @@
           "out": "./_site/api/open-document-odp-pdf",
           "title": "OfficeIMO.OpenDocument.Odp.Pdf API Reference",
           "baseUrl": "/api/open-document-odp-pdf",
+          "docsHome": "/docs/open-document/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.OpenDocument.Odp.Pdf"
         },
@@ -2773,6 +2828,7 @@
           "out": "./_site/api/open-document-ods-pdf",
           "title": "OfficeIMO.OpenDocument.Ods.Pdf API Reference",
           "baseUrl": "/api/open-document-ods-pdf",
+          "docsHome": "/docs/open-document/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.OpenDocument.Ods.Pdf"
         },
@@ -2783,6 +2839,7 @@
           "out": "./_site/api/open-document-odt-pdf",
           "title": "OfficeIMO.OpenDocument.Odt.Pdf API Reference",
           "baseUrl": "/api/open-document-odt-pdf",
+          "docsHome": "/docs/open-document/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.OpenDocument.Odt.Pdf"
         },
@@ -2793,6 +2850,7 @@
           "out": "./_site/api/one-note-html",
           "title": "OfficeIMO.OneNote.Html API Reference",
           "baseUrl": "/api/one-note-html",
+          "docsHome": "/docs/onenote/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.OneNote.Html"
         },
@@ -2803,6 +2861,7 @@
           "out": "./_site/api/one-note-markdown",
           "title": "OfficeIMO.OneNote.Markdown API Reference",
           "baseUrl": "/api/one-note-markdown",
+          "docsHome": "/docs/onenote/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.OneNote.Markdown"
         },
@@ -2813,6 +2872,7 @@
           "out": "./_site/api/one-note-pdf",
           "title": "OfficeIMO.OneNote.Pdf API Reference",
           "baseUrl": "/api/one-note-pdf",
+          "docsHome": "/docs/onenote/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.OneNote.Pdf"
         },
@@ -2823,6 +2883,7 @@
           "out": "./_site/api/project",
           "title": "OfficeIMO.Project API Reference",
           "baseUrl": "/api/project",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Project"
         },
@@ -2833,6 +2894,7 @@
           "out": "./_site/api/opml",
           "title": "OfficeIMO.Opml API Reference",
           "baseUrl": "/api/opml",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Opml"
         },
@@ -2843,6 +2905,7 @@
           "out": "./_site/api/provenance-c2pa",
           "title": "OfficeIMO.Provenance.C2pa API Reference",
           "baseUrl": "/api/provenance-c2pa",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Provenance.C2pa"
         },
@@ -2853,6 +2916,7 @@
           "out": "./_site/api/security",
           "title": "OfficeIMO.Security API Reference",
           "baseUrl": "/api/security",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Security"
         },
@@ -2863,6 +2927,7 @@
           "out": "./_site/api/power-point-iwork",
           "title": "OfficeIMO.PowerPoint.IWork API Reference",
           "baseUrl": "/api/power-point-iwork",
+          "docsHome": "/docs/iwork/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.PowerPoint.IWork"
         },
@@ -2873,6 +2938,7 @@
           "out": "./_site/api/power-point-google-slides",
           "title": "OfficeIMO.PowerPoint.GoogleSlides API Reference",
           "baseUrl": "/api/power-point-google-slides",
+          "docsHome": "/docs/powerpoint/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.PowerPoint.GoogleSlides"
         },
@@ -2883,6 +2949,7 @@
           "out": "./_site/api/power-point-open-document",
           "title": "OfficeIMO.PowerPoint.OpenDocument API Reference",
           "baseUrl": "/api/power-point-open-document",
+          "docsHome": "/docs/powerpoint/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.PowerPoint.OpenDocument"
         },
@@ -2893,6 +2960,7 @@
           "out": "./_site/api/power-point-html",
           "title": "OfficeIMO.PowerPoint.Html API Reference",
           "baseUrl": "/api/power-point-html",
+          "docsHome": "/docs/powerpoint/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.PowerPoint.Html"
         },
@@ -2903,6 +2971,7 @@
           "out": "./_site/api/power-point-pdf",
           "title": "OfficeIMO.PowerPoint.Pdf API Reference",
           "baseUrl": "/api/power-point-pdf",
+          "docsHome": "/docs/powerpoint/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.PowerPoint.Pdf"
         },
@@ -2913,6 +2982,7 @@
           "out": "./_site/api/reader-all",
           "title": "OfficeIMO.Reader.All API Reference",
           "baseUrl": "/api/reader-all",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.All"
         },
@@ -2923,6 +2993,7 @@
           "out": "./_site/api/reader-ascii-doc",
           "title": "OfficeIMO.Reader.AsciiDoc API Reference",
           "baseUrl": "/api/reader-ascii-doc",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.AsciiDoc"
         },
@@ -2933,6 +3004,7 @@
           "out": "./_site/api/reader-csv",
           "title": "OfficeIMO.Reader.Csv API Reference",
           "baseUrl": "/api/reader-csv",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Csv"
         },
@@ -2943,6 +3015,7 @@
           "out": "./_site/api/reader-doc-book",
           "title": "OfficeIMO.Reader.DocBook API Reference",
           "baseUrl": "/api/reader-doc-book",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.DocBook"
         },
@@ -2953,6 +3026,7 @@
           "out": "./_site/api/reader-email",
           "title": "OfficeIMO.Reader.Email API Reference",
           "baseUrl": "/api/reader-email",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Email"
         },
@@ -2963,6 +3037,7 @@
           "out": "./_site/api/reader-excel",
           "title": "OfficeIMO.Reader.Excel API Reference",
           "baseUrl": "/api/reader-excel",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Excel"
         },
@@ -2973,6 +3048,7 @@
           "out": "./_site/api/reader-epub",
           "title": "OfficeIMO.Reader.Epub API Reference",
           "baseUrl": "/api/reader-epub",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Epub"
         },
@@ -2983,6 +3059,7 @@
           "out": "./_site/api/reader-html",
           "title": "OfficeIMO.Reader.Html API Reference",
           "baseUrl": "/api/reader-html",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Html"
         },
@@ -2993,6 +3070,7 @@
           "out": "./_site/api/reader-image",
           "title": "OfficeIMO.Reader.Image API Reference",
           "baseUrl": "/api/reader-image",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Image"
         },
@@ -3003,6 +3081,7 @@
           "out": "./_site/api/reader-iwork",
           "title": "OfficeIMO.Reader.IWork API Reference",
           "baseUrl": "/api/reader-iwork",
+          "docsHome": "/docs/iwork/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.IWork"
         },
@@ -3013,6 +3092,7 @@
           "out": "./_site/api/reader-json",
           "title": "OfficeIMO.Reader.Json API Reference",
           "baseUrl": "/api/reader-json",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Json"
         },
@@ -3023,6 +3103,7 @@
           "out": "./_site/api/reader-latex",
           "title": "OfficeIMO.Reader.Latex API Reference",
           "baseUrl": "/api/reader-latex",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Latex"
         },
@@ -3033,6 +3114,7 @@
           "out": "./_site/api/reader-markdown",
           "title": "OfficeIMO.Reader.Markdown API Reference",
           "baseUrl": "/api/reader-markdown",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Markdown"
         },
@@ -3043,6 +3125,7 @@
           "out": "./_site/api/reader-notebook",
           "title": "OfficeIMO.Reader.Notebook API Reference",
           "baseUrl": "/api/reader-notebook",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Notebook"
         },
@@ -3053,6 +3136,7 @@
           "out": "./_site/api/reader-open-document",
           "title": "OfficeIMO.Reader.OpenDocument API Reference",
           "baseUrl": "/api/reader-open-document",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.OpenDocument"
         },
@@ -3063,6 +3147,7 @@
           "out": "./_site/api/reader-one-note",
           "title": "OfficeIMO.Reader.OneNote API Reference",
           "baseUrl": "/api/reader-one-note",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.OneNote"
         },
@@ -3073,6 +3158,7 @@
           "out": "./_site/api/reader-opml",
           "title": "OfficeIMO.Reader.Opml API Reference",
           "baseUrl": "/api/reader-opml",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Opml"
         },
@@ -3083,6 +3169,7 @@
           "out": "./_site/api/reader-pdf",
           "title": "OfficeIMO.Reader.Pdf API Reference",
           "baseUrl": "/api/reader-pdf",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Pdf"
         },
@@ -3093,6 +3180,7 @@
           "out": "./_site/api/reader-power-point",
           "title": "OfficeIMO.Reader.PowerPoint API Reference",
           "baseUrl": "/api/reader-power-point",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.PowerPoint"
         },
@@ -3103,6 +3191,7 @@
           "out": "./_site/api/reader-rtf",
           "title": "OfficeIMO.Reader.Rtf API Reference",
           "baseUrl": "/api/reader-rtf",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Rtf"
         },
@@ -3113,6 +3202,7 @@
           "out": "./_site/api/reader-subtitles",
           "title": "OfficeIMO.Reader.Subtitles API Reference",
           "baseUrl": "/api/reader-subtitles",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Subtitles"
         },
@@ -3123,6 +3213,7 @@
           "out": "./_site/api/reader-visio",
           "title": "OfficeIMO.Reader.Visio API Reference",
           "baseUrl": "/api/reader-visio",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Visio"
         },
@@ -3133,6 +3224,7 @@
           "out": "./_site/api/reader-web",
           "title": "OfficeIMO.Reader.Web API Reference",
           "baseUrl": "/api/reader-web",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Web"
         },
@@ -3143,6 +3235,7 @@
           "out": "./_site/api/reader-word",
           "title": "OfficeIMO.Reader.Word API Reference",
           "baseUrl": "/api/reader-word",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Word"
         },
@@ -3153,6 +3246,7 @@
           "out": "./_site/api/reader-xml",
           "title": "OfficeIMO.Reader.Xml API Reference",
           "baseUrl": "/api/reader-xml",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Xml"
         },
@@ -3163,6 +3257,7 @@
           "out": "./_site/api/reader-yaml",
           "title": "OfficeIMO.Reader.Yaml API Reference",
           "baseUrl": "/api/reader-yaml",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Yaml"
         },
@@ -3173,6 +3268,7 @@
           "out": "./_site/api/reader-zip",
           "title": "OfficeIMO.Reader.Zip API Reference",
           "baseUrl": "/api/reader-zip",
+          "docsHome": "/docs/reader/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Reader.Zip"
         },
@@ -3183,6 +3279,7 @@
           "out": "./_site/api/rtf",
           "title": "OfficeIMO.Rtf API Reference",
           "baseUrl": "/api/rtf",
+          "docsHome": "/docs/rtf/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Rtf"
         },
@@ -3193,6 +3290,7 @@
           "out": "./_site/api/rtf-pdf",
           "title": "OfficeIMO.Rtf.Pdf API Reference",
           "baseUrl": "/api/rtf-pdf",
+          "docsHome": "/docs/rtf/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Rtf.Pdf"
         },
@@ -3203,6 +3301,7 @@
           "out": "./_site/api/visio-pdf",
           "title": "OfficeIMO.Visio.Pdf API Reference",
           "baseUrl": "/api/visio-pdf",
+          "docsHome": "/docs/visio/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Visio.Pdf"
         },
@@ -3213,6 +3312,7 @@
           "out": "./_site/api/word-iwork",
           "title": "OfficeIMO.Word.IWork API Reference",
           "baseUrl": "/api/word-iwork",
+          "docsHome": "/docs/iwork/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.IWork"
         },
@@ -3223,6 +3323,7 @@
           "out": "./_site/api/word-open-document",
           "title": "OfficeIMO.Word.OpenDocument API Reference",
           "baseUrl": "/api/word-open-document",
+          "docsHome": "/docs/word/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.OpenDocument"
         },
@@ -3233,6 +3334,7 @@
           "out": "./_site/api/word-google-docs",
           "title": "OfficeIMO.Word.GoogleDocs API Reference",
           "baseUrl": "/api/word-google-docs",
+          "docsHome": "/docs/word/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.GoogleDocs"
         },
@@ -3243,6 +3345,7 @@
           "out": "./_site/api/word-html",
           "title": "OfficeIMO.Word.Html API Reference",
           "baseUrl": "/api/word-html",
+          "docsHome": "/docs/word/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.Html"
         },
@@ -3253,6 +3356,7 @@
           "out": "./_site/api/word-markdown",
           "title": "OfficeIMO.Word.Markdown API Reference",
           "baseUrl": "/api/word-markdown",
+          "docsHome": "/docs/word/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.Markdown"
         },
@@ -3263,6 +3367,7 @@
           "out": "./_site/api/word-pdf",
           "title": "OfficeIMO.Word.Pdf API Reference",
           "baseUrl": "/api/word-pdf",
+          "docsHome": "/docs/word/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.Pdf"
         },
@@ -3273,6 +3378,7 @@
           "out": "./_site/api/word-rtf",
           "title": "OfficeIMO.Word.Rtf API Reference",
           "baseUrl": "/api/word-rtf",
+          "docsHome": "/docs/word/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Word.Rtf"
         },
@@ -3283,6 +3389,7 @@
           "out": "./_site/api/workflows",
           "title": "OfficeIMO.Workflows API Reference",
           "baseUrl": "/api/workflows",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Workflows"
         },
@@ -3293,6 +3400,7 @@
           "out": "./_site/api/zip",
           "title": "OfficeIMO.Zip API Reference",
           "baseUrl": "/api/zip",
+          "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Zip"
         }
@@ -4004,6 +4112,10 @@
       "task": "audit",
       "id": "audit-ci",
       "dependsOn": "seo-doctor-ci",
+      "summary": true,
+      "summaryPath": "_reports/audit-summary.json",
+      "sarif": true,
+      "sarifPath": "_reports/audit.sarif.json",
       "modes": [
         "ci"
       ],
