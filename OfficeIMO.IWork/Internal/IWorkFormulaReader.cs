@@ -223,7 +223,7 @@ internal static class IWorkFormulaReader {
         int totalFieldCount;
         try {
             formula.CountNestedFields(nodeArrayBytes, 1, out totalFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             return 1;
         }
         if (totalFieldCount > maximumNodes) {
@@ -289,7 +289,7 @@ internal static class IWorkFormulaReader {
         try {
             nodeCount = formula.CountNestedFields(nodeArrayBytes, 1,
                 out totalFieldCount);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             return false;
         }
         if (totalFieldCount > maximumNodes) {
@@ -299,7 +299,7 @@ internal static class IWorkFormulaReader {
         IWorkWireMessage nodeArray;
         try {
             nodeArray = formula.ParseNestedMessage(nodeArrayBytes);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             return false;
         }
         IReadOnlyList<IWorkWireMessage> parsed = IWorkObjectIndex.TryGetMessages(

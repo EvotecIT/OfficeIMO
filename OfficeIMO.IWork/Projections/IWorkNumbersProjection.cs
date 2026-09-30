@@ -110,7 +110,7 @@ internal static class IWorkNumbersReader {
             declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
                 source.Options.MaximumProtobufFieldCount);
             documentMessage = index.Message(document);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(document, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_NUMBERS_DOCUMENT_MALFORMED",
@@ -162,7 +162,7 @@ internal static class IWorkNumbersReader {
                 drawableReferenceCount = IWorkProtobuf.CountFields(
                     sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount);
             } catch (InvalidDataException exception)
-                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(sheetRecord, "$", null);
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -211,7 +211,7 @@ internal static class IWorkNumbersReader {
                     IWorkWireMessage? storageOwner = null;
                     try {
                         storageOwner = index.Message(drawable);
-                    } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                    } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                         references.Declarations.Record(drawable, "$", null);
                         drawableComplete = false;
                     }
@@ -232,16 +232,16 @@ internal static class IWorkNumbersReader {
                         ? references.ReadOne(drawable, storageOwner, 2)
                         : null;
                     if (storageReferenceComplete && storage != null && storage.MessageType == TextStorageArchive) {
-                        string text;
-                        bool textComplete;
+                        IWorkWireMessage? storageMessage = null;
                         try {
-                            text = IWorkPagesReader.StorageText(index.Message(storage), projectionBudget,
-                                out textComplete);
-                        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                            storageMessage = index.Message(storage);
+                        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                             references.Declarations.Record(storage, "$", null);
-                            text = string.Empty;
-                            textComplete = false;
                         }
+                        bool textComplete = false;
+                        // Budgeted decoding stays outside malformed-record recovery.
+                        string text = storageMessage == null ? string.Empty
+                            : IWorkPagesReader.StorageText(storageMessage, projectionBudget, out textComplete);
                         if (!textComplete) {
                             supportsEditableReconstruction = false;
                             if (!diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_TEXT_STORAGE_UNSUPPORTED")) {

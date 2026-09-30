@@ -12,7 +12,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage message;
         try {
             message = index.Message(slide);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(slide, "$", null);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -90,7 +90,7 @@ internal static partial class IWorkKeynoteReader {
         foreach (IWorkArchiveRecord drawable in candidates) {
             try {
                 index.Message(drawable);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(drawable, "$", null);
                 MarkDrawableIncomplete(drawable, diagnostics, ref supportsEditableReconstruction);
                 omittedUnits.Add(new IWorkObjectIdentity(drawable));
@@ -153,7 +153,7 @@ internal static partial class IWorkKeynoteReader {
             } else {
                 try {
                     index.Message(storage);
-                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                     references.Declarations.Record(storage, "$", null);
                     MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
                     omittedUnits.Add(new IWorkObjectIdentity(storage));
@@ -258,7 +258,7 @@ internal static partial class IWorkKeynoteReader {
             IWorkWireMessage? noteMessage = null;
             try {
                 noteMessage = index.Message(note);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(note, "$", null);
                 noteMessage = null;
             }
@@ -276,7 +276,7 @@ internal static partial class IWorkKeynoteReader {
                 bool storageMalformed = false;
                 try {
                     index.Message(storage);
-                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                     references.Declarations.Record(storage, "$", null);
                     MarkTextIncomplete(storage, diagnostics, ref supportsEditableReconstruction);
                     storageMalformed = true;

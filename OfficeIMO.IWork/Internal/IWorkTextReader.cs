@@ -202,7 +202,7 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage message;
             try {
                 message = index.Message(record);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(record, "$", null);
                 complete = false;
                 break;
@@ -330,7 +330,7 @@ internal static partial class IWorkTextReader {
             } else {
                 try {
                     labelTypes = message.GetRepeatedUnsigned(11, packed: true);
-                } catch (InvalidDataException) {
+                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                     resolvedCompletely = false;
                     labelTypes = Array.Empty<ulong>();
                 }
@@ -404,7 +404,7 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage? message = null;
             try {
                 message = index.Message(record);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(record, "$", null);
                 resolvedCompletely = false;
             }

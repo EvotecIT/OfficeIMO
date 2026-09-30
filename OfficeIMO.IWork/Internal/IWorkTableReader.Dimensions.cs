@@ -42,7 +42,7 @@ internal static partial class IWorkTableReader {
                 || mergeOwner.HasUnexpectedWireKind(2, IWorkWireKind.Bytes)
                     ? -1
                     : mergeOwner.CountNestedFields(formulaStoreBytes, 3);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             pairCount = -1;
         }
         if (pairCount > maximumRanges) {
@@ -55,7 +55,7 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage formulaStore;
         try {
             formulaStore = mergeOwner.ParseNestedMessage(formulaStoreBytes!);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             MarkMergeStorageUnsupported(model, diagnostics, ref supportsEditableReconstruction);
             return Array.Empty<IWorkTableMergeRange>();
         }

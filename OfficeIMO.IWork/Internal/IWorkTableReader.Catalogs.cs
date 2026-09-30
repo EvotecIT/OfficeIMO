@@ -101,7 +101,7 @@ internal static partial class IWorkTableReader {
             metadataFieldCount = IWorkProtobuf.CountFields(
                 list.Payload, 2, options.MaximumProtobufFieldCount);
         } catch (InvalidDataException exception)
-            when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            when (!IWorkProtobuf.IsLimitException(exception)) {
             declaredEntryCount = 0;
             return false;
         }

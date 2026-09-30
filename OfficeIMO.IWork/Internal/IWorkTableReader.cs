@@ -18,7 +18,7 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage recordMessage;
         try {
             recordMessage = source.Index.Message(tableRecord);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(tableRecord, "$", null);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -111,7 +111,7 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage modelMessage;
         try {
             modelMessage = source.Index.Message(model);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(model, "$", null);
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
@@ -221,7 +221,7 @@ internal static partial class IWorkTableReader {
                     ? -1
                     : IWorkProtobuf.CountFields(tileStorageBytes, 1,
                         source.Options.MaximumProtobufFieldCount);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             declaredTileCount = -1;
         }
         int maximumTileCount = checked((rows + TileRowStride - 1) / TileRowStride);
@@ -238,7 +238,7 @@ internal static partial class IWorkTableReader {
             tileStorage = declaredTileCount < 0
                 ? null
                 : store.ParseNestedMessage(tileStorageBytes!);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             tileStorage = null;
         }
         if (tileStorage == null) {

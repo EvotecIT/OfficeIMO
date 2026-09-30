@@ -26,7 +26,7 @@ internal static partial class IWorkPagesReader {
                     zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount);
                 if (!TryReadMessage(index, zOrder, references, out zOrderMessage)) complete = false;
             } catch (InvalidDataException exception)
-                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(zOrder, "$", null);
                 complete = false;
             }
@@ -66,7 +66,7 @@ internal static partial class IWorkPagesReader {
                     }
                 }
             } catch (InvalidDataException exception)
-                when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                when (!IWorkProtobuf.IsLimitException(exception)) {
                 complete = false;
                 references.Declarations.Record(floating, "$", null);
                 pageGroups = Array.Empty<IWorkWireMessage>();

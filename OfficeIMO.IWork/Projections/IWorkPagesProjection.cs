@@ -199,7 +199,7 @@ internal static partial class IWorkPagesReader {
         IWorkWireMessage documentMessage;
         try {
             documentMessage = index.Message(document);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(document, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_DOCUMENT_MALFORMED",
@@ -471,7 +471,7 @@ internal static partial class IWorkPagesReader {
                 ? -1
                 : bodyMessage.CountNestedFields(sectionTableBytes, 1,
                     out totalSectionTableFields);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             declaredSectionCount = -1;
             totalSectionTableFields = -1;
         }
@@ -491,7 +491,7 @@ internal static partial class IWorkPagesReader {
         IWorkWireMessage sectionTable;
         try {
             sectionTable = bodyMessage.ParseNestedMessage(sectionTableBytes!);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             supportsEditableReconstruction = false;
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_PAGES_SECTION_UNSUPPORTED",
@@ -690,7 +690,7 @@ internal static partial class IWorkPagesReader {
         try {
             message = index.Message(record);
             return true;
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(record, "$", null);
             message = null!;
             return false;

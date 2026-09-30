@@ -58,7 +58,7 @@ internal sealed class IWorkSourceReferenceIssueCollector(IWorkSourceDocument sou
                     malformed = reference.FieldCount(1) != 1
                         || reference.HasUnexpectedWireKind(1, IWorkWireKind.Varint);
                     if (!malformed) identifier = reference.GetUnsigned(1);
-                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+                } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                     malformed = true;
                 }
             }

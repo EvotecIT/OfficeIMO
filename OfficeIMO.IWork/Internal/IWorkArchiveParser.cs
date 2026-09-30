@@ -117,7 +117,7 @@ internal sealed class IWorkObjectIndex {
                 || message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
             if (malformed) return null;
             return message.GetMessage(field);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             malformed = true;
             return null;
         }
@@ -133,7 +133,7 @@ internal sealed class IWorkObjectIndex {
             malformed = message.HasUnexpectedWireKind(field, IWorkWireKind.Bytes);
             if (malformed) return Array.Empty<IWorkWireMessage>();
             return message.GetRepeatedMessages(field);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             malformed = true;
             return Array.Empty<IWorkWireMessage>();
         }

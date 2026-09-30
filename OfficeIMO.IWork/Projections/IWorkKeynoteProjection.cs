@@ -192,7 +192,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage documentMessage;
         try {
             documentMessage = index.Message(document);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(document, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_DOCUMENT_MALFORMED",
@@ -213,7 +213,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage showMessage;
         try {
             showMessage = index.Message(show);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(show, "$", null);
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,
                 "IWORK_KEYNOTE_SHOW_MALFORMED",
@@ -234,7 +234,7 @@ internal static partial class IWorkKeynoteReader {
                     : IWorkProtobuf.CountFields(slideTreeBytes, 2,
                         source.Options.MaximumProtobufFieldCount,
                         out slideTreeFieldCount);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             slideReferenceCount = -1;
         }
         if (slideReferenceCount < 0 || slideTreeFieldCount != slideReferenceCount) {
@@ -250,7 +250,7 @@ internal static partial class IWorkKeynoteReader {
         IWorkWireMessage slideTree;
         try {
             slideTree = showMessage.ParseNestedMessage(slideTreeBytes!);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(show, "3", showMessage.FieldCount(3));
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_SLIDE_TREE_MISSING",
                 "The Keynote show does not contain a supported slide tree.", show.EntryPath, show.Identifier));
@@ -300,7 +300,7 @@ internal static partial class IWorkKeynoteReader {
             IWorkWireMessage nodeMessage;
             try {
                 nodeMessage = index.Message(node);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(node, "$", null);
                 supportsEditableReconstruction = false;
                 diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

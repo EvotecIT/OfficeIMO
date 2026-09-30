@@ -17,7 +17,7 @@ internal static partial class IWorkTextReader {
         try {
             boundaryCount = storage.CountNestedFields(tableBytes, 1,
                 out totalTableFieldCount);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             complete = false;
             references.Declarations.Record(owner, tablePath, storage.FieldCount(field));
             return Array.Empty<AttributeBoundary>();
@@ -32,7 +32,7 @@ internal static partial class IWorkTextReader {
         IWorkWireMessage table;
         try {
             table = storage.ParseNestedMessage(tableBytes);
-        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             complete = false;
             references.Declarations.Record(owner, tablePath, storage.FieldCount(field));
             return Array.Empty<AttributeBoundary>();
@@ -49,7 +49,7 @@ internal static partial class IWorkTextReader {
             IWorkWireMessage entry;
             try {
                 entry = table.ParseNestedMessage(value.Bytes);
-            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 complete = false;
                 references.Declarations.Record(owner, EntryPath(entryIndex), 1);
                 continue;

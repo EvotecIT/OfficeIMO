@@ -193,4 +193,66 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
     }
+
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages)]
+    [InlineData(IWorkDocumentKind.Numbers)]
+    [InlineData(IWorkDocumentKind.Keynote)]
+    public void Nested_attribute_entry_field_limit_remains_fatal(IWorkDocumentKind kind) {
+        byte[] entry = Message(VarintField(1, 0),
+            Message(Enumerable.Range(3, 8).Select(field => VarintField(field, 0)).ToArray()));
+        using MemoryStream package = SelectedRichTextPackage(kind, AttributeTable(8, entry));
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
+            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+        Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
+    }
+
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages)]
+    [InlineData(IWorkDocumentKind.Numbers)]
+    [InlineData(IWorkDocumentKind.Keynote)]
+    public void Nested_protobuf_depth_limit_remains_fatal(IWorkDocumentKind kind) {
+        using MemoryStream package = SelectedRichTextPackage(kind, AttributeTable(8, AttributeEntry(0, Message())));
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
+            new IWorkReadOptions { MaximumProtobufDepth = 1 });
+        Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
+    }
+
+    [Fact]
+    public void Numbers_text_budget_failure_is_not_malformed_storage_even_with_an_empty_sheet_name() {
+        using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "12345",
+            sheetNameBytes: Array.Empty<byte>());
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
+            new IWorkReadOptions { MaximumProjectedTextCharacters = 4 });
+        Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
+    }
+
+    [Theory]
+    [InlineData(IWorkDocumentKind.Pages)]
+    [InlineData(IWorkDocumentKind.Numbers)]
+    [InlineData(IWorkDocumentKind.Keynote)]
+    public void Packed_list_style_value_limit_remains_fatal(IWorkDocumentKind kind) {
+        using MemoryStream package = SelectedRichTextPackage(kind,
+            AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))),
+            additionalRecords: ArchiveRecord(19, 2023, Message(BytesField(11, Enumerable.Repeat((byte)1, 9).ToArray()))));
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
+            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+        Assert.Contains("value", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
+    }
+
+    [Fact]
+    public void Nested_image_metadata_field_limit_is_not_an_unsupported_image() {
+        byte[] metadataEntry = Message(VarintField(1, 100), StringField(3, "image.png"), StringField(4, "image.png"),
+            Message(Enumerable.Range(5, 6).Select(field => VarintField(field, 0)).ToArray()));
+        using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(
+            ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2, 10 }),
+            ArchiveRecord(2, 2001, Message(StringField(3, "Body"))),
+            ArchiveRecord(10, 3005, Message(BytesField(1, GeometryDrawable(0, 0, 10, 10)),
+                BytesField(11, Message(VarintField(1, 100))))),
+            ArchiveRecord(50, 11006, Message(BytesField(4, metadataEntry)))))),
+            ("Data/image.png", ValidPreviewPng()));
+        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
+            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+        Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadPages()).Message);
+    }
 }

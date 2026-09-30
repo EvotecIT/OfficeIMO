@@ -244,7 +244,7 @@ public sealed partial class IWorkSourceDocument {
             try {
                 declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
                     options.MaximumProtobufFieldCount);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
             if (declaredSheetCount > options.MaximumProjectedSheets) {
@@ -254,7 +254,7 @@ public sealed partial class IWorkSourceDocument {
             IWorkWireMessage message;
             try {
                 message = index.Message(document);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
             if (message.HasUnexpectedWireKind(1, IWorkWireKind.Bytes)) continue;
@@ -273,7 +273,7 @@ public sealed partial class IWorkSourceDocument {
             IWorkWireMessage documentMessage;
             try {
                 documentMessage = index.Message(document);
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 continue;
             }
             if (documentMessage.FieldCount(2) != 1
@@ -284,7 +284,7 @@ public sealed partial class IWorkSourceDocument {
                 IWorkWireMessage showMessage = index.Message(show);
                 if (showMessage.HasBytes(3)
                     && !showMessage.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)) return true;
-            } catch (InvalidDataException) {
+            } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 // A malformed show is not an authoritative Keynote root.
             }
         }

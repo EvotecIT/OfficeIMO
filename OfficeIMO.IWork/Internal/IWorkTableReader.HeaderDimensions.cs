@@ -54,7 +54,7 @@ internal static partial class IWorkTableReader {
         IWorkWireMessage message;
         try {
             message = source.Index.Message(bucket);
-        } catch (InvalidDataException) {
+        } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             complete = false;
             return;
         }

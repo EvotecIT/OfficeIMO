@@ -126,7 +126,7 @@ internal sealed class IWorkTableRichTextCatalog {
             cache.Add(record.Identifier, message);
             return true;
         } catch (InvalidDataException exception)
-            when (!IWorkProtobuf.IsFieldLimitException(exception)) {
+            when (!IWorkProtobuf.IsLimitException(exception)) {
             _references.Declarations.Record(record, "$", null);
             cache.Add(record.Identifier, null);
             return false;
