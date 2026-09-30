@@ -166,6 +166,9 @@ static void tx_prefix(char **argv) {
     residual_layout layout;residuals(&t,0,0,modes[1],&layout);
     FILE *out=fopen(argv[9],"wb");assert(out);fprintf(out,"{\"pixels\":%d,\"preludeQ\":%d,",pixels,q);print_layout(out,&t,&layout);fprintf(out,"}\n");fclose(out);free(bytes);
 }
+#ifdef OFFICEIMO_AV1_COEFFICIENT_INCLUDE
+#define main transform_component_main
+#endif
 int main(int argc,char **argv) {
     if(argc==13){tx_prefix(argv);return 0;}assert(argc==2);FILE *out=fopen(argv[1],"wb");assert(out);
     fprintf(out,"{\"producer\":\"AOM v3.13.1 entropy/defaults with original normative transform syntax and full-grid traversal harness\",\"nativeSelfCheck\":true,\"cases\":[");
@@ -174,3 +177,7 @@ int main(int argc,char **argv) {
     for(unsigned i=0;i<sizeof(other)/sizeof(other[0]);i++)for(int u=0;u<2;u++)make_tx(out,other[i],u,&first);
     fprintf(out,"]}\n");fclose(out);return 0;
 }
+
+#ifdef OFFICEIMO_AV1_COEFFICIENT_INCLUDE
+#undef main
+#endif
