@@ -34,6 +34,10 @@ public enum EmailRemoteResourcePolicy {
 public sealed class EmailBodyProjectionOptions {
     /// <summary>Controls whether inline attachment resources are indexed.</summary>
     public bool IncludeResources { get; set; } = true;
+    /// <summary>Retain resource references in projected markup. False removes them through the shared URL policy.</summary>
+    public bool IncludeResourceReferences { get; set; } = true;
+    /// <summary>Optional original-body character bound, checked before encoding, RTF reading and fallback projection.</summary>
+    public int? MaxBodySourceCharacters { get; set; }
     /// <summary>Body preference.</summary>
     public EmailBodySelectionPolicy SelectionPolicy { get; set; } = EmailBodySelectionPolicy.Richest;
     /// <summary>Remote resource policy. Network access is never performed by this package.</summary>
@@ -59,8 +63,11 @@ public sealed class EmailBodyProjectionOptions {
         if (MaxResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceBytes));
         if (MaxResourceCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxResourceCount));
         if (MaxTotalResourceBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes));
+        if (MaxBodySourceCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBodySourceCharacters));
         return new EmailBodyProjectionOptions {
             IncludeResources = IncludeResources,
+            IncludeResourceReferences = IncludeResourceReferences,
+            MaxBodySourceCharacters = MaxBodySourceCharacters,
             SelectionPolicy = SelectionPolicy,
             RemoteResourcePolicy = RemoteResourcePolicy,
             MaxResourceBytes = MaxResourceBytes,
@@ -123,22 +130,22 @@ public static class EmailBodyProjection {
         if (effective.SelectionPolicy == EmailBodySelectionPolicy.PlainTextFirst &&
             !string.IsNullOrEmpty(source.Body.Text)) {
             sourceKind = EmailBodySourceKind.PlainText;
-            selectedHtml = PlainTextHtml(source.Body.Text!);
+            selectedHtml = PlainTextHtml(CheckBodySource(source.Body.Text!, effective.MaxBodySourceCharacters));
         } else if (effective.SelectionPolicy == EmailBodySelectionPolicy.RtfFirst &&
             !string.IsNullOrWhiteSpace(source.Body.Rtf)) {
-            selectedHtml = ProjectRtf(source, diagnostics, out sourceKind);
+            selectedHtml = ProjectRtf(source, diagnostics, out sourceKind, effective.MaxBodySourceCharacters);
         } else if (effective.SelectionPolicy == EmailBodySelectionPolicy.RtfFirst &&
             !string.IsNullOrEmpty(source.Body.Text)) {
             sourceKind = EmailBodySourceKind.PlainText;
-            selectedHtml = PlainTextHtml(source.Body.Text!);
+            selectedHtml = PlainTextHtml(CheckBodySource(source.Body.Text!, effective.MaxBodySourceCharacters));
         } else if (!string.IsNullOrWhiteSpace(source.Body.Html)) {
             sourceKind = EmailBodySourceKind.Html;
-            selectedHtml = source.Body.Html!;
+            selectedHtml = CheckBodySource(source.Body.Html!, effective.MaxBodySourceCharacters);
         } else if (!string.IsNullOrWhiteSpace(source.Body.Rtf)) {
-            selectedHtml = ProjectRtf(source, diagnostics, out sourceKind);
+            selectedHtml = ProjectRtf(source, diagnostics, out sourceKind, effective.MaxBodySourceCharacters);
         } else if (!string.IsNullOrEmpty(source.Body.Text)) {
             sourceKind = EmailBodySourceKind.PlainText;
-            selectedHtml = PlainTextHtml(source.Body.Text!);
+            selectedHtml = PlainTextHtml(CheckBodySource(source.Body.Text!, effective.MaxBodySourceCharacters));
         } else {
             sourceKind = EmailBodySourceKind.None;
             selectedHtml = EmptyHtml();
@@ -177,7 +184,9 @@ public static class EmailBodyProjection {
         resources.AllowDataUrls = true;
         resources.AllowedUrlSchemes.Add("data");
         resources.AllowedUrlSchemes.Add("cid");
-        if (effective.RemoteResourcePolicy == EmailRemoteResourcePolicy.Block) {
+        if (!effective.IncludeResourceReferences) {
+            resources.ResolvedUrlTransform = _ => null;
+        } else if (effective.RemoteResourcePolicy == EmailRemoteResourcePolicy.Block) {
             resources.ResolvedUrlTransform = value => resourceIdentity.Rewrite(value, baseUri);
         }
         htmlOptions.ResourceUrlPolicy = resources;
@@ -209,10 +218,11 @@ public static class EmailBodyProjection {
         "<p class=\"officeimo-email-empty\">This message has no renderable body.</p>";
 
     private static string ProjectRtf(EmailDocument source, ICollection<EmailDiagnostic> diagnostics,
-        out EmailBodySourceKind sourceKind) {
+        out EmailBodySourceKind sourceKind, int? maximumCharacters) {
+        string rtf = CheckBodySource(source.Body.Rtf!, maximumCharacters);
         try {
             sourceKind = EmailBodySourceKind.Rtf;
-            string html = RtfDocument.Read(source.Body.Rtf!).Document.ToHtml();
+            string html = RtfDocument.Read(rtf).Document.ToHtml();
             diagnostics.Add(new EmailDiagnostic("EMAIL_BODY_RTF_PROJECTED",
                 "The RTF body was projected through OfficeIMO.Html.Rtf.",
                 EmailDiagnosticSeverity.Information, "message/body"));
@@ -226,9 +236,15 @@ public static class EmailBodyProjection {
                 ? EmailBodySourceKind.None
                 : EmailBodySourceKind.PlainText;
             return sourceKind == EmailBodySourceKind.PlainText
-                ? PlainTextHtml(source.Body.Text!)
+                ? PlainTextHtml(CheckBodySource(source.Body.Text!, maximumCharacters))
                 : EmptyHtml();
         }
+    }
+
+    private static string CheckBodySource(string value, int? maximumCharacters) {
+        if (maximumCharacters.HasValue && value.Length > maximumCharacters.Value)
+            throw new ArgumentException("The selected email body exceeds MaxBodySourceCharacters.", nameof(value));
+        return value;
     }
 
     private static Uri? ResolveBaseUri(string? value) =>
@@ -236,7 +252,7 @@ public static class EmailBodyProjection {
 
     private static string CreateSafeEmailHtml(HtmlConversionDocument document) {
         AngleSharp.Html.Dom.IHtmlDocument safe = document.CreateNativeDocumentForConversion();
-        foreach (IElement element in safe.QuerySelectorAll("script,iframe,object,embed,form").ToArray()) {
+        foreach (IElement element in safe.QuerySelectorAll("script,iframe,object,embed,form,meta[http-equiv]").ToArray()) {
             element.Remove();
         }
         foreach (IElement element in safe.All) {
