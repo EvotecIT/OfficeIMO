@@ -1,0 +1,873 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T11:54:27.9435684Z",
+  "regeneration": "Build/Verification/New-ExcelPivotAllErrorRankingOracle.ps1",
+  "cases": [
+    {
+      "name": "top-count",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-count.xlsx",
+      "sha256": "e5290ec1a758f605fd68cabec18af5a95be80db0140d08684b9d133c3b763aa1"
+    },
+    {
+      "name": "bottom-count",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-count.xlsx",
+      "sha256": "47ab87a60001de8fa40126f0157b30752819c5f0b99d28c97281d8b6b6aba3d4"
+    },
+    {
+      "name": "top-count-two",
+      "filterType": 1,
+      "value": 2.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B7",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-count-two.xlsx",
+      "sha256": "5ad5b52dd974476d60415ee2c381d6d2d4ed11e1da67ce4c44807c35b07f4b68"
+    },
+    {
+      "name": "bottom-count-two",
+      "filterType": 2,
+      "value": 2.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B7",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-count-two.xlsx",
+      "sha256": "ddb9b75bbb1ec1f763f1d5eb89b4ae1bfef3100ab04c1df795cfd58b28cc1987"
+    },
+    {
+      "name": "top-count-reversed",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-count-reversed.xlsx",
+      "sha256": "8cfb21bc27a294606f814d3f3b226a17059d7528253dddb8ca91e969b85d116a"
+    },
+    {
+      "name": "bottom-count-reversed",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-count-reversed.xlsx",
+      "sha256": "86903f103e5e793476a3259be3a03f7143a7e4b45e4f3e0d41dc698cb3affea0"
+    },
+    {
+      "name": "top-count-same",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B8",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "top-count-same.xlsx",
+      "sha256": "1883f3ca2175472b32873bcd01bceedfab9148ef073e0e6e8d1cd3b9e669376e"
+    },
+    {
+      "name": "bottom-count-same",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B8",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-count-same.xlsx",
+      "sha256": "dbe9c0aa779ebeb2467545bfd7066e5d80b946cfb2e14c7234ccee7cbc421eb1"
+    },
+    {
+      "name": "top-average",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4106,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-average.xlsx",
+      "sha256": "31de54e42d04aef444c7615069c4defb1394f423bc67c610c0c879417ffcda46"
+    },
+    {
+      "name": "bottom-average",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B4",
+      "aggregateFunction": -4106,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-average.xlsx",
+      "sha256": "137b56ced5a1d5b897ad6e9866d8b06a7164c46d36df8f0a1d4cf83cc37d39da"
+    },
+    {
+      "name": "top-grouped",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B7",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#VALUE!"
+        }
+      ],
+      "file": "top-grouped.xlsx",
+      "sha256": "728f2f9d72a498702417caa9fbb8dcc661b04e4b2c0fe67ccec25d79aae29e15"
+    },
+    {
+      "name": "bottom-grouped",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B7",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-grouped.xlsx",
+      "sha256": "9b1d4ccfdf924aeac8b740d51cdbbb0454a0788e61cd468a1ef9d53a745d9c76"
+    },
+    {
+      "name": "top-grouped-reversed",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B7",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#NULL!"
+        }
+      ],
+      "file": "top-grouped-reversed.xlsx",
+      "sha256": "53d0b5943d04c6995aea028cf17791a65c3a44fffd28349d4c26bfa3ef2a6966"
+    },
+    {
+      "name": "bottom-grouped-reversed",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B7",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#REF!"
+        }
+      ],
+      "file": "bottom-grouped-reversed.xlsx",
+      "sha256": "acf63b0546b547667f4737f1411ff2e635dbd7d99d2af5bb53f145e7b1674895"
+    },
+    {
+      "name": "top-full-1",
+      "filterType": 1,
+      "value": 1.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#NULL!"
+        }
+      ],
+      "file": "top-full-1.xlsx",
+      "sha256": "9a92db73188ea629260fd96061b9fee48d8d81c8f8077e06f237fa28dc02a109"
+    },
+    {
+      "name": "bottom-full-1",
+      "filterType": 2,
+      "value": 1.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B6",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-1.xlsx",
+      "sha256": "a57c33728c6d84625a08cfdeffa6b9936272abf101065e324213cc7cc97fdec1"
+    },
+    {
+      "name": "top-full-2",
+      "filterType": 1,
+      "value": 2.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B7",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-full-2.xlsx",
+      "sha256": "a6d51b1fcf5f60fa25965af9528f358ae899a9a04b5a77fc660db5bde67949de"
+    },
+    {
+      "name": "bottom-full-2",
+      "filterType": 2,
+      "value": 2.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B7",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-2.xlsx",
+      "sha256": "8e3fc3d9de821a18666d912ec37b786a58133bc7facce3ab6470f0cd13cefd1e"
+    },
+    {
+      "name": "top-full-3",
+      "filterType": 1,
+      "value": 3.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B8",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-full-3.xlsx",
+      "sha256": "dcc66479477968411615967f588e4dbe5652692a3eb0844a97e97f801595f33f"
+    },
+    {
+      "name": "bottom-full-3",
+      "filterType": 2,
+      "value": 3.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B8",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-3.xlsx",
+      "sha256": "73a8461158f1e581007ed3a72aa97d4cd2ba1fc074573ed1f188fd971e482f58"
+    },
+    {
+      "name": "top-full-4",
+      "filterType": 1,
+      "value": 4.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B9",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-full-4.xlsx",
+      "sha256": "1c28ffe98ac607756972a96377700c31a57ecd76a2e689bc27ca669cf4cd7f42"
+    },
+    {
+      "name": "bottom-full-4",
+      "filterType": 2,
+      "value": 4.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B9",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-4.xlsx",
+      "sha256": "4c9ec029f860a138eef95ca43ecac4b8c4902e23e02d5dc6141831efe743f042"
+    },
+    {
+      "name": "top-full-5",
+      "filterType": 1,
+      "value": 5.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B10",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-full-5.xlsx",
+      "sha256": "d96b340b5cd280e5e5557078cead940a74145f750e133768d5c0269b1e68cf5c"
+    },
+    {
+      "name": "bottom-full-5",
+      "filterType": 2,
+      "value": 5.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B10",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-5.xlsx",
+      "sha256": "93b119f172e594965d4a44df6067006c708e00f34e9ddf3d2882dffb965268cb"
+    },
+    {
+      "name": "top-full-6",
+      "filterType": 1,
+      "value": 6.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B11",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#DIV/0!"
+        }
+      ],
+      "file": "top-full-6.xlsx",
+      "sha256": "8e317ca2088cf572c390e1c6ae0a08d834e7d2935a721f160ff4dfd4c218b741"
+    },
+    {
+      "name": "bottom-full-6",
+      "filterType": 2,
+      "value": 6.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B11",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-6.xlsx",
+      "sha256": "2651d5b78e47f53c022d5944b51a8e2dc9e677c4526c51fb7d681a7b27904873"
+    },
+    {
+      "name": "top-full-7",
+      "filterType": 1,
+      "value": 7.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B12",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "top-full-7.xlsx",
+      "sha256": "c40e574d5d3833b62c9517c9ecfb78a3d6af6707761d4ec96956f37497a4205f"
+    },
+    {
+      "name": "bottom-full-7",
+      "filterType": 2,
+      "value": 7.0,
+      "sourceRange": "A1:B8",
+      "aggregateFunction": -4157,
+      "outputRange": "A4:B12",
+      "rows": [
+        {
+          "label": "Region",
+          "metric": "Metric"
+        },
+        {
+          "label": "Alpha",
+          "metric": "#N/A"
+        },
+        {
+          "label": "Bravo",
+          "metric": "#DIV/0!"
+        },
+        {
+          "label": "Charlie",
+          "metric": "#VALUE!"
+        },
+        {
+          "label": "Delta",
+          "metric": "#NUM!"
+        },
+        {
+          "label": "Echo",
+          "metric": "#REF!"
+        },
+        {
+          "label": "Foxtrot",
+          "metric": "#NAME?"
+        },
+        {
+          "label": "Golf",
+          "metric": "#NULL!"
+        },
+        {
+          "label": "Grand Total",
+          "metric": "#N/A"
+        }
+      ],
+      "file": "bottom-full-7.xlsx",
+      "sha256": "17d91f81ac52812371bd6ee09bc05d803bc0a9d3d9e999fa8eeb9cc18d827754"
+    }
+  ]
+}

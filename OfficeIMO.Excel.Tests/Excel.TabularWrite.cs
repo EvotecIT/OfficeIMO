@@ -10,6 +10,33 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
+        [Theory]
+        [InlineData(true, false, false, true)]
+        [InlineData(false, true, false, true)]
+        [InlineData(false, false, true, false)]
+        public void WriteDataReader_RequireStreamingRejectsBufferingBeforeReading(bool sharedStrings, bool autoFit, bool table, bool headers) {
+            var source = new DataTable();
+            source.Columns.Add("Value", typeof(int));
+            source.Rows.Add(42);
+            using var reader = source.CreateDataReader();
+            using var output = new MemoryStream();
+            Assert.Throws<ArgumentException>(() => ExcelDocument.WriteDataReader(output, reader,
+                new ExcelTabularWriteOptions { RequireStreaming = true, UseSharedStrings = sharedStrings, AutoFit = autoFit, CreateTable = table, IncludeHeaders = headers }));
+            Assert.Equal(0, output.Length);
+            Assert.True(reader.Read());
+            Assert.Equal(42, reader.GetInt32(0));
+        }
+
+        [Fact]
+        public void WriteRows_RequireStreamingRejectsTableBeforeEnumerating() {
+            static int FailIfEnumerated() => throw new InvalidOperationException("Source was consumed.");
+            static IEnumerable<int> Source() { yield return FailIfEnumerated(); }
+            using var output = new MemoryStream();
+            Assert.Throws<ArgumentException>(() => ExcelDocument.WriteRows(output, Source(), new[] { "Value" },
+                (writer, value) => writer.Write(value), new ExcelTabularWriteOptions { RequireStreaming = true, CreateTable = true }));
+            Assert.Equal(0, output.Length);
+        }
+
         [Fact]
         public void PooledUtf8TextWriter_PreservesSurrogatePairsAcrossFlushes() {
             using var output = new MemoryStream();

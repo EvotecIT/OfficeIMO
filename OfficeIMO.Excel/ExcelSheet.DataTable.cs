@@ -74,6 +74,12 @@ namespace OfficeIMO.Excel {
             if (table == null) throw new ArgumentNullException(nameof(table));
             if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
             if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            if (table.Columns.Count > 0 && table.Rows.Count + (includeHeaders ? 1L : 0L) > 0) {
+                long lastRow = (long)startRow + table.Rows.Count + (includeHeaders ? 1L : 0L) - 1;
+                long lastColumn = (long)startColumn + table.Columns.Count - 1;
+                EnsureDynamicArrayRangeWritable(startRow, startColumn,
+                    (int)Math.Min(lastRow, int.MaxValue), (int)Math.Min(lastColumn, int.MaxValue));
+            }
 
             bool canRegisterDirectSave = registerDirectSaveCandidate
                 && !_excelDocument.IsMaterializingDeferredDataSetImport

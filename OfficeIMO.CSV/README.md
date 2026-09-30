@@ -34,6 +34,19 @@ new CsvDocument()
     });
 ```
 
+## Choose a read path
+
+| Need | Start with |
+|---|---|
+| Edit, transform, or save rows | `CsvDocument.Load(...)` or `new CsvDocument()` |
+| Read rows once with a forward-only cursor | `CsvDocument.OpenDataReader(...)` |
+| Read from the source incrementally with async I/O on .NET 8+ | `CsvDocument.OpenDataReaderAsync(...)` |
+
+For a memory-backed snapshot, use `LoadAsync(...)` followed by
+`CreateDataReader()`. The incremental reader avoids buffering the complete file.
+Profiles, schema inference, explicit mapping, and parallel projection are optional
+settings on these paths, not separate document models.
+
 ## What it does
 
 - Keeps headers and rows as a first-class document model instead of ad hoc string arrays.
@@ -111,6 +124,44 @@ document.EnsureInferredSchema()
     .ValidateOrThrow();
 ```
 
+## Policy profiles
+
+Use a profile to select explicit defaults, then edit the returned options for the
+file's dialect. Each call creates independent options; existing constructors and
+APIs retain their current defaults.
+
+```csharp
+CsvLoadOptions input = CsvProfiles.CreateLoadOptions(CsvProfile.Strict);
+input.Delimiter = ';';
+CsvDocument document = CsvDocument.Load("input.csv", input);
+
+CsvSaveOptions output = CsvProfiles.CreateSaveOptions(CsvProfile.Spreadsheet);
+document.Save("spreadsheet.csv", output);
+```
+
+| Profile | Input policy | Byte decoding | Output policy |
+|---|---|---|---|
+| Strict | Strict quotes and field counts; duplicate headers fail; comments remain records | Fixed UTF-8, optional matching BOM, invalid bytes fail | UTF-8 without BOM, CRLF, values preserved |
+| Compatibility | Existing lenient quotes, padded missing fields, ignored extras, generated and renamed headers | Existing UTF-8 fallback with BOM detection | Existing newline and encoding defaults, values preserved |
+| Spreadsheet | Strict quotes and field counts; delimiter detection; generated and renamed headers; comments remain records | UTF-8 fallback with BOM detection | UTF-8 with BOM, CRLF, formula-like text prefixed with an apostrophe |
+
+Strict and Spreadsheet redact source values and custom-converter details in
+mapping failures. Parse failures throw by default; use `CollectParseErrors`,
+`ParseErrors`, `MaxParseErrors` and `ParseErrorAction` to configure collection or
+row skipping. Both profiles disable W3C header interpretation. All profiles
+retain the configured input-size and decompression limits.
+
+Formula escaping applies to text and configured text tokens; typed negative
+numbers remain numeric. Escaping changes the exported text, so use a preserving
+profile when exact values are required. Load profiles retain formula-like input
+as text; they do not execute or rewrite it.
+
+`DetectEncodingFromByteOrderMarks = false` keeps the configured encoding
+authoritative. Its own preamble is accepted; a different BOM does not switch the
+decoder. Text inputs are already decoded, and TextWriter output has no byte
+encoding. Profiles do not impose a culture-specific spreadsheet dialect; select
+the delimiter and culture explicitly when needed.
+
 ## Typed mapping
 
 For ordinary DTOs, `RowsAs<T>()` matches headers to writable properties without
@@ -156,10 +207,47 @@ await foreach (Person person in reader.RowsAsAsync<Person>(cancellationToken)) {
 }
 ```
 
-`OpenDataReaderAsync` performs the bounded source read asynchronously and returns a
-memory-backed reader owned by the caller. Automatic, explicit `RowMapper<T>`, and factory
-mapping all have async overloads. This is asynchronous I/O and cursor traversal, not
-parallel row mapping; use `RowsAsParallel<T>()` for CPU-heavy synchronous projection.
+`OpenDataReaderAsync` opens an incremental reader owned by the caller. Each
+`ReadAsync` advances through the source without loading a whole-file snapshot.
+Automatic, explicit `RowMapper<T>`, and factory mapping all have async overloads.
+For direct field access:
+
+```csharp
+await using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
+    "people.csv",
+    loadOptions: new CsvLoadOptions { Delimiter = ',' },
+    cancellationToken: cancellationToken);
+
+while (await reader.ReadAsync(cancellationToken)) {
+    await ProcessNameAsync(reader.GetString(reader.GetOrdinal("Name")), cancellationToken);
+}
+```
+
+Initialization reads the header or the first data record when headers are supplied
+or generated; schema inference additionally buffers at most
+`SchemaSampleSize` records and replays them during traversal. Temporary parsing
+memory follows the largest record, with fixed transport buffers. String interning
+can retain distinct field values. `DetectDelimiter` samples at most 64 Ki characters
+and 64 logical records, then replays the sampled prefix. If the bound cuts through
+a record or the meaningful header lies beyond it, detection uses complete samples
+or falls back to the configured delimiter. An explicit `DelimiterText` remains
+effective. `ParallelProcessing` captures input batches asynchronously and projects
+typed values on bounded workers in source order. Its prefetch can read up to
+`MaxDegreeOfParallelism * BatchSize` rows before exposing a batch; use sequential
+projection when first-row latency matters. Converters must be thread-safe.
+Compression, multiline records, header normalization, null tokens,
+static columns, and explicit or sampled schemas use the common CSV contracts.
+The stream overload consumes the current position and leaves the caller's stream
+open. The path overload owns its file. The opening cancellation token remains
+active until disposal; each `ReadAsync` also accepts an operation token. A cancelled
+or failed record cannot be resumed. `Read` and `HasRows` may perform synchronous I/O.
+
+For a materialized snapshot, use `LoadAsync` followed by `CreateDataReader`:
+
+```csharp
+var csv = await CsvDocument.LoadAsync("people.csv", cancellationToken: cancellationToken);
+using DbDataReader reader = csv.CreateDataReader();
+```
 
 Use the explicit overload when assignments must be declared without reflection,
 including trimming- and NativeAOT-sensitive applications. This overload still
@@ -195,6 +283,13 @@ public sealed class Person {
     public string City { get; set; } = "";
 }
 ```
+
+Use the three-argument `FromColumn` or `FromColumns` overload with
+`RowMappingColumnOptions` for an optional column, a column-specific culture,
+date/time formats, or a converter. Missing optional columns preserve the model's
+initialized value; present invalid values still fail. These controls share the
+same [Core mapping owner](../OfficeIMO.Core/README.md#per-column-row-mapping)
+across document, reader, async and parallel projections.
 
 For a non-positional record with a public parameterless constructor, an
 assignment can return a new value from each step:
@@ -358,7 +453,9 @@ var table = new DataTable();
 table.Load(reader);
 ```
 
-For a large typed import, enable bounded parallel projection on the reader.
+For imports with expensive typed conversions, benchmark bounded parallel
+projection on the reader before enabling it. Input size alone does not make
+worker scheduling worthwhile.
 Parsing remains single-owner, completed batches are returned in source order,
 and the caller still consumes one `DbDataReader`, so the same reader can be
 passed to `SqlBulkCopy` or another provider bulk-copy API:
@@ -391,11 +488,15 @@ must be thread-safe; keep the reader sequential when a converter depends on
 mutable single-threaded state.
 
 `OpenDataReader` is the streaming forward-only entry point. On .NET 8 and later,
-`OpenDataReaderAsync` performs bounded asynchronous source I/O and returns a
-memory-backed reader whose `ReadAsync` cursor works with `RowsAsAsync<T>`.
+`OpenDataReaderAsync` performs incremental asynchronous source I/O with
+explicit delimiters or bounded detection, and optional ordered parallel typed projection.
 Use `CsvDocument.Load` when an editable materialized document is required.
-`LoadAsync` and `SaveAsync` perform asynchronous source or destination I/O but
-still materialize the document or serialized output.
+`LoadAsync` materializes the document. `SaveAsync` formats and writes one record
+at a time through asynchronous destination I/O, without buffering the complete
+serialized file. Its temporary memory follows the largest record. Path replacements
+stage output before committing it; appends write directly and can leave a partial
+append on failure. Caller-owned streams stay open and can contain partial output
+after cancellation, formatting failure, or destination I/O failure.
 
 Streaming readers also implement `ICsvDataReaderPositionMetadata`. Its
 `RecordNumber` is the one-based data-record number, while
@@ -512,6 +613,12 @@ CsvDocument.Load("next.csv")
         IncludeHeader = false
     });
 ```
+
+Append inserts a record separator when the existing file has no terminal newline.
+Empty appends leave the file unchanged. Use the existing file's encoding and dialect.
+Documents retain the full loaded `DelimiterText`, including multi-character delimiters,
+for default saves. `ICsvDataReaderDialectMetadata.DelimiterText` exposes that dialect
+through data readers; `Delimiter` remains the first character for existing consumers.
 
 ## Objects and ad hoc data
 

@@ -115,6 +115,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     internal sealed class GoogleSheetsApiPivotTablePayload {
+        [JsonPropertyName("valueLayout")]
+        public string ValueLayout { get; set; } = "HORIZONTAL";
         [JsonPropertyName("source")]
         public GoogleSheetsApiGridRangePayload Source { get; set; } = new GoogleSheetsApiGridRangePayload();
         [JsonPropertyName("rows")]

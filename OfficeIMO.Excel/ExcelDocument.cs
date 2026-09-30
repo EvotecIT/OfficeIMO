@@ -362,7 +362,14 @@ namespace OfficeIMO.Excel {
         internal SpreadsheetDocument _spreadSheetDocument = null!;
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
-        public SpreadsheetDocument OpenXmlDocument => _spreadSheetDocument;
+        public SpreadsheetDocument OpenXmlDocument {
+            get {
+                _openXmlDocumentExposed = true;
+                return _spreadSheetDocument;
+            }
+        }
+        private bool _openXmlDocumentExposed;
+        internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
         private WorkbookPart _workBookPart = null!;
         private SharedStringTablePart? _sharedStringTablePart;
         private bool _sharedStringTableDirty;

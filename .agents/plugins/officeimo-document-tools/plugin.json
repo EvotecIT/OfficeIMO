@@ -1,0 +1,44 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "officeimo-document-tools",
+  "version": "0.3.0",
+  "description": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO.",
+  "author": {
+    "name": "EvotecIT"
+  },
+  "homepage": "https://officeimo.com/",
+  "repository": "https://github.com/EvotecIT/OfficeIMO",
+  "license": "MIT",
+  "keywords": [
+    "officeimo",
+    "documents",
+    "email",
+    "mailbox",
+    "mcp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "OfficeIMO Document Tools",
+        "shortDescription": "Search local documents and mail stores, then fetch the relevant content.",
+        "longDescription": "Inspect, search, selectively fetch, and convert local documents and mail stores with OfficeIMO.",
+        "developerName": "EvotecIT",
+        "category": "DocumentAutomation",
+        "websiteURL": "https://officeimo.com/",
+        "defaultPrompt": [
+          "Inspect and summarize this local document with OfficeIMO.",
+          "Search this PST or OST and fetch only the relevant messages.",
+          "Convert this local document to Markdown with OfficeIMO."
+        ],
+        "capabilities": [
+          "document-inspection",
+          "document-search",
+          "document-conversion",
+          "mailbox-search",
+          "mcp",
+          "skills"
+        ]
+      }
+    }
+  }
+}

@@ -32,8 +32,6 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelSheet {
-        private const string RichValueMetadataName = "XLRICHVALUE";
-        private const string RichValueMetadataExtensionUri = "{3E2802C4-A4D2-4D8B-9148-E3BE6C30E623}";
         private const string RichValueRelRelationshipType = "http://schemas.microsoft.com/office/2022/10/relationships/richValueRel";
         private const string RichValueRelContentType = "application/vnd.ms-excel.richvaluerel+xml";
         private const string ImageRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image";
@@ -125,6 +123,7 @@ namespace OfficeIMO.Excel {
             string contentType,
             string altText,
             OpenXmlPart? reusableImagePart) {
+            EnsureDynamicArrayCellWritable(row, column);
             Cell cell = GetCell(row, column);
             if (reusableImagePart == null
                 && cell.ValueMetaIndex != null
@@ -382,40 +381,6 @@ namespace OfficeIMO.Excel {
             cell.CellValue = new CellValue("#VALUE!");
             cell.CellFormula = null;
             cell.InlineString = null;
-        }
-
-        private static uint EnsureRichValueMetadataType(Metadata metadata) {
-            MetadataTypes types = metadata.MetadataTypes ??= new MetadataTypes();
-            List<MetadataType> existing = types.Elements<MetadataType>().ToList();
-            int index = existing.FindIndex(type => string.Equals(type.Name?.Value, RichValueMetadataName, StringComparison.OrdinalIgnoreCase));
-            if (index < 0) {
-                types.Append(new MetadataType {
-                    Name = RichValueMetadataName,
-                    MinSupportedVersion = 120000U,
-                    Copy = true,
-                    PasteAll = true,
-                    PasteValues = true,
-                    Merge = true,
-                    SplitFirst = true,
-                    RowColumnShift = true,
-                    ClearAll = true,
-                    ClearContents = true
-                });
-                index = existing.Count;
-            }
-            types.Count = (uint)types.Elements<MetadataType>().Count();
-            return (uint)index + 1U;
-        }
-
-        private static FutureMetadata EnsureRichValueFutureMetadata(Metadata metadata) {
-            FutureMetadata? future = metadata.Elements<FutureMetadata>()
-                .FirstOrDefault(item => string.Equals(item.Name?.Value, RichValueMetadataName, StringComparison.OrdinalIgnoreCase));
-            if (future != null) return future;
-            future = new FutureMetadata { Name = RichValueMetadataName, Count = 0U };
-            OpenXmlElement? metadataBlocks = metadata.ChildElements
-                .FirstOrDefault(element => element is CellMetadata || element is ValueMetadata);
-            if (metadataBlocks == null) metadata.Append(future); else metadata.InsertBefore(future, metadataBlocks);
-            return future;
         }
 
         private static uint EnsureLocalImageStructure(Rich.RichValueStructures structures) {

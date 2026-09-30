@@ -1,0 +1,26 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T06:53:47.5269701Z",
+  "regeneration": "Build/Verification/New-ExcelPivotLabelRangeOracle.ps1",
+  "file": "pivot-label-range-collation-conformance.xlsx",
+  "sha256": "a92bafc0d92631bb698fa41f1f32be3985580e83f83d8870a65af57affdb04eb",
+  "sourceRange": "Source!A1:B10",
+  "filterType": 23,
+  "value1": "A1",
+  "labels": [
+    "A",
+    "A-1",
+    "A1",
+    "A10",
+    "A2",
+    "A_B",
+    "Ab",
+    "ä",
+    "B"
+  ],
+  "outputRange": "A4:B10",
+  "grandTotal": 346.0,
+  "ordinalIgnoreCaseTotal": 504
+}

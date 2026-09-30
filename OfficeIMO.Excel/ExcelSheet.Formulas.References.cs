@@ -85,20 +85,21 @@ namespace OfficeIMO.Excel {
             return value.ErrorCode ?? value.Text ?? (value.Number.HasValue ? InvariantNumberText.Get(value.Number.Value) : string.Empty);
         }
 
-        private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value) {
+        private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value, bool allowScalarExpression = true) {
             string trimmed = token.Trim();
-            if (trimmed.Length >= 2 && trimmed[0] == '"' && trimmed[trimmed.Length - 1] == '"') {
-                value = new FormulaArgumentValue(null, trimmed.Substring(1, trimmed.Length - 2).Replace("\"\"", "\""));
+            if (allowScalarExpression) return TryEvaluateFormulaValue(trimmed, out value);
+            if (ExcelFormulaExpressionParser.TryParseTextLiteral(trimmed, out string literalText)) {
+                value = new FormulaArgumentValue(null, literalText);
                 return true;
             }
 
             if (trimmed.Equals("TRUE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(1d, "1");
+                value = new FormulaArgumentValue(1d, "1", isBoolean: true);
                 return true;
             }
 
             if (trimmed.Equals("FALSE", StringComparison.OrdinalIgnoreCase)) {
-                value = new FormulaArgumentValue(0d, "0");
+                value = new FormulaArgumentValue(0d, "0", isBoolean: true);
                 return true;
             }
 
@@ -108,14 +109,14 @@ namespace OfficeIMO.Excel {
             }
 
             if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheet, out int row, out int column)) {
-                value = sheet.ResolveCellArgument(row, column);
+                value = ResolveFormulaDependency(sheet, row, column);
                 return true;
             }
 
             if (TryResolveFormulaRangeReference(trimmed, out ExcelSheet rangeSheet, out int r1, out int c1, out int r2, out int c2)
                 && r1 == r2
                 && c1 == c2) {
-                value = rangeSheet.ResolveCellArgument(r1, c1);
+                value = ResolveFormulaDependency(rangeSheet, r1, c1);
                 return true;
             }
 
@@ -124,7 +125,9 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            if (TryEvaluateFormulaValue(trimmed, out value)) {
+            if (TryResolveDefinedNameConstant(trimmed, out value)) return true;
+
+            if (TryEvaluateFormulaValue(trimmed, out value, allowScalarExpression: false)) {
                 return true;
             }
 
@@ -139,7 +142,7 @@ namespace OfficeIMO.Excel {
 
         private static bool FormulaValuesEqual(FormulaArgumentValue left, FormulaArgumentValue right) {
             if (left.Number.HasValue && right.Number.HasValue) {
-                return Math.Abs(left.Number.Value - right.Number.Value) < 0.0000001;
+                return left.Number.Value == right.Number.Value;
             }
 
             string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
@@ -157,7 +160,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (TryParseQualifiedFormulaCellReference(trimmed, out ExcelSheet sheetReference, out int cellRow, out int cellColumn)) {
-                    values.Add(sheetReference.ResolveCellArgument(cellRow, cellColumn));
+                    values.Add(ResolveFormulaDependency(sheetReference, cellRow, cellColumn));
                     continue;
                 }
 
@@ -184,10 +187,26 @@ namespace OfficeIMO.Excel {
             int depth = 0;
             int bracketDepth = 0;
             bool inString = false;
+            bool inQuotedQualifier = false;
 
             for (int index = 0; index < args.Length; index++) {
                 char ch = args[index];
-                if (ch == '"') {
+                if (!inString && bracketDepth > 0 && ch == '\'' && index + 1 < args.Length) {
+                    builder.Append(ch);
+                    builder.Append(args[++index]);
+                    continue;
+                }
+                if (!inString && bracketDepth == 0 && ch == '\'') {
+                    builder.Append(ch);
+                    if (inQuotedQualifier && index + 1 < args.Length && args[index + 1] == '\'') {
+                        builder.Append(args[++index]);
+                    } else {
+                        inQuotedQualifier = !inQuotedQualifier;
+                    }
+                    continue;
+                }
+                if (inQuotedQualifier) { builder.Append(ch); continue; }
+                if (bracketDepth == 0 && ch == '"') {
                     builder.Append(ch);
                     if (inString && index + 1 < args.Length && args[index + 1] == '"') {
                         index++;
@@ -239,7 +258,7 @@ namespace OfficeIMO.Excel {
                 builder.Append(ch);
             }
 
-            if (depth != 0 || bracketDepth != 0 || inString) {
+            if (depth != 0 || bracketDepth != 0 || inString || inQuotedQualifier) {
                 return Array.Empty<string>();
             }
 
@@ -290,7 +309,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            var argument = sheet.ResolveCellArgument(row, column);
+            var argument = ResolveFormulaDependency(sheet, row, column);
             if (argument.Number.HasValue) {
                 value = argument.Number.Value;
                 return true;
@@ -331,7 +350,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            value = sheet.ResolveCellArgument(row, column);
+            value = ResolveFormulaDependency(sheet, row, column);
             return value.HasValue && !value.IsUnresolvedFormula;
         }
 
@@ -950,6 +969,13 @@ namespace OfficeIMO.Excel {
             return value;
         }
 
+        private FormulaArgumentValue ResolveFormulaDependency(ExcelSheet sheet, int row, int column) {
+            FormulaArgumentValue value = sheet.ResolveCellArgument(row, column);
+            if (value.IsUnevaluatedFormulaCache && _formulaEvaluationDepthFrames?.Count > 0)
+                _formulaEvaluationDepthFrames.Peek().MarkUnevaluatedFormulaCache();
+            return value;
+        }
+
         private FormulaArgumentValue ResolveCellArgument(int row, int column) {
             var cell = TryGetExistingCell(row, column);
             bool unresolvedFormula = false;
@@ -967,6 +993,18 @@ namespace OfficeIMO.Excel {
                 unresolvedFormula = true;
             }
 
+            bool unevaluatedFormulaCache = unresolvedFormula
+                || (cell?.CellFormula != null && _formulaEvaluationCache == null);
+            return ResolveFormulaArgumentSnapshot(row, column, unresolvedFormula,
+                cell?.CellFormula == null, unevaluatedFormulaCache);
+        }
+
+        // Keep snapshot decoding and array-child lookup out of the recursive
+        // formula dependency frame. Their locals are needed only at a leaf.
+        private FormulaArgumentValue ResolveFormulaArgumentSnapshot(int row, int column, bool unresolvedFormula,
+            bool withoutFormula, bool unevaluatedFormulaCache) {
+            if (withoutFormula && _formulaEvaluationCache != null
+                && TryResolveFixedArrayChild(row, column, out FormulaArgumentValue arrayValue)) return arrayValue;
             var value = GetCellValueSnapshot(row, column);
             if (unresolvedFormula && value.Value == null && string.IsNullOrEmpty(value.CachedText)) {
                 return FormulaArgumentValue.UnresolvedFormula();
@@ -982,19 +1020,34 @@ namespace OfficeIMO.Excel {
                 return FormulaArgumentValue.Error(value.CachedText ?? value.Value?.ToString() ?? "#VALUE!");
             }
 
+            var cachedType = value.HasFormula ? TryGetExistingCell(row, column)?.DataType?.Value : null;
+            if (value.Kind == ExcelCellDataKind.Text
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.String
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                || cachedType == DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString) {
+                return new FormulaArgumentValue(null, value.Value?.ToString() ?? string.Empty,
+                    isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+            }
+
+            if (value.Value is bool boolean) {
+                return new FormulaArgumentValue(boolean ? 1 : 0, boolean ? "1" : "0", isBoolean: true,
+                    isUnevaluatedFormulaCache: unevaluatedFormulaCache);
+            }
+
             if (TryParseFormulaErrorLiteral(value.CachedText ?? value.Value?.ToString() ?? string.Empty, out string errorCode)) {
                 return FormulaArgumentValue.Error(errorCode);
             }
 
             if (value.Value is double d) {
-                return new FormulaArgumentValue(d, value.CachedText);
+                return new FormulaArgumentValue(d, value.CachedText, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
             if (double.TryParse(value.CachedText, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
-                return new FormulaArgumentValue(parsed, value.CachedText);
+                return new FormulaArgumentValue(parsed, value.CachedText, isUnevaluatedFormulaCache: unevaluatedFormulaCache);
             }
 
-            return new FormulaArgumentValue(null, value.Value?.ToString());
+            return new FormulaArgumentValue(null, value.Value?.ToString(),
+                isUnevaluatedFormulaCache: unevaluatedFormulaCache);
         }
 
         private static string? NormalizeFormulaCellReference(string? reference) {
@@ -1044,6 +1097,10 @@ namespace OfficeIMO.Excel {
                     return true;
                 case "#N/A":
                     errorCode = "#N/A";
+                    return true;
+                case "#CALC!":
+                case "#SPILL!":
+                    errorCode = value.ToUpperInvariant();
                     return true;
                 default:
                     errorCode = string.Empty;

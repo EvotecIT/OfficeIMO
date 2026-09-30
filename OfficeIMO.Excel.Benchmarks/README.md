@@ -721,10 +721,10 @@ matrix for current platform-separated evidence.
 <!-- officeimo-excel-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Compact DataReader to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Write | 1.00x (23ms) | n/a | n/a | 1.11x (26ms) | 1.00x (23ms) | 1.11x (26ms) | OfficeIMO.Excel tied with SpreadCheetah |
-| Feature-rich report to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Create | 1.00x (37ms) | n/a | 11.12x (409ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
-| Styled DataReader table to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Write | 1.00x (34ms) | 9.50x (320ms) | 9.76x (329ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
-| Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14, Warmups=20 | .NET 8 | Read | 1.00x (25ms) | 11.13x (278ms) | 10.08x (252ms) | n/a | n/a | 1.56x (39ms) | OfficeIMO.Excel fastest |
+| Compact DataReader to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (27ms) | n/a | n/a | 1.29x (34ms) | 1.08x (29ms) | 1.32x (35ms) | Fastest: OfficeIMO.Excel |
+| Feature-rich report to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Create | 1.00x (52ms) | n/a | 11.75x (612ms) | n/a | n/a | n/a | Fastest: OfficeIMO.Excel |
+| Styled DataReader table to XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Write | 1.00x (28ms) | 17.76x (506ms) | 14.26x (406ms) | n/a | n/a | n/a | Fastest: OfficeIMO.Excel |
+| Typed objects streamed from XLSX | Format=.xlsx, MeasuredIterations=9, Rows=25,000, Runner=rotated local, Snapshot=2026-09-28, Warmups=20 | .NET 8 | Read | 1.00x (33ms) | 14.36x (471ms) | 9.73x (319ms) | n/a | n/a | 1.88x (62ms) | Fastest: OfficeIMO.Excel |
 <!-- officeimo-excel-benchmark-table:end -->
 
 `--skip-legacy-epplus` omits only the isolated EPPlus 4.x subprocess; current

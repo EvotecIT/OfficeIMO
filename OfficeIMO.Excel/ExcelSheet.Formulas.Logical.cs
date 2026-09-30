@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
-                result = new FormulaArgumentValue(isFormula ? 1d : 0d, isFormula ? "1" : "0");
+                result = new FormulaArgumentValue(isFormula ? 1d : 0d, isFormula ? "1" : "0", isBoolean: true);
                 return true;
             }
 
@@ -183,10 +183,13 @@ namespace OfficeIMO.Excel {
                     matches = !value.HasValue;
                     break;
                 case "ISNUMBER":
-                    matches = value.Number.HasValue;
+                    matches = value.Number.HasValue && !value.IsBoolean;
+                    break;
+                case "ISLOGICAL":
+                    matches = value.IsBoolean;
                     break;
                 case "ISTEXT":
-                    matches = value.Text != null && !value.Number.HasValue;
+                    matches = value.Text != null && !value.Number.HasValue && !value.IsError;
                     break;
                 case "ISERROR":
                     matches = value.IsError;
@@ -201,7 +204,7 @@ namespace OfficeIMO.Excel {
                     return false;
             }
 
-            result = new FormulaArgumentValue(matches ? 1d : 0d, matches ? "1" : "0");
+            result = new FormulaArgumentValue(matches ? 1d : 0d, matches ? "1" : "0", isBoolean: true);
             return true;
         }
 
@@ -305,9 +308,14 @@ namespace OfficeIMO.Excel {
         }
 
         private bool TryEvaluateFormulaOrNumeric(string token, out double result) {
-            if (TryEvaluateFormula(token, out result) || TryResolveNumericOperand(token, out result)) {
+            if (TryEvaluateFormula(token, out result)) {
                 return true;
             }
+            // A blocked dependency cannot become calculable through another
+            // syntax path. Retrying it can multiply work in deep chains.
+            if (_formulaEvaluationGuardState?.DependencyGuardBlocked == true) return false;
+            if (TryResolveNumericOperand(token, out result)) return true;
+            if (_formulaEvaluationGuardState?.DependencyGuardBlocked == true) return false;
 
             if (TryResolveFormulaArgument(token, out FormulaArgumentValue value) && value.Number.HasValue) {
                 result = value.Number.Value;

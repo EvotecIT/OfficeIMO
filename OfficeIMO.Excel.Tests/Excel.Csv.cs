@@ -79,8 +79,18 @@ public class ExcelCsvExtensionsTests {
         ExcelCsvImportResult result = document.ImportCsvText("Name||Value\r\nAlpha||1", options);
 
         Assert.Equal('|', result.Delimiter);
+        Assert.Equal("||", result.DelimiterText);
         Assert.True(document["Imported"].TryGetCellText(2, 2, out string? value));
         Assert.Equal("1", value);
+    }
+
+    [Fact]
+    public void CsvDocumentImportReportsFallbackForEmptyDelimiterText() {
+        var csv = CsvDocument.Parse("Name,Value\nAlpha,1\n", new CsvLoadOptions { DelimiterText = "" });
+        using var document = ExcelDocument.Create();
+        ExcelCsvImportResult result = document.ImportCsv(csv);
+        Assert.Equal(",", result.DelimiterText);
+        Assert.Equal(',', result.Delimiter);
     }
 
     [Fact]

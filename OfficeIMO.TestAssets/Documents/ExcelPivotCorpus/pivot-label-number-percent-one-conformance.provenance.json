@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T09:25:30.8376207Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFormattedNumericLabelOracle.ps1",
+  "file": "pivot-label-number-percent-one-conformance.xlsx",
+  "sha256": "1ad07783223f0534242379d088d9608b40bbf936411283aebf36e7a0b1f9e401",
+  "sourceRange": "Source!A1:B3",
+  "numberFormat": "0.0%",
+  "filterType": 15,
+  "criterion": "12.5%",
+  "outputRange": "A4:B6",
+  "grandTotal": 10.0
+}

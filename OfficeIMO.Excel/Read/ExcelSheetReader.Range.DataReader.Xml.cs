@@ -743,7 +743,7 @@ namespace OfficeIMO.Excel {
                         _currentDateTimeValues[columnOffset] = dateTimeValue;
                         _currentBooleanValues[columnOffset] = booleanValue;
                     } else {
-                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, cellType);
+                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, cellType, preserveDateSerial: true);
                         _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
                     }
 
@@ -802,7 +802,7 @@ namespace OfficeIMO.Excel {
                             continue;
                         }
 
-                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, _reader.GetAttribute("t"));
+                        _currentValues[columnOffset] = _owner.ReadXmlCellValue(_reader, _reader.GetAttribute("t"), preserveDateSerial: true);
                         _currentPrimitiveKinds[columnOffset] = XmlDataReaderPrimitiveKind.None;
                         _currentValueLoaded[columnOffset] = true;
                     }
@@ -860,7 +860,8 @@ namespace OfficeIMO.Excel {
                         rowIndex,
                         _firstColumn,
                         _lastColumn,
-                        _activeReadCancellationToken);
+                        _activeReadCancellationToken,
+                        preserveDateSerial: true);
                     StoreBufferedRow(rowIndex, values);
                 }
             }
@@ -875,7 +876,8 @@ namespace OfficeIMO.Excel {
                     _pendingRowIndex,
                     _firstColumn,
                     _lastColumn,
-                    _activeReadCancellationToken);
+                    _activeReadCancellationToken,
+                    preserveDateSerial: true);
                 return values;
             }
 
@@ -902,7 +904,7 @@ namespace OfficeIMO.Excel {
                     throw new InvalidCastException($"Column '{GetName(ordinal)}' contains DBNull.");
                 }
 
-                return value;
+                return value is ExcelDataReaderDateSerial dateSerial ? dateSerial.Materialize() : value;
             }
 
             private bool TryGetPrimitiveDouble(int ordinal, out double value) {
@@ -912,6 +914,15 @@ namespace OfficeIMO.Excel {
                     && _currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.Double) {
                     value = _currentDoubleValues[ordinal];
                     return true;
+                }
+                if (_currentRow![ordinal] is ExcelDataReaderDateSerial dateSerial) {
+                    value = dateSerial.Serial;
+                    return true;
+                }
+                if (_utf8Source != null && (_currentPrimitiveKinds[ordinal] == XmlDataReaderPrimitiveKind.DateTime || _currentRow[ordinal] is DateTime)) {
+                    _utf8Source.ReadValue(ordinal + _utf8SourceOrdinalOffset, XmlDataReaderTargetKind.Numeric,
+                        out XmlDataReaderPrimitiveKind kind, out value, out _, out _, out _, out _, out _);
+                    if (kind == XmlDataReaderPrimitiveKind.Double) return true;
                 }
 
                 value = 0;
@@ -966,7 +977,8 @@ namespace OfficeIMO.Excel {
             }
 
             private static string? GetHeaderText(object?[]? headerValues, int ordinal) =>
-                headerValues != null && ordinal < headerValues.Length ? headerValues[ordinal]?.ToString() : null;
+                headerValues != null && ordinal < headerValues.Length
+                    ? (headerValues[ordinal] is ExcelDataReaderDateSerial serial ? serial.Materialize() : headerValues[ordinal])?.ToString() : null;
 
             private static string[] CreateGeneratedColumnNames(int fieldCount) {
                 var names = new string[fieldCount];

@@ -1,0 +1,64 @@
+name: Native OCR operational qualification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ocr-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: 'Native OCR execution / ${{ matrix.os }}'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 10.0.112
+      - name: Install native provider (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr
+      - name: Install native provider (macOS)
+        if: runner.os == 'macOS'
+        run: brew install tesseract
+      - name: Install native provider (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install tesseract --version=5.5.0.20241111 --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Tesseract installation failed.' }
+          'OFFICEIMO_TESSERACT_PATH=C:\Program Files\Tesseract-OCR\tesseract.exe' >> $env:GITHUB_ENV
+      - name: Validate shared OCR contracts
+        shell: pwsh
+        run: |
+          dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj -f net10.0 --filter 'FullyQualifiedName~AdaptiveOcr|FullyQualifiedName~ReaderOcrCoreTests|FullyQualifiedName~ReaderOcrPdfTests|FullyQualifiedName~Tesseract' --logger 'trx;LogFileName=ocr-contracts.trx' --results-directory '${{ runner.temp }}/ocr-contracts'
+          if ($LASTEXITCODE -ne 0) { throw 'OCR contracts failed.' }
+      - name: Measure pinned native corpus
+        shell: pwsh
+        run: |
+          # The runner gates execution, source preservation, and geometry. Accuracy limits and confidence
+          # false passes remain reported measurements, rather than being relaxed to green this workflow.
+          dotnet run --project Build/PdfQualityCorpus/OfficeIMO.PdfQualityCorpus.Tool.csproj -f net10.0 -- ocr-quality OfficeIMO.TestAssets/OcrQuality/manifest.json OfficeIMO.TestAssets '${{ runner.temp }}/ocr-quality'
+          if ($LASTEXITCODE -ne 0) { throw 'Native OCR operational qualification failed; inspect the scorecard.' }
+      - name: Retain qualification evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ocr-native-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/ocr-quality/ocr-quality.json
+            ${{ runner.temp }}/ocr-quality/*-selected.txt
+            ${{ runner.temp }}/ocr-quality/*-baseline.txt
+            ${{ runner.temp }}/ocr-quality/*-raster.png
+            ${{ runner.temp }}/ocr-contracts/*.trx
+          if-no-files-found: warn
+          retention-days: 7

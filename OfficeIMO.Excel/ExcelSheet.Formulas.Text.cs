@@ -179,9 +179,12 @@ namespace OfficeIMO.Excel {
                 StringComparison comparison = function == "SEARCH"
                     ? StringComparison.OrdinalIgnoreCase
                     : StringComparison.Ordinal;
-                int foundIndex = withinText.IndexOf(findText, start - 1, comparison);
+                int foundIndex = function == "SEARCH" && findText.IndexOfAny(new[] { '*', '?', '~' }) >= 0
+                    ? FindFormulaWildcard(findText, withinText, start - 1)
+                    : withinText.IndexOf(findText, start - 1, comparison);
                 if (foundIndex < 0) {
-                    return false;
+                    result = FormulaArgumentValue.Error("#VALUE!");
+                    return true;
                 }
 
                 double position = foundIndex + 1;
@@ -208,7 +211,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 double value = string.Equals(left, right, StringComparison.Ordinal) ? 1d : 0d;
-                result = new FormulaArgumentValue(value, InvariantNumberText.Get(value));
+                result = new FormulaArgumentValue(value, InvariantNumberText.Get(value), isBoolean: true);
                 return true;
             }
 
@@ -417,7 +420,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            result = rangeSheet.ResolveCellArgument(r1 + rowIndex - 1, c1 + columnIndex - 1);
+            result = ResolveFormulaDependency(rangeSheet, r1 + rowIndex - 1, c1 + columnIndex - 1);
             return result.HasValue;
         }
 
@@ -524,6 +527,9 @@ namespace OfficeIMO.Excel {
 
         private bool TryFormatTextFunctionValue(FormulaArgumentValue value, string format, out string formatted) {
             formatted = string.Empty;
+            const string englishLocale = "[$-409]";
+            if (format.StartsWith(englishLocale, StringComparison.OrdinalIgnoreCase)) format = format.Substring(englishLocale.Length);
+            if (format.IndexOf("[$-", StringComparison.Ordinal) >= 0) return false;
             if (string.IsNullOrWhiteSpace(format)) {
                 return false;
             }
@@ -540,7 +546,7 @@ namespace OfficeIMO.Excel {
 
                 string dotNetFormat = ConvertExcelDateTextFormat(format);
                 try {
-                    formatted = date.ToString(dotNetFormat, CultureInfo.InvariantCulture);
+                    formatted = FormatFormulaDateText(value.Number.Value, date, dotNetFormat);
                     return true;
                 } catch (FormatException) {
                     formatted = string.Empty;

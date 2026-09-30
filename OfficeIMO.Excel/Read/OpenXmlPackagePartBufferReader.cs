@@ -218,10 +218,9 @@ namespace OfficeIMO.Excel {
                     $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' declares {entry.Length} bytes, exceeding the supported limit of {maximumBytes} bytes.");
             }
 
-            // XmlReader sizes its initial buffers to the length of a small seekable
-            // stream. ZIP entry streams do not expose that length, even for tiny
-            // workbook metadata. Retain streaming behavior for larger parts.
-            if (entry.Length > 4096) return entry.Open();
+            // Small metadata and shared-string parts can use a seekable pooled stream.
+            // Retain streaming behavior for larger parts.
+            if (entry.Length > 8192) return entry.Open();
 
             int length = checked((int)entry.Length);
             byte[] buffer = ArrayPool<byte>.Shared.Rent(Math.Max(1, length));

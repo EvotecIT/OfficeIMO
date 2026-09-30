@@ -92,7 +92,8 @@ public static class ParallelRowMappingExtensions {
         this DbDataReader reader,
         Func<object?[], T> map,
         ParallelRowMappingOptions options,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<DbDataReader, object?[]>? captureValues = null) {
         if (reader is null) throw new ArgumentNullException(nameof(reader));
         if (map is null) throw new ArgumentNullException(nameof(map));
         if (options is null) throw new ArgumentNullException(nameof(options));
@@ -103,7 +104,7 @@ public static class ParallelRowMappingExtensions {
                      options.GetBatchSize(128),
                      degreeOfParallelism,
                      map,
-                     captureValues: null,
+                     captureValues,
                      cancellationToken)) {
             yield return row;
         }
@@ -208,7 +209,7 @@ public static class ParallelRowMappingExtensions {
                              genericBatchSize,
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
-                             typeConverter is null ? plan.CaptureReaderValues : null,
+                             typeConverter is null ? plan.CaptureReaderValues : (source, values) => plan.CaptureReaderValues(source, values, preserveConverterInput: true),
                              cancellationToken),
                          cancellationToken)) {
                 yield return row;
@@ -228,7 +229,7 @@ public static class ParallelRowMappingExtensions {
                      genericBatchSize,
                      degreeOfParallelism,
                      values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
-                     typeConverter is null ? plan.CaptureReaderValues : null,
+                     typeConverter is null ? plan.CaptureReaderValues : (source, values) => plan.CaptureReaderValues(source, values, preserveConverterInput: true),
                      cancellationToken)) {
             yield return row;
         }
@@ -274,7 +275,7 @@ public static class ParallelRowMappingExtensions {
                              genericBatchSize,
                              degreeOfParallelism,
                              values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
-                             captureValues: null,
+                             captureValues: plan.CaptureReaderValues,
                              cancellationToken),
                          cancellationToken)) {
                 yield return row;
@@ -294,7 +295,7 @@ public static class ParallelRowMappingExtensions {
                      genericBatchSize,
                      degreeOfParallelism,
                      values => plan.MapValues(values, culture, dateTimeFormats, typeConverter, errorValuePolicy),
-                     captureValues: null,
+                     captureValues: plan.CaptureReaderValues,
                      cancellationToken)) {
             yield return row;
         }
@@ -355,7 +356,7 @@ public static class ParallelRowMappingExtensions {
         int batchSize,
         int degreeOfParallelism,
         Func<object?[], T> map,
-        Func<DbDataReader, object?[]>? captureValues,
+        Action<DbDataReader, object?[]>? captureValues,
         CancellationToken cancellationToken) {
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var pending = new Queue<Task<T[]>>(degreeOfParallelism);
@@ -686,7 +687,7 @@ public static class ParallelRowMappingExtensions {
     private static RowSnapshotBatch ReadBatch(
         DbDataReader reader,
         int batchSize,
-        Func<DbDataReader, object?[]>? captureValues,
+        Action<DbDataReader, object?[]>? captureValues,
         CancellationToken cancellationToken,
         out bool reachedEnd) {
         var batch = new RowSnapshotBatch(batchSize, reader.FieldCount);
@@ -739,25 +740,33 @@ public static class ParallelRowMappingExtensions {
 
         internal void Add(
             DbDataReader reader,
-            Func<DbDataReader, object?[]>? captureValues) {
+            Action<DbDataReader, object?[]>? captureValues) {
             object?[] values;
-            if (captureValues is null) {
 #if NET8_0_OR_GREATER
-                values = ArrayPool<object?>.Shared.Rent(_fieldCount);
+            values = ArrayPool<object?>.Shared.Rent(_fieldCount);
 #else
-                values = new object?[_fieldCount];
+            values = new object?[_fieldCount];
 #endif
-                int copied = reader.GetValues(values!);
-                for (int index = 0; index < copied; index++) {
+            try {
+                if (captureValues is null) {
+                    int copied = reader.GetValues(values!);
+                    for (int index = copied; index < _fieldCount; index++) values[index] = DBNull.Value;
+                } else {
+                    for (int index = 0; index < _fieldCount; index++) values[index] = DBNull.Value;
+                    captureValues(reader, values);
+                }
+                for (int index = 0; index < _fieldCount; index++) {
                     if (values[index] is byte[] bytes) values[index] = (byte[])bytes.Clone();
                     else if (values[index] is char[] characters) values[index] = (char[])characters.Clone();
                 }
-                for (int index = copied; index < _fieldCount; index++) values[index] = DBNull.Value;
-            } else {
-                values = captureValues(reader);
+            } catch {
+#if NET8_0_OR_GREATER
+                ArrayPool<object?>.Shared.Return(values, clearArray: true);
+#endif
+                throw;
             }
 #if NET8_0_OR_GREATER
-            _pooledRows[Count] = captureValues is null;
+            _pooledRows[Count] = true;
 #else
             _pooledRows[Count] = false;
 #endif

@@ -242,6 +242,7 @@ Mail-data identities use the same bounded discovery profile as inspection. They 
 selected Store/OAB owner sources, including OAB Full Details components, and are checked again after inspection.
 Supporting legacy OAB components remain outside the entry catalog. Identity checks may reopen and hash the
 source; report samples limit retained output rather than source hashing I/O.
+Install the [OfficeIMO Document Tools plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools#readme) for Codex, Claude Code, or another client supporting portable Agent Plugins. It bundles document and mailbox skills with a pinned NuGet tool launcher. Configure authorized document roots before starting the client.
 
 ## Exit codes
 
