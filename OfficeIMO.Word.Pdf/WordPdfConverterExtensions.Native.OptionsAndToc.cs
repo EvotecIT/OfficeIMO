@@ -140,7 +140,7 @@ namespace OfficeIMO.Word.Pdf {
             string? optionFontFamily = options?.FontFamily;
             if (!string.IsNullOrWhiteSpace(optionFontFamily) &&
                 TryApplyNativeDefaultFontCandidate(optionFontFamily, pdfOptions, embedSystemFont: allowSystemFontEmbedding)) {
-                RegisterAppliedNativeDefaultFont(optionFontFamily!, pdfOptions, nativeFontMap);
+                RegisterAppliedNativeDefaultFont(optionFontFamily!, pdfOptions, nativeFontMap, allowSystemFontEmbedding);
                 return true;
             }
             if (!string.IsNullOrWhiteSpace(optionFontFamily) && options?.PdfOptions != null) {
@@ -155,7 +155,7 @@ namespace OfficeIMO.Word.Pdf {
                 defaults.FontFamily
             }) {
                 if (TryApplyNativeDefaultFontCandidate(family, pdfOptions, embedSystemFont: allowDocumentFontEmbedding)) {
-                    RegisterAppliedNativeDefaultFont(family!, pdfOptions, nativeFontMap);
+                    RegisterAppliedNativeDefaultFont(family!, pdfOptions, nativeFontMap, allowDocumentFontEmbedding);
                     return true;
                 }
             }
@@ -163,7 +163,7 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static void RegisterAppliedNativeDefaultFont(string familyName, PdfCore.PdfOptions pdfOptions, NativeFontMap nativeFontMap) {
+        private static void RegisterAppliedNativeDefaultFont(string familyName, PdfCore.PdfOptions pdfOptions, NativeFontMap nativeFontMap, bool sourceFontEmbeddingAllowed) {
             nativeFontMap.Register(familyName, pdfOptions.DefaultFont);
             nativeFontMap.PreferPdfDefaultForDocumentDefaultFont();
 
@@ -176,7 +176,8 @@ namespace OfficeIMO.Word.Pdf {
                     pdfOptions,
                     familyName,
                     pdfOptions.DefaultFont,
-                    GetEmbeddedFontFamilyName(pdfOptions, pdfOptions.DefaultFont));
+                    GetEmbeddedFontFamilyName(pdfOptions, pdfOptions.DefaultFont),
+                    sourceFontEmbeddingAllowed);
             }
         }
 
@@ -517,7 +518,8 @@ namespace OfficeIMO.Word.Pdf {
                         pdfOptions,
                         trimmedFamilyName,
                         fontFamily,
-                        GetEmbeddedFontFamilyName(pdfOptions, fontFamily));
+                        GetEmbeddedFontFamilyName(pdfOptions, fontFamily),
+                        sourceFontEmbeddingAllowed: allowSystemFontEmbedding);
                 }
                 return;
             }
@@ -539,7 +541,8 @@ namespace OfficeIMO.Word.Pdf {
                 pdfOptions,
                 trimmedFamilyName,
                 fallback,
-                GetEmbeddedFontFamilyName(pdfOptions, fallback));
+                GetEmbeddedFontFamilyName(pdfOptions, fallback),
+                sourceFontEmbeddingAllowed: allowSystemFontEmbedding);
         }
 
         internal static bool EmbeddedFontSlotMatchesFamily(PdfCore.PdfOptions options, PdfCore.PdfStandardFont slot, string familyName) {

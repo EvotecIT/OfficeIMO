@@ -331,7 +331,7 @@ namespace OfficeIMO.Word.Pdf {
             CreateNativeTableStyle(table, rowCount, options, null);
 
         private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordToPdfOptions? options, double? contentWidth) =>
-            CreateNativeTableStyle(table, rowCount, options, contentWidth, NativeDocumentDefaults.WordDefault);
+            CreateNativeTableStyle(table, rowCount, options, contentWidth, GetNativeDocumentDefaults(table.Document));
 
         private static PdfCore.PdfTableStyle CreateNativeTableStyle(WordTable table, int rowCount, WordToPdfOptions? options, double? contentWidth, NativeDocumentDefaults nativeDefaults) {
             bool hasExplicitDefaultTableStyle = options?.PdfOptions?.HasExplicitDefaultTableStyle == true;
