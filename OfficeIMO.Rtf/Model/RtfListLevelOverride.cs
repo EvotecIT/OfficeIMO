@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Per-level override metadata inside an RTF list override table entry.
 /// </summary>
-public sealed class RtfListLevelOverride {
+public sealed partial class RtfListLevelOverride {
     /// <summary>Zero-based list level targeted by this override when the source format identifies it explicitly.</summary>
     public int? LevelIndex { get; set; }
 

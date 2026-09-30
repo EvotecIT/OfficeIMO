@@ -2,20 +2,8 @@ namespace OfficeIMO.Rtf;
 
 /// <content>Provides semantic block, text, bookmark, and clone operations.</content>
 public sealed partial class RtfDocument {
-    /// <summary>Creates an independent semantic clone through the deterministic RTF representation.</summary>
-    public RtfDocument Clone() {
-        HashSet<RtfNote> referencedNotes = RtfNoteReferenceCollector.Collect(this);
-        int detachedNoteCount = _notes.Count(note => !referencedNotes.Contains(note));
-        int headerFooterReferenceCount = RtfNoteReferenceCollector.CountHeaderFooterReferences(this);
-        RtfDocument clone = Read(ToRtf(new RtfWriteOptions { IncludeGenerator = false })).Document;
-        if (detachedNoteCount == 0) return clone;
-
-        var detachedClones = new HashSet<RtfNote>(clone.Notes.Skip(headerFooterReferenceCount).Take(detachedNoteCount));
-        var paragraphs = new List<RtfParagraph>();
-        CollectParagraphsInOrder(clone.Blocks, paragraphs);
-        foreach (RtfParagraph paragraph in paragraphs) paragraph.RemoveGeneratedNoteReferences(detachedClones);
-        return clone;
-    }
+    /// <summary>Creates an independent semantic clone, retaining resources, ownership, and shared references.</summary>
+    public RtfDocument Clone() => new RtfCloneContext().Clone(this)!;
 
     /// <summary>Adds an existing semantic block at the end of the document.</summary>
     public void AddBlock(IRtfBlock block) => InsertBlock(_blocks.Count, block);
@@ -28,6 +16,10 @@ public sealed partial class RtfDocument {
         if (_blocks.Contains(block)) throw new InvalidOperationException("The block already belongs to this document.");
 
         InsertIntoSection(index, block);
+        if (index == _blocks.Count) {
+            AddParsedBlock(block);
+            return;
+        }
         _blocks.Insert(index, block);
         RebuildParagraphIndex();
     }
@@ -162,6 +154,27 @@ public sealed partial class RtfDocument {
     private void RebuildParagraphIndex() {
         _paragraphs.Clear();
         foreach (IRtfBlock block in _blocks) if (block is RtfParagraph paragraph) _paragraphs.Add(paragraph);
+    }
+
+    private void AppendNewBlock(IRtfBlock block) {
+        InsertIntoSection(_blocks.Count, block);
+        AddParsedBlock(block);
+    }
+
+    internal void RegisterSectionBlock(RtfSection section, IRtfBlock block) {
+        int sectionIndex = _sections.IndexOf(section);
+        if (sectionIndex < 0) throw new InvalidOperationException("The section does not belong to this document.");
+        int index = _blocks.Count;
+        for (int next = sectionIndex + 1; next < _sections.Count; next++) {
+            if (_sections[next].Blocks.Count == 0) continue;
+            index = _blocks.IndexOf(_sections[next].Blocks[0]);
+            break;
+        }
+        if (index == _blocks.Count) AddParsedBlock(block);
+        else {
+            _blocks.Insert(index, block);
+            RebuildParagraphIndex();
+        }
     }
 
     private static void ValidateEditableBlock(IRtfBlock block) {

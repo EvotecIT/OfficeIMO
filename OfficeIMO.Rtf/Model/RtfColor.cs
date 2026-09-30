@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RGB color entry used by an RTF document.
 /// </summary>
-public sealed class RtfColor {
+public sealed partial class RtfColor {
     /// <summary>
     /// Initializes a color.
     /// </summary>

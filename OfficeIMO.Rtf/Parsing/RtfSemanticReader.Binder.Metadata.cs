@@ -7,6 +7,7 @@ internal static partial class RtfSemanticReader {
         private static string CollectPlainText(RtfGroup group, int ansiCodePage, int unicodeSkipCount = 1) {
             var builder = new StringBuilder();
             var state = new PlainTextState {
+                AnsiCodePage = ansiCodePage,
                 UnicodeSkipCount = unicodeSkipCount
             };
             foreach (RtfNode node in group.Children) {
@@ -20,6 +21,7 @@ internal static partial class RtfSemanticReader {
         private static string CollectDirectPlainText(IEnumerable<RtfNode> nodes, int ansiCodePage, int unicodeSkipCount) {
             var builder = new StringBuilder();
             var state = new PlainTextState {
+                AnsiCodePage = ansiCodePage,
                 UnicodeSkipCount = unicodeSkipCount
             };
 
@@ -36,6 +38,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void CollectPlainText(RtfNode node, StringBuilder builder, PlainTextState state, int ansiCodePage) {
+            if (node is RtfControlWord && RtfTextDecoder.ConsumeFallback(state)) return;
             switch (node) {
                 case RtfText text:
                     AppendAnsiText(text.Text, builder, state, ansiCodePage);
@@ -70,6 +73,7 @@ internal static partial class RtfSemanticReader {
                     state.SkipCharacters = state.UnicodeSkipCount;
                     break;
                 case RtfGroup group:
+                    state.SkipCharacters = 0;
                     RtfGroup? unicodeAlternative = group.Destination == "upr" ? FindUnicodeAlternative(group) : null;
                     if (unicodeAlternative != null) {
                         CollectPlainText(unicodeAlternative, builder, state.Clone(), ansiCodePage);
@@ -80,82 +84,26 @@ internal static partial class RtfSemanticReader {
                     foreach (RtfNode child in group.Children) {
                         CollectPlainText(child, builder, childState, ansiCodePage);
                     }
+                    FlushPendingSurrogate(builder, childState);
+                    break;
+                case RtfBinary:
+                    RtfTextDecoder.ConsumeFallback(state);
                     break;
             }
         }
 
         private static void AppendWithSkip(string text, StringBuilder builder, PlainTextState state) {
-            if (state.SkipCharacters <= 0) {
-                FlushPendingSurrogate(builder, state);
-                builder.Append(text);
-                return;
-            }
-
-            if (state.SkipCharacters >= text.Length) {
-                state.SkipCharacters -= text.Length;
-                return;
-            }
-
-            FlushPendingSurrogate(builder, state);
-            builder.Append(text, state.SkipCharacters, text.Length - state.SkipCharacters);
-            state.SkipCharacters = 0;
+            builder.Append(RtfTextDecoder.DecodeLiteral(text, state));
         }
 
         private static void AppendAnsiText(string text, StringBuilder builder, PlainTextState state, int ansiCodePage) {
-            if (string.IsNullOrEmpty(text)) return;
-            int start = 0;
-            if (state.PendingAnsiLeadByte.HasValue) {
-                if (text[0] <= byte.MaxValue) {
-                    byte lead = state.PendingAnsiLeadByte.Value;
-                    state.PendingAnsiLeadByte = null;
-                    if (!ConsumeAnsiFallbackBytes(state, 2)) {
-                        AppendWithSkip(RtfAnsiCodePage.DecodeBytes(ansiCodePage, new[] { lead, (byte)text[0] }), builder, state);
-                    }
-                    start = 1;
-                } else {
-                    state.PendingAnsiLeadByte = null;
-                    if (!ConsumeAnsiFallbackBytes(state, 1)) {
-                        AppendWithSkip("\uFFFD", builder, state);
-                    }
-                }
-            }
-
-            if (state.SkipCharacters > 0 && start < text.Length) {
-                int skipped = Math.Min(state.SkipCharacters, text.Length - start);
-                state.SkipCharacters -= skipped;
-                start += skipped;
-            }
-
-            if (start < text.Length) {
-                AppendWithSkip(RtfAnsiCodePage.DecodeText(ansiCodePage, text.Substring(start)), builder, state);
-            }
+            state.AnsiCodePage = ansiCodePage;
+            builder.Append(RtfTextDecoder.DecodeAnsiText(text, state));
         }
 
         private static void AppendAnsiByte(int value, StringBuilder builder, PlainTextState state, int ansiCodePage) {
-            byte current = (byte)(value & 0xFF);
-            if (state.PendingAnsiLeadByte.HasValue) {
-                byte lead = state.PendingAnsiLeadByte.Value;
-                state.PendingAnsiLeadByte = null;
-                if (!ConsumeAnsiFallbackBytes(state, 2)) {
-                    AppendWithSkip(RtfAnsiCodePage.DecodeBytes(ansiCodePage, new[] { lead, current }), builder, state);
-                }
-                return;
-            }
-
-            if (RtfAnsiCodePage.IsLeadByte(ansiCodePage, current)) {
-                state.PendingAnsiLeadByte = current;
-                return;
-            }
-
-            if (!ConsumeAnsiFallbackBytes(state, 1)) {
-                AppendWithSkip(RtfAnsiCodePage.DecodeByte(ansiCodePage, current), builder, state);
-            }
-        }
-
-        private static bool ConsumeAnsiFallbackBytes(PlainTextState state, int count) {
-            if (state.SkipCharacters <= 0) return false;
-            state.SkipCharacters = Math.Max(0, state.SkipCharacters - count);
-            return true;
+            state.AnsiCodePage = ansiCodePage;
+            builder.Append(RtfTextDecoder.DecodeAnsiByte(value, state));
         }
 
         private static bool IsSpecialCharacterControl(string controlName) {
@@ -181,53 +129,17 @@ internal static partial class RtfSemanticReader {
         }
 
         private static void AppendUnicodeValue(int value, StringBuilder builder, PlainTextState state) {
-            int unsigned = value < 0 ? value + 65536 : value;
-            char codeUnit = (char)unsigned;
-
-            if (char.IsHighSurrogate(codeUnit)) {
-                FlushPendingSurrogate(builder, state);
-                state.PendingHighSurrogate = codeUnit;
-                return;
-            }
-
-            if (char.IsLowSurrogate(codeUnit)) {
-                if (state.PendingHighSurrogate.HasValue) {
-                    builder.Append(state.PendingHighSurrogate.Value);
-                    builder.Append(codeUnit);
-                    state.PendingHighSurrogate = null;
-                } else {
-                    builder.Append('\uFFFD');
-                }
-
-                return;
-            }
-
-            FlushPendingSurrogate(builder, state);
-            builder.Append(codeUnit);
+            builder.Append(RtfTextDecoder.DecodeUnicode(value, state));
         }
 
         private static void FlushPendingSurrogate(StringBuilder builder, PlainTextState state) {
-            if (state.PendingAnsiLeadByte.HasValue) {
-                builder.Append('\uFFFD');
-                state.PendingAnsiLeadByte = null;
-            }
-
-            if (!state.PendingHighSurrogate.HasValue) return;
-            builder.Append('\uFFFD');
-            state.PendingHighSurrogate = null;
+            builder.Append(RtfTextDecoder.Flush(state));
         }
 
-        private sealed class PlainTextState {
-            public int UnicodeSkipCount { get; set; } = 1;
-
-            public int SkipCharacters { get; set; }
-
-            public char? PendingHighSurrogate { get; set; }
-
-            public byte? PendingAnsiLeadByte { get; set; }
-
+        private sealed class PlainTextState : RtfTextDecodingState {
             public PlainTextState Clone() {
                 return new PlainTextState {
+                    AnsiCodePage = AnsiCodePage,
                     UnicodeSkipCount = UnicodeSkipCount,
                     SkipCharacters = SkipCharacters,
                     PendingHighSurrogate = PendingHighSurrogate,

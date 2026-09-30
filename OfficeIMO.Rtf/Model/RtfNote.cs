@@ -3,8 +3,8 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Footnote, endnote, or annotation content in an RTF document.
 /// </summary>
-public sealed class RtfNote {
-    private readonly List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
+public sealed partial class RtfNote {
+    private List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
 
     /// <summary>Creates a note with the specified kind.</summary>
     public RtfNote(RtfNoteKind kind) {

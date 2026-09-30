@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// File reference from the RTF <c>{\*\filetbl ...}</c> destination.
 /// </summary>
-public sealed class RtfFileReference {
+public sealed partial class RtfFileReference {
     /// <summary>
     /// Initializes a file-table reference.
     /// </summary>

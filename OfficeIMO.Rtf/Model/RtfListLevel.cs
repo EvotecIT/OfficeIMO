@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Level inside an RTF list definition.
 /// </summary>
-public sealed class RtfListLevel {
+public sealed partial class RtfListLevel {
     /// <summary>Creates a list level.</summary>
     public RtfListLevel(int levelIndex, RtfListKind kind = RtfListKind.Decimal) {
         if (levelIndex < 0) throw new ArgumentOutOfRangeException(nameof(levelIndex), "List level cannot be negative.");

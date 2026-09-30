@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Paragraph tab stop in twips.
 /// </summary>
-public sealed class RtfTabStop {
+public sealed partial class RtfTabStop {
     private int _positionTwips;
 
     /// <summary>Creates a tab stop at the specified position.</summary>

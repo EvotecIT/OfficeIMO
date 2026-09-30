@@ -8,22 +8,22 @@ namespace OfficeIMO.Rtf;
 /// Semantic Rich Text Format document model.
 /// </summary>
 public sealed partial class RtfDocument {
-    private readonly List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
-    private readonly List<IRtfBlock> _blocks = new List<IRtfBlock>();
-    private readonly List<RtfFont> _fonts = new List<RtfFont>();
-    private readonly List<RtfColor> _colors = new List<RtfColor>();
-    private readonly List<RtfStyle> _styles = new List<RtfStyle>();
-    private readonly List<RtfListDefinition> _listDefinitions = new List<RtfListDefinition>();
-    private readonly List<RtfListOverride> _listOverrides = new List<RtfListOverride>();
-    private readonly List<RtfHeaderFooter> _headerFooters = new List<RtfHeaderFooter>();
-    private readonly List<RtfNote> _notes = new List<RtfNote>();
-    private readonly List<RtfSection> _sections = new List<RtfSection>();
-    private readonly List<RtfUserProperty> _userProperties = new List<RtfUserProperty>();
-    private readonly List<RtfDocumentVariable> _documentVariables = new List<RtfDocumentVariable>();
-    private readonly List<RtfRevisionAuthor> _revisionAuthors = new List<RtfRevisionAuthor>();
-    private readonly List<int> _revisionSaveIds = new List<int>();
-    private readonly List<RtfFileReference> _fileReferences = new List<RtfFileReference>();
-    private readonly List<RtfXmlNamespace> _xmlNamespaces = new List<RtfXmlNamespace>();
+    private List<RtfParagraph> _paragraphs = new List<RtfParagraph>();
+    private List<IRtfBlock> _blocks = new List<IRtfBlock>();
+    private List<RtfFont> _fonts = new List<RtfFont>();
+    private List<RtfColor> _colors = new List<RtfColor>();
+    private List<RtfStyle> _styles = new List<RtfStyle>();
+    private List<RtfListDefinition> _listDefinitions = new List<RtfListDefinition>();
+    private List<RtfListOverride> _listOverrides = new List<RtfListOverride>();
+    private List<RtfHeaderFooter> _headerFooters = new List<RtfHeaderFooter>();
+    private List<RtfNote> _notes = new List<RtfNote>();
+    private List<RtfSection> _sections = new List<RtfSection>();
+    private List<RtfUserProperty> _userProperties = new List<RtfUserProperty>();
+    private List<RtfDocumentVariable> _documentVariables = new List<RtfDocumentVariable>();
+    private List<RtfRevisionAuthor> _revisionAuthors = new List<RtfRevisionAuthor>();
+    private List<int> _revisionSaveIds = new List<int>();
+    private List<RtfFileReference> _fileReferences = new List<RtfFileReference>();
+    private List<RtfXmlNamespace> _xmlNamespaces = new List<RtfXmlNamespace>();
 
     private RtfDocument() {
     }
@@ -80,19 +80,37 @@ public sealed partial class RtfDocument {
     public IReadOnlyList<RtfXmlNamespace> XmlNamespaces => _xmlNamespaces.AsReadOnly();
 
     /// <summary>Document information metadata.</summary>
-    public RtfDocumentInfo Info { get; } = new RtfDocumentInfo();
+    public RtfDocumentInfo Info { get; private set; } = new RtfDocumentInfo();
 
     /// <summary>Document page size and margins.</summary>
-    public RtfPageSetup PageSetup { get; } = new RtfPageSetup();
+    public RtfPageSetup PageSetup { get; private set; } = new RtfPageSetup();
 
     /// <summary>Document-level settings such as view, protection, and default tabs.</summary>
-    public RtfDocumentSettings Settings { get; } = new RtfDocumentSettings();
+    public RtfDocumentSettings Settings { get; private set; } = new RtfDocumentSettings();
 
     /// <summary>Document-level footnote and endnote numbering settings.</summary>
-    public RtfNoteSettings NoteSettings { get; } = new RtfNoteSettings();
+    public RtfNoteSettings NoteSettings { get; private set; } = new RtfNoteSettings();
 
-    /// <summary>Outlook/Exchange HTML encapsulation found in the source RTF, when present.</summary>
-    public RtfHtmlEncapsulation? HtmlEncapsulation { get; internal set; }
+    private RtfHtmlEncapsulation? _htmlEncapsulation;
+    private string? _htmlSemanticBaseline;
+
+    /// <summary>Original Outlook/Exchange HTML encapsulation, when present.</summary>
+    public RtfHtmlEncapsulation? HtmlEncapsulation {
+        get => _htmlEncapsulation;
+        internal set {
+            _htmlEncapsulation = value;
+            _htmlSemanticBaseline = value == null ? null : GetSemanticHtmlBaseline();
+        }
+    }
+
+    /// <summary>Whether the encapsulated HTML still corresponds to the current semantic document.</summary>
+    /// <remarks>Semantic edits, including direct changes to runs and formatting, cause conversions to use the current RTF content.</remarks>
+    public bool IsHtmlEncapsulationCurrent => _htmlEncapsulation != null &&
+        string.Equals(_htmlSemanticBaseline, GetSemanticHtmlBaseline(), StringComparison.Ordinal);
+
+    private string GetSemanticHtmlBaseline() => ToRtf(new RtfWriteOptions {
+        IncludeGenerator = false, IncludeHtmlEncapsulation = false
+    });
 
     /// <summary>Creates an empty RTF document.</summary>
     public static RtfDocument Create() {
@@ -173,13 +191,17 @@ public sealed partial class RtfDocument {
             paragraph.AddText(text!);
         }
 
-        _paragraphs.Add(paragraph);
-        _blocks.Add(paragraph);
+        AppendNewBlock(paragraph);
         return paragraph;
     }
 
     /// <summary>Adds a semantic section to the document.</summary>
     public RtfSection AddSection(RtfSectionBreakKind breakKind = RtfSectionBreakKind.NextPage) {
+        if (_sections.Count == 0 && _blocks.Count > 0) {
+            var initial = new RtfSection(this);
+            foreach (IRtfBlock block in _blocks) initial.AddParsedBlock(block);
+            _sections.Add(initial);
+        }
         var section = new RtfSection(this) {
             BreakKind = breakKind
         };
@@ -201,28 +223,28 @@ public sealed partial class RtfDocument {
             }
         }
 
-        _blocks.Add(table);
+        AppendNewBlock(table);
         return table;
     }
 
     /// <summary>Adds a picture block to the document.</summary>
     public RtfImage AddImage(RtfImageFormat format, byte[] data) {
         var image = new RtfImage(format, data);
-        _blocks.Add(image);
+        AppendNewBlock(image);
         return image;
     }
 
     /// <summary>Adds an embedded or linked object block to the document.</summary>
     public RtfObject AddObject(RtfObjectKind kind = RtfObjectKind.Unknown, byte[]? data = null) {
         var rtfObject = new RtfObject(kind, data);
-        _blocks.Add(rtfObject);
+        AppendNewBlock(rtfObject);
         return rtfObject;
     }
 
     /// <summary>Adds a drawing shape block to the document.</summary>
     public RtfShape AddShape() {
         var shape = new RtfShape();
-        _blocks.Add(shape);
+        AppendNewBlock(shape);
         return shape;
     }
 
@@ -436,7 +458,9 @@ public sealed partial class RtfDocument {
     }
 
     internal void AddParsedSection(RtfSection section) {
-        _sections.Add(section ?? throw new ArgumentNullException(nameof(section)));
+        if (section == null) throw new ArgumentNullException(nameof(section));
+        section.Attach(this);
+        _sections.Add(section);
     }
 
     internal void ReplaceFonts(IEnumerable<RtfFont> fonts) {

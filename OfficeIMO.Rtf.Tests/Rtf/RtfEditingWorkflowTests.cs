@@ -90,7 +90,7 @@ public class RtfEditingWorkflowTests {
         RtfDocument clone = source.Clone();
 
         RtfGeneratedText headerReference = Assert.Single(clone.HeaderFooters[0].Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
-        Assert.Equal("Header note", headerReference.Note?.ToPlainText());
+        Assert.Equal(headerNote.ToPlainText(), headerReference.Note?.ToPlainText());
         RtfGeneratedText bodyReference = Assert.Single(clone.Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
         Assert.Equal("Body note", bodyReference.Note?.ToPlainText());
         RtfNote detachedClone = Assert.Single(clone.Notes, note => note.ToPlainText() == "Detached note");
@@ -117,7 +117,7 @@ public class RtfEditingWorkflowTests {
             inline is RtfGeneratedText generated && generated.Note == detachedClone);
         RtfGeneratedText headerReference = Assert.Single(
             clone.HeaderFooters[0].Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
-        Assert.Equal("Header note", headerReference.Note?.ToPlainText());
+        Assert.Equal(headerNote.ToPlainText(), headerReference.Note?.ToPlainText());
         RtfGeneratedText nestedReference = Assert.Single(
             headerReference.Note!.Paragraphs.SelectMany(paragraph => paragraph.Inlines).OfType<RtfGeneratedText>());
         Assert.Equal("Nested header note", nestedReference.Note?.ToPlainText());

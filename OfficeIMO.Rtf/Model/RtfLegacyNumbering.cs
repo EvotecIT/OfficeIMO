@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Word 6/95 legacy paragraph numbering metadata represented by the <c>{\*\pn ...}</c> destination and related <c>\pn*</c> controls.
 /// </summary>
-public sealed class RtfLegacyNumbering {
+public sealed partial class RtfLegacyNumbering {
     /// <summary>Whether legacy paragraph numbering is explicitly enabled by <c>\pn</c>.</summary>
     public bool Enabled { get; set; }
 

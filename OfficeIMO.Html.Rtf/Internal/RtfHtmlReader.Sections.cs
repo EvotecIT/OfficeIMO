@@ -42,7 +42,7 @@ internal static partial class RtfHtmlReader {
         }
 
         private void AddSectionBlock(IRtfBlock block) {
-            if (_currentSection != null && _cell == null) {
+            if (_currentSection != null && _cell == null && !_currentSection.Blocks.Contains(block)) {
                 _currentSection.AddParsedBlock(block);
             }
         }

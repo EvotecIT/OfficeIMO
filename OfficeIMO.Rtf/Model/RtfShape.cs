@@ -3,10 +3,10 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Dependency-free representation of an RTF drawing shape, including raw instructions, named properties, and optional text-box content.
 /// </summary>
-public sealed class RtfShape : IRtfInline, IRtfBlock {
-    private readonly List<RtfShapeInstruction> _instructions = new List<RtfShapeInstruction>();
-    private readonly List<RtfShapeProperty> _properties = new List<RtfShapeProperty>();
-    private readonly List<RtfParagraph> _textBoxParagraphs = new List<RtfParagraph>();
+public sealed partial class RtfShape : IRtfInline, IRtfBlock {
+    private List<RtfShapeInstruction> _instructions = new List<RtfShapeInstruction>();
+    private List<RtfShapeProperty> _properties = new List<RtfShapeProperty>();
+    private List<RtfParagraph> _textBoxParagraphs = new List<RtfParagraph>();
 
     /// <summary>Raw shape instruction controls from <c>\shpinst</c>.</summary>
     public IReadOnlyList<RtfShapeInstruction> Instructions => _instructions.AsReadOnly();

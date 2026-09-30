@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Named shape property from an RTF <c>\sp</c> group.
 /// </summary>
-public sealed class RtfShapeProperty {
+public sealed partial class RtfShapeProperty {
     /// <summary>Creates a named shape property.</summary>
     public RtfShapeProperty(string name, string? value = null) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Shape property name cannot be empty.", nameof(name));

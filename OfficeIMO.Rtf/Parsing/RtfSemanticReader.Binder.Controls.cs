@@ -12,6 +12,7 @@ internal static partial class RtfSemanticReader {
         }
 
         private void ApplyControlWord(RtfControlWord control, CharacterState state) {
+            if (RtfTextDecoder.ConsumeFallback(state)) return;
             if (TryApplyTabStopControl(control, state)) return;
             if (TryApplyBreakControl(control, state)) return;
             if (TryApplySectionControl(control, state)) return;
@@ -85,7 +86,6 @@ internal static partial class RtfSemanticReader {
 
                     RtfParagraph? pendingListText = state.PendingListTextAfterReset;
                     state.ResetParagraph();
-                    state.AnsiCodePage = ResolveFontCodePage(_document.Settings.DefaultFontId, state.DocumentAnsiCodePage);
                     if (pendingLegacyNumbering != null) {
                         ApplyLegacyNumberingToState(state, pendingLegacyNumbering);
                     }
@@ -137,7 +137,7 @@ internal static partial class RtfSemanticReader {
                     state.OutlineLevel = control.Parameter;
                     return;
                 case "tab":
-                    AppendText("\t", state);
+                    AppendText(RtfTextDecoder.Flush(state) + "\t", state);
                     return;
                 case "chpgn":
                     AppendGeneratedText(RtfGeneratedTextKind.PageNumber, state);
@@ -174,7 +174,7 @@ internal static partial class RtfSemanticReader {
                 case "rtlmark":
                 case "zwj":
                 case "zwnj":
-                    AppendText(GetSpecialCharacterText(control.Name), state);
+                    AppendText(RtfTextDecoder.Flush(state) + GetSpecialCharacterText(control.Name), state);
                     return;
                 case "qc":
                     state.Alignment = RtfTextAlignment.Center;

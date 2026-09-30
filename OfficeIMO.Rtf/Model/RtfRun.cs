@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Text run with character-level formatting.
 /// </summary>
-public sealed class RtfRun : IRtfInline {
+public sealed partial class RtfRun : IRtfInline {
     internal RtfRun(string text) {
         Text = text ?? string.Empty;
     }
@@ -78,7 +78,7 @@ public sealed class RtfRun : IRtfInline {
     public RtfShadingPattern CharacterShadingPattern { get; set; } = RtfShadingPattern.None;
 
     /// <summary>Character border metadata represented by <c>\chbrdr</c> and following border controls.</summary>
-    public RtfCharacterBorder CharacterBorder { get; } = new RtfCharacterBorder();
+    public RtfCharacterBorder CharacterBorder { get; private set; } = new RtfCharacterBorder();
 
     /// <summary>Optional underline color table index. A null value uses the document default.</summary>
     public int? UnderlineColorIndex { get; set; }

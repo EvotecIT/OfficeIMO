@@ -8,7 +8,6 @@ public sealed partial class RtfDocument {
     /// </summary>
     public RtfDocumentMergeResult AppendDocument(RtfDocument source) {
         if (source == null) throw new ArgumentNullException(nameof(source));
-        if (ReferenceEquals(source, this)) source = source.Clone();
         RtfDocument imported = source.Clone();
         var report = new RtfConversionReport();
         Dictionary<int, int> fontMap = ImportFonts(imported);

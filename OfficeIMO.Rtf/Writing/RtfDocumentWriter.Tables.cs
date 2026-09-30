@@ -73,7 +73,7 @@ internal static partial class RtfDocumentWriter {
             builder.AppendLine();
         }
 
-        builder.AppendLine(@"\pard\par");
+        builder.AppendLine(@"\pard ");
     }
 
     private static void WriteTableRowPositioning(StringBuilder builder, RtfTableRow row) {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// XML namespace declaration from the RTF <c>{\*\xmlnstbl ...}</c> destination.
 /// </summary>
-public sealed class RtfXmlNamespace {
+public sealed partial class RtfXmlNamespace {
     /// <summary>
     /// Initializes an XML namespace declaration.
     /// </summary>

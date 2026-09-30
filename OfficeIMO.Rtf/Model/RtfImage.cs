@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// RTF picture payload preserved without external imaging dependencies.
 /// </summary>
-public sealed class RtfImage : IRtfBlock, IRtfInline {
+public sealed partial class RtfImage : IRtfBlock, IRtfInline {
     /// <summary>Creates an image block.</summary>
     public RtfImage(RtfImageFormat format, byte[] data) {
         Format = format;

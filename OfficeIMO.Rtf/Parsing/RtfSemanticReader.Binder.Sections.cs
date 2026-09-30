@@ -369,6 +369,7 @@ internal static partial class RtfSemanticReader {
             }
 
             AddDocumentBlock(image);
+            _hasStandalonePictureParagraph = true;
         }
 
         private void CompleteCurrentSection() {

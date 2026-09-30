@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Embedded font metadata stored inside a font table entry.
 /// </summary>
-public sealed class RtfFontEmbedding {
+public sealed partial class RtfFontEmbedding {
     /// <summary>Embedded font type.</summary>
     public RtfEmbeddedFontType Type { get; set; }
 

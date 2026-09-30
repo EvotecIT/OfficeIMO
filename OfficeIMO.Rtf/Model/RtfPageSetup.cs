@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Page size and margin settings for an RTF document.
 /// </summary>
-public sealed class RtfPageSetup {
+public sealed partial class RtfPageSetup {
     /// <summary>Paper width in twips.</summary>
     public int? PaperWidthTwips { get; set; }
 
@@ -56,7 +56,7 @@ public sealed class RtfPageSetup {
     public RtfPageNumberFormat? PageNumberFormat { get; set; }
 
     /// <summary>Page border settings.</summary>
-    public RtfPageBorders PageBorders { get; } = new RtfPageBorders();
+    public RtfPageBorders PageBorders { get; private set; } = new RtfPageBorders();
 
     /// <summary>Whether the document declares landscape orientation.</summary>
     public bool Landscape { get; set; }

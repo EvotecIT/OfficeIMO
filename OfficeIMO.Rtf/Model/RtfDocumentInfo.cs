@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Document information stored in the RTF <c>info</c> destination.
 /// </summary>
-public sealed class RtfDocumentInfo {
+public sealed partial class RtfDocumentInfo {
     /// <summary>Generator metadata stored in the ignorable RTF <c>generator</c> destination.</summary>
     public string? Generator { get; set; }
 

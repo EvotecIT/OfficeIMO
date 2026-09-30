@@ -3,18 +3,18 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Page border settings for a document or section.
 /// </summary>
-public sealed class RtfPageBorders {
+public sealed partial class RtfPageBorders {
     /// <summary>Top page border.</summary>
-    public RtfPageBorder Top { get; } = new RtfPageBorder();
+    public RtfPageBorder Top { get; private set; } = new RtfPageBorder();
 
     /// <summary>Bottom page border.</summary>
-    public RtfPageBorder Bottom { get; } = new RtfPageBorder();
+    public RtfPageBorder Bottom { get; private set; } = new RtfPageBorder();
 
     /// <summary>Left page border.</summary>
-    public RtfPageBorder Left { get; } = new RtfPageBorder();
+    public RtfPageBorder Left { get; private set; } = new RtfPageBorder();
 
     /// <summary>Right page border.</summary>
-    public RtfPageBorder Right { get; } = new RtfPageBorder();
+    public RtfPageBorder Right { get; private set; } = new RtfPageBorder();
 
     /// <summary>Whether the page border surrounds the header area.</summary>
     public bool IncludeHeader { get; set; }

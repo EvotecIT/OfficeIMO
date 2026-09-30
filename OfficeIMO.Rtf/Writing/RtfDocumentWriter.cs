@@ -55,14 +55,15 @@ internal static partial class RtfDocumentWriter {
     private static int GetUnicodeSkipCount(RtfDocumentSettings settings) => settings.UnicodeSkipCount ?? 1;
 
     private static void WriteHtmlEncapsulation(StringBuilder builder, RtfDocument document, RtfWriteOptions options, int unicodeSkipCount) {
+        if (!options.IncludeHtmlEncapsulation || !document.IsHtmlEncapsulationCurrent) return;
         RtfHtmlEncapsulation? encapsulation = document.HtmlEncapsulation;
-        if (!options.IncludeHtmlEncapsulation || encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;
+        if (encapsulation == null || string.IsNullOrEmpty(encapsulation.Html)) return;
 
         builder.Append(@"\fromhtml");
         builder.Append(encapsulation.Version.ToString(CultureInfo.InvariantCulture));
         builder.Append(@"{\*\htmltag ");
         builder.Append(EscapeText(encapsulation.Html, unicodeSkipCount));
-        builder.Append('}');
+        builder.Append(@"}\htmlrtf1 ");
     }
 
     private static void WriteDocumentCharacterSet(StringBuilder builder, RtfDocumentSettings settings) {

@@ -4,9 +4,9 @@ namespace OfficeIMO.Rtf;
 /// Paragraph in an RTF document.
 /// </summary>
 public sealed partial class RtfParagraph : IRtfBlock {
-    private readonly List<RtfRun> _runs = new List<RtfRun>();
-    private readonly List<IRtfInline> _inlines = new List<IRtfInline>();
-    private readonly List<RtfTabStop> _tabStops = new List<RtfTabStop>();
+    private List<RtfRun> _runs = new List<RtfRun>();
+    private List<IRtfInline> _inlines = new List<IRtfInline>();
+    private List<RtfTabStop> _tabStops = new List<RtfTabStop>();
 
     /// <summary>Paragraph runs.</summary>
     public IReadOnlyList<RtfRun> Runs => _runs.AsReadOnly();
@@ -42,7 +42,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
     internal bool MarkdownListContinuation { get; set; }
 
     /// <summary>Word 6/95 legacy paragraph numbering metadata from <c>\pn*</c> controls.</summary>
-    public RtfLegacyNumbering LegacyNumbering { get; } = new RtfLegacyNumbering();
+    public RtfLegacyNumbering LegacyNumbering { get; private set; } = new RtfLegacyNumbering();
 
     /// <summary>Word list marker fallback text represented by a paragraph-level <c>\listtext</c> destination.</summary>
     public RtfParagraph? ListText { get; private set; }
@@ -87,16 +87,16 @@ public sealed partial class RtfParagraph : IRtfBlock {
     public RtfShadingPattern ShadingPattern { get; set; } = RtfShadingPattern.None;
 
     /// <summary>Top paragraph border.</summary>
-    public RtfParagraphBorder TopBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder TopBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Left paragraph border.</summary>
-    public RtfParagraphBorder LeftBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder LeftBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Bottom paragraph border.</summary>
-    public RtfParagraphBorder BottomBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder BottomBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Right paragraph border.</summary>
-    public RtfParagraphBorder RightBorder { get; } = new RtfParagraphBorder();
+    public RtfParagraphBorder RightBorder { get; private set; } = new RtfParagraphBorder();
 
     /// <summary>Whether a page break should be emitted before this paragraph.</summary>
     public bool PageBreakBefore { get; set; }
@@ -132,7 +132,7 @@ public sealed partial class RtfParagraph : IRtfBlock {
     public int? RevisionSaveId { get; set; }
 
     /// <summary>Absolute positioning, text wrapping, and drop-cap metadata for this paragraph.</summary>
-    public RtfParagraphFrame Frame { get; } = new RtfParagraphFrame();
+    public RtfParagraphFrame Frame { get; private set; } = new RtfParagraphFrame();
 
     /// <summary>Adds a text run.</summary>
     public RtfRun AddText(string text) {

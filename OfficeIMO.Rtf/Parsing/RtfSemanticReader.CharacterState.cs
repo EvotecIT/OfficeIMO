@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf;
 
 internal static partial class RtfSemanticReader {
-    private sealed class CharacterState {
+    private sealed class CharacterState : RtfTextDecodingState {
         public bool Bold { get; set; }
         public bool Italic { get; set; }
         public RtfUnderlineStyle UnderlineStyle { get; set; } = RtfUnderlineStyle.None;
@@ -86,13 +86,8 @@ internal static partial class RtfSemanticReader {
         public List<RtfTabStop> TabStops { get; } = new List<RtfTabStop>();
         public RtfTabAlignment PendingTabAlignment { get; set; } = RtfTabAlignment.Left;
         public RtfTabLeader PendingTabLeader { get; set; } = RtfTabLeader.None;
-        public int AnsiCodePage { get; set; } = RtfAnsiCodePage.DefaultWindowsCodePage;
         public int DocumentAnsiCodePage { get; set; } = RtfAnsiCodePage.DefaultWindowsCodePage;
         public bool HasExplicitAnsiCodePage { get; set; }
-        public int UnicodeSkipCount { get; set; } = 1;
-        public int SkipCharacters { get; set; }
-        public char? PendingHighSurrogate { get; set; }
-        public byte? PendingAnsiLeadByte { get; set; }
 
         public CharacterState Clone() {
             var clone = new CharacterState {

@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>
 /// Shortcut key metadata stored in an RTF stylesheet <c>{\*\keycode ...}</c> group.
 /// </summary>
-public sealed class RtfStyleKeyCode {
+public sealed partial class RtfStyleKeyCode {
     /// <summary>Whether the shortcut includes the SHIFT modifier.</summary>
     public bool Shift { get; set; }
 
