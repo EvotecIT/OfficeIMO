@@ -6,6 +6,9 @@ internal static class PdfQualityCorpusProgram {
     internal static async Task<int> RunAsync(string[] args) {
         try {
             if (args.Length == 0) throw new ArgumentException(Usage);
+            if (string.Equals(args[0], "ocr-quality", StringComparison.Ordinal)) {
+                return await OcrQualityCorpus.RunAsync(args).ConfigureAwait(false);
+            }
             if (string.Equals(args[0], "scan", StringComparison.Ordinal)) {
                 return await ScanQualityCorpus.RunAsync(args).ConfigureAwait(false);
             }
@@ -96,5 +99,5 @@ internal static class PdfQualityCorpusProgram {
         throw new InvalidOperationException("Expected " + typeof(TException).Name + " was not thrown.");
     }
 
-    private const string Usage = "Usage: run --manifest <path> --root <directory> --json <path> --markdown <path> [--max-file-bytes <n>] [--max-render-pages <n>] [--timeout-seconds <n>] [--parallelism <n>] [--max-worker-memory-bytes <n>] | verify-markdown-contract | verify-runner-contracts";
+    private const string Usage = "Usage: run --manifest <path> --root <directory> --json <path> --markdown <path> [--max-file-bytes <n>] [--max-render-pages <n>] [--timeout-seconds <n>] [--parallelism <n>] [--max-worker-memory-bytes <n>] | ocr-quality <manifest.json> <asset-root> <new-output-directory> [--require-quality] | verify-markdown-contract | verify-runner-contracts";
 }
