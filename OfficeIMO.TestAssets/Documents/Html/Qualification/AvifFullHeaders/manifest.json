@@ -1,0 +1,540 @@
+{
+  "libavif": "1.4.2",
+  "codecs": "dav1d [dec]:1.5.3, aom [enc/dec]:v3.13.1",
+  "cases": [
+    {
+      "name": "avif-main8-fullheader-420-limited",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": false,
+      "fullRange": false,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81000c00",
+      "files": {
+        "avif": {
+          "bytes": 1767,
+          "sha256": "2117aa18234c2d96ad4c0b807faa93b7cdb738227bc6b51226d69b293bce1dad"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "60a584354a8243dcc2ba2cfae98da53fccc0d89318600bff0966941392b9f1cf"
+        },
+        "yuv16": {
+          "bytes": 4934,
+          "sha256": "a045d3d4ba8d99ef00054b3be032693c8b6d68d075235845d8b4384310591f39"
+        },
+        "source-yuv16": {
+          "bytes": 4934,
+          "sha256": "23f2d5bbbd810b6bf1b63fe88b74fc1b10497c79e2d24dece59f1f6758ad26c0"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-420-limited-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": false,
+      "fullRange": false,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81000c00",
+      "files": {
+        "avif": {
+          "bytes": 3120,
+          "sha256": "8703d6cb464de6f81ac80ff2b43d2d8b9e051229cebb3391fb26906a2c9a31ae"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "a311ba29fd3cd300c473838232d01921fdaa5ed1f73013b58dbaf905873b698b"
+        },
+        "yuv16": {
+          "bytes": 8168,
+          "sha256": "1badbfe53692328d253a6a6100084a90c0f9eb414866f03673a8648c1b8cd254"
+        },
+        "source-yuv16": {
+          "bytes": 8168,
+          "sha256": "3e3d96b3b5087afd364f3fb5bdb16d60f7e4465ddad4edb4da6cc732fb766edc"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-420-full",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": false,
+      "fullRange": true,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81000c00",
+      "files": {
+        "avif": {
+          "bytes": 1821,
+          "sha256": "39a85935003d839cfa753f8e859555844a9d1c731d55c03a17843743cb6b630d"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "0763b140b1e99485c7e733a2d8fa10e55a2386a80be779d02df7be15e72798d4"
+        },
+        "yuv16": {
+          "bytes": 4934,
+          "sha256": "13053b271ccae993a08fe9b579cede48c7ba62bb9fcea62e66f7d94675149caa"
+        },
+        "source-yuv16": {
+          "bytes": 4934,
+          "sha256": "0e37636e658b330f5c9117d04c9d0cb53caeb92356c2516fb76a285e20b9073a"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-420-full-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": false,
+      "fullRange": true,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81000c00",
+      "files": {
+        "avif": {
+          "bytes": 3174,
+          "sha256": "f62e9234803a605f63e7a551c5eee8db21ef3223abf4e2c4bf270cc6d2057e33"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "dca71ec7008e5f1488c1e3378d77e10e0a36befa0b2f0121908c82f1afb90bed"
+        },
+        "yuv16": {
+          "bytes": 8168,
+          "sha256": "01fe599915795370edfd64b3762dfb06d002f4f3993ba4e81072bb6d06918ea8"
+        },
+        "source-yuv16": {
+          "bytes": 8168,
+          "sha256": "106cdf153cfad341c8b9229583db5858611999f31a681d665fcf2ce52df9b685"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-mono-limited",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": true,
+      "fullRange": false,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81001c00",
+      "files": {
+        "avif": {
+          "bytes": 1182,
+          "sha256": "81bc872db2878443a6bdb824f9284740fd7b79f3484d3c0b6a196b70d2942306"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "2deb796f86396f6b4d1373b37b09bde029c9d1bcc0c414a1440fb9fe3ba1ee1e"
+        },
+        "yuv16": {
+          "bytes": 3234,
+          "sha256": "914071fe2a4fb9022cc16f748dd872c6b7ef6cac5e7d532022dda5b8478e0e68"
+        },
+        "source-yuv16": {
+          "bytes": 3234,
+          "sha256": "a4a61fb4b3fe58fba0eaf0ae67bcc901195398bdd9fe690bd2141a3ea4caea0a"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-mono-limited-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": true,
+      "fullRange": false,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81001c00",
+      "files": {
+        "avif": {
+          "bytes": 2509,
+          "sha256": "8362e72881275c0076aadc6799a2b1b9a5d7365d63a64dacb893f735159fb154"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "c883e05f3f9cf041c7421fcd3d098f0d8e0bcf79e28c83c32bc987acad1e3d9a"
+        },
+        "yuv16": {
+          "bytes": 6468,
+          "sha256": "ff0fa17d45579618d9b07d913a015987c06e453ec0984efccb417a6edf310887"
+        },
+        "source-yuv16": {
+          "bytes": 6468,
+          "sha256": "40e03c873977311426052d6eab30698c4d03c49b6d72af4dc7ce6895d9efa8e5"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-mono-full",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": true,
+      "fullRange": true,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81001c00",
+      "files": {
+        "avif": {
+          "bytes": 1225,
+          "sha256": "7223a723932280c26de676135af6824d23eb843ac405942f0f9457429ca85921"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "1aff80656835c658d2003678e068752e646d7c5e6659d85dcf83dcbc44b1e1f3"
+        },
+        "yuv16": {
+          "bytes": 3234,
+          "sha256": "afa5b22bdd76cbac1e258ea2f46b5ef6a6afcec28cbc6e469dc01cd7a7673b67"
+        },
+        "source-yuv16": {
+          "bytes": 3234,
+          "sha256": "356c9b765fc1a8415f05599763b4a5f78e3ff780e3e63544705579ba1a0cafeb"
+        }
+      }
+    },
+    {
+      "name": "avif-main8-fullheader-mono-full-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 8,
+      "monochrome": true,
+      "fullRange": true,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81001c00",
+      "files": {
+        "avif": {
+          "bytes": 2552,
+          "sha256": "cd6b9717dd4c92a07a8d56c7304058bd8d05b3e5953ad5735f6e5bde73d7cf85"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "81e5cc2fe63696635eb126fe75d524147d82c28b97ced8225adc3006c37c5e4e"
+        },
+        "yuv16": {
+          "bytes": 6468,
+          "sha256": "f4ebda3494b62f1949c46b3c07b379194eeeeb330f657e3b79825deea93a28bd"
+        },
+        "source-yuv16": {
+          "bytes": 6468,
+          "sha256": "662671c457cc4172d8cb871e8a24f9cee3319471d489a50cad0c9d87ce497fd3"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-420-limited",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": false,
+      "fullRange": false,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81004c00",
+      "files": {
+        "avif": {
+          "bytes": 1823,
+          "sha256": "48e531021a4356c0469396df8cd5cabc72c586665b9e869d1831cc698e83b195"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "33140cfb04a1fa07dc8b2f65bce59a7f1d1e998f1c461a972b2fdaec7b44b8de"
+        },
+        "yuv16": {
+          "bytes": 4934,
+          "sha256": "f33d7ae8fc79ce2c429cdfa21ef371d77c953148f7911306840140be44ba5a1f"
+        },
+        "source-yuv16": {
+          "bytes": 4934,
+          "sha256": "f1f814c3b4e0d90f9084a6eb62d4826eae98777689cd066e3f89d7997154c2f3"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-420-limited-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": false,
+      "fullRange": false,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81004c00",
+      "files": {
+        "avif": {
+          "bytes": 3326,
+          "sha256": "f746638b4999cbb71a5aa3b8deb50ed960e11cf7c219599b9eac78e8fe4c0f33"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "a5a9a6ea0e7f9d35586df99d863e8b724cb643e57b5b5d0361631851c41081d3"
+        },
+        "yuv16": {
+          "bytes": 8168,
+          "sha256": "cb3ecdac4a242a9d86c52342e4d973b3cb146a9a11edb12c7fba6a0ef74a6716"
+        },
+        "source-yuv16": {
+          "bytes": 8168,
+          "sha256": "22543e9067e9d6c83d95bc819d4690021677b3c098b4e1d0ab49f8607eb8a253"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-420-full",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": false,
+      "fullRange": true,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81004c00",
+      "files": {
+        "avif": {
+          "bytes": 1883,
+          "sha256": "98c151eea2f6fd090df8488aaf4a9470fe4d7ba64f37cb492094d820fd24bf8d"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "889c5d568876473b7492db7895ce4a8522adc8adbf0b6dd775093d394444f983"
+        },
+        "yuv16": {
+          "bytes": 4934,
+          "sha256": "d2db479a5577dabe833bef8e120add4dbc1f64d09b054edfcfed777294c016c5"
+        },
+        "source-yuv16": {
+          "bytes": 4934,
+          "sha256": "f8c3643056cc3abb34f8c3a39ff7a91e4cfac6163f2a1be42c3d5788ff23cdec"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-420-full-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": false,
+      "fullRange": true,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81004c00",
+      "files": {
+        "avif": {
+          "bytes": 3386,
+          "sha256": "30190c512bc065b6be8d1cce6cc7f6f78ebb3f681922ba2be85baff385292860"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "aa9d3b49961812ddc63a435f60560baa1a6d40981d6c7cc377db4059df169dfa"
+        },
+        "yuv16": {
+          "bytes": 8168,
+          "sha256": "b899d64cf93afb642b301eddb38e89c995534c73ecaa968ca4f2efc2a6ddc62c"
+        },
+        "source-yuv16": {
+          "bytes": 8168,
+          "sha256": "98f8c951007552bbc15df45a4104975d6c8e6a5cba531ec5abe5b3a6f088d483"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-mono-limited",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": true,
+      "fullRange": false,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81005c00",
+      "files": {
+        "avif": {
+          "bytes": 1213,
+          "sha256": "cb7720af721d692ebb48187ca3023a3aee941bdbf405a619e8095e98a7464bf2"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "f510de12e7baec38f57604b430119cee63a341fc8afdf77450271a57e6bd4cc5"
+        },
+        "yuv16": {
+          "bytes": 3234,
+          "sha256": "bed7bbe262f965e59af08c820f279bfa591f71536d461a8c2e2f85f8544f38ac"
+        },
+        "source-yuv16": {
+          "bytes": 3234,
+          "sha256": "4162193d61cb5aaf6b88b50c6904c3b72293d789d3b0801c5795f6dc34481e9e"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-mono-limited-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": true,
+      "fullRange": false,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81005c00",
+      "files": {
+        "avif": {
+          "bytes": 2690,
+          "sha256": "d13845badef81f069d15da02c0b3831e59bbbb0a3beb1bd632cf1145acbee789"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "853ab44302b1ef29b590f759f2dda0cb415400771a1b9ab05ac9c4d976c5ac99"
+        },
+        "yuv16": {
+          "bytes": 6468,
+          "sha256": "b9063693a04a62c8b81cbdb6f13b908363191155131c50d0361721a9f22cebe9"
+        },
+        "source-yuv16": {
+          "bytes": 6468,
+          "sha256": "e55114fb07fcd9d25589362e92bed002652fa85676320d85ab4f4939ddc80d1d"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-mono-full",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": true,
+      "fullRange": true,
+      "hasAlpha": false,
+      "sequenceFlagBits": [
+        16
+      ],
+      "av1C": "81005c00",
+      "files": {
+        "avif": {
+          "bytes": 1260,
+          "sha256": "1f5d6521aaed5e10aed3ec5faaa71b9d2a1be7fd11e7f5a55ea67038e1dfe612"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "6eb4cd8651751b0952869cb9026045d5101353a3130fe549a37153cab5aaea62"
+        },
+        "yuv16": {
+          "bytes": 3234,
+          "sha256": "c0578ae5a67bee5901f7682e504f5de1b94f8b5c2bd564d55fe2221d0f5b6879"
+        },
+        "source-yuv16": {
+          "bytes": 3234,
+          "sha256": "002e61608c422b847f9d3eb1e3395b8fb4ba7002015e6f8f156cd0e2d4d89738"
+        }
+      }
+    },
+    {
+      "name": "avif-main10-fullheader-mono-full-alpha",
+      "width": 49,
+      "height": 33,
+      "bitDepth": 10,
+      "monochrome": true,
+      "fullRange": true,
+      "hasAlpha": true,
+      "sequenceFlagBits": [
+        16,
+        16
+      ],
+      "av1C": "81005c00",
+      "files": {
+        "avif": {
+          "bytes": 2737,
+          "sha256": "dc1bdfae57bb4b5e3bde8d3a0eb669e5e665dd9e22b8ea45ef600352ce6d15a6"
+        },
+        "rgba": {
+          "bytes": 6468,
+          "sha256": "d6b49d5baa927a14709eceb75a7ec693a8d07427f6203b57262069ed81dfcb96"
+        },
+        "yuv16": {
+          "bytes": 6468,
+          "sha256": "70c0c94282970d9c189594b3f4b5adc6fbccaa595966c4c67605039030c800d7"
+        },
+        "source-yuv16": {
+          "bytes": 6468,
+          "sha256": "2d25a3e493cba508862d069453535a49904cad4870cf793cd843a6292b325b65"
+        }
+      }
+    }
+  ],
+  "nativeSourceCommit": "c5240fc79fe5c2407e10afd35f5505ef6333ea49",
+  "headerSha256": "43ec2563fcc739a4d5ca18e22f74bc15e76a11f8c9a82bd7e1ee572bff7afc04",
+  "nativeLibrarySha256": "9bda01042af71348f2184c9916daca76e0f0f2e1014bae5202c7fc6f6a37f671",
+  "driverSha256": "8d83152607abfed0e475c3514cccc4a9b02ba700074321b9cc2476fa9449c08b",
+  "generatorSha256": "0a15fa8bd0593ef6cff403c1f3ac413fad4cbee97d82d6d71d99c5bdf521c1ed",
+  "encoderOptions": {
+    "codec": "aom",
+    "quality": 85,
+    "qualityAlpha": 100,
+    "speed": 6,
+    "maxThreads": 1
+  },
+  "decoderOptions": {
+    "codec": "dav1d",
+    "rgbDepth": 8,
+    "avoidLibYUV": true,
+    "chromaUpsampling": "bilinear"
+  },
+  "sourceProvenance": {
+    "libavifCommit": "c5240fc79fe5c2407e10afd35f5505ef6333ea49",
+    "sourceArchiveSha256": "5e9aa73e43af8021a57d744712ee0bc145267863afb7c9b118723a15dbd4cfbf",
+    "originalCodecSha256": "36a5d1a7d3893f98e43d9d4e8f68e7528d83ba4ac2c805c8a21ab20d1f36b061",
+    "av1SpecCommit": "5e04f3f75e73a5898d7616c47c52f032144b8f80",
+    "av1SyntaxSha256": "efe4cfac9368d8e5feff82a4dc95f1c71b37ae2353e5828f1849026be3b060b5",
+    "producerOnlyModification": "cfg->full_still_picture_hdr = 1 before native AOM encoder initialization; no decoder or codec arithmetic changed",
+    "modifiedCodecSha256": "123a28b2036285f897f9dcc2e411289da369c614600407f7cc9d6afd1150afd9",
+    "librarySha256": "9bda01042af71348f2184c9916daca76e0f0f2e1014bae5202c7fc6f6a37f671",
+    "aomLibrarySha256": "44b33d3553eed119d814f024f2ab23e01a0ec67019cd70b2de127ff8a43bcdcb"
+  },
+  "scope": "Independent full still-header native inputs and decoded YUV/RGBA references; native producer/decoder libraries are opt-in tooling only."
+}

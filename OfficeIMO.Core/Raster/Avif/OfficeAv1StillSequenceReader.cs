@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Checks low-overhead OBU boundaries and Main 8/10-bit reduced headers, without allocating planes.</summary>
+/// <summary>Checks low-overhead OBU boundaries and Main 8/10-bit still headers, without allocating planes.</summary>
 internal static class OfficeAv1StillSequenceReader {
     internal static bool TryRead(byte[] bytes, OfficeAvifImageItem item, OfficeRasterDecodeOptions options,
         out OfficeAv1StillSequence? sequence) {
@@ -76,8 +76,18 @@ internal static class OfficeAv1StillSequenceReader {
     private static OfficeAv1StillSequence ReadSequence(byte[] bytes, int offset, int length,
         OfficeAvifImageItem item, OfficeRasterDecodeOptions options) {
         var bits = new OfficeAv1Bits(bytes, offset, length, options.CancellationToken);
-        Require(bits.Read(3) == 0 && bits.Flag() && bits.Flag()); // Main, still picture, reduced header.
-        var result = new OfficeAv1StillSequence { Level = bits.Read(5) };
+        Require(bits.Read(3) == 0 && bits.Flag()); // Main profile, still picture (not a video sequence).
+        var result = new OfficeAv1StillSequence { ReducedStillHeader = bits.Flag() };
+        if (!result.ReducedStillHeader) {
+            Require(!bits.Flag()); // Timing/decoder-model syntax requires a separately qualified path.
+            bool initialDisplayDelay = bits.Flag();
+            Require(bits.Read(5) == 0 && bits.Read(12) == 0); // One unlayered operating point.
+            result.Level = bits.Read(5);
+            Require(result.Level <= 7 || !bits.Flag()); // Main tier matches the retained av1C contract.
+            if (initialDisplayDelay && bits.Flag()) bits.Read(4);
+        } else {
+            result.Level = bits.Read(5);
+        }
         result.WidthBits = bits.Read(4) + 1;
         result.HeightBits = bits.Read(4) + 1;
         result.MaximumWidth = bits.Read(result.WidthBits) + 1;
@@ -86,9 +96,21 @@ internal static class OfficeAv1StillSequenceReader {
             options.MaximumDecodedPixels, out _));
         // Actual UpscaledWidth/FrameHeight are checked against ispe by the frame parser, not inferred from maxima.
         Require(item.Width <= result.MaximumWidth && item.Height <= result.MaximumHeight);
+        if (!result.ReducedStillHeader && bits.Flag()) {
+            result.FrameIdBits = bits.Read(4) + 2 + bits.Read(3) + 1;
+            Require(result.FrameIdBits <= 16);
+        }
         result.Use128Superblock = bits.Flag();
         result.FilterIntra = bits.Flag();
         result.IntraEdgeFilter = bits.Flag();
+        if (!result.ReducedStillHeader) {
+            bits.Read(4); // Inter-intra, masked compound, warped motion and dual filter: unused by a shown key frame.
+            bool orderHint = bits.Flag();
+            if (orderHint) bits.Read(2); // Joint compound and reference-frame MVs: likewise inter-only.
+            result.ForceScreenContentTools = bits.Flag() ? 2 : bits.Read(1);
+            if (result.ForceScreenContentTools > 0) result.ForceIntegerMv = bits.Flag() ? 2 : bits.Read(1);
+            if (orderHint) result.OrderHintBits = bits.Read(3) + 1;
+        }
         result.SuperResolution = bits.Flag();
         result.Cdef = bits.Flag();
         result.Restoration = bits.Flag();

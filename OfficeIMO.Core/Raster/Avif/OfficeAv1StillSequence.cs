@@ -1,7 +1,12 @@
 namespace OfficeIMO.Drawing;
 
-/// <summary>Validated reduced still-picture sequence parameters retained separately from pixel reconstruction.</summary>
+/// <summary>Validated single-picture sequence parameters retained separately from pixel reconstruction.</summary>
 internal sealed class OfficeAv1StillSequence {
+    internal bool ReducedStillHeader { get; set; } = true;
+    internal int ForceScreenContentTools { get; set; } = 2;
+    internal int ForceIntegerMv { get; set; } = 2;
+    internal int OrderHintBits { get; set; }
+    internal int FrameIdBits { get; set; }
     internal int BitDepth { get; set; } = 8;
     internal int MaximumWidth { get; set; }
     internal int MaximumHeight { get; set; }

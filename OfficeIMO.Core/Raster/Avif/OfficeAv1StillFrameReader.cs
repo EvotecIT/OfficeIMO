@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Reads reduced Main 8/10-bit still-frame syntax and a complete combined-OBU tile group.</summary>
+/// <summary>Reads Main 8/10-bit shown-key-frame syntax and a complete combined-OBU tile group.</summary>
 internal static partial class OfficeAv1StillFrameReader {
     internal static bool TryRead(byte[] bytes, OfficeAvifImageItem item, OfficeAv1StillSequence sequence,
         OfficeRasterDecodeOptions options, out OfficeAv1StillFrame? frame) {
@@ -17,15 +17,26 @@ internal static partial class OfficeAv1StillFrameReader {
             Require(sequence.FrameOffset >= item.Offset && sequence.FrameLength > 0 &&
                 sequence.FrameOffset <= item.Offset + item.Length - sequence.FrameLength);
             var bits = new OfficeAv1Bits(bytes, sequence.FrameOffset, sequence.FrameLength, options.CancellationToken);
+            if (!sequence.ReducedStillHeader) {
+                Require(!bits.Flag() && bits.Read(2) == 0 && bits.Flag()); // No show-existing, only a shown KEY_FRAME.
+            }
             var result = new OfficeAv1StillFrame {
                 BitDepth = sequence.BitDepth,
                 DisableCdfUpdate = bits.Flag(),
-                AllowScreenContentTools = bits.Flag(),
+                AllowScreenContentTools = sequence.ForceScreenContentTools == 2 ? bits.Flag() : sequence.ForceScreenContentTools != 0,
                 UpscaledWidth = sequence.MaximumWidth,
                 Height = sequence.MaximumHeight
             };
-            // Reduced headers imply KEY_FRAME, show_frame, error resilience, PRIMARY_REF_NONE and no size override.
-            if (result.AllowScreenContentTools) bits.Flag(); // Signaled force_integer_mv; FrameIsIntra subsequently forces it to 1.
+            // A shown key frame implies error resilience, PRIMARY_REF_NONE and refresh of all references.
+            if (result.AllowScreenContentTools && sequence.ForceIntegerMv == 2) bits.Flag(); // Intra subsequently forces integer motion.
+            if (sequence.FrameIdBits > 0) bits.Read(sequence.FrameIdBits);
+            bool sizeOverride = !sequence.ReducedStillHeader && bits.Flag();
+            bits.Read(sequence.OrderHintBits);
+            if (sizeOverride) {
+                result.UpscaledWidth = bits.Read(sequence.WidthBits) + 1;
+                result.Height = bits.Read(sequence.HeightBits) + 1;
+                Require(result.UpscaledWidth <= sequence.MaximumWidth && result.Height <= sequence.MaximumHeight);
+            }
             Require(result.UpscaledWidth == item.Width && result.Height == item.Height);
             Require(OfficeRasterGuards.TryEnsurePixelCount(result.UpscaledWidth, result.Height, options.MaximumDecodedPixels, out _));
             if (sequence.SuperResolution && bits.Flag()) result.SuperResolutionDenominator = bits.Read(3) + 9;
@@ -36,6 +47,7 @@ internal static partial class OfficeAv1StillFrameReader {
             result.RenderWidth = differentRenderSize ? bits.Read(16) + 1 : result.UpscaledWidth;
             result.RenderHeight = differentRenderSize ? bits.Read(16) + 1 : result.Height;
             if (result.AllowScreenContentTools && result.Width == result.UpscaledWidth) result.AllowIntraBlockCopy = bits.Flag();
+            if (!sequence.ReducedStillHeader && !result.DisableCdfUpdate) bits.Flag(); // End-of-frame CDF update has no subsequent picture here.
             ReadTileInfo(bits, sequence, result);
             ReadQuantization(bits, sequence, result);
             ReadSegmentation(bits, result);

@@ -28,9 +28,11 @@ public sealed partial class HtmlRenderingTests {
     [InlineData("avif-main10-mono-limited", "image/avif")]
     [InlineData("avif-main10-mono-full-alpha", "image/avif")]
     [InlineData("avif-main10-mono-limited-alpha", "image/avif")]
+    [InlineData("avif-main8-fullheader-420-full-alpha", "image/avif")]
+    [InlineData("avif-main10-fullheader-mono-limited-alpha", "image/avif")]
     public void HtmlRender_AvifPreservesIndependentPixelsInScreenAndPdf(string name, string? pictureType) {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "Html", "Qualification",
-            name.StartsWith("avif-main10-", StringComparison.Ordinal) ? "AvifMain10" : name.StartsWith("avif-monochrome-", StringComparison.Ordinal) ? "AvifMonochrome" : "StaticPdfGaps");
+            name.Contains("-fullheader-") ? "AvifFullHeaders" : name.StartsWith("avif-main10-", StringComparison.Ordinal) ? "AvifMain10" : name.StartsWith("avif-monochrome-", StringComparison.Ordinal) ? "AvifMonochrome" : "StaticPdfGaps");
         byte[] bytes = File.ReadAllBytes(Path.Combine(root, name + ".avif"));
         byte[] reference = File.ReadAllBytes(Path.Combine(root, name + ".rgba"));
         string source = "data:image/avif;base64," + Convert.ToBase64String(bytes);

@@ -2,7 +2,7 @@ using System;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Reduced still-frame syntax retained for tile reconstruction, without allocating pixel planes.</summary>
+/// <summary>Shown still-key-frame syntax retained for tile reconstruction, without allocating pixel planes.</summary>
 internal sealed class OfficeAv1StillFrame {
     internal int BitDepth { get; set; } = 8;
     internal int Width { get; set; }
