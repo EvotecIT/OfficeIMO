@@ -88,6 +88,8 @@ IWorkNumbersProjection workbook = source.ReadNumbers();
 
 The destination adapters also accept a token after their read and conversion options. Cancellation is cooperative during loading, projection, and destination construction; saving uses the destination owner's separate save API. These APIs do not establish a fixed cancellation latency or memory budget.
 
+The [bounded NativeAOT contract](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) covers source projections and shared Reader extraction on macOS arm64 under .NET 8 and 10 using hash-pinned Pages, Numbers and Keynote fixtures. Destination conversion/save, rendering and Apple sandbox/device acceptance have separate qualification requirements.
+
 ## Opt in to an Office destination adapter
 
 Install only the adapter for the destination format you need. The Word, Excel, and PowerPoint packages do not depend on iWork.

@@ -40,3 +40,7 @@ Bundle reads retain the iWork owner's entry/path/byte limits, physical-root and 
 Reader does not paginate Pages layouts or render Keynote slides. Its logical page labels represent a Pages document, Numbers sheet, or Keynote slide, not a rendered Pages page count.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows. License: MIT. Runtime dependencies are `OfficeIMO.Reader.Core` and `OfficeIMO.IWork`.
+
+## Native compilation
+
+The [bounded NativeAOT scenario](../Docs/officeimo.iwork-support-matrix.md#bounded-nativeaot-qualification) exercises this handler on macOS arm64 under .NET 8 and 10, including structured extraction, source diagnostics, JSON transport, cancellation and input limits. The scenario preserves current reconstruction limits; it does not qualify destination conversion, appearance or Apple sandbox/device acceptance.

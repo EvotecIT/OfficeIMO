@@ -4,7 +4,8 @@ param(
     [string] $RuntimeIdentifier = '',
     [ValidateSet('Debug', 'Release')]
     [string] $Configuration = 'Release',
-    [string] $JsonOutputPath = ''
+    [string] $JsonOutputPath = '',
+    [string[]] $Scenario = @()
 )
 
 $ErrorActionPreference = 'Stop'
@@ -34,10 +35,18 @@ $scenarios = @(
     [ordered]@{ id = 'markdown'; title = 'Markdown fluent composition and rendering'; project = 'OfficeIMO.Markdown.AotSmoke/OfficeIMO.Markdown.AotSmoke.csproj' },
     [ordered]@{ id = 'csv'; title = 'CSV parse and schema inspection'; project = 'OfficeIMO.CSV.AotSmoke/OfficeIMO.CSV.AotSmoke.csproj' },
     [ordered]@{ id = 'reader-csv'; title = 'Reader CSV normalized extraction'; project = 'OfficeIMO.Reader.Csv.AotSmoke/OfficeIMO.Reader.Csv.AotSmoke.csproj' },
+    [ordered]@{ id = 'reader-iwork-net8'; title = 'iWork source and Reader native-fixture extraction on .NET 8'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net8.0' },
+    [ordered]@{ id = 'reader-iwork'; title = 'iWork source and Reader native-fixture extraction, formulas, diagnostics, JSON and limits'; project = 'OfficeIMO.Reader.IWork.AotSmoke/OfficeIMO.Reader.IWork.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'reader-all'; title = 'Reader all-formats registration and representative extraction'; project = 'OfficeIMO.Reader.All.AotSmoke/OfficeIMO.Reader.All.AotSmoke.csproj'; targetFramework = 'net10.0' },
     [ordered]@{ id = 'html-pdf-image'; title = 'HTML to SVG, PNG, and searchable PDF'; project = 'OfficeIMO.Html.AotSmoke/OfficeIMO.Html.AotSmoke.csproj' },
     [ordered]@{ id = 'officeimo-tool'; title = 'Unified production CLI startup and command discovery'; project = 'OfficeIMO.Tool/OfficeIMO.Tool.csproj'; targetFramework = 'net10.0'; aotValidation = $true; runArguments = @('--help') }
 )
+
+if ($Scenario.Count -gt 0) {
+    $unknown = @($Scenario | Where-Object { $_ -notin $scenarios.id })
+    if ($unknown.Count -gt 0) { throw "Unknown NativeAOT scenarios: $($unknown -join ', ')" }
+    $scenarios = @($scenarios | Where-Object { $_.id -in $Scenario })
+}
 
 $artifactRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("OfficeIMO-AotValidation-" + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
@@ -78,20 +87,23 @@ function Remove-AotArtifactDirectory {
 }
 
 try {
-    foreach ($scenario in $scenarios) {
-        $projectPath = Join-Path $RepositoryRoot $scenario.project
-        $publishPath = Join-Path $artifactRoot $scenario.id
-        $sdkArtifactsPath = Join-Path $artifactRoot ($scenario.id + '-sdk')
+    foreach ($scenarioDefinition in $scenarios) {
+        $projectPath = Join-Path $RepositoryRoot $scenarioDefinition.project
+        $executableSha256 = $null
+        $runOutput = @()
+        $runExit = $null
+        $publishPath = Join-Path $artifactRoot $scenarioDefinition.id
+        $sdkArtifactsPath = Join-Path $artifactRoot ($scenarioDefinition.id + '-sdk')
 
-        Write-Host "[$($scenario.id)] restore and publish NativeAOT in isolated SDK state" -ForegroundColor Cyan
+        Write-Host "[$($scenarioDefinition.id)] restore and publish NativeAOT in isolated SDK state" -ForegroundColor Cyan
         $publishArguments = [System.Collections.Generic.List[string]]::new()
         @('publish', $projectPath, '--configuration', $Configuration, '--runtime', $RuntimeIdentifier, '--artifacts-path', $sdkArtifactsPath, '--output', $publishPath) |
             ForEach-Object { $publishArguments.Add($_) }
-        if ($scenario.targetFramework) {
+        if ($scenarioDefinition.targetFramework) {
             $publishArguments.Add('--framework')
-            $publishArguments.Add([string] $scenario.targetFramework)
+            $publishArguments.Add([string] $scenarioDefinition.targetFramework)
         }
-        if ($scenario.aotValidation) {
+        if ($scenarioDefinition.aotValidation) {
             $publishArguments.Add('-p:AotValidation=true')
         }
 
@@ -103,8 +115,9 @@ try {
         if ($publishExit -eq 0) {
             $projectName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
             $executablePath = Join-Path $publishPath ($projectName + $(if ($RuntimeIdentifier -like 'win-*') { '.exe' } else { '' }))
-            Write-Host "[$($scenario.id)] execute native binary" -ForegroundColor Cyan
-            $runArguments = @($scenario.runArguments)
+            $executableSha256 = (Get-FileHash -LiteralPath $executablePath -Algorithm SHA256).Hash
+            Write-Host "[$($scenarioDefinition.id)] execute native binary" -ForegroundColor Cyan
+            $runArguments = @($scenarioDefinition.runArguments)
             $runOutput = @(& $executablePath @runArguments 2>&1)
             $runExit = $LASTEXITCODE
             $status = if ($runExit -eq 0) { 'passed' } else { 'runtime-failed' }
@@ -115,14 +128,19 @@ try {
         }
 
         if ($status -ne 'passed') {
-            $failures.Add("$($scenario.id): expected a passing native publish and execution, got $status")
+            $failures.Add("$($scenarioDefinition.id): expected a passing native publish and execution, got $status")
         }
 
         $results.Add([pscustomobject] [ordered]@{
-            id = $scenario.id
-            title = $scenario.title
+            id = $scenarioDefinition.id
+            title = $scenarioDefinition.title
             status = $status
             diagnosticCodes = $diagnosticCodes
+            targetFramework = [string] $scenarioDefinition.targetFramework
+            publishExitCode = $publishExit
+            runExitCode = $runExit
+            executableSha256 = $executableSha256
+            runOutput = @($runOutput | ForEach-Object { [string] $_ })
         })
 
         # NativeAOT SDK state can be several gigabytes for the broad Reader and

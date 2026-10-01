@@ -18,6 +18,34 @@ The current level is **extended semantic reconstruction**. Normal document conte
 
 `OfficeIMO.Workflows.IWork` registers all three Apple-to-OOXML routes without adding iWork to the default workflow dependency graph. Local ZIP files, local directory packages, and provider ZIP streams use bounded captured inputs, destination reopen validation, source verification, and safe publication. Defaults reject explicitly partial editable reconstruction and visual previews without known complete coverage. `ConversionEvidence` retains typed fidelity categories and compact source/projection facts after destination disposal. Directory packages use a deterministic private ZIP transport snapshot, with package-root identity and file membership/content checked again before publication. Destinations inside the package or aliased to a package member are rejected. The snapshot checksum describes that transport archive. Native permission-scoped directory-package intake remains outside this local-filesystem contract. The CLI exposes these routes through `officeimo convert`. Studio uses the same runner for file-picker, drop, and startup intake, with per-job representation and acceptance settings, captured source SHA-256, retained fidelity evidence, and saved-output preview. These workflow settings are copied before asynchronous source capture.
 
+
+## Bounded NativeAOT qualification
+
+`OfficeIMO.Reader.IWork.AotSmoke` publishes and executes the source reader and shared
+Reader handler on macOS arm64 with .NET 8.0.31 and .NET 10.0.12. The host rejects
+managed execution. Four hash-pinned corpus fixtures exercise Pages body text,
+Numbers sparse typed cells and selected arithmetic/range/string formulas, and
+Keynote slide titles, body text and presenter notes. It also checks source and
+Reader path/stream parity, caller-owned streams, source preservation and
+unassessed-fidelity diagnostics, Reader JSON transport round-trip, pre-cancellation
+and configured input byte limits. Fixture provenance and licenses remain in the
+[corpus](../OfficeIMO.TestAssets/Documents/IWorkCorpus/README.md).
+
+Run the coordinated native gate from PowerShell with the pinned SDK and platform
+compiler installed:
+
+```powershell
+./Build/Test-AotScenarios.ps1 -Scenario reader-iwork-net8,reader-iwork -RuntimeIdentifier osx-arm64 -JsonOutputPath <evidence.json>
+```
+
+The gate retains executable SHA-256, exit codes and output before deleting isolated
+publish and SDK directories. The scenario is also included in the full gate;
+`-Scenario` selects known scenario IDs and rejects unknown IDs before publishing.
+This evidence covers the invoked source/Reader paths, not every public API or
+all-file compatibility. It does not qualify destination conversion/save, rendered
+appearance, portable fonts, Windows/Linux execution, iOS/iPad, sandbox permissions
+or signed application distribution.
+
 ## Package and IWA boundary
 
 | Capability | Current contract |
