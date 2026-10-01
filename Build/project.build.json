@@ -128,6 +128,12 @@
   },
   "VersionBindings": [
     {
+      "Path": ".agents/plugins/officeimo-document-tools/plugin.json",
+      "Project": "OfficeIMO.Tool",
+      "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?",
+      "SyncAgentPluginCompatibility": true
+    },
+    {
       "Path": "OfficeIMO.Tool/server.json",
       "Project": "OfficeIMO.Tool",
       "Pattern": "(?m)(?<=^  \"version\": \")\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
@@ -139,16 +145,6 @@
     },
     {
       "Path": ".agents/plugins/officeimo-document-tools/mcp.json",
-      "Project": "OfficeIMO.Tool",
-      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
-    },
-    {
-      "Path": ".agents/plugins/officeimo-document-tools/.mcp.json",
-      "Project": "OfficeIMO.Tool",
-      "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
-    },
-    {
-      "Path": ".agents/plugins/officeimo-document-tools/.codex-plugin/mcp.json",
       "Project": "OfficeIMO.Tool",
       "Pattern": "(?<=OfficeIMO\\.Tool@)\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?"
     },
