@@ -8,7 +8,8 @@ public sealed class IWorkTableCell {
         string? formula = null, string? error = null, IWorkCellKind? valueKind = null,
         bool formulaIsComplete = false, IWorkTextContent? richText = null,
         bool cachedValueIsComplete = true, bool sourceFormulaIsDeclared = false,
-        bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null) {
+        bool hasDecodeError = false, IWorkNumberFormat? numberFormat = null,
+        string? sourceNumberText = null, bool numericValueIsApproximate = false) {
         Row = row;
         Column = column;
         Kind = kind;
@@ -22,6 +23,8 @@ public sealed class IWorkTableCell {
         HasDecodeError = hasDecodeError;
         RichText = richText;
         NumberFormat = numberFormat;
+        SourceNumberText = sourceNumberText;
+        NumericValueIsApproximate = numericValueIsApproximate;
     }
 
     /// <summary>Gets the one-based row position.</summary>
@@ -50,10 +53,20 @@ public sealed class IWorkTableCell {
     public IWorkTextContent? RichText { get; }
     /// <summary>Gets the supported source numeric format. Null means absent or unresolved; source diagnostics distinguish unsupported declarations. Raw display text does not apply this format.</summary>
     public IWorkNumberFormat? NumberFormat { get; }
+    /// <summary>Gets the exact normalized source Decimal128 value in invariant coefficient/exponent notation when <see cref="NumericValueIsApproximate"/> is true. This includes decimal formula caches.</summary>
+    public string? SourceNumberText { get; }
+    /// <summary>Gets whether a source Decimal128 value exceeds the fifteen-significant-digit portable numeric contract. The recovered double remains available and conversion reports an approximation.</summary>
+    public bool NumericValueIsApproximate { get; }
 
     internal IWorkTableCell WithNumberFormat(IWorkNumberFormat format) =>
         new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
-            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format);
+            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, format,
+            SourceNumberText, NumericValueIsApproximate);
+
+    internal IWorkTableCell WithSourceNumber(string text, bool approximate) =>
+        new(Row, Column, Kind, Value, Formula, Error, ValueKind, FormulaIsComplete,
+            RichText, CachedValueIsComplete, SourceFormulaIsDeclared, HasDecodeError, NumberFormat,
+            text, approximate);
     /// <summary>Gets a culture-invariant display representation of the recovered value or formula.</summary>
     public string DisplayText => Kind switch {
         IWorkCellKind.Boolean => Convert.ToBoolean(Value, CultureInfo.InvariantCulture) ? "TRUE" : "FALSE",

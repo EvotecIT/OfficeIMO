@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Numerics;
 
 namespace OfficeIMO.IWork.Internal;
 
@@ -55,6 +54,8 @@ internal static partial class IWorkTableReader {
         }
         int position = offset + 12;
         double? decimalValue = null;
+        string? sourceNumberText = null;
+        bool numericValueIsApproximate = false;
         double doubleValue = 0;
         double dateValue = 0;
         uint stringIdentifier = 0;
@@ -72,7 +73,7 @@ internal static partial class IWorkTableReader {
             if (position < 0 || position > endOffset - size) return Error(row, column, "Truncated cell value field.");
             switch (bit) {
                 case 0:
-                    decimalValue = ReadDecimal128(buffer, position);
+                    decimalValue = ReadDecimal128(buffer, position, out sourceNumberText, out numericValueIsApproximate);
                     hasDecimal = true;
                     break;
                 case 1:
@@ -119,11 +120,13 @@ internal static partial class IWorkTableReader {
             case 2:
             case 10:
                 if (hasDecimal) {
-                    return decimalValue.HasValue
-                        ? FiniteNumber(row, column, decimalValue.Value, hasFormula,
-                            formulaIdentifier, formulas, options, projectionBudget)
-                        : Error(row, column,
-                            "Decimal128 value exceeds XLSX numeric precision.");
+                    if (!decimalValue.HasValue) return Error(row, column, "Decimal128 value cannot be represented as a finite non-underflowed number.");
+                    IWorkTableCell number = FiniteNumber(row, column, decimalValue.Value, hasFormula,
+                        formulaIdentifier, formulas, options, projectionBudget);
+                    if (!numericValueIsApproximate) return number;
+                    projectionBudget.AddTextCharacters(sourceNumberText!.Length);
+                    projectionBudget.AddTextItem();
+                    return number.WithSourceNumber(sourceNumberText, approximate: true);
                 }
                 if (hasDouble) return FiniteNumber(row, column, doubleValue, hasFormula, formulaIdentifier, formulas, options, projectionBudget);
                 return hasFormula ? Formula(row, column, formulaIdentifier, formulas, options, projectionBudget) : Error(row, column, "Number cell has no value field.");
@@ -279,24 +282,4 @@ internal static partial class IWorkTableReader {
         return true;
     }
 
-    private static double? ReadDecimal128(byte[] buffer, int offset) {
-        if ((buffer[offset + 15] & 0x78) == 0x78) return null;
-        int exponent = (((buffer[offset + 15] & 0x7f) << 7) | (buffer[offset + 14] >> 1)) - 0x1820;
-        BigInteger coefficient = BigInteger.Zero;
-        for (int index = 13; index >= 0; index--) {
-            coefficient = coefficient * 256 + buffer[offset + index];
-        }
-        if ((buffer[offset + 14] & 1) != 0) coefficient += BigInteger.One << 112;
-        if (coefficient.IsZero) return 0d;
-        while (coefficient % 10 == 0) {
-            coefficient /= 10;
-            exponent++;
-        }
-        if (coefficient.ToString(CultureInfo.InvariantCulture).Length > 15) return null;
-        string text = coefficient.ToString(CultureInfo.InvariantCulture)
-            + "E" + exponent.ToString(CultureInfo.InvariantCulture);
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture,
-                out double value) || !IsFinite(value) || value == 0d) return null;
-        return (buffer[offset + 15] & 0x80) != 0 ? -value : value;
-    }
 }

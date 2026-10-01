@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
         }
     }
 
-    internal static class ExcelRangeVisualSnapshotBuilder {
+    internal static partial class ExcelRangeVisualSnapshotBuilder {
         private const int MaxSparklineDataCells = 100_000;
         internal static ExcelRangeVisualSnapshot Build(
             ExcelSheet sheet,
@@ -210,6 +210,7 @@ namespace OfficeIMO.Excel {
                     ExcelCellData valueData = covered
                         ? new ExcelCellData(ExcelCellDataKind.Blank, null)
                         : sheet.GetCellValueSnapshot(row.Index, column.Index);
+                    ApplyNumericFormatColor(style, valueData);
                     string rawText = sheet.TryGetCellText(row.Index, column.Index, out string cellText)
                         ? cellText
                         : string.Empty;
@@ -426,6 +427,7 @@ namespace OfficeIMO.Excel {
 
                 ExcelCellStyleSnapshot style = sheet.GetCellStyle(merge.StartRow, merge.StartColumn);
                 ExcelCellData valueData = sheet.GetCellValueSnapshot(merge.StartRow, merge.StartColumn);
+                ApplyNumericFormatColor(style, valueData);
                 string rawText = sheet.TryGetCellText(merge.StartRow, merge.StartColumn, out string cellText)
                     ? cellText
                     : string.Empty;

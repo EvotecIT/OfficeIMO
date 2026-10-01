@@ -466,6 +466,12 @@ internal static partial class IWorkTableReader {
                 "Selected numeric formats contain unsupported or unresolved declarations; recovered numeric values and formulas remain available.",
                 model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Unassessed));
         }
+        int approximateNumberCount = cells.Count(cell => cell.NumericValueIsApproximate);
+        if (approximateNumberCount > 0) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED",
+                $"{approximateNumberCount} Decimal128 values in table '{name}' exceed fifteen significant digits; exact source coefficient/exponent text is retained beside the recovered numeric values.",
+                model.EntryPath, model.Identifier, global::OfficeIMO.OfficeConversionLossKind.Approximation));
+        }
         int errorCount = cells.Count(cell => cell.HasDecodeError);
         if (errorCount > 0) {
             supportsEditableReconstruction = false;

@@ -23,6 +23,7 @@ public partial class ExcelImageExportTests {
         ExcelVisualCell cell = Assert.Single(range.CreateVisualSnapshot().Cells, c => c.Column == 1);
         Assert.Equal("-5", cell.Text);
         Assert.Equal(ExcelVisualCellValueKind.Text, cell.ValueKind);
+        Assert.Equal("0000FF", cell.Style.FontColorHex);
         if (formula) Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
         Assert.Contains(">-5</text>", range.ToSvg(), StringComparison.Ordinal);
     }
@@ -45,5 +46,21 @@ public partial class ExcelImageExportTests {
             Assert.Equal(ExcelVisualCellValueKind.Number, cell.ValueKind);
         });
         Assert.Contains(">" + expected + "</text>", range.ToSvg(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(-0.5d, "0.###%;[Red]0.###%", false, "FF0000")]
+    [InlineData(0.5d, "0.###%;[Red]0.###%", false, "0000FF")]
+    [InlineData(-0.5d, "0.###%;[Red](0.###%)", true, "FF0000")]
+    [InlineData(0.5d, "0.###%\"[Red]\"", false, "0000FF")]
+    public void Image_format_color_uses_the_numeric_value_selected_section(double value, string format, bool merged, string color) {
+        using var workbook = ExcelDocument.Create();
+        ExcelSheet sheet = workbook.AddWorksheet("Colors");
+        sheet.CellAt(1, 1).SetValue(value).SetNumberFormat(format).SetFontColor("0000FF");
+        if (merged) sheet.Range("A1:B1").Merge();
+        ExcelRange range = sheet.Range(merged ? "B1:B1" : "A1:A1");
+        Assert.Equal(color, Assert.Single(range.CreateVisualSnapshot().Cells, c => c.Column == 1).Style.FontColorHex);
+        Assert.Contains("fill=\"#" + color + "\"", range.ToSvg(), StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("0000FF", sheet.CellAt(1, 1).GetStyle().FontColorHex);
     }
 }

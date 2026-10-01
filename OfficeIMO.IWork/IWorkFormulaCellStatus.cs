@@ -8,7 +8,7 @@ public enum IWorkFormulaCacheStatus {
     Partial,
     /// <summary>A complete cached value was recovered. This does not establish freshness.</summary>
     Complete,
-    /// <summary>The source error state was recovered as a generic marker without its original error code.</summary>
+    /// <summary>A numeric cache exceeds portable precision, or an error cache was recovered as a generic marker without its original error code.</summary>
     Approximate,
     /// <summary>A supported header declares a formula, but its cell contents could not be decoded to assess the cache.</summary>
     Unassessed
@@ -25,7 +25,7 @@ public sealed class IWorkFormulaCellStatus {
         CacheStatus = !ExpressionIsAssessed ? IWorkFormulaCacheStatus.Unassessed
             : cell.Value == null ? IWorkFormulaCacheStatus.Missing
             : !cell.CachedValueIsComplete ? IWorkFormulaCacheStatus.Partial
-            : cell.ValueKind == IWorkCellKind.Error && cell.CachedDisplayText == "#ERROR" ? IWorkFormulaCacheStatus.Approximate
+            : cell.NumericValueIsApproximate || cell.ValueKind == IWorkCellKind.Error && cell.CachedDisplayText == "#ERROR" ? IWorkFormulaCacheStatus.Approximate
             : IWorkFormulaCacheStatus.Complete;
         CachedValueKind = cell.Value == null ? null : cell.ValueKind;
     }
