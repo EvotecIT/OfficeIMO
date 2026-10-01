@@ -160,8 +160,9 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
     /// <summary>Queues one file for the route that turns its format into the requested target extension.</summary>
     internal bool QueueForTarget(string path, string targetExtension) {
         if (IsBusy || !CanEditQueue) return false;
-        ConversionRouteChoice? route = Routes.FirstOrDefault(choice => Accepts(choice, path) &&
-            string.Equals(NormalizeExtension(choice.Route.TargetExtension), NormalizeExtension(targetExtension), StringComparison.OrdinalIgnoreCase));
+        string name = _storage?.Describe(path).Name ?? Path.GetFileName(path);
+        var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(name), targetExtension, executableOnly: true);
+        ConversionRouteChoice? route = Routes.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
         if (route is null) return false;
         SelectedRoute = route;
         AddPaths([path]);
@@ -191,8 +192,12 @@ public sealed partial class ConversionWorkbenchViewModel : ObservableObject, IDi
             string fileName = _storage?.Describe(path).Name ?? Path.GetFileName(path);
             ConversionRouteChoice? route = Accepts(SelectedRoute, path) ? SelectedRoute : null;
             if (route is null && matchAnyRoute) {
-                ConversionRouteChoice[] matches = Routes.Where(choice => Accepts(choice, path)).Take(2).ToArray();
+                ConversionRouteChoice[] matches = Routes.Where(choice => Accepts(choice, path)).ToArray();
                 if (matches.Length == 1) route = matches[0];
+                else if (matches.Length > 1 && matches.All(choice => choice.Route.TargetExtension == matches[0].Route.TargetExtension)) {
+                    var preferred = OfficeWorkflowCatalog.Find(Path.GetExtension(fileName), matches[0].Route.TargetExtension, executableOnly: true);
+                    route = matches.FirstOrDefault(choice => choice.Route.Id == preferred?.Id);
+                }
             }
             if (route is null) {
                 unmatched.Add(path);
