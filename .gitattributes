@@ -4,6 +4,9 @@
 * text=auto
 OfficeIMO.Studio.Tests/Run-StorageAcceptance.sh text eol=lf
 
+# AV1 matrix facts are an embedded byte table; preserve their exact bytes.
+OfficeIMO.Core/Raster/Avif/OfficeAv1QuantizerMatrices.bin binary
+
 # Preserve the unmodified upstream framework fixture bytes on every platform.
 OfficeIMO.Html.Runtime.Tests/Fixtures/Preact/*.umd.js -text
 OfficeIMO.Html.Runtime.Tests/Fixtures/Preact/LICENSE -text

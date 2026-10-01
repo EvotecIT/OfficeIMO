@@ -1,0 +1,46 @@
+diff --git a/av1/common/av1_inv_txfm2d.c b/av1/common/av1_inv_txfm2d.c
+index fe0afe4..195ce2c 100644
+--- a/av1/common/av1_inv_txfm2d.c
++++ b/av1/common/av1_inv_txfm2d.c
+@@ -19,0 +20,3 @@
++
++#include "OfficeInverseProbe.h"
++
+@@ -71,4 +74,4 @@ void av1_highbd_iwht4x4_16_add_c(const tran_low_t *input, uint8_t *dest8,
+-    dest[stride * 0] = highbd_clip_pixel_add(dest[stride * 0], a1, bd);
+-    dest[stride * 1] = highbd_clip_pixel_add(dest[stride * 1], b1, bd);
+-    dest[stride * 2] = highbd_clip_pixel_add(dest[stride * 2], c1, bd);
+-    dest[stride * 3] = highbd_clip_pixel_add(dest[stride * 3], d1, bd);
++    dest[stride * 0] = office_probe_add(&dest[stride * 0], a1, bd);
++    dest[stride * 1] = office_probe_add(&dest[stride * 1], b1, bd);
++    dest[stride * 2] = office_probe_add(&dest[stride * 2], c1, bd);
++    dest[stride * 3] = office_probe_add(&dest[stride * 3], d1, bd);
+@@ -102 +105 @@ void av1_highbd_iwht4x4_1_add_c(const tran_low_t *in, uint8_t *dest8,
+-        highbd_clip_pixel_add(dest[dest_stride * 0], a1, bd);
++        office_probe_add(&dest[dest_stride * 0], a1, bd);
+@@ -104 +107 @@ void av1_highbd_iwht4x4_1_add_c(const tran_low_t *in, uint8_t *dest8,
+-        highbd_clip_pixel_add(dest[dest_stride * 1], e1, bd);
++        office_probe_add(&dest[dest_stride * 1], e1, bd);
+@@ -106 +109 @@ void av1_highbd_iwht4x4_1_add_c(const tran_low_t *in, uint8_t *dest8,
+-        highbd_clip_pixel_add(dest[dest_stride * 2], e1, bd);
++        office_probe_add(&dest[dest_stride * 2], e1, bd);
+@@ -108 +111 @@ void av1_highbd_iwht4x4_1_add_c(const tran_low_t *in, uint8_t *dest8,
+-        highbd_clip_pixel_add(dest[dest_stride * 3], e1, bd);
++        office_probe_add(&dest[dest_stride * 3], e1, bd);
+@@ -306 +309 @@ static inline void inv_txfm2d_add_c(const int32_t *input, uint16_t *output,
+-            highbd_clip_pixel_add(output[r * stride + c], temp_out[r], bd);
++            office_probe_add(&output[r * stride + c], temp_out[r], bd);
+@@ -311,2 +314 @@ static inline void inv_txfm2d_add_c(const int32_t *input, uint16_t *output,
+-        output[r * stride + c] = highbd_clip_pixel_add(
+-            output[r * stride + c], temp_out[txfm_size_row - r - 1], bd);
++        output[r * stride + c] = office_probe_add(&output[r * stride + c], temp_out[txfm_size_row - r - 1], bd);
+@@ -484,0 +487,2 @@ void av1_inv_txfm2d_add_32x8_c(const int32_t *input, uint16_t *output,
++
++#include "OfficeInverseProbe.inc"
+diff --git a/av1/decoder/decodetxb.c b/av1/decoder/decodetxb.c
+index 17d67cb..09610b3 100644
+--- a/av1/decoder/decodetxb.c
++++ b/av1/decoder/decodetxb.c
+@@ -381,0 +382,2 @@ void av1_read_coeffs_txb(const AV1_COMMON *const cm, DecoderCodingBlock *dcb,
++
++#include "OfficeDequantProbe.inc"
