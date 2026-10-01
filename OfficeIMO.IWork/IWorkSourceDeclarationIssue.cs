@@ -8,7 +8,7 @@ public enum IWorkSourceDeclarationIssueKind {
     RejectedMessageSet,
     /// <summary>A decoded declaration has invalid metadata needed to select its content.</summary>
     InvalidSelectionMetadata,
-    /// <summary>A decoded declaration contains an invalid or unsupported scalar value.</summary>
+    /// <summary>A decoded declaration contains an invalid or unsupported value.</summary>
     InvalidValue
 }
 
