@@ -184,10 +184,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            int logicalOffset = 0;
             bool preserveWhitespace = run.Style.PreserveWhitespace;
             IReadOnlyList<string> tokens = Tokenize(run.Text, preserveWhitespace, run.Style.BreakSpaces).ToList();
             for (int tokenIndex = 0; tokenIndex < tokens.Count; tokenIndex++) {
                 string token = tokens[tokenIndex];
+                string logicalToken = SliceLogicalToken(run, token, ref logicalOffset);
                 if (token == "\u2028" || preserveWhitespace && (token == "\n" || token == "\r\n")) {
                     if (noWrapRangeStart >= 0) {
                         FinalizeFloatNoWrapRange(
@@ -219,9 +221,24 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
                 double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
                 string expandedToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
-                HyphenationToken hyphenation = PrepareHyphenationToken(expandedToken, normalizedToken, run.Style);
+                string normalizedLogicalToken = !preserveWhitespace && whitespace ? " " : logicalToken;
+                HyphenationToken hyphenation = run.PreparedHyphenation.HasValue
+                    ? run.PreparedHyphenation.Value.SliceSource(logicalOffset - token.Length, normalizedLogicalToken.Length)
+                    : PrepareHyphenationToken(expandedToken, normalizedLogicalToken, run.Style);
                 string paintToken = hyphenation.PaintText;
                 double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
+                if (run.EndsFirstLine && tokenIndex == tokens.Count - 1) {
+                    paintToken += run.FirstLineHyphen;
+                    double prefixWidth = MeasureInlineText(paintToken, run.Style);
+                    if (line.HasFlowContent && line.Width + prefixWidth > line.AvailableWidth + 0.0001D)
+                        CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    if (!line.HasFlowContent && prefixWidth > line.AvailableWidth + 0.0001D)
+                        MoveFloatLineBelowObstruction(ref line, ref y, context, paragraphStyle.LineHeight, prefixWidth);
+                    line.Add(new InlineSegment(paintToken, prefixWidth, run, hyphenation.LogicalText));
+                    line.EndsWithHyphenation = run.FirstLineHyphen.Length > 0;
+                    CommitFloatLine(lines, ref line, ref y, context, paragraphStyle.LineHeight);
+                    continue;
+                }
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
                 if (!preventTokenWrapping
                     && !whitespace

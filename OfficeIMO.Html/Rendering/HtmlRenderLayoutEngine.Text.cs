@@ -166,6 +166,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 continue;
             }
 
+            int fallbackOffset = 0;
             foreach (OfficeFontFallbackRun fallback in fallbacks) {
                 HtmlRenderBoxStyle style = run.Style.Clone();
                 style.Font = style.Font.WithFamilyName(fallback.FamilyName);
@@ -179,6 +180,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     run.OwnerElement,
                     run.PositionedMarkerElement,
                     fallback.Text);
+                resolvedRun.PreparedHyphenation = run.PreparedHyphenation?.SliceSource(fallbackOffset, fallback.Text.Length);
+                fallbackOffset += fallback.Text.Length;
+                resolvedRun.EndsFirstLine = run.EndsFirstLine && fallbackOffset == run.Text.Length;
+                resolvedRun.FirstLineHyphen = resolvedRun.EndsFirstLine ? run.FirstLineHyphen : string.Empty;
                 if (run.SemanticNodeId.HasValue) {
                     resolvedRun.AssignSemanticNode(run.SemanticRole, run.SemanticNodeId.Value, run.BookmarkAnchorText, run.SemanticFragmentOrder);
                 }
@@ -758,10 +763,22 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 bool hasTabs = preserveWhitespace && normalizedToken.IndexOf('\t') >= 0;
                 double tabExpandedWidth = hasTabs ? MeasureTabExpandedText(normalizedToken, run.Style, line.Width) : 0D;
                 string paintToken = hasTabs ? normalizedToken.Replace("\t", string.Empty) : normalizedToken;
-                HyphenationToken hyphenation = PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
+                HyphenationToken hyphenation = run.PreparedHyphenation.HasValue
+                    ? run.PreparedHyphenation.Value.SliceSource(
+                        logicalOffset - token.Length + visibleTokenStart - tokenStart, normalizedLogicalToken.Length)
+                    : PrepareHyphenationToken(paintToken, normalizedLogicalToken, run.Style);
                 paintToken = hyphenation.PaintText;
                 string logicalPaintToken = hyphenation.LogicalText;
                 double measured = hasTabs ? tabExpandedWidth : MeasureInlineText(paintToken, run.Style);
+                if (run.EndsFirstLine && tokenIndex == tokens.Count - 1) {
+                    paintToken += run.FirstLineHyphen;
+                    line.Add(new InlineSegment(paintToken, MeasureInlineText(paintToken, run.Style), run,
+                        logicalPaintToken, logicalEndProgress: tokenEnd));
+                    line.EndsWithHyphenation = run.FirstLineHyphen.Length > 0;
+                    lines.Add(line);
+                    line = new InlineLine();
+                    continue;
+                }
                 bool preventTokenWrapping = paragraphStyle.PreventTextWrapping || runPreventsWrapping;
                 if (!preventTokenWrapping
                     && !whitespace
@@ -902,7 +919,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HyphenationToken PrepareHyphenationToken(string paintToken, string logicalToken, HtmlRenderBoxStyle style) {
         if (paintToken.IndexOf('\u00AD') < 0
-            && (style.Hyphens != "auto" || _options.TextHyphenationCallback == null)) {
+            && (style.Hyphens != "auto" || (_options.TextHyphenationCallback == null
+                && !OfficeTextHyphenationPatterns.SupportsLanguage(style.Language)))) {
             return new HyphenationToken(
                 paintToken,
                 logicalToken,
@@ -928,8 +946,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
 
         var automaticBreaks = new SortedSet<int>();
-        if (style.WordBreak != "break-all" && style.Hyphens == "auto" && _options.TextHyphenationCallback != null) {
-            IReadOnlyList<int>? automatic = _options.TextHyphenationCallback(logical.ToString());
+        if (style.WordBreak != "break-all" && style.Hyphens == "auto") {
+            IReadOnlyList<int>? automatic = _options.TextHyphenationCallback != null
+                ? _options.TextHyphenationCallback(logical.ToString())
+                : OfficeTextHyphenationPatterns.GetBreakpoints(logical.ToString(), style.Language);
             if (automatic != null) {
                 foreach (int point in automatic) automaticBreaks.Add(point);
             }
@@ -1680,7 +1700,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private readonly struct HyphenationToken {
+    internal readonly struct HyphenationToken {
         internal HyphenationToken(
             string paintText,
             string logicalText,
@@ -1698,6 +1718,21 @@ internal sealed partial class HtmlRenderLayoutEngine {
         internal string LogicalText { get; }
         internal IReadOnlyList<int> PrimaryBreaks { get; }
         internal IReadOnlyList<int> SecondaryBreaks { get; }
+        internal HyphenationToken SliceSource(int sourceStart, int sourceLength) {
+            int sourceEnd = sourceStart + sourceLength;
+            IReadOnlyList<int> boundaries = SourceBoundaries;
+            int start = boundaries.Count == 0 ? sourceStart
+                : Enumerable.Range(0, boundaries.Count).First(index => boundaries[index] >= sourceStart);
+            int end = boundaries.Count == 0 ? sourceEnd
+                : Enumerable.Range(start, boundaries.Count - start).First(index => boundaries[index] >= sourceEnd);
+            int[] SliceBreaks(IReadOnlyList<int> points) => points.Where(point => point > start && point < end)
+                .Select(point => point - start).ToArray();
+            return new HyphenationToken(PaintText.Substring(start, end - start), LogicalText.Substring(start, end - start),
+                SliceBreaks(PrimaryBreaks), SliceBreaks(SecondaryBreaks),
+                SourceBoundaries.Count == 0 ? Array.Empty<int>()
+                    : SourceBoundaries.Skip(start).Take(end - start + 1).Select(point => point - sourceStart).ToArray());
+        }
+
         internal bool HasBreaks => PrimaryBreaks.Count > 0 || SecondaryBreaks.Count > 0;
         internal IReadOnlyList<int> SourceBoundaries { get; }
     }

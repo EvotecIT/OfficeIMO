@@ -90,7 +90,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         return this;
     }
 
-    /// <summary>Optional caller-owned dictionary or algorithm used by CSS <c>hyphens:auto</c>.</summary>
+    /// <summary>Optional caller-owned dictionary or algorithm that overrides embedded language patterns for CSS <c>hyphens:auto</c>.</summary>
     public OfficeTextHyphenationCallback? TextHyphenationCallback { get; set; }
 
     /// <summary>Uses or clears a shared immutable hyphenation lexicon for CSS <c>hyphens:auto</c>.</summary>

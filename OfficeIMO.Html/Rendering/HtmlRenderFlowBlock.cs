@@ -746,6 +746,10 @@ internal sealed class HtmlInlineRun {
     internal bool TextTransformPending { get; private set; }
     internal string? LeaderPattern { get; }
     internal bool IsFirstLetter { get; private set; }
+    // A pseudo-element split retains the whole word's break decisions and logical text.
+    internal HtmlRenderLayoutEngine.HyphenationToken? PreparedHyphenation { get; set; }
+    internal bool EndsFirstLine { get; set; }
+    internal string FirstLineHyphen { get; set; } = string.Empty;
 
     internal void CompleteTextTransform(string text) {
         Text = text;
@@ -789,7 +793,10 @@ internal sealed class HtmlInlineRun {
             InlineSemanticGroupRole = InlineSemanticGroupRole,
             InlineSemanticGroupKey = InlineSemanticGroupKey,
             BookmarkAnchorText = BookmarkAnchorText,
-            IsFirstLetter = isFirstLetter
+            IsFirstLetter = isFirstLetter,
+            PreparedHyphenation = PreparedHyphenation,
+            EndsFirstLine = EndsFirstLine,
+            FirstLineHyphen = FirstLineHyphen
         };
         return clone;
     }

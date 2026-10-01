@@ -624,8 +624,9 @@ internal sealed partial class HtmlRenderStyleResolver {
 
     private static string ResolveLanguage(IElement element, string? inherited) {
         string? language = element.GetAttribute("lang");
-        if (string.IsNullOrWhiteSpace(language)) language = element.GetAttribute("xml:lang");
-        return string.IsNullOrWhiteSpace(language) ? inherited ?? string.Empty : language!.Trim();
+        if (language == null) language = element.GetAttribute("xml:lang");
+        // An explicit empty language means unknown, rather than inheriting an ancestor's dictionary.
+        return language == null ? inherited ?? string.Empty : language.Trim();
     }
 
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {

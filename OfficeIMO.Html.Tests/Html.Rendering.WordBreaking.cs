@@ -312,14 +312,17 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("typo-", firstLine.Text);
     }
 
-    [Fact]
-    public void HtmlRendering_HyphenateLimitLastAlwaysKeepsAWholeFinalWordTogetherWhenItFitsAFreshLine() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void HtmlRendering_HyphenateLimitLastAlwaysKeepsAWholeFinalWordTogetherWhenItFitsAFreshLine(bool firstLine) {
         var lexicon = new OfficeTextHyphenationLexicon(new[] { "ty-pog-ra-phy" }, minimumPrefixLength: 1, minimumSuffixLength: 1);
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Continuous, ViewportWidth = 180D }
             .UseTextHyphenationLexicon(lexicon);
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
-            "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>to show typography</div>",
+            (firstLine ? "<style>div::first-line{color:red}</style>" : "")
+            + "<div style='width:90px;font-size:12px;hyphens:auto;hyphenate-limit-last:always'>to show typography</div>",
             options);
         string[] lines = rendered.Pages[0].Visuals.OfType<HtmlRenderText>()
             .GroupBy(fragment => fragment.Y)

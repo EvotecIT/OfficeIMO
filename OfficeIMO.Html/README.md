@@ -414,7 +414,14 @@ PNG gamma conversion. Normalize source colors explicitly when color-managed outp
 
 The same managed path renders inline or block Presentation MathML as vector content. Fractions, roots, scripts, limits, fences, matrices, enclosures, and annotations retain logical text in the shared scene and searchable PDF output; unsupported structures use a diagnosed child-content fallback.
 
-For documents that opt into `hyphens:auto`, supply the language-appropriate break points used by the application. The same immutable lexicon can be shared with the PDF text engine:
+For documents that opt into `hyphens:auto`, the managed renderer selects embedded US English
+(`lang="en-US"` or `en`) and reformed German (`lang="de-DE"`, `de`, `de-1996` or `de-DE-1996`)
+patterns for each text run. Nested language attributes override the inherited language; an empty
+or unsupported language produces no automatic breaks. Other regional English and German spelling
+tags are unsupported. Pattern resources retain their source notices and use no external runtime.
+
+Supply an application lexicon or callback to override the embedded patterns, including returning
+no breaks. The same immutable lexicon can be shared with the PDF text engine:
 
 ```csharp
 options.UseTextHyphenationLexicon(new OfficeTextHyphenationLexicon(new[] {
