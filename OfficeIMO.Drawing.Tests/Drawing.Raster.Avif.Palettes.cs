@@ -7,9 +7,11 @@ namespace OfficeIMO.Tests;
 
 /// <summary>Native component streams protect cache boundaries, raw colors, filter gates and every reachable map context.</summary>
 public sealed class DrawingAv1PaletteTests {
-    [Fact]
-    public void NativePaletteStreamsMatchColorsFiltersAndPaddedMapsAcrossIndependentTiles() {
-        using var json = OpenFixture();
+    [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    public void NativePaletteStreamsMatchColorsFiltersAndPaddedMapsAcrossIndependentTiles(int bitDepth) {
+        using var json = OpenFixture(bitDepth);
         foreach (var c in json.RootElement.GetProperty("cases").EnumerateArray()) {
             int scenario = c.GetProperty("scenario").GetInt32();
             int width = c.GetProperty("states")[0].GetProperty("block")[2].GetInt32();
@@ -17,8 +19,8 @@ public sealed class DrawingAv1PaletteTests {
             int extent = scenario % 20 == 18 ? 18 : width == 128 || width == 64 || height == 64 || scenario % 20 == 19 ? 32 : 16;
             int units = width == 128 ? 32 : 16;
             var contexts = Enumerable.Range(0, 2).Select(tile => new OfficeAv1PaletteReader(
-                new OfficeAv1StillFrame { MiRows = extent + tile * units, MiCols = extent + tile * units, AllowScreenContentTools = scenario != 21 },
-                new OfficeAv1StillSequence { Use128Superblock = width == 128, FilterIntra = scenario != 22, Monochrome = scenario == 20 },
+                new OfficeAv1StillFrame { BitDepth = bitDepth, MiRows = extent + tile * units, MiCols = extent + tile * units, AllowScreenContentTools = scenario != 21 },
+                new OfficeAv1StillSequence { BitDepth = bitDepth, Use128Superblock = width == 128, FilterIntra = scenario != 22, Monochrome = scenario == 20 },
                 new OfficeAv1Tile(0, 1, tile * units, tile * units + extent, tile * units, tile * units + extent), new OfficeRasterDecodeOptions())).ToArray();
             byte[] bytes = Hex(c.GetProperty("hex").GetString()!);
             var streams = Enumerable.Range(0, 2).Select(_ => new OfficeAv1SymbolReader(bytes, 0, bytes.Length, 1000000, !c.GetProperty("updates").GetBoolean())).ToArray();
@@ -84,11 +86,13 @@ public sealed class DrawingAv1PaletteTests {
         context.CompleteBlock(); AssertPalette(c.GetProperty("states")[0], result);
     }
 
-    [Fact]
-    public void FailedAndCancelledPaletteContextsCannotPublishPartialCaches() {
-        using var json = OpenFixture(); byte[] bytes = Hex(json.RootElement.GetProperty("cases")[0].GetProperty("hex").GetString()!);
-        var frame = new OfficeAv1StillFrame { MiRows = 16, MiCols = 16, AllowScreenContentTools = true };
-        var sequence = new OfficeAv1StillSequence { FilterIntra = true }; var tile = new OfficeAv1Tile(0, 1, 0, 16, 0, 16);
+    [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    public void FailedAndCancelledPaletteContextsCannotPublishPartialCaches(int bitDepth) {
+        using var json = OpenFixture(bitDepth); byte[] bytes = Hex(json.RootElement.GetProperty("cases")[0].GetProperty("hex").GetString()!);
+        var frame = new OfficeAv1StillFrame { BitDepth = bitDepth, MiRows = 16, MiCols = 16, AllowScreenContentTools = true };
+        var sequence = new OfficeAv1StillSequence { BitDepth = bitDepth, FilterIntra = true }; var tile = new OfficeAv1Tile(0, 1, 0, 16, 0, 16);
         var block = new OfficeAv1BlockRegion(0, 0, 8, 8);
         var modes = new OfficeAv1IntraModes(false, true, true, OfficeAv1IntraMode.Dc, OfficeAv1IntraMode.Dc, 0, 0, 0, 0);
         var context = new OfficeAv1PaletteReader(frame, sequence, tile, new OfficeRasterDecodeOptions());
@@ -104,11 +108,33 @@ public sealed class DrawingAv1PaletteTests {
         Assert.False(untouched.ReadBool()); untouched.Finish();
     }
 
+    [Fact]
+    public void PaletteDepthIsValidatedAndSnapshottedBeforeReadingSymbols() {
+        var frame = new OfficeAv1StillFrame { BitDepth = 10, MiRows = 16, MiCols = 16, AllowScreenContentTools = true };
+        var sequence = new OfficeAv1StillSequence { BitDepth = 8, FilterIntra = true };
+        var tile = new OfficeAv1Tile(0, 1, 0, 16, 0, 16);
+        var options = new OfficeRasterDecodeOptions();
+        Assert.Throws<FormatException>(() => new OfficeAv1PaletteReader(frame, sequence, tile, options));
+        frame.BitDepth = sequence.BitDepth = 12;
+        Assert.Throws<FormatException>(() => new OfficeAv1PaletteReader(frame, sequence, tile, options));
+        frame.BitDepth = sequence.BitDepth = 10;
+        var context = new OfficeAv1PaletteReader(frame, sequence, tile, options);
+        // Parsed metadata can be reused by its caller; the tile keeps its chosen depth.
+        frame.BitDepth = sequence.BitDepth = 8;
+        using var fixture = OpenFixture(10);
+        var c = fixture.RootElement.GetProperty("cases")[0];
+        byte[] bytes = Hex(c.GetProperty("hex").GetString()!);
+        var state = c.GetProperty("states")[0];
+        var symbols = new OfficeAv1SymbolReader(bytes, 0, bytes.Length, 100000, true);
+        AssertPalette(state, context.Read(symbols, new OfficeAv1BlockRegion(0, 0, 8, 8), Modes(state.GetProperty("modes"))));
+        context.CompleteBlock();
+    }
+
     private static void AssertPalette(JsonElement expected, OfficeAv1Palette actual) {
         Assert.Equal(expected.GetProperty("filter").GetInt32(), actual.FilterMode);
-        var colors = new[] { Hex(expected.GetProperty("y").GetString()!), Hex(expected.GetProperty("u").GetString()!), Hex(expected.GetProperty("v").GetString()!) };
+        var colors = new[] { Colors(expected.GetProperty("y")), Colors(expected.GetProperty("u")), Colors(expected.GetProperty("v")) };
         Assert.Equal(colors[0].Length, actual.SizeY); Assert.Equal(colors[1].Length, actual.SizeUv);
-        for (int plane = 0; plane < 3; plane++) Assert.Equal(colors[plane].Select(x => (ushort)x), Enumerable.Range(0, colors[plane].Length).Select(i => actual.Color(plane, i)).ToArray());
+        for (int plane = 0; plane < 3; plane++) Assert.Equal(colors[plane], Enumerable.Range(0, colors[plane].Length).Select(i => actual.Color(plane, i)).ToArray());
         foreach (bool chroma in new[] { false, true }) {
             byte[] map = Hex(expected.GetProperty(chroma ? "mapUv" : "mapY").GetString()!);
             int width = chroma ? actual.ChromaWidth : actual.Width;
@@ -119,6 +145,9 @@ public sealed class DrawingAv1PaletteTests {
         int[] v = element.EnumerateArray().Select(x => x.GetInt32()).ToArray();
         return new OfficeAv1IntraModes(v[0] != 0, v[1] != 0, v[2] != 0, (OfficeAv1IntraMode)v[3], (OfficeAv1IntraMode)v[4], v[5], v[6], v[7], v[8]);
     }
-    private static JsonDocument OpenFixture() => JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Avif", "palette-reference.json")));
+    private static ushort[] Colors(JsonElement colors) => colors.ValueKind == JsonValueKind.String
+        ? Hex(colors.GetString()!).Select(x => (ushort)x).ToArray()
+        : colors.EnumerateArray().Select(x => x.GetUInt16()).ToArray();
+    private static JsonDocument OpenFixture(int bitDepth = 8) => JsonDocument.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "TestAssets", "Avif", bitDepth == 8 ? "palette-reference.json" : "palette-main10-reference.json")));
     private static byte[] Hex(string text) => Enumerable.Range(0, text.Length / 2).Select(i => Convert.ToByte(text.Substring(i * 2, 2), 16)).ToArray();
 }

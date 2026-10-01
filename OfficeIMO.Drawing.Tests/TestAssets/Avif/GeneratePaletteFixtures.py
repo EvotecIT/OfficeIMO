@@ -18,10 +18,22 @@ def main():
     parser.add_argument('--work-dir', required=True, type=pathlib.Path)
     parser.add_argument('--output', type=pathlib.Path)
     parser.add_argument('--cc', default='clang')
+    parser.add_argument('--bit-depth', type=int, choices=(8, 10), default=8)
+    parser.add_argument('--native-source', type=pathlib.Path)
+    parser.add_argument('--native-build', type=pathlib.Path)
     args = parser.parse_args()
     here = pathlib.Path(__file__).resolve().parent
     work = args.work_dir.resolve()
-    subprocess.run([sys.executable, str(here / 'GenerateModeFixtures.py'), '--work-dir', str(work), '--cc', args.cc], check=True)
+    if bool(args.native_source) != bool(args.native_build):
+        raise ValueError('Supply both native source and build')
+    if args.bit_depth == 10 and not args.native_source:
+        raise ValueError('Ten-bit fixtures require the actual native decoder source and build')
+    native = args.native_source.resolve() if args.native_source else work / 'native-aom'
+    if args.native_source:
+        from GeneratePaletteNativeReference import prepare
+        prepare(here, work, native, args.native_build.resolve())
+    else:
+        subprocess.run([sys.executable, str(here / 'GenerateModeFixtures.py'), '--work-dir', str(work), '--cc', args.cc], check=True)
     text = (work / 'entropymode.c').read_text()
     tables = [('default_palette_y_mode_cdf', '[7][3][3]'), ('default_palette_uv_mode_cdf', '[2][3]'),
               ('default_palette_y_size_cdf', '[7][8]'), ('default_palette_uv_size_cdf', '[7][8]'),
@@ -39,14 +51,15 @@ def main():
     compiler = shutil.which(args.cc)
     if not compiler:
         raise FileNotFoundError(args.cc)
-    native = work / 'native-aom'
     harness = here / 'GeneratePaletteFixtures.c'
     executable = work / 'generate-palettes'
     command = [compiler, '-std=c11', '-Wall', '-Wextra', '-Werror', '-O2', '-I', str(native), '-I', str(work), str(harness)]
+    if args.native_source:
+        command += ['-I', str(args.native_build.resolve())]
     command += [str(native / 'aom_dsp' / name) for name in ('entenc.c', 'entdec.c', 'entcode.c')]
     subprocess.run(command + ['-o', str(executable)], check=True)
     raw = work / 'native-palettes.json'
-    subprocess.run([str(executable), str(raw)], check=True)
+    subprocess.run([str(executable), str(raw), str(args.bit_depth)], check=True)
     vectors = json.loads(raw.read_text())
     contexts = [sum(c['mapContexts'][i] for c in vectors['cases']) for i in range(70)]
     # Context 1 requires three distinct neighbors and cannot occur for a two-color palette.
@@ -54,9 +67,9 @@ def main():
         raise ValueError('Missing palette size/map context coverage: ' + str(contexts))
     entropy = json.loads((here / 'entropy-oracle.json').read_text())
     geometry = json.loads((here / 'partition-oracle.json').read_text())['prefixGeometry']
-    preludes = json.loads((work / 'prelude-reference.json').read_text())['framePrefixes']
+    preludes = json.loads(((here if args.native_source else work) / 'prelude-reference.json').read_text())['framePrefixes']
     prefixes = []
-    for frame in entropy['framePrefixes']:
+    for frame in entropy['framePrefixes'] if args.bit_depth == 8 else []:
         g = geometry[frame['name']]
         b = next(v for v in preludes if v['name'] == frame['name'])
         # Independent FFmpeg header traces: filter-intra=1 on all items; screen-content only on the color item.
@@ -69,7 +82,14 @@ def main():
         prefix['screen'] = screen
         prefix.update(json.loads(output.read_text()))
         prefixes.append(prefix)
-    vectors['framePrefixes'] = prefixes
+    if args.bit_depth == 8:
+        vectors['framePrefixes'] = prefixes
+    else:
+        vectors['bitDepth'] = args.bit_depth
+    actual = None
+    if args.native_source:
+        from GeneratePaletteNativeReference import verify
+        actual = verify(here, work, native, args.native_build.resolve(), compiler, vectors, args.bit_depth)
     output = args.output.resolve() if args.output else work / 'palette-reference.json'
     # Keep one leaf per line; its colors/maps are numeric fixture data, not prose.
     encoded = json.dumps(vectors, indent=2)
@@ -81,9 +101,12 @@ def main():
     receipt = {'generatorSha256': sha256(pathlib.Path(__file__).read_bytes()), 'harnessSha256': sha256(harness.read_bytes()),
                'sharedModeHarnessSha256': sha256((here / 'GenerateModeFixtures.c').read_bytes()),
                'tableSourceSha256': sha256((work / 'entropymode.c').read_bytes()),
-               'modeReceiptSha256': sha256((work / 'mode-oracle-receipt.json').read_bytes()),
                'fixtureSha256': sha256(output.read_bytes()), 'cases': len(vectors['cases']),
                'nativeSelfCheck': vectors['nativeSelfCheck'], 'prefixes': len(prefixes)}
+    if actual:
+        receipt['nativeDecoder'] = actual
+    else:
+        receipt['modeReceiptSha256'] = sha256((work / 'mode-oracle-receipt.json').read_bytes())
     write_json(work / 'palette-oracle-receipt.json', receipt)
     print('Generated ' + str(output) + ' SHA256 ' + receipt['fixtureSha256'])
 

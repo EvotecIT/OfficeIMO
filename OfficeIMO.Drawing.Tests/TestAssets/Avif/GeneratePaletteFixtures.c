@@ -7,10 +7,11 @@ typedef struct {
     mode_codec mode;
     aom_cdf_prob has_y[7][3][3],has_uv[2][3],size_y[7][8],size_uv[7][8];
     aom_cdf_prob map_y[7][5][9],map_uv[7][5][9],filter[22][3],filter_mode[6];
-    unsigned char sizes[2][64][64],colors[2][64][64][8];
+    unsigned char sizes[2][64][64];uint16_t colors[2][64][64][8];
     int contexts[2][35],cache_bits,cache_hits,filter_hits;
 } palette_codec;
-typedef struct { int ny,nu,f,w,h;unsigned char y[8],u[8],v[8],map_y[4096],map_uv[1024]; } palette_result;
+typedef struct { int ny,nu,f,w,h;uint16_t y[8],u[8],v[8];unsigned char map_y[4096],map_uv[1024]; } palette_result;
+static int palette_bit_depth=8;
 static void palette_init(palette_codec *p,int decode,int updates) {
     memset(p,0,sizeof(*p));mode_init(&p->mode,decode,updates);
     memcpy(p->has_y,default_palette_y_mode_cdf,sizeof(p->has_y));memcpy(p->has_uv,default_palette_uv_mode_cdf,sizeof(p->has_uv));
@@ -29,36 +30,36 @@ static int praw(palette_codec *p,int bits,int expected) {
     if(expected>=0) assert(actual==expected);return actual;
 }
 static int log2n(int x) {int n=0;while((x>>=1))n++;return n;}
-static int cmp_byte(const void *a,const void *b) {return *(const unsigned char*)a-*(const unsigned char*)b;}
-static int cache(palette_codec *p,int r,int c,int plane,unsigned char *out) {
-    int n=0;if(r&&r%16) {int k=p->sizes[plane][r-1][c];memcpy(out,p->colors[plane][r-1][c],k);n+=k;}
-    if(c) {int k=p->sizes[plane][r][c-1];memcpy(out+n,p->colors[plane][r][c-1],k);n+=k;}
-    qsort(out,n,1,cmp_byte);int unique=0;
+static int cmp_color(const void *a,const void *b) {return *(const uint16_t*)a-*(const uint16_t*)b;}
+static int cache(palette_codec *p,int r,int c,int plane,uint16_t *out) {
+    int n=0;if(r&&r%16) {int k=p->sizes[plane][r-1][c];memcpy(out,p->colors[plane][r-1][c],k*sizeof(*out));n+=k;}
+    if(c) {int k=p->sizes[plane][r][c-1];memcpy(out+n,p->colors[plane][r][c-1],k*sizeof(*out));n+=k;}
+    qsort(out,n,sizeof(*out),cmp_color);int unique=0;
     for(int i=0;i<n;i++)if(!unique||out[i]!=out[unique-1])out[unique++]=out[i];return unique;
 }
-static void palette_colors(palette_codec *p,int r,int c,int plane,int n,int index,unsigned char *colors) {
-    unsigned char cached[16];int available=cache(p,r,c,plane,cached),i=0,known=index>=0;
+static void palette_colors(palette_codec *p,int r,int c,int plane,int n,int index,uint16_t *colors) {
+    uint16_t cached[16];int available=cache(p,r,c,plane,cached),i=0,known=index>=0;
     for(int j=0;j<available&&i<n;j++) {
         int use=praw(p,1,known?(index%6==0||(index+j)%3!=2):-1);p->cache_bits++;p->cache_hits+=use;
         if(use)colors[i++]=cached[j];
     }
-    if(i<n) colors[i++]=(unsigned char)praw(p,8,known?(index%5==0?242:(index*17+plane*23)%32):-1);
-    int bits=i<n?5+praw(p,2,known?index%4:-1):0;
+    if(i<n) colors[i++]=(uint16_t)praw(p,palette_bit_depth,known?(index%5==0?(1<<palette_bit_depth)-14:(index*17+plane*23)%(palette_bit_depth==8?32:1024)):-1);
+    int bits=i<n?palette_bit_depth-3+praw(p,2,known?index%4:-1):0;
     while(i<n) {
         int delta=praw(p,bits,known?(index+i*19)% (1<<bits):-1)+(plane==0);
-        int value=colors[i-1]+delta;if(value>255)value=255;colors[i++]=(unsigned char)value;
-        int range=256-value-(plane==0),limit=range<=1?0:log2n(range-1)+1;if(bits>limit)bits=limit;
+        int value=colors[i-1]+delta;if(value>((1<<palette_bit_depth)-1))value=(1<<palette_bit_depth)-1;colors[i++]=(uint16_t)value;
+        int range=(1<<palette_bit_depth)-value-(plane==0),limit=range<=1?0:log2n(range-1)+1;if(bits>limit)bits=limit;
     }
-    qsort(colors,n,1,cmp_byte);
+    qsort(colors,n,sizeof(*colors),cmp_color);
 }
-static void vcolors(palette_codec *p,int n,int index,unsigned char *colors) {
+static void vcolors(palette_codec *p,int n,int index,uint16_t *colors) {
     int known=index>=0,delta=praw(p,1,known?index%2:-1);
-    if(!delta)for(int i=0;i<n;i++)colors[i]=(unsigned char)praw(p,8,known?(index*13+i*31)%256:-1);
+    if(!delta)for(int i=0;i<n;i++)colors[i]=(uint16_t)praw(p,palette_bit_depth,known?(index*13+i*31)%(1<<palette_bit_depth):-1);
     else {
-        int bits=4+praw(p,2,known?index%4:-1);colors[0]=(unsigned char)praw(p,8,known?index%3==0?250:4:-1);
+        int bits=palette_bit_depth-4+praw(p,2,known?index%4:-1);colors[0]=(uint16_t)praw(p,palette_bit_depth,known?index%3==0?(1<<palette_bit_depth)-6:4:-1);
         for(int i=1;i<n;i++) {
             int d=praw(p,bits,known?(index+i*7)%(1<<bits):-1);
-            if(d&&praw(p,1,known?(index+i)%2:-1))d=-d;colors[i]=(unsigned char)((colors[i-1]+d+256)&255);
+            if(d&&praw(p,1,known?(index+i)%2:-1))d=-d;colors[i]=(uint16_t)((colors[i-1]+d+(1<<palette_bit_depth))&((1<<palette_bit_depth)-1));
         }
     }
 }
@@ -117,12 +118,16 @@ static void palette(palette_codec *p,int r,int c,int w,int h,int rows,int cols,i
         palette_map(p,out->nu,uw,uh,uow,uoh,1,index,out->map_uv);}
     for(int yy=r;yy<r+h/4&&yy<rows;yy++)for(int x=c;x<c+w/4&&x<cols;x++) {
         p->sizes[0][yy][x]=(unsigned char)out->ny;p->sizes[1][yy][x]=(unsigned char)out->nu;
-        memcpy(p->colors[0][yy][x],out->y,out->ny);memcpy(p->colors[1][yy][x],out->u,out->nu);
+        memcpy(p->colors[0][yy][x],out->y,out->ny*sizeof(*out->y));memcpy(p->colors[1][yy][x],out->u,out->nu*sizeof(*out->u));
     }
 }
 static void hex(FILE *out,const unsigned char *values,int n) {fprintf(out,"\"");for(int i=0;i<n;i++)fprintf(out,"%02x",values[i]);fprintf(out,"\"");}
+static void print_colors(FILE *out,const uint16_t *values,int n) {
+    if(palette_bit_depth==8) {fprintf(out,"\"");for(int i=0;i<n;i++)fprintf(out,"%02x",values[i]);fprintf(out,"\"");}
+    else {fprintf(out,"[");for(int i=0;i<n;i++)fprintf(out,"%s%u",i?",":"",values[i]);fprintf(out,"]");}
+}
 static void print_result(FILE *out,palette_result *p) {
-    fprintf(out,"\"filter\":%d,\"y\":",p->f);hex(out,p->y,p->ny);fprintf(out,",\"u\":");hex(out,p->u,p->nu);fprintf(out,",\"v\":");hex(out,p->v,p->nu);
+    fprintf(out,"\"filter\":%d,\"y\":",p->f);print_colors(out,p->y,p->ny);fprintf(out,",\"u\":");print_colors(out,p->u,p->nu);fprintf(out,",\"v\":");print_colors(out,p->v,p->nu);
     fprintf(out,",\"mapY\":");hex(out,p->map_y,p->ny?p->w*p->h:0);
     fprintf(out,",\"mapUv\":");hex(out,p->map_uv,p->nu?(p->w<8?4:p->w/2)*(p->h<8?4:p->h/2):0);
 }
@@ -167,7 +172,7 @@ static void palette_prefix(char **argv) {
 #define main palette_component_main
 #endif
 int main(int argc,char **argv) {
-    if(argc==12){palette_prefix(argv);return 0;}assert(argc==2);
+    if(argc==12){palette_prefix(argv);return 0;}assert(argc==2||argc==3);if(argc==3)palette_bit_depth=atoi(argv[2]);assert(palette_bit_depth==8||palette_bit_depth==10);
     FILE *out=fopen(argv[1],"wb");assert(out);fprintf(out,"{\"producer\":\"AOM v3.13.1 entropy, tables and native palette context; original remaining syntax harness\",\"nativeSelfCheck\":true,\"cases\":[");
     int first=1;for(int s=0;s<24;s++)for(int u=0;u<2;u++)make_palette(out,s,u,&first);
     fprintf(out,"]}\n");fclose(out);return 0;

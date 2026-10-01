@@ -3,13 +3,14 @@ using System.Threading;
 
 namespace OfficeIMO.Drawing;
 
-/// <summary>Tile-owned Main-8 palette/filter-intra syntax and palette tokens through the transform-size boundary.</summary>
+/// <summary>Tile-owned eight/ten-bit palette/filter-intra syntax and palette tokens through the transform-size boundary.</summary>
 /// <remarks>The caller supplies the parsed modes and follows partition order. CompleteBlock publishes palettes
 /// only after the remaining transform/residual syntax succeeds. Above color reuse resets on each 64-pixel row,
 /// independently of the above palette-presence context. Intra-block-copy motion remains a separate owner.</remarks>
 internal sealed partial class OfficeAv1PaletteReader {
     private readonly OfficeAv1TileGeometry _geometry;
     private readonly bool _screen, _filter;
+    private readonly int _bitDepth, _sampleRange;
     private readonly CancellationToken _cancellation;
     private readonly byte[] _aboveSizes, _leftSizes;
     private readonly ushort[] _aboveColors, _leftColors;
@@ -24,9 +25,13 @@ internal sealed partial class OfficeAv1PaletteReader {
 
     internal OfficeAv1PaletteReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence, OfficeAv1Tile tile,
         OfficeRasterDecodeOptions options) {
+        if (frame == null) throw new ArgumentNullException(nameof(frame));
         if (sequence == null) throw new ArgumentNullException(nameof(sequence));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
+        if ((sequence.BitDepth != 8 && sequence.BitDepth != 10) || frame.BitDepth != sequence.BitDepth)
+            throw new FormatException("AV1 palettes require matching eight-bit or ten-bit frame and sequence depths.");
+        _bitDepth = sequence.BitDepth; _sampleRange = 1 << _bitDepth;
         _geometry = new OfficeAv1TileGeometry(frame, tile, sequence.Use128Superblock ? 128 : 64);
         _geometry.EnsurePixelBudget(options.MaximumDecodedPixels);
         _screen = frame.AllowScreenContentTools; _filter = sequence.FilterIntra; _cancellation = options.CancellationToken;

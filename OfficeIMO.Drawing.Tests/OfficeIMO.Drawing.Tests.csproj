@@ -40,6 +40,7 @@
     <None Update="TestAssets\Avif\prelude-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\mode-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\palette-reference.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="TestAssets\Avif\palette-main10-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\transform-reference.json" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\coefficient-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
     <None Update="TestAssets\Avif\copy-reference.json.gz" CopyToOutputDirectory="PreserveNewest" />
