@@ -215,6 +215,7 @@ namespace OfficeIMO.Word.Html {
             "image/bmp",
             "image/tiff",
             "image/webp",
+            "image/avif",
             "image/svg+xml"
         };
 

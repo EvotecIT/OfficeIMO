@@ -34,6 +34,9 @@ public sealed class DrawingAv1RestoredFrameTests {
 [InlineData("restore-control-13",false)]
 [InlineData("restore-control-14",false)]
 [InlineData("restore-control-15",false)]
+    [InlineData("restore-control-16",false)]
+    [InlineData("restore-control-18",false)]
+    [InlineData("restore-control-19",false)]
     public void CroppedFrameMatchesNativeBeforeAndAfterRestoration(string name,bool alpha) {
         using var fixture=Open();var c=fixture.RootElement.GetProperty("cases").EnumerateArray().Single(v=>
             v.GetProperty("name").GetString()==name && v.GetProperty("alpha").GetBoolean()==alpha);

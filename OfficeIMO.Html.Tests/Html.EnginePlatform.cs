@@ -616,7 +616,7 @@ public partial class Html {
                     <p class="print-only">Print target retained</p>
                     <picture>
                         <source media="screen" srcset="https://example.test/images/screen-chart.png 1x">
-                        <source media="print/*c*/ and (color)" type="image/avif" srcset="https://example.test/images/ignored-print-chart.avif 1x">
+                        <source media="print/*c*/ and (color)" type="image/x-officeimo-unsupported" srcset="https://example.test/images/ignored-print-chart.avif 1x">
                         <source media="print" srcset="https://example.test/images/print-chart.png 1x">
                         <img src="https://example.test/images/fallback-chart.png" alt="Chart">
                     </picture>
@@ -685,7 +685,7 @@ public partial class Html {
             <body>
                 <main>
                     <picture><source srcset="mailto:ops@example.test"><img src="https://example.test/images/mailto-fallback.png" alt="Mail fallback"></picture>
-                    <picture><source type="image/avif" srcset="https://example.test/images/ignored.avif 1x"><img src="https://example.test/images/adapter-fallback.png" alt="Type fallback"></picture>
+                    <picture><source type="image/x-officeimo-unsupported" srcset="https://example.test/images/ignored.avif 1x"><img src="https://example.test/images/adapter-fallback.png" alt="Type fallback"></picture>
                     <picture><source type="image/apng" srcset="https://example.test/images/ignored.apng 1x"><img src="https://example.test/images/apng-fallback.png" alt="APNG fallback"></picture>
                     <img alt="Late candidate" srcset="{{blockedSrcSet}}, https://example.test/images/late-candidate.png 33w">
                     <video><source src="mailto:media@example.test" type="video/mp4"><source src="https://example.test/media/fallback.mp4" type="video/mp4"></video>
@@ -1197,7 +1197,7 @@ public partial class Html {
                 <picture><source srcset="file:///secret/policy-source.png 1x"><img src="https://example.test/images/policy-fallback.png"></picture>
                 <picture><source srcset="file:///secret/blocked-wide.png 1x"><source srcset="https://example.test/images/next-wide.png 1x"><img src="https://example.test/images/unused-wide-fallback.png"></picture>
                 <picture><source srcset="file:///secret/mixed-picture.png 1x, https://example.test/images/mixed-picture.png 2x"><source srcset="https://example.test/images/unused-mixed-next.png 1x"><img src="https://example.test/images/unused-mixed-fallback.png"></picture>
-                <picture><source type="image/avif" srcset="https://example.test/images/word-skipped.avif 1x"><img src="https://example.test/images/word-fallback.png"></picture>
+                <picture><source type="image/x-officeimo-unsupported" srcset="https://example.test/images/word-skipped.avif 1x"><img src="https://example.test/images/word-fallback.png"></picture>
                 <div data="file:///secret/metadata"></div>
                 <x-card href="file:///secret/custom-href.png" src="file:///secret/custom-src.png"></x-card>
                 <div background="file:///secret/not-legacy-background.png"></div>

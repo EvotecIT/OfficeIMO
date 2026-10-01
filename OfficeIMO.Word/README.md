@@ -125,7 +125,7 @@ var paragraph = document.AddParagraph();
 paragraph.AddImage("logo.png", width: 160, height: 64);
 ```
 
-Supported static WebP images are decoded by OfficeIMO.Core and embedded as PNG because Word image parts do not accept WebP. Animated or undecodable WebP input is rejected rather than silently reduced to one frame.
+Supported static WebP and AVIF images are decoded by OfficeIMO.Core and embedded as PNG because Word image parts do not accept those formats. AVIF uses the [bounded still-image profile](../OfficeIMO.Core/README.md#inspect-and-select-frames-or-pages) owned by Core. Animated, unsupported or undecodable input is rejected rather than silently reduced to one frame.
 
 Use `paragraph.Image.Clone(destinationParagraph)` to copy an image to another paragraph,
 header, footer, or document. The destination owns its image relationships and fresh DrawingML

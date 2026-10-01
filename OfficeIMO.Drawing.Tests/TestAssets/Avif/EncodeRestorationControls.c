@@ -4,8 +4,8 @@
 #include "aom/aom_encoder.h"
 #include "aom/aomcx.h"
 int main(int argc,char **argv) {
-  if(argc!=3)return 2;const int mode=atoi(argv[2]),w=mode>=3?513:193,h=mode==5?513:mode>=3?257:137,mono=mode==2 || mode==14;
-  if(mode<0 || mode>15)return 2;
+  if(argc!=3)return 2;const int mode=atoi(argv[2]),w=mode>=3?513:193,h=mode>=16?513:mode==5?513:mode>=3?257:137,mono=mode==2 || mode==14 || mode==19;
+  if(mode<0 || mode>19)return 2;
   aom_codec_enc_cfg_t cfg;
   if(aom_codec_enc_config_default(aom_codec_av1_cx(),&cfg,AOM_USAGE_GOOD_QUALITY))return 3;
   cfg.g_w=w;cfg.g_h=h;cfg.g_threads=1;cfg.g_timebase.num=1;cfg.g_timebase.den=1;
@@ -15,14 +15,14 @@ int main(int argc,char **argv) {
     cfg.rc_superres_mode=AOM_SUPERRES_FIXED;
     cfg.rc_superres_denominator=cfg.rc_superres_kf_denominator=(unsigned int)(mode+3);
   }
-  if(mode>=14) {
+  if(mode>=14 && mode<=15) {
     cfg.rc_superres_mode=AOM_SUPERRES_FIXED;
     cfg.rc_superres_denominator=cfg.rc_superres_kf_denominator=13;
   }
   aom_codec_ctx_t enc;if(aom_codec_enc_init(&enc,aom_codec_av1_cx(),&cfg,0))return 4;
-  if(aom_codec_control(&enc,AOME_SET_CPUUSED,2) || aom_codec_control(&enc,AV1E_SET_ENABLE_INTRABC,0) ||
+  if(aom_codec_control(&enc,AOME_SET_CPUUSED,mode>=16?0:2) || aom_codec_control(&enc,AV1E_SET_ENABLE_INTRABC,0) ||
      aom_codec_control(&enc,AV1E_SET_ENABLE_PALETTE,0) || aom_codec_control(&enc,AV1E_SET_ENABLE_RESTORATION,1) ||
-     aom_codec_control(&enc,AV1E_SET_SUPERBLOCK_SIZE,(mode>=14?AOM_SUPERBLOCK_SIZE_128X128:AOM_SUPERBLOCK_SIZE_64X64)) ||
+     aom_codec_control(&enc,AV1E_SET_SUPERBLOCK_SIZE,(mode==14 || mode==15 || mode==19?AOM_SUPERBLOCK_SIZE_128X128:AOM_SUPERBLOCK_SIZE_64X64)) ||
      aom_codec_control(&enc,AV1E_SET_TILE_COLUMNS,1) || aom_codec_control(&enc,AV1E_SET_COLOR_RANGE,mono?1:0))return 5;
   aom_image_t *image=aom_img_alloc(NULL,AOM_IMG_FMT_I420,w,h,1);if(!image)return 6;
   unsigned int random=7;

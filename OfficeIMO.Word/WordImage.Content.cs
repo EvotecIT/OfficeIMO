@@ -264,9 +264,9 @@ namespace OfficeIMO.Word {
             double? height = null
         ) {
             return Helpers.UseSeekableImageStream(imageStream, preparedImageStream => {
-                using MemoryStream? convertedWebp = ConvertWebpForWord(preparedImageStream);
-                Stream embeddedStream = convertedWebp ?? preparedImageStream;
-                string embeddedFileName = convertedWebp == null ? fileName : System.IO.Path.ChangeExtension(fileName, ".png");
+                using MemoryStream? convertedRaster = ConvertRasterForWord(preparedImageStream);
+                Stream embeddedStream = convertedRaster ?? preparedImageStream;
+                string embeddedFileName = convertedRaster == null ? fileName : System.IO.Path.ChangeExtension(fileName, ".png");
                 // Size - https://stackoverflow.com/questions/8082980/inserting-image-into-docx-using-openxml-and-setting-the-size
                 // if widht/height are not set we check ourselves
                 // but probably will need better way
@@ -332,26 +332,27 @@ namespace OfficeIMO.Word {
             });
         }
 
-        private static MemoryStream? ConvertWebpForWord(Stream stream) {
+        private static MemoryStream? ConvertRasterForWord(Stream stream) {
             if (!OfficeImageReader.TryIdentifyByContent(stream, null, out OfficeImageInfo info)
-                || info.Format != OfficeImageFormat.Webp) return null;
+                || info.Format is not (OfficeImageFormat.Webp or OfficeImageFormat.Avif)) return null;
 
+            string format = info.Format == OfficeImageFormat.Webp ? "WebP" : "AVIF";
             var options = new OfficeRasterDecodeOptions {
                 FrameLossPolicy = OfficeRasterFrameLossPolicy.RejectMultipleFrames
             };
             if (stream.Length > options.MaximumEncodedBytes) {
-                throw new InvalidDataException("The WebP image exceeds the supported encoded byte limit.");
+                throw new InvalidDataException($"The {format} image exceeds the supported encoded byte limit.");
             }
             stream.Position = 0;
             byte[] source = new byte[checked((int)stream.Length)];
             int read = 0;
             while (read < source.Length) {
                 int count = stream.Read(source, read, source.Length - read);
-                if (count == 0) throw new EndOfStreamException("The WebP image ended before its declared length.");
+                if (count == 0) throw new EndOfStreamException($"The {format} image ended before its declared length.");
                 read += count;
             }
             if (!OfficeImagePngConverter.TryConvertToPng(source, options, out byte[] pngBytes, out _)) {
-                throw new InvalidDataException("The WebP image could not be decoded as a static frame for Word.");
+                throw new InvalidDataException($"The {format} image could not be decoded as a static frame for Word.");
             }
             return new MemoryStream(pngBytes, writable: false);
         }
