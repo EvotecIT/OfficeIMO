@@ -8,7 +8,7 @@ internal sealed class IWorkTableNumberFormatCatalog {
     private readonly IWorkProjectionBudget _budget;
     private readonly IWorkSourceReferenceIssueCollector _references;
     private readonly Dictionary<uint, (IWorkWireMessage Message, int Position)> _entries = new();
-    private readonly Dictionary<uint, IWorkNumberFormat?> _resolved = new();
+    private readonly Dictionary<(uint Key, bool Currency), IWorkNumberFormat?> _resolved = new();
     private IWorkArchiveRecord? _list;
     private bool _initialized;
 
@@ -23,12 +23,10 @@ internal sealed class IWorkTableNumberFormatCatalog {
 
     internal bool FullyReconstructed { get; private set; } = true;
 
-    internal void MarkUnsupportedSelection() => FullyReconstructed = false;
-
-    internal IWorkNumberFormat? Read(uint key) {
+    internal IWorkNumberFormat? Read(uint key, bool currency = false) {
         _source.CancellationToken.ThrowIfCancellationRequested();
         if (!_initialized) Initialize();
-        if (_resolved.TryGetValue(key, out IWorkNumberFormat? cached)) return cached;
+        if (_resolved.TryGetValue((key, currency), out IWorkNumberFormat? cached)) return cached;
         if (!_entries.TryGetValue(key, out var entry)) {
             FullyReconstructed = false;
             return null;
@@ -47,21 +45,38 @@ internal sealed class IWorkTableNumberFormatCatalog {
             try {
                 IWorkWireMessage message = entry.Message.ParseNestedMessage(bytes);
                 int typeFields = entry.Message.CountNestedFields(bytes, 1, out int totalFields);
-                // The supported subset has no currency, date, duration, custom format,
+                // The supported subset has no date, duration, custom format,
                 // scaling or control metadata. Unknown properties cannot be silently ignored.
                 bool supportedShape = typeFields == 1 && totalFields == message.FieldCount(1)
-                    + message.FieldCount(2) + message.FieldCount(4) + message.FieldCount(5);
-                foreach (int field in new[] { 1, 2, 4, 5 })
+                    + message.FieldCount(2) + message.FieldCount(4) + message.FieldCount(5)
+                    + (currency ? message.FieldCount(3) + message.FieldCount(6) : 0);
+                foreach (int field in currency ? new[] { 1, 2, 4, 5, 6 } : new[] { 1, 2, 4, 5 })
                     supportedShape &= message.FieldCount(field) <= 1
                         && !message.HasUnexpectedWireKind(field, IWorkWireKind.Varint);
                 ulong? type = message.GetUnsigned(1);
                 ulong decimals = message.GetUnsigned(2) ?? 0;
                 ulong negative = message.GetUnsigned(4) ?? 0;
                 ulong grouping = message.GetUnsigned(5) ?? 0;
-                if (supportedShape && type is 256 or 258 && (decimals <= 30 || decimals == 253)
-                    && negative <= 3 && grouping <= 1) {
-                    format = new IWorkNumberFormat(type == 258 ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number,
-                        decimals == 253 ? null : (int)decimals, grouping == 1, (IWorkNegativeNumberStyle)negative);
+                ulong accounting = currency ? message.GetUnsigned(6) ?? 0 : 0;
+                string? currencyCode = null;
+                if (currency) {
+                    byte[]? code = message.GetBytes(3);
+                    supportedShape &= message.FieldCount(3) == 1
+                        && !message.HasUnexpectedWireKind(3, IWorkWireKind.Bytes)
+                        && code is { Length: 3 } && code.All(value => value is >= (byte)'A' and <= (byte)'Z');
+                    if (supportedShape) currencyCode = System.Text.Encoding.ASCII.GetString(code!);
+                }
+                if (supportedShape && (currency ? type == 257 : type is 256 or 258)
+                    && (decimals <= 30 || decimals == 253) && negative <= 3 && grouping <= 1
+                    && accounting <= 1 && (accounting == 0 || negative == 0)) {
+                    if (currency) {
+                        _budget.AddTextCharacters(currencyCode!.Length);
+                        _budget.AddTextItem();
+                    }
+                    format = new IWorkNumberFormat(currency ? IWorkNumberFormatKind.Currency
+                            : type == 258 ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number,
+                        decimals == 253 ? null : (int)decimals, grouping == 1, (IWorkNegativeNumberStyle)negative,
+                        currencyCode, accounting == 1);
                 } else {
                     _references.Declarations.Record(_list!, path, 1, IWorkSourceDeclarationIssueKind.InvalidValue);
                 }
@@ -69,7 +84,7 @@ internal sealed class IWorkTableNumberFormatCatalog {
                 _references.Declarations.Record(_list!, path, 1);
             }
         }
-        _resolved.Add(key, format);
+        _resolved.Add((key, currency), format);
         if (format == null) FullyReconstructed = false;
         return format;
     }

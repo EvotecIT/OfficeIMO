@@ -22,16 +22,13 @@ internal static partial class IWorkTableReader {
             && cell.Kind is IWorkCellKind.Number or IWorkCellKind.Formula
             && (flags & ((1u << 13) | (1u << 14))) != 0) {
             // Currency selection takes precedence over numeric selection in modern storage.
-            // Until that family is qualified, retain the value without applying an inactive numeric format.
-            if ((flags & (1u << 14)) != 0) {
-                numberFormats.MarkUnsupportedSelection();
-                return cell;
-            }
+            bool currency = (flags & (1u << 14)) != 0;
+            int selectedBit = currency ? 14 : 13;
             int formatOffset = offset + 12;
-            for (int bit = 0; bit < 13; bit++)
+            for (int bit = 0; bit < selectedBit; bit++)
                 if ((flags & (1u << bit)) != 0) formatOffset += CellValueFieldSize(bit);
             // DecodeModernCell already checked all selected fields against this record's boundary.
-            IWorkNumberFormat? format = numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset));
+            IWorkNumberFormat? format = numberFormats.Read(IWorkProtobuf.ReadUInt32(buffer, formatOffset), currency);
             if (format != null) cell = cell.WithNumberFormat(format);
         }
         // Only a complete, supported header establishes formula presence. Keep decode errors

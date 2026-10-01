@@ -64,6 +64,7 @@ public static partial class ExcelIWorkConverter {
                     lossKind: global::OfficeIMO.OfficeConversionLossKind.Approximation)
             }).ToArray();
         }
+        if (editable) destinationDiagnostics = destinationDiagnostics.Concat(CurrencyFormatDiagnostics(projection)).ToArray();
         if (editable && settings.AllowPartialEditableReconstruction &&
             (!projection.HasEditableContent || projection.Diagnostics.Any(diagnostic =>
                 diagnostic.Severity != IWorkDiagnosticSeverity.Information))) {

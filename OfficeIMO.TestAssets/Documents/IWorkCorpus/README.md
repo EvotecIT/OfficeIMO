@@ -34,6 +34,16 @@ python Build/IWork/create-number-format-fixture.py OfficeIMO.TestAssets/Document
 
 OfficeIMO tests compare metadata, save/reopen XLSX numeric values and compare image-snapshot text with the producer. The fixture also exposes finite Decimal128 values above fifteen significant digits; their exact source text and explicit approximation survive reconstruction. This evidence does not qualify Apple native rendering or full style fidelity. Regenerated package identifiers and timestamps can change the bytes; compare the semantic manifest cases when reproducing the fixture.
 
+## Currency formats
+
+`numbers-parser/currency-formats.numbers` is produced by numbers-parser 4.19.0 using `Build/IWork/create-currency-format-fixture.py`. The adjacent generated manifest records eleven currency cases across six identifiers, precision, grouping, negative styles, accounting settings, and independent source display strings. Destination display strings specify the portable identifier-prefix contract, including its explicit approximation report; they are not Apple appearance oracles.
+
+```bash
+python Build/IWork/create-currency-format-fixture.py OfficeIMO.TestAssets/Documents/IWorkCorpus/numbers-parser/currency-formats.numbers
+```
+
+The generator saves and reopens the package before recording metadata and source display text. OfficeIMO checks source semantics and saved/reopened XLSX numeric values, image text, and red styles. The existing numbers-parser MIT notice covers the template and implementation. Regenerated package identifiers and timestamps can change bytes; compare the semantic manifest cases.
+
 ## Independent Apple exports
 
 `native-exports/numbers-formulas-v14.5.json` records exports of `numbers-parser/test-10-formulas.numbers` made with Apple Numbers 14.5 (build 7045.0.17). The unmodified XLSX and PDF references include artifact hashes, export settings, source licensing, font provenance, and qualification limits. Numbers exports one worksheet per table and inserts a title row; the manifest accounts for that row when comparing source coordinates and formulas.
@@ -61,6 +71,7 @@ The extractor accepts this pinned two-table fixture only, verifies the PDF hash 
 | `nim-iwork/simple.numbers` | `d0b00d9cae5985cccaa3b2fb251fae92eb0e38360fb4b5df8b4350eb658f752b` |
 | `nim-iwork/simple.pages` | `5aee6d03277d2db2104f593e64afe081dec539f0117b97124b6f99158124c93e` |
 | `numbers-parser/individual-dimensions.numbers` | `ccecc5494a71b9943e9a37641f843d0e8ce4e7c3531d72a50031dd7c23b38762` |
+| `numbers-parser/currency-formats.numbers` | `6f45fa942ab26b2e9a3c2487fec491d5c43e85cfe1c191520134d5b64ac61475` |
 | `numbers-parser/number-formats.numbers` | `1fb277a6897c0fc4387cd50a51c57de0a08323b694b98a5926b9bc5190717b1f` |
 | `numbers-parser/issue-102-v15.1.numbers` | `88a9fa7be095d03004478393a87a4a97602d7468f839d067ec9118c524c55176` |
 | `numbers-parser/test-10-formulas.numbers` | `dd85bad68898ce5b065f277c0b9be1f3c32d696e3baa6b09d3614bbd35a5249f` |

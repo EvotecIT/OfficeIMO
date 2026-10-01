@@ -13,6 +13,10 @@ OfficeIMO 3.4 completes the document-lifecycle, conversion, and PDF API cleanup.
 
 Finite Decimal128 values above fifteen significant digits now retain numeric recovery instead of forcing visual fallback. Inspect `IWorkTableCell.NumericValueIsApproximate` before consuming values that must retain exact source precision; `SourceNumberText` holds the exact normalized coefficient/exponent value. Conversion reports use `IWORK_TABLE_NUMERIC_VALUE_APPROXIMATED` with `Approximation` fidelity, and formula cache assessments use `Approximate`. `RequireNoLoss()` rejects this approximation. Overflow, nonzero underflow and unsupported special encodings remain decode failures.
 
+## iWork currency reconstruction
+
+Supported currency selections retain editable numeric values and currency metadata instead of requiring partial reconstruction for the format alone. The Excel adapter displays the source identifier as a prefix and reports `IWORK_NUMBERS_CURRENCY_DISPLAY_APPROXIMATED`; `RequireNoLoss()` rejects this display approximation. Inspect `IWorkTableCell.NumberFormat.CurrencyCode` and `UseAccountingStyle` when the source format matters. Currency symbols, locale placement, and accounting alignment are not reconstructed. Unsupported currency metadata still requires the partial-reconstruction policy.
+
 ## Reader capability schema version 6
 
 Reader capability manifests use schema version 6 and add `SupportsDirectoryBundle`.
