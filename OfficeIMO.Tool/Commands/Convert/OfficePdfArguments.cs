@@ -11,6 +11,10 @@ internal sealed class OfficePdfArguments {
     internal string? InputPath { get; private set; }
     internal string? OutputPath { get; private set; }
     internal bool Force { get; private set; }
+    internal bool AllowLegacyLoss { get; private set; }
+    internal string? TextEncoding { get; private set; }
+    internal int TabSize { get; private set; } = 8;
+    private bool HasTextOptions { get; set; }
     internal long MaxInputBytes { get; private set; } = DefaultMaxInputBytes;
     internal long MaxOutputBytes { get; private set; } = DefaultMaxOutputBytes;
     internal long MaxCharactersInPart { get; private set; } = DefaultMaxCharactersInPart;
@@ -34,6 +38,19 @@ internal sealed class OfficePdfArguments {
                     break;
                 case "--force":
                     parsed.Force = true;
+                    break;
+                case "--allow-legacy-loss":
+                    parsed.AllowLegacyLoss = true;
+                    break;
+                case "--text-encoding":
+                    parsed.HasTextOptions = true;
+                    parsed.TextEncoding = NextValue(args, ref index, token);
+                    break;
+                case "--tab-size":
+                    parsed.HasTextOptions = true;
+                    long tabs = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    if (tabs > 32) throw new OfficePdfUsageException("Tab size must be between 1 and 32.");
+                    parsed.TabSize = (int)tabs;
                     break;
                 case "--max-input-bytes":
                     parsed.MaxInputBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
@@ -65,13 +82,15 @@ internal sealed class OfficePdfArguments {
 
     private void Validate() {
         if (string.IsNullOrWhiteSpace(InputPath)) {
-            throw new OfficePdfUsageException("The convert command requires an input DOCX, XLSX, or PPTX file.");
+            throw new OfficePdfUsageException("The convert command requires an input DOC, DOCX, TXT, XLSX, or PPTX file.");
         }
 
         string extension = Path.GetExtension(InputPath).ToLowerInvariant();
-        if (extension is not ".docx" and not ".xlsx" and not ".pptx") {
-            throw new OfficePdfUsageException("The convert command supports DOCX, XLSX, and PPTX input.");
+        if (extension is not ".doc" and not ".docx" and not ".txt" and not ".xlsx" and not ".pptx") {
+            throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, and PPTX input.");
         }
+        if (AllowLegacyLoss && extension != ".doc") throw new OfficePdfUsageException("--allow-legacy-loss requires DOC input.");
+        if (HasTextOptions && extension != ".txt") throw new OfficePdfUsageException("Text encoding and tabs require TXT input.");
 
         OutputPath ??= Path.ChangeExtension(InputPath, ".pdf");
         if (Path.GetExtension(OutputPath).Equals(".pdf", StringComparison.OrdinalIgnoreCase) == false) {

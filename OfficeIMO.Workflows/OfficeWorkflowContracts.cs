@@ -339,7 +339,7 @@ public sealed class OfficeWorkflowRoute {
 /// <summary>Canonical desktop/service conversion route view.</summary>
 public static class OfficeWorkflowCatalog {
     private static readonly HashSet<string> ExecutableIds = new(StringComparer.Ordinal) {
-        "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf",
+        "doc-pdf", "txt-pdf", "docx-pdf", "xlsx-pdf", "pptx-pdf", "html-pdf",
         "pdf-docx", "pdf-xlsx", "pdf-pptx", "pdf-html"
     };
 
@@ -372,6 +372,8 @@ public static class OfficeWorkflowCatalog {
         string source = NormalizeExtension(sourceExtension);
         string target = NormalizeExtension(targetExtension);
         IReadOnlyList<OfficeWorkflowRoute> routes = executableOnly ? ExecutableRoutesValue : AllRoutesValue;
+        // A literal text file defaults to literal conversion. Markup remains available through Via(routeId).
+        if (source == ".txt" && target == ".pdf") return routes.FirstOrDefault(route => route.Id == "txt-pdf");
         OfficeWorkflowRoute? match = null;
         foreach (OfficeWorkflowRoute route in routes) {
             if (!route.SourceExtensions.Contains(source, StringComparer.OrdinalIgnoreCase) ||

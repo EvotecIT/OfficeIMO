@@ -7,7 +7,7 @@ from zipfile import ZipFile
 from jsonschema import ValidationError
 
 from validate_mcp_registry import (
-    SCHEMA_URL, validate_marker, validate_metadata, validate_package,
+    SCHEMA_URL, validate_marker, validate_metadata, validate_package, validate_release_versions,
 )
 
 
@@ -24,6 +24,16 @@ class RegistryValidationTests(unittest.TestCase):
     def test_metadata_must_satisfy_the_selected_schema(self):
         with self.assertRaises(ValidationError):
             validate_metadata(self.server, {"required": ["version"]})
+
+    def test_release_versions_match_the_plugin_and_exact_tool_package(self):
+        package = {"registryType": "nuget", "identifier": "OfficeIMO.Tool", "version": "3.4.5"}
+        server = dict(self.server, version="3.4.5", packages=[package])
+        validate_release_versions(server, "3.4.5")
+        for invalid in (dict(server, version="3.4.4"),
+                        dict(server, packages=[dict(package, version="3.4.4")]),
+                        dict(server, packages=[]), dict(server, packages=[package, package])):
+            with self.subTest(server=invalid), self.assertRaises(ValueError):
+                validate_release_versions(invalid, "3.4.5")
 
     def test_missing_mismatched_and_duplicate_markers_are_rejected(self):
         for readme in ("", "<!-- mcp-name: io.github.other/server -->",

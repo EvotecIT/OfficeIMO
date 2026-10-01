@@ -4,6 +4,7 @@ using OfficeIMO.Html.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
 using OfficeIMO.Workflows;
+using OfficeIMO.Pdf;
 
 namespace OfficeIMO.Studio.Features.Workflows;
 
@@ -14,6 +15,8 @@ public sealed partial class ConversionJobViewModel {
     public bool IsPowerPointImport => Route.Route.Id == "pdf-pptx";
     public bool IsWorksheetExport => Route.Route.Id == "xlsx-pdf";
     public bool IsHtmlExport => Route.Route.Id == "pdf-html";
+    public bool IsLegacyWordExport => Route.Route.Id == "doc-pdf";
+    public bool IsPlainTextExport => Route.Route.Id == "txt-pdf";
     public bool CanEditOptions => State == ConversionJobState.Queued || CanRetry;
     public bool UsesRasterPages => IsWordImport && WordMode == PdfWordImportMode.VisualPages ||
         IsPowerPointImport && PowerPointMode is PdfPowerPointImportMode.VisualPages or PdfPowerPointImportMode.HybridVisualAndEditableTables;
@@ -33,6 +36,9 @@ public sealed partial class ConversionJobViewModel {
     [ObservableProperty] private PdfHtmlProfile _htmlProfile = PdfHtmlProfile.PositionedReview;
     [ObservableProperty] private decimal _rasterDpi = 144;
     [ObservableProperty] private bool _compressPdfOutput;
+    [ObservableProperty] private bool _allowLegacyImportLoss;
+    [ObservableProperty] private string _textEncoding = string.Empty;
+    [ObservableProperty] private decimal _tabSize = 8;
 
     partial void OnStateChanged(ConversionJobState value) => OnPropertyChanged(nameof(CanEditOptions));
 
@@ -43,6 +49,8 @@ public sealed partial class ConversionJobViewModel {
         WorksheetLayout = IsWorksheetExport ? WorksheetLayout : null,
         HtmlProfile = IsHtmlExport ? HtmlProfile : null,
         RasterDpi = UsesRasterPages ? (double)RasterDpi : null,
-        CompressPdfOutput = SupportsPdfCompression && CompressPdfOutput
+        CompressPdfOutput = SupportsPdfCompression && CompressPdfOutput,
+        LegacyDocLossPolicy = IsLegacyWordExport && AllowLegacyImportLoss ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block,
+        PlainText = IsPlainTextExport ? new PdfPlainTextOptions { EncodingName = string.IsNullOrWhiteSpace(TextEncoding) ? null : TextEncoding, TabSize = (int)TabSize } : null
     };
 }

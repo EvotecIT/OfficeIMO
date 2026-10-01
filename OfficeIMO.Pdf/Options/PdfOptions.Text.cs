@@ -17,6 +17,8 @@ public enum PdfTextShapingMode {
 }
 
 public sealed partial class PdfOptions {
+    /// <summary>Retains leading and repeated spaces in flow text. Intended for literal preformatted documents.</summary>
+    public bool PreserveTextWhitespace { get; set; }
     /// <summary>
     /// Dependency-free generated text shaping mode used by embedded TrueType and OpenType/CFF font output.
     /// </summary>
