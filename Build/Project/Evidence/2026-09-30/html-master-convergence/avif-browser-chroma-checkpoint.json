@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "generatedUtc": "2026-10-01T18:00:37.309871+00:00",
+  "sourceCommit": "71b84e899b6cfde8f7d769127e7581558c1059f5",
+  "runtimeChanged": false,
+  "scope": "Explain the failed strict Chromium comparison for one frozen 49x33 eight-bit full-range YUV420+alpha supplemental AVIF fixture; this is not a full browser or AVIF Baseline qualification.",
+  "inputs": [
+    {
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifFullHeaders/avif-main8-fullheader-420-full-alpha.avif",
+      "sha256": "f62e9234803a605f63e7a551c5eee8db21ef3223abf4e2c4bf270cc6d2057e33"
+    },
+    {
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifFullHeaders/avif-main8-fullheader-420-full-alpha.rgba",
+      "sha256": "dca71ec7008e5f1488c1e3378d77e10e0a36befa0b2f0121908c82f1afb90bed"
+    },
+    {
+      "path": "OfficeIMO.TestAssets/Documents/Html/Qualification/AvifFullHeaders/avif-main8-fullheader-420-full-alpha.yuv16",
+      "sha256": "01fe599915795370edfd64b3762dfb06d002f4f3993ba4e81072bb6d06918ea8"
+    },
+    {
+      "path": "Ignore/HtmlUnknownPageQualification/static-gap-avif-main8-fullheader-420-full-alpha-clean-6594a706c/chromium-print.pdf",
+      "sha256": "0bffa66053d1a930c56cf266b062e37c752445fb7e478b7fe02aa067b14b53fe"
+    }
+  ],
+  "observation": {
+    "sourceHead": "71b84e899b6cfde8f7d769127e7581558c1059f5",
+    "independentReducedHeaderControl": {
+      "yuvIdentical": true,
+      "rgbaIdentical": true
+    },
+    "nativeVsBrowserPdf": {
+      "maxAlphaError": 0,
+      "maxCompositeRgbError": 20.0,
+      "finalColumnError": 20.0,
+      "otherColumnsMax": 2.6
+    },
+    "libyuvStraightVsBrowserPdf": {
+      "maxAlphaError": 0,
+      "maxCompositeRgbError": 1.1686274509803922,
+      "finalColumnError": 1.0823529411764705,
+      "otherColumnsMax": 1.1686274509803922
+    },
+    "libyuvPremultipliedVsBrowserPdfMax": 0.4941176470588289,
+    "worstPixel": {
+      "position": [
+        48,
+        30
+      ],
+      "native": [
+        75,
+        72,
+        239,
+        85
+      ],
+      "browser": [
+        15,
+        102,
+        246,
+        85
+      ],
+      "libyuvStraight": [
+        15,
+        102,
+        246,
+        85
+      ],
+      "libyuvPremultiplied": [
+        5,
+        34,
+        82,
+        85
+      ]
+    },
+    "canvas": {
+      "browserVersion": "151.0.7922.34",
+      "reducedAndFullHeadersIdentical": true,
+      "libyuvMaxAlphaError": 0,
+      "libyuvPremultipliedMaxRgbError": 0.4941176470588289,
+      "pdfVsCanvasMaxCompositeRgbError": 0.0,
+      "pixels": 1617
+    }
+  },
+  "nativeReference": {
+    "libavifVersion": "1.4.2",
+    "decoder": "dav1d",
+    "avoidLibYUV": true,
+    "chromaUpsampling": "bilinear",
+    "independentPublicPixels": "OfficeIMO byte/stream and embedded PDF output match this native reference exactly in the prior full-header checkpoint."
+  },
+  "alternateReference": {
+    "libyuvCommit": "8aeb3a9ca36341a640528e59b34b5d641080dca8",
+    "selection": "Chromium 151.0.7922.34 DEPS pin",
+    "sourceArchiveSha256": "a9a712315893845c0c9756f820148ea811620ecc2f7afe23f624593083016f5b",
+    "conversion": "I420AlphaToARGBMatrixFilter, swapped U/V with kYvuJPEGConstants, kFilterBilinear; both straight and premultiplied RGBA",
+    "driver": "OfficeIMO.Drawing.Tests/TestAssets/Avif/ReadLibyuvChromaReference.cpp",
+    "driverSha256": "7f47dbff5a5b0d63cd865662543da8968996ce9f9352a70b35610b8a1618a22e",
+    "scaleAnySha256": "8a502edba3f84d778a90554c6569dcbff456a9071789b80934d0bf35cc46ddc7",
+    "straightRgbaSha256": "179f107e348b387976c870a34138da9409b7b9413b911a3457eae7a11e714b5b",
+    "premultipliedRgbaSha256": "3cc35d6302d2aa31780dce7cd2440cee63a66c5c006349ac9fa5bfb2a2aff2cb"
+  },
+  "browserControl": {
+    "owner": "HtmlTinkerX",
+    "publishedPackage": "3.0.1",
+    "version": "151.0.7922.34",
+    "canvasProgramSha256": "68878cb500de79d02d67396775c627f7c332c0a9b563845e15a8b70523213d35",
+    "inputMode": "AVIF data URI; await Image.decode(); native-sized canvas, getImageData RGBA",
+    "fullHeaderRgbaSha256": "11e667d54ea5d301087ceef12370069e7db57a7457f9f70994d8e15f31fc9ef2",
+    "reducedHeaderRgbaSha256": "11e667d54ea5d301087ceef12370069e7db57a7457f9f70994d8e15f31fc9ef2",
+    "lifetime": "One headless HtmlTinkerX session disposed at program exit; no consumer-owned Playwright installer or dependency."
+  },
+  "sourceReferences": [
+    {
+      "file": "chromium-151-avif.cc",
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/151.0.7922.34/third_party/blink/renderer/platform/image-decoders/avif/avif_image_decoder.cc?format=TEXT",
+      "sha256": "beb3d6ef904c6a6462eb41e36e205896325d7f8a8821bedb77e5942c42e17059"
+    },
+    {
+      "file": "chromium-151-pcvr.cc",
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/151.0.7922.34/media/renderers/paint_canvas_video_renderer.cc?format=TEXT",
+      "sha256": "12309bd7fba89574e2a70b9c67520e4ed751426f95058a5ea553644dec86d1c9"
+    },
+    {
+      "file": "chromium-151-DEPS",
+      "url": "https://chromium.googlesource.com/chromium/src/+/refs/tags/151.0.7922.34/DEPS?format=TEXT",
+      "sha256": "0637a1f2f45203b6ed8106a29f8b4fe9e6a54a9f44338cd6321d93925239e66b"
+    },
+    {
+      "file": "libyuv/source/scale_any.cc",
+      "url": "https://chromium.googlesource.com/libyuv/libyuv/+/8aeb3a9ca36341a640528e59b34b5d641080dca8/source/scale_any.cc",
+      "sha256": "8a502edba3f84d778a90554c6569dcbff456a9071789b80934d0bf35cc46ddc7"
+    }
+  ],
+  "diagnosis": "The maximal 20-channel composited difference is the final column of an odd-width 4:2:0 image. The native floating bilinear path blends the previous and terminal chroma samples at that position; libyuv forces its terminal horizontal sample to the terminal source chroma and applies vertical interpolation. The independently compiled Chromium-pinned libyuv path reproduces the worst pixel exactly and the full browser premultiplied image within 0.5 channel. Browser canvas and PDF are pixel-identical. Reduced/full header controls have identical reconstructed YUV, native RGBA and browser canvas RGBA. This supports an alternate chroma expansion/conversion result rather than a full-header AV1 decoding or PDF compression defect.",
+  "decision": "Keep the native-bilinear OfficeIMO conversion unchanged. Preserve the failed original Chromium <=3 composite criterion; do not relax it or claim exact browser parity. No confirmed OfficeIMO defect was reproduced in this control. Formal AVIF Baseline/platform work and the remaining frozen static-suite gaps stay open.",
+  "verification": {
+    "reducedAndFullYuvIdentical": true,
+    "reducedAndFullNativeRgbaIdentical": true,
+    "reducedAndFullCanvasRgbaIdentical": true,
+    "currentAndChromiumPinnedLibyuvIdentical": true,
+    "originalBrowserCompositeCriterionPassed": false,
+    "originalBrowserAlphaCriterionPassed": true,
+    "productionRegressionSuitesRepeated": false,
+    "reason": "Runtime source unchanged; this pass compiled/ran the independent native driver and executed the real browser canvas control."
+  },
+  "retainedArtifactDirectory": "Ignore/HtmlUnknownPageQualification/static-gap-avif-browser-chroma-work-71b84e899",
+  "reproduction": {
+    "nativeBuild": [
+      "Obtain the libyuv commit above from its primary Gitiles archive; configure Release arm64 with LIBYUV_DISABLE_JPEG=ON; build target yuv.",
+      "clang++ <driver> -I <libavif1.4.2 include> -I <libyuv include> <libyuv-build/libyuv.a> -L <libavif-build> -lavif -o <output-driver>",
+      "DYLD_LIBRARY_PATH=<libavif-build> <output-driver> <input-avif> <output-prefix>"
+    ],
+    "browser": "Use the retained Canvas.csproj and Program.cs with dotnet run -c Release -- <full-header-input> <native-reduced-control-input>; no package upgrades or default runtime dependency changes."
+  }
+}
