@@ -210,7 +210,7 @@ public sealed partial class IWorkBoundaryTests {
     private static MemoryStream TableDependencyPackage(IWorkDocumentKind kind, byte[] storeFields,
         bool includeTile = true, byte[]? additionalRecords = null, ulong rows = 1,
         bool formulaCell = false, bool repeatModel = false, byte[]? modelPayload = null,
-        byte[]? cellPayload = null, byte[]? tilePayload = null, ulong columns = 1) {
+        byte[]? cellPayload = null, byte[]? tilePayload = null, ulong columns = 1, string sheetName = "Sheet") {
         byte[] cell = new byte[formulaCell ? 24 : 20]; cell[0] = 5; cell[1] = 2;
         WriteUInt32(cell, 8, (1u << 1) | (formulaCell ? 1u << 9 : 0u));
         Buffer.BlockCopy(BitConverter.GetBytes(42d), 0, cell, 12, 8);
@@ -220,7 +220,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(1, 10000, Message(ReferenceField(4, 2)), new ulong[] { 2, 10 }),
                 ArchiveRecord(2, 2001, Message(StringField(3, "Body")))),
             IWorkDocumentKind.Numbers => Message(ArchiveRecord(1, 1, Message(ReferenceField(1, 2))),
-                ArchiveRecord(2, 2, Message(StringField(1, "Sheet"), ReferenceField(2, 10),
+                ArchiveRecord(2, 2, Message(StringField(1, sheetName), ReferenceField(2, 10),
                     repeatModel ? ReferenceField(2, 20) : Message()))),
             _ => Message(ArchiveRecord(1, 1, Message(ReferenceField(2, 2))),
                 ArchiveRecord(2, 2, KeynoteShow(Message(ReferenceField(2, 3)))),

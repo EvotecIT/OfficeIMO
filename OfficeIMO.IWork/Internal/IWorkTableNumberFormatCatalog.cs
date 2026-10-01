@@ -69,10 +69,6 @@ internal sealed class IWorkTableNumberFormatCatalog {
                 if (supportedShape && (currency ? type == 257 : type is 256 or 258)
                     && (decimals <= 30 || decimals == 253) && negative <= 3 && grouping <= 1
                     && accounting <= 1 && (accounting == 0 || negative == 0)) {
-                    if (currency) {
-                        _budget.AddTextCharacters(currencyCode!.Length);
-                        _budget.AddTextItem();
-                    }
                     format = new IWorkNumberFormat(currency ? IWorkNumberFormatKind.Currency
                             : type == 258 ? IWorkNumberFormatKind.Percentage : IWorkNumberFormatKind.Number,
                         decimals == 253 ? null : (int)decimals, grouping == 1, (IWorkNegativeNumberStyle)negative,
@@ -83,6 +79,11 @@ internal sealed class IWorkTableNumberFormatCatalog {
             } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
                 _references.Declarations.Record(_list!, path, 1);
             }
+        }
+        // Projection-budget failures are fatal, not malformed-message recovery.
+        if (format?.CurrencyCode is string retainedCode) {
+            _budget.AddTextCharacters(retainedCode.Length);
+            _budget.AddTextItem();
         }
         _resolved.Add((key, currency), format);
         if (format == null) FullyReconstructed = false;

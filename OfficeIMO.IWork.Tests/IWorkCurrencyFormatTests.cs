@@ -87,15 +87,34 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Currency_identifiers_consume_the_projection_text_budget() {
-        using MemoryStream numeric = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(256, 2));
-        IWorkNumbersProjection baseline = IWorkSourceDocument.Open(numeric).ReadNumbers();
-        int nameCharacters = baseline.Sheets.Sum(sheet => sheet.Name.Length + sheet.Tables.Sum(table => table.Name.Length));
-        numeric.Position = 0;
-        var options = new IWorkReadOptions { MaximumProjectedTextCharacters = nameCharacters };
+        var options = new IWorkReadOptions { MaximumProjectedTextCharacters = 2 };
+        using MemoryStream numeric = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), sheetName: "");
         Assert.NotNull(IWorkSourceDocument.Open(numeric, options).ReadNumbers());
-        using MemoryStream currency = NumberFormatPackage(IWorkDocumentKind.Numbers, CurrencyFormat("USD", 2), currency: true);
+        using MemoryStream currency = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13),
+            cellPayload: CurrencyCell(1), sheetName: "",
+            additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(CurrencyFormat("USD", 2))))));
         Assert.Contains("Text character", Assert.Throws<InvalidDataException>(() =>
             IWorkSourceDocument.Open(currency, options).ReadNumbers()).Message);
+    }
+
+    [Fact]
+    public void Currency_item_budget_exhaustion_is_fatal_instead_of_partial_format_recovery() {
+        byte[] rows = Message(Enumerable.Range(0, 2).Select(row => BytesField(5, Message(VarintField(1, (ulong)row),
+            BytesField(6, CurrencyCell((uint)row + 1)), BytesField(7, new byte[] { 0, 0 })))).ToArray());
+        using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13), rows: 2,
+            tilePayload: rows, additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2),
+                BytesField(3, FormatEntry(CurrencyFormat("USD", 2))),
+                BytesField(3, Message(VarintField(1, 2), BytesField(6, CurrencyFormat("EUR", 2)))))));
+        Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() =>
+            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 1 }).ReadNumbers()).Message);
+    }
+
+    private static byte[] CurrencyCell(uint identifier) {
+        byte[] cell = new byte[24]; cell[0] = 5; cell[1] = 2;
+        WriteUInt32(cell, 8, (1u << 1) | (1u << 14));
+        Buffer.BlockCopy(BitConverter.GetBytes(0.5d), 0, cell, 12, 8);
+        WriteUInt32(cell, 20, identifier);
+        return cell;
     }
 
     private static byte[] CurrencyFormat(string code, uint decimals, uint negative = 0, uint grouping = 0, uint accounting = 0) =>
