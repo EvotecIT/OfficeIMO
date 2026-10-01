@@ -3,6 +3,13 @@ namespace OfficeIMO.Excel {
     /// Configures package-native tabular XLSX exports.
     /// </summary>
     public sealed class ExcelTabularWriteOptions {
+        /// <summary>
+        /// Rejects settings that require materializing the source rows before writing.
+        /// For data readers, disable shared strings and automatic sizing; tables require headers.
+        /// For row sequences, disable tables and automatic sizing. Defaults to false.
+        /// </summary>
+        public bool RequireStreaming { get; set; }
+
         /// <summary>Worksheet name.</summary>
         public string SheetName { get; set; } = "Data";
 

@@ -6,17 +6,19 @@ namespace OfficeIMO.Invoicing.Pdf;
 /// <summary>Defines the culture and generated labels for one invoice presentation language.</summary>
 public sealed partial class InvoicePdfLanguagePack {
     private readonly IReadOnlyDictionary<InvoicePdfText, string> _labels;
+    private readonly bool _builtInAdditionalLabels;
 
-    private InvoicePdfLanguagePack(CultureInfo culture, IReadOnlyDictionary<InvoicePdfText, string> labels) {
+    private InvoicePdfLanguagePack(CultureInfo culture, IReadOnlyDictionary<InvoicePdfText, string> labels, bool builtInAdditionalLabels = false) {
         Culture = CultureInfo.ReadOnly((CultureInfo)culture.Clone());
         _labels = labels;
+        _builtInAdditionalLabels = builtInAdditionalLabels;
     }
 
     /// <summary>Culture used by this language pack.</summary>
     public CultureInfo Culture { get; }
 
     /// <summary>Returns the localized label for <paramref name="text"/>.</summary>
-    public string this[InvoicePdfText text] => _labels.TryGetValue(text, out string? value) ? value : EnglishLabels[text];
+    public string this[InvoicePdfText text] => _labels.TryGetValue(text, out string? value) ? value : AdditionalLabel(text);
 
     /// <summary>
     /// Creates a pack for a supported built-in language. English, German, Polish, French, Spanish, Italian,
@@ -39,7 +41,7 @@ public sealed partial class InvoicePdfLanguagePack {
             "sk" => SlovakLabels,
             _ => throw new NotSupportedException("Built-in invoice PDF labels support English, German, Polish, French, Spanish, Italian, Dutch, Portuguese, Czech, and Slovak. Use Create for another language.")
         };
-        return new InvoicePdfLanguagePack(culture, labels);
+        return new InvoicePdfLanguagePack(culture, labels, builtInAdditionalLabels: true);
     }
 
     /// <summary>
@@ -54,7 +56,11 @@ public sealed partial class InvoicePdfLanguagePack {
 #endif
         var copy = new Dictionary<InvoicePdfText, string>();
         foreach (KeyValuePair<InvoicePdfText, string> entry in labels) {
-            if (entry.Key < InvoicePdfText.Invoice || entry.Key > InvoicePdfText.Approvals) throw new ArgumentOutOfRangeException(nameof(labels), "A label key is undefined.");
+#if NET8_0_OR_GREATER
+            if (!Enum.IsDefined(entry.Key)) throw new ArgumentOutOfRangeException(nameof(labels), "A label key is undefined.");
+#else
+            if (!Enum.IsDefined(typeof(InvoicePdfText), entry.Key)) throw new ArgumentOutOfRangeException(nameof(labels), "A label key is undefined.");
+#endif
             if (string.IsNullOrWhiteSpace(entry.Value)) throw new ArgumentException("Invoice PDF labels cannot be empty.", nameof(labels));
             copy[entry.Key] = entry.Value.Trim();
         }

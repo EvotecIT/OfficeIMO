@@ -9,15 +9,24 @@ namespace OfficeIMO.Shared.Tests;
 public sealed partial class ProvenanceReviewRegressionContracts {
 #if NET8_0_OR_GREATER
     [Fact]
-    public void SignatureAggregateLimitRejectsDeclaredBytesBeforeExpansion() {
+#if SHARED_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
+    public void SignatureAggregateLimitRejectsFirstPartAndAcceptsLaterPart() {
         string contentTypes =
             "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">" +
             "<Override PartName=\"/_xmlsignatures/sig1.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>" +
             "<Override PartName=\"/_xmlsignatures/sig2.xml\" ContentType=\"application/vnd.openxmlformats-package.digital-signature-xmlsignature+xml\"/>" +
             "</Types>";
         string validSignature = "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"/>";
+#if SHARED_PERFORMANCE_EVIDENCE
+        const int paddingLength = 8 * 1024 * 1024;
+#else
+        const int paddingLength = 256;
+#endif
         string oversizedSignature = "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><Object>" +
-            new string('x', 8 * 1024 * 1024) + "</Object></Signature>";
+            new string('x', paddingLength) + "</Object></Signature>";
         byte[] package;
         using (var output = new MemoryStream()) {
             using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
@@ -34,11 +43,14 @@ public sealed partial class ProvenanceReviewRegressionContracts {
             MaxTotalDigestBytes = validBytes + 1L
         };
 
+#if SHARED_PERFORMANCE_EVIDENCE
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+#endif
         OfficePackageSignatureInfo inspection = OfficePackageSignatureService.Inspect(package, options);
+#if SHARED_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-
         Assert.True(allocated < 4L * 1024L * 1024L, $"Inspection allocated {allocated:N0} bytes.");
+#endif
         OfficePackageSignaturePartInfo rejected = Assert.Single(
             inspection.SignatureParts,
             part => part.Uri.EndsWith("sig1.xml", StringComparison.Ordinal));

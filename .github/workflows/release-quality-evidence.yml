@@ -34,6 +34,11 @@ on:
       - "Build/Benchmarks/Run-ReleaseQualityImageEvidence.ps1"
       - ".github/workflows/release-quality-evidence.yml"
   workflow_dispatch:
+    inputs:
+      reference_ref:
+        description: Optional Git ref for a matching performance comparison
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -61,35 +66,38 @@ jobs:
             10.0.112
 
       - name: Install PowerForge benchmark tooling
+        if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         run: Install-Module PSPublishModule -RequiredVersion 3.0.141 -Scope CurrentUser -Force -AllowClobber
 
       - name: Build release-quality workload
         run: dotnet build OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0
 
-      - name: Checkout master comparison source
-        if: github.event_name == 'pull_request'
+      - name: Checkout comparison source
+        if: github.event_name == 'workflow_dispatch' && inputs.reference_ref != ''
         uses: actions/checkout@v7
         with:
-          ref: master
+          ref: ${{ inputs.reference_ref }}
           path: artifacts/reference-source
           persist-credentials: false
 
-      - name: Build master Core with the current measurement harness
-        if: github.event_name == 'pull_request'
+      - name: Build reference Core with the current measurement harness
+        if: github.event_name == 'workflow_dispatch' && inputs.reference_ref != ''
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           $sourceProject = './OfficeIMO.Drawing.Benchmarks'
           $referenceProject = './artifacts/reference-source/OfficeIMO.Drawing.Benchmarks'
           foreach ($name in @('ImageProcessMemorySampler.cs', 'ImageReleaseQualityWorkload.cs', 'ImageCancellationEvidence.cs')) {
             Copy-Item -LiteralPath (Join-Path $sourceProject $name) -Destination (Join-Path $referenceProject $name) -Force
           }
           dotnet build (Join-Path $referenceProject 'OfficeIMO.Drawing.Benchmarks.csproj') --configuration Release --framework net10.0
-          if ($LASTEXITCODE -ne 0) { throw 'The master Core comparison build failed.' }
+          if ($LASTEXITCODE -ne 0) { throw 'The reference Core comparison build failed.' }
           git -C ./artifacts/reference-source rev-parse HEAD
 
-      - name: Measure master Core with the current evidence contract
-        if: github.event_name == 'pull_request'
+      - name: Measure reference Core with the current evidence contract
+        if: github.event_name == 'workflow_dispatch' && inputs.reference_ref != ''
         id: reference
         shell: pwsh
         run: |
@@ -97,10 +105,11 @@ jobs:
               -BinaryRoot './artifacts/reference-source/OfficeIMO.Drawing.Benchmarks/bin/Release/net10.0' `
               -OutputRoot './artifacts/reference-evidence'
           $summary = Get-ChildItem ./artifacts/reference-evidence -Filter summary.json -Recurse | Select-Object -First 1
-          if (-not $summary) { throw 'The matching master measurement did not produce summary.json.' }
+          if (-not $summary) { throw 'The matching reference measurement did not produce summary.json.' }
           "summary=$($summary.FullName)" >> $env:GITHUB_OUTPUT
 
       - name: Run PowerForge evidence
+        if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         run: |
           $parameters = @{ OutputRoot = './artifacts/release-quality-images' }
@@ -112,11 +121,17 @@ jobs:
       - name: Validate codecs and cancellation
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          New-Item -ItemType Directory -Path ./artifacts/release-quality-images -Force | Out-Null
           dotnet run --project OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0 --no-build -- --validate | Tee-Object ./artifacts/release-quality-images/codec-validation.txt
 
       - name: Capture isolated peak-memory evidence
+        if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
           dotnet run --project OfficeIMO.Drawing.Benchmarks/OfficeIMO.Drawing.Benchmarks.csproj --configuration Release --framework net10.0 --no-build -- --memory-evidence Screenshot AlphaGraphic Photo Scan | Tee-Object ./artifacts/release-quality-images/peak-memory.txt
 
       - name: Upload evidence
@@ -127,8 +142,8 @@ jobs:
           path: artifacts/release-quality-images
           if-no-files-found: error
 
-      - name: Upload matching master evidence
-        if: always() && github.event_name == 'pull_request'
+      - name: Upload matching reference evidence
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.reference_ref != ''
         uses: actions/upload-artifact@v7
         with:
           name: release-quality-reference-${{ matrix.os }}

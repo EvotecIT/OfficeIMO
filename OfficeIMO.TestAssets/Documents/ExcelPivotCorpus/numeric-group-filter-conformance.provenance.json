@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T04:11:56.1015148Z",
+  "regeneration": "Build/Verification/New-ExcelPivotGroupedFilterOracle.ps1",
+  "source": "numeric-group-conformance.xlsx",
+  "file": "numeric-group-filter-conformance.xlsx",
+  "sha256": "dcc5e7a085ab4b0f241d3122c581b66df7d6e3e6c0df3d514dcab3c929d45b6a",
+  "hiddenItems": [
+    "Quantity:0-9"
+  ],
+  "outputRange": "A4:B9",
+  "grandTotal": 813.0
+}

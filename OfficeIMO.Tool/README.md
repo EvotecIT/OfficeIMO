@@ -28,6 +28,65 @@ dotnet tool update --global OfficeIMO.Tool
 dotnet tool uninstall --global OfficeIMO.Tool
 ```
 
+## Invoice workflows
+
+Invoice commands return versioned JSON with separate model, mapping and standards
+results. Inspecting an invoice can succeed while reporting invalid model data;
+`validate` returns a failure exit code for those errors. Schema and business-rule
+statuses remain `NotRun` unless standards validation is explicitly configured.
+
+```powershell
+officeimo invoice inspect invoice.xml
+officeimo invoice validate invoice.xml
+
+# Replace existing source headers while retaining XML extensions.
+officeimo invoice edit invoice.xml --output invoice.edited.xml `
+    --number INV-002 --issue-date 2026-09-30 --buyer-reference BUYER-002
+
+# Convert with an explicit, pinned target contract.
+officeimo invoice convert invoice.xml --output invoice.ubl.xml `
+    --release En16931_1_3_16 --syntax Ubl --profile En16931
+
+# Create a hybrid invoice with Polish labels and an embedded font.
+officeimo invoice hybrid invoice.xml --output invoice.pdf `
+    --release FacturX_1_09_2_Zugferd_2_5_2 --syntax Cii --profile En16931 `
+    --language pl-PL --font ./fonts/InvoiceFont.ttf `
+    --columns Item,Quantity,Unit,NetPrice,Vat,NetAmount `
+    --unit-display Description --payment-display Description `
+    --modern --compact-details --page-identity
+
+officeimo invoice batch validate first.xml second.xml --max-items 100 --stop-on-failure
+
+# Validate exact source bytes with pinned authority artifacts and the Saxon runner.
+officeimo invoice validate invoice.xml --standards-release En16931_1_3_16 `
+    --rule-bundle ./rules/xrechnung.zip --saxon-jar ./saxon/saxon-he-12.10.jar
+```
+
+`render` creates a separate presentation PDF; `hybrid` embeds the captured CII XML.
+An explicit target is required for conversion and rendering. Unmapped source data
+and unsupported target fields block those operations. `--allow-profile-loss` permits only
+the documented reductions of lower Factur-X profiles and returns warnings for
+them. XML standards validation does not certify the PDF's archival conformance.
+
+`edit` accepts `--number`, `--issue-date`, `--due-date`, `--buyer-reference` and
+`--payment-reference`; dates use `yyyy-MM-dd`. It replaces existing unique
+plaintext fields and retains other XML content. Signed XML and unsupported date
+representations are blocked. It retains the input syntax/profile and accepts no
+target options. A successful edit can report model or mapping errors; inspect
+those JSON findings and request standards validation when required. Requested
+standards stages must pass on exact edited bytes before publication. Use
+`batch edit` to apply the same captured replacements to several inputs.
+
+File outputs are created atomically and never overwrite existing files. Batch
+writing uses `--output-directory`, naming each output `<input-stem>.invoice.xml`
+or `<input-stem>.invoice.pdf`. All inputs and destinations are checked before
+execution; colliding or existing destinations fail before any output is created.
+Batch publication is per item. Limits default to 256 inputs, 64 MiB of combined
+input and 64 MiB of returned artifacts. `--max-input-bytes` and
+`--max-output-bytes` change those combined budgets; each XML input remains limited
+to 16 MiB. For the pinned authority downloads and runtime requirements, see the
+[standards validator guide](../OfficeIMO.Invoicing.Validation/README.md).
+
 ## Common workflows
 
 ```powershell
@@ -86,6 +145,8 @@ Markdown and JSON destinations are semantic Reader projections rather than fixed
 All `convert` destinations are protected from accidental replacement. Pass `--force` explicitly when an existing PDF, Markdown, or JSON file should be replaced.
 
 ## Command areas
+
+- `officeimo invoice` inspects, validates, converts and renders CII/UBL invoices through the shared invoice workflows, individually or in bounded batches.
 
 - `officeimo convert` routes PDF destinations to the first-party Word, Excel, or PowerPoint PDF adapter and Markdown/JSON destinations to OfficeIMO.Reader.
 - `officeimo read` and `officeimo extract` are convenient aliases for `officeimo reader read`.
@@ -188,6 +249,8 @@ The server exposes:
 - `officeimo_capabilities`
 
 Tool results contain a short text summary plus compact structured content. The server does not publish duplicate resources containing full documents or mailbox contents.
+
+Install the [OfficeIMO Document Tools plugin](https://github.com/EvotecIT/OfficeIMO/tree/master/.agents/plugins/officeimo-document-tools#readme) for Codex, Claude Code, or another client supporting portable Agent Plugins. It bundles document and mailbox skills with a pinned NuGet tool launcher. Configure authorized document roots before starting the client.
 
 ## Exit codes
 

@@ -1037,6 +1037,13 @@
     },
     {
       "task": "dotnet-build",
+      "id": "build-api-invoicing-ksef",
+      "project": "../OfficeIMO.Invoicing.KSeF/OfficeIMO.Invoicing.KSeF.csproj",
+      "configuration": "Release",
+      "framework": "net8.0"
+    },
+    {
+      "task": "dotnet-build",
       "id": "build-api-invoicing-pdf",
       "project": "../OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
       "configuration": "Release",
@@ -2293,6 +2300,7 @@
         "build-api-iwork",
         "build-api-invoicing",
         "build-api-invoicing-validation",
+        "build-api-invoicing-ksef",
         "build-api-invoicing-pdf",
         "build-api-latex",
         "build-api-latex-markdown",
@@ -2699,6 +2707,17 @@
           "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Invoicing.Validation"
+        },
+        {
+          "id": "invoicing-ksef",
+          "xml": "../OfficeIMO.Invoicing.KSeF/bin/Release/net8.0/OfficeIMO.Invoicing.KSeF.xml",
+          "assembly": "../OfficeIMO.Invoicing.KSeF/bin/Release/net8.0/OfficeIMO.Invoicing.KSeF.dll",
+          "out": "./_site/api/invoicing-ksef",
+          "title": "OfficeIMO.Invoicing.KSeF API Reference",
+          "baseUrl": "/api/invoicing-ksef",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Invoicing.KSeF"
         },
         {
           "id": "invoicing-pdf",
@@ -3504,6 +3523,7 @@
         "./_site/api/iwork/xrefmap.json",
         "./_site/api/invoicing/xrefmap.json",
         "./_site/api/invoicing-validation/xrefmap.json",
+        "./_site/api/invoicing-ksef/xrefmap.json",
         "./_site/api/invoicing-pdf/xrefmap.json",
         "./_site/api/latex/xrefmap.json",
         "./_site/api/latex-markdown/xrefmap.json",
@@ -3729,6 +3749,7 @@
         "./_site/api/iwork/index.json",
         "./_site/api/invoicing/index.json",
         "./_site/api/invoicing-validation/index.json",
+        "./_site/api/invoicing-ksef/index.json",
         "./_site/api/invoicing-pdf/index.json",
         "./_site/api/latex/index.json",
         "./_site/api/latex-markdown/index.json",

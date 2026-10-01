@@ -104,7 +104,7 @@ function Add-ComparisonFamily(
     $runMode = Get-RecordedDimensionLabel $Document 'runMode' 'Run mode not recorded'
     $Lines.Add('<section class="imo-benchmark-family" id="' + (Encode-Html $Family) + '-evidence" data-benchmark-family="' + (Encode-Html $Family) + '">')
     $Lines.Add('<header class="imo-benchmark-family__header">')
-    $Lines.Add('<div><p class="imo-benchmark-eyebrow">Historical focused snapshot</p><h2>' + (Encode-Html $Title) + '</h2></div>')
+    $Lines.Add('<div><p class="imo-benchmark-eyebrow">Dated focused snapshot</p><h2>' + (Encode-Html $Title) + '</h2></div>')
     $Lines.Add('<p>' + (Encode-Html $Description) + '</p>')
     $Lines.Add('</header>')
     $Lines.Add('<div class="imo-benchmark-family__meta"><span>Snapshot ' + (Encode-Html $snapshot) + '</span><span>' + (Encode-Html $platform) + '</span><span>' + (Encode-Html $runMode) + '</span><span>25,000 rows</span><span>.NET 8</span><a href="' + (Encode-Html $EvidenceUrl) + '" target="_blank" rel="noopener">' + (Encode-Html $EvidenceLabel) + '</a></div>')
@@ -137,7 +137,7 @@ $csv = Get-Content -LiteralPath $csvPath -Raw -Encoding UTF8 | ConvertFrom-Json 
 
 $lines = [System.Collections.Generic.List[string]]::new()
 $lines.Add('<section class="imo-benchmark-evidence" aria-labelledby="benchmark-evidence-title">')
-$lines.Add('<div class="imo-benchmark-evidence__intro"><p class="imo-benchmark-eyebrow">Legacy engineering evidence</p><h2 id="benchmark-evidence-title">Historical Excel and CSV snapshots</h2><p>These compact views preserve older committed artifacts whose operating system and run mode were not recorded. They remain useful within one scenario, but they are excluded from current platform-specific rankings.</p></div>')
+$lines.Add('<div class="imo-benchmark-evidence__intro"><p class="imo-benchmark-eyebrow">Local engineering evidence</p><h2 id="benchmark-evidence-title">Dated Excel and CSV snapshots</h2><p>These compact views preserve focused workstation runs. Compare libraries only within the same scenario and recorded environment; use the platform-specific matrix for broader decisions.</p></div>')
 
 Add-ComparisonFamily -Lines $lines -Document $excel -Family 'excel' -Title 'Excel report and data pipelines' -Description 'Median timings from rotated local runs with 20 warmups and 9 measured iterations. The scenarios cover feature-rich output, styled IDataReader writes, typed reads, and compact streaming writes.' -MetricLabel 'Median' -EvidenceLabel 'Inspect Excel benchmark evidence' -EvidenceUrl 'https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/readme-current/officeimo.excel.comparison.json'
 Add-ComparisonFamily -Lines $lines -Document $csv -Family 'csv' -Title 'CSV read and write pipelines' -Description 'BenchmarkDotNet means for wide CSV workloads. Read lanes traverse every field; write lanes validate every emitted value so faster output cannot hide incomplete work.' -MetricLabel 'Mean' -EvidenceLabel 'Inspect CSV benchmark evidence' -EvidenceUrl 'https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/benchmarks/readme-current/officeimo.csv.comparison.json'

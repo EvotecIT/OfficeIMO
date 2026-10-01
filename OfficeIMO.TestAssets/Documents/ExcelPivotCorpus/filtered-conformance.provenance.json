@@ -1,0 +1,43 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T01:16:03.7467907Z",
+  "regeneration": "Build/Verification/New-ExcelPivotFilteredOracle.ps1",
+  "file": "filtered-conformance.xlsx",
+  "sha256": "e6526a12339e70cf994397c0b7233696c36c9954be34116743a745c4ac342291",
+  "sourceRange": "Source!A1:C7",
+  "outputRange": "A4:B7",
+  "selectedPageItem": "Product=B",
+  "hiddenRowItem": "Region=West",
+  "lookups": [
+    {
+      "name": "Grand",
+      "value": "38"
+    },
+    {
+      "name": "North",
+      "value": "23"
+    },
+    {
+      "name": "South",
+      "value": "15"
+    },
+    {
+      "name": "West",
+      "value": "#REF!"
+    },
+    {
+      "name": "ProductB",
+      "value": "38"
+    },
+    {
+      "name": "ProductA",
+      "value": "#REF!"
+    },
+    {
+      "name": "NorthB",
+      "value": "23"
+    }
+  ]
+}

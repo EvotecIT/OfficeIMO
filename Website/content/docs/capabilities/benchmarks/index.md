@@ -58,15 +58,20 @@ dotnet run -c Release --project OfficeIMO.Pdf.Benchmarks -- --verify-budgets
 dotnet run -c Release --project OfficeIMO.Rtf.Benchmarks -- --verify-budgets
 ```
 
-The PDF budget gate uses deterministic allocation, retained-memory, output, and
-cached-allocation-savings contracts plus generous elapsed-time ceilings in
-ordinary CI. Run it with `--verify-timing-budgets` on a controlled benchmark
+The opt-in PDF Performance Evidence workflow checks allocation, retained memory,
+output, and cached-allocation savings plus generous elapsed-time ceilings.
+Ordinary CI retains the PDF correctness tests. Run the budget command with
+`--verify-timing-budgets` on a controlled benchmark
 host to additionally enforce the relative cached speedup target.
 
-Email performance tests cover representative MIME, MSG, and mbox workloads. They assert both the budget and the workload envelope, such as source size or message count, so a smaller fixture cannot accidentally make the test pass.
+The opt-in Email Performance Evidence workflow covers representative MIME, MSG,
+mbox, and PST scale workloads. The cases assert both the budget and the workload
+envelope, such as source size or message count, so a smaller fixture cannot
+accidentally make the measurement pass. Ordinary CI runs the Email correctness
+suite with `Category!=Performance`.
 
 ```shell
-dotnet test OfficeIMO.Email.Tests -c Release --filter FullyQualifiedName~EmailPerformanceEvidenceTests
+dotnet test OfficeIMO.Email.Tests -c Release -f net8.0 --filter "Category=Performance"
 ```
 
 [Read the Email performance contract](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.email-performance.md) for the fixture sizes, assertions, and environment controls.

@@ -2,21 +2,20 @@
   "schemaVersion": 1,
   "format": "officeimo.documentation-catalog",
   "repository": {
-    "projectCount": 243,
-    "productionComponentCount": 128,
-    "testProjectCount": 47,
+    "projectCount": 245,
+    "productionComponentCount": 129,
+    "testProjectCount": 48,
     "benchmarkProjectCount": 34,
     "validationProjectCount": 35,
-    "apiReferenceCount": 121,
+    "apiReferenceCount": 122,
     "conceptualPageCount": 97,
-    "conceptualWordCount": 44591
+    "conceptualWordCount": 44656
   },
   "categories": [
     {
       "name": "Extraction and ingestion",
       "componentCount": 29,
       "componentIndexes": [
-        81,
         82,
         83,
         84,
@@ -44,7 +43,8 @@
         106,
         107,
         108,
-        109
+        109,
+        110
       ]
     },
     {
@@ -57,8 +57,7 @@
         19,
         20,
         21,
-        43,
-        62,
+        44,
         63,
         64,
         65,
@@ -66,8 +65,9 @@
         67,
         68,
         69,
-        116,
-        117
+        70,
+        117,
+        118
       ]
     },
     {
@@ -78,16 +78,16 @@
         9,
         15,
         16,
-        53,
         54,
         55,
         56,
-        59,
+        57,
         60,
         61,
-        80,
-        113,
-        127
+        62,
+        81,
+        114,
+        128
       ]
     },
     {
@@ -111,25 +111,25 @@
         26,
         27,
         28,
-        73,
         74,
         75,
         76,
         77,
         78,
-        118,
+        79,
         119,
         120,
         121,
         122,
         123,
         124,
-        125
+        125,
+        126
       ]
     },
     {
       "name": "Publishing and conversion",
-      "componentCount": 24,
+      "componentCount": 25,
       "componentIndexes": [
         4,
         5,
@@ -144,26 +144,27 @@
         40,
         41,
         42,
-        44,
+        43,
         45,
         46,
         47,
         48,
         49,
-        71,
+        50,
         72,
-        110,
+        73,
         111,
-        112
+        112,
+        113
       ]
     },
     {
       "name": "Rendering surfaces",
       "componentCount": 3,
       "componentIndexes": [
-        50,
         51,
-        52
+        52,
+        53
       ]
     },
     {
@@ -179,13 +180,13 @@
         12,
         13,
         14,
-        57,
         58,
-        70,
-        79,
-        114,
+        59,
+        71,
+        80,
         115,
-        126
+        116,
+        127
       ]
     }
   ],
@@ -210,7 +211,7 @@
       "description": "Provider-neutral document AI operations with bounded evidence, source citations and validated extraction.",
       "kind": "package",
       "projectPath": "OfficeIMO.AI/OfficeIMO.AI.csproj",
-      "sourceFileCount": 16,
+      "sourceFileCount": 17,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ai/",
@@ -223,7 +224,7 @@
       "description": "OfficeIMO.AI.Example is a focused component in the OfficeIMO managed document platform.",
       "kind": "tool",
       "projectPath": "Examples/OfficeIMO.AI.Example/OfficeIMO.AI.Example.csproj",
-      "sourceFileCount": 10,
+      "sourceFileCount": 13,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -327,7 +328,7 @@
       "description": "Shared zero-dependency document, security, drawing, color, image, and font primitives for OfficeIMO projects.",
       "kind": "package",
       "projectPath": "OfficeIMO.Core/OfficeIMO.Core.csproj",
-      "sourceFileCount": 620,
+      "sourceFileCount": 623,
       "referencingTestProjectCount": 12,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/core/",
@@ -340,7 +341,7 @@
       "description": "A fluent, strongly-typed CSV document model for OfficeIMO.",
       "kind": "package",
       "projectPath": "OfficeIMO.CSV/OfficeIMO.CSV.csproj",
-      "sourceFileCount": 75,
+      "sourceFileCount": 87,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/csv/",
       "apiUrl": "/api/csv/",
@@ -483,7 +484,7 @@
       "description": "Open-source, cross-platform .NET library for creating, reading, editing, and converting Microsoft Excel XLS, XLSX, XLSB, XLSM, and XLTX workbooks without Microsoft Office; legacy XLT templates are supported for classification and import.",
       "kind": "package",
       "projectPath": "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
-      "sourceFileCount": 1014,
+      "sourceFileCount": 1050,
       "referencingTestProjectCount": 10,
       "docsUrl": "/docs/excel/",
       "apiUrl": "/api/excel/",
@@ -717,11 +718,24 @@
       "description": "Typed electronic invoices, CII/UBL authoring, parsing, conversion, and model validation for .NET.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing/OfficeIMO.Invoicing.csproj",
-      "sourceFileCount": 43,
+      "sourceFileCount": 57,
       "referencingTestProjectCount": 2,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/invoicing/",
       "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing"
+    },
+    {
+      "name": "OfficeIMO.Invoicing.KSeF",
+      "packageId": "OfficeIMO.Invoicing.KSeF",
+      "category": "Publishing and conversion",
+      "description": "KSeF v2 token authentication, encrypted online invoice submission, status and UPO retrieval.",
+      "kind": "package",
+      "projectPath": "OfficeIMO.Invoicing.KSeF/OfficeIMO.Invoicing.KSeF.csproj",
+      "sourceFileCount": 12,
+      "referencingTestProjectCount": 1,
+      "docsUrl": "/docs/capabilities/packages/",
+      "apiUrl": "/api/invoicing-ksef/",
+      "packageUrl": "https://www.nuget.org/packages/OfficeIMO.Invoicing.KSeF"
     },
     {
       "name": "OfficeIMO.Invoicing.Pdf",
@@ -730,7 +744,7 @@
       "description": "Optional PDF presentation and hybrid CII invoice generation for OfficeIMO.Invoicing.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing.Pdf/OfficeIMO.Invoicing.Pdf.csproj",
-      "sourceFileCount": 14,
+      "sourceFileCount": 18,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/invoicing-pdf/",
@@ -743,7 +757,7 @@
       "description": "Pinned schema and Schematron validation for OfficeIMO electronic invoices.",
       "kind": "package",
       "projectPath": "OfficeIMO.Invoicing.Validation/OfficeIMO.Invoicing.Validation.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 9,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/invoicing-validation/",
@@ -964,7 +978,7 @@
       "description": "Dependency-light OCR contracts shared by OfficeIMO document formats and providers.",
       "kind": "package",
       "projectPath": "OfficeIMO.Ocr/OfficeIMO.Ocr.csproj",
-      "sourceFileCount": 7,
+      "sourceFileCount": 14,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/ocr/",
@@ -1133,7 +1147,7 @@
       "description": "Optional OCR rendering, native-text merge, and searchable output for OfficeIMO.Pdf.",
       "kind": "package",
       "projectPath": "OfficeIMO.Pdf.Ocr/OfficeIMO.Pdf.Ocr.csproj",
-      "sourceFileCount": 15,
+      "sourceFileCount": 16,
       "referencingTestProjectCount": 4,
       "docsUrl": "/docs/pdf/",
       "apiUrl": "/api/pdf-ocr/",
@@ -1679,7 +1693,7 @@
       "description": "Cross-platform OfficeIMO desktop document reader and workspace.",
       "kind": "library",
       "projectPath": "OfficeIMO.Studio/OfficeIMO.Studio.csproj",
-      "sourceFileCount": 227,
+      "sourceFileCount": 231,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1692,7 +1706,7 @@
       "description": "Unified command-line interface for OfficeIMO document conversion, extraction, markup, provenance, output, intake, and capability discovery.",
       "kind": "tool",
       "projectPath": "OfficeIMO.Tool/OfficeIMO.Tool.csproj",
-      "sourceFileCount": 41,
+      "sourceFileCount": 44,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": null,
@@ -1809,7 +1823,7 @@
       "description": "PDF converter for OfficeIMO.Word - Export Word documents to PDF using the first-party OfficeIMO.Pdf engine.",
       "kind": "package",
       "projectPath": "OfficeIMO.Word.Pdf/OfficeIMO.Word.Pdf.csproj",
-      "sourceFileCount": 46,
+      "sourceFileCount": 47,
       "referencingTestProjectCount": 5,
       "docsUrl": "/docs/word/",
       "apiUrl": "/api/word-pdf/",
@@ -1835,7 +1849,7 @@
       "description": "Typed local document workflows that compose first-party OfficeIMO conversion, PDF, and provenance capabilities.",
       "kind": "package",
       "projectPath": "OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-      "sourceFileCount": 91,
+      "sourceFileCount": 99,
       "referencingTestProjectCount": 1,
       "docsUrl": "/docs/capabilities/packages/",
       "apiUrl": "/api/workflows/",

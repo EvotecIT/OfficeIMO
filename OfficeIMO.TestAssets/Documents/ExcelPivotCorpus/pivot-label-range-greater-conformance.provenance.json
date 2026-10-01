@@ -1,0 +1,15 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-28T06:53:46.1215234Z",
+  "regeneration": "Build/Verification/New-ExcelPivotLabelRangeOracle.ps1",
+  "file": "pivot-label-range-greater-conformance.xlsx",
+  "sha256": "7348cb6816a3d962f9bd0425b0df22216bae36678c6729b1efbcfbcc2179b3ce",
+  "sourceRange": "Source!A1:B7",
+  "filterType": 23,
+  "value1": "Charlie",
+  "value2": null,
+  "outputRange": "A4:B8",
+  "grandTotal": 150.0
+}

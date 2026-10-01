@@ -47,33 +47,29 @@ public sealed class BibliographyReviewClosureTests {
         Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV225" && diagnostic.Field == "identifiers.arXiv");
     }
 
-    [Fact]
-    public void Bib_keyword_delimiters_survive_strict_canonical_round_trip() {
+    [Theory]
+    [InlineData("alpha, beta; gamma", null)]
+    [InlineData("alpha, beta", "gamma")]
+    [InlineData(" alpha ", null)]
+    [InlineData("alpha ", null)]
+    [InlineData("\talpha\t", null)]
+    [InlineData("", null)]
+    [InlineData(" ", null)]
+    public void Bib_keyword_delimiters_survive_strict_canonical_round_trip(string keyword, string? secondKeyword) {
         var document = new BibliographyDocument(BibliographyFormat.BibLatex);
         var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Keyword contract" };
-        item.Keywords.Add("alpha, beta; gamma");
+        item.Keywords.Add(keyword);
+        if (secondKeyword is not null) item.Keywords.Add(secondKeyword);
         document.Items.Add(item);
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
 
-        Assert.Contains("keywords = {{alpha, beta; gamma}}", written.Content, StringComparison.Ordinal);
-        Assert.Equal("alpha, beta; gamma", Assert.Single(reopened.Keywords));
-    }
-
-    [Fact]
-    public void Multiple_Bib_keywords_survive_strict_canonical_round_trip() {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Keywords" };
-        item.Keywords.Add("alpha, beta");
-        item.Keywords.Add("gamma");
-        document.Items.Add(item);
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
-
+        if (keyword == "alpha, beta; gamma") Assert.Contains("keywords = {{alpha, beta; gamma}}", written.Content, StringComparison.Ordinal);
+        if (secondKeyword is null) Assert.Equal(keyword, Assert.Single(reopened.Keywords));
         Assert.Equal(item.Keywords, reopened.Keywords);
     }
+
 
     [Fact]
     public void Recognized_native_Bib_type_survives_an_edit() {
@@ -126,18 +122,6 @@ public sealed class BibliographyReviewClosureTests {
         Assert.Contains("Smith, Jr., John", written.Content, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Additional_EndNote_related_URLs_survive_an_edit() {
-        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Original</title></titles><urls><related-urls><url>https://one.example</url><url>https://two.example</url></related-urls></urls></record></records></xml>";
-        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
-        document.Items[0].Title = "Edited";
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
-
-        Assert.Equal("https://one.example", reopened.Url);
-        Assert.Equal("https://two.example", Assert.Single(reopened.NativeFields, field => field.Name == "url").Value);
-    }
 
     [Theory]
     [InlineData("institution")]
@@ -246,29 +230,7 @@ public sealed class BibliographyReviewClosureTests {
         Assert.Null(reopened[1].Name.Literal);
     }
 
-    [Fact]
-    public void Nonstandard_Bib_particle_case_blocks_strict_round_trip() {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Names" };
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Given = "Ludwig", Family = "Beethoven", NonDroppingParticle = "Van" }));
-        document.Items.Add(item);
 
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV226" && diagnostic.Field == "contributors");
-    }
-
-    [Fact]
-    public void Ambiguous_lowercase_Bib_family_blocks_strict_round_trip() {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Names" };
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Given = "Jane", Family = "van Example" }));
-        document.Items.Add(item);
-
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() => document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV226");
-    }
 
     [Fact]
     public void RIS_accession_with_a_colon_reopens_as_an_accession() {

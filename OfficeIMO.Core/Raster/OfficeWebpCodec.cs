@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 /// <remarks>
 /// The encoder deterministically selects between a literal VP8L stream and a bounded prediction,
-/// subtract-green, and LZ77 stream. Decoding supports bounded opaque VP8 keyframes and lossless VP8L; lossy alpha and animation remain caller-codec responsibilities.
+/// subtract-green, and LZ77 stream. Decoding supports bounded VP8 keyframes with optional raw or lossless-compressed alpha and lossless VP8L; animation remains a caller-codec responsibility.
 /// </remarks>
 public static partial class OfficeWebpCodec {
     private const int LiteralHeaderBitCount = 1239;
@@ -183,7 +183,7 @@ public static partial class OfficeWebpCodec {
     /// <summary>
     /// Attempts to decode bounded ordinary lossless VP8L, including prediction, color,
     /// subtract-green, palette, LZ77, color-cache, and Huffman features.
-    /// Opaque VP8 keyframes are also decoded; lossy alpha and animation remain optional caller-codec responsibilities.
+    /// VP8 keyframes with raw or lossless-compressed alpha are also decoded; animation remains an optional caller-codec responsibility.
     /// </summary>
     public static bool TryDecode(byte[]? encodedBytes, out OfficeRasterImage? image) =>
         TryDecode(encodedBytes, CancellationToken.None, out image);
@@ -201,10 +201,9 @@ public static partial class OfficeWebpCodec {
         out OfficeRasterImage? image) {
         try {
             if (TryDecodeVp8(encodedBytes, cancellationToken, retainedManagedBytes, out image)) return true;
-        } catch (OverflowException) {
-            image = null;
-            return false;
-        } catch (FormatException) {
+        } catch (Exception exception) when (
+            exception is ArgumentException || exception is FormatException || exception is OverflowException ||
+            exception is OutOfMemoryException) {
             image = null;
             return false;
         }

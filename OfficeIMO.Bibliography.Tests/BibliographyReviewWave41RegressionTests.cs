@@ -20,13 +20,22 @@ public sealed class BibliographyReviewWave41RegressionTests {
     }
 
     [Fact]
-    public void Date_component_scanning_rejects_excess_fragments_without_substring_amplification() {
-        string value = string.Join("-", Enumerable.Repeat("1", 100_000));
-#if NET8_0_OR_GREATER
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+#endif
+    public void Date_component_scanning_retains_excess_fragments_as_a_literal() {
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE
+        const int fragments = 100_000;
+#else
+        const int fragments = 8;
+#endif
+        string value = string.Join("-", Enumerable.Repeat("1", fragments));
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long before = GC.GetAllocatedBytesForCurrentThread();
 #endif
         BibliographyDate parsed = CodecMappings.ParseDate(BibliographyDateRole.Issued, value);
-#if NET8_0_OR_GREATER
+#if BIBLIOGRAPHY_PERFORMANCE_EVIDENCE && NET8_0_OR_GREATER
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(allocated < 1_000_000, $"Date parsing allocated {allocated} bytes.");
 #endif
@@ -115,20 +124,14 @@ public sealed class BibliographyReviewWave41RegressionTests {
     [InlineData("<custom>v</custom><urls><related-urls><url>one</url><url>two</url></related-urls></urls>", "custom,url")]
     public void EndNote_native_fields_follow_source_order(string fields, string expectedNames) {
         string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type>" + fields + "</record></records></xml>";
-        BibliographyItem item = Assert.Single(BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document.Items);
+        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
+        BibliographyItem item = Assert.Single(document.Items);
 
         Assert.Equal(expectedNames.Split(','), item.NativeFields.Select(static field => field.Name));
-    }
-
-    [Fact]
-    public void EndNote_unknown_fields_stay_before_later_blank_identifiers_after_canonical_edits() {
-        const string source = "<xml><records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><custom>v</custom><isbn/></record></records></xml>";
-        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
-        document.Items[0].Title = "Edited";
-
+        item.Title = "Edited";
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items);
-
-        Assert.Equal(new[] { "custom", "isbn" }, reopened.NativeFields.Select(static field => field.Name));
+        Assert.Equal(expectedNames.Split(','), reopened.NativeFields.Select(static field => field.Name));
     }
+
 }

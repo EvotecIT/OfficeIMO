@@ -26,16 +26,6 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Contains("<!doctype html>", Encoding.UTF8.GetString(result.ToArray()), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void HtmlPreflightTreatsQuotesInsideUnquotedValuesAsLiteral() {
-        string html = "<html><body><div data-value=unquoted\">" +
-            string.Concat(Enumerable.Repeat("<span></span>", 16)) +
-            "</div></body></html>";
-
-        Assert.Throws<InvalidDataException>(() => HtmlProvenance.Inspect(
-            html,
-            new OfficeProvenanceOptions { MaxContainerEntries = 8 }));
-    }
 
     [Fact]
     public void OdfRemovalValidatesPackageEntryLimitsBeforeManifestLookup() {

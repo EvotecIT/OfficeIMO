@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Faktura xmlns:etd="http://crd.gov.pl/xml/schematy/dziedzinowe/mf/2022/01/05/eD/DefinicjeTypy/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns="http://crd.gov.pl/wzor/2025/06/25/13775/">
+	<Naglowek>
+		<KodFormularza kodSystemowy="FA (3)" wersjaSchemy="1-0E">FA</KodFormularza>
+		<WariantFormularza>3</WariantFormularza>
+		<DataWytworzeniaFa>2026-02-01T00:00:00Z</DataWytworzeniaFa>
+		<SystemInfo>Samplofaktur</SystemInfo>
+	</Naglowek>
+	<Podmiot1>
+		<DaneIdentyfikacyjne>
+			<NIP>9999999999</NIP>
+			<Nazwa>ABC AGD sp. z o. o.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Kwiatowa 1 m. 2</AdresL1>
+			<AdresL2>00-001 Warszawa</AdresL2>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>abc@abc.pl</Email>
+			<Telefon>667444555</Telefon>
+		</DaneKontaktowe>
+	</Podmiot1>
+	<Podmiot2>
+		<DaneIdentyfikacyjne>
+			<NIP>1111111111</NIP>
+			<Nazwa>CDE sp. j.</Nazwa>
+		</DaneIdentyfikacyjne>
+		<Adres>
+			<KodKraju>PL</KodKraju>
+			<AdresL1>ul. Sadowa 1 lok. 3</AdresL1>
+			<AdresL2>00-002 Kraków</AdresL2>
+			<GLN>a</GLN>
+		</Adres>
+		<DaneKontaktowe>
+			<Email>cde@cde.pl</Email>
+			<Telefon>555777999</Telefon>
+		</DaneKontaktowe>
+		<NrKlienta>fdfd778343</NrKlienta>
+		<JST>2</JST>
+		<GV>2</GV>		
+	</Podmiot2>
+	<Fa>
+		<KodWaluty>EUR</KodWaluty>
+		<P_1>2026-02-15</P_1>
+		<P_1M>Warszawa</P_1M>
+		<P_2>FV2026/02/150</P_2>
+		<P_13_1>13560</P_13_1>
+		<P_14_1>3118.80</P_14_1>
+		<P_14_1W>13768.14</P_14_1W>
+		<P_15>16678.80</P_15>
+		<Adnotacje>
+			<P_16>2</P_16>
+			<P_17>2</P_17>
+			<P_18>2</P_18>
+			<P_18A>2</P_18A>
+			<Zwolnienie>
+				<P_19N>1</P_19N>
+			</Zwolnienie>
+			<NoweSrodkiTransportu>
+				<P_22N>1</P_22N>
+			</NoweSrodkiTransportu>
+			<P_23>2</P_23>
+			<PMarzy>
+				<P_PMarzyN>1</P_PMarzyN>
+			</PMarzy>
+		</Adnotacje>
+		<RodzajFaktury>VAT</RodzajFaktury>
+		<FaWiersz>
+			<NrWierszaFa>1</NrWierszaFa>
+			<UU_ID>aaaa111133339990</UU_ID>
+			<P_6A>2026-02-05</P_6A>
+			<P_7>lodówka Zimnotech mk1</P_7>
+			<CN>8418 21 91</CN>
+			<P_8A>szt.</P_8A>
+			<P_8B>10</P_8B>
+			<P_9A>406</P_9A>
+			<P_11>4060</P_11>
+			<P_12>23</P_12>
+			<KursWaluty>4.4080</KursWaluty>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>2</NrWierszaFa>
+			<UU_ID>aaaa111133339991</UU_ID>
+			<P_6A>2026-02-10</P_6A>
+			<P_7>zamrażarka Zimnotech mk2</P_7>
+			<CN>8418 40 20</CN>
+			<P_8A>szt.</P_8A>
+			<P_8B>20</P_8B>
+			<P_9A>250</P_9A>
+			<P_11>5000</P_11>
+			<P_12>23</P_12>
+			<KursWaluty>4.5005</KursWaluty>
+		</FaWiersz>
+		<FaWiersz>
+			<NrWierszaFa>3</NrWierszaFa>
+			<UU_ID>aaaa111133339992</UU_ID>
+			<P_6A>2026-02-20</P_6A>
+			<P_7>zmywarka Bryza 100</P_7>
+			<CN>8422 11 00</CN>
+			<P_8A>szt.</P_8A>
+			<P_8B>15</P_8B>
+			<P_9A>300</P_9A>
+			<P_11>4500</P_11>
+			<P_12>23</P_12>
+			<KursWaluty>4.3250</KursWaluty>
+		</FaWiersz>
+		<Platnosc>
+			<TerminPlatnosci>
+				<Termin>2026-03-15</Termin>
+			</TerminPlatnosci>
+			<FormaPlatnosci>6</FormaPlatnosci>
+			<RachunekBankowyFaktora>
+				<NrRB>73111111111111111111111111</NrRB>
+				<RachunekWlasnyBanku>2</RachunekWlasnyBanku>
+				<NazwaBanku>Bank Bankowości Bankowej S. A.</NazwaBanku>
+				<OpisRachunku>PLN</OpisRachunku>
+			</RachunekBankowyFaktora>
+		</Platnosc>
+		<WarunkiTransakcji>
+			<Zamowienia>
+				<DataZamowienia>2026-01-26</DataZamowienia>
+				<NrZamowienia>4354343</NrZamowienia>
+			</Zamowienia>
+			<NrPartiiTowaru>2312323/2026</NrPartiiTowaru>
+			<WarunkiDostawy>CIP</WarunkiDostawy>
+			<Transport>
+				<RodzajTransportu>3</RodzajTransportu>
+				<Przewoznik>
+					<DaneIdentyfikacyjne>
+						<NIP>6666666666</NIP>
+						<Nazwa>Jan Nowak Transport</Nazwa>
+					</DaneIdentyfikacyjne>
+					<AdresPrzewoznika>
+						<KodKraju>PL</KodKraju>
+						<AdresL1>ul. Bukowa 5</AdresL1>
+						<AdresL2>00-004 Poznań</AdresL2>
+					</AdresPrzewoznika>
+				</Przewoznik>
+				<OpisLadunku>13</OpisLadunku>
+				<JednostkaOpakowania>a</JednostkaOpakowania>
+				<WysylkaZ>
+					<KodKraju>PL</KodKraju>
+					<AdresL1>Sadowa 1 lok. 2</AdresL1>
+					<AdresL2>00-001 Warszawa</AdresL2>
+				</WysylkaZ>
+				<WysylkaDo>
+					<KodKraju>PL</KodKraju>
+					<AdresL1>ul. Sadowa 1 lok. 3</AdresL1>
+					<AdresL2>00-002 Kraków</AdresL2>
+				</WysylkaDo>
+			</Transport>
+		</WarunkiTransakcji>
+	</Fa>
+	<Stopka>
+		<Informacje>
+			<StopkaFaktury>Kapiał zakładowy 5 000 000</StopkaFaktury>
+		</Informacje>
+		<Rejestry>
+			<KRS>0000099999</KRS>
+			<REGON>999999999</REGON>
+			<BDO>000099999</BDO>
+		</Rejestry>
+	</Stopka>
+</Faktura>

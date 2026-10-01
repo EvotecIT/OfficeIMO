@@ -34,7 +34,10 @@ public sealed class PdfSearchableScopedAccessTests {
                     File.Move(input.BackingPath, input.BackingPath + ".original");
                     File.WriteAllBytes(input.BackingPath, pdf);
                 }
-                return Task.FromResult(new OcrResult { Provider = "fixture" });
+                return Task.FromResult(new OcrResult { Provider = "fixture", Spans = [new OcrTextSpan {
+                    Text = "Scoped", Level = OcrTextSpanLevel.Word, Confidence = 1, CoordinateUnit = OcrCoordinateUnit.Points,
+                    Region = new() { X = 20, Y = 30, Width = 80, Height = 12 }
+                }] });
             });
             var result = await new OfficeWorkflowRunner().MakePdfSearchableAsync(request, engine);
             Assert.Equal(replaceSource ? OfficeWorkflowStatus.Failed : OfficeWorkflowStatus.Completed, result.Status);

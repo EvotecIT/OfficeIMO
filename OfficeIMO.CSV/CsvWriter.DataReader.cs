@@ -12,6 +12,34 @@ internal static partial class CsvWriter
     // calls. A single exceptionally large record can still exceed this size.
     internal const int DataReaderFlushThreshold = 32 * 1024;
 
+    internal static void AppendDataReaderRecordBuffered(
+        StringBuilder buffer,
+        object?[] values,
+        string delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat,
+        bool useUtc,
+        string? nullValue)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode,
+                ShouldQuoteField(quoteFields, fieldNames, i), dateTimeFormat, useUtc, nullValue);
+        }
+
+        buffer.Append(newLine);
+    }
+
 #if NET6_0_OR_GREATER
     internal enum DataReaderFieldKind : byte
     {
@@ -241,6 +269,17 @@ internal static partial class CsvWriter
 
         var formatted = destination[..charsWritten];
         AppendEscapedSpanDefault(buffer, formatted, delimiter);
+    }
+#else
+    internal static void FlushBufferedContent(TextWriter writer, StringBuilder buffer)
+    {
+        if (buffer.Length == 0)
+        {
+            return;
+        }
+
+        writer.Write(buffer.ToString());
+        buffer.Clear();
     }
 #endif
 }

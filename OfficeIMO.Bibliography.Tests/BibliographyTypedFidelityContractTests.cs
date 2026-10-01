@@ -27,21 +27,11 @@ public sealed class BibliographyTypedFidelityContractTests {
         Assert.Equal(expected, Assert.Single(OfficeConversionFidelityDiagnostics.Flatten(new[] { common })).LossKind);
     }
 
-    [Fact]
-    public void StrictAcceptanceRejectsTypedBibliographyLoss() {
-        var report = new BibliographyConversionReport();
-        report.Add(new BibliographyConversionDiagnostic(
-            "BIBTEST002",
-            BibliographyDiagnosticSeverity.Warning,
-            "Source field omitted.",
-            BibliographyConversionAction.Omitted));
-
-        Assert.Throws<BibliographyConversionLossException>(() => report.RequireNoLoss());
-    }
 
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
+    [InlineData("BIBTEST002")]
     public void BlankLegacyCodeRemainsReadableThroughTypedAndComposedReports(string code) {
         var report = new BibliographyConversionReport();
         report.Add(new BibliographyConversionDiagnostic(
@@ -49,7 +39,7 @@ public sealed class BibliographyTypedFidelityContractTests {
 
         Assert.Equal(code, Assert.Single(report.Diagnostics).Code);
         OfficeConversionFidelityDiagnostic typed = Assert.Single(report.FidelityDiagnostics);
-        Assert.Equal("BIBLIOGRAPHY_DIAGNOSTIC", typed.Code);
+        Assert.Equal(string.IsNullOrWhiteSpace(code) ? "BIBLIOGRAPHY_DIAGNOSTIC" : code, typed.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, typed.LossKind);
         Assert.Equal(typed.Code, Assert.Single(OfficeConversionFidelityDiagnostics.Flatten(new IOfficeConversionReport[] { report })).Code);
         Assert.Throws<BibliographyConversionLossException>(() => report.RequireNoLoss());

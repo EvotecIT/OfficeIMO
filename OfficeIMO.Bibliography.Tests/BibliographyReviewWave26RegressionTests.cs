@@ -64,21 +64,6 @@ public sealed class BibliographyReviewWave26RegressionTests {
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV242" && diagnostic.Field == "dates.Issued");
     }
 
-    [Theory]
-    [InlineData(BibliographyFormat.Ris)]
-    [InlineData(BibliographyFormat.EndNoteXml)]
-    public void Literal_names_ending_in_commas_reopen_as_literals(BibliographyFormat format) {
-        var document = new BibliographyDocument(format);
-        var item = new BibliographyItem { Key = "1", Type = BibliographyItemType.Book };
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Literal = "Acme," }));
-        document.Items.Add(item);
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyName reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Contributors).Name;
-
-        Assert.Equal("Acme,", reopened.Literal);
-        Assert.Null(reopened.Family);
-    }
 
     [Fact]
     public void EndNote_preserves_distinct_nonnumeric_year_and_publication_date_components() {

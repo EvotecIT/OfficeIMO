@@ -31,6 +31,15 @@ internal interface ICsvDataReaderHeaderRowSource : ICsvDataReaderTextRowSource
     void SetSourceColumnCount(int sourceColumnCount);
 }
 
+#if NET8_0_OR_GREATER
+internal interface ICsvAsyncDataReaderRowSource : ICsvDataReaderTextRowSource
+{
+    System.Threading.Tasks.ValueTask<bool> ReadAsync(CancellationToken cancellationToken);
+    bool HasStaticValues { get; }
+    object? GetRawValue(int ordinal);
+}
+#endif
+
 internal interface ICsvDataReaderParallelBatchInfo
 {
     int RowCount { get; }

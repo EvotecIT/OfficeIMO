@@ -439,7 +439,8 @@ public static partial class PowerPointPdfConverterExtensions {
                     pdfOptions.GetEmbeddedFontFamilyName(reportedFallback),
                     new Dictionary<string, string> {
                         ["slideNumber"] = slideNumber.ToString(System.Globalization.CultureInfo.InvariantCulture)
-                    }));
+                    },
+                    sourceFontEmbeddingAllowed: embedSystemFont));
             }
         }
     }

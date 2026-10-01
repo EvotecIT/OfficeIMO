@@ -153,21 +153,31 @@ public sealed class DrawingWebpVp8Tests {
 
 #if NET8_0_OR_GREATER
     [Fact]
+#if DRAWING_PERFORMANCE_EVIDENCE
+    [Trait("Category", "Performance")]
+    [Trait("Category", "ResourcePerformanceEvidence")]
+#endif
     public void LargeVp8DecodeKeepsAllocationsNearItsRetainedImageBudget() {
         // Independently produced with Pillow/libwebp from a 512x512 gradient pattern.
         // The output itself needs 1 MiB; per-block coefficient/transform arrays
         // would add several more MiB of short-lived allocations.
         byte[] encoded = ReadFixture("independent-vp8-allocation.webp");
+#if DRAWING_PERFORMANCE_EVIDENCE
         Assert.True(OfficeWebpCodec.TryDecode(encoded, out _)); // JIT and codec warmup.
 
         long before = GC.GetAllocatedBytesForCurrentThread();
+#endif
         bool decoded = OfficeWebpCodec.TryDecode(encoded, out OfficeRasterImage? image);
+#if DRAWING_PERFORMANCE_EVIDENCE
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+#endif
 
         Assert.True(decoded);
         Assert.Equal(512, image!.Width);
         Assert.Equal(512, image.Height);
+#if DRAWING_PERFORMANCE_EVIDENCE
         Assert.True(allocated <= 4_000_000, $"VP8 decode allocated {allocated:N0} bytes.");
+#endif
     }
 #endif
 
@@ -228,7 +238,7 @@ public sealed class DrawingWebpVp8Tests {
     }
 
     [Fact]
-    public void StaticLossyWebpWithSeparateAlphaPlaneCanUseCallerCodec() {
+    public void StaticLossyWebpWithSeparateAlphaPlaneUsesManagedDecoder() {
         byte[] opaque = ReadFixture("independent-vp8-pattern.webp");
         const int width = 48;
         const int height = 32;
@@ -248,14 +258,14 @@ public sealed class DrawingWebpVp8Tests {
         Array.Copy(opaque, 12, encoded, alphaChunk + 8 + alphaLength + (alphaLength & 1), opaque.Length - 12);
 
         Assert.True(OfficeImageReader.TryIdentifyByContent(encoded, null, out _));
-        Assert.False(OfficeRasterImageDecoder.TryDecode(encoded, out _));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(encoded, out var expected));
         var codec = new SolidWebpCodec();
-        var drawing = new OfficeDrawing(1, 1).AddImage(encoded, "image/webp",
-            new OfficeImageProjection(new OfficeImagePlacement(0, 0, 1, 1)));
+        var drawing = new OfficeDrawing(width, height).AddImage(encoded, "image/webp",
+            new OfficeImageProjection(new OfficeImagePlacement(0, 0, width, height)));
         OfficeRasterImage rendered = OfficeDrawingRasterRenderer.Render(drawing,
             new OfficeDrawingRasterRenderOptions { ImageCodec = codec });
-        Assert.Equal(1, codec.Calls);
-        Assert.Equal(OfficeColor.Red, rendered.GetPixel(0, 0));
+        Assert.Equal(0, codec.Calls);
+        Assert.Equal(expected!.GetPixel(13, 11), rendered.GetPixel(13, 11));
     }
 
     private sealed class SolidWebpCodec : IOfficeRasterImageCodec {

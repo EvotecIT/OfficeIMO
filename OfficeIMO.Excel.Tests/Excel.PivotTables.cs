@@ -1219,6 +1219,16 @@ namespace OfficeIMO.Tests {
                 Assert.True(numberField.SharedItems!.ContainsNumber!.Value);
                 Assert.Equal(3, numberField.SharedItems.Elements<NumberItem>().Count());
 
+                var fields = pivotPart.PivotTableDefinition!.PivotFields!.Elements<PivotField>().ToArray();
+                for (int fieldIndex = 0; fieldIndex < 2; fieldIndex++) {
+                    var field = cacheFields[fieldIndex];
+                    int keyCount = field.FieldGroup?.GetFirstChild<GroupItems>()?.ChildElements.Count
+                        ?? field.SharedItems!.ChildElements.Count;
+                    Assert.Equal(Enumerable.Range(0, keyCount).Select(index => (uint)index),
+                        fields[fieldIndex].Items!.Elements<Item>().Where(item => item.Index != null)
+                            .Select(item => item.Index!.Value));
+                }
+
                 OpenXmlValidator validator = new OpenXmlValidator();
                 var errors = validator.Validate(spreadsheet).ToList();
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -1284,9 +1294,10 @@ namespace OfficeIMO.Tests {
                 Assert.Null(cacheFields[3].FieldGroup!.ParentId);
                 Assert.Equal(3U, cacheFields[4].FieldGroup!.ParentId!.Value);
                 Assert.Equal(4U, cacheFields[5].FieldGroup!.ParentId!.Value);
-                Assert.Equal(2U, cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
-                Assert.Equal(3U, cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
-                Assert.Equal(3U, cacheFields[5].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
+                Assert.Equal(3U, cacheFields[0].FieldGroup!.ParentId!.Value);
+                Assert.Equal(4U, cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
+                Assert.Equal(6U, cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
+                Assert.Equal(14U, cacheFields[5].FieldGroup!.GetFirstChild<GroupItems>()!.Count!.Value);
                 Assert.Contains(cacheFields[3].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "2026");
                 Assert.Contains(cacheFields[4].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "Q2");
                 Assert.Contains(cacheFields[5].FieldGroup!.GetFirstChild<GroupItems>()!.Elements<StringItem>(), item => item.Val!.Value == "April");
@@ -1368,20 +1379,24 @@ namespace OfficeIMO.Tests {
                 Assert.False(yearsField.Compact!.Value);
                 Assert.True(yearsField.Outline!.Value);
                 var hiddenYear = Assert.Single(yearsField.Items!.Elements<Item>(), item => item.Hidden?.Value == true);
-                Assert.Equal(0U, hiddenYear.Index!.Value);
+                Assert.Equal(1U, hiddenYear.Index!.Value);
 
                 var monthsField = pivotFields[4];
                 Assert.Equal(FieldSortValues.Descending, monthsField.SortType!.Value);
                 Assert.False(monthsField.DefaultSubtotal!.Value);
                 Assert.False(monthsField.Compact!.Value);
                 Assert.True(monthsField.Outline!.Value);
-                Assert.Null(monthsField.Items);
+                var monthCacheField = pivotPart.PivotTableCacheDefinitionPart!.PivotCacheDefinition!
+                    .CacheFields!.Elements<CacheField>().ElementAt(4);
+                int monthKeys = monthCacheField.FieldGroup!.GetFirstChild<GroupItems>()!.ChildElements.Count;
+                Assert.Equal(Enumerable.Range(0, monthKeys).Select(index => (uint)index),
+                    monthsField.Items!.Elements<Item>().Select(item => item.Index!.Value));
 
                 var filterPivotPart = pivotParts.Single(part => part.PivotTableDefinition!.Name == "FilterPivot");
                 var pageFields = filterPivotPart.PivotTableDefinition!.PageFields!.Elements<PageField>().ToList();
                 Assert.Equal(2, pageFields.Count);
                 Assert.Equal(3, pageFields[0].Field!.Value);
-                Assert.Equal(1U, pageFields[0].Item!.Value);
+                Assert.Equal(2U, pageFields[0].Item!.Value);
                 Assert.Equal(4, pageFields[1].Field!.Value);
                 Assert.Null(pageFields[1].Item);
 

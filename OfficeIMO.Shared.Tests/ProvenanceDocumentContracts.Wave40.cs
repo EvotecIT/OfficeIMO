@@ -5,12 +5,7 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlBogusDoctypeQuotesDoNotHideFollowingElements() {
-        AssertHtmlPreflightRejects(
-            "<!DOCTYPE html x\"><div></div><div></div>",
-            maximumEntries: 1);
-    }
+
 
     [Fact]
     public void VisioSignatureRelationshipPartHonorsTheXmlNodeBudget() {

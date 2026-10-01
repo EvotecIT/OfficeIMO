@@ -66,9 +66,10 @@ namespace OfficeIMO.Excel {
 
             foreach (var field in cacheDef.CacheFields.Elements<CacheField>()) {
                 var values = new List<string>();
-                SharedItems? sharedItems = field.SharedItems;
-                if (sharedItems != null) {
-                    foreach (OpenXmlElement item in sharedItems.ChildElements) {
+                OpenXmlCompositeElement? items = field.FieldGroup?.GetFirstChild<GroupItems>();
+                items ??= field.SharedItems;
+                if (items != null) {
+                    foreach (OpenXmlElement item in items.ChildElements) {
                         string? text = item switch {
                             StringItem stringItem => stringItem.Val?.Value,
                             NumberItem numberItem => numberItem.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -87,11 +88,12 @@ namespace OfficeIMO.Excel {
             return fields;
         }
 
-        private static List<string> ResolveFieldNames(IEnumerable<Field>? fields, IReadOnlyList<string> cacheFields) {
+        private static List<string> ResolveFieldNames(IEnumerable<Field>? fields, IReadOnlyList<string> cacheFields, bool sourceFieldsOnly = false) {
             var list = new List<string>();
             if (fields == null) return list;
             foreach (var field in fields) {
                 if (field.Index == null) continue;
+                if (sourceFieldsOnly && field.Index.Value < 0) continue;
                 list.Add(ResolveFieldName(field.Index.Value, cacheFields));
             }
             return list;
@@ -240,7 +242,8 @@ namespace OfficeIMO.Excel {
                     filter.Description?.Value,
                     top10?.Top?.Value,
                     top10?.Percent?.Value,
-                    FormatOpenXmlDouble(top10?.FilterValue?.Value)));
+                    FormatOpenXmlDouble(top10?.FilterValue?.Value),
+                    IsMaterializedPivotFixedDateFilter(filter) && QualifiedPivotWholeDay(filter)));
             }
 
             return list;

@@ -256,6 +256,9 @@ namespace OfficeIMO.Excel {
                             return false;
                         }
                         styleIndex = parsedStyle;
+                    } else if (AsciiEquals(attributeStart, attributeEnd - attributeStart, "vm")) {
+                        // Rich error metadata requires the shared XML decoder.
+                        return false;
                     }
 
                     position++;

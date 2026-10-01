@@ -72,7 +72,7 @@ meta.raw_html: true
     {{< include path="../../themes/officeimo/partials/generated/benchmarks-excel.html" >}}
     <details class="imo-benchmark-snapshots">
       <summary>
-        <span><strong>Focused Excel and CSV snapshots</strong><small>Open the compact scenario cards derived from older committed artifacts.</small></span>
+        <span><strong>Focused Excel and CSV snapshots</strong><small>Open compact scenario cards with dated, committed evidence.</small></span>
         <span aria-hidden="true">Open snapshots</span>
       </summary>
       {{< include path="../../themes/officeimo/partials/generated/benchmarks-overview.html" >}}

@@ -11,6 +11,10 @@
     <LangVersion>Latest</LangVersion>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(DrawingPerformanceEvidence)' == 'true'">
+    <DefineConstants>$(DefineConstants);DRAWING_PERFORMANCE_EVIDENCE</DefineConstants>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.5.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -31,6 +35,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="TestAssets\WebpAlpha\*.webp" />
+    <EmbeddedResource Include="TestAssets\WebpAlpha\*.rgba" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.webp" />
     <EmbeddedResource Include="TestAssets\WebpVp8\*.rgba" />
     <None Include="..\OfficeIMO.TestAssets\ScanQuality\**\*" Link="ScanQuality\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

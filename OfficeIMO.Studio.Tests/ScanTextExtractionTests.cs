@@ -48,6 +48,7 @@ public sealed class ScanTextExtractionTests {
                 if (model.Scan.UseRegion) Assert.Equal(2, Assert.Single(recognition.Options!.Pdf.Regions).PageNumber);
                 else Assert.Empty(recognition.Options!.Pdf.Regions);
                 review.Words.Single(word => word.Text == "Discard").IsIncluded = false;
+                review.Words.Single(word => word.Text == "Copy this").ReviewedText = "Corrected copied text";
                 window.UpdateLayout();
                 using (var frame = window.CaptureRenderedFrame()) {
                     string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");
@@ -57,7 +58,7 @@ public sealed class ScanTextExtractionTests {
                     }
                 }
                 review.CommitCommand.Execute(null); await running;
-                Assert.Equal("Copy this", model.ExtractedText);
+                Assert.Equal("Corrected copied text", model.ExtractedText);
                 Assert.False(model.HasOutput);
                 Assert.Null(model.ErrorMessage);
                 Assert.Equal(original, File.ReadAllBytes(source));
@@ -66,11 +67,11 @@ public sealed class ScanTextExtractionTests {
                 view.FindControl<Button>("CopyExtractedTextButton")!.BringIntoView();
                 await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() => window.UpdateLayout(), Avalonia.Threading.DispatcherPriority.Background);
                 Assert.True(textBox.IsReadOnly);
-                Assert.Equal("Copy this", textBox.Text);
+                Assert.Equal("Corrected copied text", textBox.Text);
                 view.FindControl<Button>("CopyExtractedTextButton")!.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 for (int retry = 0; retry < 100 && model.Status != "Reviewed text copied."; retry++) await Task.Delay(10);
                 Assert.Equal("Reviewed text copied.", model.Status);
-                Assert.Equal("Copy this", await window.Clipboard!.TryGetTextAsync());
+                Assert.Equal("Corrected copied text", await window.Clipboard!.TryGetTextAsync());
                 using (var frame = window.CaptureRenderedFrame()) {
                     Assert.NotNull(frame);
                     string? output = Environment.GetEnvironmentVariable("OFFICEIMO_STUDIO_VISUAL_OUTPUT");

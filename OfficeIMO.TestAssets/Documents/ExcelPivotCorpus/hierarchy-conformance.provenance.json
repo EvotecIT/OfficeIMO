@@ -1,0 +1,688 @@
+﻿{
+    "producer":  "Microsoft Excel",
+    "version":  "16.0",
+    "build":  20326,
+    "generatedUtc":  "2026-09-27T15:32:34.3657258Z",
+    "regeneration":  "Build/Verification/New-ExcelPivotHierarchyOracle.ps1",
+    "file":  "hierarchy-conformance.xlsx",
+    "sha256":  "026bda9053190995de8a15cabd5badc044d71e429348490425856ff3dce4bddc",
+    "sourceRange":  "Source!A1:F13",
+    "lookupFormulaCells":  924,
+    "measures":  [
+                     {
+                         "Field":  "Amount",
+                         "Function":  -4157,
+                         "Caption":  "Revenue"
+                     },
+                     {
+                         "Field":  "Units",
+                         "Function":  -4106,
+                         "Caption":  "AvgUnits"
+                     },
+                     {
+                         "Field":  "Amount",
+                         "Function":  -4112,
+                         "Caption":  "Entries"
+                     }
+                 ],
+    "selections":  [
+                       [
+
+                       ],
+                       [
+                           "Region",
+                           "North"
+                       ],
+                       [
+                           "City",
+                           "East"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "City",
+                           "East"
+                       ],
+                       [
+                           "Product",
+                           "A"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "Product",
+                           "A"
+                       ],
+                       [
+                           "City",
+                           "East",
+                           "Product",
+                           "A"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "City",
+                           "East",
+                           "Product",
+                           "A"
+                       ],
+                       [
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "City",
+                           "East",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "City",
+                           "East",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "Product",
+                           "A",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "Product",
+                           "A",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "City",
+                           "East",
+                           "Product",
+                           "A",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "City",
+                           "East",
+                           "Product",
+                           "A",
+                           "Channel",
+                           "Retail"
+                       ],
+                       [
+                           "City",
+                           "Unique"
+                       ],
+                       [
+                           "Product",
+                           "C"
+                       ],
+                       [
+                           "Channel",
+                           "Direct"
+                       ],
+                       [
+                           "Region",
+                           "North",
+                           "City",
+                           "missing"
+                       ],
+                       [
+                           "Region",
+                           "West",
+                           "City",
+                           "Unique",
+                           "Product",
+                           "C",
+                           "Channel",
+                           "Direct"
+                       ]
+                   ],
+    "profiles":  [
+                     {
+                         "name":  "PivotRow2",
+                         "sheet":  "Row2",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:C11",
+                         "firstLookup":  1,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotCol2",
+                         "sheet":  "Col2",
+                         "rows":  [
+
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:J4",
+                         "firstLookup":  22,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotBoth2",
+                         "sheet":  "Both2",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:K13",
+                         "firstLookup":  43,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotRow3",
+                         "sheet":  "Row3",
+                         "rows":  [
+                                      "Region",
+                                      "City",
+                                      "Product"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:D21",
+                         "firstLookup":  64,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotCol3",
+                         "sheet":  "Col3",
+                         "rows":  [
+
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel",
+                                         "Region"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:T5",
+                         "firstLookup":  85,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotManyCol",
+                         "sheet":  "ManyCol",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  3,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:AC14",
+                         "firstLookup":  106,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotManyRow",
+                         "sheet":  "ManyRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  3,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:L33",
+                         "firstLookup":  169,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotMiddleCol",
+                         "sheet":  "MiddleCol",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  2,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:AC14",
+                         "firstLookup":  232,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotMiddleRow",
+                         "sheet":  "MiddleRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  2,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:L33",
+                         "firstLookup":  295,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotOuterCol",
+                         "sheet":  "OuterCol",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  1,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:AC14",
+                         "firstLookup":  358,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotOuterRow",
+                         "sheet":  "OuterRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  1,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:L33",
+                         "firstLookup":  421,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotNoSubtotals",
+                         "sheet":  "NoSubtotals",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  true,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:H10",
+                         "firstLookup":  484,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotCustomSum",
+                         "sheet":  "CustomSum",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  [
+                                                   2
+                                               ],
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:N16",
+                         "firstLookup":  505,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotCustomTwo",
+                         "sheet":  "CustomTwo",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  [
+                                                   2,
+                                                   4
+                                               ],
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:T22",
+                         "firstLookup":  526,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotNoGrand",
+                         "sheet":  "NoGrand",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  true,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:J12",
+                         "firstLookup":  547,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotNoSubtotal3",
+                         "sheet":  "NoSubtotal3",
+                         "rows":  [
+                                      "Region",
+                                      "City",
+                                      "Product"
+                                  ],
+                         "columns":  [
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  2,
+                         "noSubtotals":  true,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:H35",
+                         "firstLookup":  568,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotCompactManyRow",
+                         "sheet":  "CompactManyRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  2,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  0,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:J45",
+                         "firstLookup":  631,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotOutlineManyCol",
+                         "sheet":  "OutlineManyCol",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  1,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  2,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:AC14",
+                         "firstLookup":  694,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotTopSubtotalRow3",
+                         "sheet":  "TopSubtotalRow3",
+                         "rows":  [
+                                      "Region",
+                                      "City",
+                                      "Product"
+                                  ],
+                         "columns":  [
+
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  2,
+                         "subtotalsAtTop":  true,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:D21",
+                         "firstLookup":  757,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotCollapsedRow",
+                         "sheet":  "CollapsedRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  1,
+                         "valuesOnRows":  false,
+                         "valuesPosition":  null,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  true,
+                         "outputRange":  "A1:K11",
+                         "firstLookup":  778,
+                         "lookupCount":  21
+                     },
+                     {
+                         "name":  "PivotCompactOuterRow",
+                         "sheet":  "CompactOuterRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  1,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  0,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  false,
+                         "outputRange":  "A1:J36",
+                         "firstLookup":  799,
+                         "lookupCount":  63
+                     },
+                     {
+                         "name":  "PivotCollapsedManyRow",
+                         "sheet":  "CollapsedManyRow",
+                         "rows":  [
+                                      "Region",
+                                      "City"
+                                  ],
+                         "columns":  [
+                                         "Product",
+                                         "Channel"
+                                     ],
+                         "measures":  3,
+                         "valuesOnRows":  true,
+                         "valuesPosition":  3,
+                         "noSubtotals":  false,
+                         "subtotalFunctions":  null,
+                         "noGrand":  false,
+                         "layout":  1,
+                         "subtotalsAtTop":  false,
+                         "collapseNorth":  true,
+                         "outputRange":  "A1:L27",
+                         "firstLookup":  862,
+                         "lookupCount":  63
+                     }
+                 ]
+}

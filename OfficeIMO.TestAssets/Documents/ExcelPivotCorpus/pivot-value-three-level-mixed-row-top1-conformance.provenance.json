@@ -1,0 +1,19 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-29T00:53:58.8435058Z",
+  "regeneration": "Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1",
+  "file": "pivot-value-three-level-mixed-row-top1-conformance.xlsx",
+  "sha256": "67277dce3d8f2c957a68803fd1a33b8695fbca83d8ce6b36cf657b02051322bc",
+  "sourceRange": "Source!A1:D13",
+  "filteredField": "Product",
+  "axis": "Mixed",
+  "filterType": 1,
+  "threshold": 1.0,
+  "threshold2": null,
+  "outputRange": "A4:F10",
+  "grandTotal": 160.0
+}

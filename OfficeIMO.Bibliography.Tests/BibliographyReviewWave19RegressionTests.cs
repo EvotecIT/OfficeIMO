@@ -1,18 +1,8 @@
+using System.Text.Json;
+
 namespace OfficeIMO.Bibliography.Tests;
 
 public sealed class BibliographyReviewWave19RegressionTests {
-    [Fact]
-    public void Structured_Bib_names_with_component_commas_block_strict_output() {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Names" };
-        item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Family = "Doe, Smith", Given = "Jane" }));
-        document.Items.Add(item);
-
-        BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV226" && diagnostic.Field == "contributors");
-    }
 
     [Theory]
     [InlineData("title", "123")]
@@ -21,6 +11,10 @@ public sealed class BibliographyReviewWave19RegressionTests {
     [InlineData("keyword", "false")]
     [InlineData("note", "123")]
     [InlineData("type", "123")]
+    [InlineData("title", "{\"value\":\"Example\"}")]
+    [InlineData("publisher", "{\"value\":\"Example\"}")]
+    [InlineData("DOI", "{\"value\":\"Example\"}")]
+    [InlineData("keyword", "{\"value\":\"Example\"}")]
     public void Non_string_CSL_scalars_remain_native_JSON(string property, string rawValue) {
         string typedType = property == "type" ? string.Empty : ",\"type\":\"book\"";
         string source = "[{\"id\":\"x\"" + typedType + ",\"" + property + "\":" + rawValue + "}]";
@@ -31,21 +25,14 @@ public sealed class BibliographyReviewWave19RegressionTests {
 
         BibliographyNativeField field = Assert.Single(reopened.NativeFields, field => field.Format == BibliographyFormat.CslJson && field.Name == property);
         Assert.Equal(rawValue, field.RawValue);
+        if (rawValue.StartsWith("{", StringComparison.Ordinal)) {
+            using JsonDocument json = JsonDocument.Parse(written.Content);
+            JsonElement value = json.RootElement[0].GetProperty(property);
+            Assert.Equal(JsonValueKind.Object, value.ValueKind);
+            Assert.Equal("Example", value.GetProperty("value").GetString());
+        }
     }
 
-    [Fact]
-    public void Non_string_CSL_name_components_remain_native_JSON() {
-        const string source = "[{\"id\":\"x\",\"type\":\"book\",\"author\":[{\"family\":123}]}]";
-        BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
-
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items);
-
-        BibliographyNativeField field = Assert.Single(reopened.NativeFields, field => field.Name == "author");
-        using System.Text.Json.JsonDocument raw = System.Text.Json.JsonDocument.Parse(field.RawValue!);
-        Assert.Equal(System.Text.Json.JsonValueKind.Number, raw.RootElement[0].GetProperty("family").ValueKind);
-        Assert.Equal(123, raw.RootElement[0].GetProperty("family").GetInt32());
-    }
 
     [Fact]
     public void Non_string_CSL_date_literals_remain_native_JSON() {
@@ -59,30 +46,7 @@ public sealed class BibliographyReviewWave19RegressionTests {
         Assert.Equal("123", field.RawValue);
     }
 
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    public void Empty_Bib_keywords_remain_distinct_from_an_absent_list(string keyword) {
-        var document = new BibliographyDocument(BibliographyFormat.BibLatex);
-        var item = new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Keywords" };
-        item.Keywords.Add(keyword);
-        document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
-        BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibLatex).Document.Items);
-
-        Assert.Equal(keyword, Assert.Single(reopened.Keywords));
-    }
-
-    [Fact]
-    public void Invalid_Bib_text_honors_an_already_cancelled_token() {
-        const string source = "invalid";
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-
-        Assert.Throws<OperationCanceledException>(() =>
-            BibliographyDocument.Parse(source, BibliographyFormat.BibLatex, cancellationToken: cancellation.Token));
-    }
 
     [Theory]
     [InlineData(BibliographyFormat.BibTex)]

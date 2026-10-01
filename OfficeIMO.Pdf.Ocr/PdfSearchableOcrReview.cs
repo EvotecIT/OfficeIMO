@@ -56,6 +56,18 @@ public sealed class PdfSearchableOcrReview {
     /// <summary>Returns selected eligible words in logical reading order without creating or modifying a PDF.</summary>
     /// <remarks>Selection validation matches <see cref="Apply"/>. Words are separated by spaces and pages by newlines.</remarks>
     public string ExtractText(IEnumerable<PdfRecognizedWord> selectedWords, CancellationToken cancellationToken = default) {
+        return ExtractTextCore(selectedWords, null, cancellationToken);
+    }
+
+    /// <summary>Returns reviewed replacement text in logical reading order without modifying the PDF.</summary>
+    /// <remarks>The same eligibility, nonempty text, and per-page character limits apply as for searchable PDF corrections.</remarks>
+    public string ExtractText(IReadOnlyDictionary<PdfRecognizedWord, string> selectedWords, CancellationToken cancellationToken = default) {
+        var corrections = ValidateCorrections(selectedWords, cancellationToken);
+        return ExtractTextCore(corrections.Keys, corrections, cancellationToken);
+    }
+
+    private string ExtractTextCore(IEnumerable<PdfRecognizedWord> selectedWords,
+        IReadOnlyDictionary<PdfRecognizedWord, string>? corrections, CancellationToken cancellationToken) {
         var selected = ValidateSelection(selectedWords, cancellationToken);
         var pages = new List<string>();
         foreach (var page in Ocr.Pages) {
@@ -64,7 +76,10 @@ public sealed class PdfSearchableOcrReview {
             var words = PdfOcrLogicalDocumentBuilder.OrderWordsForLogicalReading(
                 page.Words.Where(selected.Contains).ToArray(), canonicalPage,
                 _options.ReadOptions.LayoutOptions.ReadingDirection, cancellationToken);
-            string text = string.Join(" ", words.Select(word => word.Text));
+            long characters = Math.Max(0, words.Count - 1) + words.Sum(word => (long)(corrections is null ? word.Text.Length : corrections[word].Length));
+            if (characters > _options.MaxOcrTextCharactersPerPage)
+                throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, _options.MaxOcrTextCharactersPerPage, characters);
+            string text = string.Join(" ", words.Select(word => corrections is null ? word.Text : corrections[word]));
             if (text.Length > 0) pages.Add(text);
         }
         cancellationToken.ThrowIfCancellationRequested();
@@ -76,6 +91,12 @@ public sealed class PdfSearchableOcrReview {
     /// ordering, and original provider evidence are retained; replacements do not bypass confidence or overlap policy.</remarks>
     public PdfSearchableOcrResult ApplyCorrections(IReadOnlyDictionary<PdfRecognizedWord, string> selectedWords,
         CancellationToken cancellationToken = default) {
+        var corrections = ValidateCorrections(selectedWords, cancellationToken);
+        return ApplyCore(corrections.Keys, corrections, cancellationToken);
+    }
+
+    private Dictionary<PdfRecognizedWord, string> ValidateCorrections(IReadOnlyDictionary<PdfRecognizedWord, string> selectedWords,
+        CancellationToken cancellationToken) {
         Guard.NotNull(selectedWords, nameof(selectedWords));
         var corrections = new Dictionary<PdfRecognizedWord, string>();
         foreach (var pair in selectedWords) {
@@ -86,7 +107,7 @@ public sealed class PdfSearchableOcrReview {
                 throw PdfReadLimitException.Create(PdfReadLimitKind.OcrArtifacts, _options.MaxOcrTextCharactersPerPage, pair.Value.Length);
             corrections.Add(pair.Key, pair.Value.Trim());
         }
-        return ApplyCore(corrections.Keys, corrections, cancellationToken);
+        return corrections;
     }
 
     private PdfSearchableOcrResult ApplyCore(IEnumerable<PdfRecognizedWord> selectedWords,

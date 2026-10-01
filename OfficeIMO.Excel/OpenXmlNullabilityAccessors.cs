@@ -21,7 +21,10 @@ namespace OfficeIMO.Excel {
         }
 
         private Worksheet WorksheetRoot {
-            get => _worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
+            get {
+                CaptureOriginalDynamicSpillFingerprintIfSafe();
+                return _worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is null.");
+            }
             set => _worksheetPart.Worksheet = value;
         }
 

@@ -234,7 +234,7 @@ namespace OfficeIMO.Word.Pdf {
         private readonly record struct NativeCellText(IReadOnlyList<PdfCore.PdfTextRun> Runs, IReadOnlyList<PdfCore.PdfTableCellParagraph> Paragraphs);
 
         private static IReadOnlyList<PdfCore.PdfTextRun> CreateNativeCellRuns(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById) {
-            return CreateNativeCellText(cell, footnoteNumbersById, NativeDocumentDefaults.WordDefault, NativeTableStyleDefaults.Empty).Runs;
+            return CreateNativeCellText(cell, footnoteNumbersById, GetNativeDocumentDefaults(cell.Document), NativeTableStyleDefaults.Empty).Runs;
         }
 
         private static NativeCellText CreateNativeCellText(WordTableCell cell, Dictionary<long, int>? footnoteNumbersById, NativeDocumentDefaults nativeDefaults) {

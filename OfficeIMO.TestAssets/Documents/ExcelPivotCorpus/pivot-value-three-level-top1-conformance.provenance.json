@@ -1,0 +1,18 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "producerUiLanguageId": 1033,
+  "hostCulture": "pl-PL",
+  "generatedUtc": "2026-09-28T23:33:11.3875758Z",
+  "regeneration": "Build/Verification/New-ExcelPivotThreeLevelValueOracle.ps1",
+  "file": "pivot-value-three-level-top1-conformance.xlsx",
+  "sha256": "6a694479501047fa0de78fa89762fb1b42071dc5b126801e208c2df90ce72097",
+  "sourceRange": "Source!A1:D9",
+  "filteredField": "Channel",
+  "axis": "Row",
+  "filterType": 1,
+  "threshold": 1,
+  "outputRange": "A4:D15",
+  "grandTotal": 130.0
+}

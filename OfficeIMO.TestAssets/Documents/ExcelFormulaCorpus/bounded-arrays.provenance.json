@@ -1,0 +1,31 @@
+{
+  "producer": "Microsoft Excel",
+  "version": "16.0",
+  "build": 20326.0,
+  "generatedUtc": "2026-09-27T21:03:09.4843189Z",
+  "file": "bounded-arrays.xlsx",
+  "sha256": "9eadde5753375ba4a07148d46d998b015c440f1f6ddc32a73c8994610e62f6aa",
+  "formulas": [
+    "SEQUENCE(3,2,10,-2)",
+    "SEQUENCE(2.9,2,0,0)",
+    "SEQUENCE(0)",
+    "FILTER(A1:B4,D1:D4)",
+    "FILTER(A1:B4,E1:E4,\"empty\")",
+    "FILTER(A1:B4,E1:E4)",
+    "FILTER(A1:B4,A1:A4>1)",
+    "SORT(A1:B4,1,1)",
+    "SORT(A1:B4,1,-1)",
+    "SORT(A1:B4,3)",
+    "UNIQUE(A1:B4)",
+    "UNIQUE(A1:B4,FALSE,TRUE)",
+    "UNIQUE(A1:B4,TRUE)",
+    "SORT(UNIQUE(A1:B4))",
+    "FILTER(A1:B4,F1:F4)",
+    "UNIQUE(A1:A4)",
+    "FILTER(A1:B4,D6:E6)",
+    "SORT(A1:B4,1,-1,TRUE)",
+    "FILTER(A1:A2,A1:A2>0,\"empty\")",
+    "SORT(A1:B4,1.9)"
+  ],
+  "regeneration": "Build/Verification/New-ExcelArrayFormulaOracle.ps1"
+}

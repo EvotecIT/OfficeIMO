@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Ocr;
 
 /// <summary>Coordinates bounded calls to a shared OCR engine instance.</summary>
-public static class OcrEngineRunner {
+public static partial class OcrEngineRunner {
     /// <summary>Maximum accepted length of an OCR engine identifier before surrounding whitespace is removed.</summary>
     public const int MaximumEngineIdCharacters = 256;
 
@@ -72,7 +72,8 @@ public static class OcrEngineRunner {
         OcrEngineExecution execution,
         OcrRequest request,
         TimeSpan timeout,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        OcrResultCaptureLimits? captureLimits = null) {
         if (execution == null) throw new ArgumentNullException(nameof(execution));
         if (request == null) throw new ArgumentNullException(nameof(request));
         if (request.Operation != OcrOperation.RecognizeText && request.Operation != OcrOperation.DetectOrientation)
@@ -105,10 +106,12 @@ public static class OcrEngineRunner {
             providerInvocation = StartProviderCall(
                 engine,
                 request,
+                engineId,
                 providerCancellation.Token,
                 elapsed,
                 timeout,
-                cancellationToken);
+                cancellationToken,
+                captureLimits);
             OcrResult result = await WaitForProviderAsync(
                     providerInvocation,
                     deadlineTask,
@@ -118,7 +121,12 @@ public static class OcrEngineRunner {
                     providerCancellation,
                     cancellationToken)
                 .ConfigureAwait(false);
-            return result ?? throw new InvalidOperationException("OCR engine returned a null result.");
+            if (result == null) throw new OcrEngineExecutionException(OcrEngineFailureKind.InvalidResult);
+            foreach (OcrDiagnostic diagnostic in result.Diagnostics ?? Array.Empty<OcrDiagnostic>()) {
+                if (diagnostic != null && diagnostic.Severity == OcrDiagnosticSeverity.Error && !diagnostic.IsRecoverable)
+                    throw new OcrEngineExecutionException(OcrEngineFailureKind.NonRecoverableDiagnostic);
+            }
+            return result;
         } finally {
             Task<OcrResult>? providerTask = providerInvocation?.Task;
             if (providerTask != null) ObserveBackgroundFailure(providerTask);
@@ -168,11 +176,13 @@ public static class OcrEngineRunner {
     private static ProviderInvocation StartProviderCall(
         IOcrEngine engine,
         OcrRequest request,
+        string engineId,
         CancellationToken providerCancellationToken,
         Stopwatch elapsed,
         TimeSpan timeout,
-        CancellationToken callerCancellationToken) {
-        var invocation = new ProviderInvocation(elapsed, timeout, callerCancellationToken);
+        CancellationToken callerCancellationToken,
+        OcrResultCaptureLimits? captureLimits) {
+        var invocation = new ProviderInvocation(elapsed, timeout, callerCancellationToken, captureLimits, engineId);
         invocation.Start(engine, request, providerCancellationToken);
         return invocation;
     }
@@ -189,14 +199,14 @@ public static class OcrEngineRunner {
         if (providerTask.IsCompleted) {
             if (!invocation.HasStarted) ThrowSuppressedProvider(engineId, timeout, cancellationToken);
             deadlineCancellation.Cancel();
-            return await providerTask.ConfigureAwait(false);
+            return await AwaitProviderResultAsync(providerTask, cancellationToken).ConfigureAwait(false);
         }
 
         Task completed = await WaitForCompletionAsync(providerTask, deadlineTask, cancellationToken).ConfigureAwait(false);
         if (completed == providerTask || providerTask.IsCompleted) {
             if (!invocation.HasStarted) ThrowSuppressedProvider(engineId, timeout, cancellationToken);
             deadlineCancellation.Cancel();
-            return await providerTask.ConfigureAwait(false);
+            return await AwaitProviderResultAsync(providerTask, cancellationToken).ConfigureAwait(false);
         }
 
         invocation.SuppressIfNotStarted();
@@ -207,6 +217,19 @@ public static class OcrEngineRunner {
         }
 
         throw new OcrEngineTimeoutException(engineId, timeout, invocation.HasStarted);
+    }
+
+    private static async Task<OcrResult> AwaitProviderResultAsync(Task<OcrResult> task, CancellationToken cancellationToken) {
+        try { return await task.ConfigureAwait(false); }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw new OperationCanceledException(cancellationToken);
+        }
+        catch (CaptureDeadlineException error) {
+            throw new OcrEngineTimeoutException(error.EngineId, error.Timeout, providerCallStarted: true);
+        }
+        catch (Exception error) when (error is not OutOfMemoryException && error is not StackOverflowException) {
+            throw new OcrEngineExecutionException(OcrEngineFailureKind.ProviderFailure);
+        }
     }
 
     private static void ThrowSuppressedProvider(
@@ -316,14 +339,25 @@ public static class OcrEngineRunner {
 
     private sealed class ProviderInvocation {
         private readonly OcrProviderEntryGate _entryGate;
+        private readonly Stopwatch _elapsed;
+        private readonly TimeSpan _timeout;
+        private readonly CancellationToken _callerCancellationToken;
+        private readonly OcrResultCaptureLimits _captureLimits;
+        private readonly string _engineId;
         private int _cancellationRequested;
         private Task? _cancellationTask;
 
         internal ProviderInvocation(
             Stopwatch elapsed,
             TimeSpan timeout,
-            CancellationToken callerCancellationToken) {
+            CancellationToken callerCancellationToken,
+            OcrResultCaptureLimits? captureLimits, string engineId) {
+            _engineId = engineId;
             _entryGate = new OcrProviderEntryGate(elapsed, timeout, callerCancellationToken);
+            _elapsed = elapsed;
+            _timeout = timeout;
+            _callerCancellationToken = callerCancellationToken;
+            _captureLimits = captureLimits ?? new OcrResultCaptureLimits();
         }
 
         internal Task<OcrResult> Task { get; private set; } = null!;
@@ -355,11 +389,18 @@ public static class OcrEngineRunner {
             IOcrEngine engine,
             OcrRequest request,
             CancellationToken cancellationToken) => System.Threading.Tasks.Task.Factory.StartNew(
-                () => {
+                async () => {
                     if (!_entryGate.TryStart()) {
                         throw new OperationCanceledException("OCR provider invocation was suppressed before it started.");
                     }
-                    return engine.RecognizeAsync(request, cancellationToken);
+                    OcrResult result = await engine.RecognizeAsync(request, cancellationToken).ConfigureAwait(false);
+                    // Capture provider-owned collections while this invocation is still governed
+                    // by the shared deadline and content-free exception boundary.
+                    return CaptureProviderResult(result, _captureLimits, () => {
+                        _callerCancellationToken.ThrowIfCancellationRequested();
+                        if (_elapsed.Elapsed >= _timeout) throw new CaptureDeadlineException(_engineId, _timeout);
+                        cancellationToken.ThrowIfCancellationRequested();
+                    });
                 },
                 CancellationToken.None,
                 TaskCreationOptions.LongRunning | TaskCreationOptions.DenyChildAttach,

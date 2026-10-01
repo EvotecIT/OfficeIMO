@@ -148,10 +148,10 @@ namespace OfficeIMO.Excel {
                         result = left <= right;
                         return true;
                     case "=":
-                        result = Math.Abs(left - right) < 0.0000001;
+                        result = left == right;
                         return true;
                     case "<>":
-                        result = Math.Abs(left - right) >= 0.0000001;
+                        result = left != right;
                         return true;
                 }
             }
@@ -255,8 +255,7 @@ namespace OfficeIMO.Excel {
             result = false;
             int comparison;
             if (left.Number.HasValue && right.Number.HasValue) {
-                double delta = left.Number.Value - right.Number.Value;
-                comparison = Math.Abs(delta) < 0.0000001 ? 0 : delta < 0 ? -1 : 1;
+                comparison = left.Number.Value.CompareTo(right.Number.Value);
             } else {
                 string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
                 string rightText = right.Text ?? (right.Number.HasValue ? InvariantNumberText.Get(right.Number.Value) : string.Empty);
@@ -306,7 +305,7 @@ namespace OfficeIMO.Excel {
             values = new List<FormulaArgumentValue>(cellCount);
             for (int row = r1; row <= r2; row++) {
                 for (int column = c1; column <= c2; column++) {
-                    values.Add(sheet.ResolveCellArgument(row, column));
+                    values.Add(ResolveFormulaDependency(sheet, row, column));
                 }
             }
 
@@ -367,9 +366,9 @@ namespace OfficeIMO.Excel {
                     case "<=":
                         return left <= right;
                     case "<>":
-                        return Math.Abs(left - right) >= 0.0000001;
+                        return left != right;
                     default:
-                        return Math.Abs(left - right) < 0.0000001;
+                        return left == right;
                 }
             }
 
@@ -392,12 +391,12 @@ namespace OfficeIMO.Excel {
         }
 
         private static bool MatchesTextCriteria(string text, string criteria) {
-            if (criteria.IndexOf('*') < 0 && criteria.IndexOf('?') < 0) {
+            if (criteria.IndexOf('*') < 0 && criteria.IndexOf('?') < 0 && criteria.IndexOf('~') < 0) {
                 return string.Equals(text, criteria, StringComparison.OrdinalIgnoreCase);
             }
 
-            string pattern = "^" + Regex.Escape(criteria).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
-            return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase, FormulaRegexTimeout);
+            string pattern = "\\A" + CreateFormulaWildcardPattern(criteria) + "\\z";
+            return Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Singleline, FormulaRegexTimeout);
         }
 
         private static bool IsFormulaBlankValue(FormulaArgumentValue value) {
@@ -410,6 +409,18 @@ namespace OfficeIMO.Excel {
         }
 
         private static double RoundAtDigits(double value, int digits, MidpointRounding mode) {
+            // Excel rounds decimal midpoints despite the binary representation of values
+            // such as 1.255. Decimal conversion normalizes the input's 15 significant digits.
+            if (Math.Abs(value) < (double)decimal.MaxValue) {
+                try {
+                    decimal number = (decimal)value;
+                    if (digits >= 0) return (double)decimal.Round(number, digits, mode);
+                    decimal scale = (decimal)Math.Pow(10, -digits);
+                    return (double)(decimal.Round(number / scale, 0, mode) * scale);
+                } catch (OverflowException) {
+                    // Rounding can cross decimal's upper bound; doubles still represent it.
+                }
+            }
             if (digits >= 0) {
                 return Math.Round(value, digits, mode);
             }

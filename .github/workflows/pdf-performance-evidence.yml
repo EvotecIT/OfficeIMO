@@ -1,0 +1,43 @@
+name: PDF performance evidence (manual)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: |
+            8.0.418
+            10.0.112
+      - name: Verify PDF performance budgets
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          New-Item -ItemType Directory -Path artifacts/pdf-performance -Force | Out-Null
+          dotnet run --project OfficeIMO.Pdf.Benchmarks/OfficeIMO.Pdf.Benchmarks.csproj --configuration Release --framework net8.0 -- --verify-budgets | Tee-Object artifacts/pdf-performance/budgets.txt
+      - name: Verify PDF resource measurements
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
+          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration Release --framework net8.0 -p:PdfPerformanceEvidence=true --filter 'Category=Performance' --logger trx --results-directory artifacts/pdf-performance/tests
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: pdf-performance-${{ matrix.os }}
+          path: artifacts/pdf-performance
+          if-no-files-found: warn

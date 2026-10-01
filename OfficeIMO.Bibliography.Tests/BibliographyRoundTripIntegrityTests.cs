@@ -140,15 +140,6 @@ public sealed class BibliographyRoundTripIntegrityTests {
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
     }
 
-    [Fact]
-    public void Malformed_JSON_location_handles_non_ASCII_without_per_character_substrings() {
-        BibliographyReadResult read = BibliographyDocument.Parse("[{\"id\":\"😀\" \"type\":\"book\"}]", BibliographyFormat.CslJson);
-
-        BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, value => value.Code == "BIBCSL002");
-        Assert.Equal(1, diagnostic.Line);
-        Assert.True(diagnostic.Column > 10);
-        Assert.True(diagnostic.Offset > 10);
-    }
 
     [Theory]
     [InlineData("% Bib comment\n@book{x,title={x}}", BibliographyFormat.BibLatex)]

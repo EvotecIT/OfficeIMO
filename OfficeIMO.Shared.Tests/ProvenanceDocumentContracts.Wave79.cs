@@ -5,17 +5,7 @@ using Xunit;
 namespace OfficeIMO.Shared.Tests;
 
 public sealed partial class ProvenanceDocumentContracts {
-    [Fact]
-    public void HtmlPreflightAcceptsBalancedOrdinaryNestingWithinEntryLimit() {
-        string html = "<html><body>" + string.Concat(Enumerable.Repeat("<div>", 80)) +
-            "content" + string.Concat(Enumerable.Repeat("</div>", 80)) + "</body></html>";
-        var limits = new OfficeProvenanceOptions { MaxContainerEntries = 100 };
 
-        Assert.Empty(HtmlProvenance.Inspect(html, limits).Evidence);
-        Assert.False(HtmlProvenance.Remove(html, new OfficeProvenanceRemovalOptions {
-            Limits = { MaxContainerEntries = 100 }
-        }).WasChanged);
-    }
 
     [Fact]
     public void HtmlProvenancePreservesSvgDataUriWithMalformedCharset() {

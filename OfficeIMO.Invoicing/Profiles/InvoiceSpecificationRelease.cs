@@ -20,15 +20,16 @@ internal static class InvoiceSpecificationContracts {
         if (syntax < InvoiceSyntax.Cii || syntax > InvoiceSyntax.Ubl) throw new ArgumentOutOfRangeException(nameof(syntax));
         if (profile < InvoiceProfile.Minimum || profile > InvoiceProfile.ExtendedCtcFr) throw new ArgumentOutOfRangeException(nameof(profile));
 
-        bool supported = release switch {
+        if (!IsSupported(release, syntax, profile))
+            throw new NotSupportedException($"Release '{release}' does not define the '{profile}' profile in the '{syntax}' syntax.");
+    }
+
+    internal static bool IsSupported(InvoiceSpecificationRelease release, InvoiceSyntax syntax, InvoiceProfile profile) => release switch {
             InvoiceSpecificationRelease.En16931_1_3_16 => profile == InvoiceProfile.En16931,
             InvoiceSpecificationRelease.FacturX_1_09_2_Zugferd_2_5_2 => syntax == InvoiceSyntax.Cii &&
                 profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines or InvoiceProfile.Basic or InvoiceProfile.En16931 or InvoiceProfile.Extended,
             InvoiceSpecificationRelease.XRechnung_3_0_2_2026_08_31 => profile == InvoiceProfile.XRechnung,
             InvoiceSpecificationRelease.PeppolBis_3_0_21 => syntax == InvoiceSyntax.Ubl && profile == InvoiceProfile.PeppolBis,
             _ => false
-        };
-        if (!supported)
-            throw new NotSupportedException($"Release '{release}' does not define the '{profile}' profile in the '{syntax}' syntax.");
-    }
+    };
 }

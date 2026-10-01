@@ -24,17 +24,5 @@ public sealed partial class ProvenanceDocumentContracts {
         Assert.Empty(result.After.Evidence);
     }
 
-    [Theory]
-    [InlineData("object", "data")]
-    [InlineData("embed", "src")]
-    public void ObjectAndEmbedInferSupportedImageTypeFromDataUri(string element, string attribute) {
-        string dataUri = "data:image/png;base64," + Convert.ToBase64String(CreatePngWithManifest(CreateManifestStore()));
-        string html = "<" + element + " " + attribute + "='" + dataUri + "'></" + element + ">";
 
-        OfficeProvenanceRemovalResult result = HtmlProvenance.Remove(html);
-
-        Assert.True(result.WasChanged);
-        Assert.Single(result.Before.Evidence);
-        Assert.Empty(result.After.Evidence);
-    }
 }

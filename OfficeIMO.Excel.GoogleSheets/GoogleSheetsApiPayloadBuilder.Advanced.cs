@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (!sheetIds.TryGetValue(request.SheetName, out int destinationSheetId)
                 || !TryBuildGridRange(sheetIds, request.SourceSheetName, request.SourceA1Range, out var sourceRange)) return false;
 
-            var pivot = new GoogleSheetsApiPivotTablePayload { Source = sourceRange };
+            var pivot = new GoogleSheetsApiPivotTablePayload { Source = sourceRange, ValueLayout = request.ValueLayout };
             foreach (GoogleSheetsPivotGroup row in request.Rows) {
                 pivot.Rows.Add(new GoogleSheetsApiPivotGroupPayload { SourceColumnOffset = row.SourceColumnOffset, ShowTotals = row.ShowTotals, SortOrder = row.SortOrder });
             }

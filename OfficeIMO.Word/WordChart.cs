@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
     public partial class WordChart : WordElement {
         private static int _axisIdSeed = 148921728;
         internal static void InitializeAxisIdSeed(WordprocessingDocument document) {
-            uint max = (uint)_axisIdSeed;
+            uint max = (uint)System.Threading.Volatile.Read(ref _axisIdSeed);
             foreach (var part in document.MainDocumentPart?.ChartParts ?? Enumerable.Empty<ChartPart>()) {
                 var chart = part.ChartSpace?.GetFirstChild<Chart>();
                 if (chart == null) continue;
@@ -28,7 +28,14 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
-            _axisIdSeed = (int)max;
+            // Another document may allocate axes while this document is scanned.
+            // Raise the shared seed without overwriting those allocations.
+            int current = System.Threading.Volatile.Read(ref _axisIdSeed);
+            while (max > (uint)current) {
+                int observed = System.Threading.Interlocked.CompareExchange(ref _axisIdSeed, (int)max, current);
+                if (observed == current) break;
+                current = observed;
+            }
         }
         /// <summary>
         /// Initializes a <see cref="WordChart"/> instance from an existing drawing.

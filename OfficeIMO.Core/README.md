@@ -15,6 +15,58 @@ The managed VP8 decoder is maintained in `OfficeIMO.Core` under OfficeIMO's MIT 
 dotnet add package OfficeIMO.Core
 ```
 
+## Per-column row mapping
+
+`RowMapper<T>` in `OfficeIMO.Data` provides explicit assignments for any
+`DbDataReader`. CSV and Excel use this shared mapper. `FromColumns` tries aliases
+in the supplied order; required missing columns and ambiguous duplicate matches
+fail before row projection.
+
+```csharp
+using OfficeIMO.Data;
+using System.Data.Common;
+using System.Globalization;
+
+static IEnumerable<Invoice> ReadInvoices(DbDataReader reader) =>
+    reader.RowsAs<Invoice>(map => map
+        .FromColumns<int>(new[] { "Id", "InvoiceId" },
+            (row, value) => { row.Id = value; return row; })
+        .FromColumn<decimal>("Amount",
+            (row, value) => { row.Amount = value; return row; },
+            new RowMappingColumnOptions { Culture = CultureInfo.GetCultureInfo("fr-FR") })
+        .FromColumn<DateTime>("Date",
+            (row, value) => { row.Date = value; return row; },
+            new RowMappingColumnOptions { DateTimeFormats = new[] { "yyyyMMdd" } })
+        .FromColumn<string>("Note",
+            (row, value) => { row.Note = value; return row; },
+            new RowMappingColumnOptions { Optional = true }));
+
+public sealed class Invoice {
+    public int Id { get; set; }
+    public decimal Amount { get; set; }
+    public DateTime Date { get; set; }
+    public string? Note { get; set; } = "No note";
+}
+```
+
+Optional means the source column may be absent. Its assignment is skipped,
+preserving the model's initialized value. Present empty or invalid values still
+follow the normal conversion and nullability rules. Even when every configured
+column is optional and absent, each source row produces a model.
+
+The mapper snapshots each binding's culture and date-format list when it is
+configured. Per-column date/time formats replace the reader's format list and
+are tried before ordinary culture-based parsing. A per-column `TypeConverter`
+replaces the reader's converter for that binding. Returning `(false, null)`
+selects built-in conversion; handled results, including null, take precedence.
+The converter receives the value exposed by the reader before built-in
+conversion. Excel numeric mappings retain the original date serial when a
+converter declines.
+
+The same controls apply to `RowsAs`, `RowsAsAsync` and `RowsAsParallel`.
+Parallel converters must support concurrent calls. Source-value redaction
+continues to follow the reader's mapping-error policy.
+
 ## Image export density
 
 `OfficeImageExportOptions.UseQuality(...)` and fluent `WithQuality(...)` select shared density presets: `Preview` is 96 DPI, `Screen` is 192 DPI, and `Print` is 300 DPI. They retain the selected fonts, layout, format, and safety limits. Clear `TargetDpi` when setting `Scale` directly; fluent `WithScale(...)` clears it automatically. Each document adapter defines its logical units per inch.
@@ -444,7 +496,7 @@ The request preserves aspect ratio, avoids upscaling, keeps the original when re
 
 `MetadataPolicy` can preserve, strip, or selectively copy EXIF, XMP, ICC, orientation, comments, and resolution categories. A JPEG-to-JPEG rewrite preserves selected EXIF, standard single-packet XMP, and ICC bytes, applies embedded orientation to pixels, and neutralizes the copied orientation value. Adobe extended XMP is not copied during re-encoding; when selected XMP includes extension segments, the result reports XMP in `Lost`. The result reports `PolicyApplied`, `Preserved`, `Normalized`, `Stripped`, and `Lost`; unsupported or undecodable input returns the original bytes with `PolicyApplied = false`, and a required strip or selective-copy rewrite is never replaced by the metadata-bearing original merely because it is smaller. Metadata that has no safe output carrier is reported as loss rather than silently claimed as preserved; OfficeIMO does not currently perform ICC color conversion. Animated and multi-page input is rejected so optimization never silently drops frames or pages.
 
-`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic 8-bit grayscale/palette/RGB/RGBA/device-CMYK TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and opaque lossy VP8 WebP paths enforce encoded-payload and decoded-pixel guards. TIFF accepts chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and horizontal prediction; arbitrary page selection and bounded multi-page writing use the same page contract. JPEG-in-TIFF, floating-point TIFF, BigTIFF, lossy WebP with a separate alpha plane or animated WebP pixel decoding, and uncommon encoders remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
+`OfficeRasterExportPlanner` is the shared pre-allocation owner for image export. It combines the caller's `MaximumRasterPixels` with renderer and encoder dimension/pixel limits, then either reduces scale with `IMAGE_RASTER_SCALE_REDUCED` or throws `OfficeImageExportLimitException`, according to `RasterOverflowBehavior`. The returned plan also owns the effective encoding settings: `CreateEncodingOptions()` reduces encoded density with the raster scale so safety limits preserve the document's physical size. Explicit top-level `DpiX`/`DpiY` values apply across formats; when those values are not assigned, format-specific PNG, JPEG, and TIFF density remains authoritative. Drawing's managed PNG and APNG, JPEG, classic 8-bit grayscale/palette/RGB/RGBA/device-CMYK TIFF, uncompressed BMP, composited GIF, and ordinary lossless VP8L and lossy VP8 WebP paths (including raw or lossless-compressed separate alpha planes) enforce encoded-payload and decoded-pixel guards. TIFF accepts chunky or planar strips and tiles with uncompressed, LZW, PackBits, or Deflate payloads and horizontal prediction; arbitrary page selection and bounded multi-page writing use the same page contract. JPEG-in-TIFF, floating-point TIFF, BigTIFF, animated WebP pixel decoding, and uncommon encoders remain caller-codec boundaries. `OfficeRasterImageFallbackCodec` can wrap an application codec at the final raster boundary. It reports `IMAGE_SOURCE_DECODED_BY_CALLER_CODEC` when that codec succeeds; if neither Drawing nor the application can decode a source image, it returns a visible placeholder and `IMAGE_SOURCE_DECODE_FALLBACK` instead of allowing the renderer to omit the image silently.
 
 Every format package builds on the same fluent export contract. `FitWithin(width, height)`, `FitWithinWidth(...)`, and `FitWithinHeight(...)` cap both raster and SVG output without enlarging smaller content. `ConfigureOptions(...)` exposes the complete provider-specific option object when no dedicated fluent shortcut exists. Batch limits, cancellation, progress, and `WithRenderTimeout(...)` apply to the complete operation, including streaming saves. Each batch result reports its zero-based `SequenceIndex`; `SequenceCount` is populated when the total is known before streaming or after a fluent builder materializes the complete result list.
 

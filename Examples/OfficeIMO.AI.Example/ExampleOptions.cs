@@ -31,11 +31,13 @@ internal sealed class ExampleOptions {
         --prompted-json       Provider does not enforce schemas; local validation still applies
         --help                Show this help
         --evaluate            Run the versioned synthetic evaluation corpus; requires a new --output directory
+        --review-evaluation DIR  Assess an existing evaluation offline using --annotations; --output is a new JSON file
+        --annotations PATH    Independent reviewer labels copied from semantic-review-template.json
         --split NAME          all, development or heldout (default all)
         --repeat COUNT        Repeat each selected case 1-3 times to expose instability
         --request-characters N  Bound model request text, including wrappers (minimum 4096)
         --case ID             Run one named synthetic case when diagnosing an evaluation failure
-        Exit: 0 completed, 1 partial/insufficient/invalid result, 2 setup/input failure, 3 cancelled/timeout.
+        Exit: 0 completed, 1 partial/insufficient/invalid result, 2 setup/input failure, 3 cancelled/timeout, 4 evaluation contract passed but semantic review pending.
         """;
     public string Split { get; private set; } = "all";
     public int Repeat { get; private set; } = 1;
@@ -52,6 +54,8 @@ internal sealed class ExampleOptions {
     public bool Local { get; private set; }
     public bool PromptedJson { get; private set; }
     public string Model { get; private set; } = "gpt-5.5";
+    public string? ReviewEvaluationPath { get; private set; }
+    public string? AnnotationsPath { get; private set; }
     public string? SourcePath { get; private set; }
     public string? RequestPath { get; private set; }
     public string? OutputPath { get; private set; }
@@ -66,6 +70,8 @@ internal sealed class ExampleOptions {
             string Value() => ++index < args.Length && !args[index].StartsWith("--", StringComparison.Ordinal) ? args[index] : throw new ArgumentException("Missing option value.");
             switch (key) {
                 case "--help": options.Help = true; break;
+                case "--review-evaluation": options.ReviewEvaluationPath = Value(); break;
+                case "--annotations": options.AnnotationsPath = Value(); break;
                 case "--evaluate": options.Evaluate = true; break;
                 case "--split": options.Split = Value(); break;
                 case "--repeat": options.Repeat = int.Parse(Value(), System.Globalization.CultureInfo.InvariantCulture); break;
@@ -87,6 +93,10 @@ internal sealed class ExampleOptions {
                 default: throw new ArgumentException("Unknown option.");
             }
         }
+        if (options.ReviewEvaluationPath is not null && (options.Evaluate || options.AnnotationsPath is null || options.OutputPath is null))
+            throw new ArgumentException("Offline review requires --annotations and a new --output JSON file, without --evaluate.");
+        if (options.AnnotationsPath is not null && options.ReviewEvaluationPath is null)
+            throw new ArgumentException("Annotations require --review-evaluation.");
         if (options.Copilot && !seen.Contains("--model")) throw new ArgumentException("Copilot requires an explicit --model from its available model catalog.");
         if (options.Copilot && (options.Local || options.Endpoint is not null || options.CodexSession)) throw new ArgumentException("Copilot requires its own hosted route and GitHub credential.");
         if (options.Split is not ("all" or "development" or "heldout") || options.Repeat is < 1 or > 3
