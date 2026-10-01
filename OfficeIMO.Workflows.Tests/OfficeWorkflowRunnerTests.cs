@@ -22,11 +22,10 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
-    public void CatalogProjectsAllCanonicalRoutesAndIdentifiesTheEightExecutableRoutes() {
+    public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
-        Assert.Equal(8, OfficeWorkflowCatalog.ExecutableRoutes.Count);
         Assert.Equal(
-            ["docx-pdf", "html-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "xlsx-pdf"],
+            ["doc-pdf", "docx-pdf", "html-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "txt-pdf", "xlsx-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.StartsWith("OfficeIMO.", route.Engine, StringComparison.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -61,10 +60,11 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
-    public void ExtensionLookupDoesNotGuessWhenTextRoutesAreAmbiguous() {
-        Assert.Null(OfficeWorkflowCatalog.Find(".txt", ".pdf", executableOnly: false));
+    public void PlainTextDefaultsToLiteralConversionAndMarkupRemainsExplicit() {
+        Assert.Equal("txt-pdf", OfficeWorkflowCatalog.Find(".txt", ".pdf", executableOnly: false)?.Id);
         Assert.Equal("html-pdf", OfficeWorkflowCatalog.Find(".html", ".pdf", executableOnly: true)?.Id);
-        Assert.Throws<NotSupportedException>(() => OfficeWorkflow.Convert("source.txt").To("result.pdf").Build());
+        Assert.Equal("txt-pdf", OfficeWorkflow.Convert("source.txt").To("result.pdf").Build().ConversionRouteId);
+        Assert.Equal("html-pdf", OfficeWorkflow.Convert("source.txt").To("result.pdf").Via("html-pdf").Build().ConversionRouteId);
     }
 
     [Fact]

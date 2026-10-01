@@ -8,6 +8,10 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Route-specific settings captured before a conversion starts. Unspecified values retain each route's defaults.</summary>
 public sealed class OfficeWorkflowConversionOptions {
+    /// <summary>Literal-text settings, valid only for the TXT-to-PDF route.</summary>
+    public PdfPlainTextOptions? PlainText { get; set; }
+    /// <summary>Known legacy DOC import loss blocks output unless explicitly accepted.</summary>
+    public OfficeConversionLossPolicy LegacyDocLossPolicy { get; set; } = OfficeConversionLossPolicy.Block;
     /// <summary>Optional source PDF page ranges, for example 1-3,5. Other source formats do not accept this setting.</summary>
     public string? PageRanges { get; set; }
     /// <summary>PDF-to-Word reconstruction or rendered-page strategy.</summary>
@@ -24,10 +28,18 @@ public sealed class OfficeWorkflowConversionOptions {
     public bool CompressPdfOutput { get; set; }
 
     /// <summary>Creates an independent settings copy.</summary>
-    public OfficeWorkflowConversionOptions Clone() => (OfficeWorkflowConversionOptions)MemberwiseClone();
+    public OfficeWorkflowConversionOptions Clone() {
+        var copy = (OfficeWorkflowConversionOptions)MemberwiseClone();
+        copy.PlainText = PlainText?.Clone();
+        return copy;
+    }
 
     internal OfficeWorkflowConversionOptions Snapshot(OfficeWorkflowRoute route) {
         OfficeWorkflowConversionOptions copy = Clone();
+        if (copy.PlainText != null && route.Id != "txt-pdf") throw new ArgumentException("Plain-text settings require TXT-to-PDF conversion.");
+        if (copy.LegacyDocLossPolicy is not OfficeConversionLossPolicy.Block and not OfficeConversionLossPolicy.Allow ||
+            (route.Id != "doc-pdf" && copy.LegacyDocLossPolicy != OfficeConversionLossPolicy.Block))
+            throw new ArgumentException("Legacy import loss can be accepted only for DOC-to-PDF conversion.");
         if (!string.IsNullOrWhiteSpace(copy.PageRanges)) {
             if (!route.SupportsPageSelection) throw new ArgumentException("Page ranges require a PDF input route.");
             if (copy.PageRanges.Length > 2048) throw new ArgumentException("The page selection is too long.");

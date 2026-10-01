@@ -26,6 +26,7 @@ public sealed partial class PdfOptions {
             MarginBottom = MarginBottom,
             DefaultFont = DefaultFont,
             DefaultFontSize = DefaultFontSize,
+            PreserveTextWhitespace = PreserveTextWhitespace,
             ObjectSerializationMode = ObjectSerializationMode,
             ObjectBufferMemoryLimitBytes = ObjectBufferMemoryLimitBytes,
             PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,

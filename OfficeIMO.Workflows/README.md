@@ -4,6 +4,32 @@
 
 The package does not add a second document or PDF engine. Desktop applications, command-line tools, and services can share this workflow contract while keeping their user-interface and hosting code thin.
 
+## Restartable PDF archives
+
+`OfficePdfArchiveWorkflow` discovers DOC, DOCX and TXT files incrementally and converts a bounded number concurrently. Source, output and checkpoint directories must be separate local trees. The runner skips filesystem links and names outputs with the full relative source filename plus `.pdf`, so `report.doc` and `report.docx` cannot collide.
+
+```csharp
+using OfficeIMO.Workflows;
+
+var request = new OfficePdfArchiveRequest {
+    InputDirectory = Path.GetFullPath("Documents"),
+    OutputDirectory = Path.GetFullPath("PDF"),
+    CheckpointDirectory = Path.GetFullPath("PDF-State"),
+    MaximumConcurrency = 2
+};
+OfficePdfArchiveResult result = await OfficePdfArchiveWorkflow.RunAsync(request,
+    cancellationToken: cancellationToken);
+Console.WriteLine($"Completed {result.Completed}; reused {result.Reused}; failed {result.Failed}");
+```
+
+Rerunning the same request verifies source and PDF hashes before reusing completed items. Changed completed sources, changed or missing PDFs, and existing PDFs without a completion receipt require operator inspection; the runner never replaces them automatically. Cancellation keeps completed files and their checkpoints. Use `RetryFailed = true` to retry recorded failures, including a corrected failed source. A checkpoint belongs to its captured conversion settings and engine binaries; changed settings or binaries require a new checkpoint and output directory. Newly added source files are discovered on each run; this is not a frozen inventory of the original directory.
+
+Per-file limits default to 64 MiB input and 256 MiB output. Concurrency is limited to 1–8, selection to one million files, and literal text to 16 million decoded/expanded characters and 10,000 generated pages. These are resource bounds, not a measured throughput guarantee. A host can supply `publicationGuard` to protect output and checkpoint destinations. `IProgress<OfficePdfArchiveItemResult>` callbacks may arrive concurrently; avoid retaining every item in memory.
+
+Known legacy DOC import loss blocks conversion unless `AllowLegacyImportLoss` explicitly accepts it. Import findings and PDF render findings remain visible in item diagnostics. Checkpoints retain up to 32 non-information diagnostics, with a total count when truncated. TXT uses Unicode BOM detection or strict UTF-8, preserves literal markup and spacing, expands tabs, honors form feeds and wraps long lines. Set `TextEncoding` and `TabSize` when the source requires them. DOCX rendering has the Word/PDF adapter's documented fidelity limits; completion does not establish exact Microsoft Word pagination.
+
+Studio exposes the same runner under **Convert → PDF archive**. The CLI uses `officeimo workflow archive --request archive.json`. PowerShell 7.4 or newer exposes it through PSWriteOffice's `Export-OfficePdfArchive`.
+
 ## Email evidence and conversation dossiers
 
 `EmailEvidenceWorkflow` produces a portable ZIP containing `report.html`, `report.md`, `manifest.json`
