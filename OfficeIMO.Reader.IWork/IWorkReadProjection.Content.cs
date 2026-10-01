@@ -91,6 +91,14 @@ internal sealed partial class IWorkReadProjection {
                 Location = location
             });
         }
+        if (source.Cells.Any(cell => cell.Comment != null)) {
+            _diagnostics.Add(new OfficeDocumentDiagnostic {
+                Category = OfficeDocumentDiagnosticCategory.Content,
+                Code = "IWORK_READER_TABLE_COMMENTS_OMITTED",
+                Message = $"Table '{source.Name}' cell comments remain on the iWork source model and are omitted from the Reader grid.",
+                Source = "OfficeIMO.Reader.IWork", Location = location
+            });
+        }
         if (source.HiddenRows.Count > 0 || source.HiddenColumns.Count > 0) {
             _diagnostics.Add(new OfficeDocumentDiagnostic {
                 Category = OfficeDocumentDiagnosticCategory.Content,

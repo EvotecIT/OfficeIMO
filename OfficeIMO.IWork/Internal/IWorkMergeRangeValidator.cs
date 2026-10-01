@@ -31,7 +31,7 @@ internal static class IWorkMergeRangeValidator {
                 IWorkTableCell cell = orderedCells[cellIndex++];
                 // Empty formatting records are not covered content. Native merged cells
                 // can retain these records without making the merge destructive.
-                if (cell.Kind != IWorkCellKind.Empty && columns.Maximum(cell.Column - 1, cell.Column - 1) > 0
+                if ((cell.Kind != IWorkCellKind.Empty || cell.Comment != null) && columns.Maximum(cell.Column - 1, cell.Column - 1) > 0
                     && !anchors.Contains(Key(cell.Row, cell.Column))) return true;
             }
         }

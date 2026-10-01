@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false);
         Assert.True(report.IsPartialEditableReconstruction);
-        AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5[1]/6", 1,
+        AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
         Assert.Empty(report.SourceCellIssues);
         Assert.Contains(report.FidelityDiagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_CELL_FEATURES_UNASSESSED"
@@ -83,9 +83,9 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = FeatureCell(empty: false);
         using MemoryStream shared = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: cell, repeatModel: true);
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(shared,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaximumSourceDeclarationIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
-        AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues), "5[1]/6", 1,
+        AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 12), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.UnsupportedField);
         byte[] row(ulong index) => Message(VarintField(1, index), BytesField(6, cell), BytesField(7, new byte[] { 0, 0 }));
         using MemoryStream distinct = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,

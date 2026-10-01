@@ -277,6 +277,8 @@ public static partial class PowerPointIWorkConverter {
                 }
             }
             foreach (IWorkTable table in slide.Tables) {
+                if (!allowPartialEditableReconstruction && table.Cells.Any(cell => cell.Comment != null))
+                    return $"Keynote table '{table.Name}' contains cell comments that this PPTX projection cannot preserve.";
                 if (!allowPartialEditableReconstruction && (table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0))
                     return $"Keynote table '{table.Name}' has hidden rows or columns that the PPTX table owner cannot preserve.";
                 string? textStyleLimitation = FindTableTextStyleLimitation(table, allowPartialEditableReconstruction);
@@ -363,6 +365,11 @@ public static partial class PowerPointIWorkConverter {
             || projection.Slides.SelectMany(slide => slide.Tables).SelectMany(table => table.Cells)
                 .Any(cell => cell.Padding != null && PaddingPoints(cell.Padding).Any(points => !IsExactEmu(points)));
         var diagnostics = new List<IWorkDiagnostic>();
+        if (projection.Slides.SelectMany(slide => slide.Tables).Any(table => table.Cells.Any(cell => cell.Comment != null))) {
+            diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_TABLE_COMMENTS_OMITTED",
+                "PPTX table reconstruction omits native cell comments; qualified comments remain on the iWork projection.",
+                lossKind: global::OfficeIMO.OfficeConversionLossKind.Omission));
+        }
         if (projection.Slides.SelectMany(slide => slide.Tables).Any(table => table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0)) {
             diagnostics.Add(new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning, "IWORK_KEYNOTE_TABLE_VISIBILITY_OMITTED",
                 "PPTX tables retain source-hidden rows and columns as visible content; their visibility is retained on the iWork projection.",

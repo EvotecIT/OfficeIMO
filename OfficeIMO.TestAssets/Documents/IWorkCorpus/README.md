@@ -217,3 +217,15 @@ python Build/IWork/extract-single-cell-formulas.py OfficeIMO.TestAssets/Document
 ```
 
 The manifests resolve node-36 identities, signed relative offsets and mixed absolute flags through independent native schemas. Current-cell computations agree with all eight caches. OfficeIMO checks the first package’s five reconstructed source expressions and typed caches. Its pre-1900 dates still require whole-workbook XLSX fallback; the fixture is not edited to bypass that safety rule. The second package qualifies saved/reopened `COUNTBLANK`, `MAX` and single-cell `OFFSET` expressions, caches and recalculation after an edited referenced value. Synthetic packages cover all absolute/relative combinations, forward and normalized names, unresolved identities, malformed coordinates, endpoint whitespace and incompatible endpoint targets. Apple export, rendering and broader native recalculation remain unqualified.
+
+## Native root cell comments
+
+`cell-comments/native-roots.numbers` is the unchanged MIT-licensed `fixtures/olekristensen-v26.3-demo06-formulas-round8.numbers` from [cupertino-files](https://github.com/den-frie-vilje/cupertino-files) at revision `6879e6ed49e0eed7e7f393ff4ee558dc2dbec561`. The upstream attribution records a macOS Numbers save. The adjacent MIT notice retains copyright 2026 Ole Kristensen. The fixture contains the author's published test notes, display name and native author identifiers; it is retained deliberately as native comment evidence.
+
+With independent numbers-parser 4.19.0 installed, reproduce its hash-pinned manifest:
+
+```sh
+python Build/IWork/extract-cell-comments.py OfficeIMO.TestAssets/Documents/IWorkCorpus/cell-comments/native-roots.numbers OfficeIMO.TestAssets/Documents/IWorkCorpus/cell-comments/native-roots.json
+```
+
+The three selected roots qualify exact text, display author, timestamps, source record identities and saved/reopened XLSX cell anchors. Synthetic packages cover empty commented cells in all three formats, unresolved references, duplicate keys/text, unsupported replies and text/catalog limits. The fixture contains no replies and is not an Apple export or rendered-appearance oracle.

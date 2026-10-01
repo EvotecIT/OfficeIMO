@@ -67,6 +67,8 @@ public static partial class WordIWorkConverter {
             return "A Pages drawable belongs to a source page with no DOCX anchor paragraph.";
         }
         foreach (IWorkTable table in projection.Tables) {
+            if (!allowPartialEditableReconstruction && table.Cells.Any(cell => cell.Comment != null))
+                return $"Pages table '{table.Name}' contains cell comments that this DOCX projection cannot preserve.";
             if (!allowPartialEditableReconstruction && (table.HiddenRows.Count > 0 || table.HiddenColumns.Count > 0))
                 return $"Pages table '{table.Name}' has hidden rows or columns that the DOCX table owner cannot preserve.";
             long tableCells = (long)table.RowCount * table.ColumnCount;

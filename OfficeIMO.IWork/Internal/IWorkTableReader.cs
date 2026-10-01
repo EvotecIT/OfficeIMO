@@ -212,6 +212,7 @@ internal static partial class IWorkTableReader {
             out bool stringStorageComplete);
         IWorkTableRichTextCatalog richStrings = IWorkTableRichTextCatalog.Create(source, store, model,
             projectionBudget, references);
+        var comments = new IWorkTableCommentCatalog(source, store, model, projectionBudget, references);
         var numberFormats = new IWorkTableNumberFormatCatalog(source, store, model, projectionBudget, references);
         var cellStyles = new IWorkTableCellStyleCatalog(source, store, model, projectionBudget, references);
         textStyles = new IWorkTableTextStyleReader(source, model, message, cellStyles, projectionBudget,
@@ -436,9 +437,9 @@ internal static partial class IWorkTableReader {
                     int offset = hasWideOffsets ? checked(encodedOffset * 4) : encodedOffset;
                     IWorkTableCell cell = DecodeCell(buffer, offset, cellLimits[offset],
                         checked((int)zeroBasedRow + 1), column + 1,
-                        strings, richStrings, formulas, numberFormats, cellStyles, textStyles, source.Options, projectionBudget,
+                        strings, richStrings, formulas, numberFormats, cellStyles, textStyles, source.Options, projectionBudget, comments,
                         formulaRichStringIdentifiers, nonFormulaRichStringIdentifiers);
-                    if (cell.Kind == IWorkCellKind.Empty && !cell.HasCellFormatting
+                    if (cell.Kind == IWorkCellKind.Empty && !cell.HasCellFormatting && cell.Comment == null
                         && cell.UnsupportedFeatures == IWorkCellUnsupportedFeatures.None) continue;
                     if (materializedCellCount >= source.Options.MaximumMaterializedCells) {
                         throw new InvalidDataException($"iWork cell count exceeds the configured source-wide limit of {source.Options.MaximumMaterializedCells}.");

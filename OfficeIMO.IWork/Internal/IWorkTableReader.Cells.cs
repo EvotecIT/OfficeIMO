@@ -7,7 +7,7 @@ internal static partial class IWorkTableReader {
         int row, int column,
         IReadOnlyDictionary<uint, string> strings, IWorkTableRichTextCatalog richStrings,
         IReadOnlyDictionary<uint, IWorkWireMessage> formulas, IWorkTableNumberFormatCatalog numberFormats, IWorkTableCellStyleCatalog cellStyles, IWorkTableTextStyleReader textStyles,
-        IWorkReadOptions options, IWorkProjectionBudget projectionBudget,
+        IWorkReadOptions options, IWorkProjectionBudget projectionBudget, IWorkTableCommentCatalog comments,
         HashSet<uint> formulaRichStringIdentifiers, HashSet<uint> nonFormulaRichStringIdentifiers) {
         if (offset < 0 || endOffset < offset || endOffset > buffer.Length
             || offset > endOffset - 12) return Error(row, column, "Truncated cell record.");
@@ -50,14 +50,21 @@ internal static partial class IWorkTableReader {
             ? new IWorkTableCell(row, column, IWorkCellKind.Error, null,
                 error: cell.Error, sourceFormulaIsDeclared: true,
                 hasDecodeError: cell.HasDecodeError, fill: cell.Fill,
-                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle, hasUnresolvedFill: cell.HasUnresolvedFill)
+                padding: cell.Padding, verticalAlignment: cell.VerticalAlignment, paragraphStyle: cell.ParagraphStyle, hasSelectedTextStyle: cell.HasSelectedTextStyle, hasUnresolvedFill: cell.HasUnresolvedFill, comment: cell.Comment)
             : cell;
         // DecodeModernCell validated the entire selected storage before these selectors
-        // can establish feature presence. Their catalogs are deliberately not traversed.
+        // can establish feature presence or select a comment catalog entry.
         IWorkCellUnsupportedFeatures features = IWorkCellUnsupportedFeatures.None;
         if ((flags & (1u << 7)) != 0) features |= IWorkCellUnsupportedFeatures.ConditionalStyle;
         if ((flags & (1u << 8)) != 0) features |= IWorkCellUnsupportedFeatures.AppliedConditionalRule;
-        if ((flags & (1u << 19)) != 0) features |= IWorkCellUnsupportedFeatures.Comment;
+        if (!cell.HasDecodeError && (flags & (1u << 19)) != 0) {
+            int commentOffset = offset + 12;
+            for (int bit = 0; bit < 19; bit++)
+                if ((flags & (1u << bit)) != 0) commentOffset += CellValueFieldSize(bit);
+            IWorkCellComment? comment = comments.Read(IWorkProtobuf.ReadUInt32(buffer, commentOffset));
+            if (comment == null) features |= IWorkCellUnsupportedFeatures.Comment;
+            else cell = cell.WithComment(comment);
+        }
         return !cell.HasDecodeError && features != IWorkCellUnsupportedFeatures.None
             ? cell.WithUnsupportedFeatures(features) : cell;
     }

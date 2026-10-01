@@ -9,6 +9,6 @@ public enum IWorkCellUnsupportedFeatures {
     ConditionalStyle = 1,
     /// <summary>An applied conditional-rule selector is present; its effective formatting remains unassessed.</summary>
     AppliedConditionalRule = 2,
-    /// <summary>A comment selector is present; comment contents and threads remain unassessed.</summary>
+    /// <summary>A comment selector is unresolved or has unsupported content, including replies.</summary>
     Comment = 4
 }

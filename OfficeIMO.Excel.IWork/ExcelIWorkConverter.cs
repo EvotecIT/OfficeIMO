@@ -137,6 +137,7 @@ public static partial class ExcelIWorkConverter {
                         IWorkTable table = sourceSheet.Tables[tableIndex];
                         ExcelSheet sheet = preparedTables![table];
                         ApplyTableStyles(sheet, table, cancellationToken);
+                        sheet.AddThreadedComments(RootComments(table, cancellationToken));
                         foreach (IWorkTableCell cell in table.Cells) {
                             cancellationToken.ThrowIfCancellationRequested();
                             string? formula = preparedFormulas!.TryGetValue(cell, out string? boundFormula) ? boundFormula : null;
@@ -344,6 +345,7 @@ public static partial class ExcelIWorkConverter {
     private static string? FindExcelProjectionLimitation(IWorkNumbersProjection projection,
         bool normalizeWorksheetNames) {
         long styledCellCount = 0;
+        var commentAuthors = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var destinationSheetNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IWorkNumbersSheet sheet in projection.Sheets) {
             if (!FitsTextBoxesInWorksheet(sheet.TextBoxes.Count)) {
@@ -405,6 +407,15 @@ public static partial class ExcelIWorkConverter {
                     return $"Numbers table '{table.Name}' has individual row or column sizing outside the XLSX-supported range.";
                 }
                 foreach (IWorkTableCell cell in table.Cells) {
+                    if (cell.Comment is { } comment && (string.IsNullOrWhiteSpace(comment.Text)
+                        || string.IsNullOrWhiteSpace(comment.Author) || comment.Author != comment.Author.Trim()))
+                        return $"Numbers table '{table.Name}' contains a comment outside the XLSX text or author contract.";
+                    if (cell.Comment is { } authorComment) {
+                        if (commentAuthors.TryGetValue(authorComment.Author, out string? existingAuthor)
+                            && existingAuthor != authorComment.Author)
+                            return "Numbers comment author names differ only by case and cannot be preserved by the XLSX person owner.";
+                        commentAuthors[authorComment.Author] = authorComment.Author;
+                    }
                     if (cell.Kind != IWorkCellKind.Formula && cell.RichText != null
                         && cell.RichText.Paragraphs.SelectMany(paragraph => paragraph.Runs)
                             .Any(run => run.Style.FontSizePoints is double size
